@@ -63,24 +63,27 @@ class scheduler {
   scheduler(scheduler const&) = delete;
   ~scheduler() noexcept = default;
   scheduler& operator=(scheduler const&) = delete;
-  void _pb_apply_misc_event();
+#ifdef LEGACY_CONF
   void _apply_misc_event();
-  void _pb_calculate_host_inter_check_delay(
-      const configuration::InterCheckDelay& method);
   void _calculate_host_inter_check_delay(
       configuration::state::inter_check_delay method);
-  void _pb_calculate_host_scheduling_params();
   void _calculate_host_scheduling_params();
-  void _pb_calculate_service_inter_check_delay(
-      const configuration::InterCheckDelay& method);
   void _calculate_service_inter_check_delay(
       configuration::state::inter_check_delay method);
-  void _pb_calculate_service_interleave_factor(
-      const configuration::InterleaveFactor& method);
   void _calculate_service_interleave_factor(
       configuration::state::interleave_factor method);
-  void _pb_calculate_service_scheduling_params();
   void _calculate_service_scheduling_params();
+#else
+  void _pb_apply_misc_event();
+  void _pb_calculate_host_scheduling_params();
+  void _pb_calculate_host_inter_check_delay(
+      const configuration::InterCheckDelay& method);
+  void _pb_calculate_service_inter_check_delay(
+      const configuration::InterCheckDelay& method);
+  void _pb_calculate_service_interleave_factor(
+      const configuration::InterleaveFactor& method);
+  void _pb_calculate_service_scheduling_params();
+#endif
   timed_event* _create_misc_event(int type,
                                   time_t start,
                                   unsigned long interval,
@@ -113,8 +116,11 @@ class scheduler {
   void _unschedule_service_events(
       std::vector<engine::service*> const& services);
 
+#ifdef LEGACY_CONF
   configuration::state* _config;
+#else
   configuration::State* _pb_config;
+#endif
   timed_event* _evt_check_reaper;
   timed_event* _evt_command_check;
   timed_event* _evt_hfreshness_check;

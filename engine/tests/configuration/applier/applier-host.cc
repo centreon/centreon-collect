@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2017 - 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,7 +38,7 @@ using namespace com::centreon::engine::configuration::applier;
 
 class ApplierHost : public ::testing::Test {
  public:
-  void SetUp() override { init_config_state(LEGACY); }
+  void SetUp() override { init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };

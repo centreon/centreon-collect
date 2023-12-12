@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2011-2014, 2017, 2020-2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,11 +17,11 @@
  *
  */
 
+#include "com/centreon/engine/string.hh"
+
 #include <absl/strings/numbers.h>
 
 #include "absl/strings/ascii.h"
-#include "com/centreon/engine/string.hh"
-
 #include "com/centreon/engine/exceptions/error.hh"
 
 using namespace com::centreon::engine;

@@ -22,6 +22,7 @@
 #include <com/centreon/engine/checks/checker.hh>
 #include <com/centreon/engine/configuration/applier/logging.hh>
 #include <com/centreon/engine/configuration/applier/state.hh>
+
 #include "common/configuration/state_helper.hh"
 #include "common/log_v2/config.hh"
 #include "common/log_v2/log_v2.hh"
@@ -43,62 +44,69 @@ using FieldDescriptor = ::google::protobuf::FieldDescriptor;
  *
  * @param types What configurations to initialize.
  */
-void init_config_state(const config_type type) {
+#ifdef LEGACY_CONF
+void init_config_state() {
   /* Cleanup */
   if (config) {
     delete config;
     config = nullptr;
   }
-  pb_config.Clear();
 
   /* Legacy case */
-  if (type == LEGACY) {
-    legacy_conf = true;
-    if (config == nullptr)
-      config = new configuration::state;
+  if (config == nullptr)
+    config = new configuration::state;
 
-    config->log_file_line(true);
-    config->log_file("");
+  config->log_file_line(true);
+  config->log_file("");
 
-    log_v2_config log_conf(
-        "engine-tests", log_v2_config::logger_type::LOGGER_STDOUT,
-        config->log_flush_period(), config->log_pid(), config->log_file_line());
+  log_v2_config log_conf(
+      "engine-tests", log_v2_config::logger_type::LOGGER_STDOUT,
+      config->log_flush_period(), config->log_pid(), config->log_file_line());
 
-    log_v2::instance().apply(log_conf);
+  log_v2::instance().apply(log_conf);
 
-    // Hack to instanciate the logger.
-    configuration::applier::logging::instance().apply(*config);
-  }
-
-  if (type == PROTO) {
-    legacy_conf = false;
-    pb_config.CopyFrom(configuration::State());
-    configuration::state_helper cfg_hlp(&pb_config);
-    pb_config.set_log_file_line(true);
-    pb_config.set_log_file("");
-
-    log_v2_config log_conf("engine-tests",
-                           log_v2_config::logger_type::LOGGER_STDOUT,
-                           pb_config.log_flush_period(), pb_config.log_pid(),
-                           pb_config.log_file_line());
-
-    log_v2::instance().apply(log_conf);
-
-    // Hack to instanciate the logger.
-    configuration::applier::logging::instance().apply(pb_config);
-  }
+  // Hack to instanciate the logger.
+  configuration::applier::logging::instance().apply(*config);
 
   checks::checker::init(true);
 }
+#else
+void init_config_state() {
+  /* Cleanup */
+  pb_config.Clear();
 
+  pb_config.CopyFrom(configuration::State());
+  configuration::state_helper cfg_hlp(&pb_config);
+  pb_config.set_log_file_line(true);
+  pb_config.set_log_file("");
+
+  log_v2_config log_conf("engine-tests",
+                         log_v2_config::logger_type::LOGGER_STDOUT,
+                         pb_config.log_flush_period(), pb_config.log_pid(),
+                         pb_config.log_file_line());
+
+  log_v2::instance().apply(log_conf);
+
+  // Hack to instanciate the logger.
+  configuration::applier::logging::instance().apply(pb_config);
+
+  checks::checker::init(true);
+}
+#endif
+
+#ifdef LEGACY_CONF
 void deinit_config_state(void) {
-  if (legacy_conf) {
-    delete config;
-    config = nullptr;
-  } else {
-    configuration::State new_state;
-    pb_config.Swap(&new_state);
-  }
+  delete config;
+  config = nullptr;
+
+  configuration::applier::state::instance().clear();
+  checks::checker::deinit();
+}
+
+#else
+void deinit_config_state(void) {
+  configuration::State new_state;
+  pb_config.Swap(&new_state);
 
   configuration::applier::state::instance().clear();
   checks::checker::deinit();
@@ -130,3 +138,4 @@ configuration::Path build_path(std::string_view path) {
   }
   return retval;
 }
+#endif

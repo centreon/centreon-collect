@@ -104,8 +104,11 @@ class serviceescalation : public object {
   list_string const& service_description() const noexcept;
 };
 
-size_t serviceescalation_key(const Serviceescalation& he);
+#ifdef LEGACY_CONF
 size_t serviceescalation_key(const serviceescalation& he);
+#else
+size_t serviceescalation_key(const Serviceescalation& he);
+#endif
 
 typedef std::shared_ptr<serviceescalation> serviceescalation_ptr;
 typedef std::set<serviceescalation> set_serviceescalation;

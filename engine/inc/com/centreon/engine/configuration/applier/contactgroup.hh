@@ -1,27 +1,28 @@
-/*
-** Copyright 2011-2013,2017,2023 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2017,2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_APPLIER_CONTACTGROUP_HH
 #define CCE_CONFIGURATION_APPLIER_CONTACTGROUP_HH
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+
 #include "com/centreon/engine/configuration/contactgroup.hh"
 #include "common/configuration/state.pb.h"
 
@@ -60,16 +61,16 @@ class contactgroup {
   void add_object(configuration::contactgroup const& obj);
   void modify_object(configuration::contactgroup const& obj);
   void remove_object(configuration::contactgroup const& obj);
+  void expand_objects(configuration::state& s);
+  void resolve_object(configuration::contactgroup const& obj);
 #else
   void add_object(const configuration::Contactgroup& obj);
   void modify_object(configuration::Contactgroup* to_modify,
                      const configuration::Contactgroup& new_object);
   void remove_object(ssize_t idx);
-#endif
   void expand_objects(configuration::State& s);
-  void expand_objects(configuration::state& s);
   void resolve_object(const configuration::Contactgroup& obj);
-  void resolve_object(configuration::contactgroup const& obj);
+#endif
 };
 }  // namespace applier
 }  // namespace configuration

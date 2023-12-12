@@ -48,7 +48,7 @@ class ApplierPbContact : public ::testing::Test {
   void SetUp() override {
     config_errors = 0;
     config_warnings = 0;
-    init_config_state(PROTO);
+    init_config_state();
   }
 
   void TearDown() override { deinit_config_state(); }

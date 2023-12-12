@@ -36,57 +36,10 @@ using namespace com::centreon::engine;
 
 class ApplierServiceDependency : public ::testing::Test {
  public:
-  void SetUp() override { init_config_state(LEGACY); }
+  void SetUp() override { init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
-
-TEST_F(ApplierServiceDependency, AddDependencyWithoutExpansion) {
-  configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host1"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  hst_aply.add_object(hst);
-
-  ASSERT_TRUE(hst.parse("host_name", "test_host2"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.2"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "13"));
-  hst_aply.add_object(hst);
-  ASSERT_EQ(host::hosts.size(), 2u);
-
-  configuration::applier::command cmd_aply;
-  configuration::command cmd;
-  cmd.parse("command_name", "cmd");
-  cmd.parse("command_line", "echo 1");
-  cmd_aply.add_object(cmd);
-
-  configuration::applier::service svc_aply;
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("host", "test_host1"));
-  ASSERT_TRUE(svc.parse("service_description", "test_svc1"));
-  ASSERT_TRUE(svc.parse("service_id", "12"));
-  ASSERT_TRUE(svc.parse("check_command", "cmd"));
-  svc.set_host_id(12);
-  svc_aply.add_object(svc);
-
-  ASSERT_TRUE(svc.parse("host", "test_host2"));
-  ASSERT_TRUE(svc.parse("service_description", "test_svc2"));
-  ASSERT_TRUE(svc.parse("service_id", "13"));
-  svc.set_host_id(13);
-  svc_aply.add_object(svc);
-  ASSERT_EQ(service::services.size(), 2u);
-
-  configuration::applier::servicedependency sd_apply;
-  configuration::servicedependency sd;
-  ASSERT_TRUE(sd.parse("host", "test_host1"));
-  ASSERT_TRUE(sd.parse("dependent_host", "test_host2"));
-  ASSERT_TRUE(sd.parse("service_description", "test_svc1"));
-  ASSERT_TRUE(sd.parse("dependent_service_description", "test_svc2"));
-  /* the dependency type is missing because configuration is not
-   * expanded. */
-  ASSERT_THROW(sd_apply.add_object(sd), std::exception);
-}
 
 TEST_F(ApplierServiceDependency, PbAddDependencyWithoutExpansion) {
   configuration::applier::host hst_aply;
@@ -137,55 +90,6 @@ TEST_F(ApplierServiceDependency, PbAddDependencyWithoutExpansion) {
   /* the dependency type is missing because configuration is not
    * expanded. */
   ASSERT_THROW(sd_apply.add_object(sd), std::exception);
-}
-
-TEST_F(ApplierServiceDependency, AddDependency) {
-  configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host1"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  hst_aply.add_object(hst);
-
-  ASSERT_TRUE(hst.parse("host_name", "test_host2"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.2"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "13"));
-  hst_aply.add_object(hst);
-  ASSERT_EQ(host::hosts.size(), 2u);
-
-  configuration::applier::command cmd_aply;
-  configuration::command cmd;
-  cmd.parse("command_name", "cmd");
-  cmd.parse("command_line", "echo 1");
-  cmd_aply.add_object(cmd);
-
-  configuration::applier::service svc_aply;
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("host", "test_host1"));
-  ASSERT_TRUE(svc.parse("service_description", "test_svc1"));
-  ASSERT_TRUE(svc.parse("service_id", "12"));
-  ASSERT_TRUE(svc.parse("check_command", "cmd"));
-  svc.set_host_id(12);
-  svc_aply.add_object(svc);
-
-  ASSERT_TRUE(svc.parse("host", "test_host2"));
-  ASSERT_TRUE(svc.parse("service_description", "test_svc2"));
-  ASSERT_TRUE(svc.parse("service_id", "13"));
-  svc.set_host_id(13);
-  svc_aply.add_object(svc);
-  ASSERT_EQ(service::services.size(), 2u);
-
-  configuration::applier::servicedependency sd_apply;
-  configuration::servicedependency sd;
-  ASSERT_TRUE(sd.parse("host", "test_host1"));
-  ASSERT_TRUE(sd.parse("dependent_host", "test_host2"));
-  ASSERT_TRUE(sd.parse("service_description", "test_svc1"));
-  ASSERT_TRUE(sd.parse("dependent_service_description", "test_svc2"));
-
-  /* Just to simulate the expansion */
-  sd.dependency_type(configuration::servicedependency::execution_dependency);
-
-  ASSERT_NO_THROW(sd_apply.add_object(sd));
 }
 
 TEST_F(ApplierServiceDependency, PbAddDependency) {

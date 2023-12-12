@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,13 +25,8 @@
 extern com::centreon::engine::configuration::state* config;
 extern com::centreon::engine::configuration::State pb_config;
 
-enum config_type {
-  LEGACY,
-  PROTO,
-};
-
-void init_config_state(const config_type type);
-void deinit_config_state(void);
+void init_config_state();
+void deinit_config_state();
 
 com::centreon::engine::configuration::Path build_path(std::string_view path);
 

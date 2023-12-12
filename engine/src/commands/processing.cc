@@ -921,7 +921,11 @@ void processing::_wrapper_read_state_information() {
 #endif
     p.parse(retention_file, state);
     retention::applier::state app_state;
+#ifdef LEGACY_CONF
     app_state.apply(*config, state);
+#else
+    app_state.apply(pb_config, state);
+#endif
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: could not load retention file: " << e.what();

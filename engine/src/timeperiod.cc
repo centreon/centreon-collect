@@ -1,23 +1,24 @@
-/*
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013 Merethis
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/timeperiod.hh"
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/daterange.hh"
@@ -44,6 +45,7 @@ timeperiod_map timeperiod::timeperiods;
  *
  */
 
+#ifdef LEGACY_CONF
 timeperiod::timeperiod(std::string const& name, std::string const& alias)
     : _name{name}, _alias{alias} {
   // Check if the timeperiod already exist.
@@ -56,7 +58,7 @@ timeperiod::timeperiod(std::string const& name, std::string const& alias)
     throw engine_error() << "Could not register time period '" << name << "'";
   }
 }
-
+#else
 /**
  * @brief Constructor of a timeperiod from its configuration protobuf object.
  *
@@ -110,6 +112,7 @@ timeperiod::timeperiod(const configuration::Timeperiod& obj)
 
   set_exclusions(obj.exclude());
 }
+#endif
 
 void timeperiod::set_exclusions(const configuration::StringSet& exclusions) {
   _exclusions.clear();

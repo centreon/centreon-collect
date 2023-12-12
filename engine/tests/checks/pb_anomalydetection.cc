@@ -47,7 +47,7 @@ using namespace com::centreon::engine::configuration::applier;
 class PbAnomalydetectionCheck : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state(PROTO);
+    init_config_state();
 
     init_loggers();
     checks_logger->set_level(spdlog::level::trace);

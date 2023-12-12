@@ -56,7 +56,7 @@ class Connector : public ::testing::Test {
  public:
   void SetUp() override {
     signal(SIGPIPE, SIG_IGN);
-    init_config_state(LEGACY);
+    init_config_state();
   }
 
   void TearDown() override { deinit_config_state(); }

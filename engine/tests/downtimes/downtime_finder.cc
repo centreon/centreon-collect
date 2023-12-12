@@ -40,7 +40,7 @@ using namespace com::centreon::engine::downtimes;
 class DowntimeFinderFindMatchingAllTest : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state(LEGACY);
+    init_config_state();
     configuration::contact ctc{new_configuration_contact("admin", false, "a")};
     configuration::applier::contact ctc_aply;
     ctc_aply.add_object(ctc);

@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2005 - 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,9 @@
  */
 
 #include <gtest/gtest.h>
+
 #include <com/centreon/engine/macros.hh>
+
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/commands/commands.hh"
@@ -35,7 +37,7 @@ using namespace com::centreon::engine::configuration;
 
 class CustomVar : public ::testing::Test {
  public:
-  void SetUp() override { init_config_state(LEGACY); }
+  void SetUp() override { init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };

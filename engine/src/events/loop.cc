@@ -1,24 +1,24 @@
-/*
-** Copyright 1999-2009 Ethan Galstad
-** Copyright 2009-2010 Nagios Core Development Team and Community Contributors
-** Copyright 2011-2013 Merethis
-** Copyright 2013-2022 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 1999-2009 Ethan Galstad
+ * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
+ * Copyright 2011-2013 Merethis
+ * Copyright 2013-2022 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/events/loop.hh"
 
@@ -534,8 +534,13 @@ void loop::adjust_check_scheduling() {
   // determine our adjustment window.
   time_t current_time(time(nullptr));
   time_t first_window_time(current_time);
+#ifdef LEGACY_CONF
   time_t last_window_time(first_window_time +
                           config->auto_rescheduling_window());
+#else
+  time_t last_window_time(first_window_time +
+                          pb_config.auto_rescheduling_window());
+#endif
 
   // get current scheduling data.
   for (timed_event_list::iterator it{_event_list_low.begin()},
@@ -595,6 +600,7 @@ void loop::adjust_check_scheduling() {
   if (total_checks == 0 || adjust_scheduling == false)
     return;
 
+#ifdef LEGACY_CONF
   if ((unsigned long)total_check_exec_time >
       config->auto_rescheduling_window()) {
     inter_check_delay = 0.0;
@@ -606,6 +612,20 @@ void loop::adjust_check_scheduling() {
                                  (double)(total_checks * 1.0));
     exec_time_factor = 1.0;
   }
+#else
+  if ((unsigned long)total_check_exec_time >
+      pb_config.auto_rescheduling_window()) {
+    inter_check_delay = 0.0;
+    exec_time_factor = (double)((double)pb_config.auto_rescheduling_window() /
+                                total_check_exec_time);
+  } else {
+    inter_check_delay =
+        (double)((((double)pb_config.auto_rescheduling_window()) -
+                  total_check_exec_time) /
+                 (double)(total_checks * 1.0));
+    exec_time_factor = 1.0;
+  }
+#endif
 
   auto compute_new_run_time = [](double current_exec_time_offset,
                                  double current_icd_offset,

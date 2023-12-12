@@ -1,5 +1,5 @@
-/*
- * Copyright 2022 Centreon (https://www.centreon.com/)
+/**
+ * Copyright 2022-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
  */
 
 #include <gtest/gtest.h>
+
 #include <com/centreon/engine/configuration/applier/hostescalation.hh>
 #include <com/centreon/engine/configuration/parser.hh>
 #include <fstream>
@@ -29,7 +30,7 @@ using namespace com::centreon::engine;
 
 class ApplierLog : public ::testing::Test {
  public:
-  void SetUp() override { init_config_state(LEGACY); }
+  void SetUp() override { init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };

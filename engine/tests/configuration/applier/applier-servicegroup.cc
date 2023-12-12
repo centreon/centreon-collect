@@ -26,11 +26,6 @@
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/servicegroup.hh"
-#include "common/configuration/command_helper.hh"
-#include "common/configuration/host_helper.hh"
-#include "common/configuration/service_helper.hh"
-#include "common/configuration/servicegroup_helper.hh"
-#include "common/configuration/state-generated.pb.h"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -46,7 +41,7 @@ class ApplierServicegroup : public ::testing::Test {
   void SetUp() override {
     config_errors = 0;
     config_warnings = 0;
-    init_config_state(LEGACY);
+    init_config_state();
   }
 
   void TearDown() override { deinit_config_state(); }
@@ -78,22 +73,6 @@ TEST_F(ApplierServicegroup, ModifyUnexistingServicegroupFromConfig) {
 }
 
 // Given a servicegroup applier
-// And a configuration servicegroup
-// When we modify the servicegroup configuration with a non existing
-// servicegroup
-// Then an exception is thrown.
-TEST_F(ApplierServicegroup, PbModifyUnexistingServicegroupFromConfig) {
-  configuration::applier::servicegroup aply;
-  configuration::Servicegroup sg;
-  configuration::servicegroup_helper sg_hlp(&sg);
-  sg.set_servicegroup_name("test");
-  fill_pair_string_group(sg.mutable_members(), "host1,service1");
-  configuration::Servicegroup* new_sg = pb_config.add_servicegroups();
-  new_sg->CopyFrom(sg);
-  ASSERT_THROW(aply.modify_object(new_sg, sg), std::exception);
-}
-
-// Given a servicegroup applier
 // And a configuration servicegroup in configuration
 // When we modify the servicegroup configuration
 // Then the applier modify_object updates the servicegroup.
@@ -111,26 +90,6 @@ TEST_F(ApplierServicegroup, ModifyServicegroupFromConfig) {
   ASSERT_TRUE(it->second->get_alias() == "test_renamed");
 }
 
-// Given a servicegroup applier
-// And a configuration servicegroup in configuration
-// When we modify the servicegroup configuration
-// Then the applier modify_object updates the servicegroup.
-TEST_F(ApplierServicegroup, PbModifyServicegroupFromConfig) {
-  configuration::applier::servicegroup aply;
-  configuration::Servicegroup sg;
-  configuration::servicegroup_helper sg_hlp(&sg);
-  sg.set_servicegroup_name("test");
-  fill_pair_string_group(sg.mutable_members(), "host1,service1");
-  aply.add_object(sg);
-  auto it = engine::servicegroup::servicegroups.find("test");
-  ASSERT_TRUE(it->second->get_alias() == "test");
-
-  sg.set_alias("test_renamed");
-  aply.modify_object(pb_config.mutable_servicegroups(0), sg);
-  it = engine::servicegroup::servicegroups.find("test");
-  ASSERT_TRUE(it->second->get_alias() == "test_renamed");
-}
-
 // Given an empty servicegroup
 // When the resolve_object() method is called
 // Then no warning, nor error are given
@@ -139,21 +98,6 @@ TEST_F(ApplierServicegroup, ResolveEmptyservicegroup) {
   configuration::servicegroup grp("test");
   aplyr.add_object(grp);
   aplyr.expand_objects(*config);
-  aplyr.resolve_object(grp);
-  ASSERT_EQ(config_warnings, 0);
-  ASSERT_EQ(config_errors, 0);
-}
-
-// Given an empty servicegroup
-// When the resolve_object() method is called
-// Then no warning, nor error are given
-TEST_F(ApplierServicegroup, PbResolveEmptyservicegroup) {
-  configuration::applier::servicegroup aplyr;
-  configuration::Servicegroup grp;
-  configuration::servicegroup_helper grp_hlp(&grp);
-  grp.set_servicegroup_name("test");
-  aplyr.add_object(grp);
-  aplyr.expand_objects(pb_config);
   aplyr.resolve_object(grp);
   ASSERT_EQ(config_warnings, 0);
   ASSERT_EQ(config_errors, 0);
@@ -169,23 +113,6 @@ TEST_F(ApplierServicegroup, ResolveInexistentService) {
   grp.parse("members", "host1,non_existing_service");
   aplyr.add_object(grp);
   aplyr.expand_objects(*config);
-  ASSERT_THROW(aplyr.resolve_object(grp), std::exception);
-  ASSERT_EQ(config_warnings, 0);
-  ASSERT_EQ(config_errors, 1);
-}
-
-// Given a servicegroup with a non-existing service
-// When the resolve_object() method is called
-// Then an exception is thrown
-// And the method returns 1 error
-TEST_F(ApplierServicegroup, PbResolveInexistentService) {
-  configuration::applier::servicegroup aplyr;
-  configuration::Servicegroup grp;
-  configuration::servicegroup_helper grp_helper(&grp);
-  grp.set_servicegroup_name("test");
-  fill_pair_string_group(grp.mutable_members(), "host1,non_existing_service");
-  aplyr.add_object(grp);
-  aplyr.expand_objects(pb_config);
   ASSERT_THROW(aplyr.resolve_object(grp), std::exception);
   ASSERT_EQ(config_warnings, 0);
   ASSERT_EQ(config_errors, 1);

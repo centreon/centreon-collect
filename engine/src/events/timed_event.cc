@@ -1,24 +1,24 @@
-/*
-** Copyright 2007-2008      Ethan Galstad
-** Copyright 2007,2010      Andreas Ericsson
-** Copyright 2010           Max Schubert
-** Copyright 2011-2013,2016 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2007-2008      Ethan Galstad
+ * Copyright 2007,2010      Andreas Ericsson
+ * Copyright 2010           Max Schubert
+ * Copyright 2011-2013,2016 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -194,6 +194,7 @@ void timed_event::_exec_event_check_reaper() {
   }
 }
 
+#ifdef LEGACY_CONF
 /**
  *  Execute orphan check.
  *
@@ -209,7 +210,25 @@ void timed_event::_exec_event_orphan_check() {
   if (config->check_orphaned_services())
     service::check_for_orphaned();
 }
+#else
+/**
+ *  Execute orphan check.
+ *
+ */
+void timed_event::_exec_event_orphan_check() {
+  engine_logger(dbg_events, basic)
+      << "** Orphaned Host and Service Check Event";
+  events_logger->trace("** Orphaned Host and Service Check Event");
 
+  // check for orphaned hosts and services.
+  if (pb_config.check_orphaned_hosts())
+    host::check_for_orphaned();
+  if (pb_config.check_orphaned_services())
+    service::check_for_orphaned();
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  Execute retention save.
  *
@@ -221,6 +240,19 @@ void timed_event::_exec_event_retention_save() {
   // save state retention data.
   retention::dump::save(config->state_retention_file());
 }
+#else
+/**
+ *  Execute retention save.
+ *
+ */
+void timed_event::_exec_event_retention_save() {
+  engine_logger(dbg_events, basic) << "** Retention Data Save Event";
+  events_logger->trace("** Retention Data Save Event");
+
+  // save state retention data.
+  retention::dump::save(pb_config.state_retention_file());
+}
+#endif
 
 /**
  *  Execute status save.

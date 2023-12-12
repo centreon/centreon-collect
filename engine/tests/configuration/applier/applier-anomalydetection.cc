@@ -42,7 +42,7 @@ using namespace com::centreon::engine::configuration::applier;
 
 class ApplierAnomalydetection : public TestEngine {
  public:
-  void SetUp() override { init_config_state(LEGACY); }
+  void SetUp() override { init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };

@@ -53,7 +53,7 @@ extern configuration::State pb_config;
 class ServiceRetention : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state(LEGACY);
+    init_config_state();
 
     config->contacts().clear();
     configuration::applier::contact ct_aply;

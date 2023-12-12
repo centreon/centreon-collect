@@ -1,25 +1,26 @@
-/*
-** Copyright 2020,2023 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2020,2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
+
+#include "com/centreon/engine/anomalydetection.hh"
 
 #include <absl/container/flat_hash_set.h>
 
-#include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/anomalydetection.hh"
@@ -155,169 +156,7 @@ void applier::anomalydetection::add_object(
   broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
                                ad, MODATTR_ALL);
 }
-#else
-/**
- * @brief Add new anomalydetection.
- *
- * @param obj The new anomalydetection protobuf configuration to add into the
- * monitoring engine.
- */
-void applier::anomalydetection::add_object(
-    const configuration::Anomalydetection& obj) {
-  // Check anomalydetection.
-  if (!obj.host_id())
-    throw engine_error() << fmt::format(
-        "No host_id available for the host '{} - unable to create "
-        "anomalydetection '{}'",
-        obj.host_name(), obj.service_description());
 
-  // Logging.
-  auto logger = log_v2::instance().get(log_v2::CONFIG);
-  SPDLOG_LOGGER_DEBUG(logger,
-                      "Creating new anomalydetection '{}' of host '{}'.",
-                      obj.service_description(), obj.host_name());
-
-  // Add anomalydetection to the global configuration set.
-  auto* cfg_obj = pb_config.add_anomalydetections();
-  cfg_obj->CopyFrom(obj);
-
-  // Create anomalydetection.
-  engine::anomalydetection* ad{add_anomalydetection(
-      obj.host_id(), obj.service_id(), obj.host_name(),
-      obj.service_description(), obj.display_name(), obj.internal_id(),
-      obj.dependent_service_id(), obj.metric_name(), obj.thresholds_file(),
-      obj.status_change(),
-      static_cast<engine::anomalydetection::service_state>(obj.initial_state()),
-      obj.max_check_attempts(), obj.check_interval(), obj.retry_interval(),
-      obj.notification_interval(), obj.first_notification_delay(),
-      obj.recovery_notification_delay(), obj.notification_period(),
-      static_cast<bool>(obj.notification_options() &
-                        configuration::anomalydetection::ok),
-      static_cast<bool>(obj.notification_options() &
-                        configuration::anomalydetection::unknown),
-      static_cast<bool>(obj.notification_options() &
-                        configuration::anomalydetection::warning),
-      static_cast<bool>(obj.notification_options() &
-                        configuration::anomalydetection::critical),
-      static_cast<bool>(obj.notification_options() &
-                        configuration::anomalydetection::flapping),
-      static_cast<bool>(obj.notification_options() &
-                        configuration::anomalydetection::downtime),
-      obj.notifications_enabled(), obj.is_volatile(), obj.event_handler(),
-      obj.event_handler_enabled(), obj.checks_active(), obj.checks_passive(),
-      obj.flap_detection_enabled(), obj.low_flap_threshold(),
-      obj.high_flap_threshold(),
-      static_cast<bool>(obj.flap_detection_options() &
-                        configuration::anomalydetection::ok),
-      static_cast<bool>(obj.flap_detection_options() &
-                        configuration::anomalydetection::warning),
-      static_cast<bool>(obj.flap_detection_options() &
-                        configuration::anomalydetection::unknown),
-      static_cast<bool>(obj.flap_detection_options() &
-                        configuration::anomalydetection::critical),
-      static_cast<bool>(obj.stalking_options() &
-                        configuration::anomalydetection::ok),
-      static_cast<bool>(obj.stalking_options() &
-                        configuration::anomalydetection::warning),
-      static_cast<bool>(obj.stalking_options() &
-                        configuration::anomalydetection::unknown),
-      static_cast<bool>(obj.stalking_options() &
-                        configuration::anomalydetection::critical),
-      obj.process_perf_data(), obj.check_freshness(), obj.freshness_threshold(),
-      obj.notes(), obj.notes_url(), obj.action_url(), obj.icon_image(),
-      obj.icon_image_alt(), obj.retain_status_information(),
-      obj.retain_nonstatus_information(), obj.obsess_over_service(),
-      obj.timezone(), obj.icon_id(), obj.sensitivity())};
-  if (!ad)
-    throw engine_error() << "Could not register anomalydetection '"
-                         << obj.service_description() << "' of host '"
-                         << obj.host_name() << "'";
-  ad->set_initial_notif_time(0);
-  engine::anomalydetection::services[{obj.host_name(),
-                                      obj.service_description()}]
-      ->set_host_id(obj.host_id());
-  engine::anomalydetection::services[{obj.host_name(),
-                                      obj.service_description()}]
-      ->set_service_id(obj.service_id());
-  ad->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
-                                  pb_config.interval_length());
-  ad->set_last_acknowledgement(0);
-
-  // Add contacts.
-  for (auto& c : obj.contacts().data())
-    ad->mut_contacts().insert({c, nullptr});
-
-  // Add contactgroups.
-  for (auto& cg : obj.contactgroups().data())
-    ad->get_contactgroups().insert({cg, nullptr});
-
-  // Add custom variables.
-  for (auto& cv : obj.customvariables()) {
-    engine::customvariable& c = ad->custom_variables[cv.name()];
-    c.set_value(cv.value());
-    c.set_sent(cv.is_sent());
-
-    if (c.is_sent()) {
-      timeval tv(get_broker_timestamp(nullptr));
-      broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, ad,
-                             cv.name().c_str(), cv.value().c_str(), &tv);
-    }
-  }
-
-  // Notify event broker.
-  broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                               ad, MODATTR_ALL);
-}
-#endif
-
-/**
- *  Expand a anomalydetection object.
- *
- *  @param[in,out] s  State being applied.
- */
-void applier::anomalydetection::expand_objects(configuration::state& s) {
-  // Browse all anomalydetections.
-  configuration::set_anomalydetection new_ads;
-  // In a set, we cannot change items as it would change their order. So we
-  // create a new set and replace the old one with the new one at the end.
-  for (auto ad : s.anomalydetections()) {
-    // Should custom variables be sent to broker ?
-    for (auto it = ad.customvariables().begin(),
-              end = ad.customvariables().end();
-         it != end; ++it) {
-      if (!s.enable_macros_filter() ||
-          s.macros_filter().find(it->first) != s.macros_filter().end()) {
-        it->second.set_sent(true);
-      }
-    }
-    new_ads.insert(std::move(ad));
-  }
-  s.anomalydetections() = new_ads;
-}
-
-/**
- *  Expand a anomalydetection object.
- *
- *  @param[in,out] s  State being applied.
- */
-void applier::anomalydetection::expand_objects(configuration::State& s) {
-  std::list<std::unique_ptr<Service>> expanded;
-  // Let's consider all the macros defined in s.
-  absl::flat_hash_set<std::string_view> cvs;
-  for (auto& cv : s.macros_filter().data())
-    cvs.emplace(cv);
-
-  // Browse all anomalydetections.
-  for (auto& ad_cfg : *s.mutable_anomalydetections()) {
-    // Should custom variables be sent to broker ?
-    for (auto& cv : *ad_cfg.mutable_customvariables()) {
-      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
-        cv.set_is_sent(true);
-    }
-  }
-}
-
-#ifdef LEGACY_CONF
 /**
  *  Modified anomalydetection.
  *
@@ -521,7 +360,310 @@ void applier::anomalydetection::modify_object(
   broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE,
                                NEBATTR_NONE, s.get(), MODATTR_ALL);
 }
+
+/**
+ *  Remove old anomalydetection.
+ *
+ *  @param[in] obj  The new anomalydetection to remove from the monitoring
+ *                  engine.
+ */
+void applier::anomalydetection::remove_object(
+    configuration::anomalydetection const& obj) {
+  std::string const& host_name(obj.host_name());
+  std::string const& service_description(obj.service_description());
+
+  assert(obj.key().first);
+  // Logging.
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  SPDLOG_LOGGER_DEBUG(logger, "Removing anomalydetection '{}' of host '{}'.",
+                      service_description, host_name);
+
+  // Find anomalydetection.
+  service_id_map::iterator it(engine::service::services_by_id.find(obj.key()));
+  if (it != engine::service::services_by_id.end()) {
+    std::shared_ptr<engine::anomalydetection> ad(
+        std::static_pointer_cast<engine::anomalydetection>(it->second));
+
+    // Remove anomalydetection comments.
+    comment::delete_service_comments(obj.key().first, obj.key().second);
+
+    // Remove anomalydetection downtimes.
+    downtime_manager::instance()
+        .delete_downtime_by_hostname_service_description_start_time_comment(
+            host_name, service_description, {false, (time_t)0}, "");
+
+    // Remove events related to this anomalydetection.
+    applier::scheduler::instance().remove_service(obj.host_id(),
+                                                  obj.service_id());
+
+    // remove anomalydetection from servicegroup->members
+    for (auto& it_s : it->second->get_parent_groups())
+      it_s->members.erase({host_name, service_description});
+
+    // Notify event broker.
+    broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
+                                 NEBATTR_NONE, ad.get(), MODATTR_ALL);
+
+    // Unregister anomalydetection.
+    engine::anomalydetection::services.erase({host_name, service_description});
+    engine::anomalydetection::services_by_id.erase(it);
+  }
+
+  // Remove anomalydetection from the global configuration set.
+  config->anomalydetections().erase(obj);
+}
+
+/**
+ *  Resolve a anomalydetection.
+ *
+ *  @param[in] obj  Service object.
+ */
+void applier::anomalydetection::resolve_object(
+    configuration::anomalydetection const& obj) {
+  // Logging.
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  SPDLOG_LOGGER_DEBUG(logger, "Resolving anomalydetection '{}' of host '{}'.",
+                      obj.service_description(), obj.host_name());
+
+  // Find anomalydetection.
+  service_id_map::iterator it(
+      engine::anomalydetection::services_by_id.find(obj.key()));
+  if (engine::anomalydetection::services_by_id.end() == it)
+    throw engine_error() << "Cannot resolve non-existing anomalydetection '"
+                         << obj.service_description() << "' of host '"
+                         << obj.host_name() << "'";
+
+  // Remove anomalydetection group links.
+  it->second->get_parent_groups().clear();
+
+  // Find host and adjust its counters.
+  host_id_map::iterator hst(engine::host::hosts_by_id.find(it->first.first));
+  if (hst != engine::host::hosts_by_id.end()) {
+    hst->second->set_total_services(hst->second->get_total_services() + 1);
+    hst->second->set_total_service_check_interval(
+        hst->second->get_total_service_check_interval() +
+        static_cast<uint64_t>(it->second->check_interval()));
+  }
+
+  // Resolve anomalydetection.
+  it->second->resolve(config_warnings, config_errors);
+}
+
+/**
+ *  Expand anomalydetection instance memberships.
+ *
+ *  @param[in]  obj Target anomalydetection.
+ *  @param[out] s   Configuration state.
+ */
+void applier::anomalydetection::_expand_service_memberships(
+    configuration::anomalydetection& obj,
+    configuration::state& s) {
+  // Browse anomalydetection groups.
+  for (set_string::const_iterator it(obj.servicegroups().begin()),
+       end(obj.servicegroups().end());
+       it != end; ++it) {
+    // Find anomalydetection group.
+    configuration::set_servicegroup::iterator it_group(
+        s.servicegroups_find(*it));
+    if (it_group == s.servicegroups().end())
+      throw(engine_error() << "Could not add anomalydetection '"
+                           << obj.service_description() << "' of host '"
+                           << obj.host_name()
+                           << "' to non-existing anomalydetection group '"
+                           << *it << "'");
+
+    // Remove anomalydetection group from state.
+    configuration::servicegroup backup(*it_group);
+    s.servicegroups().erase(it_group);
+
+    // Add anomalydetection to anomalydetection members.
+    backup.members().insert(
+        std::make_pair(obj.host_name(), obj.service_description()));
+
+    // Reinsert anomalydetection group.
+    s.servicegroups().insert(backup);
+  }
+}
+
+/**
+ *  Expand a anomalydetection object.
+ *
+ *  @param[in,out] s  State being applied.
+ */
+void applier::anomalydetection::expand_objects(configuration::state& s) {
+  // Browse all anomalydetections.
+  configuration::set_anomalydetection new_ads;
+  // In a set, we cannot change items as it would change their order. So we
+  // create a new set and replace the old one with the new one at the end.
+  for (auto ad : s.anomalydetections()) {
+    // Should custom variables be sent to broker ?
+    for (auto it = ad.customvariables().begin(),
+              end = ad.customvariables().end();
+         it != end; ++it) {
+      if (!s.enable_macros_filter() ||
+          s.macros_filter().find(it->first) != s.macros_filter().end()) {
+        it->second.set_sent(true);
+      }
+    }
+    new_ads.insert(std::move(ad));
+  }
+  s.anomalydetections() = new_ads;
+}
+
+/**
+ *  @brief Inherits special variables from host.
+ *
+ *  These special variables, if not defined are inherited from host.
+ *  They are contact_groups, notification_interval and
+ *  notification_period.
+ *
+ *  @param[in,out] obj Target anomalydetection.
+ *  @param[in]     s   Configuration state.
+ */
+void applier::anomalydetection::_inherits_special_vars(
+    configuration::anomalydetection& obj,
+    configuration::state const& s) {
+  // Detect if any special variable has not been defined.
+  if (!obj.host_id() || !obj.contacts_defined() ||
+      !obj.contactgroups_defined() || !obj.notification_interval_defined() ||
+      !obj.notification_period_defined() || !obj.timezone_defined()) {
+    // Find host.
+    configuration::set_host::const_iterator it(s.hosts_find(obj.host_name()));
+    if (it == s.hosts().end())
+      throw engine_error()
+          << "Could not inherit special variables for anomalydetection '"
+          << obj.service_description() << "': host '" << obj.host_name()
+          << "' does not exist";
+
+    // Inherits variables.
+    if (!obj.host_id())
+      obj.set_host_id(it->host_id());
+    if (!obj.contacts_defined() && !obj.contactgroups_defined()) {
+      obj.contacts() = it->contacts();
+      obj.contactgroups() = it->contactgroups();
+    }
+    if (!obj.notification_interval_defined())
+      obj.notification_interval(it->notification_interval());
+    if (!obj.notification_period_defined())
+      obj.notification_period(it->notification_period());
+    if (!obj.timezone_defined())
+      obj.timezone(it->timezone());
+  }
+}
 #else
+/**
+ * @brief Add new anomalydetection.
+ *
+ * @param obj The new anomalydetection protobuf configuration to add into the
+ * monitoring engine.
+ */
+void applier::anomalydetection::add_object(
+    const configuration::Anomalydetection& obj) {
+  // Check anomalydetection.
+  if (!obj.host_id())
+    throw engine_error() << fmt::format(
+        "No host_id available for the host '{} - unable to create "
+        "anomalydetection '{}'",
+        obj.host_name(), obj.service_description());
+
+  // Logging.
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  SPDLOG_LOGGER_DEBUG(logger,
+                      "Creating new anomalydetection '{}' of host '{}'.",
+                      obj.service_description(), obj.host_name());
+
+  // Add anomalydetection to the global configuration set.
+  auto* cfg_obj = pb_config.add_anomalydetections();
+  cfg_obj->CopyFrom(obj);
+
+  // Create anomalydetection.
+  engine::anomalydetection* ad{add_anomalydetection(
+      obj.host_id(), obj.service_id(), obj.host_name(),
+      obj.service_description(), obj.display_name(), obj.internal_id(),
+      obj.dependent_service_id(), obj.metric_name(), obj.thresholds_file(),
+      obj.status_change(),
+      static_cast<engine::anomalydetection::service_state>(obj.initial_state()),
+      obj.max_check_attempts(), obj.check_interval(), obj.retry_interval(),
+      obj.notification_interval(), obj.first_notification_delay(),
+      obj.recovery_notification_delay(), obj.notification_period(),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::anomalydetection::ok),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::anomalydetection::unknown),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::anomalydetection::warning),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::anomalydetection::critical),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::anomalydetection::flapping),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::anomalydetection::downtime),
+      obj.notifications_enabled(), obj.is_volatile(), obj.event_handler(),
+      obj.event_handler_enabled(), obj.checks_active(), obj.checks_passive(),
+      obj.flap_detection_enabled(), obj.low_flap_threshold(),
+      obj.high_flap_threshold(),
+      static_cast<bool>(obj.flap_detection_options() &
+                        configuration::anomalydetection::ok),
+      static_cast<bool>(obj.flap_detection_options() &
+                        configuration::anomalydetection::warning),
+      static_cast<bool>(obj.flap_detection_options() &
+                        configuration::anomalydetection::unknown),
+      static_cast<bool>(obj.flap_detection_options() &
+                        configuration::anomalydetection::critical),
+      static_cast<bool>(obj.stalking_options() &
+                        configuration::anomalydetection::ok),
+      static_cast<bool>(obj.stalking_options() &
+                        configuration::anomalydetection::warning),
+      static_cast<bool>(obj.stalking_options() &
+                        configuration::anomalydetection::unknown),
+      static_cast<bool>(obj.stalking_options() &
+                        configuration::anomalydetection::critical),
+      obj.process_perf_data(), obj.check_freshness(), obj.freshness_threshold(),
+      obj.notes(), obj.notes_url(), obj.action_url(), obj.icon_image(),
+      obj.icon_image_alt(), obj.retain_status_information(),
+      obj.retain_nonstatus_information(), obj.obsess_over_service(),
+      obj.timezone(), obj.icon_id(), obj.sensitivity())};
+  if (!ad)
+    throw engine_error() << "Could not register anomalydetection '"
+                         << obj.service_description() << "' of host '"
+                         << obj.host_name() << "'";
+  ad->set_initial_notif_time(0);
+  engine::anomalydetection::services[{obj.host_name(),
+                                      obj.service_description()}]
+      ->set_host_id(obj.host_id());
+  engine::anomalydetection::services[{obj.host_name(),
+                                      obj.service_description()}]
+      ->set_service_id(obj.service_id());
+  ad->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
+                                  pb_config.interval_length());
+  ad->set_last_acknowledgement(0);
+
+  // Add contacts.
+  for (auto& c : obj.contacts().data())
+    ad->mut_contacts().insert({c, nullptr});
+
+  // Add contactgroups.
+  for (auto& cg : obj.contactgroups().data())
+    ad->get_contactgroups().insert({cg, nullptr});
+
+  // Add custom variables.
+  for (auto& cv : obj.customvariables()) {
+    engine::customvariable& c = ad->custom_variables[cv.name()];
+    c.set_value(cv.value());
+    c.set_sent(cv.is_sent());
+
+    if (c.is_sent()) {
+      timeval tv(get_broker_timestamp(nullptr));
+      broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, ad,
+                             cv.name().c_str(), cv.value().c_str(), &tv);
+    }
+  }
+
+  // Notify event broker.
+  broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
+                               ad, MODATTR_ALL);
+}
+
 /**
  *  Modified anomalydetection.
  *
@@ -666,7 +808,7 @@ void applier::anomalydetection::modify_object(
   s->set_host_id(new_obj.host_id());
   s->set_service_id(new_obj.service_id());
   s->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
-                                 config->interval_length());
+                                 pb_config.interval_length());
   s->set_recovery_notification_delay(new_obj.recovery_notification_delay());
 
   // Contacts.
@@ -718,61 +860,7 @@ void applier::anomalydetection::modify_object(
   broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE,
                                NEBATTR_NONE, s.get(), MODATTR_ALL);
 }
-#endif
 
-#ifdef LEGACY_CONF
-/**
- *  Remove old anomalydetection.
- *
- *  @param[in] obj  The new anomalydetection to remove from the monitoring
- *                  engine.
- */
-void applier::anomalydetection::remove_object(
-    configuration::anomalydetection const& obj) {
-  std::string const& host_name(obj.host_name());
-  std::string const& service_description(obj.service_description());
-
-  assert(obj.key().first);
-  // Logging.
-  auto logger = log_v2::instance().get(log_v2::CONFIG);
-  SPDLOG_LOGGER_DEBUG(logger, "Removing anomalydetection '{}' of host '{}'.",
-                      service_description, host_name);
-
-  // Find anomalydetection.
-  service_id_map::iterator it(engine::service::services_by_id.find(obj.key()));
-  if (it != engine::service::services_by_id.end()) {
-    std::shared_ptr<engine::anomalydetection> ad(
-        std::static_pointer_cast<engine::anomalydetection>(it->second));
-
-    // Remove anomalydetection comments.
-    comment::delete_service_comments(obj.key().first, obj.key().second);
-
-    // Remove anomalydetection downtimes.
-    downtime_manager::instance()
-        .delete_downtime_by_hostname_service_description_start_time_comment(
-            host_name, service_description, {false, (time_t)0}, "");
-
-    // Remove events related to this anomalydetection.
-    applier::scheduler::instance().remove_service(obj.host_id(),
-                                                  obj.service_id());
-
-    // remove anomalydetection from servicegroup->members
-    for (auto& it_s : it->second->get_parent_groups())
-      it_s->members.erase({host_name, service_description});
-
-    // Notify event broker.
-    broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
-                                 NEBATTR_NONE, ad.get(), MODATTR_ALL);
-
-    // Unregister anomalydetection.
-    engine::anomalydetection::services.erase({host_name, service_description});
-    engine::anomalydetection::services_by_id.erase(it);
-  }
-
-  // Remove anomalydetection from the global configuration set.
-  config->anomalydetections().erase(obj);
-}
-#else
 void applier::anomalydetection::remove_object(ssize_t idx) {
   Anomalydetection& obj = pb_config.mutable_anomalydetections()->at(idx);
   const std::string& host_name(obj.host_name());
@@ -818,7 +906,28 @@ void applier::anomalydetection::remove_object(ssize_t idx) {
   // Remove anomalydetection from the global configuration set.
   pb_config.mutable_anomalydetections()->DeleteSubrange(idx, 1);
 }
-#endif
+
+/**
+ *  Expand a anomalydetection object.
+ *
+ *  @param[in,out] s  State being applied.
+ */
+void applier::anomalydetection::expand_objects(configuration::State& s) {
+  std::list<std::unique_ptr<Service> > expanded;
+  // Let's consider all the macros defined in s.
+  absl::flat_hash_set<std::string_view> cvs;
+  for (auto& cv : s.macros_filter().data())
+    cvs.emplace(cv);
+
+  // Browse all anomalydetections.
+  for (auto& ad_cfg : *s.mutable_anomalydetections()) {
+    // Should custom variables be sent to broker ?
+    for (auto& cv : *ad_cfg.mutable_customvariables()) {
+      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+        cv.set_is_sent(true);
+    }
+  }
+}
 
 /**
  *  Resolve a anomalydetection.
@@ -855,116 +964,4 @@ void applier::anomalydetection::resolve_object(
   // Resolve anomalydetection.
   it->second->resolve(config_warnings, config_errors);
 }
-
-/**
- *  Resolve a anomalydetection.
- *
- *  @param[in] obj  Service object.
- */
-void applier::anomalydetection::resolve_object(
-    configuration::anomalydetection const& obj) {
-  // Logging.
-  auto logger = log_v2::instance().get(log_v2::CONFIG);
-  SPDLOG_LOGGER_DEBUG(logger, "Resolving anomalydetection '{}' of host '{}'.",
-                      obj.service_description(), obj.host_name());
-
-  // Find anomalydetection.
-  service_id_map::iterator it(
-      engine::anomalydetection::services_by_id.find(obj.key()));
-  if (engine::anomalydetection::services_by_id.end() == it)
-    throw engine_error() << "Cannot resolve non-existing anomalydetection '"
-                         << obj.service_description() << "' of host '"
-                         << obj.host_name() << "'";
-
-  // Remove anomalydetection group links.
-  it->second->get_parent_groups().clear();
-
-  // Find host and adjust its counters.
-  host_id_map::iterator hst(engine::host::hosts_by_id.find(it->first.first));
-  if (hst != engine::host::hosts_by_id.end()) {
-    hst->second->set_total_services(hst->second->get_total_services() + 1);
-    hst->second->set_total_service_check_interval(
-        hst->second->get_total_service_check_interval() +
-        static_cast<uint64_t>(it->second->check_interval()));
-  }
-
-  // Resolve anomalydetection.
-  it->second->resolve(config_warnings, config_errors);
-}
-
-/**
- *  Expand anomalydetection instance memberships.
- *
- *  @param[in]  obj Target anomalydetection.
- *  @param[out] s   Configuration state.
- */
-void applier::anomalydetection::_expand_service_memberships(
-    configuration::anomalydetection& obj,
-    configuration::state& s) {
-  // Browse anomalydetection groups.
-  for (set_string::const_iterator it(obj.servicegroups().begin()),
-       end(obj.servicegroups().end());
-       it != end; ++it) {
-    // Find anomalydetection group.
-    configuration::set_servicegroup::iterator it_group(
-        s.servicegroups_find(*it));
-    if (it_group == s.servicegroups().end())
-      throw(engine_error() << "Could not add anomalydetection '"
-                           << obj.service_description() << "' of host '"
-                           << obj.host_name()
-                           << "' to non-existing anomalydetection group '"
-                           << *it << "'");
-
-    // Remove anomalydetection group from state.
-    configuration::servicegroup backup(*it_group);
-    s.servicegroups().erase(it_group);
-
-    // Add anomalydetection to anomalydetection members.
-    backup.members().insert(
-        std::make_pair(obj.host_name(), obj.service_description()));
-
-    // Reinsert anomalydetection group.
-    s.servicegroups().insert(backup);
-  }
-}
-
-/**
- *  @brief Inherits special variables from host.
- *
- *  These special variables, if not defined are inherited from host.
- *  They are contact_groups, notification_interval and
- *  notification_period.
- *
- *  @param[in,out] obj Target anomalydetection.
- *  @param[in]     s   Configuration state.
- */
-void applier::anomalydetection::_inherits_special_vars(
-    configuration::anomalydetection& obj,
-    configuration::state const& s) {
-  // Detect if any special variable has not been defined.
-  if (!obj.host_id() || !obj.contacts_defined() ||
-      !obj.contactgroups_defined() || !obj.notification_interval_defined() ||
-      !obj.notification_period_defined() || !obj.timezone_defined()) {
-    // Find host.
-    configuration::set_host::const_iterator it(s.hosts_find(obj.host_name()));
-    if (it == s.hosts().end())
-      throw engine_error()
-          << "Could not inherit special variables for anomalydetection '"
-          << obj.service_description() << "': host '" << obj.host_name()
-          << "' does not exist";
-
-    // Inherits variables.
-    if (!obj.host_id())
-      obj.set_host_id(it->host_id());
-    if (!obj.contacts_defined() && !obj.contactgroups_defined()) {
-      obj.contacts() = it->contacts();
-      obj.contactgroups() = it->contactgroups();
-    }
-    if (!obj.notification_interval_defined())
-      obj.notification_interval(it->notification_interval());
-    if (!obj.notification_period_defined())
-      obj.notification_period(it->notification_period());
-    if (!obj.timezone_defined())
-      obj.timezone(it->timezone());
-  }
-}
+#endif

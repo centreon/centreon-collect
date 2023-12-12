@@ -52,7 +52,7 @@ class AnomalydetectionCheck : public TestEngine {
 
  public:
   void SetUp() override {
-    init_config_state(LEGACY);
+    init_config_state();
 
     _checks_logger = log_v2::instance().get(log_v2::CHECKS);
     _checks_logger->set_level(spdlog::level::trace);

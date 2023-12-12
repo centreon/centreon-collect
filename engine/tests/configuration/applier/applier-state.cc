@@ -40,7 +40,7 @@ class ApplierState : public ::testing::Test {
     config_errors = 0;
     config_warnings = 0;
 
-    init_config_state(LEGACY);
+    init_config_state();
   }
 
   void TearDown() override { deinit_config_state(); }

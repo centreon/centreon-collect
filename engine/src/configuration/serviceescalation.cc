@@ -18,8 +18,10 @@
 */
 
 #include "com/centreon/engine/configuration/serviceescalation.hh"
+
 #include <absl/strings/ascii.h>
 #include <absl/strings/str_split.h>
+
 #include "absl/hash/hash.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/configuration/state-generated.pb.h"
@@ -33,6 +35,14 @@ using com::centreon::common::log_v2::log_v2;
   &object::setter<serviceescalation, type, &serviceescalation::method>::generic
 
 namespace com::centreon::engine::configuration {
+#ifdef LEGACY_CONF
+size_t serviceescalation_key(const serviceescalation& se) {
+  return absl::HashOf(*se.hosts().begin(), *se.service_description().begin(),
+                      se.contactgroups(), se.escalation_options(),
+                      se.escalation_period(), se.first_notification(),
+                      se.last_notification(), se.notification_interval());
+}
+#else
 size_t serviceescalation_key(const Serviceescalation& se) {
   return absl::HashOf(se.hosts().data(0), se.service_description().data(0),
                       // se.contactgroups(),
@@ -40,13 +50,7 @@ size_t serviceescalation_key(const Serviceescalation& se) {
                       se.first_notification(), se.last_notification(),
                       se.notification_interval());
 }
-
-size_t serviceescalation_key(const serviceescalation& se) {
-  return absl::HashOf(*se.hosts().begin(), *se.service_description().begin(),
-                      se.contactgroups(), se.escalation_options(),
-                      se.escalation_period(), se.first_notification(),
-                      se.last_notification(), se.notification_interval());
-}
+#endif
 }  // namespace com::centreon::engine::configuration
 
 std::unordered_map<std::string, serviceescalation::setter_func> const
@@ -251,7 +255,7 @@ bool serviceescalation::operator<(serviceescalation const& right) const {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void serviceescalation::check_validity(error_info* err) const {
+void serviceescalation::check_validity(error_info* err [[maybe_unused]]) const {
   if (_servicegroups->empty()) {
     if (_service_description->empty())
       throw exceptions::msg_fmt(

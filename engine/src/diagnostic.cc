@@ -1,24 +1,26 @@
-/*
-** Copyright 2013,2015 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2013,2015 Merethis
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/diagnostic.hh"
+
 #include <sys/stat.h>
+
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -154,6 +156,7 @@ void diagnostic::generate(std::string const& cfg_file,
   // Parse configuration file.
   std::cout << "Diagnostic: Parsing configuration file '" << cfg_file << "'"
             << std::endl;
+#ifdef LEGACY_CONF
   configuration::state conf;
   try {
     configuration::parser parsr;
@@ -162,6 +165,7 @@ void diagnostic::generate(std::string const& cfg_file,
     std::cerr << "Diagnostic: configuration file '" << cfg_file
               << "' parsing failed: " << e.what() << std::endl;
   }
+#else
   configuration::State pb_conf;
   try {
     configuration::parser parsr;
@@ -170,6 +174,7 @@ void diagnostic::generate(std::string const& cfg_file,
     std::cerr << "Diagnostic: configuration file '" << cfg_file
               << "' parsing failed: " << e.what() << std::endl;
   }
+#endif
 
   // Create temporary configuration directory.
   std::string tmp_cfg_dir(tmp_dir + "/cfg/");
@@ -187,12 +192,21 @@ void diagnostic::generate(std::string const& cfg_file,
     _exec_cp(cfg_file, target_path);
   }
 
+#ifdef LEGACY_CONF
   // Copy other configuration files.
   for (auto& f : conf.cfg_file()) {
     std::string target_path(_build_target_path(tmp_cfg_dir, f));
     to_remove.push_back(target_path);
     _exec_cp(f, target_path);
   }
+#else
+  // Copy other configuration files.
+  for (auto& f : pb_conf.cfg_file()) {
+    std::string target_path(_build_target_path(tmp_cfg_dir, f));
+    to_remove.push_back(target_path);
+    _exec_cp(f, target_path);
+  }
+#endif
 
   // Create temporary log directory.
   std::string tmp_log_dir(tmp_dir + "/log/");
@@ -202,6 +216,7 @@ void diagnostic::generate(std::string const& cfg_file,
                          << tmp_log_dir << "': " << msg);
   }
 
+#ifdef LEGACY_CONF
   // Log file.
   std::cout << "Diagnostic: getting log file" << std::endl;
   {
@@ -209,7 +224,18 @@ void diagnostic::generate(std::string const& cfg_file,
     to_remove.push_back(target_path);
     _exec_cp(conf.log_file(), target_path);
   }
+#else
+  // Log file.
+  std::cout << "Diagnostic: getting log file" << std::endl;
+  {
+    std::string target_path(
+        _build_target_path(tmp_log_dir, pb_conf.log_file()));
+    to_remove.push_back(target_path);
+    _exec_cp(pb_conf.log_file(), target_path);
+  }
+#endif
 
+#ifdef LEGACY_CONF
   // Debug file.
   std::cout << "Diagnostic: getting debug file" << std::endl;
   {
@@ -217,7 +243,18 @@ void diagnostic::generate(std::string const& cfg_file,
     to_remove.push_back(target_path);
     _exec_cp(conf.debug_file(), target_path);
   }
+#else
+  // Debug file.
+  std::cout << "Diagnostic: getting debug file" << std::endl;
+  {
+    std::string target_path(
+        _build_target_path(tmp_log_dir, pb_conf.debug_file()));
+    to_remove.push_back(target_path);
+    _exec_cp(pb_conf.debug_file(), target_path);
+  }
+#endif
 
+#ifdef LEGACY_CONF
   // Retention file.
   std::cout << "Diagnostic: getting retention file" << std::endl;
   {
@@ -226,7 +263,18 @@ void diagnostic::generate(std::string const& cfg_file,
     to_remove.push_back(target_path);
     _exec_cp(conf.state_retention_file(), target_path);
   }
+#else
+  // Retention file.
+  std::cout << "Diagnostic: getting retention file" << std::endl;
+  {
+    std::string target_path(
+        _build_target_path(tmp_log_dir, pb_conf.state_retention_file()));
+    to_remove.push_back(target_path);
+    _exec_cp(pb_conf.state_retention_file(), target_path);
+  }
+#endif
 
+#ifdef LEGACY_CONF
   // Status file.
   std::cout << "Diagnostic: getting status file" << std::endl;
   {
@@ -235,6 +283,16 @@ void diagnostic::generate(std::string const& cfg_file,
     to_remove.push_back(target_path);
     _exec_cp(conf.status_file(), target_path);
   }
+#else
+  // Status file.
+  std::cout << "Diagnostic: getting status file" << std::endl;
+  {
+    std::string target_path(
+        _build_target_path(tmp_log_dir, pb_conf.status_file()));
+    to_remove.push_back(target_path);
+    _exec_cp(pb_conf.status_file(), target_path);
+  }
+#endif
 
   // Generate file name if not existing.
   std::string my_out_file;

@@ -37,7 +37,7 @@ class host {
    * @brief Default constructor.
    */
   host() = default;
-  host(host const& right) = delete;
+  host(host const&) = delete;
   /**
    * @brief Destructor.
    */

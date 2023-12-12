@@ -19,7 +19,6 @@
 #include <gtest/gtest.h>
 #include "com/centreon/engine/configuration/applier/tag.hh"
 #include "com/centreon/engine/tag.hh"
-#include "common/configuration/tag_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -29,7 +28,7 @@ using namespace com::centreon::engine::configuration::applier;
 
 class ApplierTag : public ::testing::Test {
  public:
-  void SetUp() override { init_config_state(LEGACY); }
+  void SetUp() override { init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -49,25 +48,6 @@ TEST_F(ApplierTag, AddTagFromConfig) {
   ASSERT_EQ(s.size(), 1u);
   ASSERT_EQ(engine::tag::tags.size(), 1u);
   ASSERT_NO_THROW(aply.expand_objects(*config));
-  ASSERT_NO_THROW(aply.resolve_object(tg));
-}
-
-// Given a tag applier
-// And a tag configuration just with a name, an id and a type.
-// Then the applier add_object adds the tag in the configuration set
-// and in the tags map.
-TEST_F(ApplierTag, PbAddTagFromConfig) {
-  configuration::applier::tag aply;
-  configuration::Tag tg;
-  configuration::tag_helper sv_hlp(&tg);
-  sv_hlp.hook("tag_id", "1");
-  sv_hlp.hook("tag_type", "servicecategory");
-  tg.set_tag_name("tag");
-  aply.add_object(tg);
-  const auto& s = pb_config.tags();
-  ASSERT_EQ(s.size(), 1u);
-  ASSERT_EQ(engine::tag::tags.size(), 1u);
-  ASSERT_NO_THROW(aply.expand_objects(pb_config));
   ASSERT_NO_THROW(aply.resolve_object(tg));
 }
 
@@ -96,38 +76,6 @@ TEST_F(ApplierTag, ModifyTagFromConfig) {
 }
 
 // Given a tag applier
-// And a tag configuration is added
-// Then it is modified
-// Then the real object is well modified.
-// Then it is modified by doing nothing
-// Then it is not modified at all.
-TEST_F(ApplierTag, PbModifyTagFromConfig) {
-  configuration::applier::tag aply;
-  configuration::Tag tg;
-  configuration::tag_helper sv_hlp(&tg);
-  sv_hlp.hook("tag_id", "1");
-  sv_hlp.hook("tag_type", "service");
-  tg.set_tag_name("tag");
-  aply.add_object(tg);
-
-  const auto& s = pb_config.tags();
-  ASSERT_EQ(s.size(), 1u);
-
-  tg.set_tag_name("tag1");
-
-  aply.modify_object(&pb_config.mutable_tags()->at(0), tg);
-
-  ASSERT_EQ(engine::tag::tags.size(), 1u);
-  ASSERT_EQ(engine::tag::tags.begin()->second->name(),
-            std::string_view("tag1"));
-
-  // No change here
-  aply.modify_object(&pb_config.mutable_tags()->at(0), tg);
-  ASSERT_EQ(engine::tag::tags.begin()->second->name(),
-            std::string_view("tag1"));
-}
-
-// Given a tag applier
 // And a tag configuration just with a name, an id and a type.
 // This configuration is added and then removed.
 // There is no more tag.
@@ -142,24 +90,5 @@ TEST_F(ApplierTag, RemoveTagFromConfig) {
   ASSERT_EQ(s.size(), 1u);
 
   aply.remove_object(tg);
-  ASSERT_TRUE(s.empty());
-}
-
-// Given a tag applier
-// And a tag configuration just with a name, an id and a type.
-// This configuration is added and then removed.
-// There is no more tag.
-TEST_F(ApplierTag, PbRemoveTagFromConfig) {
-  configuration::applier::tag aply;
-  configuration::Tag tg;
-  configuration::tag_helper sv_hlp(&tg);
-  sv_hlp.hook("tag_id", "1");
-  sv_hlp.hook("tag_type", "service");
-  tg.set_tag_name("tag");
-  aply.add_object(tg);
-  const auto& s = pb_config.tags();
-  ASSERT_EQ(s.size(), 1u);
-
-  aply.remove_object(0);
   ASSERT_TRUE(s.empty());
 }

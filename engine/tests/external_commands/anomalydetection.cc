@@ -41,7 +41,7 @@ using namespace com::centreon::engine;
 class ADExtCmd : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state(LEGACY);
+    init_config_state();
 
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};

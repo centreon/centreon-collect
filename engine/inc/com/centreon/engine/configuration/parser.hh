@@ -1,27 +1,29 @@
-/*
-** Copyright 2011-2013,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_PARSER_HH
 #define CCE_CONFIGURATION_PARSER_HH
 
 #include <common/configuration/state.pb.h>
+
 #include <fstream>
+
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/configuration/connector.hh"
 #include "com/centreon/engine/configuration/contact.hh"
@@ -50,11 +52,11 @@ using pb_map_helper =
 class parser {
   uint32_t _config_warnings = 0;
   uint32_t _config_errors = 0;
-
-  void _parse_global_configuration(std::string const& path, State* pb_config);
+#ifndef LEGACY_CONF
+  void _cleanup(State* pb_config);
   void _check_validity(const Message& msg, const char* const* mandatory) const;
   bool _is_registered(const Message& msg) const;
-  void _cleanup(State* pb_config);
+#endif
 
  public:
   enum read_options {
@@ -77,8 +79,11 @@ class parser {
 
   parser(unsigned int read_options = read_all);
   ~parser() noexcept = default;
+#ifdef LEGACY_CONF
   void parse(const std::string& path, state& config);
+#else
   void parse(const std::string& path, State* pb_config);
+#endif
 
   uint32_t config_warnings() const { return _config_warnings; }
   uint32_t config_errors() const { return _config_errors; }
@@ -119,23 +124,29 @@ class parser {
   static void _insert(map_object const& from, std::set<T>& to);
   std::string const& _map_object_type(map_object const& objects) const throw();
   void _parse_directory_configuration(std::string const& path);
+#ifdef LEGACY_CONF
+  void _parse_object_definitions(const std::string& path);
+  void _parse_resource_file(std::string const& path);
+  void _resolve_template();
+  void _parse_global_configuration(std::string const& path);
+#else
   void _parse_directory_configuration(const std::string& path,
                                       State* pb_config);
-  void _parse_global_configuration(std::string const& path);
-  void _parse_object_definitions(const std::string& path);
   void _parse_object_definitions(const std::string& path, State* pb_config);
-  void _parse_resource_file(std::string const& path);
   void _parse_resource_file(const std::string& path, State* pb_config);
   void _resolve_template(State* pb_config);
   void _resolve_template(std::unique_ptr<message_helper>& msg_helper,
                          const pb_map_object& tmpls);
-  void _resolve_template();
   void _merge(std::unique_ptr<message_helper>& msg_helper, Message* tmpl);
+  void _parse_global_configuration(std::string const& path, State* pb_config);
+#endif
   void _store_into_list(object_ptr obj);
   template <typename T, std::string const& (T::*ptr)() const throw()>
   void _store_into_map(object_ptr obj);
 
+#ifdef LEGACY_CONF
   state* _config;
+#endif
   unsigned int _current_line;
   std::string _current_path;
   std::array<list_object, 19> _lst_objects;
@@ -145,8 +156,10 @@ class parser {
   static store _store[];
   std::array<map_object, 19> _templates;
 
+#ifndef LEGACY_CONF
   std::array<pb_map_object, 19> _pb_templates;
   pb_map_helper _pb_helper;
+#endif
 
   /* Configuration Logger */
   std::shared_ptr<spdlog::logger> _logger;

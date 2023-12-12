@@ -52,49 +52,31 @@ extern configuration::state* config;
 class HostDependency : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state(LEGACY);
+    init_config_state();
 
     configuration::applier::contact ct_aply;
-    configuration::contact ctct{new_configuration_contact("admin", true)};
+    configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(*config);
+    ct_aply.expand_objects(pb_config);
     ct_aply.resolve_object(ctct);
 
     configuration::applier::host hst_aply;
 
-    configuration::host hst1{new_configuration_host("host1", "admin", 18)};
+    configuration::Host hst1{new_pb_configuration_host("host1", "admin", 18)};
     hst_aply.add_object(hst1);
     hst_aply.resolve_object(hst1);
 
-    configuration::host hst2{new_configuration_host("host2", "admin", 19)};
+    configuration::Host hst2{new_pb_configuration_host("host2", "admin", 19)};
     hst_aply.add_object(hst2);
     hst_aply.resolve_object(hst2);
 
-    configuration::host hst3{new_configuration_host("host3", "admin", 20)};
+    configuration::Host hst3{new_pb_configuration_host("host3", "admin", 20)};
     hst_aply.add_object(hst3);
     hst_aply.resolve_object(hst3);
   }
 
   void TearDown() override { deinit_config_state(); }
 };
-
-TEST_F(HostDependency, CircularDependency2) {
-  configuration::applier::hostdependency hd_aply;
-  configuration::hostdependency hd1{
-      new_configuration_hostdependency("host1", "host2")};
-  hd_aply.expand_objects(*config);
-  hd_aply.add_object(hd1);
-  hd_aply.resolve_object(hd1);
-
-  configuration::hostdependency hd2{
-      new_configuration_hostdependency("host2", "host1")};
-  hd_aply.expand_objects(*config);
-  hd_aply.add_object(hd2);
-  hd_aply.resolve_object(hd2);
-
-  int w{0}, e{0};
-  ASSERT_EQ(pre_flight_circular_check(&w, &e), ERROR);
-}
 
 TEST_F(HostDependency, PbCircularDependency2) {
   configuration::applier::hostdependency hd_aply;
@@ -111,30 +93,6 @@ TEST_F(HostDependency, PbCircularDependency2) {
   hd_aply.resolve_object(hd2);
 
   int w = 0, e = 0;
-  ASSERT_EQ(pre_flight_circular_check(&w, &e), ERROR);
-}
-
-TEST_F(HostDependency, CircularDependency3) {
-  configuration::applier::hostdependency hd_aply;
-  configuration::hostdependency hd1{
-      new_configuration_hostdependency("host1", "host2")};
-  hd_aply.expand_objects(*config);
-  hd_aply.add_object(hd1);
-  hd_aply.resolve_object(hd1);
-
-  configuration::hostdependency hd2{
-      new_configuration_hostdependency("host2", "host3")};
-  hd_aply.expand_objects(*config);
-  hd_aply.add_object(hd2);
-  hd_aply.resolve_object(hd2);
-
-  configuration::hostdependency hd3{
-      new_configuration_hostdependency("host3", "host1")};
-  hd_aply.expand_objects(*config);
-  hd_aply.add_object(hd3);
-  hd_aply.resolve_object(hd3);
-
-  int w{0}, e{0};
   ASSERT_EQ(pre_flight_circular_check(&w, &e), ERROR);
 }
 
@@ -162,19 +120,6 @@ TEST_F(HostDependency, PbCircularDependency3) {
   ASSERT_EQ(pre_flight_circular_check(&w, &e), ERROR);
 }
 
-TEST_F(HostDependency, RemoveHostdependency) {
-  configuration::applier::hostdependency hd_aply;
-  configuration::hostdependency hd1{
-      new_configuration_hostdependency("host1", "host2")};
-  hd_aply.expand_objects(*config);
-  hd_aply.add_object(hd1);
-  hd_aply.resolve_object(hd1);
-
-  ASSERT_EQ(engine::hostdependency::hostdependencies.size(), 1);
-  hd_aply.remove_object(hd1);
-  ASSERT_EQ(engine::hostdependency::hostdependencies.size(), 0);
-}
-
 TEST_F(HostDependency, PbRemoveHostdependency) {
   configuration::applier::hostdependency hd_aply;
   configuration::Hostdependency hd1{
@@ -186,21 +131,6 @@ TEST_F(HostDependency, PbRemoveHostdependency) {
   ASSERT_EQ(engine::hostdependency::hostdependencies.size(), 1);
   hd_aply.remove_object(0);
   ASSERT_EQ(engine::hostdependency::hostdependencies.size(), 0);
-}
-
-TEST_F(HostDependency, ExpandHostdependency) {
-  configuration::state s;
-  configuration::hostdependency hd{
-      new_configuration_hostdependency("host1,host3,host5", "host2,host6")};
-  s.hostdependencies().insert(hd);
-  configuration::applier::hostdependency hd_aply;
-  hd_aply.expand_objects(s);
-  ASSERT_EQ(s.hostdependencies().size(), 12);
-  ASSERT_TRUE(std::all_of(s.hostdependencies().begin(),
-                          s.hostdependencies().end(), [](const auto& hd) {
-                            return hd.hostgroups().empty() &&
-                                   hd.dependent_hostgroups().empty();
-                          }));
 }
 
 TEST_F(HostDependency, PbExpandHostdependency) {

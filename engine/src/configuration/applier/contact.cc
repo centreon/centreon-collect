@@ -17,10 +17,10 @@
  *
  */
 
+#include "com/centreon/engine/configuration/applier/contact.hh"
+
 #include <absl/container/flat_hash_set.h>
 #include <google/protobuf/util/message_differencer.h>
-
-#include "com/centreon/engine/configuration/applier/contact.hh"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
@@ -38,6 +38,7 @@ using namespace com::centreon::engine::configuration;
 using MessageDifferencer = google::protobuf::util::MessageDifferencer;
 using com::centreon::common::log_v2::log_v2;
 
+#ifdef LEGACY_CONF
 /**
  *  Check if the contact group name matches the configuration object.
  */
@@ -55,97 +56,6 @@ class contactgroup_name_comparator {
   std::string _contactgroup_name;
 };
 
-/**
- *  @brief Expand a contact.
- *
- *  During expansion, the contact will be added to its contact groups.
- *  These will be modified in the state.
- *
- *  @param[in,out] s  Configuration state.
- */
-void applier::contact::expand_objects(configuration::State& s) {
-  // Let's consider all the macros defined in s.
-  absl::flat_hash_set<std::string_view> cvs;
-  for (auto& cv : s.macros_filter().data())
-    cvs.emplace(cv);
-
-  // Browse all contacts.
-  for (auto& c : *s.mutable_contacts()) {
-    // Should custom variables be sent to broker ?
-    for (auto& cv : *c.mutable_customvariables()) {
-      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
-        cv.set_is_sent(true);
-    }
-
-    // Browse current contact's groups.
-    for (auto& cg : *c.mutable_contactgroups()->mutable_data()) {
-      // Find contact group.
-      Contactgroup* found_cg = nullptr;
-      for (auto& cgg : *s.mutable_contactgroups())
-        if (cgg.contactgroup_name() == cg) {
-          found_cg = &cgg;
-          break;
-        }
-      if (found_cg == nullptr)
-        throw engine_error() << fmt::format(
-            "Could not add contact '{}' to non-existing contact group '{}'",
-            c.contact_name(), cg);
-
-      fill_string_group(found_cg->mutable_members(), c.contact_name());
-    }
-  }
-}
-
-/**
- *  @brief Expand a contact.
- *
- *  During expansion, the contact will be added to its contact groups.
- *  These will be modified in the state.
- *
- *  @param[in,out] s  Configuration state.
- */
-void applier::contact::expand_objects(configuration::state& s) {
-  // Browse all contacts.
-  configuration::set_contact new_contacts;
-  // We loop on s.contacts() but we make a copy of each element because the
-  // container is a set and changing its element has an impact on the order
-  // they are stored. So we copy each element, modify them and move the result
-  // to a new set.
-  for (auto contact : s.contacts()) {
-    // Should custom variables be sent to broker ?
-    auto& mcv = contact.mutable_customvariables();
-    for (auto& cv : mcv) {
-      if (!s.enable_macros_filter() ||
-          s.macros_filter().find(cv.first) != s.macros_filter().end()) {
-        cv.second.set_sent(true);
-      }
-    }
-
-    // Browse current contact's groups.
-    for (auto& g : contact.contactgroups()) {
-      // Find contact group.
-      configuration::set_contactgroup::iterator group(s.contactgroups_find(g));
-      if (group == s.contactgroups().end())
-        throw(engine_error()
-              << "Could not add contact '" << contact.contact_name()
-              << "' to non-existing contact group '" << g << "'");
-
-      // Remove contact group from state.
-      configuration::contactgroup backup(*group);
-      s.contactgroups().erase(group);
-
-      // Add contact to group members.
-      backup.members().insert(contact.contact_name());
-
-      // Reinsert contact group.
-      s.contactgroups().insert(backup);
-    }
-    new_contacts.insert(std::move(contact));
-  }
-  s.contacts() = new_contacts;
-}
-
-#ifdef LEGACY_CONF
 /**
  *  Add new contact.
  *
@@ -404,6 +314,114 @@ void applier::contact::remove_object(configuration::contact const& obj) {
 
   // Remove contact from the global configuration set.
   config->contacts().erase(obj);
+}
+
+/**
+ *  @brief Expand a contact.
+ *
+ *  During expansion, the contact will be added to its contact groups.
+ *  These will be modified in the state.
+ *
+ *  @param[in,out] s  Configuration state.
+ */
+void applier::contact::expand_objects(configuration::state& s) {
+  // Browse all contacts.
+  configuration::set_contact new_contacts;
+  // We loop on s.contacts() but we make a copy of each element because the
+  // container is a set and changing its element has an impact on the order
+  // they are stored. So we copy each element, modify them and move the result
+  // to a new set.
+  for (auto contact : s.contacts()) {
+    // Should custom variables be sent to broker ?
+    auto& mcv = contact.mutable_customvariables();
+    for (auto& cv : mcv) {
+      if (!s.enable_macros_filter() ||
+          s.macros_filter().find(cv.first) != s.macros_filter().end()) {
+        cv.second.set_sent(true);
+      }
+    }
+
+    // Browse current contact's groups.
+    for (auto& g : contact.contactgroups()) {
+      // Find contact group.
+      configuration::set_contactgroup::iterator group(s.contactgroups_find(g));
+      if (group == s.contactgroups().end())
+        throw(engine_error()
+              << "Could not add contact '" << contact.contact_name()
+              << "' to non-existing contact group '" << g << "'");
+
+      // Remove contact group from state.
+      configuration::contactgroup backup(*group);
+      s.contactgroups().erase(group);
+
+      // Add contact to group members.
+      backup.members().insert(contact.contact_name());
+
+      // Reinsert contact group.
+      s.contactgroups().insert(backup);
+    }
+    new_contacts.insert(std::move(contact));
+  }
+  s.contacts() = new_contacts;
+}
+
+/**
+ *  Resolve a contact.
+ *
+ *  @param[in,out] obj  Object to resolve.
+ */
+void applier::contact::resolve_object(const configuration::contact& obj) {
+  // Logging.
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->debug("Resolving contact '{}'.", obj.contact_name());
+
+  // Find contact.
+  contact_map::const_iterator ct_it{
+      engine::contact::contacts.find(obj.contact_name())};
+  if (ct_it == engine::contact::contacts.end() || !ct_it->second)
+    throw(engine_error() << "Cannot resolve non-existing contact '"
+                         << obj.contact_name() << "'");
+
+  ct_it->second->get_host_notification_commands().clear();
+
+  // Add all the host notification commands.
+  for (list_string::const_iterator it(obj.host_notification_commands().begin()),
+       end(obj.host_notification_commands().end());
+       it != end; ++it) {
+    command_map::const_iterator itt(commands::command::commands.find(*it));
+    if (itt != commands::command::commands.end())
+      ct_it->second->get_host_notification_commands().push_back(itt->second);
+    else {
+      ++config_errors;
+      throw(engine_error() << "Could not add host notification command '" << *it
+                           << "' to contact '" << obj.contact_name()
+                           << "': the command does not exist");
+    }
+  }
+
+  ct_it->second->get_service_notification_commands().clear();
+
+  // Add all the service notification commands.
+  for (list_string::const_iterator
+           it(obj.service_notification_commands().begin()),
+       end(obj.service_notification_commands().end());
+       it != end; ++it) {
+    command_map::const_iterator itt(commands::command::commands.find(*it));
+    if (itt != commands::command::commands.end())
+      ct_it->second->get_service_notification_commands().push_back(itt->second);
+    else {
+      ++config_errors;
+      throw(engine_error() << "Could not add service notification command '"
+                           << *it << "' to contact '" << obj.contact_name()
+                           << "': the command does not exist");
+    }
+  }
+
+  // Remove contact group links.
+  ct_it->second->get_parent_groups().clear();
+
+  // Resolve contact.
+  ct_it->second->resolve(config_warnings, config_errors);
 }
 
 #else
@@ -696,65 +714,46 @@ void applier::contact::remove_object(ssize_t idx) {
   // Remove contact from the global configuration set.
   pb_config.mutable_contacts()->DeleteSubrange(idx, 1);
 }
-#endif
 
 /**
- *  Resolve a contact.
+ *  @brief Expand a contact.
  *
- *  @param[in,out] obj  Object to resolve.
+ *  During expansion, the contact will be added to its contact groups.
+ *  These will be modified in the state.
+ *
+ *  @param[in,out] s  Configuration state.
  */
-void applier::contact::resolve_object(const configuration::contact& obj) {
-  // Logging.
-  auto logger = log_v2::instance().get(log_v2::CONFIG);
-  logger->debug("Resolving contact '{}'.", obj.contact_name());
+void applier::contact::expand_objects(configuration::State& s) {
+  // Let's consider all the macros defined in s.
+  absl::flat_hash_set<std::string_view> cvs;
+  for (auto& cv : s.macros_filter().data())
+    cvs.emplace(cv);
 
-  // Find contact.
-  contact_map::const_iterator ct_it{
-      engine::contact::contacts.find(obj.contact_name())};
-  if (ct_it == engine::contact::contacts.end() || !ct_it->second)
-    throw(engine_error() << "Cannot resolve non-existing contact '"
-                         << obj.contact_name() << "'");
+  // Browse all contacts.
+  for (auto& c : *s.mutable_contacts()) {
+    // Should custom variables be sent to broker ?
+    for (auto& cv : *c.mutable_customvariables()) {
+      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+        cv.set_is_sent(true);
+    }
 
-  ct_it->second->get_host_notification_commands().clear();
+    // Browse current contact's groups.
+    for (auto& cg : *c.mutable_contactgroups()->mutable_data()) {
+      // Find contact group.
+      Contactgroup* found_cg = nullptr;
+      for (auto& cgg : *s.mutable_contactgroups())
+        if (cgg.contactgroup_name() == cg) {
+          found_cg = &cgg;
+          break;
+        }
+      if (found_cg == nullptr)
+        throw engine_error() << fmt::format(
+            "Could not add contact '{}' to non-existing contact group '{}'",
+            c.contact_name(), cg);
 
-  // Add all the host notification commands.
-  for (list_string::const_iterator it(obj.host_notification_commands().begin()),
-       end(obj.host_notification_commands().end());
-       it != end; ++it) {
-    command_map::const_iterator itt(commands::command::commands.find(*it));
-    if (itt != commands::command::commands.end())
-      ct_it->second->get_host_notification_commands().push_back(itt->second);
-    else {
-      ++config_errors;
-      throw(engine_error() << "Could not add host notification command '" << *it
-                           << "' to contact '" << obj.contact_name()
-                           << "': the command does not exist");
+      fill_string_group(found_cg->mutable_members(), c.contact_name());
     }
   }
-
-  ct_it->second->get_service_notification_commands().clear();
-
-  // Add all the service notification commands.
-  for (list_string::const_iterator
-           it(obj.service_notification_commands().begin()),
-       end(obj.service_notification_commands().end());
-       it != end; ++it) {
-    command_map::const_iterator itt(commands::command::commands.find(*it));
-    if (itt != commands::command::commands.end())
-      ct_it->second->get_service_notification_commands().push_back(itt->second);
-    else {
-      ++config_errors;
-      throw(engine_error() << "Could not add service notification command '"
-                           << *it << "' to contact '" << obj.contact_name()
-                           << "': the command does not exist");
-    }
-  }
-
-  // Remove contact group links.
-  ct_it->second->get_parent_groups().clear();
-
-  // Resolve contact.
-  ct_it->second->resolve(config_warnings, config_errors);
 }
 
 /**
@@ -812,3 +811,4 @@ void applier::contact::resolve_object(const configuration::Contact& obj) {
   // Resolve contact.
   ct_it->second->resolve(config_warnings, config_errors);
 }
+#endif

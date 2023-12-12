@@ -21,8 +21,6 @@
 
 #include <gtest/gtest.h>
 
-#include "common/configuration/host_helper.hh"
-
 using namespace com::centreon::engine;
 
 // Given a host configuration object
@@ -30,15 +28,6 @@ using namespace com::centreon::engine;
 // Then its acknowledgements timeout is set to 0
 TEST(ConfigurationHostAcknowledgementTimeoutTest, DefaultConstruction) {
   configuration::host h;
-  ASSERT_EQ(0, h.acknowledgement_timeout());
-}
-
-// Given a host configuration object
-// When it is default constructed
-// Then its acknowledgements timeout is set to 0
-TEST(ConfigurationHostAcknowledgementTimeoutTest, PbDefaultConstruction) {
-  configuration::Host h;
-  configuration::host_helper hlp(&h);
   ASSERT_EQ(0, h.acknowledgement_timeout());
 }
 

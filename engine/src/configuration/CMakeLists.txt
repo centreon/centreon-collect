@@ -37,7 +37,6 @@ add_library(
   "${SRC_DIR}/contact.cc"
   "${SRC_DIR}/contactgroup.cc"
   "${SRC_DIR}/customvariable.cc"
-  "${SRC_DIR}/diff_state.cc"
   "${SRC_DIR}/group.cc"
   "${SRC_DIR}/host.cc"
   "${SRC_DIR}/hostdependency.cc"
@@ -82,7 +81,7 @@ add_library(
   "${INC_DIR}/timeperiod.hh")
 
 target_link_libraries(engine_config_legacy CONAN_PKG::spdlog CONAN_PKG::abseil
-                      pb_configuration_lib log_v2)
+                      log_v2)
 target_compile_definitions(engine_config_legacy PRIVATE LEGACY_CONF)
 
 # Set files.

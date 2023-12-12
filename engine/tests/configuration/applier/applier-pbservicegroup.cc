@@ -46,7 +46,7 @@ class ApplierServicegroup : public ::testing::Test {
   void SetUp() override {
     config_errors = 0;
     config_warnings = 0;
-    init_config_state(LEGACY);
+    init_config_state();
   }
 
   void TearDown() override { deinit_config_state(); }
@@ -194,40 +194,6 @@ TEST_F(ApplierServicegroup, PbResolveInexistentService) {
 // Given a servicegroup with a service and a host
 // When the resolve_object() method is called
 // Then the service is really added to the service group.
-TEST_F(ApplierServicegroup, ResolveServicegroup) {
-  configuration::applier::host aply_hst;
-  configuration::applier::service aply_svc;
-  configuration::applier::command aply_cmd;
-  configuration::applier::servicegroup aply_grp;
-  configuration::servicegroup grp("test_group");
-  configuration::host hst;
-  configuration::command cmd("cmd");
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  aply_hst.add_object(hst);
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("service_description", "test"));
-  ASSERT_TRUE(svc.parse("hosts", "test_host"));
-  ASSERT_TRUE(svc.parse("service_id", "18"));
-  cmd.parse("command_line", "echo 1");
-  svc.parse("check_command", "cmd");
-  aply_cmd.add_object(cmd);
-
-  // We fake here the expand_object on configuration::service
-  svc.set_host_id(12);
-
-  aply_svc.add_object(svc);
-  ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
-  grp.parse("members", "test_host,test");
-  aply_grp.add_object(grp);
-  aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
-}
-
-// Given a servicegroup with a service and a host
-// When the resolve_object() method is called
-// Then the service is really added to the service group.
 TEST_F(ApplierServicegroup, PbResolveServicegroup) {
   configuration::applier::host aply_hst;
   configuration::applier::service aply_svc;
@@ -263,51 +229,6 @@ TEST_F(ApplierServicegroup, PbResolveServicegroup) {
   aply_grp.add_object(grp);
   aply_grp.expand_objects(pb_config);
   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
-}
-
-// Given a servicegroup with a service already configured
-// And a second servicegroup configuration
-// When we set the first one as servicegroup member to the second
-// Then the parse method returns true and set the first one service
-// to the second one.
-TEST_F(ApplierServicegroup, SetServicegroupMembers) {
-  configuration::applier::host aply_hst;
-  configuration::applier::service aply_svc;
-  configuration::applier::command aply_cmd;
-  configuration::applier::servicegroup aply_grp;
-  configuration::servicegroup grp("test_group");
-  configuration::host hst;
-  configuration::command cmd("cmd");
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  aply_hst.add_object(hst);
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("service_description", "test"));
-  ASSERT_TRUE(svc.parse("hosts", "test_host"));
-  ASSERT_TRUE(svc.parse("service_id", "18"));
-  cmd.parse("command_line", "echo 1");
-  svc.parse("check_command", "cmd");
-  aply_cmd.add_object(cmd);
-
-  // We fake here the expand_object on configuration::service
-  svc.set_host_id(12);
-
-  aply_svc.add_object(svc);
-  ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
-  grp.parse("members", "test_host,test");
-  aply_grp.add_object(grp);
-  aply_grp.expand_objects(*config);
-  aply_grp.resolve_object(grp);
-  ASSERT_TRUE(grp.members().size() == 1);
-
-  configuration::servicegroup grp1("big_group");
-  ASSERT_TRUE(grp1.parse("servicegroup_members", "test_group"));
-  aply_grp.add_object(grp1);
-  aply_grp.expand_objects(*config);
-
-  // grp1 must be reload because the expand_objects reload them totally.
-  ASSERT_TRUE(config->servicegroups_find("big_group")->members().size() == 1);
 }
 
 // Given a servicegroup with a service already configured
@@ -373,53 +294,6 @@ TEST_F(ApplierServicegroup, PbSetServicegroupMembers) {
 // And a configuration servicegroup in configuration
 // When we remove the configuration
 // Then it is really removed
-TEST_F(ApplierServicegroup, RemoveServicegroupFromConfig) {
-  configuration::applier::host aply_hst;
-  configuration::applier::service aply_svc;
-  configuration::applier::command aply_cmd;
-  configuration::applier::servicegroup aply_grp;
-  configuration::servicegroup grp("test_group");
-  configuration::host hst;
-  configuration::command cmd("cmd");
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  aply_hst.add_object(hst);
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("service_description", "test"));
-  ASSERT_TRUE(svc.parse("hosts", "test_host"));
-  ASSERT_TRUE(svc.parse("service_id", "18"));
-  cmd.parse("command_line", "echo 1");
-  svc.parse("check_command", "cmd");
-  aply_cmd.add_object(cmd);
-
-  // We fake here the expand_object on configuration::service
-  svc.set_host_id(12);
-
-  aply_svc.add_object(svc);
-  ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
-  grp.parse("members", "test_host,test");
-  aply_grp.add_object(grp);
-  aply_grp.expand_objects(*config);
-  aply_grp.resolve_object(grp);
-  ASSERT_TRUE(grp.members().size() == 1);
-
-  configuration::servicegroup grp1("big_group");
-  ASSERT_TRUE(grp1.parse("servicegroup_members", "test_group"));
-  aply_grp.add_object(grp1);
-  aply_grp.expand_objects(*config);
-  grp1 = *config->servicegroups_find("big_group");
-  ASSERT_TRUE(grp1.members().size() == 1);
-
-  ASSERT_EQ(engine::servicegroup::servicegroups.size(), 2u);
-  aply_grp.remove_object(grp);
-  ASSERT_EQ(engine::servicegroup::servicegroups.size(), 1u);
-}
-
-// Given a servicegroup applier
-// And a configuration servicegroup in configuration
-// When we remove the configuration
-// Then it is really removed
 TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
   configuration::applier::host aply_hst;
   configuration::applier::service aply_svc;
@@ -473,65 +347,6 @@ TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
 
   ASSERT_EQ(engine::servicegroup::servicegroups.size(), 2u);
   aply_grp.remove_object(0);
-  ASSERT_EQ(engine::servicegroup::servicegroups.size(), 1u);
-}
-
-// Given a servicegroup applier
-// And a configuration servicegroup in configuration
-// When we remove the configuration
-// Then it is really removed
-TEST_F(ApplierServicegroup, RemoveServiceFromGroup) {
-  configuration::applier::host aply_hst;
-  configuration::applier::service aply_svc;
-  configuration::applier::command aply_cmd;
-  configuration::applier::servicegroup aply_grp;
-  configuration::servicegroup grp("test_group");
-
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 1");
-  aply_cmd.add_object(cmd);
-
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  aply_hst.add_object(hst);
-
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("service_description", "test"));
-  ASSERT_TRUE(svc.parse("hosts", "test_host"));
-  ASSERT_TRUE(svc.parse("service_id", "18"));
-  svc.parse("check_command", "cmd");
-  // We fake here the expand_object on configuration::service
-  svc.set_host_id(12);
-  aply_svc.add_object(svc);
-  ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
-
-  configuration::service svc2;
-  ASSERT_TRUE(svc.parse("service_description", "test2"));
-  ASSERT_TRUE(svc.parse("hosts", "test_host"));
-  ASSERT_TRUE(svc.parse("service_id", "19"));
-  svc.parse("check_command", "cmd");
-  // We fake here the expand_object on configuration::service
-  svc.set_host_id(12);
-  aply_svc.add_object(svc);
-  ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
-
-  grp.parse("members", "test_host,test,test_host,test2");
-  aply_grp.add_object(grp);
-  aply_grp.expand_objects(*config);
-  aply_grp.resolve_object(grp);
-  ASSERT_TRUE(grp.members().size() == 2);
-
-  engine::servicegroup* sg{
-      engine::servicegroup::servicegroups["test_group"].get()};
-  ASSERT_EQ(sg->members.size(), 2u);
-  aply_svc.remove_object(svc);
-  ASSERT_EQ(sg->members.size(), 1u);
-
-  grp.parse("members", "test_host,test,test_host,test2");
-  aply_grp.modify_object(grp);
-
   ASSERT_EQ(engine::servicegroup::servicegroups.size(), 1u);
 }
 

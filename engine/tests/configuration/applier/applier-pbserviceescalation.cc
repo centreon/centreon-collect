@@ -36,47 +36,10 @@ using namespace com::centreon::engine;
 
 class ApplierServiceEscalation : public ::testing::Test {
  public:
-  void SetUp() override { init_config_state(LEGACY); }
+  void SetUp() override { init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
-
-TEST_F(ApplierServiceEscalation, AddEscalation) {
-  configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  hst_aply.add_object(hst);
-  ASSERT_EQ(host::hosts.size(), 1u);
-
-  configuration::applier::command cmd_aply;
-  configuration::command cmd;
-  cmd.parse("command_name", "cmd");
-  cmd.parse("command_line", "echo 1");
-  cmd_aply.add_object(cmd);
-
-  configuration::applier::service svc_aply;
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("host", "test_host"));
-  ASSERT_TRUE(svc.parse("service_description", "test_svc"));
-  ASSERT_TRUE(svc.parse("service_id", "12"));
-  ASSERT_TRUE(svc.parse("check_command", "cmd"));
-  svc.set_host_id(12);
-  svc_aply.add_object(svc);
-  ASSERT_EQ(service::services.size(), 1u);
-
-  configuration::applier::serviceescalation se_apply;
-  configuration::serviceescalation se;
-  ASSERT_TRUE(se.parse("host", "test_host"));
-  ASSERT_TRUE(se.parse("service_description", "test_svc"));
-  ASSERT_TRUE(se.parse("first_notification", "4"));
-  se_apply.add_object(se);
-  ASSERT_EQ(serviceescalation::serviceescalations.size(), 1u);
-  ASSERT_TRUE(se.parse("first_notification", "8"));
-  se_apply.add_object(se);
-  ASSERT_EQ(serviceescalation::serviceescalations.size(), 2u);
-}
 
 TEST_F(ApplierServiceEscalation, PbAddEscalation) {
   configuration::applier::host hst_aply;
@@ -117,50 +80,6 @@ TEST_F(ApplierServiceEscalation, PbAddEscalation) {
   se.set_first_notification(8);
   se_apply.add_object(se);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 2u);
-}
-
-TEST_F(ApplierServiceEscalation, RemoveEscalation) {
-  configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  hst_aply.add_object(hst);
-  ASSERT_EQ(host::hosts.size(), 1u);
-
-  configuration::applier::command cmd_aply;
-  configuration::command cmd;
-  cmd.parse("command_name", "cmd");
-  cmd.parse("command_line", "echo 1");
-  cmd_aply.add_object(cmd);
-
-  configuration::applier::service svc_aply;
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("host", "test_host"));
-  ASSERT_TRUE(svc.parse("service_description", "test_svc"));
-  ASSERT_TRUE(svc.parse("service_id", "12"));
-  ASSERT_TRUE(svc.parse("check_command", "cmd"));
-  svc.set_host_id(12);
-  svc_aply.add_object(svc);
-  ASSERT_EQ(service::services.size(), 1u);
-
-  configuration::applier::serviceescalation se_apply;
-  configuration::serviceescalation se1, se2;
-  ASSERT_TRUE(se1.parse("host_name", "test_host"));
-  ASSERT_TRUE(se1.parse("service_description", "test_svc"));
-  ASSERT_TRUE(se1.parse("first_notification", "4"));
-  se_apply.add_object(se1);
-  ASSERT_TRUE(se2.parse("host_name", "test_host"));
-  ASSERT_TRUE(se2.parse("service_description", "test_svc"));
-  ASSERT_TRUE(se2.parse("first_notification", "8"));
-  ASSERT_TRUE(se2.parse("first_notification", "8"));
-  se_apply.add_object(se2);
-  ASSERT_EQ(serviceescalation::serviceescalations.size(), 2u);
-
-  se_apply.remove_object(se1);
-  ASSERT_EQ(serviceescalation::serviceescalations.size(), 1u);
-  se_apply.remove_object(se2);
-  ASSERT_EQ(serviceescalation::serviceescalations.size(), 0u);
 }
 
 TEST_F(ApplierServiceEscalation, PbRemoveEscalation) {
@@ -207,54 +126,6 @@ TEST_F(ApplierServiceEscalation, PbRemoveEscalation) {
   se_apply.remove_object(0);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 1u);
   se_apply.remove_object(0);
-  ASSERT_EQ(serviceescalation::serviceescalations.size(), 0u);
-}
-
-TEST_F(ApplierServiceEscalation, RemoveEscalationFromRemovedService) {
-  configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  hst_aply.add_object(hst);
-  ASSERT_EQ(host::hosts.size(), 1u);
-
-  configuration::applier::command cmd_aply;
-  configuration::command cmd;
-  cmd.parse("command_name", "cmd");
-  cmd.parse("command_line", "echo 1");
-  cmd_aply.add_object(cmd);
-
-  configuration::applier::service svc_aply;
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("host", "test_host"));
-  ASSERT_TRUE(svc.parse("service_description", "test_svc"));
-  ASSERT_TRUE(svc.parse("service_id", "12"));
-  ASSERT_TRUE(svc.parse("check_command", "cmd"));
-  svc.set_host_id(12);
-  svc_aply.add_object(svc);
-  ASSERT_EQ(service::services.size(), 1u);
-
-  configuration::applier::serviceescalation se_apply;
-  configuration::serviceescalation se;
-  ASSERT_TRUE(se.parse("host_name", "test_host"));
-  ASSERT_TRUE(se.parse("service_description", "test_svc"));
-  ASSERT_TRUE(se.parse("first_notification", "4"));
-  se_apply.add_object(se);
-  ASSERT_EQ(serviceescalation::serviceescalations.size(), 1u);
-  ASSERT_TRUE(se.parse("first_notification", "8"));
-  se_apply.add_object(se);
-  ASSERT_EQ(serviceescalation::serviceescalations.size(), 2u);
-
-  hst_aply.remove_object(hst);
-  ASSERT_EQ(host::hosts.size(), 0u);
-  svc_aply.remove_object(svc);
-  ASSERT_EQ(service::services.size(), 0u);
-
-  se_apply.remove_object(se);
-  ASSERT_EQ(serviceescalation::serviceescalations.size(), 1u);
-  ASSERT_TRUE(se.parse("first_notification", "4"));
-  se_apply.remove_object(se);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 0u);
 }
 

@@ -1,23 +1,24 @@
-/*
-** Copyright 2011-2013,2017-2019,2023 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2017-2019,2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
+
 #include "absl/numeric/int128.h"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
@@ -31,20 +32,8 @@
 using namespace com::centreon::engine::configuration;
 using com::centreon::common::log_v2::log_v2;
 
-namespace com {
-namespace centreon {
-namespace engine {
-namespace configuration {
-
-size_t servicedependency_key(const Servicedependency& sd) {
-  return absl::HashOf(sd.dependency_period(), sd.dependency_type(),
-                      sd.hosts().data(0), sd.service_description().data(0),
-                      sd.dependent_hosts().data(0),
-                      sd.dependent_service_description().data(0),
-                      sd.execution_failure_options(), sd.inherits_parent(),
-                      sd.notification_failure_options());
-}
-
+namespace com::centreon::engine::configuration {
+#ifdef LEGACY_CONF
 size_t servicedependency_key_l(const servicedependency& sd) {
   return absl::HashOf(sd.dependency_period(), sd.dependency_type(),
                       *sd.hosts().begin(), *sd.service_description().begin(),
@@ -53,11 +42,17 @@ size_t servicedependency_key_l(const servicedependency& sd) {
                       sd.execution_failure_options(), sd.inherits_parent(),
                       sd.notification_failure_options());
 }
-
-}  // namespace configuration
-}  // namespace engine
-}  // namespace centreon
-}  // namespace com
+#else
+size_t servicedependency_key(const Servicedependency& sd) {
+  return absl::HashOf(sd.dependency_period(), sd.dependency_type(),
+                      sd.hosts().data(0), sd.service_description().data(0),
+                      sd.dependent_hosts().data(0),
+                      sd.dependent_service_description().data(0),
+                      sd.execution_failure_options(), sd.inherits_parent(),
+                      sd.notification_failure_options());
+}
+#endif
+}  // namespace com::centreon::engine::configuration
 
 #ifdef LEGACY_CONF
 /**

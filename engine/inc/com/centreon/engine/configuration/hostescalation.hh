@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2013,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_HOSTESCALATION_HH
 #define CCE_CONFIGURATION_HOSTESCALATION_HH
@@ -28,7 +28,9 @@ namespace com::centreon::engine {
 
 namespace configuration {
 
+#ifndef LEGACY_CONF
 class Hostescalation;
+#endif
 
 class hostescalation : public object {
  public:
@@ -95,8 +97,11 @@ class hostescalation : public object {
   static std::unordered_map<std::string, setter_func> const _setters;
 };
 
-size_t hostescalation_key(const Hostescalation& he);
+#ifdef LEGACY_CONF
 size_t hostescalation_key(const hostescalation& he);
+#else
+size_t hostescalation_key(const Hostescalation& he);
+#endif
 
 typedef std::shared_ptr<hostescalation> hostescalation_ptr;
 typedef std::set<hostescalation> set_hostescalation;

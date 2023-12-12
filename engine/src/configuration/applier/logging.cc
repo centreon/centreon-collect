@@ -1,25 +1,28 @@
-/*
-** Copyright 2011-2014,2018 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2014,2018 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/applier/logging.hh"
+
 #include <syslog.h>
+
 #include <cassert>
+
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/debug_file.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -28,53 +31,7 @@
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 
-/**
- * @brief Apply new configuration.
- *
- * @param config The new configuration.
- */
-void applier::logging::apply(State& config) {
-  if (verify_config || test_scheduling)
-    return;
-
-  if (config.log_legacy_enabled()) {
-    // Syslog.
-    if (config.use_syslog() && !_syslog)
-      _add_syslog();
-    else if (!config.use_syslog() && _syslog)
-      _del_syslog();
-
-    // Standard log file.
-
-    if (config.log_file() == "")
-      _del_log_file();
-    else if (!_log || config.log_file() != _log->filename()) {
-      _add_log_file(config);
-      _del_stdout();
-      _del_stderr();
-    }
-
-    // Debug file.
-    if (config.debug_file() == "" || !config.debug_level() ||
-        !config.debug_verbosity()) {
-      _del_debug();
-      _debug_level = config.debug_level();
-      _debug_verbosity = config.debug_verbosity();
-      _debug_max_size = config.max_debug_file_size();
-    } else if (!_debug || config.debug_file() != _debug->filename() ||
-               config.debug_level() != _debug_level ||
-               config.debug_verbosity() != _debug_verbosity ||
-               config.max_debug_file_size() != _debug_max_size)
-      _add_debug(config);
-  } else {
-    _del_stdout();
-    _del_stderr();
-    _del_debug();
-    _del_log_file();
-    _del_syslog();
-  }
-}
-
+#ifdef LEGACY_CONF
 /**
  *  Apply new configuration.
  *
@@ -123,6 +80,127 @@ void applier::logging::apply(state& config) {
 }
 
 /**
+ *  Construct and apply configuration.
+ *
+ *  @param[in] config The initial confiuration.
+ */
+applier::logging::logging(state& config)
+    : _debug(NULL),
+      _debug_level(0),
+      _debug_max_size(0),
+      _debug_verbosity(0),
+      _log(NULL),
+      _stderr(NULL),
+      _stdout(NULL),
+      _syslog(NULL) {
+  _add_stdout();
+  _add_stderr();
+  apply(config);
+}
+
+/**
+ *  Add file object logging.
+ */
+void applier::logging::_add_log_file(state const& config) {
+  _del_log_file();
+  _log = new com::centreon::logging::file(config.log_file(), true,
+                                          config.log_pid());
+  com::centreon::logging::engine::instance().add(_log, engine::logging::log_all,
+                                                 engine::logging::most);
+}
+
+/**
+ *  Add debug object logging.
+ */
+void applier::logging::_add_debug(state const& config) {
+  _del_debug();
+  _debug_level = (config.debug_level() << 32) | engine::logging::log_all;
+  _debug_verbosity = config.debug_verbosity();
+  _debug_max_size = config.max_debug_file_size();
+  _debug = new com::centreon::engine::logging::debug_file(config.debug_file(),
+                                                          _debug_max_size);
+  com::centreon::logging::engine::instance().add(_debug, _debug_level,
+                                                 _debug_verbosity);
+}
+
+#else
+/**
+ * @brief Apply new configuration.
+ *
+ * @param config The new configuration.
+ */
+void applier::logging::apply(State& config) {
+  if (verify_config || test_scheduling)
+    return;
+
+  if (config.log_legacy_enabled()) {
+    // Syslog.
+    if (config.use_syslog() && !_syslog)
+      _add_syslog();
+    else if (!config.use_syslog() && _syslog)
+      _del_syslog();
+
+    // Standard log file.
+
+    if (config.log_file() == "")
+      _del_log_file();
+    else if (!_log || config.log_file() != _log->filename()) {
+      _add_log_file(config);
+      _del_stdout();
+      _del_stderr();
+    }
+
+    // Debug file.
+    if (config.debug_file() == "" || !config.debug_level() ||
+        !config.debug_verbosity()) {
+      _del_debug();
+      _debug_level = config.debug_level();
+      _debug_verbosity = config.debug_verbosity();
+      _debug_max_size = config.max_debug_file_size();
+    } else if (!_debug || config.debug_file() != _debug->filename() ||
+               config.debug_level() != _debug_level ||
+               config.debug_verbosity() != _debug_verbosity ||
+               config.max_debug_file_size() != _debug_max_size)
+      _add_debug(config);
+  } else {
+    _del_stdout();
+    _del_stderr();
+    _del_debug();
+    _del_log_file();
+    _del_syslog();
+  }
+}
+
+/**
+ *  Add file object logging.
+ */
+void applier::logging::_add_log_file(const State& config) {
+  _del_log_file();
+  _log = new com::centreon::logging::file(config.log_file(), true,
+                                          config.log_pid());
+  com::centreon::logging::engine::instance().add(_log, engine::logging::log_all,
+                                                 engine::logging::most);
+}
+
+/**
+ * @brief Add debug object logging.
+ *
+ * @param config The protobuf configuration.
+ */
+void applier::logging::_add_debug(const State& config) {
+  _del_debug();
+  _debug_level = (config.debug_level() << 32) | engine::logging::log_all;
+  _debug_verbosity = config.debug_verbosity();
+  _debug_max_size = config.max_debug_file_size();
+  _debug = new com::centreon::engine::logging::debug_file(config.debug_file(),
+                                                          _debug_max_size);
+  com::centreon::logging::engine::instance().add(_debug, _debug_level,
+                                                 _debug_verbosity);
+}
+
+#endif
+
+/**
  *  Get the singleton instance of logging applier.
  *
  *  @return Singleton instance.
@@ -155,41 +233,22 @@ void applier::logging::clear() {
  *  Default constructor.
  */
 applier::logging::logging()
-    : _debug(NULL),
+    : _debug(nullptr),
       _debug_level(0),
       _debug_max_size(0),
       _debug_verbosity(0),
-      _log(NULL),
-      _stderr(NULL),
-      _stdout(NULL),
-      _syslog(NULL) {
+      _log(nullptr),
+      _stderr(nullptr),
+      _stdout(nullptr),
+      _syslog(nullptr) {
   _add_stdout();
   _add_stderr();
-}
-
-/**
- *  Construct and apply configuration.
- *
- *  @param[in] config The initial confiuration.
- */
-applier::logging::logging(state& config)
-    : _debug(NULL),
-      _debug_level(0),
-      _debug_max_size(0),
-      _debug_verbosity(0),
-      _log(NULL),
-      _stderr(NULL),
-      _stdout(NULL),
-      _syslog(NULL) {
-  _add_stdout();
-  _add_stderr();
-  apply(config);
 }
 
 /**
  *  Default destructor.
  */
-applier::logging::~logging() throw() {
+applier::logging::~logging() noexcept {
   _del_stdout();
   _del_stderr();
   _del_syslog();
@@ -245,58 +304,6 @@ void applier::logging::_add_syslog() {
     com::centreon::logging::engine::instance().add(
         _syslog, engine::logging::log_all, engine::logging::basic);
   }
-}
-
-/**
- *  Add file object logging.
- */
-void applier::logging::_add_log_file(const State& config) {
-  _del_log_file();
-  _log = new com::centreon::logging::file(config.log_file(), true,
-                                          config.log_pid());
-  com::centreon::logging::engine::instance().add(_log, engine::logging::log_all,
-                                                 engine::logging::most);
-}
-
-/**
- *  Add file object logging.
- */
-void applier::logging::_add_log_file(state const& config) {
-  _del_log_file();
-  _log = new com::centreon::logging::file(config.log_file(), true,
-                                          config.log_pid());
-  com::centreon::logging::engine::instance().add(_log, engine::logging::log_all,
-                                                 engine::logging::most);
-}
-
-/**
- * @brief Add debug object logging.
- *
- * @param config The protobuf configuration.
- */
-void applier::logging::_add_debug(const State& config) {
-  _del_debug();
-  _debug_level = (config.debug_level() << 32) | engine::logging::log_all;
-  _debug_verbosity = config.debug_verbosity();
-  _debug_max_size = config.max_debug_file_size();
-  _debug = new com::centreon::engine::logging::debug_file(config.debug_file(),
-                                                          _debug_max_size);
-  com::centreon::logging::engine::instance().add(_debug, _debug_level,
-                                                 _debug_verbosity);
-}
-
-/**
- *  Add debug object logging.
- */
-void applier::logging::_add_debug(state const& config) {
-  _del_debug();
-  _debug_level = (config.debug_level() << 32) | engine::logging::log_all;
-  _debug_verbosity = config.debug_verbosity();
-  _debug_max_size = config.max_debug_file_size();
-  _debug = new com::centreon::engine::logging::debug_file(config.debug_file(),
-                                                          _debug_max_size);
-  com::centreon::logging::engine::instance().add(_debug, _debug_level,
-                                                 _debug_verbosity);
 }
 
 /**

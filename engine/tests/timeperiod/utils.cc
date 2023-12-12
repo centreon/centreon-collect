@@ -18,7 +18,6 @@
  */
 
 #include "tests/timeperiod/utils.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 
 #include <array>
 #include <cstring>
@@ -26,6 +25,8 @@
 #include <memory>
 #include <unordered_map>
 
+#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/timeperiod.hh"
 #include "com/centreon/engine/timerange.hh"
 
 using namespace com::centreon::engine;

@@ -51,7 +51,7 @@ extern configuration::State pb_config;
 class PbServiceCheck : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state(PROTO);
+    init_config_state();
 
     pb_config.clear_contacts();
     configuration::applier::contact ct_aply;

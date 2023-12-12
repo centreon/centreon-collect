@@ -1,6 +1,7 @@
 #ifndef CCE_ENGINERPC_ENGINE_IMPL_HH
 #define CCE_ENGINERPC_ENGINE_IMPL_HH
 
+#include "com/centreon/engine/host.hh"
 #include "engine.grpc.pb.h"
 
 namespace com::centreon::engine {

@@ -44,8 +44,12 @@ class PbSimpleCommand : public ::testing::Test {
   void SetUp() override {
     logger = log_v2::instance().get(log_v2::COMMANDS);
     set_time(-1);
-    init_config_state(PROTO);
+    init_config_state();
+#ifdef LEGACY_CONF
+    config->interval_length(1);
+#else
     pb_config.set_interval_length(1);
+#endif
   }
 
   void TearDown() override { deinit_config_state(); }

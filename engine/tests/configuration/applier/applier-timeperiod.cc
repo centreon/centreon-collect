@@ -19,7 +19,6 @@
 #include <gtest/gtest.h>
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/timeperiod.hh"
-#include "common/configuration/timeperiod_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -29,7 +28,7 @@ using namespace com::centreon::engine::configuration::applier;
 
 class ApplierTimeperiod : public ::testing::Test {
  public:
-  void SetUp() override { init_config_state(LEGACY); }
+  void SetUp() override { init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -47,34 +46,11 @@ TEST_F(ApplierTimeperiod, AddTimeperiodName) {
 // Given a timeperiod applier
 // And a timeperiod configuration just with a name.
 // Then the applier add_object() throws an error because of the missing alias.
-TEST_F(ApplierTimeperiod, PbAddTimeperiodName) {
-  configuration::applier::timeperiod aply;
-  configuration::Timeperiod tp;
-  configuration::timeperiod_helper tp_hlp(&tp);
-  tp.set_timeperiod_name("timeperiod");
-  ASSERT_THROW(aply.add_object(tp), std::exception);
-}
-
-// Given a timeperiod applier
-// And a timeperiod configuration just with a name.
-// Then the applier add_object() throws an error because of the missing alias.
 TEST_F(ApplierTimeperiod, AddTimeperiodNameAlias) {
   configuration::applier::timeperiod aply;
   configuration::timeperiod tp;
   tp.parse("timeperiod_name", "timeperiod");
   tp.parse("alias", "timeperiod_alias");
-  ASSERT_NO_THROW(aply.add_object(tp));
-}
-
-// Given a timeperiod applier
-// And a timeperiod configuration just with a name.
-// Then the applier add_object() throws an error because of the missing alias.
-TEST_F(ApplierTimeperiod, PbAddTimeperiodNameAlias) {
-  configuration::applier::timeperiod aply;
-  configuration::Timeperiod tp;
-  configuration::timeperiod_helper tp_hlp(&tp);
-  tp.set_timeperiod_name("timeperiod");
-  tp.set_alias("timeperiod_alias");
   ASSERT_NO_THROW(aply.add_object(tp));
 }
 
@@ -106,31 +82,6 @@ TEST_F(ApplierTimeperiod, AddTimeperiodFromConfig) {
 }
 
 // Given a timeperiod applier
-// And a timeperiod configuration just with a name, an id and a type.
-// Then the applier add_object adds the timeperiod in the configuration set
-// and in the timeperiods map.
-TEST_F(ApplierTimeperiod, PbAddTimeperiodFromConfig) {
-  configuration::applier::timeperiod aply;
-  configuration::Timeperiod tp;
-  configuration::timeperiod_helper tp_hlp(&tp);
-  tp.set_alias("timeperiod_alias");
-  tp.set_timeperiod_name("timeperiod");
-  tp_hlp.hook("january 1", "00:00-24:00");
-  tp_hlp.hook("november 11", "00:00-24:00");
-  aply.add_object(tp);
-  const auto& s = pb_config.timeperiods();
-  ASSERT_EQ(s.size(), 1u);
-  ASSERT_EQ(engine::timeperiod::timeperiods.size(), 1u);
-  ASSERT_NO_THROW(aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(aply.resolve_object(tp));
-  ASSERT_EQ(tp.exceptions().month_date_size(), 2U);
-  auto d = tp.exceptions().month_date().at(1);
-  ASSERT_EQ(daterange_to_str(d), std::string_view("november 11 00:00-24:00"));
-  d = tp.exceptions().month_date().at(0);
-  ASSERT_EQ(daterange_to_str(d), std::string_view("january 1 00:00-24:00"));
-}
-
-// Given a timeperiod applier
 // And a timeperiod configuration is added
 // Then it is modified
 // Then the real object is well modified.
@@ -153,37 +104,6 @@ TEST_F(ApplierTimeperiod, ModifyTimeperiodFromConfig) {
 }
 
 // Given a timeperiod applier
-// And a timeperiod configuration is added
-// Then it is modified
-// Then the real object is well modified.
-// Then it is modified by doing nothing
-// Then it is not modified at all.
-TEST_F(ApplierTimeperiod, PbModifyTimeperiodFromConfig) {
-  configuration::applier::timeperiod aply;
-  configuration::Timeperiod tp;
-  configuration::timeperiod_helper tp_hlp(&tp);
-  tp.set_alias("timeperiod_alias");
-  tp.set_timeperiod_name("timeperiod");
-  aply.add_object(tp);
-
-  const auto& s = pb_config.timeperiods();
-  ASSERT_EQ(s.size(), 1u);
-
-  tp.set_alias("timeperiod_alias1");
-
-  aply.modify_object(&pb_config.mutable_timeperiods()->at(0), tp);
-
-  ASSERT_EQ(engine::timeperiod::timeperiods.size(), 1u);
-  ASSERT_EQ(engine::timeperiod::timeperiods.begin()->second->get_alias(),
-            std::string_view("timeperiod_alias1"));
-
-  // No change here
-  aply.modify_object(&pb_config.mutable_timeperiods()->at(0), tp);
-  ASSERT_EQ(engine::timeperiod::timeperiods.begin()->second->get_alias(),
-            std::string_view("timeperiod_alias1"));
-}
-
-// Given a timeperiod applier
 // And a timeperiod configuration just with a name, an id and a type.
 // This configuration is added and then removed.
 // There is no more timeperiod.
@@ -197,23 +117,5 @@ TEST_F(ApplierTimeperiod, RemoveTimeperiodFromConfig) {
   ASSERT_EQ(s.size(), 1u);
 
   aply.remove_object(tp);
-  ASSERT_TRUE(s.empty());
-}
-
-// Given a timeperiod applier
-// And a timeperiod configuration just with a name, an id and a type.
-// This configuration is added and then removed.
-// There is no more timeperiod.
-TEST_F(ApplierTimeperiod, PbRemoveTimeperiodFromConfig) {
-  configuration::applier::timeperiod aply;
-  configuration::Timeperiod tp;
-  configuration::timeperiod_helper tp_hlp(&tp);
-  tp.set_alias("timeperiod_alias");
-  tp.set_timeperiod_name("timeperiod");
-  aply.add_object(tp);
-  const auto& s = pb_config.timeperiods();
-  ASSERT_EQ(s.size(), 1u);
-
-  aply.remove_object(0);
   ASSERT_TRUE(s.empty());
 }

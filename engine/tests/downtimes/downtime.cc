@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,7 @@ using namespace com::centreon::engine::downtimes;
 
 class DowntimeExternalCommand : public ::testing::Test {
  public:
-  void SetUp() override { init_config_state(LEGACY); }
+  void SetUp() override { init_config_state(); }
 
   void TearDown() override {
     downtime_manager::instance().clear_scheduled_downtimes();

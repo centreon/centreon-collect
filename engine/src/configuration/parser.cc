@@ -80,36 +80,270 @@ parser::store parser::_store[] = {
     &parser::_store_into_list};
 
 /**
+ *  Get the next valid line.
+ *
+ *  @param[in, out] stream The current stream to read new line.
+ *  @param[out]     line   The line to fill.
+ *  @param[in, out] pos    The current position.
+ *
+ *  @return True if data is available, false if no data.
+ */
+static bool get_next_line(std::ifstream& stream,
+                          std::string& line,
+                          uint32_t& pos) {
+  while (std::getline(stream, line, '\n')) {
+    ++pos;
+    line = absl::StripAsciiWhitespace(line);
+    if (!line.empty()) {
+      char c = line[0];
+      if (c != '#' && c != ';' && c != '\x0')
+        return true;
+    }
+  }
+  return false;
+}
+
+#ifdef LEGACY_CONF
+/**
  *  Default constructor.
  *
  *  @param[in] read_options Configuration file reading options
  *             (use to skip some object type).
  */
 parser::parser(unsigned int read_options)
-    : _config(NULL),
+    : _config(nullptr),
       _read_options(read_options),
       _logger{log_v2::instance().get(log_v2::CONFIG)} {}
 
-void parser::parse(const std::string& path, State* pb_config) {
-  /* Parse the global configuration file. */
-  auto helper = std::make_unique<state_helper>(pb_config);
-  _pb_helper[pb_config] = std::move(helper);
-  _parse_global_configuration(path, pb_config);
+/**
+ *  Parse the object definition file.
+ *
+ *  @param[in] path The object definitions path.
+ */
+void parser::_parse_object_definitions(std::string const& path) {
+  _logger->info("Processing object config file '{}'", path);
 
-  // parse configuration files.
-  _apply(pb_config->cfg_file(), pb_config, &parser::_parse_object_definitions);
-  // parse resource files.
-  _apply(pb_config->resource_file(), pb_config, &parser::_parse_resource_file);
-  // parse configuration directories.
-  _apply(pb_config->cfg_dir(), pb_config,
-         &parser::_parse_directory_configuration);
+  std::ifstream stream(path, std::ios::binary);
+  if (!stream.is_open())
+    throw msg_fmt("Parsing of object definition failed: can't open file '{}'",
+                  path);
 
-  // Apply template.
-  _resolve_template(pb_config);
+  _current_line = 0;
+  _current_path = path;
 
-  _cleanup(pb_config);
+  bool parse_object = false;
+  object_ptr obj;
+  std::string input;
+  while (get_next_line(stream, input, _current_line)) {
+    // Multi-line.
+    while ('\\' == input[input.size() - 1]) {
+      input.resize(input.size() - 1);
+      std::string addendum;
+      if (!get_next_line(stream, addendum, _current_line))
+        break;
+      input.append(addendum);
+    }
+
+    // Check if is a valid object.
+    if (obj == nullptr) {
+      if (input.find("define") || !std::isspace(input[6]))
+        throw msg_fmt(
+            "Parsing of object definition failed "
+            "in file '{}' on line {}: Unexpected start definition",
+            _current_path, _current_line);
+      input.erase(0, 6);
+      absl::StripLeadingAsciiWhitespace(&input);
+      std::size_t last = input.size() - 1;
+      if (input.empty() || input[last] != '{')
+        throw msg_fmt(
+            "Parsing of object definition failed in file '{}' on line {}: "
+            "Unexpected start definition",
+            _current_path, _current_line);
+      input.erase(last);
+      absl::StripTrailingAsciiWhitespace(&input);
+      obj = object::create(input);
+      if (obj == nullptr)
+        throw msg_fmt(
+            "Parsing of object definition failed in file '{}' on line {}: "
+            "Unknown object type name '{}'",
+            _current_path, _current_line, input);
+      parse_object = (_read_options & (1 << obj->type()));
+      _objects_info.emplace(obj.get(), file_info(path, _current_line));
+    }
+    // Check if is the not the end of the current object.
+    else if (input != "}") {
+      if (parse_object) {
+        if (!obj->parse(input))
+          throw msg_fmt(
+              "Parsing of object definition failed in file '{}' on line {}: "
+              "Invalid line '{}'",
+              _current_path, _current_line, input);
+      }
+    }
+    // End of the current object.
+    else {
+      if (parse_object) {
+        if (!obj->name().empty())
+          _add_template(obj);
+        if (obj->should_register())
+          _add_object(obj);
+      }
+      obj.reset();
+    }
+  }
 }
 
+/**
+ *  Parse the directory configuration.
+ *
+ *  @param[in] path The directory path.
+ */
+void parser::_parse_directory_configuration(std::string const& path) {
+  for (auto& entry : std::filesystem::directory_iterator(path)) {
+    if (entry.is_regular_file() && entry.path().extension() == ".cfg")
+      _parse_object_definitions(entry.path().string());
+  }
+}
+
+/**
+ *  Parse the global configuration file.
+ *
+ *  @param[in] path The configuration path.
+ */
+void parser::_parse_global_configuration(const std::string& path) {
+  _logger->info("Reading main configuration file '{}'.", path);
+
+  std::ifstream stream(path, std::ios::binary);
+  if (!stream.is_open())
+    throw msg_fmt(
+        "Parsing of global configuration failed: can't open file '{}'", path);
+
+  _config->cfg_main(path);
+
+  _current_line = 0;
+  _current_path = path;
+
+  std::string input;
+  while (get_next_line(stream, input, _current_line)) {
+    std::list<std::string> values =
+        absl::StrSplit(input, absl::MaxSplits('=', 1));
+    if (values.size() == 2) {
+      auto it = values.begin();
+      char const* key = it->c_str();
+      ++it;
+      char const* value = it->c_str();
+      if (_config->set(key, value))
+        continue;
+    }
+    throw msg_fmt(
+        "Parsing of global configuration failed in file '{}' on line {}: "
+        "Invalid line '{}'",
+        path, _current_line, input);
+  }
+}
+
+/**
+ *  Parse the resource file.
+ *
+ *  @param[in] path The resource file path.
+ */
+void parser::_parse_resource_file(std::string const& path) {
+  _logger->info("Reading resource file '{}'", path);
+
+  std::ifstream stream(path.c_str(), std::ios::binary);
+  if (!stream.is_open())
+    throw msg_fmt("Parsing of resource file failed: can't open file '{}'",
+                  path);
+
+  _current_line = 0;
+  _current_path = path;
+
+  std::string input;
+  while (get_next_line(stream, input, _current_line)) {
+    try {
+      std::list<std::string> key_value =
+          absl::StrSplit(input, absl::MaxSplits('=', 1));
+      if (key_value.size() == 2) {
+        auto it = key_value.begin();
+        std::string& key = *it;
+        ++it;
+        std::string value = *it;
+        _config->user(key, value);
+      } else
+        throw msg_fmt(
+            "Parsing of resource file '{}' failed on line {}; Invalid line "
+            "'{}'",
+            _current_path, _current_line, input);
+    } catch (std::exception const& e) {
+      (void)e;
+      throw msg_fmt(
+          "Parsing of resource file '{}' failed on line {}: Invalid line '{}'",
+          _current_path, _current_line, input);
+    }
+  }
+}
+
+/**
+ *  Resolve template for register objects.
+ */
+void parser::_resolve_template() {
+  for (map_object& templates : _templates) {
+    for (map_object::iterator it = templates.begin(), end = templates.end();
+         it != end; ++it)
+      it->second->resolve_template(templates);
+  }
+
+  for (uint32_t i = 0; i < _lst_objects.size(); ++i) {
+    map_object& templates = _templates[i];
+    for (list_object::iterator it = _lst_objects[i].begin(),
+                               end = _lst_objects[i].end();
+         it != end; ++it) {
+      (*it)->resolve_template(templates);
+      object::error_info err;
+      try {
+        (*it)->check_validity(&err);
+        _config_warnings += err.config_warnings;
+        _config_errors += err.config_errors;
+      } catch (std::exception const& e) {
+        throw error("Configuration parsing failed {}: {}",
+                    _get_file_info(it->get()), e.what());
+      }
+    }
+  }
+
+  for (uint32_t i = 0; i < _map_objects.size(); ++i) {
+    map_object& templates = _templates[i];
+    for (map_object::iterator it = _map_objects[i].begin(),
+                              end = _map_objects[i].end();
+         it != end; ++it) {
+      it->second->resolve_template(templates);
+      try {
+        object::error_info err;
+        it->second->check_validity(&err);
+        _config_warnings += err.config_warnings;
+        _config_errors += err.config_errors;
+      } catch (const std::exception& e) {
+        throw error("Configuration parsing failed {}: {}",
+                    _get_file_info(it->second.get()), e.what());
+      }
+    }
+  }
+}
+
+#else
+/**
+ *  Default constructor.
+ *
+ *  @param[in] read_options Configuration file reading options
+ *             (use to skip some object type).
+ */
+parser::parser(unsigned int read_options)
+    : _read_options(read_options),
+      _logger{log_v2::instance().get(log_v2::CONFIG)} {}
+
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  Parse configuration file.
  *
@@ -160,141 +394,25 @@ void parser::parse(const std::string& path, state& config) {
   }
 }
 
-/**
- *  Add object into the list.
- *
- *  @param[in] obj The object to add into the list.
- */
-void parser::_add_object(object_ptr obj) {
-  if (obj->should_register())
-    (this->*_store[obj->type()])(obj);
-}
+#else
+void parser::parse(const std::string& path, State* pb_config) {
+  /* Parse the global configuration file. */
+  auto helper = std::make_unique<state_helper>(pb_config);
+  _pb_helper[pb_config] = std::move(helper);
+  _parse_global_configuration(path, pb_config);
 
-/**
- *  Add template into the list.
- *
- *  @param[in] obj The tempalte to add into the list.
- */
-void parser::_add_template(object_ptr obj) {
-  std::string const& name(obj->name());
-  if (name.empty())
-    throw msg_fmt("Parsing of {} failed {}: Property 'name' is missing",
-                  obj->type_name(), _get_file_info(obj.get()));
-  map_object& tmpl(_templates[obj->type()]);
-  if (tmpl.find(name) != tmpl.end())
-    throw msg_fmt("Parsing of {} failed {}: '{}' already exists",
-                  obj->type_name(), _get_file_info(obj.get()), name);
-  tmpl[name] = obj;
-}
+  // parse configuration files.
+  _apply(pb_config->cfg_file(), pb_config, &parser::_parse_object_definitions);
+  // parse resource files.
+  _apply(pb_config->resource_file(), pb_config, &parser::_parse_resource_file);
+  // parse configuration directories.
+  _apply(pb_config->cfg_dir(), pb_config,
+         &parser::_parse_directory_configuration);
 
-/**
- *  Get the file information.
- *
- *  @param[in] obj The object to get file informations.
- *
- *  @return The file informations object.
- */
-file_info const& parser::_get_file_info(object* obj) const {
-  if (obj) {
-    std::unordered_map<object*, file_info>::const_iterator it(
-        _objects_info.find(obj));
-    if (it != _objects_info.end())
-      return it->second;
-  }
-  throw msg_fmt(
-      "Parsing failed: Object not found into the file information cache");
-}
+  // Apply template.
+  _resolve_template(pb_config);
 
-/**
- *  Build the hosts list with hostgroups.
- *
- *  @param[in]     hostgroups The hostgroups.
- *  @param[in,out] hosts      The host list to fill.
- */
-void parser::_get_hosts_by_hostgroups(hostgroup const& hostgroups,
-                                      list_host& hosts) {
-  _get_objects_by_list_name(hostgroups.members(), _map_objects[object::host],
-                            hosts);
-}
-
-/**
- *  Build the hosts list with list of hostgroups.
- *
- *  @param[in]     hostgroups The hostgroups list.
- *  @param[in,out] hosts      The host list to fill.
- */
-void parser::_get_hosts_by_hostgroups_name(set_string const& lst_group,
-                                           list_host& hosts) {
-  map_object& gl_hostgroups(_map_objects[object::hostgroup]);
-  for (set_string::const_iterator it(lst_group.begin()), end(lst_group.end());
-       it != end; ++it) {
-    map_object::iterator it_hostgroups(gl_hostgroups.find(*it));
-    if (it_hostgroups != gl_hostgroups.end())
-      _get_hosts_by_hostgroups(
-          *static_cast<configuration::hostgroup*>(it_hostgroups->second.get()),
-          hosts);
-  }
-}
-
-/**
- *  Build the object list with list of object name.
- *
- *  @param[in]     lst     The object name list.
- *  @param[in]     objects The object map to find object name.
- *  @param[in,out] out     The list to fill.
- */
-template <typename T>
-void parser::_get_objects_by_list_name(set_string const& lst,
-                                       map_object& objects,
-                                       std::list<T>& out) {
-  for (set_string::const_iterator it(lst.begin()), end(lst.end()); it != end;
-       ++it) {
-    map_object::iterator it_obj(objects.find(*it));
-    if (it_obj != objects.end())
-      out.push_back(*static_cast<T*>(it_obj->second.get()));
-  }
-}
-
-/**
- *  Insert objects into type T list and sort the new list by object id.
- *
- *  @param[in]  from The objects source.
- *  @param[out] to   The objects destination.
- */
-template <typename T>
-void parser::_insert(list_object const& from, std::set<T>& to) {
-  for (list_object::const_iterator it(from.begin()), end(from.end()); it != end;
-       ++it)
-    to.insert(*static_cast<T const*>(it->get()));
-}
-
-/**
- *  Insert objects into type T list and sort the new list by object id.
- *
- *  @param[in]  from The objects source.
- *  @param[out] to   The objects destination.
- */
-template <typename T>
-void parser::_insert(map_object const& from, std::set<T>& to) {
-  for (map_object::const_iterator it(from.begin()), end(from.end()); it != end;
-       ++it)
-    to.insert(*static_cast<T*>(it->second.get()));
-}
-
-/**
- *  Get the map object type name.
- *
- *  @param[in] objects  The map object.
- *
- *  @return The type name.
- */
-std::string const& parser::_map_object_type(map_object const& objects) const
-    throw() {
-  static std::string const empty("");
-  map_object::const_iterator it(objects.begin());
-  if (it == objects.end())
-    return empty;
-  return it->second->type_name();
+  _cleanup(pb_config);
 }
 
 /**
@@ -310,16 +428,136 @@ void parser::_parse_directory_configuration(const std::string& path,
   }
 }
 
-/**
- *  Parse the directory configuration.
- *
- *  @param[in] path The directory path.
- */
-void parser::_parse_directory_configuration(std::string const& path) {
-  for (auto& entry : std::filesystem::directory_iterator(path)) {
-    if (entry.is_regular_file() && entry.path().extension() == ".cfg")
-      _parse_object_definitions(entry.path().string());
+void parser::_parse_resource_file(const std::string& path, State* pb_config) {
+  _logger->info("Reading resource file '{}'", path);
+
+  std::ifstream in(path, std::ios::in);
+  std::string content;
+  if (in) {
+    in.seekg(0, std::ios::end);
+    content.resize(in.tellg());
+    in.seekg(0, std::ios::beg);
+    in.read(&content[0], content.size());
+    in.close();
+  } else
+    throw msg_fmt("Parsing of resource file failed: can't open file '{}': {}",
+                  path, strerror(errno));
+
+  auto tab{absl::StrSplit(content, '\n')};
+  int current_line = 1;
+  for (auto it = tab.begin(); it != tab.end(); ++it, current_line++) {
+    std::string_view l = absl::StripLeadingAsciiWhitespace(*it);
+    if (l.empty() || l[0] == '#' || l[0] == ';')
+      continue;
+    std::pair<std::string_view, std::string_view> p =
+        absl::StrSplit(l, absl::MaxSplits('=', 1));
+    p.first = absl::StripTrailingAsciiWhitespace(p.first);
+    p.second = absl::StripLeadingAsciiWhitespace(p.second);
+    if (p.first.size() >= 3 && p.first[0] == '$' &&
+        p.first[p.first.size() - 1] == '$') {
+      p.first = p.first.substr(1, p.first.size() - 2);
+      (*pb_config
+            ->mutable_users())[std::string(p.first.data(), p.first.size())] =
+          std::string(p.second.data(), p.second.size());
+    } else
+      throw msg_fmt("Invalid user key '{}'", p.first);
   }
+}
+
+/**
+ * @brief For each type of object in the State, templates are resolved that is
+ * to say, children inherite from parents properties.
+ *
+ * @param pb_config The State containing all the object to handle.
+ */
+void parser::_resolve_template(State* pb_config) {
+  for (Command& c : *pb_config->mutable_commands())
+    _resolve_template(_pb_helper[&c], _pb_templates[object::command]);
+
+  for (Connector& c : *pb_config->mutable_connectors())
+    _resolve_template(_pb_helper[&c], _pb_templates[object::connector]);
+
+  for (Contact& c : *pb_config->mutable_contacts())
+    _resolve_template(_pb_helper[&c], _pb_templates[object::contact]);
+
+  for (Contactgroup& cg : *pb_config->mutable_contactgroups())
+    _resolve_template(_pb_helper[&cg], _pb_templates[object::contactgroup]);
+
+  for (Host& h : *pb_config->mutable_hosts())
+    _resolve_template(_pb_helper[&h], _pb_templates[object::host]);
+
+  for (Service& s : *pb_config->mutable_services())
+    _resolve_template(_pb_helper[&s], _pb_templates[object::service]);
+
+  for (Anomalydetection& a : *pb_config->mutable_anomalydetections())
+    _resolve_template(_pb_helper[&a], _pb_templates[object::anomalydetection]);
+
+  for (Serviceescalation& se : *pb_config->mutable_serviceescalations())
+    _resolve_template(_pb_helper[&se],
+                      _pb_templates[object::serviceescalation]);
+
+  for (Hostescalation& he : *pb_config->mutable_hostescalations())
+    _resolve_template(_pb_helper[&he], _pb_templates[object::hostescalation]);
+
+  for (const Command& c : pb_config->commands())
+    _pb_helper.at(&c)->check_validity();
+
+  for (const Contact& c : pb_config->contacts())
+    _pb_helper.at(&c)->check_validity();
+
+  for (const Contactgroup& cg : pb_config->contactgroups())
+    _pb_helper.at(&cg)->check_validity();
+
+  for (const Host& h : pb_config->hosts())
+    _pb_helper.at(&h)->check_validity();
+
+  for (const Hostdependency& hd : pb_config->hostdependencies())
+    _pb_helper.at(&hd)->check_validity();
+
+  for (const Hostescalation& he : pb_config->hostescalations())
+    _pb_helper.at(&he)->check_validity();
+
+  for (const Hostgroup& hg : pb_config->hostgroups())
+    _pb_helper.at(&hg)->check_validity();
+
+  for (const Service& s : pb_config->services())
+    _pb_helper.at(&s)->check_validity();
+
+  for (const Hostdependency& hd : pb_config->hostdependencies())
+    _pb_helper.at(&hd)->check_validity();
+
+  for (const Servicedependency& sd : pb_config->servicedependencies())
+    _pb_helper.at(&sd)->check_validity();
+
+  for (const Servicegroup& sg : pb_config->servicegroups())
+    _pb_helper.at(&sg)->check_validity();
+
+  for (const Timeperiod& t : pb_config->timeperiods())
+    _pb_helper.at(&t)->check_validity();
+
+  for (const Anomalydetection& a : pb_config->anomalydetections())
+    _pb_helper.at(&a)->check_validity();
+
+  for (const Tag& t : pb_config->tags())
+    _pb_helper.at(&t)->check_validity();
+
+  for (const Servicegroup& sg : pb_config->servicegroups())
+    _pb_helper.at(&sg)->check_validity();
+
+  for (const Severity& sv : pb_config->severities())
+    _pb_helper.at(&sv)->check_validity();
+
+  for (const Tag& t : pb_config->tags())
+    _pb_helper.at(&t)->check_validity();
+
+  for (const Serviceescalation& se : pb_config->serviceescalations())
+    _pb_helper.at(&se)->check_validity();
+
+  for (const Hostescalation& he : pb_config->hostescalations())
+    _pb_helper.at(&he)->check_validity();
+
+  for (const Connector& c : pb_config->connectors())
+    _pb_helper.at(&c)->check_validity();
 }
 
 bool set_global(std::unique_ptr<message_helper>& helper,
@@ -412,6 +650,224 @@ bool set_global(std::unique_ptr<message_helper>& helper,
       return false;
   }
   return true;
+}
+
+/**
+ * @brief Clean the configuration:
+ *    * remove template objects.
+ *
+ * @param pb_config
+ */
+void parser::_cleanup(State* pb_config) {
+  int i = 0;
+  for (auto it = pb_config->mutable_services()->begin();
+       it != pb_config->mutable_services()->end();) {
+    if (!it->obj().register_()) {
+      pb_config->mutable_services()->erase(it);
+      it = pb_config->mutable_services()->begin() + i;
+    } else {
+      ++it;
+      ++i;
+    }
+  }
+  i = 0;
+  for (auto it = pb_config->mutable_anomalydetections()->begin();
+       it != pb_config->mutable_anomalydetections()->end();) {
+    if (!it->obj().register_()) {
+      pb_config->mutable_anomalydetections()->erase(it);
+      it = pb_config->mutable_anomalydetections()->begin() + i;
+    } else {
+      ++it;
+      ++i;
+    }
+  }
+}
+
+void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
+                    Message* tmpl) {
+  Message* msg = msg_helper->mut_obj();
+  const Descriptor* desc = msg->GetDescriptor();
+  const Reflection* refl = msg->GetReflection();
+  std::string tmp_str;
+
+  for (int i = 0; i < desc->field_count(); ++i) {
+    const FieldDescriptor* f = desc->field(i);
+    if (f->name() != "obj") {
+      /* Optional? If not defined in template, we continue. */
+      const auto* oof = f->containing_oneof();
+      if (oof) {
+        if (!refl->GetOneofFieldDescriptor(*tmpl, oof))
+          continue;
+      }
+
+      if ((oof && !refl->GetOneofFieldDescriptor(*msg, oof)) ||
+          !msg_helper->changed(f->number())) {
+        if (f->is_repeated()) {
+          switch (f->cpp_type()) {
+            case FieldDescriptor::CPPTYPE_STRING: {
+              size_t count = refl->FieldSize(*tmpl, f);
+              for (size_t j = 0; j < count; ++j) {
+                const std::string& s =
+                    refl->GetRepeatedStringReference(*tmpl, f, j, &tmp_str);
+                size_t count_msg = refl->FieldSize(*msg, f);
+                std::string tmp_str1;
+                bool found = false;
+                for (size_t k = 0; k < count_msg; ++k) {
+                  const std::string& s1 =
+                      refl->GetRepeatedStringReference(*msg, f, k, &tmp_str1);
+                  if (s1 == s) {
+                    found = true;
+                    break;
+                  }
+                }
+                if (!found)
+                  refl->AddString(msg, f, s);
+              }
+            } break;
+            case FieldDescriptor::CPPTYPE_MESSAGE: {
+              size_t count = refl->FieldSize(*tmpl, f);
+              for (size_t j = 0; j < count; ++j) {
+                const Message& m = refl->GetRepeatedMessage(*tmpl, f, j);
+                const Descriptor* d = m.GetDescriptor();
+                size_t count_msg = refl->FieldSize(*msg, f);
+                bool found = false;
+                for (size_t k = 0; k < count_msg; ++k) {
+                  const Message& m1 = refl->GetRepeatedMessage(*msg, f, k);
+                  const Descriptor* d1 = m1.GetDescriptor();
+                  if (d && d1 && d->name() == "PairUint64_32" &&
+                      d1->name() == "PairUint64_32") {
+                    const PairUint64_32& p =
+                        static_cast<const PairUint64_32&>(m);
+                    const PairUint64_32& p1 =
+                        static_cast<const PairUint64_32&>(m1);
+                    if (p.first() == p1.first() && p.second() == p1.second()) {
+                      found = true;
+                      break;
+                    }
+                  }
+                }
+                if (!found) {
+                  Message* new_m = refl->AddMessage(msg, f);
+                  new_m->CopyFrom(m);
+                }
+              }
+            } break;
+            default:
+              _logger->error(
+                  "Repeated type f->cpp_type = {} not managed in the "
+                  "inheritence.",
+                  f->cpp_type());
+              assert(124 == 294);
+          }
+        } else {
+          switch (f->cpp_type()) {
+            case FieldDescriptor::CPPTYPE_STRING:
+              refl->SetString(msg, f, refl->GetString(*tmpl, f));
+              break;
+            case FieldDescriptor::CPPTYPE_BOOL:
+              refl->SetBool(msg, f, refl->GetBool(*tmpl, f));
+              break;
+            case FieldDescriptor::CPPTYPE_INT32:
+              refl->SetInt32(msg, f, refl->GetInt32(*tmpl, f));
+              break;
+            case FieldDescriptor::CPPTYPE_UINT32:
+              refl->SetUInt32(msg, f, refl->GetUInt32(*tmpl, f));
+              break;
+            case FieldDescriptor::CPPTYPE_UINT64:
+              refl->SetUInt64(msg, f, refl->GetUInt64(*tmpl, f));
+              break;
+            case FieldDescriptor::CPPTYPE_ENUM:
+              refl->SetEnum(msg, f, refl->GetEnum(*tmpl, f));
+              break;
+            case FieldDescriptor::CPPTYPE_MESSAGE: {
+              Message* m = refl->MutableMessage(msg, f);
+              const Descriptor* d = m->GetDescriptor();
+
+              if (d && d->name() == "StringSet") {
+                StringSet* orig_set =
+                    static_cast<StringSet*>(refl->MutableMessage(tmpl, f));
+                StringSet* set =
+                    static_cast<StringSet*>(refl->MutableMessage(msg, f));
+                if (set->additive()) {
+                  for (auto& v : orig_set->data()) {
+                    bool found = false;
+                    for (auto& s : *set->mutable_data()) {
+                      if (s == v) {
+                        found = true;
+                        break;
+                      }
+                    }
+                    if (!found)
+                      set->add_data(v);
+                  }
+                } else if (set->data().empty())
+                  *set->mutable_data() = orig_set->data();
+
+              } else if (d && d->name() == "StringList") {
+                StringList* orig_lst =
+                    static_cast<StringList*>(refl->MutableMessage(tmpl, f));
+                StringList* lst =
+                    static_cast<StringList*>(refl->MutableMessage(msg, f));
+                if (lst->additive()) {
+                  for (auto& v : orig_lst->data())
+                    lst->add_data(v);
+                } else if (lst->data().empty())
+                  *lst->mutable_data() = orig_lst->data();
+              }
+            } break;
+
+            default:
+              _logger->error("Entry '{}' of type {} not managed in merge",
+                             f->name(), f->type_name());
+              assert(123 == 293);
+          }
+        }
+      }
+    }
+  }
+}
+
+void parser::_resolve_template(std::unique_ptr<message_helper>& msg_helper,
+                               const pb_map_object& tmpls) {
+  if (msg_helper->resolved())
+    return;
+  Message* msg = msg_helper->mut_obj();
+
+  msg_helper->resolve();
+  const Descriptor* desc = msg->GetDescriptor();
+  const FieldDescriptor* f = desc->FindFieldByName("obj");
+  const Reflection* refl = msg->GetReflection();
+  if (!f)
+    return;
+
+  Object* obj = static_cast<Object*>(refl->MutableMessage(msg, f));
+  for (const std::string& u : obj->use()) {
+    auto it = tmpls.find(u);
+    if (it == tmpls.end())
+      throw msg_fmt("Cannot merge object of type '{}'", u);
+    _resolve_template(_pb_helper[it->second.get()], tmpls);
+    _merge(msg_helper, it->second.get());
+  }
+}
+
+/**
+ * @brief Return true if the register flag is enabled in the configuration
+ * object.
+ *
+ * @param msg A configuration object as Protobuf message.
+ *
+ * @return True if it has to be registered, false otherwise.
+ */
+bool parser::_is_registered(const Message& msg) const {
+  const Descriptor* desc = msg.GetDescriptor();
+  const Reflection* refl = msg.GetReflection();
+  std::string tmpl;
+  const FieldDescriptor* f = desc->FindFieldByName("obj");
+  if (f) {
+    const Object& obj = static_cast<const Object&>(refl->GetMessage(msg, f));
+    return obj.register_();
+  }
+  return false;
 }
 
 /**
@@ -884,550 +1340,143 @@ void parser::_parse_object_definitions(const std::string& path,
   }
 }
 
-void parser::_parse_resource_file(const std::string& path, State* pb_config) {
-  _logger->info("Reading resource file '{}'", path);
+#endif
 
-  std::ifstream in(path, std::ios::in);
-  std::string content;
-  if (in) {
-    in.seekg(0, std::ios::end);
-    content.resize(in.tellg());
-    in.seekg(0, std::ios::beg);
-    in.read(&content[0], content.size());
-    in.close();
-  } else
-    throw msg_fmt("Parsing of resource file failed: can't open file '{}': {}",
-                  path, strerror(errno));
+/**
+ *  Add object into the list.
+ *
+ *  @param[in] obj The object to add into the list.
+ */
+void parser::_add_object(object_ptr obj) {
+  if (obj->should_register())
+    (this->*_store[obj->type()])(obj);
+}
 
-  auto tab{absl::StrSplit(content, '\n')};
-  int current_line = 1;
-  for (auto it = tab.begin(); it != tab.end(); ++it, current_line++) {
-    std::string_view l = absl::StripLeadingAsciiWhitespace(*it);
-    if (l.empty() || l[0] == '#' || l[0] == ';')
-      continue;
-    std::pair<std::string_view, std::string_view> p =
-        absl::StrSplit(l, absl::MaxSplits('=', 1));
-    p.first = absl::StripTrailingAsciiWhitespace(p.first);
-    p.second = absl::StripLeadingAsciiWhitespace(p.second);
-    if (p.first.size() >= 3 && p.first[0] == '$' &&
-        p.first[p.first.size() - 1] == '$') {
-      p.first = p.first.substr(1, p.first.size() - 2);
-      (*pb_config
-            ->mutable_users())[std::string(p.first.data(), p.first.size())] =
-          std::string(p.second.data(), p.second.size());
-    } else
-      throw msg_fmt("Invalid user key '{}'", p.first);
+/**
+ *  Add template into the list.
+ *
+ *  @param[in] obj The tempalte to add into the list.
+ */
+void parser::_add_template(object_ptr obj) {
+  std::string const& name(obj->name());
+  if (name.empty())
+    throw msg_fmt("Parsing of {} failed {}: Property 'name' is missing",
+                  obj->type_name(), _get_file_info(obj.get()));
+  map_object& tmpl(_templates[obj->type()]);
+  if (tmpl.find(name) != tmpl.end())
+    throw msg_fmt("Parsing of {} failed {}: '{}' already exists",
+                  obj->type_name(), _get_file_info(obj.get()), name);
+  tmpl[name] = obj;
+}
+
+/**
+ *  Get the file information.
+ *
+ *  @param[in] obj The object to get file informations.
+ *
+ *  @return The file informations object.
+ */
+file_info const& parser::_get_file_info(object* obj) const {
+  if (obj) {
+    std::unordered_map<object*, file_info>::const_iterator it(
+        _objects_info.find(obj));
+    if (it != _objects_info.end())
+      return it->second;
+  }
+  throw msg_fmt(
+      "Parsing failed: Object not found into the file information cache");
+}
+
+/**
+ *  Build the hosts list with hostgroups.
+ *
+ *  @param[in]     hostgroups The hostgroups.
+ *  @param[in,out] hosts      The host list to fill.
+ */
+void parser::_get_hosts_by_hostgroups(hostgroup const& hostgroups,
+                                      list_host& hosts) {
+  _get_objects_by_list_name(hostgroups.members(), _map_objects[object::host],
+                            hosts);
+}
+
+/**
+ *  Build the hosts list with list of hostgroups.
+ *
+ *  @param[in]     hostgroups The hostgroups list.
+ *  @param[in,out] hosts      The host list to fill.
+ */
+void parser::_get_hosts_by_hostgroups_name(set_string const& lst_group,
+                                           list_host& hosts) {
+  map_object& gl_hostgroups(_map_objects[object::hostgroup]);
+  for (set_string::const_iterator it(lst_group.begin()), end(lst_group.end());
+       it != end; ++it) {
+    map_object::iterator it_hostgroups(gl_hostgroups.find(*it));
+    if (it_hostgroups != gl_hostgroups.end())
+      _get_hosts_by_hostgroups(
+          *static_cast<configuration::hostgroup*>(it_hostgroups->second.get()),
+          hosts);
   }
 }
 
 /**
- *  Get the next valid line.
+ *  Build the object list with list of object name.
  *
- *  @param[in, out] stream The current stream to read new line.
- *  @param[out]     line   The line to fill.
- *  @param[in, out] pos    The current position.
- *
- *  @return True if data is available, false if no data.
+ *  @param[in]     lst     The object name list.
+ *  @param[in]     objects The object map to find object name.
+ *  @param[in,out] out     The list to fill.
  */
-static bool get_next_line(std::ifstream& stream,
-                          std::string& line,
-                          uint32_t& pos) {
-  while (std::getline(stream, line, '\n')) {
-    ++pos;
-    line = absl::StripAsciiWhitespace(line);
-    if (!line.empty()) {
-      char c = line[0];
-      if (c != '#' && c != ';' && c != '\x0')
-        return true;
-    }
-  }
-  return false;
-}
-
-/**
- *  Parse the global configuration file.
- *
- *  @param[in] path The configuration path.
- */
-void parser::_parse_global_configuration(const std::string& path) {
-  _logger->info("Reading main configuration file '{}'.", path);
-
-  std::ifstream stream(path, std::ios::binary);
-  if (!stream.is_open())
-    throw msg_fmt(
-        "Parsing of global configuration failed: can't open file '{}'", path);
-
-  _config->cfg_main(path);
-
-  _current_line = 0;
-  _current_path = path;
-
-  std::string input;
-  while (get_next_line(stream, input, _current_line)) {
-    std::list<std::string> values =
-        absl::StrSplit(input, absl::MaxSplits('=', 1));
-    if (values.size() == 2) {
-      auto it = values.begin();
-      char const* key = it->c_str();
-      ++it;
-      char const* value = it->c_str();
-      if (_config->set(key, value))
-        continue;
-    }
-    throw msg_fmt(
-        "Parsing of global configuration failed in file '{}' on line {}: "
-        "Invalid line '{}'",
-        path, _current_line, input);
+template <typename T>
+void parser::_get_objects_by_list_name(set_string const& lst,
+                                       map_object& objects,
+                                       std::list<T>& out) {
+  for (set_string::const_iterator it(lst.begin()), end(lst.end()); it != end;
+       ++it) {
+    map_object::iterator it_obj(objects.find(*it));
+    if (it_obj != objects.end())
+      out.push_back(*static_cast<T*>(it_obj->second.get()));
   }
 }
 
 /**
- *  Parse the object definition file.
+ *  Insert objects into type T list and sort the new list by object id.
  *
- *  @param[in] path The object definitions path.
+ *  @param[in]  from The objects source.
+ *  @param[out] to   The objects destination.
  */
-void parser::_parse_object_definitions(std::string const& path) {
-  _logger->info("Processing object config file '{}'", path);
-
-  std::ifstream stream(path, std::ios::binary);
-  if (!stream.is_open())
-    throw msg_fmt("Parsing of object definition failed: can't open file '{}'",
-                  path);
-
-  _current_line = 0;
-  _current_path = path;
-
-  bool parse_object = false;
-  object_ptr obj;
-  std::string input;
-  while (get_next_line(stream, input, _current_line)) {
-    // Multi-line.
-    while ('\\' == input[input.size() - 1]) {
-      input.resize(input.size() - 1);
-      std::string addendum;
-      if (!get_next_line(stream, addendum, _current_line))
-        break;
-      input.append(addendum);
-    }
-
-    // Check if is a valid object.
-    if (obj == nullptr) {
-      if (input.find("define") || !std::isspace(input[6]))
-        throw msg_fmt(
-            "Parsing of object definition failed "
-            "in file '{}' on line {}: Unexpected start definition",
-            _current_path, _current_line);
-      input.erase(0, 6);
-      absl::StripLeadingAsciiWhitespace(&input);
-      std::size_t last = input.size() - 1;
-      if (input.empty() || input[last] != '{')
-        throw msg_fmt(
-            "Parsing of object definition failed in file '{}' on line {}: "
-            "Unexpected start definition",
-            _current_path, _current_line);
-      input.erase(last);
-      absl::StripTrailingAsciiWhitespace(&input);
-      obj = object::create(input);
-      if (obj == nullptr)
-        throw msg_fmt(
-            "Parsing of object definition failed in file '{}' on line {}: "
-            "Unknown object type name '{}'",
-            _current_path, _current_line, input);
-      parse_object = (_read_options & (1 << obj->type()));
-      _objects_info.emplace(obj.get(), file_info(path, _current_line));
-    }
-    // Check if is the not the end of the current object.
-    else if (input != "}") {
-      if (parse_object) {
-        if (!obj->parse(input))
-          throw msg_fmt(
-              "Parsing of object definition failed in file '{}' on line {}: "
-              "Invalid line '{}'",
-              _current_path, _current_line, input);
-      }
-    }
-    // End of the current object.
-    else {
-      if (parse_object) {
-        if (!obj->name().empty())
-          _add_template(obj);
-        if (obj->should_register())
-          _add_object(obj);
-      }
-      obj.reset();
-    }
-  }
+template <typename T>
+void parser::_insert(list_object const& from, std::set<T>& to) {
+  for (list_object::const_iterator it(from.begin()), end(from.end()); it != end;
+       ++it)
+    to.insert(*static_cast<T const*>(it->get()));
 }
 
 /**
- *  Parse the resource file.
+ *  Insert objects into type T list and sort the new list by object id.
  *
- *  @param[in] path The resource file path.
+ *  @param[in]  from The objects source.
+ *  @param[out] to   The objects destination.
  */
-void parser::_parse_resource_file(std::string const& path) {
-  _logger->info("Reading resource file '{}'", path);
-
-  std::ifstream stream(path.c_str(), std::ios::binary);
-  if (!stream.is_open())
-    throw msg_fmt("Parsing of resource file failed: can't open file '{}'",
-                  path);
-
-  _current_line = 0;
-  _current_path = path;
-
-  std::string input;
-  while (get_next_line(stream, input, _current_line)) {
-    try {
-      std::list<std::string> key_value =
-          absl::StrSplit(input, absl::MaxSplits('=', 1));
-      if (key_value.size() == 2) {
-        auto it = key_value.begin();
-        std::string& key = *it;
-        ++it;
-        std::string value = *it;
-        _config->user(key, value);
-      } else
-        throw msg_fmt(
-            "Parsing of resource file '{}' failed on line {}; Invalid line "
-            "'{}'",
-            _current_path, _current_line, input);
-    } catch (std::exception const& e) {
-      (void)e;
-      throw msg_fmt(
-          "Parsing of resource file '{}' failed on line {}: Invalid line '{}'",
-          _current_path, _current_line, input);
-    }
-  }
-}
-
-void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
-                    Message* tmpl) {
-  Message* msg = msg_helper->mut_obj();
-  const Descriptor* desc = msg->GetDescriptor();
-  const Reflection* refl = msg->GetReflection();
-  std::string tmp_str;
-
-  for (int i = 0; i < desc->field_count(); ++i) {
-    const FieldDescriptor* f = desc->field(i);
-    if (f->name() != "obj") {
-      /* Optional? If not defined in template, we continue. */
-      const auto* oof = f->containing_oneof();
-      if (oof) {
-        if (!refl->GetOneofFieldDescriptor(*tmpl, oof))
-          continue;
-      }
-
-      if ((oof && !refl->GetOneofFieldDescriptor(*msg, oof)) ||
-          !msg_helper->changed(f->number())) {
-        if (f->is_repeated()) {
-          switch (f->cpp_type()) {
-            case FieldDescriptor::CPPTYPE_STRING: {
-              size_t count = refl->FieldSize(*tmpl, f);
-              for (size_t j = 0; j < count; ++j) {
-                const std::string& s =
-                    refl->GetRepeatedStringReference(*tmpl, f, j, &tmp_str);
-                size_t count_msg = refl->FieldSize(*msg, f);
-                std::string tmp_str1;
-                bool found = false;
-                for (size_t k = 0; k < count_msg; ++k) {
-                  const std::string& s1 =
-                      refl->GetRepeatedStringReference(*msg, f, k, &tmp_str1);
-                  if (s1 == s) {
-                    found = true;
-                    break;
-                  }
-                }
-                if (!found)
-                  refl->AddString(msg, f, s);
-              }
-            } break;
-            case FieldDescriptor::CPPTYPE_MESSAGE: {
-              size_t count = refl->FieldSize(*tmpl, f);
-              for (size_t j = 0; j < count; ++j) {
-                const Message& m = refl->GetRepeatedMessage(*tmpl, f, j);
-                const Descriptor* d = m.GetDescriptor();
-                size_t count_msg = refl->FieldSize(*msg, f);
-                bool found = false;
-                for (size_t k = 0; k < count_msg; ++k) {
-                  const Message& m1 = refl->GetRepeatedMessage(*msg, f, k);
-                  const Descriptor* d1 = m1.GetDescriptor();
-                  if (d && d1 && d->name() == "PairUint64_32" &&
-                      d1->name() == "PairUint64_32") {
-                    const PairUint64_32& p =
-                        static_cast<const PairUint64_32&>(m);
-                    const PairUint64_32& p1 =
-                        static_cast<const PairUint64_32&>(m1);
-                    if (p.first() == p1.first() && p.second() == p1.second()) {
-                      found = true;
-                      break;
-                    }
-                  }
-                }
-                if (!found) {
-                  Message* new_m = refl->AddMessage(msg, f);
-                  new_m->CopyFrom(m);
-                }
-              }
-            } break;
-            default:
-              _logger->error(
-                  "Repeated type f->cpp_type = {} not managed in the "
-                  "inheritence.",
-                  f->cpp_type());
-              assert(124 == 294);
-          }
-        } else {
-          switch (f->cpp_type()) {
-            case FieldDescriptor::CPPTYPE_STRING:
-              refl->SetString(msg, f, refl->GetString(*tmpl, f));
-              break;
-            case FieldDescriptor::CPPTYPE_BOOL:
-              refl->SetBool(msg, f, refl->GetBool(*tmpl, f));
-              break;
-            case FieldDescriptor::CPPTYPE_INT32:
-              refl->SetInt32(msg, f, refl->GetInt32(*tmpl, f));
-              break;
-            case FieldDescriptor::CPPTYPE_UINT32:
-              refl->SetUInt32(msg, f, refl->GetUInt32(*tmpl, f));
-              break;
-            case FieldDescriptor::CPPTYPE_UINT64:
-              refl->SetUInt64(msg, f, refl->GetUInt64(*tmpl, f));
-              break;
-            case FieldDescriptor::CPPTYPE_ENUM:
-              refl->SetEnum(msg, f, refl->GetEnum(*tmpl, f));
-              break;
-            case FieldDescriptor::CPPTYPE_MESSAGE: {
-              Message* m = refl->MutableMessage(msg, f);
-              const Descriptor* d = m->GetDescriptor();
-
-              if (d && d->name() == "StringSet") {
-                StringSet* orig_set =
-                    static_cast<StringSet*>(refl->MutableMessage(tmpl, f));
-                StringSet* set =
-                    static_cast<StringSet*>(refl->MutableMessage(msg, f));
-                if (set->additive()) {
-                  for (auto& v : orig_set->data()) {
-                    bool found = false;
-                    for (auto& s : *set->mutable_data()) {
-                      if (s == v) {
-                        found = true;
-                        break;
-                      }
-                    }
-                    if (!found)
-                      set->add_data(v);
-                  }
-                } else if (set->data().empty())
-                  *set->mutable_data() = orig_set->data();
-
-              } else if (d && d->name() == "StringList") {
-                StringList* orig_lst =
-                    static_cast<StringList*>(refl->MutableMessage(tmpl, f));
-                StringList* lst =
-                    static_cast<StringList*>(refl->MutableMessage(msg, f));
-                if (lst->additive()) {
-                  for (auto& v : orig_lst->data())
-                    lst->add_data(v);
-                } else if (lst->data().empty())
-                  *lst->mutable_data() = orig_lst->data();
-              }
-            } break;
-
-            default:
-              _logger->error("Entry '{}' of type {} not managed in merge",
-                             f->name(), f->type_name());
-              assert(123 == 293);
-          }
-        }
-      }
-    }
-  }
-}
-
-void parser::_resolve_template(std::unique_ptr<message_helper>& msg_helper,
-                               const pb_map_object& tmpls) {
-  if (msg_helper->resolved())
-    return;
-  Message* msg = msg_helper->mut_obj();
-
-  msg_helper->resolve();
-  const Descriptor* desc = msg->GetDescriptor();
-  const FieldDescriptor* f = desc->FindFieldByName("obj");
-  const Reflection* refl = msg->GetReflection();
-  if (!f)
-    return;
-
-  Object* obj = static_cast<Object*>(refl->MutableMessage(msg, f));
-  for (const std::string& u : obj->use()) {
-    auto it = tmpls.find(u);
-    if (it == tmpls.end())
-      throw msg_fmt("Cannot merge object of type '{}'", u);
-    _resolve_template(_pb_helper[it->second.get()], tmpls);
-    _merge(msg_helper, it->second.get());
-  }
+template <typename T>
+void parser::_insert(map_object const& from, std::set<T>& to) {
+  for (map_object::const_iterator it(from.begin()), end(from.end()); it != end;
+       ++it)
+    to.insert(*static_cast<T*>(it->second.get()));
 }
 
 /**
- * @brief Return true if the register flag is enabled in the configuration
- * object.
+ *  Get the map object type name.
  *
- * @param msg A configuration object as Protobuf message.
+ *  @param[in] objects  The map object.
  *
- * @return True if it has to be registered, false otherwise.
+ *  @return The type name.
  */
-bool parser::_is_registered(const Message& msg) const {
-  const Descriptor* desc = msg.GetDescriptor();
-  const Reflection* refl = msg.GetReflection();
-  std::string tmpl;
-  const FieldDescriptor* f = desc->FindFieldByName("obj");
-  if (f) {
-    const Object& obj = static_cast<const Object&>(refl->GetMessage(msg, f));
-    return obj.register_();
-  }
-  return false;
-}
-
-/**
- * @brief For each type of object in the State, templates are resolved that is
- * to say, children inherite from parents properties.
- *
- * @param pb_config The State containing all the object to handle.
- */
-void parser::_resolve_template(State* pb_config) {
-  for (Command& c : *pb_config->mutable_commands())
-    _resolve_template(_pb_helper[&c], _pb_templates[object::command]);
-
-  for (Connector& c : *pb_config->mutable_connectors())
-    _resolve_template(_pb_helper[&c], _pb_templates[object::connector]);
-
-  for (Contact& c : *pb_config->mutable_contacts())
-    _resolve_template(_pb_helper[&c], _pb_templates[object::contact]);
-
-  for (Contactgroup& cg : *pb_config->mutable_contactgroups())
-    _resolve_template(_pb_helper[&cg], _pb_templates[object::contactgroup]);
-
-  for (Host& h : *pb_config->mutable_hosts())
-    _resolve_template(_pb_helper[&h], _pb_templates[object::host]);
-
-  for (Service& s : *pb_config->mutable_services())
-    _resolve_template(_pb_helper[&s], _pb_templates[object::service]);
-
-  for (Anomalydetection& a : *pb_config->mutable_anomalydetections())
-    _resolve_template(_pb_helper[&a], _pb_templates[object::anomalydetection]);
-
-  for (Serviceescalation& se : *pb_config->mutable_serviceescalations())
-    _resolve_template(_pb_helper[&se],
-                      _pb_templates[object::serviceescalation]);
-
-  for (Hostescalation& he : *pb_config->mutable_hostescalations())
-    _resolve_template(_pb_helper[&he], _pb_templates[object::hostescalation]);
-
-  for (const Command& c : pb_config->commands())
-    _pb_helper.at(&c)->check_validity();
-
-  for (const Contact& c : pb_config->contacts())
-    _pb_helper.at(&c)->check_validity();
-
-  for (const Contactgroup& cg : pb_config->contactgroups())
-    _pb_helper.at(&cg)->check_validity();
-
-  for (const Host& h : pb_config->hosts())
-    _pb_helper.at(&h)->check_validity();
-
-  for (const Hostdependency& hd : pb_config->hostdependencies())
-    _pb_helper.at(&hd)->check_validity();
-
-  for (const Hostescalation& he : pb_config->hostescalations())
-    _pb_helper.at(&he)->check_validity();
-
-  for (const Hostgroup& hg : pb_config->hostgroups())
-    _pb_helper.at(&hg)->check_validity();
-
-  for (const Service& s : pb_config->services())
-    _pb_helper.at(&s)->check_validity();
-
-  for (const Hostdependency& hd : pb_config->hostdependencies())
-    _pb_helper.at(&hd)->check_validity();
-
-  for (const Servicedependency& sd : pb_config->servicedependencies())
-    _pb_helper.at(&sd)->check_validity();
-
-  for (const Servicegroup& sg : pb_config->servicegroups())
-    _pb_helper.at(&sg)->check_validity();
-
-  for (const Timeperiod& t : pb_config->timeperiods())
-    _pb_helper.at(&t)->check_validity();
-
-  for (const Anomalydetection& a : pb_config->anomalydetections())
-    _pb_helper.at(&a)->check_validity();
-
-  for (const Tag& t : pb_config->tags())
-    _pb_helper.at(&t)->check_validity();
-
-  for (const Servicegroup& sg : pb_config->servicegroups())
-    _pb_helper.at(&sg)->check_validity();
-
-  for (const Severity& sv : pb_config->severities())
-    _pb_helper.at(&sv)->check_validity();
-
-  for (const Tag& t : pb_config->tags())
-    _pb_helper.at(&t)->check_validity();
-
-  for (const Serviceescalation& se : pb_config->serviceescalations())
-    _pb_helper.at(&se)->check_validity();
-
-  for (const Hostescalation& he : pb_config->hostescalations())
-    _pb_helper.at(&he)->check_validity();
-
-  for (const Connector& c : pb_config->connectors())
-    _pb_helper.at(&c)->check_validity();
-}
-
-/**
- *  Resolve template for register objects.
- */
-void parser::_resolve_template() {
-  for (map_object& templates : _templates) {
-    for (map_object::iterator it = templates.begin(), end = templates.end();
-         it != end; ++it)
-      it->second->resolve_template(templates);
-  }
-
-  for (uint32_t i = 0; i < _lst_objects.size(); ++i) {
-    map_object& templates = _templates[i];
-    for (list_object::iterator it = _lst_objects[i].begin(),
-                               end = _lst_objects[i].end();
-         it != end; ++it) {
-      (*it)->resolve_template(templates);
-      object::error_info err;
-      try {
-        (*it)->check_validity(&err);
-        _config_warnings += err.config_warnings;
-        _config_errors += err.config_errors;
-      } catch (std::exception const& e) {
-        throw error("Configuration parsing failed {}: {}",
-                    _get_file_info(it->get()), e.what());
-      }
-    }
-  }
-
-  for (uint32_t i = 0; i < _map_objects.size(); ++i) {
-    map_object& templates = _templates[i];
-    for (map_object::iterator it = _map_objects[i].begin(),
-                              end = _map_objects[i].end();
-         it != end; ++it) {
-      it->second->resolve_template(templates);
-      try {
-        object::error_info err;
-        it->second->check_validity(&err);
-        _config_warnings += err.config_warnings;
-        _config_errors += err.config_errors;
-      } catch (const std::exception& e) {
-        throw error("Configuration parsing failed {}: {}",
-                    _get_file_info(it->second.get()), e.what());
-      }
-    }
-  }
+std::string const& parser::_map_object_type(map_object const& objects) const
+    throw() {
+  static std::string const empty("");
+  map_object::const_iterator it(objects.begin());
+  if (it == objects.end())
+    return empty;
+  return it->second->type_name();
 }
 
 /**
@@ -1452,35 +1501,4 @@ void parser::_store_into_map(object_ptr obj) {
     throw error("Parsing of {} failed {}: {} already exists", obj->type_name(),
                 _get_file_info(obj.get()), obj->name());
   _map_objects[obj->type()][(real.get()->*ptr)()] = real;
-}
-
-/**
- * @brief Clean the configuration:
- *    * remove template objects.
- *
- * @param pb_config
- */
-void parser::_cleanup(State* pb_config) {
-  int i = 0;
-  for (auto it = pb_config->mutable_services()->begin();
-       it != pb_config->mutable_services()->end();) {
-    if (!it->obj().register_()) {
-      pb_config->mutable_services()->erase(it);
-      it = pb_config->mutable_services()->begin() + i;
-    } else {
-      ++it;
-      ++i;
-    }
-  }
-  i = 0;
-  for (auto it = pb_config->mutable_anomalydetections()->begin();
-       it != pb_config->mutable_anomalydetections()->end();) {
-    if (!it->obj().register_()) {
-      pb_config->mutable_anomalydetections()->erase(it);
-      it = pb_config->mutable_anomalydetections()->begin() + i;
-    } else {
-      ++it;
-      ++i;
-    }
-  }
 }

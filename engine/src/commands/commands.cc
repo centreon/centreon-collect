@@ -742,8 +742,7 @@ int cmd_process_host_check_result(int cmd, time_t check_time, char* args) {
   string::unescape(output);
 
   // Submit the check result.
-  return (
-      process_passive_host_check(check_time, host_name, return_code, output));
+  return process_passive_host_check(check_time, host_name, return_code, output);
 }
 
 /* process passive host check result */
@@ -751,7 +750,7 @@ int process_passive_host_check(time_t check_time,
                                char const* host_name,
                                int return_code,
                                char const* output) {
-  char const* real_host_name(nullptr);
+  const char* real_host_name = nullptr;
   /* skip this host check result if we aren't accepting passive host checks */
 #ifdef LEGACY_CONF
   if (!config->accept_passive_service_checks())

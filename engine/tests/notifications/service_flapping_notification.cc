@@ -45,7 +45,7 @@ using namespace com::centreon::engine::retention;
 class ServiceFlappingNotification : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state(LEGACY);
+    init_config_state();
 
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};

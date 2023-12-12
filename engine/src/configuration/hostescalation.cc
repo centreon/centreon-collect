@@ -32,6 +32,14 @@ using namespace com::centreon::engine::configuration;
 
 namespace com::centreon::engine::configuration {
 
+#ifdef LEGACY_CONF
+size_t hostescalation_key(const hostescalation& he) {
+  return absl::HashOf(*he.hosts().begin(), he.contactgroups(),
+                      he.escalation_options(), he.escalation_period(),
+                      he.first_notification(), he.last_notification(),
+                      he.notification_interval());
+}
+#else
 size_t hostescalation_key(const Hostescalation& he) {
   return absl::HashOf(he.hosts().data(0),
                       // he.contactgroups().data(),
@@ -39,13 +47,7 @@ size_t hostescalation_key(const Hostescalation& he) {
                       he.first_notification(), he.last_notification(),
                       he.notification_interval());
 }
-
-size_t hostescalation_key(const hostescalation& he) {
-  return absl::HashOf(*he.hosts().begin(), he.contactgroups(),
-                      he.escalation_options(), he.escalation_period(),
-                      he.first_notification(), he.last_notification(),
-                      he.notification_interval());
-}
+#endif
 
 }  // namespace com::centreon::engine::configuration
 

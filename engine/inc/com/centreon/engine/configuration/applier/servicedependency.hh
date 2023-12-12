@@ -31,8 +31,11 @@ namespace configuration {
 class servicedependency;
 class state;
 
-size_t servicedependency_key(const Servicedependency& sd);
+#ifdef LEGACY_CONF
 size_t servicedependency_key_l(const servicedependency& sd);
+#else
+size_t servicedependency_key(const Servicedependency& sd);
+#endif
 
 namespace applier {
 class servicedependency {

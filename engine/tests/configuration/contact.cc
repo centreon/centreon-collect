@@ -19,7 +19,6 @@
 
 #include "com/centreon/engine/configuration/contact.hh"
 #include <gtest/gtest.h>
-#include "common/configuration/contact_helper.hh"
 
 #include "helper.hh"
 
@@ -31,7 +30,7 @@ extern configuration::state* config;
 
 class ConfigContact : public ::testing::Test {
  public:
-  void SetUp() override { init_config_state(LEGACY); }
+  void SetUp() override { init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -42,12 +41,4 @@ TEST_F(ConfigContact, NewContactWithNoName) {
   configuration::contact ctct("");
   object::error_info err;
   ASSERT_THROW(ctct.check_validity(&err), std::exception);
-}
-
-// When I create a configuration::Contact with an empty name
-// Then an exception is thrown.
-TEST_F(ConfigContact, NewPbContactWithNoName) {
-  configuration::Contact ctct;
-  configuration::contact_helper ctct_hlp(&ctct);
-  ASSERT_THROW(ctct_hlp.check_validity(), std::exception);
 }

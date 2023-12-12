@@ -147,12 +147,12 @@ if(WITH_TESTING)
       "${TESTS_DIR}/commands/environment.cc"
       "${TESTS_DIR}/commands/pb_connector.cc"
       "${TESTS_DIR}/commands/pbsimple-command.cc"
-      "${TESTS_DIR}/configuration/applier/applier-global.cc"
-      "${TESTS_DIR}/configuration/applier/applier-host.cc"
+      "${TESTS_DIR}/configuration/applier/applier-pbglobal.cc"
+      "${TESTS_DIR}/configuration/applier/applier-pbhost.cc"
       "${TESTS_DIR}/configuration/applier/applier-pbhostdependency.cc"
-      "${TESTS_DIR}/configuration/applier/applier-hostescalation.cc"
+      "${TESTS_DIR}/configuration/applier/applier-pbhostescalation.cc"
       "${TESTS_DIR}/configuration/applier/applier-pbhostgroup.cc"
-      "${TESTS_DIR}/configuration/applier/applier-log.cc"
+      "${TESTS_DIR}/configuration/applier/applier-pblog.cc"
       "${TESTS_DIR}/configuration/applier/applier-pbanomalydetection.cc"
       "${TESTS_DIR}/configuration/applier/applier-pbcommand.cc"
       "${TESTS_DIR}/configuration/applier/applier-pbconnector.cc"
@@ -162,26 +162,21 @@ if(WITH_TESTING)
       "${TESTS_DIR}/configuration/applier/applier-pbservicedependency.cc"
       "${TESTS_DIR}/configuration/applier/applier-pbserviceescalation.cc"
       "${TESTS_DIR}/configuration/applier/applier-pbservicegroup.cc"
-      "${TESTS_DIR}/configuration/applier/applier-severity.cc"
-      "${TESTS_DIR}/configuration/applier/applier-state.cc"
-      "${TESTS_DIR}/configuration/applier/applier-tag.cc"
-      "${TESTS_DIR}/configuration/applier/applier-timeperiod.cc"
-      "${TESTS_DIR}/configuration/contact.cc"
-      "${TESTS_DIR}/configuration/host.cc"
+      "${TESTS_DIR}/configuration/applier/applier-pbseverity.cc"
+      "${TESTS_DIR}/configuration/applier/applier-pbstate.cc"
+      "${TESTS_DIR}/configuration/applier/applier-pbtag.cc"
+      "${TESTS_DIR}/configuration/applier/applier-pbtimeperiod.cc"
+      "${TESTS_DIR}/configuration/pbcontact.cc"
+      "${TESTS_DIR}/configuration/pbhost.cc"
       "${TESTS_DIR}/configuration/object.cc"
-      "${TESTS_DIR}/configuration/service.cc"
-      "${TESTS_DIR}/configuration/severity.cc"
+      "${TESTS_DIR}/configuration/pbservice.cc"
+      "${TESTS_DIR}/configuration/pbseverity.cc"
       "${TESTS_DIR}/configuration/tag.cc"
       "${TESTS_DIR}/configuration/timeperiod-test.cc"
       "${TESTS_DIR}/contacts/contactgroup-config.cc"
       "${TESTS_DIR}/contacts/simple-contactgroup.cc"
-      "${TESTS_DIR}/custom_vars/extcmd.cc"
-      "${TESTS_DIR}/downtimes/downtime.cc"
-      "${TESTS_DIR}/downtimes/downtime_finder.cc"
+      "${TESTS_DIR}/custom_vars/pbextcmd.cc"
       "${TESTS_DIR}/enginerpc/enginerpc.cc"
-      "${TESTS_DIR}/external_commands/anomalydetection.cc"
-      "${TESTS_DIR}/external_commands/host.cc"
-      "${TESTS_DIR}/external_commands/service.cc"
       "${TESTS_DIR}/helper.cc"
       "${TESTS_DIR}/loop/loop.cc"
       "${TESTS_DIR}/macros/pbmacro.cc"
@@ -237,6 +232,8 @@ if(WITH_TESTING)
 
   # utils.cc can't be compiled with precomp headers so it's compiled apart
   add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
+  add_library(ut_engine_utils_legacy STATIC "${TESTS_DIR}/timeperiod/utils.cc")
+  target_compile_definitions(ut_engine_utils_legacy PRIVATE LEGACY_CONF)
 
   add_executable(ut_engine ${ut_sources})
   target_precompile_headers(ut_engine REUSE_FROM cce_core)
@@ -286,9 +283,9 @@ if(WITH_TESTING)
   target_link_libraries(
     ut_engine_legacy
     enginerpc_legacy
-    ut_engine_utils
+    ut_engine_utils_legacy
     cce_core_legacy
-    engine_config
+    engine_config_legacy
     pthread
     ${GCOV}
     CONAN_PKG::gtest

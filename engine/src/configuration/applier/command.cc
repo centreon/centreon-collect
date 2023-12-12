@@ -34,27 +34,6 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using com::centreon::common::log_v2::log_v2;
 
-/**
- *  @brief Expand command.
- *
- *  Command configuration objects do not need expansion. Therefore this
- *  method does nothing.
- *
- *  @param[in] s  The global protobuf configuration object.
- */
-void applier::command::expand_objects(configuration::State& s
-                                      [[maybe_unused]]) {}
-/**
- *  @brief Expand command.
- *
- *  Command configuration objects do not need expansion. Therefore this
- *  method does nothing.
- *
- *  @param[in] s  Unused.
- */
-void applier::command::expand_objects(configuration::state& s
-                                      [[maybe_unused]]) {}
-
 #ifdef LEGACY_CONF
 /**
  *  Modified command.
@@ -180,6 +159,33 @@ void applier::command::remove_object(configuration::command const& obj) {
   config->commands().erase(obj);
 }
 
+/**
+ *  @brief Expand command.
+ *
+ *  Command configuration objects do not need expansion. Therefore this
+ *  method does nothing.
+ *
+ *  @param[in] s  Unused.
+ */
+void applier::command::expand_objects(configuration::state& s
+                                      [[maybe_unused]]) {}
+
+/**
+ *  @brief Resolve command.
+ *
+ *  This method will check for its connector's existence, if command is
+ *  configured to use one.
+ *
+ *  @param[in] obj  Command object.
+ */
+void applier::command::resolve_object(configuration::command const& obj) {
+  if (!obj.connector().empty()) {
+    connector_map::iterator found{
+        commands::connector::connectors.find(obj.connector())};
+    if (found == commands::connector::connectors.end() || !found->second)
+      throw engine_error() << "unknow command " << obj.connector();
+  }
+}
 #else
 /**
  * @brief Modify command.
@@ -302,8 +308,16 @@ void applier::command::remove_object(ssize_t idx) {
   pb_config.mutable_commands()->DeleteSubrange(idx, 1);
 }
 
-#endif
-
+/**
+ *  @brief Expand command.
+ *
+ *  Command configuration objects do not need expansion. Therefore this
+ *  method does nothing.
+ *
+ *  @param[in] s  The global protobuf configuration object.
+ */
+void applier::command::expand_objects(configuration::State& s
+                                      [[maybe_unused]]) {}
 /**
  *  @brief Resolve command.
  *
@@ -320,19 +334,4 @@ void applier::command::resolve_object(const configuration::Command& obj) {
       throw engine_error() << "unknow command " << obj.connector();
   }
 }
-/**
- *  @brief Resolve command.
- *
- *  This method will check for its connector's existence, if command is
- *  configured to use one.
- *
- *  @param[in] obj  Command object.
- */
-void applier::command::resolve_object(configuration::command const& obj) {
-  if (!obj.connector().empty()) {
-    connector_map::iterator found{
-        commands::connector::connectors.find(obj.connector())};
-    if (found == commands::connector::connectors.end() || !found->second)
-      throw engine_error() << "unknow command " << obj.connector();
-  }
-}
+#endif

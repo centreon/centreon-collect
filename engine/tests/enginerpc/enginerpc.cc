@@ -59,7 +59,7 @@ using namespace com::centreon::engine::configuration::applier;
 class EngineRpc : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state(LEGACY);
+    init_config_state();
 
     // Do not unload this in the tear down function, it is done by the
     // other unload function... :-(

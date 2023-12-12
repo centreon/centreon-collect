@@ -27,7 +27,7 @@ using namespace com::centreon::engine::retention;
 
 class RetentionDumpTest : public ::testing::Test {
  public:
-  void SetUp() { init_config_state(LEGACY); }
+  void SetUp() { init_config_state(); }
 
   void TearDown() { deinit_config_state(); }
 };
