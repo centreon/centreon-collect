@@ -109,7 +109,7 @@ jobs:
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   -DNG=ON \
                   -DCMAKE_C_COMPILER_LAUNCHER=sccache \
-                  -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+                  -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
                   .
 
           sudo ninja
