@@ -122,6 +122,7 @@ jobs:
 
     steps:
       - name: Promote latest scan
+        if: github.ref_name == 'develop'
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
           VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
