@@ -45,7 +45,8 @@ jobs:
           #   arch: arm64
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
-
+    env:
+      SCCACHE_GHA_ENABLED: "true"
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
       credentials:
@@ -74,6 +75,8 @@ jobs:
       #   if: ${{ matrix.package_extension == 'deb' }}
       #   run: rm -f packaging/*-selinux.yaml
       #   shell: bash
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.3
 
       - name: Compile sources
         run: |
@@ -105,10 +108,16 @@ jobs:
                   -DWITH_CONFIG_FILES=ON \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   -DNG=ON \
+                  -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                  -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
                   .
 
           sudo ninja
         shell: bash
+        
+      - name: Run sccache stat for check
+        shell: bash
+        run: ${SCCACHE_PATH} --show-stats
 
       # - name: Generate debug files
       #   run: |
