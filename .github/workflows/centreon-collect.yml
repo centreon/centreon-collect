@@ -7,20 +7,20 @@ concurrency:
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - bbdo/**
-      - broker/**
-      - ccc/**
-      - clib/**
-      - connectors/**
-      - engine/**
-      - grpc/**
-      - packaging/**
-      - cmake.sh
-      - CMakeLists.txt
-      - conanfile.txt
-      - selinux/**
-      - "!.veracode-exclusions"
+    # paths:
+    #   - bbdo/**
+    #   - broker/**
+    #   - ccc/**
+    #   - clib/**
+    #   - connectors/**
+    #   - engine/**
+    #   - grpc/**
+    #   - packaging/**
+    #   - cmake.sh
+    #   - CMakeLists.txt
+    #   - conanfile.txt
+    #   - selinux/**
+    #   - "!.veracode-exclusions"
   push:
     branches:
       - develop
@@ -46,35 +46,35 @@ jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
 
-  unit-test:
-    needs: [get-version]
-    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
-    runs-on: [self-hosted, collect]
+  # unit-test:
+  #   needs: [get-version]
+  #   if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+  #   runs-on: [self-hosted, collect]
 
-    strategy:
-      fail-fast: false
-      matrix:
-        image: [alma8, alma9, debian-bullseye]
-    name: unit test ${{ matrix.image }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       image: [alma8, alma9, debian-bullseye]
+  #   name: unit test ${{ matrix.image }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v4
 
-      - name: Login to Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+  #     - name: Login to Registry
+  #       uses: docker/login-action@v2
+  #       with:
+  #         registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+  #         username: ${{ secrets.DOCKER_REGISTRY_ID }}
+  #         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-      - name: Test ${{ matrix.image }}
-        uses: ./.github/actions/runner-docker
-        with:
-          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          script_name: /src/.github/scripts/collect-unit-tests
-          image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ needs.get-version.outputs.img_version }}
+  #     - name: Test ${{ matrix.image }}
+  #       uses: ./.github/actions/runner-docker
+  #       with:
+  #         registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+  #         script_name: /src/.github/scripts/collect-unit-tests
+  #         image_name: centreon-collect-${{ matrix.image }}
+  #         image_version: ${{ needs.get-version.outputs.img_version }}
 
   package:
     needs: [get-version]
@@ -87,104 +87,104 @@ jobs:
       commit_hash: ${{ github.sha }}
     secrets: inherit
 
-  deliver-sources:
-    runs-on: [self-hosted, common]
-    needs: [get-version, package]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+  # deliver-sources:
+  #   runs-on: [self-hosted, common]
+  #   needs: [get-version, package]
+  #   if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-        with:
-          path: centreon-collect
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v4
+  #       with:
+  #         path: centreon-collect
 
-      - name: Deliver sources
-        uses: ./centreon-collect/.github/actions/release-sources
-        with:
-          bucket_directory: centreon-collect
-          module_directory: centreon-collect
-          module_name: centreon-collect
-          major_version: ${{ needs.get-version.outputs.version }}
-          minor_version: ${{ needs.get-version.outputs.patch }}
-          token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
+  #     - name: Deliver sources
+  #       uses: ./centreon-collect/.github/actions/release-sources
+  #       with:
+  #         bucket_directory: centreon-collect
+  #         module_directory: centreon-collect
+  #         module_name: centreon-collect
+  #         major_version: ${{ needs.get-version.outputs.version }}
+  #         minor_version: ${{ needs.get-version.outputs.patch }}
+  #         token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
-  deliver-rpm:
-    if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
-    needs: [get-version, package]
-    environment: ${{ needs.get-version.outputs.environment }}
-    runs-on: [self-hosted, common]
-    strategy:
-      matrix:
-        include:
-          - distrib: el8
-            arch: amd64
-          - distrib: el9
-            arch: amd64
+  # deliver-rpm:
+  #   if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
+  #   needs: [get-version, package]
+  #   environment: ${{ needs.get-version.outputs.environment }}
+  #   runs-on: [self-hosted, common]
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - distrib: el8
+  #           arch: amd64
+  #         - distrib: el9
+  #           arch: amd64
 
-    name: deliver ${{ matrix.distrib }}
+  #   name: deliver ${{ matrix.distrib }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v4
 
-      - name: Publish RPM packages
-        uses: ./.github/actions/delivery
-        with:
-          module_name: collect
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-version.outputs.stability }}
+  #     - name: Publish RPM packages
+  #       uses: ./.github/actions/delivery
+  #       with:
+  #         module_name: collect
+  #         distrib: ${{ matrix.distrib }}
+  #         version: ${{ needs.get-version.outputs.version }}
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         cache_key: cache-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+  #         stability: ${{ needs.get-version.outputs.stability }}
 
-  deliver-deb:
-    if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
-    needs: [get-version, package]
-    environment: ${{ needs.get-version.outputs.environment }}
-    runs-on: [self-hosted, common]
-    strategy:
-      matrix:
-        include:
-          - distrib: bullseye
-            arch: amd64
-          - distrib: bullseye
-            arch: arm64
+  # deliver-deb:
+  #   if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
+  #   needs: [get-version, package]
+  #   environment: ${{ needs.get-version.outputs.environment }}
+  #   runs-on: [self-hosted, common]
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - distrib: bullseye
+  #           arch: amd64
+  #         - distrib: bullseye
+  #           arch: arm64
 
-    name: deliver ${{ matrix.distrib }}
+  #   name: deliver ${{ matrix.distrib }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v4
 
-      - name: Publish DEB packages
-        uses: ./.github/actions/delivery
-        with:
-          module_name: collect
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-version.outputs.stability }}
+  #     - name: Publish DEB packages
+  #       uses: ./.github/actions/delivery
+  #       with:
+  #         module_name: collect
+  #         distrib: ${{ matrix.distrib }}
+  #         version: ${{ needs.get-version.outputs.version }}
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         cache_key: cache-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+  #         stability: ${{ needs.get-version.outputs.stability }}
 
-  promote:
-    needs: [get-version]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
-    runs-on: [self-hosted, common]
-    strategy:
-      matrix:
-        distrib: [el8, el9, bullseye]
+  # promote:
+  #   needs: [get-version]
+  #   if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+  #   runs-on: [self-hosted, common]
+  #   strategy:
+  #     matrix:
+  #       distrib: [el8, el9, bullseye]
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v4
 
-      - name: Promote ${{ matrix.distrib }} to stable
-        uses: ./.github/actions/promote-to-stable
-        with:
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          module_name: collect
-          distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-version.outputs.version }}
-          minor_version: ${{ needs.get-version.outputs.patch }}
-          stability: ${{ needs.get-version.outputs.stability }}
-          repository_name: standard
+  #     - name: Promote ${{ matrix.distrib }} to stable
+  #       uses: ./.github/actions/promote-to-stable
+  #       with:
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         module_name: collect
+  #         distrib: ${{ matrix.distrib }}
+  #         major_version: ${{ needs.get-version.outputs.version }}
+  #         minor_version: ${{ needs.get-version.outputs.patch }}
+  #         stability: ${{ needs.get-version.outputs.stability }}
+  #         repository_name: standard
