@@ -51,6 +51,7 @@ jobs:
           sudo cmake \
             -G "Ninja" \
             -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
+            -DDEBUG_ROBOT=OFF \
             -DWITH_TESTING=OFF \
             -DWITH_BENCH=OFF \
             -DWITH_MODULE_SIMU=OFF \
@@ -65,6 +66,7 @@ jobs:
             -DWITH_DAEMONS=ON \
             -DWITH_CREATE_FILES=OFF \
             -DWITH_CONFIG_FILES=ON \
+            -DNG=ON \
             ..
 
           sudo ninja
