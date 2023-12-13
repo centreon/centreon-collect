@@ -27,9 +27,6 @@ contents:
   - src: "../lib/cbmod.so"
     dst: "/usr/lib64/nagios/cbmod.so"
 
-scripts:
-  postinstall: ./scripts/centreon-broker-cbmod-postinstall.sh
-
 overrides:
   rpm:
     depends:

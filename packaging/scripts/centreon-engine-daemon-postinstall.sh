@@ -15,6 +15,7 @@ if [ "$1" = "configure" ] ; then
   fi
   if [ "$(getent passwd centreon-broker)" ]; then
     usermod -a -G centreon-engine centreon-broker
+    usermod -a -G centreon-broker centreon-engine
   fi
   if [ "$(getent passwd centreon-gorgone)" ]; then
     usermod -a -G centreon-engine centreon-gorgone
