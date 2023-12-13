@@ -119,7 +119,6 @@ jobs:
         shell: bash
         run: ${SCCACHE_PATH} --show-stats
 
-        
       # - name: Generate debug files
       #   run: |
       #     for file in $(find ./{lib/*.so,bin} -type f); do
