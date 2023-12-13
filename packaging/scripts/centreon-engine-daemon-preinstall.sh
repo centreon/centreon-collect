@@ -17,7 +17,7 @@ if id -g nagios > /dev/null 2>&1; then
   usermod -a -G centreon-engine nagios
 fi
 
-if  [ "$1" = "configure" ]; then # deb
+if  [ "$1" = "install" ]; then # deb
   if id -g www-data > /dev/null 2>&1; then
     usermod -a -G centreon-engine www-data
   fi
