@@ -66,8 +66,8 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: /root/.cache/sccache
-          key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.run_id }}
-          restore-keys: sccache-${{ matrix.distrib }}-${{ matrix.arch }}-
+          key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
+          restore-keys: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
 
       # - name: Generate selinux binaries
       #   if: ${{ matrix.package_extension == 'rpm' }}
