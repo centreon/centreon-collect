@@ -41,7 +41,7 @@ bool string::get_next_line(std::ifstream& stream,
                            unsigned int& pos) {
   while (std::getline(stream, line, '\n')) {
     ++pos;
-    string::trim(line);
+    boost::algorithm::trim(line);
     if (!line.empty()) {
       char c(line[0]);
       if (c != '#' && c != ';' && c != '\x0')

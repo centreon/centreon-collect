@@ -279,3 +279,38 @@ EMACROS_NOTIF
 
     Stop Engine
     Kindly Stop Broker
+
+EMACROS_SEMICOLON
+    [Documentation]    macros with a semicolon are used even after semicolon
+    [Tags]    engine    external_cmd    macros
+    Config Engine    ${1}
+    Config Broker    central
+    Config Broker    rrd
+    Config Broker    module    ${1}
+    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Engine Config Set Value    0    log_level_checks    trace    True
+    Engine Config Set Value In Hosts    0    host_1    _KEY2    VAL1;val3;
+    Engine Config Change Command
+    ...    0
+    ...    \\d+
+    ...    /bin/echo "KEY2=$_HOSTKEY2$"
+    Clear Retention
+    ${start}    Get Current Date
+    Start Engine
+    Start Broker
+
+    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True
+    ...    ${result}
+    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Schedule Forced Svc Check    host_1    service_1
+    Sleep    5s
+
+    ${content}    Create List    KEY2=VAL1;val3;
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    VAL1;val3; not found in log.
+
+    Stop Engine
+    Kindly Stop Broker
