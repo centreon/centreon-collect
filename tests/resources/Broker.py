@@ -477,7 +477,6 @@ def config_broker(name, poller_inst: int = 1):
 
 def change_broker_tcp_output_to_grpc(name: str):
     """Update broker configuration to use grpc output
-    
     Example:
     | Change Broker TCP Output To Grpc | central |
     """
@@ -516,7 +515,7 @@ def change_broker_tcp_input_to_grpc(name: str):
     _apply_conf(name, input_to_grpc)
 
 
-def add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
+def _add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
     json_dict["encryption"] = "yes"
     if (add_cert):
         json_dict["ca_certificate"] = "/tmp/ca_1234.crt"
@@ -530,12 +529,12 @@ def add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
     Example:
     | Add Broker Tcp Input Grpc Crypto | central | ${True} | ${False} |
     """
-    def crypto_modifier(conf):
+    def _crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
             if v["type"] == "grpc":
-                add_broker_crypto(v, add_cert, reversed)
-    _apply_conf(name, crypto_modifier)
+                _add_broker_crypto(v, add_cert, reversed)
+    _apply_conf(name, _crypto_modifier)
 
 
 def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool):
@@ -543,12 +542,12 @@ def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool)
     Example:
     | Add Broker Tcp Output Grpc Crypto | module0 | ${True} | ${False} |
     """
-    def crypto_modifier(conf):
+    def _crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(input_dict):
             if v["type"] == "grpc":
-                add_broker_crypto(v, add_cert, not reversed)
-    _apply_conf(name, crypto_modifier)
+                _add_broker_crypto(v, add_cert, not reversed)
+    _apply_conf(name, _crypto_modifier)
 
 
 def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
@@ -845,6 +844,10 @@ def broker_config_clear_outputs_except(name, ex: list):
 
 
 def config_broker_victoria_output():
+    """Configure broker to add victoria output
+    Example:
+    | Config Broker Victoria Output |
+    """
     filename = "central-broker.json"
 
     with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r") as f:
@@ -1072,6 +1075,10 @@ def broker_config_log(name, key, value):
 
 
 def broker_config_flush_log(name, value):
+    """Flush broker configuration log.
+    Example:
+    | Broker Config Flush Log | central | 1 |
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -1146,7 +1153,6 @@ def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
 
 def get_broker_stats_size(name, key, timeout=TIMEOUT):
     """Return the size of the stats key.
-    
     Example:
     | ${size} | Get Broker Stats Size | central | poller | # 2 |
     """
@@ -1182,13 +1188,6 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
     return retval
 
 
-##
-# @brief Gets count indexes that does not exist in index_data.
-#
-# @param count:int The number of indexes to get.
-#
-# @return a list of index ids.
-#
 def get_not_existing_indexes(count: int):
     """Return a list of indexes that does not exist in data_index.
 
@@ -1226,13 +1225,6 @@ def get_not_existing_indexes(count: int):
     return ids_db
 
 
-##
-# @brief Gets count indexes from available ones.
-#
-# @param count:int The number of indexes to get.
-#
-# @return a list of index ids.
-#
 def get_indexes_to_delete(count: int):
     """Return a list of indexes that does not exist in data_index.
     Example:
@@ -1273,6 +1265,8 @@ def get_indexes_to_delete(count: int):
 
 def delete_all_rrd_metrics():
     """! remove all rrd metrics files
+    Example:
+    | Delete All Rrd Metrics |
     """
     with os.scandir(VAR_ROOT + "/lib/centreon/metrics/") as it:
         for entry in it:
@@ -1281,12 +1275,10 @@ def delete_all_rrd_metrics():
 
 
 def check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
-    """!  execute rrdtool info and check one value of the returned informations
-    @param metric_id
-    @param key key to search in the rrdtool info result
-    @param value value to search in the rrdtool info result fot key
-    @param timeout  timeout for metric file creation
-    @return True if key = value found
+    """  Execute rrdtool info and check one value of the returned informations
+    Example:
+    | ${result} | Check Rrd Info | 1 | step | 60 |
+    | Should Be True | ${result} |
     """
 
     limit = time.time() + timeout
@@ -1304,11 +1296,9 @@ def check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
 
 
 def get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: int = 60):
-    """! scan data base every 5s to extract metric ids for a service
-
-    @param service_id id of the service
-    @param timeout  timeout in second
-    @return array of metric ids
+    """ scan data base every 5s to extract metric ids for a service
+    Example:
+    | ${metrics} | Get Metrics For Service | 1 | % |
     """
     limit = time.time() + timeout
 
@@ -1335,13 +1325,6 @@ def get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: in
     return None
 
 
-##
-# @brief Gets count metrics that does not exist.
-#
-# @param count:int The number of metrics to get.
-#
-# @return a list of metric ids.
-#
 def get_not_existing_metrics(count: int):
     """Return a list of metrics that does not exist.
     Example:
@@ -1378,13 +1361,6 @@ def get_not_existing_metrics(count: int):
     return retval
 
 
-##
-# @brief Gets count metrics from available ones.
-#
-# @param count:int The number of metrics to get.
-#
-# @return a list of metric ids.
-#
 def get_metrics_to_delete(count: int):
     """Return a list of metrics to delete.
     Example:
@@ -1415,12 +1391,11 @@ def get_metrics_to_delete(count: int):
     return inter[:count]
 
 
-##
-# @brief creat metrics from available ones.
-#
-# @param count:int The number of metrics to create.
-#
 def create_metrics(count: int):
+    """Create metrics in database and copy rrd files
+    Example:
+    | Create Metrics | 10 |
+    """
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
@@ -1465,7 +1440,6 @@ def create_metrics(count: int):
 
 def run_reverse_bam(duration, interval):
     """Run reverse bam
-
     Example:
     | Run Reverse Bam | 60 | 0.1 |
     """
@@ -1500,7 +1474,7 @@ def check_map_output(categories_str, expected_events, timeout: int = TIMEOUT):
     """Return True if map output is as expected
 
     Example:
-    | Check Map Output | [1,2,3] | [1,2,3,4,5,6,7,8] | # False |
+    | ${output} | Check Map Output | [1,2,3] | [1,2,3,4,5,6,7,8] | # False |
     | Should Be True | ${output} |
     """
     retval = False
@@ -1791,7 +1765,6 @@ def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
 
     Example:
     | ${res} | Broker Get Sql Manager Stats | 51001 | SELECT * FROM index_data WHERE id = 1 |
-    | Should Be True | ${res} |
     """
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1894,7 +1867,6 @@ def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
 #
 def rebuild_rrd_graphs_from_db(indexes):
     """Send a query to the db to rebuild graphs
-    
     Example:
     | Rebuild Rrd Graphs From Db | ${indexes} |
     """
@@ -1952,6 +1924,9 @@ def compare_rrd_status_average_value(index_id, value: int):
     """Compare the average value for an RRD metric on the last 30 days with a value.
     index_id is the index of the status
     average value expected is 100 if value=0, 75 if value=1, 0 if value=2
+    Example:
+    | ${result} = | Compare Rrd Status Average Value | 1 | 0 |
+    | Should Be True | ${result} |
     """
     res = getoutput(f"rrdtool graph dummy --start=end-180d --end=now"
                     " DEF:x=" + VAR_ROOT +
@@ -1973,6 +1948,9 @@ def compare_rrd_average_value_with_grpc(metric, key, value: float):
     @param key The key to search in the rrd info
     @param float The value to compare with.
     @return True if value pointed by key is equal to value param.
+    Example:
+    | ${result} = | Compare Rrd Average Value With Grpc | metric_name | last_ds | 10 |
+    | Should Be True | ${result} |
     """
     res = getoutput(
         f"rrdtool info {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd"
@@ -2221,7 +2199,6 @@ def get_broker_log_level(port, name, log, timeout=TIMEOUT):
     """Returns the log level of a broker
     Example:
     | ${result} = | Get Broker Log Level | 51001 | central | core |
-    | ${result} = | trace |
     """
     limit = time.time() + timeout
     while time.time() < limit:
@@ -2244,7 +2221,6 @@ def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
     """Configure the log level of a broker
     Example:
     | ${result} = | Set Broker Log Level | 51001 | central | core | debug |
-    | ${result} = | Enum LogLevelEnum |
     """
     limit = time.time() + timeout
     while time.time() < limit:
@@ -2286,8 +2262,6 @@ def get_broker_process_stat(port, timeout=10):
     Example:
     | ${process_stat_pb1} = | Get Broker Process Stat | 8082 | 20 |
     | ${process_stat_pb2} = | Get Engine Process Stat | 8082 |
-    | ${process_stat_pb1} = process__stat__pb2.pb_process_stat
-    | ${process_stat_pb2} = process__stat__pb2.pb_process_stat
     """
     limit = time.time() + timeout
     while time.time() < limit:
@@ -2304,7 +2278,7 @@ def get_broker_process_stat(port, timeout=10):
     return None
 
 
-def parse_victoria_body(request_body: str):
+def _parse_victoria_body(request_body: str):
     victoria_payload = {}
     for field_val in request_body.split(','):
         if field_val == "status" or field_val == "metric":
@@ -2330,7 +2304,7 @@ def check_victoria_data(request_body: str, data_type: str, min_timestamp: int,  
     | Should Be True | ${metric_found} | if the request body contains a metric with the unit=%, host_id=16 and serv_id=314 |
     """
     for line in request_body.splitlines():
-        datas = parse_victoria_body(line)
+        datas = _parse_victoria_body(line)
         if datas["type"] != data_type:
             continue
         if min_timestamp > datas["time_stamp"]:
