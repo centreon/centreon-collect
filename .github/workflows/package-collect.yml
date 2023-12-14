@@ -46,9 +46,7 @@ jobs:
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
     env:
       SCCACHE_GHA_ENABLED: "true"
-      # SCCACHE_CACHE_SIZE: "300M"
-      # SCCACHE_PATH: "/usr/local/bin/sccache"
-      # SCCACHE_DIR: "/tmp/sccache"
+
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
       credentials:
@@ -63,15 +61,6 @@ jobs:
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
-
-      # - name: Install sccache
-      #   run: |
-      #     dnf install -y wget
-      #     wget https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
-      #     tar xzf sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
-      #     mv sccache-v0.7.4-x86_64-unknown-linux-musl/sccache /usr/local/bin/sccache
-      #     chmod +x /usr/local/bin/sccache
-      #   shell: bash
 
       # - name: Generate selinux binaries
       #   if: ${{ matrix.package_extension == 'rpm' }}
@@ -126,11 +115,6 @@ jobs:
 
           sudo ninja
         shell: bash
-
-      # - name: Post cache generation
-      #   run: |
-      #     ls -lah ${SC}
-      #   shell: bash
 
       # - name: Generate debug files
       #   run: |
