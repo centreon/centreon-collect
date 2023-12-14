@@ -30,12 +30,8 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - src: "./files/empty_file"
-    dst: "/var/log/centreon-engine/retention.dat"
-    file_info:
-      mode: 0755
-      owner: centreon-engine
-      group: centreon-engine
+  - dst: "/var/log/centreon-engine/retention.dat"
+    type: ghost
 
   - src: "./files/empty_file"
     dst: "/var/log/centreon-engine/status.dat"
