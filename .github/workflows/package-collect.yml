@@ -46,7 +46,6 @@ jobs:
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
     env:
       SCCACHE_GHA_ENABLED: "true"
-      SCCACHE_DIRECT: "false"
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
@@ -62,6 +61,12 @@ jobs:
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
+
+      - name: Restore cache
+        uses: actions/cache/restore@v3
+        with:
+          path: /root/.cache/sccache
+          key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
 
       # - name: Generate selinux binaries
       #   if: ${{ matrix.package_extension == 'rpm' }}
@@ -116,6 +121,13 @@ jobs:
 
           sudo ninja
         shell: bash
+
+      - name: Cache
+        uses: actions/cache/save@v3
+        with:
+          path: /root/.cache/sccache
+          key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
+
 
       # - name: Generate debug files
       #   run: |
