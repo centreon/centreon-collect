@@ -1188,6 +1188,13 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
     return retval
 
 
+##
+# @brief Gets count indexes that does not exist in index_data.
+#
+# @param count:int The number of indexes to get.
+#
+# @return a list of index ids.
+#
 def get_not_existing_indexes(count: int):
     """Return a list of indexes that does not exist in data_index.
 
@@ -1225,6 +1232,13 @@ def get_not_existing_indexes(count: int):
     return ids_db
 
 
+##
+# @brief Gets count indexes from available ones.
+#
+# @param count:int The number of indexes to get.
+#
+# @return a list of index ids.
+#
 def get_indexes_to_delete(count: int):
     """Return a list of indexes that does not exist in data_index.
     Example:
@@ -2278,7 +2292,7 @@ def get_broker_process_stat(port, timeout=10):
     return None
 
 
-def _parse_victoria_body(request_body: str):
+def parse_victoria_body(request_body: str):
     victoria_payload = {}
     for field_val in request_body.split(','):
         if field_val == "status" or field_val == "metric":
@@ -2304,7 +2318,7 @@ def check_victoria_data(request_body: str, data_type: str, min_timestamp: int,  
     | Should Be True | ${metric_found} | if the request body contains a metric with the unit=%, host_id=16 and serv_id=314 |
     """
     for line in request_body.splitlines():
-        datas = _parse_victoria_body(line)
+        datas = parse_victoria_body(line)
         if datas["type"] != data_type:
             continue
         if min_timestamp > datas["time_stamp"]:
