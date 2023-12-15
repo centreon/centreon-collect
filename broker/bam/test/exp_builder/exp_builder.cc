@@ -638,7 +638,7 @@ TEST_F(BamExpBuilder, KpiBoolexpWithService) {
   exp->set_expression(b);
   b->add_parent(exp);
 
-  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1);
+  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1, "test_boool_exp");
   kpi->link_boolexp(exp);
   exp->add_parent(kpi);
 
@@ -682,7 +682,7 @@ TEST_F(BamExpBuilder, KpiBoolexpReversedImpactWithService) {
   exp->set_expression(b);
   b->add_parent(exp);
 
-  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1);
+  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1, "test_boool_exp");
   kpi->link_boolexp(exp);
   exp->add_parent(kpi);
 
@@ -902,7 +902,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
   exp->set_expression(b);
   b->add_parent(exp);
 
-  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1);
+  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1, "test_boool_exp");
   kpi->set_impact(100);
   kpi->link_boolexp(exp);
   exp->add_parent(kpi);
@@ -1008,7 +1008,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpressionAndOperator) {
   exp->set_expression(b);
   b->add_parent(exp);
 
-  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1);
+  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1, "test_boool_exp");
   kpi->set_impact(100);
   kpi->link_boolexp(exp);
   exp->add_parent(kpi);

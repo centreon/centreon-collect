@@ -150,8 +150,8 @@ std::string ba_worst::get_output() const {
       state state = it->second.hard_impact.get_state();
       assert(static_cast<uint32_t>(state) < 4);
       if (state != state_ok) {
-        retval.emplace_back(fmt::format("KPI{} is in {} state",
-                                        it->first->get_id(), state_str[state]));
+        retval.emplace_back(fmt::format(
+            "KPI {} is in {} state", it->first->get_name(), state_str[state]));
       }
     }
     return retval;

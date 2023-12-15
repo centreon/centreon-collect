@@ -283,10 +283,10 @@ Start Stop Service
     Should Be True    ${result}    The connection between cbd central and rrd is not established.
 
     Send Signal To Process    SIGTERM    b1
-    ${result}    Wait Or Dump And Kill Process    b1    60s
+    ${result}    Wait Or Dump And Kill Process    b1    /usr/sbin/cbd    60s
     Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Broker service badly stopped
     Send Signal To Process    SIGTERM    b2
-    ${result}    Wait Or Dump And Kill Process    b2    60s
+    ${result}    Wait Or Dump And Kill Process    b2    /usr/sbin/cbd    60s
     Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Broker service badly stopped
 
 Start Stop Instance
@@ -294,7 +294,7 @@ Start Stop Instance
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
     Sleep    ${interval}
     Send Signal To Process    SIGTERM    b1
-    ${result}    Wait Or Dump And Kill Process    b1    60s
+    ${result}    Wait Or Dump And Kill Process    b1    /usr/sbin/cbd    60s
     Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Broker instance badly stopped
 
 Prepare Suite
