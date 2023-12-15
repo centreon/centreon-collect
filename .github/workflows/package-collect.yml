@@ -46,7 +46,6 @@ jobs:
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
     env:
       SCCACHE_GHA_ENABLED: "true"
-      SCCACHE_CACHE_SIZE: "300M"
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
@@ -63,7 +62,7 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
 
-      - name: Restore cache
+      - name: restore-cache
         uses: actions/cache/restore@v3
         with:
           path: /root/.cache/sccache
@@ -124,11 +123,20 @@ jobs:
           sudo ninja
         shell: bash
 
-      - name: Cache
+      - name: delete-cache
+        if: ${{ steps.restore-cache.outputs.cache-hit }}
+        continue-on-error: true
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete "sccache-${{ matrix.distrib }}-${{ matrix.arch }}" --confirm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN}}
+
+      - name: save-cache
         uses: actions/cache/save@v3
         with:
           path: /root/.cache/sccache
-          key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.run_id }}
+          key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
 
       # - name: Generate debug files
       #   run: |
