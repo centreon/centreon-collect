@@ -131,6 +131,7 @@ jobs:
           gh actions-cache delete "sccache-${{ matrix.distrib }}-${{ matrix.arch }}" --confirm
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN}}
+        shell: bash
 
       - name: Save Cache
         uses: actions/cache/save@v3
