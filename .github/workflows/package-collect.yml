@@ -46,7 +46,6 @@ jobs:
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
     env:
       SCCACHE_GHA_ENABLED: "true"
-
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
       credentials:
