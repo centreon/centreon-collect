@@ -52,7 +52,7 @@ class EngineInstance:
         makedirs(VAR_ROOT + "/log/centreon-engine/", mode=0o777, exist_ok=True)
         makedirs(VAR_ROOT + "/log/centreon-broker/", mode=0o777, exist_ok=True)
 
-    def create_centengine(self, id: int, debug_level=0):
+    def _create_centengine(self, id: int, debug_level=0):
         """Create the centengine.cfg file for the instance id
         Example:
         | Create Centengine | 0 | 0 |
@@ -155,7 +155,7 @@ class EngineInstance:
                 "check_service_freshness=1\n"
                 "enable_flap_detection=0\n").format(id, debug_level, CONF_DIR, VAR_ROOT, ETC_ROOT, grpc_port)
 
-    def create_host(self):
+    def _create_host(self):
         self.last_host_id += 1
         hid = self.last_host_id
         a = hid % 255
@@ -176,7 +176,7 @@ class EngineInstance:
             "hid": hid}
         return retval
 
-    def create_service(self, host_id: int, cmd_ids: int):
+    def _create_service(self, host_id: int, cmd_ids: int):
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
@@ -468,18 +468,18 @@ passive_checks_enabled 1
             config_dir = "{}/config{}".format(CONF_DIR, inst)
             makedirs(config_dir)
             f = open(config_dir + "/centengine.cfg", "w")
-            bb = self.create_centengine(inst, debug_level=debug_level)
+            bb = self._create_centengine(inst, debug_level=debug_level)
             f.write(bb)
             f.close()
 
             f = open(config_dir + "/hosts.cfg", "w")
             ff = open(config_dir + "/services.cfg", "w")
             for i in range(1, nb_hosts + 1):
-                h = self.create_host()
+                h = self._create_host()
                 f.write(h["config"])
                 self.hosts.append("host_{}".format(h["hid"]))
                 for j in range(1, services_by_host + 1):
-                    ff.write(self.create_service(h["hid"],
+                    ff.write(self._create_service(h["hid"],
                                                  (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
                     self.services.append("service_{}".format(h["hid"]))
             ff.close()
@@ -1129,6 +1129,10 @@ def add_service_group(index: int, id_service_group: int, members: list):
     f.close()
 
 def add_contact_group(index: int, id_contact_group: int, members: list):
+    """Add a contact group on the engine instance index
+    Example:
+    | `Add Contact Group` | 0 | 1 | [U1, U2] |
+    """
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/contactgroups.cfg", "a+") as f:
         logger.console(members)
         f.write(engine.create_contact_group(id_contact_group, members))
@@ -1341,6 +1345,10 @@ def change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_int
 
 
 def change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: int):
+    """Update the retry check interval for a host
+    Example:
+    | `Change Retry Host Check Interval` | 0 | host_1 | 60 |
+    """
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1356,6 +1364,10 @@ def change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: in
 
 
 def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_attempts: int):
+    """Update the max check attempts for a service
+    Example:
+    | `Change Max Svc Check Attempts` | 0 | host_1 | service_1 | 3 |
+    """
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1956,6 +1968,10 @@ def create_severities_file(poller: int, nb: int, offset: int = 1):
 
 
 def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+    """Create escalations file
+    Example:
+    | `Create Escalations File` | 0 | 1 | SG | contactgroup |
+    """
     engine.create_escalations_file(poller, name, SG, contactgroup)
 
 
@@ -1995,6 +2011,10 @@ def config_engine_add_cfg_file(poller: int, cfg: str):
 
 
 def add_severity_to_services(poller: int, severity_id: int, svc_lst):
+    """Add severity to services
+    Example:
+    | `Add Severity To Services` | 0 | severity_id | service_1 |
+    """
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -2227,20 +2247,20 @@ def remove_tags_from_hosts(poller: int, type: str):
     ff.close()
 
 
-def add_template_to_services(poller: int, tmpl: str, svc_lst):
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
-    r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
-    for i in range(len(lines)):
-        m = r.match(lines[i])
-        if m is not None and m.group(1) in svc_lst:
-            lines.insert(
-                i + 1, "    use                     {}\n".format(tmpl))
+# def add_template_to_services(poller: int, tmpl: str, svc_lst):
+#     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
+#     lines = ff.readlines()
+#     ff.close()
+#     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
+#     for i in range(len(lines)):
+#         m = r.match(lines[i])
+#         if m is not None and m.group(1) in svc_lst:
+#             lines.insert(
+#                 i + 1, "    use                     {}\n".format(tmpl))
 
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(lines)
-    ff.close()
+#     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
+#     ff.writelines(lines)
+#     ff.close()
 
 
 def add_template_to_hosts(poller: int, tmpl: str, hst_lst):
