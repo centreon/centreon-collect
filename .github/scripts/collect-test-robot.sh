@@ -5,60 +5,42 @@ set -x
 export RUN_ENV=docker
 
 test_file=$1
-database_type=$2
+distrib=$2
 
 if [[ "$test_file" =~ "unstable" ]] ; then
   exit 0
 fi
 
-echo "########################### Configure and start sshd ###########################"
-ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -P ""
-ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -P ""
-ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -P ""
+echo "###########################  start sshd ###########################"
 /usr/sbin/sshd -D  &
 
 echo "########################### Start MariaDB ######################################"
-mysql_install_db --user=root --basedir=/usr --datadir=/var/lib/mysql
-mariadbd --socket=/var/lib/mysql/mysql.sock --user=root > /dev/null 2>&1 &
+if [ "$distrib" != "bullseye" ]; then
+  mariadbd --socket=/var/lib/mysql/mysql.sock --user=root > /dev/null 2>&1 &
+else
+  mariadbd --socket=/run/mysqld/mysqld.sock --user=root > /dev/null 2>&1 &
+fi
 sleep 5
 
-echo "########################### Init centreon database ############################"
-
-mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon';"
-
-mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,CREATE TEMPORARY TABLES, EVENT,CREATE VIEW ON *.* TO  'centreon'@'localhost';"
-mysql -e "CREATE USER IF NOT EXISTS 'root_centreon'@'localhost' IDENTIFIED BY 'centreon';"
-mysql -e "GRANT ALL PRIVILEGES ON *.* TO 'root_centreon'@'localhost'"
-
-cat resources/centreon.sql | sed "s/DBNameConf/centreon/g" > /tmp/centreon.sql
-
-mysql -u centreon -pcentreon < resources/centreon_storage.sql
-mysql -u centreon -pcentreon < /tmp/centreon.sql
 
 echo "########################## Install centreon collect ###########################"
-
 echo "Installation..."
-rm -f ./*-selinux-*.rpm # avoid to install selinux packages which are dependent to centreon-common-selinux
-/usr/bin/rpm -Uvvh --force --nodeps *.rpm
+if [ "$distrib" != "bullseye" ]; then
+  dnf clean all
+  rm -f ./*-selinux-*.rpm # avoid to install selinux packages which are dependent to centreon-common-selinux
+  rpm -Uvh --nodeps --force ./*.rpm
+else
+  apt-get update
+  apt-get install -y ./*.deb
+fi
 
-echo "########################### Install Robot Framework ###########################"
-cd tests
-pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil psutil
 
-yum groupinstall "Development Tools" -y
-yum install python3-devel -y
-
-pip3 install grpcio grpcio_tools
-
-echo "##### site-packages #####"
-find / -name site-packages
-
-echo "##### grpc #####"
-find / -name grpc
+#remove git dubious ownership
+/usr/bin/git config --global --add safe.directory $PWD
 
 echo "##### Starting tests #####"
+cd tests
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
 robot -e unstable $test_file
-
