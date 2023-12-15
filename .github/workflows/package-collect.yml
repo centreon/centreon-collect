@@ -139,8 +139,9 @@ jobs:
             sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
             sudo dnf install -y gh
           fi
-          
+
           gh extension install actions/gh-actions-cache
+          git config --global --add safe.directory /__w/centreon-collect/centreon-collect
           gh actions-cache delete "sccache-${{ matrix.distrib }}-${{ matrix.arch }}" --confirm
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN}}
