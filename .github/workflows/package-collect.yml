@@ -60,6 +60,8 @@ jobs:
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
+        env:
+          SCCACHE_CACHE_SIZE: "1G"
 
       - name: Restore Cache
         id: restore-cache
