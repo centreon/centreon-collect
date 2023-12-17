@@ -246,7 +246,7 @@ BEDTHOSTFIXED
 
 dtp
     [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 5250 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.0
-    [Tags]    broker    engine    services    protobuf
+    [Tags]    broker    engine    services    host    downtimes
     Config Engine    ${5}    ${250}    ${20}
     Engine Config Set Value    ${0}    log_level_functions    trace
     Engine Config Set Value    ${1}    log_level_functions    trace
@@ -256,25 +256,20 @@ dtp
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${5}
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    module1    neb    debug
-    Broker Config Log    module2    neb    debug
-    Broker Config Log    module3    neb    debug
-    Broker Config Log    module4    neb    debug
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    module1    bbdo_version    3.0.0
-    Broker Config Add Item    module2    bbdo_version    3.0.0
-    Broker Config Add Item    module3    bbdo_version    3.0.0
-    Broker Config Add Item    module4    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    sql    debug
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    module1    bbdo_version    3.0.1
+    Broker Config Add Item    module2    bbdo_version    3.0.1
+    Broker Config Add Item    module3    bbdo_version    3.0.1
+    Broker Config Add Item    module4    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
     Config Broker Sql Output    central    unified_sql
     Clear Retention
+
     ${start}    Get Current Date
     Start Broker
     Start Engine
+
     # Let's wait for the initial service states.
     ${content}    Create List    INITIAL SERVICE STATE: host_250;service_5000;
     ${result}    Find In Log with Timeout    ${engineLog4}    ${start}    ${content}    60
@@ -289,11 +284,11 @@ dtp
         ${host2}    Catenate    SEPARATOR=    host_    ${i + 101}
         ${host3}    Catenate    SEPARATOR=    host_    ${i + 151}
         ${host4}    Catenate    SEPARATOR=    host_    ${i + 201}
-        Schedule host downtime    ${0}    ${host0}    ${3600}
-        Schedule host downtime    ${1}    ${host1}    ${3600}
-        Schedule host downtime    ${2}    ${host2}    ${3600}
-        Schedule host downtime    ${3}    ${host3}    ${3600}
-        Schedule host downtime    ${4}    ${host4}    ${3600}
+        Schedule Host Fixed Downtime    ${0}    ${host0}    ${3600}
+        Schedule Host Fixed Downtime    ${1}    ${host1}    ${3600}
+        Schedule Host Fixed Downtime    ${2}    ${host2}    ${3600}
+        Schedule Host Fixed Downtime    ${3}    ${host3}    ${3600}
+        Schedule Host Fixed Downtime    ${4}    ${host4}    ${3600}
 
     END
 
@@ -312,6 +307,7 @@ dtp
         Delete host downtimes    ${2}    ${host2}
         Delete host downtimes    ${3}    ${host3}
         Delete host downtimes    ${4}    ${host4}
+
     END
 
     ${result}    check number of downtimes    ${0}    ${start}    ${60}
