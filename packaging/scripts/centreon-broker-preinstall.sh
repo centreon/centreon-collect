@@ -4,7 +4,7 @@ getent group centreon-broker > /dev/null 2>&1 || groupadd -r centreon-broker 2> 
 getent passwd centreon-broker > /dev/null 2>&1 || useradd -m -g centreon-broker -d /var/lib/centreon-broker -r centreon-broker 2> /dev/null || :
 
 
-if  [ "$1" = "configure" ]; then # deb
+if  [ "$1" = "install" ]; then # deb
   if [ "$(getent passwd www-data)" ]; then
     usermod -a -G centreon-broker www-data
   fi
