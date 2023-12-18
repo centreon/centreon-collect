@@ -23,9 +23,6 @@ jobs:
 
       - run: |
           gh workflow run robot-nightly.yml -r "dev-23.04.x"
-          gh workflow run robot-nightly.yml -r "dev-22.10.x"
-          gh workflow run robot-nightly.yml -r "dev-22.04.x"
-          gh workflow run robot-nightly.yml -r "dev-21.10.x"
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -48,13 +45,14 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: centreon-collect-alma9
+          - image: centreon-collect-alma9-test
             distrib: el9
     name: robot test ${{ matrix.distrib }}
 
     uses: ./.github/workflows/robot-test.yml
     with:
-      image_name: ${{ matrix.image }}:${{ needs.get-version.outputs.img_version }}
+      image: ${{ matrix.image }}
+      full_name: ${{ matrix.image }}:${{ needs.get-version.outputs.test_img_version }}
       distrib: ${{ matrix.distrib }}
     secrets:
       registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}

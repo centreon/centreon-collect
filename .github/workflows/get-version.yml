@@ -4,6 +4,9 @@ on:
       img_version:
         description: "docker image version (conan checksum)"
         value: ${{ jobs.get-version.outputs.img_version }}
+      test_img_version:
+        description: "test docker image version (checksum of database sql, script and dockerfiles)"
+        value: ${{ jobs.get-version.outputs.test_img_version }}
       version:
         description: "major version"
         value: ${{ jobs.get-version.outputs.version }}
@@ -19,11 +22,13 @@ on:
       environment:
         description: "branch stability (stable, testing, unstable, canary)"
         value: ${{ jobs.get-version.outputs.environment }}
+
 jobs:
   get-version:
     runs-on: ubuntu-22.04
     outputs:
       img_version: ${{ steps.get_version.outputs.img_version }}
+      test_img_version: ${{ steps.get_version.outputs.test_img_version }}
       version: ${{ steps.get_version.outputs.version }}
       patch: ${{ steps.get_version.outputs.patch }}
       release: ${{ steps.get_version.outputs.release }}
@@ -35,10 +40,12 @@ jobs:
 
       - id: get_version
         run: |
-          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
+          IMG_VERSION=$( cat `ls .github/docker/Dockerfile.centreon-collect-* | grep -v test` conanfile.txt | md5sum | awk '{print substr($1, 0, 8)}')
+          TEST_IMG_VERSION=$(cat .github/docker/Dockerfile.centreon-collect-*-test .github/scripts/collect-prepare-test-robot.sh resources/*.sql | md5sum | cut -c1-8)
           VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
           PATCH=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
           echo "img_version=$IMG_VERSION" >> $GITHUB_OUTPUT
+          echo "test_img_version=$TEST_IMG_VERSION" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "patch=$PATCH" >> $GITHUB_OUTPUT
 
@@ -72,10 +79,9 @@ jobs:
               ;;
             *)
               STABILITY="canary"
-              ENV="development"
               ;;
           esac
           echo "stability=$STABILITY" >> $GITHUB_OUTPUT
-          echo "env=$MAJOR-$ENV" >> $GITHUB_OUTPUT
-          echo "GH_ENV: $ENV"
+          echo "env=$VERSION-$ENV" >> $GITHUB_OUTPUT
+          echo "GH_ENV: $VERSION-$ENV"
         shell: bash
