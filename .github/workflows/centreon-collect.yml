@@ -166,6 +166,61 @@ jobs:
           cache_key: cache-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-version.outputs.stability }}
 
+  deliver-engine-image:
+    #generate image only for develop
+    #if: ${{  needs.get-version.outputs.branch == 'develop' }}
+    needs: [get-version, package]
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        include:
+          - distrib: bullseye
+            arch: amd64
+            dockerfile:  centreon-collect-engine-debian-bullseye
+            image: centreon-collect-engine-debian-bullseye-amd64-${{ needs.get-version.outputs.branch }}
+          - distrib: bullseye
+            arch: arm64
+            dockerfile:  centreon-collect-engine-debian-bullseye
+            image: centreon-collect-engine-debian-bullseye-arm64-${{ needs.get-version.outputs.branch }}
+          - distrib: el8
+            arch: amd64
+            dockerfile:  centreon-collect-engine-alma8
+            image: centreon-collect-engine-alma8-arm64-${{ needs.get-version.outputs.branch }}
+          - distrib: el9
+            arch: amd64
+            dockerfile:  centreon-collect-engine-alma9
+            image: centreon-collect-engine-alma9-arm64-${{ needs.get-version.outputs.branch }}
+
+    name: deliver engine image ${{ matrix.distrib }} ${{matrix.arch}}
+    steps:
+      - name: Login to Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+      - name: Login to Proxy Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.DOCKER_PROXY_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+      - uses: docker/setup-buildx-action@v2
+
+      - name: Build image ${{ matrix.image }}:${{ matrix.tag }}
+        uses: docker/build-push-action@v3
+        with:
+          file: .github/docker/Dockerfile.${{ matrix.dockerfile }}
+          context: .
+          build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
+          platforms: ${{ contains(matrix.runner, 'arm') && 'linux/arm64' || 'linux/amd64' }}
+          pull: true
+          push: true
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}
+
+
   promote:
     needs: [get-version]
     if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}

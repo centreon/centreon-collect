@@ -1,0 +1,50 @@
+ARG REGISTRY_URL
+
+FROM ${REGISTRY_URL}/almalinux:9
+#FROM almalinux:9
+
+COPY build/bin/centengine /usr/sbin/centengine
+COPY build/bin/centreon_connector_perl /usr/lib64/centreon-connector/centreon_connector_perl
+COPY build/bin/centreon_connector_ssh /usr/lib64/centreon-connector/centreon_connector_ssh
+COPY build/lib/libcentreon_clib.so /usr/lib64/
+COPY build/lib/externalcmd.so /usr/lib64/centreon-engine/externalcmd.so
+COPY build/lib/cbmod.so /usr/lib64/nagios/cbmod.so
+COPY build/lib/10-neb.so /usr/share/centreon/lib/centreon-broker/
+COPY build/lib/50-tcp.so /usr/share/centreon/lib/centreon-broker/
+COPY build/lib/70-lua.so /usr/share/centreon/lib/centreon-broker/
+COPY build/lib/15-stats.so /usr/share/centreon/lib/centreon-broker/
+COPY build/lib/60-tls.so /usr/share/centreon/lib/centreon-broker/
+
+RUN <<EOF
+
+useradd  -r centreon-engine
+
+# Base dnf configuration.
+echo 'http_caching=none' >> /etc/yum.conf
+echo 'assumeyes=1' >> /etc/yum.conf
+sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf
+
+dnf install -y dnf-plugins-core
+dnf install -y epel-release
+dnf config-manager --set-enabled crb
+
+dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/23.10/el9/centreon-23.10.repo
+dnf clean all --enablerepo=*
+dnf update
+
+dnf install -y \
+    lua \
+    centreon-plugin* \
+    nagios-plugins-icmp \
+    nagios-plugins-nrpe \
+    nagios-plugins-dhcp
+
+# plugins will be provided by host or another container
+rm -rf /usr/lib/centreon/plugins
+
+#uncomment to create engine without mapping /var/lib/centreon-engine, /var/log/centreon-engine  and /var/log/centreon-broker
+#mkdir -p /var/log/centreon-engine /var/lib/centreon-engine/rw /var/log/centreon-broker
+#chown -R centreon-engine: /var/log/centreon-engine /var/lib/centreon-engine /var/log/centreon-broker
+
+EOF
+

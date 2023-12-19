@@ -22,6 +22,9 @@ on:
       environment:
         description: "branch stability (stable, testing, unstable, canary)"
         value: ${{ jobs.get-version.outputs.environment }}
+      branch:
+        description: "git branch"
+        value: $${{ jobs.get-version.outputs.branch }}
 
 jobs:
   get-version:
@@ -34,6 +37,7 @@ jobs:
       release: ${{ steps.get_version.outputs.release }}
       stability: ${{ steps.get_version.outputs.stability }}
       environment: ${{ steps.get_version.outputs.env }}
+      branch: ${{ steps.get_version.outputs.branch}}
 
     steps:
       - uses: actions/checkout@v4
@@ -83,5 +87,6 @@ jobs:
           esac
           echo "stability=$STABILITY" >> $GITHUB_OUTPUT
           echo "env=$VERSION-$ENV" >> $GITHUB_OUTPUT
+          echo "branch=$BRANCHNAME" >> $GITHUB_OUTPUT
           echo "GH_ENV: $VERSION-$ENV"
         shell: bash
