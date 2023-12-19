@@ -49,6 +49,8 @@ jobs:
       SCCACHE_BUCKET: "centreon-collect-robot-report"
       SCCACHE_REGION: "eu-west-1"
       SCCACHE_S3_KEY_PREFIX: "sccache"
+      AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
