@@ -45,7 +45,11 @@ jobs:
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
     env:
-      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_CACHE_SIZE: "1G"
+      SCCACHE_PATH: "/usr/bin/sccache"
+      SCCACHE_DIR: "/root/.cache/sccache"
+      SCCACHE_DIRECT: "true"
+      
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
       credentials:
@@ -58,10 +62,17 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.3
-        env:
-          SCCACHE_CACHE_SIZE: "1G"
+      - name: Install sccache
+        run: |
+          if [ "${{ matrix.package_extension }}" = "deb" ]; then
+            apt install -y wget
+          fi
+          if [ "${{ matrix.package_extension }}" = "rpm" ]; then
+            dnf install -y wget
+          fi
+          wget https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
+          tar xzf sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
+          mv sccache-v0.7.4-x86_64-unknown-linux-musl/sccache /usr/bin/
 
       - name: Restore Cache
         id: restore-cache
