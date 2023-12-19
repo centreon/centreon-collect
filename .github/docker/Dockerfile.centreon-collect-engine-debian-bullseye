@@ -1,0 +1,61 @@
+ARG REGISTRY_URL
+
+FROM ${REGISTRY_URL}/debian:bullseye
+#FROM debian:bullseye
+
+COPY bin/centengine /usr/sbin/centengine
+COPY bin/centreon_connector_perl /usr/lib/centreon-connector/centreon_connector_perl
+COPY bin/centreon_connector_ssh /usr/lib/centreon-connector/centreon_connector_ssh
+COPY lib/libcentreon_clib.so /usr/lib/
+COPY lib/externalcmd.so /usr/lib/centreon-engine/externalcmd.so
+COPY lib/cbmod.so /usr/lib/nagios/cbmod.so
+COPY lib/10-neb.so /usr/share/centreon/lib/centreon-broker/
+COPY lib/50-tcp.so /usr/share/centreon/lib/centreon-broker/
+COPY lib/70-lua.so /usr/share/centreon/lib/centreon-broker/
+COPY lib/15-stats.so /usr/share/centreon/lib/centreon-broker/
+COPY lib/60-tls.so /usr/share/centreon/lib/centreon-broker/
+COPY engine/scripts/launch-engine-in-container.sh /usr/sbin/launch-engine-in-container.sh
+
+RUN <<EOF
+
+echo "create user centreon-engine"
+
+useradd  -r centreon-engine
+
+apt update && apt install -y lsb-release ca-certificates apt-transport-https software-properties-common wget gnupg2
+
+apt install -y    \
+    lua50 \
+    nagios-nrpe-plugin \
+    monitoring-plugins-basic
+
+#add s flag to check_icmp and check_dhcp
+chown root:centreon-engine /usr/lib/nagios/plugins/check_icmp /usr/lib/nagios/plugins/check_dhcp
+chmod o-rwx /usr/lib/nagios/plugins/check_icmp /usr/lib/nagios/plugins/check_dhcp
+chmod u+s /usr/lib/nagios/plugins/check_icmp /usr/lib/nagios/plugins/check_dhcp
+
+echo "add centreon repo"
+#centreon repo
+echo "deb https://packages.centreon.com/apt-standard-23.10-stable/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/centreon.list
+echo "deb https://packages.centreon.com/apt-plugins-stable/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/centreon-plugins.list
+
+#repo key
+wget -O- https://apt-key.centreon.com | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
+apt update
+
+#in order to have same conf files between alma and debian
+echo "add symbolic links in order to have same config for alma and debian"
+mkdir /usr/lib64
+ln -s /usr/lib/centreon-engine /usr/lib64/centreon-engine
+ln -s /usr/lib/nagios /usr/lib64/nagios
+
+#install centreon plugins dependencies only
+package_list=`apt depends centreon-plugin* | sed 's/Depends: \(.*\)$/\1/g' | grep -v \< | sed 's/^ \+\(.*\)$/\1/g' | sort -u | grep -v centreon`
+
+echo "install plugins needed packages"
+apt update && apt install -y $package_list
+
+EOF
+
+CMD [ "/bin/bash", "/usr/sbin/launch-engine-in-container.sh" ]
+

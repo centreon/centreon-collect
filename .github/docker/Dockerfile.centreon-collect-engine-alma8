@@ -1,0 +1,62 @@
+ARG REGISTRY_URL
+
+FROM ${REGISTRY_URL}/almalinux:8
+#FROM almalinux:8
+
+COPY bin/centengine /usr/sbin/centengine
+COPY bin/centreon_connector_perl /usr/lib64/centreon-connector/centreon_connector_perl
+COPY bin/centreon_connector_ssh /usr/lib64/centreon-connector/centreon_connector_ssh
+COPY lib/libcentreon_clib.so /usr/lib64/
+COPY lib/externalcmd.so /usr/lib64/centreon-engine/externalcmd.so
+COPY lib/cbmod.so /usr/lib64/nagios/cbmod.so
+COPY lib/10-neb.so /usr/share/centreon/lib/centreon-broker/
+COPY lib/50-tcp.so /usr/share/centreon/lib/centreon-broker/
+COPY lib/70-lua.so /usr/share/centreon/lib/centreon-broker/
+COPY lib/15-stats.so /usr/share/centreon/lib/centreon-broker/
+COPY lib/60-tls.so /usr/share/centreon/lib/centreon-broker/
+COPY engine/scripts/launch-engine-in-container.sh /usr/sbin/launch-engine-in-container.sh
+
+RUN <<EOF
+
+echo "create user centreon-engine"
+
+useradd  -r centreon-engine
+
+# Base dnf configuration.
+echo 'http_caching=none' >> /etc/yum.conf
+echo 'assumeyes=1' >> /etc/yum.conf
+sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf
+
+dnf install -y dnf-plugins-core
+dnf install -y epel-release
+dnf config-manager --set-enabled powertools
+
+echo "install lua, perl and nagios plugins"
+
+dnf install -y \
+    lua \
+    perl-interpreter \
+    yum-utils \
+    nmap \
+    nagios-plugins-icmp \
+    nagios-plugins-dhcp
+
+echo "add centreon repo"
+
+dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/23.10/el9/centreon-23.10.repo
+dnf clean all --enablerepo=*
+dnf update
+
+echo "install centreon plugins dependencies"
+#we don t want install entire perl nor centreon plugins
+package_list=`repoquery --requires centreon-plugin\* | cut -f1 -d' ' | grep -v centreon | grep -v -e ^perl$`
+
+dnf install -y   $package_list 
+
+#allow centengine to execute nagios plugins
+usermod -a -G nagios centreon-engine
+
+EOF
+
+
+CMD [ "/bin/bash", "/usr/sbin/launch-engine-in-container.sh" ]
