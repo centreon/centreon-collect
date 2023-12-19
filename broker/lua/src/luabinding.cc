@@ -83,6 +83,7 @@ int32_t luabinding::stop() {
 }
 
 luabinding::~luabinding() noexcept {
+  log_v2::lua()->info("lua: Destruction of the luabinding");
   stop();
 }
 
