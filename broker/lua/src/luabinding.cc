@@ -82,6 +82,10 @@ int32_t luabinding::stop() {
   return retval;
 }
 
+luabinding::~luabinding() noexcept {
+  stop();
+}
+
 /**
  *  This function updates the Lua variables package.path and package.cpath so
  *  that a script in that directory can be called without difficulty.
