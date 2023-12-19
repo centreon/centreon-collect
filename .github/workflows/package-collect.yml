@@ -45,9 +45,9 @@ jobs:
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
     env:
-      SCCACHE_CACHE_SIZE: "1G"
       SCCACHE_PATH: "/usr/bin/sccache"
-      SCCACHE_DIR: "/root/.cache/sccache"
+      SCCACHE_BUCKET: "centreon-collect-robot-report"
+      SCCACHE_S3_KEY_PREFIX: "sccache"
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
@@ -74,13 +74,13 @@ jobs:
           mv sccache-v0.7.4-x86_64-unknown-linux-musl/sccache /usr/bin/
           ${SCCACHE_PATH} --start-server
 
-      - name: Restore Cache
-        id: restore-cache
-        uses: actions/cache/restore@v3
-        with:
-          path: /root/.cache/sccache
-          key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
-          restore-keys: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
+      # - name: Restore Cache
+      #   id: restore-cache
+      #   uses: actions/cache/restore@v3
+      #   with:
+      #     path: /root/.cache/sccache
+      #     key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
+      #     restore-keys: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
 
       # - name: Generate selinux binaries
       #   if: ${{ matrix.package_extension == 'rpm' }}
@@ -140,35 +140,35 @@ jobs:
         run: |
           ${SCCACHE_PATH} --show-stats
       
-      - name: Delete Cache
-        if: ${{ steps.restore-cache.outputs.cache-hit }}
-        continue-on-error: true
-        run: |
-          if [ "${{ matrix.package_extension }}" = "deb" ]; then
-            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-            && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-            && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-            && sudo apt update \
-            && sudo apt install gh -y
-          fi
-          if [ "${{ matrix.package_extension }}" = "rpm" ]; then
-            sudo dnf install -y 'dnf-command(config-manager)'
-            sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
-            sudo dnf install -y gh
-          fi
+      # - name: Delete Cache
+      #   if: ${{ steps.restore-cache.outputs.cache-hit }}
+      #   continue-on-error: true
+      #   run: |
+      #     if [ "${{ matrix.package_extension }}" = "deb" ]; then
+      #       curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+      #       && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+      #       && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+      #       && sudo apt update \
+      #       && sudo apt install gh -y
+      #     fi
+      #     if [ "${{ matrix.package_extension }}" = "rpm" ]; then
+      #       sudo dnf install -y 'dnf-command(config-manager)'
+      #       sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+      #       sudo dnf install -y gh
+      #     fi
 
-          gh extension install actions/gh-actions-cache
-          git config --global --add safe.directory /__w/centreon-collect/centreon-collect
-          gh actions-cache delete "sccache-${{ matrix.distrib }}-${{ matrix.arch }}" --confirm
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN}}
-        shell: bash
+      #     gh extension install actions/gh-actions-cache
+      #     git config --global --add safe.directory /__w/centreon-collect/centreon-collect
+      #     gh actions-cache delete "sccache-${{ matrix.distrib }}-${{ matrix.arch }}" --confirm
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN}}
+      #   shell: bash
 
-      - name: Save Cache
-        uses: actions/cache/save@v3
-        with:
-          path: /root/.cache/sccache
-          key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
+      # - name: Save Cache
+      #   uses: actions/cache/save@v3
+      #   with:
+      #     path: /root/.cache/sccache
+      #     key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
 
       # - name: Generate debug files
       #   run: |
