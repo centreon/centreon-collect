@@ -47,6 +47,7 @@ jobs:
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
       SCCACHE_BUCKET: "centreon-collect-robot-report"
+      SCCACHE_REGION: "eu-west-1"
       SCCACHE_S3_KEY_PREFIX: "sccache"
 
     container:
