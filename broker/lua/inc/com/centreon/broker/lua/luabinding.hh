@@ -112,7 +112,7 @@ class luabinding {
              macro_cache& cache);
   luabinding(luabinding const&) = delete;
   luabinding& operator=(luabinding const&) = delete;
-  ~luabinding() noexcept = default;
+  ~luabinding() noexcept;
   bool has_filter() const noexcept;
   int32_t write(std::shared_ptr<io::data> const& data) noexcept;
   bool has_flush() const noexcept;
