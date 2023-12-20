@@ -128,7 +128,7 @@ jobs:
           VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
 
         # Action forked as API calls hardcoded '.com' route
-        uses: sc979/veracode-sandboxes-helper@cf67241c27cbe6405ad8705111121ece9a48c4ff # v0.2
+        uses: sc979/veracode-sandboxes-helper@29d9f8a7147a131bdd1cdbd853dddd9735076794 # v0.3
         # Promote should not fail if sandbox was not found.
         continue-on-error: true
         with:
