@@ -190,7 +190,7 @@ jobs:
         shell: bash
 
       - name: Send report to commit
-        uses: joonvena/robotframework-reporter-action@1f1268f26d5eb74e298acec6f271962244524c1f # v2.1
+        uses: joonvena/robotframework-reporter-action@413a90b26bb8a49eebc51af51f1631500ef0339d # v2.3
         with:
           gh_access_token: ${{ secrets.GITHUB_TOKEN }}
           report_path: reports
