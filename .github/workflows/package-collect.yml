@@ -47,10 +47,7 @@ jobs:
 
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
-      SCCACHE_BUCKET: "centreon-github-sccache"
-      SCCACHE_REGION: "eu-west-1"
-      SCCACHE_S3_KEY_PREFIX: "sccache"
-      AWS_ROLE_ARN: "arn:aws:iam::625664829291:role/centreon-collect-runner-role"
+      SCCACHE_DIR: "/tmp/sccache-${{ matrix.image}}"
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
@@ -67,23 +64,35 @@ jobs:
       - name: Install sccache
         run: |
           if [ "${{ matrix.package_extension }}" = "deb" ]; then
-            apt install -y wget
+            apt install -y wget unzip
           fi
           if [ "${{ matrix.package_extension }}" = "rpm" ]; then
-            dnf install -y wget
+            dnf install -y wget unzip
           fi
-          wget https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
-          tar xzf sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
-          mv sccache-v0.7.4-x86_64-unknown-linux-musl/sccache /usr/bin/
-          ${SCCACHE_PATH} --start-server
+          if [ "${{ matrix.arch }}" = "amd64" ]; then
+            wget https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
+            mv sccache-v0.7.4-x86_64-unknown-linux-musl/sccache /usr/bin/
+          else
+            wget https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-aarch64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.7.4-aarch64-unknown-linux-musl.tar.gz
+            mv sccache-v0.7.4-aarch64-unknown-linux-musl/sccache /usr/bin/
+          fi
 
-      # - name: Restore Cache
-      #   id: restore-cache
-      #   uses: actions/cache/restore@v3
-      #   with:
-      #     path: /root/.cache/sccache
-      #     key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
-      #     restore-keys: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
+      - name: Install aws cli
+        run: |
+          if [ "${{ matrix.arch }}" = "amd64" ]; then
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          else
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          ./aws/install
+          fi
+
+      - name: Restore Cache
+        continue-on-error: true
+        run: |
+          aws s3 cp s3://centreon-github-sccache/${SCCACHE_DIR} /tmp/ --recursive
 
       # - name: Generate selinux binaries
       #   if: ${{ matrix.package_extension == 'rpm' }}
@@ -167,11 +176,10 @@ jobs:
       #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN}}
       #   shell: bash
 
-      # - name: Save Cache
-      #   uses: actions/cache/save@v3
-      #   with:
-      #     path: /root/.cache/sccache
-      #     key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
+      - name: Save Cache
+        continue-on-error: true
+        run: |
+          aws s3 cp ${SCCACHE_DIR} s3://centreon-github-sccache/${SCCACHE_DIR} --recursive
 
       # - name: Generate debug files
       #   run: |
