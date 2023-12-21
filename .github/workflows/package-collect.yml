@@ -51,7 +51,7 @@ jobs:
       SCCACHE_S3_KEY_PREFIX: "sccache"
       AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
-
+      
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
       credentials:
