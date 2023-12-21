@@ -85,14 +85,15 @@ jobs:
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           else
             curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          sudo ./aws/install
           fi
+          unzip awscliv2.zip
+          ./aws/install
+          
 
       - name: Restore Cache
         continue-on-error: true
         run: |
-          /usr/local/bin/aws s3 cp s3://centreon-github-sccache/${SCCACHE_DIR} /tmp/ --recursive
+          aws s3 cp s3://centreon-github-sccache/${SCCACHE_DIR} /tmp/ --recursive
 
       # - name: Generate selinux binaries
       #   if: ${{ matrix.package_extension == 'rpm' }}
@@ -179,7 +180,7 @@ jobs:
       - name: Save Cache
         continue-on-error: true
         run: |
-         /usr/local/bin/aws s3 cp ${SCCACHE_DIR} s3://centreon-github-sccache/${SCCACHE_DIR} --recursive
+         aws s3 cp ${SCCACHE_DIR} s3://centreon-github-sccache/${SCCACHE_DIR} --recursive
 
       # - name: Generate debug files
       #   run: |
