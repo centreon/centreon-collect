@@ -92,7 +92,7 @@ jobs:
       - name: Restore Cache
         continue-on-error: true
         run: |
-          aws s3 cp s3://centreon-github-sccache/${SCCACHE_DIR} /tmp/ --recursive
+          /usr/local/bin/aws s3 cp s3://centreon-github-sccache/${SCCACHE_DIR} /tmp/ --recursive
 
       # - name: Generate selinux binaries
       #   if: ${{ matrix.package_extension == 'rpm' }}
@@ -179,7 +179,7 @@ jobs:
       - name: Save Cache
         continue-on-error: true
         run: |
-          aws s3 cp ${SCCACHE_DIR} s3://centreon-github-sccache/${SCCACHE_DIR} --recursive
+         /usr/local/bin/aws s3 cp ${SCCACHE_DIR} s3://centreon-github-sccache/${SCCACHE_DIR} --recursive
 
       # - name: Generate debug files
       #   run: |
