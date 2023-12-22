@@ -24,7 +24,6 @@
 
 #include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -275,7 +274,6 @@ void stream::_load_deleted_instances() {
  * @brief Load the unified_sql cache.
  */
 void stream::_load_caches() {
-  auto cache_ptr = cache::global_cache::instance_ptr();
 
   // Fill index cache.
 
@@ -405,10 +403,6 @@ void stream::_load_caches() {
             info.index_id, host_id, service_id, info.rrd_retention);
         _index_cache[{host_id, service_id}] = std::move(info);
 
-        if (cache_ptr) {
-          cache_ptr->set_index_mapping(info.index_id, host_id, service_id);
-        }
-
         // Create the metric mapping.
         if (bbdo.major_v < 3) {
           auto im{std::make_shared<storage::index_mapping>(
@@ -534,10 +528,6 @@ void stream::_load_caches() {
           info.type = res.value_as_str(13)[0] - '0';
           info.metric_mapping_sent = false;
           _metric_cache[{index_id, metric_name}] = info;
-          if (cache_ptr) {
-            cache_ptr->set_metric_info(metric_id, index_id, metric_name,
-                                       info.unit_name, info.min, info.max);
-          }
         }
       }
     } catch (std::exception const& e) {

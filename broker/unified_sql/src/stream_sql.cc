@@ -18,7 +18,6 @@
 #include <fmt/format.h>
 
 #include "bbdo/storage/index_mapping.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -1229,11 +1228,6 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
                        "SQL: disabling host group {} ('{}' on instance {})",
                        hg.id, hg.name, hg.poller_id);
 
-    auto cache_ptr = cache::global_cache::instance_ptr();
-    if (cache_ptr) {
-      cache_ptr->remove_host_group(hg.id);
-    }
-
     // Delete group members.
     {
       _finish_action(-1, actions::hosts);
@@ -1275,8 +1269,6 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
     return;
   }
 
-  auto cache_ptr = cache::global_cache::instance_ptr();
-
   if (hgm.enabled) {
     // Log message.
     SPDLOG_LOGGER_INFO(
@@ -1284,9 +1276,6 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
         "SQL: enabling membership of host {} to host group {} on instance {}",
         hgm.host_id, hgm.group_id, hgm.poller_id);
 
-    if (cache_ptr) {
-      cache_ptr->add_host_group(hgm.group_id, hgm.host_id);
-    }
     // We only need to try to insert in this table as the
     // host_id/hostgroup_id should be UNIQUE.
     if (!_host_group_member_insert.prepared()) {
@@ -1339,10 +1328,6 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
         "SQL: disabling membership of host {} to host group {} on instance {}",
         hgm.host_id, hgm.group_id, hgm.poller_id);
 
-    if (cache_ptr) {
-      cache_ptr->remove_host_from_group(hgm.group_id, hgm.host_id);
-    }
-
     if (!_host_group_member_delete.prepared()) {
       query_preparator::event_unique unique;
       unique.insert("hostgroup_id");
@@ -1376,11 +1361,6 @@ void stream::_process_host(const std::shared_ptr<io::data>& d) {
       log_v2::sql(),
       "SQL: processing host event (poller: {}, host: {}, name: {})",
       h.poller_id, h.host_id, h.host_name);
-
-  auto cache_ptr = cache::global_cache::instance_ptr();
-  if (cache_ptr) {
-    cache_ptr->store_host(h.host_id, h.host_name, 0, 0);
-  }
 
   // Processing
   if (_is_valid_poller(h.poller_id)) {
@@ -1560,8 +1540,6 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       log_v2::sql(),
       "SQL: processing pb host event (poller: {}, host: {}, name: {})",
       h.instance_id(), h.host_id(), h.name());
-
-  auto cache_ptr = cache::global_cache::instance_ptr();
 
   // Processing
   if (_is_valid_poller(h.instance_id())) {
@@ -1967,13 +1945,6 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
           }
         }
       }
-      if (cache_ptr) {
-        auto tag_iter = h.tags().begin();
-        cache_ptr->store_host(h.host_id(), h.name(), res_id, h.severity_id());
-        cache_ptr->set_host_tag(h.host_id(), [&tag_iter, &h]() -> uint64_t {
-          return tag_iter == h.tags().end() ? 0 : (tag_iter++)->id();
-        });
-      }
     } else
       SPDLOG_LOGGER_TRACE(
           log_v2::sql(),
@@ -2334,10 +2305,6 @@ void stream::_process_instance(const std::shared_ptr<io::data>& d) {
 
   // Processing.
   if (_is_valid_poller(i.poller_id)) {
-    auto cache_ptr = cache::global_cache::instance_ptr();
-    if (cache_ptr) {
-      cache_ptr->store_instance(i.poller_id, i.name);
-    }
 
     // Prepare queries.
     if (!_instance_insupdate.prepared()) {
@@ -2386,10 +2353,6 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
 
   // Processing.
   if (_is_valid_poller(inst.instance_id())) {
-    auto cache_ptr = cache::global_cache::instance_ptr();
-    if (cache_ptr) {
-      cache_ptr->store_instance(inst.instance_id(), inst.name());
-    }
     // Prepare queries.
     if (!_pb_instance_insupdate.prepared()) {
       query_preparator::event_pb_unique unique{
@@ -2902,10 +2865,6 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
     SPDLOG_LOGGER_INFO(log_v2::sql(),
                        "SQL: disabling service group {} ('{}' on instance {})",
                        sg.id, sg.name, sg.poller_id);
-    auto cache_ptr = cache::global_cache::instance_ptr();
-    if (cache_ptr) {
-      cache_ptr->remove_service_group(sg.id);
-    }
 
     // Delete group members.
     {
@@ -2940,7 +2899,6 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
   const neb::service_group_member& sgm{
       *static_cast<const neb::service_group_member*>(d.get())};
 
-  auto cache_ptr = cache::global_cache::instance_ptr();
   if (sgm.enabled) {
     // Log message.
     SPDLOG_LOGGER_INFO(
@@ -2949,9 +2907,6 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
         "instance {}",
         sgm.host_id, sgm.service_id, sgm.group_id, sgm.poller_id);
 
-    if (cache_ptr) {
-      cache_ptr->add_service_group(sgm.group_id, sgm.host_id, sgm.service_id);
-    }
     // We only need to try to insert in this table as the
     // host_id/service_id/servicegroup_id combo should be UNIQUE.
     if (!_service_group_member_insert.prepared()) {
@@ -3000,11 +2955,6 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
                        sgm.host_id, sgm.service_id, sgm.group_id,
                        sgm.poller_id);
 
-    if (cache_ptr) {
-      cache_ptr->remove_service_from_group(sgm.group_id, sgm.host_id,
-                                           sgm.service_id);
-    }
-
     if (!_service_group_member_delete.prepared()) {
       query_preparator::event_unique unique;
       unique.insert("servicegroup_id");
@@ -3042,7 +2992,6 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
         s.host_id, s.service_id);
     return;
   }
-  auto cache_ptr = cache::global_cache::instance_ptr();
 
   int32_t conn =
       _mysql.choose_connection_by_instance(_cache_host_instance[s.host_id]);
@@ -3054,10 +3003,6 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
                      s.host_id, s.service_id, s.service_description);
 
   if (s.host_id && s.service_id) {
-    if (cache_ptr) {
-      cache_ptr->store_service(s.host_id, s.service_id, s.service_description,
-                               0, 0);
-    }
     // Prepare queries.
     if (!_service_insupdate.prepared()) {
       query_preparator::event_unique unique;
@@ -3108,8 +3053,6 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
         s.host_id(), s.service_id());
     return;
   }
-
-  auto cache_ptr = cache::global_cache::instance_ptr();
 
   int32_t conn =
       _mysql.choose_connection_by_instance(_cache_host_instance[s.host_id()]);
@@ -3508,16 +3451,6 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
         }
       }
     }
-    if (cache_ptr) {
-      auto tag_iter = s.tags().begin();
-      cache_ptr->store_service(s.host_id(), s.service_id(), s.description(),
-                               res_id, s.severity_id());
-
-      cache_ptr->set_serv_tag(
-          s.host_id(), s.service_id(), [&tag_iter, &s]() -> uint64_t {
-            return tag_iter == s.tags().end() ? 0 : (tag_iter++)->id();
-          });
-    }
   } else
     SPDLOG_LOGGER_TRACE(
         log_v2::sql(),
@@ -3648,7 +3581,6 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
  * @param ss A neb::pb_service.
  */
 void stream::_check_and_update_index_cache(const Service& ss) {
-  auto cache_ptr = cache::global_cache::instance_ptr();
 
   auto it_index_cache = _index_cache.find({ss.host_id(), ss.service_id()});
 
@@ -3706,10 +3638,6 @@ void stream::_check_and_update_index_cache(const Service& ss) {
         index_id, ss.host_id(), ss.service_id(), info.rrd_retention,
         info.interval);
     _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
-
-    if (cache_ptr) {
-      cache_ptr->set_index_mapping(index_id, ss.host_id(), ss.service_id());
-    }
 
     // Create the metric mapping.
     auto im{std::make_shared<storage::pb_index_mapping>()};
@@ -4171,8 +4099,6 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
   SPDLOG_LOGGER_INFO(log_v2::sql(), "SQL: processing tag");
   _finish_action(-1, actions::tags);
 
-  auto cache_ptr = cache::global_cache::instance_ptr();
-
   // Prepare queries.
   if (!_tag_update.prepared())
     _tag_update = _mysql.prepare_query(
@@ -4193,9 +4119,6 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::tag % _mysql.connections_count();
   switch (tg.action()) {
     case Tag_Action_ADD:
-      if (cache_ptr) {
-        cache_ptr->add_tag(tg.id(), tg.name(), tg.type(), tg.poller_id());
-      }
       if (tag_id) {
         SPDLOG_LOGGER_TRACE(log_v2::sql(), "SQL: add already existing tag {}",
                             tg.id());
@@ -4229,9 +4152,6 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
       break;
     case Tag_Action_MODIFY:
       SPDLOG_LOGGER_TRACE(log_v2::sql(), "SQL: modify tag {}", tg.id());
-      if (cache_ptr) {
-        cache_ptr->add_tag(tg.id(), tg.name(), tg.type(), tg.poller_id());
-      }
       _tag_update.bind_value_as_u64(0, tg.id());
       _tag_update.bind_value_as_u32(1, tg.type());
       _tag_update.bind_value_as_str(2, tg.name());
@@ -4247,9 +4167,6 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
             tg.type());
       break;
     case Tag_Action_DELETE: {
-      if (cache_ptr) {
-        cache_ptr->remove_tag(tg.id());
-      }
       auto it = _tags_cache.find({tg.id(), tg.type()});
       if (it != _tags_cache.end()) {
         uint64_t id = it->second;
