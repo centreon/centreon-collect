@@ -89,7 +89,7 @@ jobs:
           sudo $CMAKE \
                   -G "Ninja" \
                   -DDEBUG_ROBOT=OFF \
-                  -DWITH_TESTING=OFF \
+                  -DWITH_TESTING=ON \
                   -DWITH_BENCH=ON \
                   -DWITH_MODULE_SIMU=OFF \
                   -DCMAKE_INSTALL_PREFIX=/usr \
@@ -108,6 +108,10 @@ jobs:
                   .
 
           sudo ninja
+        shell: bash
+
+      - name: Unit tests
+        run: .github/scripts/collect-unit-tests.sh
         shell: bash
 
       - name: Generate debug files

@@ -100,6 +100,12 @@ static constexpr const char scripts[] =
   "4242\0"             \
   "3\0"                \
   "123456789\0" BUILD_PATH "/../connectors/perl/test/timeout_kill.pl\0\0\0\0"
+#define TimeoutKillCMD_2 \
+  "2\0"                  \
+  "4242\0"               \
+  "3\0"                  \
+  "123456789\0" BUILD_PATH "/connectors/perl/test/timeout_kill.pl\0\0\0\0"
+
 #define TimeoutKillRESULT \
   "3\0"                   \
   "4242\0"                \
@@ -121,6 +127,11 @@ static constexpr const char scripts[] =
   "4242\0"             \
   "3\0"                \
   "123456789\0" BUILD_PATH "/../connectors/perl/test/timeout_term.pl\0\0\0\0"
+#define TimeoutTermCMD_2 \
+  "2\0"                  \
+  "4242\0"               \
+  "3\0"                  \
+  "123456789\0" BUILD_PATH "/connectors/perl/test/timeout_term.pl\0\0\0\0"
 
 using shared_io_context = std::shared_ptr<asio::io_context>;
 
@@ -721,7 +732,12 @@ TEST_F(TestConnector, TimeoutKill) {
 
   // Write command.
   std::ostringstream oss;
-  oss.write(TimeoutKillCMD, sizeof(TimeoutKillCMD) - 1);
+  // in case of CI, sources are compiled in root directory, not in build
+  if (::access("connectors/perl/test/timeout_kill.pl", R_OK)) {
+    oss.write(TimeoutKillCMD, sizeof(TimeoutKillCMD) - 1);
+  } else {
+    oss.write(TimeoutKillCMD_2, sizeof(TimeoutKillCMD_2) - 1);
+  }
   write_cmd(*p, oss.str());
 
   // Read reply.
@@ -742,7 +758,12 @@ TEST_F(TestConnector, TimeoutTerm) {
 
   // Write command.
   std::ostringstream oss;
-  oss.write(TimeoutTermCMD, sizeof(TimeoutTermCMD) - 1);
+  // in case of CI, sources are compiled in root directory, not in build
+  if (::access("connectors/perl/test/timeout_term.pl", R_OK)) {
+    oss.write(TimeoutTermCMD, sizeof(TimeoutTermCMD) - 1);
+  } else {
+    oss.write(TimeoutTermCMD_2, sizeof(TimeoutTermCMD_2) - 1);
+  }
   std::string cmd(oss.str());
   write_cmd(*p, oss.str());
 
