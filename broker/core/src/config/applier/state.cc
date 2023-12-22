@@ -277,7 +277,7 @@ void state::remove_poller(uint64_t poller_id) {
                          poller_id);
   else {
     log_v2::core()->info("Poller '{}' with id {} just disconnected",
-                         _connected_pollers[poller_id], poller_id);
+                         found->second, poller_id);
     _connected_pollers.erase(found);
   }
 }

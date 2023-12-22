@@ -74,12 +74,17 @@ luabinding::luabinding(std::string const& lua_script,
 }
 
 int32_t luabinding::stop() {
-  int32_t retval = flush();
+  int32_t retval = 0;
   if (_L) {
+    retval = flush();
     lua_close(_L);
     _L = nullptr;
   }
   return retval;
+}
+
+luabinding::~luabinding() noexcept {
+  stop();
 }
 
 /**
