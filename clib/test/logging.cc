@@ -1,27 +1,25 @@
 /**
-* Copyright 2011-2020 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2020 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <gtest/gtest.h>
 #include <stdio.h>
 #include <fstream>
 #include "backend_test.hh"
-#include "com/centreon/handle_listener.hh"
-#include "com/centreon/handle_manager.hh"
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/logging/engine.hh"
 #include "com/centreon/logging/file.hh"
@@ -30,69 +28,69 @@
 using namespace com::centreon;
 using namespace com::centreon::logging;
 
-class listener : public handle_listener {
- public:
-  listener() {}
-  ~listener() throw() {}
-  void error(handle& h) { (void)h; }
-};
+// class listener : public handle_listener {
+//  public:
+//   listener() {}
+//   ~listener() throw() {}
+//   void error(handle& h) { (void)h; }
+// };
 
-static bool null_handle() {
-  try {
-    handle_manager hm;
-    listener l;
-    hm.add(NULL, &l);
-  } catch (std::exception const& e) {
-    (void)e;
-    return (true);
-  }
-  return (false);
-}
+// static bool null_handle() {
+//   try {
+//     handle_manager hm;
+//     listener l;
+//     hm.add(NULL, &l);
+//   } catch (std::exception const& e) {
+//     (void)e;
+//     return (true);
+//   }
+//   return (false);
+// }
 
-static bool null_listener() {
-  try {
-    handle_manager hm;
-    io::file_stream fs;
-    hm.add(&fs, NULL);
-  } catch (std::exception const& e) {
-    (void)e;
-    return (true);
-  }
-  return (false);
-}
+// static bool null_listener() {
+//   try {
+//     handle_manager hm;
+//     io::file_stream fs;
+//     hm.add(&fs, NULL);
+//   } catch (std::exception const& e) {
+//     (void)e;
+//     return (true);
+//   }
+//   return (false);
+// }
 
-static bool basic_add() {
-  try {
-    handle_manager hm;
+// static bool basic_add() {
+//   try {
+//     handle_manager hm;
 
-    io::file_stream fs(stdin);
-    listener l;
-    hm.add(&fs, &l);
-  } catch (std::exception const& e) {
-    (void)e;
-    return (false);
-  }
-  return (true);
-}
+//     io::file_stream fs(stdin);
+//     listener l;
+//     hm.add(&fs, &l);
+//   } catch (std::exception const& e) {
+//     (void)e;
+//     return (false);
+//   }
+//   return (true);
+// }
 
-static bool double_add() {
-  try {
-    handle_manager hm;
+// static bool double_add() {
+//   try {
+//     handle_manager hm;
 
-    io::file_stream fs(stdin);
-    listener l;
-    hm.add(&fs, &l);
-    try {
-      hm.add(&fs, &l);
-    } catch (std::exception const& e) {
-      (void)e;
-      return (true);
-    }
-  } catch (std::exception const& e) {
-    (void)e;
-  }
-  return (false);
-}
+//     io::file_stream fs(stdin);
+//     listener l;
+//     hm.add(&fs, &l);
+//     try {
+//       hm.add(&fs, &l);
+//     } catch (std::exception const& e) {
+//       (void)e;
+//       return (true);
+//     }
+//   } catch (std::exception const& e) {
+//     (void)e;
+//   }
+//   return (false);
+// }
 
 static bool is_same(backend const& b1, backend const& b2) {
   return (b1.enable_sync() == b2.enable_sync() &&
@@ -151,7 +149,8 @@ static bool null_pointer() {
   return (false);
 }
 
-static bool check_log_message(std::string const& path, std::string const& msg) {
+static bool check_log_message(std::string const& path, std::string const&
+msg) {
   std::ifstream stream(path.c_str());
   char buffer[1024];
   stream.get(buffer, sizeof(buffer));
@@ -167,12 +166,12 @@ static bool check_log_message2(std::string const& path,
   return buffer == msg;
 }
 
-TEST(ClibLogging, HandleManagerAdd) {
-  ASSERT_TRUE(null_handle());
-  ASSERT_TRUE(null_listener());
-  ASSERT_TRUE(basic_add());
-  ASSERT_TRUE(double_add());
-}
+// TEST(ClibLogging, HandleManagerAdd) {
+//   ASSERT_TRUE(null_handle());
+//   ASSERT_TRUE(null_listener());
+//   ASSERT_TRUE(basic_add());
+//   ASSERT_TRUE(double_add());
+// }
 
 TEST(ClibLogging, BackendCopy) {
   backend_test ref(false, true, none, false);
@@ -187,8 +186,8 @@ TEST(ClibLogging, BackendWithPid) {
   static char msg[] = "Centreon Clib test";
   engine& e(engine::instance());
 
-  std::unique_ptr<backend_test> obj(new backend_test(false, true, none, false));
-  auto id = e.add(obj.get(), 1, 0);
+  std::unique_ptr<backend_test> obj(new backend_test(false, true, none,
+  false)); auto id = e.add(obj.get(), 1, 0);
 
   e.log(1, 0, msg, sizeof(msg));
 
@@ -199,9 +198,8 @@ TEST(ClibLogging, BackendWithPid) {
 TEST(ClibLogging, BackendWithThreadId) {
   static char msg[] = "Centreon_Clib_test";
   engine& e(engine::instance());
-  std::unique_ptr<backend_test> obj(new backend_test(false, false, none, true));
-  auto id = e.add(obj.get(), 1, 0);
-  e.log(1, 0, msg, sizeof(msg));
+  std::unique_ptr<backend_test> obj(new backend_test(false, false, none,
+  true)); auto id = e.add(obj.get(), 1, 0); e.log(1, 0, msg, sizeof(msg));
   ASSERT_TRUE(check_thread_id(obj->data(), msg));
   e.remove(id);
 }

@@ -17,8 +17,11 @@ on:
         type: string
 
 jobs:
-  package:
+  get-version:
+    uses: ./.github/workflows/get-version.yml
 
+  package:
+    needs: [get-version]
     strategy:
       fail-fast: false
       matrix:
