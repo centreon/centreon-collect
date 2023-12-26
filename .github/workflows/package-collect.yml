@@ -45,7 +45,6 @@ jobs:
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
 
-    
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
       SCCACHE_BUCKET: "centreon-github-sccache"
@@ -81,7 +80,6 @@ jobs:
             tar xzf sccache-v0.7.4-aarch64-unknown-linux-musl.tar.gz
             mv sccache-v0.7.4-aarch64-unknown-linux-musl/sccache /usr/bin/
           fi
-          ${SCCACHE_PATH} --start-server
 
       # - name: Restore Cache
       #   id: restore-cache
