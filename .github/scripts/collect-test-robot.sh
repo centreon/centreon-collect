@@ -69,5 +69,4 @@ cd tests
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
 robot -e unstable $test_file
-rebot -x xunitOut.xml output.xml
 
