@@ -1959,3 +1959,27 @@ def config_broker_remove_rrd_output(name):
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 
+
+def broker_get_ba(port, ba_id, output_file, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call GetBa")
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.BaInfo()
+            ref.id = ba_id
+            ref.output_file = output_file
+
+            try:
+                res = stub.GetBa(ref)
+                break
+            except grpc.RpcError as rpc_error:
+                if rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
+                    res = rpc_error.details()
+                break
+            except:
+                logger.console("gRPC server not ready")
+    return res
+
+

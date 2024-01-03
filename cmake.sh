@@ -313,7 +313,7 @@ cd build
 echo "$conan install .. --build=missing"
 $conan install .. --build=missing
 
-if [[ $STD -eq 17 ]] ; then
+if [[ $STD -eq gnu17 ]] ; then
   NG="-DNG=ON"
 else
   NG="-DNG=OFF"

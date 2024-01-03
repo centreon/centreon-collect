@@ -62,6 +62,11 @@ BAPBSTATUS
     ...    SELECT current_level, acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
     Should Be Equal As Strings    ${output}    ((100.0, 0.0, 0.0, 0, 2),)
 
+    Broker Get Ba    51001    1    /tmp/output
+    File Should Exist    /tmp/output
+    ${result}    Grep File    /tmp/output    digraph
+    Should Be True    ${result}    /tmp/output does not contain the word 'digraph'
+
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
 BABEST_SERVICE_CRITICAL

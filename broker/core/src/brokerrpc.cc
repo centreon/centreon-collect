@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2019-2021 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,6 +49,10 @@ brokerrpc::brokerrpc(const std::string& address,
   /* Lets' register the remove_poller event.*/
   e.register_event(make_type(io::bbdo, bbdo::de_remove_poller), "remove_poller",
                    &bbdo::pb_remove_poller::operations);
+
+  /* Let's register the ba_info event. */
+  e.register_event(make_type(io::extcmd, extcmd::de_ba_info), "ba_info",
+                   &extcmd::pb_ba_info::operations);
 
   _service.set_broker_name(broker_name);
   std::string server_address{fmt::format("{}:{}", address, port)};
