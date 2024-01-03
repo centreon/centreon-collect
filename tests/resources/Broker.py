@@ -2108,7 +2108,7 @@ def dump_ba(port, index: int, filename: str):
             logger.console("gRPC server not ready")
 
 
-def broker_get_ba(port, ba_id, output_file, timeout=TIMEOUT):
+def broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
     """
     broker_get_ba calls the gRPC GetBa function.
 
@@ -2128,7 +2128,7 @@ def broker_get_ba(port, ba_id, output_file, timeout=TIMEOUT):
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             ref = broker_pb2.BaInfo()
-            ref.id = ba_id
+            ref.id = int(ba_id)
             ref.output_file = output_file
 
             try:
