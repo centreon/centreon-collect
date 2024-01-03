@@ -1,0 +1,23 @@
+{
+    "fields": {
+        "project": {
+            "id": "11100"
+        },
+        "summary": "Brand new Test execution",
+        "issuetype": {
+            "id": "10268"
+        },
+        "components" : [
+            {
+            "name":"Centreon Software Suite"
+            },
+            {
+            "name":"software"
+            }
+        ]
+    },
+    "xrayFields": {
+        "testPlanKey": "MON-26862",
+        "environments": ["Debian", "Alama8", "Alama9"]
+    }
+}
