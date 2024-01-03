@@ -62,10 +62,12 @@ BAPBSTATUS
     ...    SELECT current_level, acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
     Should Be Equal As Strings    ${output}    ((100.0, 0.0, 0.0, 0, 2),)
 
+    ${result}    Run Keyword And Return Status    File Should Exist    /tmp/output
+    Run Keyword If    ${result} is True    Remove File    /tmp/output
     Broker Get Ba    51001    1    /tmp/output
-    File Should Exist    /tmp/output
-#    ${result}    Grep File    /tmp/output    digraph
-#    Should Be True    ${result}    /tmp/output does not contain the word 'digraph'
+    Wait Until Created    /tmp/output
+    ${result}    Grep File    /tmp/output    digraph
+    Should Not Be Empty    ${result}    /tmp/output does not contain the word 'digraph'
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
