@@ -69,7 +69,8 @@ class broker_impl final : public Broker::Service {
                                const GenericNameOrIndex* request,
                                GenericString* response) override;
 
-  grpc::Status GetMuxerStats(grpc::ServerContext*, const GenericString*,
+  grpc::Status GetMuxerStats(grpc::ServerContext*,
+                             const GenericString*,
                              MuxerStats*) override;
 
   grpc::Status GetNumEndpoint(grpc::ServerContext* context,
@@ -88,7 +89,8 @@ class broker_impl final : public Broker::Service {
                             const ToRemove* request,
                             ::google::protobuf::Empty* response) override;
 
-  grpc::Status GetBa(grpc::ServerContext* context, const BaInfo* request,
+  grpc::Status GetBa(grpc::ServerContext* context,
+                     const BaInfo* request,
                      ::google::protobuf::Empty* response) override;
 
   grpc::Status GetProcessingStats(grpc::ServerContext* context
@@ -114,7 +116,8 @@ class broker_impl final : public Broker::Service {
                                   const SqlManagerStatsOptions* request,
                                   ::google::protobuf::Empty*) override;
   ::grpc::Status GetProcessStats(
-      ::grpc::ServerContext* context, const ::google::protobuf::Empty* request,
+      ::grpc::ServerContext* context,
+      const ::google::protobuf::Empty* request,
       ::com::centreon::common::pb_process_stat* response) override;
 
  public:

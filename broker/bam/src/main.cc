@@ -1,20 +1,21 @@
 /**
-* Copyright 2011-2015, 2020-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2015, 2020-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
+
 #include "bbdo/bam/ba_duration_event.hh"
 #include "bbdo/bam/ba_status.hh"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
@@ -169,6 +170,10 @@ void broker_module_init(void const* arg) {
       e.register_event(bam::pb_dimension_truncate_table_signal::static_type(),
                        "DimensionTruncateTableSignal",
                        &bam::pb_dimension_truncate_table_signal::operations);
+      /* Let's register the ba_info event to be sure it is declared in case
+       * brokerrpc is not already instanciated. */
+      e.register_event(make_type(io::extcmd, extcmd::de_ba_info), "ba_info",
+                       &extcmd::pb_ba_info::operations);
     }
   }
 }
