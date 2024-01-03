@@ -37,6 +37,9 @@ using pb_remove_graphs =
 using pb_remove_poller =
     io::protobuf<GenericNameOrIndex,
                  make_type(io::bbdo, bbdo::de_remove_poller)>;
+using pb_ba_info =
+    io::protobuf<BaInfo,
+                 make_type(io::extcmd, extcmd::de_ba_info)>;
 }  // namespace bbdo
 
 namespace extcmd {

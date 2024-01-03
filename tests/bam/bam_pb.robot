@@ -86,6 +86,12 @@ BAWORST
     ...    SELECT current_level, acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
     Should Be Equal As Strings    ${output}    ((100.0, 0.0, 0.0, 0, 2),)
 
+    # Little check of the GetBa keyword
+    Broker Get Ba    51001    1    /tmp/output
+    File Should Exist    /tmp/output
+    ${result}    Grep File    /tmp/output    digraph
+    Should Be True    ${result}    /tmp/output does not contain the word 'digraph'
+
     ${result}    Check Ba Output With Timeout
     ...    test
     ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Service host_16/service_303 is in WARNING state, KPI Service host_16/service_314 is in CRITICAL state
