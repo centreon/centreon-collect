@@ -92,7 +92,7 @@ BAWORST
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
-    # Little check of the GetBa keyword
+    # Little check of the GetBa gRPC command
     ${result}    Run Keyword And Return Status    File Should Exist    /tmp/output
     Run Keyword If    ${result} is True    Remove File    /tmp/output
     Broker Get Ba    51001    1    /tmp/output
