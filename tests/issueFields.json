@@ -5,14 +5,11 @@
         },
         "summary": "Brand new Test execution",
         "issuetype": {
-            "id": "10273"
+            "id": "10268"
         },
         "components" : [
             {
-            "name":"Centreon Software Suite"
-            },
-            {
-            "name":"software"
+            "name":"Centreon-collect"
             }
         ]
     },
