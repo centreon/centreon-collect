@@ -100,6 +100,14 @@ BAWORST
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
+    # Little check of the GetBa gRPC command
+    ${result}    Run Keyword And Return Status    File Should Exist    /tmp/output
+    Run Keyword If    ${result} is True    Remove File    /tmp/output
+    Broker Get Ba    51001    1    /tmp/output
+    Wait Until Created    /tmp/output
+    ${result}    Grep File    /tmp/output    digraph
+    Should Not Be Empty    ${result}    /tmp/output does not contain the word 'digraph'
+
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
 BAWORST2

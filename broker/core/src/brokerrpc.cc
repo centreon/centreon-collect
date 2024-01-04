@@ -50,6 +50,10 @@ brokerrpc::brokerrpc(const std::string& address,
   e.register_event(make_type(io::bbdo, bbdo::de_remove_poller), "remove_poller",
                    &bbdo::pb_remove_poller::operations);
 
+  /* Let's register the ba_info event. */
+  e.register_event(make_type(io::extcmd, extcmd::de_ba_info), "ba_info",
+                   &extcmd::pb_ba_info::operations);
+
   _service.set_broker_name(broker_name);
   std::string server_address{fmt::format("{}:{}", address, port)};
   grpc::ServerBuilder builder;
