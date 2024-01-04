@@ -174,11 +174,3 @@ std::string ba_best::get_output() const {
 std::string ba_best::get_perfdata() const {
   return {};
 }
-
-void ba_best::_recompute() {
-  _computed_soft_state = state_critical;
-  _computed_hard_state = state_critical;
-  for (auto it = _impacts.begin(), end = _impacts.end(); it != end; ++it)
-    _apply_impact(it->first, it->second);
-  _recompute_count = 0;
-}

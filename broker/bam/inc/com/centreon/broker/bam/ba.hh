@@ -105,7 +105,6 @@ class ba : public computable, public service_listener {
   static double _normalize(double d);
   virtual bool _apply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
   virtual void _unapply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
-  virtual void _recompute();
   std::shared_ptr<pb_ba_status> _generate_ba_status(bool state_changed) const;
   std::shared_ptr<io::data> _generate_virtual_service_status() const;
 

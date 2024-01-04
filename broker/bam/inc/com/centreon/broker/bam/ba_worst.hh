@@ -46,10 +46,11 @@ class ba_worst : public ba {
  protected:
   bool _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
   void _unapply_impact(kpi* kpi_ptr, impact_info& impact) override;
-  void _recompute() override;
 
  public:
-  ba_worst(uint32_t id, uint32_t host_id, uint32_t service_id,
+  ba_worst(uint32_t id,
+           uint32_t host_id,
+           uint32_t service_id,
            bool generate_virtual_status = true);
   state get_state_hard() const override;
   state get_state_soft() const override;

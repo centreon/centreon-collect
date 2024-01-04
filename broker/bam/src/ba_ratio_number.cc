@@ -123,16 +123,6 @@ void ba_ratio_number::_unapply_impact(kpi* kpi_ptr,
       _apply_impact(it->first, it->second);
 }
 
-void ba_ratio_number::_recompute() {
-  _level_hard = 0.0;
-  _level_soft = 0.0f;
-  for (std::unordered_map<kpi*, impact_info>::iterator it(_impacts.begin()),
-       end(_impacts.end());
-       it != end; ++it)
-    _apply_impact(it->first, it->second);
-  _recompute_count = 0;
-}
-
 /**
  *  Get the output.
  *
