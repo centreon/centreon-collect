@@ -85,7 +85,7 @@ using pb_dimension_truncate_table_signal =
 namespace extcmd {
 using pb_ba_info =
     io::protobuf<BaInfo, make_type(io::extcmd, extcmd::de_ba_info)>;
-}
+}  // namespace extcmd
 
 CCB_END()
 

@@ -62,6 +62,7 @@ BAPBSTATUS
     ...    SELECT current_level, acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
     Should Be Equal As Strings    ${output}    ((100.0, 0.0, 0.0, 0, 2),)
 
+    # Little check of the GetBa gRPC command
     ${result}    Run Keyword And Return Status    File Should Exist    /tmp/output
     Run Keyword If    ${result} is True    Remove File    /tmp/output
     Broker Get Ba    51001    1    /tmp/output

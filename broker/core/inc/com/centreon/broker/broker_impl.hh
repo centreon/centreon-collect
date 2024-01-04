@@ -1,5 +1,5 @@
 /**
- * Copyright 2020-2023 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ using pb_remove_poller =
 namespace extcmd {
 using pb_ba_info =
     io::protobuf<BaInfo, make_type(io::extcmd, extcmd::de_ba_info)>;
-}
+}  // namespace extcmd
 
 class broker_impl final : public Broker::Service {
   std::string _broker_name;
