@@ -1,24 +1,26 @@
 /**
-* Copyright 2021-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2021-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/kpi_ba.hh"
+
 #include <fmt/format.h>
 #include <gtest/gtest.h>
+
 #include "com/centreon/broker/bam/ba_impact.hh"
 #include "com/centreon/broker/bam/ba_worst.hh"
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
@@ -287,12 +289,13 @@ TEST_F(KpiBA, KpiBaDt) {
   test_ba_child->set_name("test-ba-child");
   test_ba_child->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
 
-  std::vector<std::shared_ptr<bam::kpi_service>> kpis;
+  absl::FixedArray<std::shared_ptr<bam::kpi_service>, 2> kpis{
+      std::make_shared<bam::kpi_service>(1, 2, 3, 1),
+      std::make_shared<bam::kpi_service>(2, 2, 3, 2),
+  };
 
   /* Construction of kpi_services */
-  for (int i = 0; i < 2; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 2, 3, 1 + i,
-                                                fmt::format("service {}", i));
+  for (auto& s : kpis) {
     s->set_downtimed(false);
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
@@ -302,7 +305,6 @@ TEST_F(KpiBA, KpiBaDt) {
 
     // test_ba_child->add_impact(s);
     // s->add_parent(test_ba_child);
-    kpis.push_back(s);
   }
 
   /* Construction of kpi_ba */
@@ -327,9 +329,9 @@ TEST_F(KpiBA, KpiBaDt) {
   test_ba->add_impact(kpi_ba_child);
   kpi_ba_child->add_parent(test_ba);
 
-  for (int i = 0; i < 2; i++) {
-    test_ba_child->add_impact(kpis[i]);
-    kpis[i]->add_parent(test_ba_child);
+  for (auto& k : kpis) {
+    test_ba_child->add_impact(k);
+    k->add_parent(test_ba_child);
   }
 
   time_t now{time(nullptr)};
@@ -372,6 +374,8 @@ TEST_F(KpiBA, KpiBaDt) {
   /* ba2 set to critical, event open because there was no previous
    * state */
   auto it = events.rbegin();
+
+  test_ba->dump("/tmp/test_ba.dot");
   ASSERT_EQ(it->typ, test_visitor::test_event::ba);
   ASSERT_EQ(it->ba_id, 1u);
   ASSERT_TRUE(it->in_downtime);
@@ -596,7 +600,7 @@ TEST_F(KpiBA, KpiBaDtOff) {
   dt->was_started = true;
   dt->was_cancelled = true;
   kpis[0]->service_update(dt, _visitor.get());
-  ASSERT_TRUE(!test_ba->get_in_downtime());
+  ASSERT_TRUE(!test_ba->in_downtime());
 
   auto events = _visitor->queue();
 
@@ -723,7 +727,7 @@ TEST_F(KpiBA, KpiBaDtOffPb) {
     dt_obj.set_cancelled(true);
     kpis[0]->service_update(dt, _visitor.get());
   }
-  ASSERT_TRUE(!test_ba->get_in_downtime());
+  ASSERT_TRUE(!test_ba->in_downtime());
 
   auto events = _visitor->queue();
 
@@ -828,7 +832,7 @@ TEST_F(KpiBA, KpiBaOkDtOff) {
   dt->actual_end_time = -1;
   dt->was_started = true;
   kpis[0]->service_update(dt, _visitor.get());
-  ASSERT_FALSE(test_ba->get_in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
 
   /* Let's remove the downtime from the service. */
   dt = std::make_shared<neb::downtime>();
@@ -840,7 +844,7 @@ TEST_F(KpiBA, KpiBaOkDtOff) {
   dt->was_started = true;
   dt->was_cancelled = true;
   kpis[0]->service_update(dt, _visitor.get());
-  ASSERT_FALSE(test_ba->get_in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
 }
 
 /**
@@ -936,7 +940,7 @@ TEST_F(KpiBA, KpiBaOkDtOffPb) {
     dt_obj.set_started(true);
     kpis[0]->service_update(dt, _visitor.get());
   }
-  ASSERT_FALSE(test_ba->get_in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
 
   /* Let's remove the downtime from the service. */
   dt = std::make_shared<neb::pb_downtime>();
@@ -951,7 +955,7 @@ TEST_F(KpiBA, KpiBaOkDtOffPb) {
     dt_obj.set_cancelled(true);
     kpis[0]->service_update(dt, _visitor.get());
   }
-  ASSERT_FALSE(test_ba->get_in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
 }
 
 /**

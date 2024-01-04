@@ -146,7 +146,7 @@ void kpi_ba::visit(io::stream* visitor) {
                           last_ba_update);
       }
       // If state changed, close event and open a new one.
-      else if (_ba->get_in_downtime() != _event->in_downtime() ||
+      else if (_ba->in_downtime() != _event->in_downtime() ||
                ba_state != _event->status()) {
         _event->set_end_time(last_ba_update.get_time_t());
         visitor->write(std::make_shared<pb_kpi_event>(*_event));
@@ -241,7 +241,7 @@ void kpi_ba::_open_new_event(io::stream* visitor,
   _event->set_start_time(event_start_time.get_time_t());
   _event->set_end_time(-1);
   _event->set_impact_level(impact);
-  _event->set_in_downtime(_ba->get_in_downtime());
+  _event->set_in_downtime(_ba->in_downtime());
   _event->set_output(_ba->get_output());
   _event->set_perfdata(_ba->get_perfdata());
   _event->set_status(com::centreon::broker::State(ba_state));
@@ -264,7 +264,7 @@ bool kpi_ba::ok_state() const {
  *  @return  True if this KPI is in downtime.
  */
 bool kpi_ba::in_downtime() const {
-  return _ba->get_in_downtime();
+  return _ba->in_downtime();
 }
 
 /**
@@ -306,7 +306,7 @@ std::string kpi_ba::object_info() const {
  * @param output An output stream.
  */
 void kpi_ba::dump(std::ofstream& output) const {
-  output << fmt::format("\"{}\" -> \"{}\"", object_info(), _ba->get_id());
+  output << fmt::format("\"{}\" -> \"{}\"", object_info(), _ba->object_info());
   _ba->dump(output);
   dump_parents(output);
 }

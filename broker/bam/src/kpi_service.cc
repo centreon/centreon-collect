@@ -719,8 +719,9 @@ void kpi_service::update_from(computable* child [[maybe_unused]],
  * @return A multiline strings with various informations.
  */
 std::string kpi_service::object_info() const {
-  return fmt::format("KPI {} with service ({}, {})\nstate: {}", get_id(),
-                     get_host_id(), get_service_id(), get_state_hard());
+  return fmt::format("KPI {} with service ({}, {})\nstate: {}\ndowntime: {}",
+                     get_id(), get_host_id(), get_service_id(),
+                     get_state_hard(), _downtimed);
 }
 
 /**

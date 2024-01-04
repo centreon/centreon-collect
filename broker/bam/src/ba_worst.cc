@@ -116,20 +116,24 @@ void ba_worst::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
 }
 
 /**
- *  Apply some child changes. This method is more complete than _apply_impact().
- *  It takes as argument a child kpi and its impact. This child is already
- *  known, so its previous impact is replaced by the new one.
- *  In other words, this method makes almost the same work as _unapply_impact()
- *  and the _apply_impact() ; the difference is that it returns true if the BA
- *  really changed.
+ *  @brief Apply some child changes. This method is more complete than
+ * _apply_impact(). It takes as argument a child kpi and its impact. This child
+ * is already known, so its previous impact is replaced by the new one. In other
+ * words, this method makes almost the same work as _unapply_impact() and the
+ * _apply_impact() ; the difference is that it returns true if the BA really
+ * changed.
  *
- *  @param[in] impact Impact information.
- *  @return True if the BA changes, False otherwise.
+ * @param child The kpi that changed
+ * @param new_hard_impact The new hard impact for this child.
+ * @param new_soft_impact The new soft impact for this child.
+ * @param child_in_downtime The child is in downtime (or not).
+ *
+ * @return True if the BA changes, False otherwise.
  */
 bool ba_worst::_apply_changes(kpi* child,
                               const impact_values& new_hard_impact,
                               const impact_values& new_soft_impact,
-                              bool in_downtime) {
+                              bool child_in_downtime) {
   state previous_state = _computed_hard_state;
 
   _computed_soft_state = _computed_hard_state = state_ok;
@@ -140,7 +144,7 @@ bool ba_worst::_apply_changes(kpi* child,
     if (it->first == child) {
       it->second.hard_impact = new_hard_impact;
       it->second.soft_impact = new_soft_impact;
-      it->second.in_downtime = in_downtime;
+      it->second.in_downtime = child_in_downtime;
     }
     _apply_impact(it->first, it->second);
   }

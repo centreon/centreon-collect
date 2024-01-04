@@ -132,7 +132,7 @@ uint32_t ba::get_service_id() const {
  *
  *  @return True if the BA is in downtime, false otherwise.
  */
-bool ba::get_in_downtime() const {
+bool ba::in_downtime() const {
   return _in_downtime;
 }
 
@@ -508,7 +508,7 @@ std::shared_ptr<pb_ba_status> ba::_generate_ba_status(
   auto ret{std::make_shared<pb_ba_status>()};
   BaStatus& status = ret->mut_obj();
   status.set_ba_id(get_id());
-  status.set_in_downtime(get_in_downtime());
+  status.set_in_downtime(in_downtime());
   if (_event)
     status.set_last_state_change(_event->obj().start_time());
   else
@@ -629,6 +629,7 @@ void ba::update_from(computable* child, io::stream* visitor) {
   kpi_child->impact_hard(new_hard_impact);
   kpi_child->impact_soft(new_soft_impact);
   bool kpi_in_downtime(kpi_child->in_downtime());
+  bool previous_in_downtime = _in_downtime;
 
   // Logging.
   SPDLOG_LOGGER_DEBUG(
@@ -655,7 +656,7 @@ void ba::update_from(computable* child, io::stream* visitor) {
   // Generate status event.
   visit(visitor);
 
-  if (changed)
+  if (changed || _in_downtime != previous_in_downtime)
     notify_parents_of_change(visitor);
 }
 
@@ -666,8 +667,8 @@ void ba::update_from(computable* child, io::stream* visitor) {
  * @return A multiline strings with various informations.
  */
 std::string ba::object_info() const {
-  return fmt::format("BA {}\nname: {}\nstate: {}", _id, _name,
-                     get_state_hard());
+  return fmt::format("BA {}\nname: {}\nstate: {}\ndowntime: {}", _id, _name,
+                     get_state_hard(), _in_downtime);
 }
 
 /**

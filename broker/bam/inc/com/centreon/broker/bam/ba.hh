@@ -129,7 +129,7 @@ class ba : public computable, public service_listener {
   uint32_t get_id() const;
   uint32_t get_host_id() const;
   uint32_t get_service_id() const;
-  bool get_in_downtime() const;
+  bool in_downtime() const;
   timestamp get_last_kpi_update() const;
   std::string const& get_name() const;
   virtual std::string get_output() const = 0;
