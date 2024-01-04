@@ -88,6 +88,6 @@ using pb_ba_info =
     io::protobuf<BaInfo, make_type(io::extcmd, extcmd::de_ba_info)>;
 }  // namespace extcmd
 
-}  // namespace com::centreon::broker
+CCB_END()
 
 #endif
