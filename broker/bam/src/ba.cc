@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2014-2016, 2021-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@
 #include "com/centreon/broker/bam/ba.hh"
 
 #include <fmt/format.h>
+
 #include <cassert>
 
 #include "com/centreon/broker/bam/impact_values.hh"
@@ -53,11 +54,8 @@ static bool time_is_undefined(uint64_t t) {
  *                                      should generate statuses of
  *                                      virtual hosts and services.
  */
-ba::ba(uint32_t id,
-       uint32_t host_id,
-       uint32_t service_id,
-       configuration::ba::state_source source,
-       bool generate_virtual_status)
+ba::ba(uint32_t id, uint32_t host_id, uint32_t service_id,
+       configuration::ba::state_source source, bool generate_virtual_status)
     : _id(id),
       _state_source(source),
       _host_id(host_id),
@@ -76,7 +74,7 @@ ba::ba(uint32_t id,
 void ba::add_impact(std::shared_ptr<kpi> const& impact) {
   auto it = _impacts.find(impact.get());
   if (it == _impacts.end()) {
-    impact_info& ii(_impacts[impact.get()]);
+    impact_info& ii = _impacts[impact.get()];
     ii.kpi_ptr = impact;
     impact->impact_hard(ii.hard_impact);
     impact->impact_soft(ii.soft_impact);
@@ -93,36 +91,28 @@ void ba::add_impact(std::shared_ptr<kpi> const& impact) {
  *
  *  @return Current BA event, NULL if none is declared.
  */
-std::shared_ptr<pb_ba_event> ba::get_ba_event() {
-  return _event;
-}
+std::shared_ptr<pb_ba_event> ba::get_ba_event() { return _event; }
 
 /**
  *  Get the BA ID.
  *
  *  @return ID of this BA.
  */
-uint32_t ba::get_id() const {
-  return _id;
-}
+uint32_t ba::get_id() const { return _id; }
 
 /**
  *  Get the id of the host associated to this ba.
  *
  *  @return  An integer representing the value of this id.
  */
-uint32_t ba::get_host_id() const {
-  return _host_id;
-}
+uint32_t ba::get_host_id() const { return _host_id; }
 
 /**
  *  Get the id of the service associated to this ba.
  *
  *  @return  An integer representing the value of this id.
  */
-uint32_t ba::get_service_id() const {
-  return _service_id;
-}
+uint32_t ba::get_service_id() const { return _service_id; }
 
 /**
  *  @brief Check if the BA is in downtime.
@@ -131,27 +121,21 @@ uint32_t ba::get_service_id() const {
  *
  *  @return True if the BA is in downtime, false otherwise.
  */
-bool ba::get_in_downtime() const {
-  return _in_downtime;
-}
+bool ba::get_in_downtime() const { return _in_downtime; }
 
 /**
  *  Get the time at which the most recent KPI was updated.
  *
  *  @return Time at which the most recent KPI was updated.
  */
-timestamp ba::get_last_kpi_update() const {
-  return _last_kpi_update;
-}
+timestamp ba::get_last_kpi_update() const { return _last_kpi_update; }
 
 /**
  *  Get the BA name.
  *
  *  @return BA name.
  */
-std::string const& ba::get_name() const {
-  return _name;
-}
+std::string const& ba::get_name() const { return _name; }
 
 /**
  *  Get BA state source.
@@ -214,9 +198,7 @@ void ba::set_initial_event(const pb_ba_event& event) {
  *
  *  @param[in] name  New BA name.
  */
-void ba::set_name(std::string const& name) {
-  _name = name;
-}
+void ba::set_name(std::string const& name) { _name = name; }
 
 /**
  *  @brief Set whether or not BA is valid.
@@ -225,9 +207,7 @@ void ba::set_name(std::string const& name) {
  *
  *  @param[in] valid  Whether or not BA is valid.
  */
-void ba::set_valid(bool valid) {
-  _valid = valid;
-}
+void ba::set_valid(bool valid) { _valid = valid; }
 
 /**
  * @brief Set the inherit kpi downtime flag.
@@ -254,8 +234,7 @@ void ba::visit(io::stream* visitor) {
     if (!_event) {
       SPDLOG_LOGGER_TRACE(log_v2::bam(),
                           "BAM: ba::visit no event => creation of one");
-      if (_last_kpi_update.is_null())
-        _last_kpi_update = time(nullptr);
+      if (_last_kpi_update.is_null()) _last_kpi_update = time(nullptr);
       _open_new_event(visitor, hard_state);
     }
     // If state changed, close event and open a new one.
@@ -383,8 +362,7 @@ void ba::save_inherited_downtime(persistent_cache& cache) const {
  */
 void ba::set_inherited_downtime(const pb_inherited_downtime& dwn) {
   _inherited_downtime.reset(new pb_inherited_downtime(dwn.obj()));
-  if (_inherited_downtime->obj().in_downtime())
-    _in_downtime = true;
+  if (_inherited_downtime->obj().in_downtime()) _in_downtime = true;
 }
 
 /**
@@ -396,8 +374,7 @@ void ba::set_inherited_downtime(const inherited_downtime& dwn) {
   _inherited_downtime.reset(new pb_inherited_downtime);
   _inherited_downtime->mut_obj().set_ba_id(dwn.ba_id);
   _inherited_downtime->mut_obj().set_in_downtime(dwn.in_downtime);
-  if (_inherited_downtime->obj().in_downtime())
-    _in_downtime = true;
+  if (_inherited_downtime->obj().in_downtime()) _in_downtime = true;
 }
 
 /**
@@ -438,8 +415,8 @@ void ba::_recompute() {
   _downtime_soft = 0.0;
   _level_hard = 100.0;
   _level_soft = 100.0;
-  for (std::unordered_map<kpi*, impact_info>::iterator it(_impacts.begin()),
-       end(_impacts.end());
+  for (std::unordered_map<kpi*, impact_info>::iterator it = _impacts.begin(),
+                                                       end = _impacts.end();
        it != end; ++it)
     _apply_impact(it->first, it->second);
   _recompute_count = 0;
@@ -451,12 +428,10 @@ void ba::_recompute() {
  *  @param[in] visitor  The visitor.
  */
 void ba::_commit_initial_events(io::stream* visitor) {
-  if (_initial_events.empty())
-    return;
+  if (_initial_events.empty()) return;
 
   if (visitor) {
-    for (const auto& evt : _initial_events)
-      visitor->write(evt);
+    for (const auto& evt : _initial_events) visitor->write(evt);
   }
   _initial_events.clear();
 }
@@ -512,8 +487,7 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
                         "ba: inherited downtime computation downtime false");
     _in_downtime = false;
 
-    if (visitor)
-      visitor->write(std::move(_inherited_downtime));
+    if (visitor) visitor->write(std::move(_inherited_downtime));
     _inherited_downtime.reset();
   } else
     SPDLOG_LOGGER_TRACE(
@@ -611,59 +585,45 @@ std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
  *
  *  @param[in] level  Critical level.
  */
-void ba::set_level_critical(double level) {
-  _level_critical = level;
-}
+void ba::set_level_critical(double level) { _level_critical = level; }
 
 /**
  *  Set warning level.
  *
  *  @param[in] level  Warning level.
  */
-void ba::set_level_warning(double level) {
-  _level_warning = level;
-}
+void ba::set_level_warning(double level) { _level_warning = level; }
 
 /**
- * @brief Update this computable with the child modifications.
+ * @brief Update this computable with the child modifications. This function is
+ * called only if child has changes. And it will notify its parents only if it
+ * also changes.
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
  */
 void ba::update_from(computable* child, io::stream* visitor) {
   auto logger = log_v2::bam();
-  logger->trace("ba::update_from");
+  logger->trace("ba::update_from (BA {})", _id);
   auto it = _impacts.find(static_cast<kpi*>(child));
   if (it != _impacts.end()) {
     // Get impact.
     impact_values new_hard_impact;
     impact_values new_soft_impact;
-    it->second.kpi_ptr->impact_hard(new_hard_impact);
-    it->second.kpi_ptr->impact_soft(new_soft_impact);
-    bool kpi_in_downtime(it->second.kpi_ptr->in_downtime());
+    kpi* kpi_child = static_cast<kpi*>(child);
+    kpi_child->impact_hard(new_hard_impact);
+    kpi_child->impact_soft(new_soft_impact);
+    bool kpi_in_downtime(kpi_child->in_downtime());
 
     // Logging.
     SPDLOG_LOGGER_DEBUG(
         logger,
         "BAM: BA {}, '{}' is getting notified of child update (KPI {}, impact "
         "{}, last state change {}, downtime {})",
-        _id, _name, it->second.kpi_ptr->get_id(), new_hard_impact.get_nominal(),
-        it->second.kpi_ptr->get_last_state_change(), kpi_in_downtime);
+        _id, _name, kpi_child->get_id(), new_hard_impact.get_nominal(),
+        kpi_child->get_last_state_change(), kpi_in_downtime);
 
-    // If the new impact is the same as the old, don't update.
-    if (it->second.hard_impact == new_hard_impact &&
-        it->second.soft_impact == new_soft_impact &&
-        it->second.in_downtime == kpi_in_downtime) {
-      SPDLOG_LOGGER_DEBUG(
-          logger,
-          "BAM: BA {} has no changes since last update: hard impact: (ack: {}, "
-          "dwnt: {}, nominal: {}), downtime: {}",
-          _id, new_hard_impact.get_acknowledgement(),
-          new_hard_impact.get_nominal(), new_hard_impact.get_downtime(),
-          kpi_in_downtime);
-      return;
-    }
-    timestamp last_state_change(it->second.kpi_ptr->get_last_state_change());
+    timestamp last_state_change(kpi_child->get_last_state_change());
     if (!last_state_change.is_null())
       _last_kpi_update = std::max(_last_kpi_update, last_state_change);
 
@@ -690,8 +650,7 @@ void ba::update_from(computable* child, io::stream* visitor) {
     // Generate status event.
     visit(visitor);
 
-    if (changed)
-      notify_parents_of_change(visitor);
+    if (changed) notify_parents_of_change(visitor);
   }
 }
 
