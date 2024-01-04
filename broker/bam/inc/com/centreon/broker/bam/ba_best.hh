@@ -44,8 +44,12 @@ class ba_best : public ba {
   void _commit_initial_events(io::stream* visitor);
 
  protected:
-  bool _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
+  void _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
   void _unapply_impact(kpi* kpi_ptr, impact_info& impact) override;
+  bool _apply_changes(kpi* child,
+                      const impact_values& new_hard_impact,
+                      const impact_values& new_soft_impact,
+                      bool in_downtime) override;
 
  public:
   ba_best(uint32_t id,

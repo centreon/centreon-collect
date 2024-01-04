@@ -38,8 +38,12 @@ class ba_impact : public ba {
   void _recompute();
 
  protected:
-  bool _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
+  void _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
   void _unapply_impact(kpi* kpi_ptr, impact_info& impact) override;
+  bool _apply_changes(kpi* child,
+                      const impact_values& new_hard_impact,
+                      const impact_values& new_soft_impact,
+                      bool in_downtime) override;
 
  public:
   ba_impact(uint32_t id,

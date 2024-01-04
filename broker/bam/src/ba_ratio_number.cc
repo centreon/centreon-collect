@@ -33,6 +33,8 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
+static constexpr double eps = 0.000001;
+
 /**
  *  Constructor.
  *
@@ -88,21 +90,15 @@ state ba_ratio_number::get_state_soft() const {
  *
  *  @param[in] impact Impact information.
  */
-bool ba_ratio_number::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
+void ba_ratio_number::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
                                     ba::impact_info& impact) {
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
-    return false;
+    return;
 
-  bool retval = false;
-  if (impact.soft_impact.get_state() == state_critical) {
+  if (impact.soft_impact.get_state() == state_critical)
     _level_soft++;
-    retval = true;
-  }
-  if (impact.hard_impact.get_state() == state_critical) {
+  if (impact.hard_impact.get_state() == state_critical)
     _level_hard++;
-    retval = true;
-  }
-  return retval;
 }
 
 /**
@@ -112,7 +108,7 @@ bool ba_ratio_number::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
  */
 void ba_ratio_number::_unapply_impact(kpi* kpi_ptr,
                                       ba::impact_info& impact
-                                      __attribute__((unused))) {
+                                      [[maybe_unused]]) {
   _level_soft = 0.;
   _level_hard = 0.;
 
@@ -122,6 +118,39 @@ void ba_ratio_number::_unapply_impact(kpi* kpi_ptr,
        it != end; ++it)
     if (it->first != kpi_ptr)
       _apply_impact(it->first, it->second);
+}
+
+/**
+ *  Apply some child changes. This method is more complete than _apply_impact().
+ *  It takes as argument a child kpi and its impact. This child is already
+ *  known, so its previous impact is replaced by the new one.
+ *  In other words, this method makes almost the same work as _unapply_impact()
+ *  and the _apply_impact() ; the difference is that it returns true if the BA
+ *  really changed.
+ *
+ *  @param[in] impact Impact information.
+ *  @return True if the BA changes, False otherwise.
+ */
+bool ba_ratio_number::_apply_changes(kpi* child,
+                                     const impact_values& new_hard_impact,
+                                     const impact_values& new_soft_impact,
+                                     bool in_downtime) {
+  double previous_level = _level_hard;
+  _level_soft = 0.;
+  _level_hard = 0.;
+
+  // We recompute all impact, except the one to unapply...
+  for (std::unordered_map<kpi*, impact_info>::iterator it = _impacts.begin(),
+                                                       end = _impacts.end();
+       it != end; ++it) {
+    if (it->first == child) {
+      it->second.hard_impact = new_hard_impact;
+      it->second.soft_impact = new_soft_impact;
+      it->second.in_downtime = in_downtime;
+    }
+    _apply_impact(it->first, it->second);
+  }
+  return std::abs(previous_level - _level_hard) > eps;
 }
 
 /**

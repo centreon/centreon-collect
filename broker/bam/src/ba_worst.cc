@@ -97,7 +97,7 @@ state ba_worst::get_state_soft() const {
  *
  *  @param[in] impact Impact information.
  */
-bool ba_worst::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
+void ba_worst::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
                              ba::impact_info& impact) {
   auto is_state_worse = [](short current_state, short new_state) -> bool {
     const std::array<short, 5> order{0, 3, 4, 2, 1};
@@ -107,18 +107,45 @@ bool ba_worst::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
   };
 
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
-    return false;
+    return;
 
-  bool retval = false;
-  if (is_state_worse(_computed_soft_state, impact.soft_impact.get_state())) {
+  if (is_state_worse(_computed_soft_state, impact.soft_impact.get_state()))
     _computed_soft_state = impact.soft_impact.get_state();
-    retval = true;
-  }
-  if (is_state_worse(_computed_hard_state, impact.hard_impact.get_state())) {
+  if (is_state_worse(_computed_hard_state, impact.hard_impact.get_state()))
     _computed_hard_state = impact.hard_impact.get_state();
-    retval = true;
+}
+
+/**
+ *  Apply some child changes. This method is more complete than _apply_impact().
+ *  It takes as argument a child kpi and its impact. This child is already
+ *  known, so its previous impact is replaced by the new one.
+ *  In other words, this method makes almost the same work as _unapply_impact()
+ *  and the _apply_impact() ; the difference is that it returns true if the BA
+ *  really changed.
+ *
+ *  @param[in] impact Impact information.
+ *  @return True if the BA changes, False otherwise.
+ */
+bool ba_worst::_apply_changes(kpi* child,
+                              const impact_values& new_hard_impact,
+                              const impact_values& new_soft_impact,
+                              bool in_downtime) {
+  state previous_state = _computed_hard_state;
+
+  _computed_soft_state = _computed_hard_state = state_ok;
+
+  // We recompute all impacts...
+  for (auto it = _impacts.begin(), end = _impacts.end(); it != end; ++it) {
+    /* The changed child is updated in _impacts */
+    if (it->first == child) {
+      it->second.hard_impact = new_hard_impact;
+      it->second.soft_impact = new_soft_impact;
+      it->second.in_downtime = in_downtime;
+    }
+    _apply_impact(it->first, it->second);
   }
-  return retval;
+
+  return _computed_hard_state != previous_state;
 }
 
 /**
