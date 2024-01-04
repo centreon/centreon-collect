@@ -17,7 +17,6 @@
         ]
     },
     "xrayFields": {
-        "testPlanKey": "MON-26862",
-        "environments": ["Debian", "Alama8", "Alama9"]
+        "testPlanKey": "MON-26862"
     }
 }
