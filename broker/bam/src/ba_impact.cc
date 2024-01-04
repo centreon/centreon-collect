@@ -100,7 +100,7 @@ state ba_impact::get_state_soft() const {
  *
  *  @param[in] impact Impact information.
  */
-bool ba_impact::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
+void ba_impact::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
                               ba::impact_info& impact) {
   // Adjust values.
   _acknowledgement_hard += impact.hard_impact.get_acknowledgement();
@@ -109,12 +109,23 @@ bool ba_impact::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
   _downtime_soft += impact.soft_impact.get_downtime();
 
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
-    return false;
-  bool retval = impact.hard_impact.get_nominal() != 0 ||
-                impact.soft_impact.get_nominal() != 0;
+    return;
   _level_hard -= impact.hard_impact.get_nominal();
   _level_soft -= impact.soft_impact.get_nominal();
-  return retval;
+}
+
+bool ba_impact::_apply_changes(kpi* child,
+                               const impact_values& new_hard_impact,
+                               const impact_values& new_soft_impact,
+                               bool in_downtime) {
+  int32_t previous_level = _level_hard;
+  auto it = _impacts.find(child);
+  _unapply_impact(child, it->second);
+  it->second.hard_impact = new_hard_impact;
+  it->second.soft_impact = new_soft_impact;
+  it->second.in_downtime = in_downtime;
+  _apply_impact(child, it->second);
+  return previous_level != _level_hard;
 }
 
 /**

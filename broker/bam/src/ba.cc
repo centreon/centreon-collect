@@ -616,54 +616,41 @@ void ba::set_level_warning(double level) {
 void ba::update_from(computable* child, io::stream* visitor) {
   auto logger = log_v2::bam();
   logger->trace("ba::update_from (BA {})", _id);
-  auto it = _impacts.find(static_cast<kpi*>(child));
-  if (it != _impacts.end()) {
-    // Get impact.
-    impact_values new_hard_impact;
-    impact_values new_soft_impact;
-    kpi* kpi_child = static_cast<kpi*>(child);
-    kpi_child->impact_hard(new_hard_impact);
-    kpi_child->impact_soft(new_soft_impact);
-    bool kpi_in_downtime(kpi_child->in_downtime());
+  // Get impact.
+  impact_values new_hard_impact;
+  impact_values new_soft_impact;
+  kpi* kpi_child = static_cast<kpi*>(child);
+  kpi_child->impact_hard(new_hard_impact);
+  kpi_child->impact_soft(new_soft_impact);
+  bool kpi_in_downtime(kpi_child->in_downtime());
 
-    // Logging.
-    SPDLOG_LOGGER_DEBUG(
-        logger,
-        "BAM: BA {}, '{}' is getting notified of child update (KPI {}, impact "
-        "{}, last state change {}, downtime {})",
-        _id, _name, kpi_child->get_id(), new_hard_impact.get_nominal(),
-        kpi_child->get_last_state_change(), kpi_in_downtime);
+  // Logging.
+  SPDLOG_LOGGER_DEBUG(
+      logger,
+      "BAM: BA {}, '{}' is getting notified of child update (KPI {}, impact "
+      "{}, last state change {}, downtime {})",
+      _id, _name, kpi_child->get_id(), new_hard_impact.get_nominal(),
+      kpi_child->get_last_state_change(), kpi_in_downtime);
 
-    timestamp last_state_change(kpi_child->get_last_state_change());
-    if (!last_state_change.is_null())
-      _last_kpi_update = std::max(_last_kpi_update, last_state_change);
+  timestamp last_state_change(kpi_child->get_last_state_change());
+  if (!last_state_change.is_null())
+    _last_kpi_update = std::max(_last_kpi_update, last_state_change);
 
-    // Discard old data.
-    _unapply_impact(it->first, it->second);
+  // Apply new data.
+  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: BA {} updated from KPI {}", _id,
+                      kpi_child->get_id());
+  bool changed = _apply_changes(kpi_child, new_hard_impact, new_soft_impact,
+                                kpi_in_downtime);
+  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BA has changed: {}", changed);
 
-    // Apply new data.
-    SPDLOG_LOGGER_TRACE(
-        log_v2::bam(),
-        "BAM: BA {} changes: hard impact changed {}, soft impact changed {}, "
-        "downtime {} => {}",
-        _id, it->second.hard_impact != new_hard_impact,
-        it->second.soft_impact != new_soft_impact, it->second.in_downtime,
-        kpi_in_downtime);
-    it->second.hard_impact = new_hard_impact;
-    it->second.soft_impact = new_soft_impact;
-    it->second.in_downtime = kpi_in_downtime;
-    bool changed = _apply_impact(it->first, it->second);
-    SPDLOG_LOGGER_TRACE(log_v2::bam(), "BA has changed: {}", changed);
+  // Check for inherited downtimes.
+  _compute_inherited_downtime(visitor);
 
-    // Check for inherited downtimes.
-    _compute_inherited_downtime(visitor);
+  // Generate status event.
+  visit(visitor);
 
-    // Generate status event.
-    visit(visitor);
-
-    if (changed)
-      notify_parents_of_change(visitor);
-  }
+  if (changed)
+    notify_parents_of_change(visitor);
 }
 
 /**
