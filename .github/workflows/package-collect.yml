@@ -138,8 +138,12 @@ jobs:
         shell: bash
 
       - name: Cache statistics
-        run: |
-          ${SCCACHE_PATH} --show-stats
+        run: ${SCCACHE_PATH} --show-stats
+        shell: bash
+
+      - name: Stop sccache server
+        run: ${SCCACHE_PATH} --stop-server
+        shell: bash
 
       - name: Generate debug files
         run: |

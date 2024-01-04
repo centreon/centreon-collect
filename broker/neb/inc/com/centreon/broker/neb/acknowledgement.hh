@@ -44,6 +44,7 @@ class acknowledgement : public io::data {
   acknowledgement(acknowledgement const& other);
   ~acknowledgement();
   acknowledgement& operator=(acknowledgement const& other);
+  
   /**
    *  Get the type of this event.
    *
