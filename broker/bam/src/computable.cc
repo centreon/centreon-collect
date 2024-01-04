@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2023 Centreon
+ * Copyright 2014-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/bam/computable.hh"
+
 #include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
@@ -27,6 +28,9 @@ using namespace com::centreon::broker::bam;
  *  @param[in] parent Parent node.
  */
 void computable::add_parent(std::shared_ptr<computable> const& parent) {
+  for (auto it = _parents.begin(), end = _parents.end(); it != end; ++it)
+    if (it->lock().get() == parent.get())
+      return;
   _parents.push_back(std::weak_ptr<computable>(parent));
 }
 

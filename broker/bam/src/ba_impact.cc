@@ -1,24 +1,25 @@
 /**
-* Copyright 2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2022-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/ba_impact.hh"
 
 #include <fmt/format.h>
+
 #include <cassert>
 
 #include "bbdo/bam/ba_status.hh"
@@ -232,4 +233,24 @@ std::string ba_impact::get_perfdata() const {
   return fmt::format(
       "BA_Level={};{};{};0;100", static_cast<int>(_normalize(_level_hard)),
       static_cast<int>(_level_warning), static_cast<int>(_level_critical));
+}
+
+/**
+ *  @brief Recompute all impacts.
+ *
+ *  This method was created to prevent the real values to derive to
+ *  much from their true value due to the caching system.
+ */
+void ba_impact::_recompute() {
+  _acknowledgement_hard = 0.0;
+  _acknowledgement_soft = 0.0;
+  _downtime_hard = 0.0;
+  _downtime_soft = 0.0;
+  _level_hard = 100.0;
+  _level_soft = 100.0;
+  for (std::unordered_map<kpi*, impact_info>::iterator it = _impacts.begin(),
+                                                       end = _impacts.end();
+       it != end; ++it)
+    _apply_impact(it->first, it->second);
+  _recompute_count = 0;
 }
