@@ -1960,7 +1960,18 @@ def config_broker_remove_rrd_output(name):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_get_ba(port, ba_id, output_file, timeout=TIMEOUT):
+def broker_get_ba(port:int, ba_id:int, output_file:str, timeout=TIMEOUT):
+    """
+    broker_get_ba calls the gRPC GetBa function provided by Broker.
+    Args:
+        port: the gRPC port
+        ba_id: The BA's ID we want to get.
+        output_file: The full path of the file to generate.
+        timeout: A timeout in seconds (default value 30s).
+
+    Returns:
+        An empty Protobuf object.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         logger.console("Try to call GetBa")
@@ -1968,7 +1979,7 @@ def broker_get_ba(port, ba_id, output_file, timeout=TIMEOUT):
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             ref = broker_pb2.BaInfo()
-            ref.id = ba_id
+            ref.id = int(ba_id)
             ref.output_file = output_file
 
             try:
@@ -1981,5 +1992,3 @@ def broker_get_ba(port, ba_id, output_file, timeout=TIMEOUT):
             except:
                 logger.console("gRPC server not ready")
     return res
-
-
