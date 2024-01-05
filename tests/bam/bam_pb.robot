@@ -103,7 +103,7 @@ BAWORST
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
 BAWORST2
-    [Documentation]    a worst ba with a boolean kpi and a ba kpi
+    [Documentation]    A BA of type worst with a boolean KPI and a BA KPI is configured.
     [Tags]    broker    engine    bam
     BAM Init
 
@@ -125,7 +125,7 @@ BAWORST2
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    A message about check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
     Dump Ba On Error    ${result}    ${id_ba__sid[0]}
@@ -136,14 +136,16 @@ BAWORST2
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
-    # boolean critical => ba test critical
+    # The child BA is set to critical, then the test BA should be critical
     Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
     ${result}    Check Service Status With Timeout    host_16    service_302    2    60    HARD
-    Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
+    Should Be True
+    ...    ${result}
+    ...    The service (host_16,service_302) is not CRITICAL as expected
     Sleep    2s
     ${result}    Check Ba Status With Timeout    test    2    60
     Dump Ba On Error    ${result}    ${id_ba__sid[0]}
@@ -196,7 +198,7 @@ BAWORST2
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
 BABEST_SERVICE_CRITICAL
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
+    [Documentation]    With bbdo version 3.0.1, a BA of type 'best' with 2 services is configured, the BA is critical only if the 2 services are critical.
     [Tags]    broker    engine    bam
     BAM Init
 
@@ -1097,6 +1099,92 @@ BA_RATIO_PERCENT_BA_4_SERVICE
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
+
+BAWORSTWORST
+    [Documentation]    With BBDO 3.0.1, a BA of type 'worst' with a child BA of type 'worst' are configured. When the child BA is OK, then the parent BA is OK, when the child changes to WARNING, the parent changes to WARNING, when the child changes to CRITICAL then the parent changes to CRITICAL and when the child returns to OK, the parent changes also to OK.
+    [Tags]    broker    downtime    engine    bam
+    BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
+    ${child_ba__svc}    Create Ba With Services    child    worst    ${svc}
+
+    ${ba__svc}    Create Ba    test    worst    20    35
+    Add Ba Kpi    ${child_ba__svc[0]}    ${ba__svc[0]}    1    2    3
+
+    Start Broker
+    ${start}    Get Current Date
+    Start Engine
+
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message about check_for_external_commands() should be available.
+
+    @{states}    Create List    OK    WARNING    CRITICAL
+    FOR    ${state}    IN    0    1    2    0
+	${state_str}    Set Variable    ${states[${state}]}
+	Log To Console    BAs set to state ${state_str}
+        # The service is changed to WARNING
+        Process Service Result Hard
+        ...    host_16
+        ...    service_314
+        ...    ${state}
+        ...    Output WARNING for service_314
+
+        # Test BA and child BA are in state ${state} / ${state_str}
+        ${result}    Check Ba Status With Timeout    child    ${state}    60
+        Dump Ba On Error    ${result}    ${child_ba__svc[0]}
+        Should Be True    ${result}    The child BA is not ${state_str} as expected
+
+        ${result}    Check Ba Status With Timeout    test    ${state}    60
+        Dump Ba On Error    ${result}    ${ba__svc[0]}
+        Should Be True    ${result}    The test BA is not ${state_str} as expected
+    END
+
+    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+
+BABESTBEST
+    [Documentation]    With BBDO 3.0.1, a BA of type 'best' with a child BA of type 'best' are configured. When the child BA is OK, then the parent BA is OK, when the child changes to WARNING, the parent changes to WARNING, when the child changes to CRITICAL then the parent changes to CRITICAL and when the child returns to OK, the parent changes also to OK.
+    [Tags]    broker    downtime    engine    bam
+    BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
+    ${child_ba__svc}    Create Ba With Services    child    best    ${svc}
+
+    ${ba__svc}    Create Ba    test    best    20    35
+    Add Ba Kpi    ${child_ba__svc[0]}    ${ba__svc[0]}    1    2    3
+
+    Start Broker
+    ${start}    Get Current Date
+    Start Engine
+
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message about check_for_external_commands() should be available.
+
+    @{states}    Create List    OK    WARNING    CRITICAL
+    FOR    ${state}    IN    0    1    2    0
+	${state_str}    Set Variable    ${states[${state}]}
+	Log To Console    BAs set to state ${state_str}
+        # The service is changed to WARNING
+        Process Service Result Hard
+        ...    host_16
+        ...    service_314
+        ...    ${state}
+        ...    Output WARNING for service_314
+
+        # Test BA and child BA are in state ${state} / ${state_str}
+        ${result}    Check Ba Status With Timeout    child    ${state}    60
+        Dump Ba On Error    ${result}    ${child_ba__svc[0]}
+        Should Be True    ${result}    The child BA is not ${state_str} as expected
+
+        ${result}    Check Ba Status With Timeout    test    ${state}    60
+        Dump Ba On Error    ${result}    ${ba__svc[0]}
+        Should Be True    ${result}    The test BA is not ${state_str} as expected
+    END
+
+    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
 *** Keywords ***
 BAM Setup
