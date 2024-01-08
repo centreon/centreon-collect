@@ -13,8 +13,9 @@ Before describing these BA, let's try to explain how they lives and how they are
 
 All the BA classes derived from an abstract `ba` class.
 They have to implement the following methods:
-* `bool _apply_impact(kpi*, impact_info&)`: knowing that the `kpi*` given in parameter is a child of the BA, this method applies on the BA the impact of the KPI, knowing its change stored in the `impact_info` object. If this changes the BA, the method must return `true` to be sure impacts are propagated to parents, otherwise it returns `false`.
+* `void _apply_impact(kpi*, impact_info&)`: knowing that the `kpi*` given in parameter is a child of the BA, this method applies on the BA the impact of the KPI, knowing its change stored in the `impact_info` object.
 * `void _unapply_impact(kpi*, impact_info&)`: the method is the reverse of `_apply_impact()`.
+* `bool _apply_changes(kpi*, const impact_values& new_hard_impact, const impact_values& new_soft_impact, bool in_downtime)`: Each time a kpi changes, it calls this method for all its parents. This function unapplies the previous impact of the kpi, stores in the parent's `_impacts` the new changes and also applies this new impact to it. It returns a boolean that is `true` only when the parent has changes to propagate.
 * `std::string get_output() const`: builds the output string of the Engine virtual service relied to this BA.
 * `std::string get_perfdata() const`: builds the performance data for the virtual service relied to this BA.
 * `state get_state_hard() const`: returns the current state of the BA (an enum corresponding to service states, one value among `state_ok`, `state_warning`, `state_critical` or `state_unknown`).
@@ -53,7 +54,7 @@ The amount of a BA points is forced in the range [0;100].
 Technically, an `impact_ba` class is derived from `ba`. The current amount of
 points is in the `_level_hard` attribute.
 
-The BA is considered in WARNING if `_level_critical < _level_hard =< _level_warning`.
+The BA is considered in WARNING if `_level_critical < _level_hard <= _level_warning`.
 
 The BA is considered OK if `_level_warning < _level_hard`.
 
@@ -73,10 +74,10 @@ Technically, its class `ba_worst` is derived from `ba`.
 
 ### Ratio number BA
 
-This BA computes the number of KPIs in state OK. It is possible to configure
+This BA computes the number of KPIs in CRITICAL state. It is possible to configure
 a warning level and a critical level.
 
-If the number of KPIs in state CRITICAL is less than the warning level, the BA is OK.
+If the number of KPIs in CRITICAL state is less than the warning level, the BA is OK.
 If this number is greater than WARNING but not than CRITICAL, the BA is WARNING.
 Otherwise, the BA is CRITICAL.
 

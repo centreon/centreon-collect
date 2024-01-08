@@ -106,18 +106,15 @@ void ba_ratio_number::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
  *
  *  @param[in] impact Impact information.
  */
-void ba_ratio_number::_unapply_impact(kpi* kpi_ptr,
-                                      ba::impact_info& impact
-                                      [[maybe_unused]]) {
-  _level_soft = 0.;
-  _level_hard = 0.;
+void ba_ratio_number::_unapply_impact(kpi* kpi_ptr [[maybe_unused]],
+                                      ba::impact_info& impact) {
+  if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
+    return;
 
-  // We recompute all impact, except the one to unapply...
-  for (std::unordered_map<kpi*, impact_info>::iterator it = _impacts.begin(),
-                                                       end = _impacts.end();
-       it != end; ++it)
-    if (it->first != kpi_ptr)
-      _apply_impact(it->first, it->second);
+  if (impact.soft_impact.get_state() == state_critical)
+    _level_soft--;
+  if (impact.hard_impact.get_state() == state_critical)
+    _level_hard--;
 }
 
 /**
@@ -136,20 +133,12 @@ bool ba_ratio_number::_apply_changes(kpi* child,
                                      const impact_values& new_soft_impact,
                                      bool in_downtime) {
   double previous_level = _level_hard;
-  _level_soft = 0.;
-  _level_hard = 0.;
-
-  // We recompute all impact, except the one to unapply...
-  for (std::unordered_map<kpi*, impact_info>::iterator it = _impacts.begin(),
-                                                       end = _impacts.end();
-       it != end; ++it) {
-    if (it->first == child) {
-      it->second.hard_impact = new_hard_impact;
-      it->second.soft_impact = new_soft_impact;
-      it->second.in_downtime = in_downtime;
-    }
-    _apply_impact(it->first, it->second);
-  }
+  auto& child_impact = _impacts[child];
+  _unapply_impact(child, child_impact);
+  child_impact.hard_impact = new_hard_impact;
+  child_impact.soft_impact = new_soft_impact;
+  child_impact.in_downtime = in_downtime;
+  _apply_impact(child, child_impact);
   return std::abs(previous_level - _level_hard) > eps;
 }
 
