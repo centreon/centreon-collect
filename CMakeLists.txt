@@ -189,6 +189,7 @@ add_subdirectory(clib)
 add_subdirectory(engine)
 add_subdirectory(connectors)
 add_subdirectory(ccc)
+add_subdirectory(malloc-trace)
 
 add_custom_target(test-broker COMMAND tests/ut_broker)
 add_custom_target(test-engine COMMAND tests/ut_engine)
