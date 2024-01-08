@@ -1,0 +1,25 @@
+name: centreon collect nightly robot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  get-version:
+    uses: ./.github/workflows/get-version.yml
+
+  veracode-analysis:
+    needs: [get-version]
+    uses: ./.github/workflows/veracode-analysis.yml
+    with:
+      module_name: centreon-collect
+      major_version: ${{ needs.get-version.outputs.version }}
+      minor_version: ${{ needs.get-version.outputs.patch }}
+      img_version: ${{ needs.get-version.outputs.img_version }}
+    secrets:
+      veracode_api_id: ${{ secrets.VERACODE_API_ID_COLL }}
+      veracode_api_key: ${{ secrets.VERACODE_API_KEY_COLL }}
+      veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
+      docker_registry_id: ${{ secrets.DOCKER_REGISTRY_ID }}
+      docker_registry_passwd: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
