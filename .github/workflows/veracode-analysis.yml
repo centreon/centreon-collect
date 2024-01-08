@@ -60,18 +60,6 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-      - name: Set routing mode
-        id: routing-mode
-        run: |
-          CHECK_BRANCH=`echo "${{ github.ref_name }}" | cut -d'/' -f2`
-          if [[ $CHECK_BRANCH != "merge" && '${{ github.event_name }}' != 'pull_request' ]]; then
-            DEVELOPMENT_STAGE="Release"
-          else
-            DEVELOPMENT_STAGE="Development"
-          fi
-          echo "development_stage=$DEVELOPMENT_STAGE" >> $GITHUB_OUTPUT
-          cat $GITHUB_OUTPUT
-
       - name: Compiling Cpp sources
         run: |
           rm -rf build
