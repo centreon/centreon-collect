@@ -15,6 +15,9 @@ on:
       commit_hash:
         required: true
         type: string
+      stability:
+        required: true
+        type: string
 
 jobs:
   package:
@@ -137,6 +140,7 @@ jobs:
           rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
           rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
           rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
+          stability: ${{ inputs.stability }}
 
       - name: Cleaning not needed packages
         shell: bash
