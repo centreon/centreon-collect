@@ -18,7 +18,6 @@
 
 #include <fmt/format.h>
 
-
 #include "com/centreon/common/hex_dump.hh"
 
 inline void char_to_hex(unsigned char c, std::string& output) noexcept {
