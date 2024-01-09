@@ -52,7 +52,7 @@ jobs:
     needs: [routing]
     if: needs.routing.outputs.development_stage != 'Development'
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma8:${{ inputs.img_version }}
       credentials:
         username: ${{ secrets.docker_registry_id }}
         password: ${{ secrets.docker_registry_passwd }}
