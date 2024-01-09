@@ -58,6 +58,11 @@ runs:
           export DIST=".${{ inputs.distrib }}"
         else
           export DIST=""
+        if [ "${{ inputs.stability }}" = "unstable" ]; then
+            export RELEASE="$RELEASE-${{ inputs.distrib }}"
+          elif [ "${{ inputs.stability }}" = "testing" ]; then
+            export RELEASE="${{ inputs.distrib }}"
+          fi
         fi
 
         export RPM_SIGNING_KEY_FILE="$(pwd)/key.gpg"
