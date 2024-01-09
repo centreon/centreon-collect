@@ -16,68 +16,51 @@
  * For more information : contact@centreon.com
  */
 
+#include <sys/syscall.h>
+#include <unistd.h>
+
 #include <map>
 #include <memory>
 #include <mutex>
 
+#include <absl/strings/numbers.h>
 #include <boost/intrusive/set.hpp>
 #include <boost/stacktrace.hpp>
 
 #include <fmt/format.h>
 
-// inline void reverse(char s[]) {
-//   int i, j;
-//   char c;
+extern void* __libc_malloc(size_t size);
 
-//   for (i = 0, j = strlen(s) - 1; i < j; i++, j--) {
-//     c = s[i];
-//     s[i] = s[j];
-//     s[j] = c;
-//   }
-// }
-
-// inline unsigned itoa(unsigned n, char s[]) {
-//   unsigned i = 0;
-//   do {                     /* generate digits in reverse order */
-//     s[i++] = n % 10 + '0'; /* get next digit */
-//   } while ((n /= 10) > 0); /* delete it */
-//   s[i] = '\0';
-//   reverse(s);
-//   return i;
-// }
-
-// inline unsigned pointer_to_hex(const void* pt, char s[]) {
-//   auto i = reinterpret_cast<std::uintptr_t>(pt);
-//   char* to_fill = s;
-//   do {
-//     uint8_t last_4_bits = i & 0x0F;
-//     if (last_4_bits < 10) {
-//       *to_fill++ = last_4_bits + '0';
-//     } else {
-//       *to_fill++ = last_4_bits + 'A' - 10;
-//     }
-//     i >>= 4;
-//   } while (i);
-//   *to_fill = 0;
-//   reverse(s);
-//   return to_fill - s;
-// }
+pid_t gettid() __attribute__((weak));
 
 /**
- * @brief The goal of this class is to allocate memory only at construction of
- * object
+ * @brief gettid is not available on alma8
+ *
+ * @return pid_t
+ */
+pid_t m_gettid() {
+  if (gettid) {
+    return gettid();
+  } else {
+    return syscall(__NR_gettid);
+  }
+}
+
+/**
+ * @brief The goal of this class is to provide map without allocation
  *
  * @tparam node_type node (key and data) that must inherit from
  * boost::intrusive::set_base_hook<>
  * @tparam key_extractor struct with an operator that extract key from node_type
+ * @tparam node_arrray_size  size max of the container
  */
-template <class node_type, class key_extractor>
+template <class node_type, class key_extractor, size_t node_array_size>
 class intrusive_map {
  public:
   using key_type = typename key_extractor::type;
 
  private:
-  node_type* _nodes_array;
+  node_type _nodes_array[node_array_size];
   node_type* _free_node;
   const node_type* _array_end;
 
@@ -88,8 +71,7 @@ class intrusive_map {
   node_map _nodes;
 
  public:
-  intrusive_map(size_t node_array_size) {
-    _nodes_array = new node_type[node_array_size];
+  intrusive_map() {
     _free_node = _nodes_array;
     _array_end = _free_node + node_array_size;
   }
@@ -158,23 +140,14 @@ class thread_trace_active : public boost::intrusive::set_base_hook<> {
 
 class thread_dump_active
     : protected intrusive_map<thread_trace_active,
-                              thread_trace_active::key_extractor> {
+                              thread_trace_active::key_extractor,
+                              4096> {
   std::mutex _protect;
 
  public:
-  thread_dump_active(size_t node_array_size);
   bool set_dump_active();
   void reset_dump_active();
 };
-
-/**
- * @brief Construct a new thread dump active::thread dump active object
- *
- * @param node_array_size size of the array that will store datas
- */
-thread_dump_active::thread_dump_active(size_t node_array_size)
-    : intrusive_map<thread_trace_active, thread_trace_active::key_extractor>(
-          node_array_size) {}
 
 /**
  * @brief Set the flag to true in _by_thread_dump_active
@@ -208,10 +181,13 @@ void thread_dump_active::reset_dump_active() {
   }
 }
 
-static const char* _out_file_path = "/tmp/malloc-trace.csv";
+static thread_dump_active _thread_dump_active;
 
-static thread_dump_active _thread_dump_active(4096);
-
+/**
+ * @brief symbol information research is very costly
+ * so we store function informations in a cache
+ *
+ */
 class funct_info {
   const std::string _funct_name;
   const std::string _source_file;
@@ -233,17 +209,54 @@ class funct_info {
 using funct_cache_map =
     std::map<boost::stacktrace::frame::native_frame_ptr_t, funct_info>;
 
-void dump_callstack(void* p,
-                    size_t size,
-                    const char* funct_name,
-                    unsigned max_stack = 10) {
-  static int out_file =
-      open(_out_file_path, O_APPEND | O_CREAT | O_RDWR, S_IRWXU);
-  static funct_cache_map* _funct_cache = new funct_cache_map;
-  static std::mutex _funct_cache_m;
+/**
+ * @brief this function open out file if it hasn't be done
+ * if file size exceed 256Mo, file is truncated
+ *
+ * @return int file descriptor
+ */
+static int open_file() {
+  const char* out_file_path = "/tmp/malloc-trace.csv";
+  char* env_out_file_path = getenv("out_file_path");
+  if (env_out_file_path) {
+    out_file_path = env_out_file_path;
+  }
+  static std::mutex file_m;
+  std::lock_guard l(file_m);
+  static int out_file = -1;
+  if (out_file < 0) {
+    out_file =
+        open(out_file_path, O_APPEND | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+  } else {
+    struct stat file_stat;
+    if (!fstat(out_file, &file_stat) && file_stat.st_size > 0x10000000) {
+      ftruncate(out_file, 0);
+    }
+  }
+  return out_file;
+}
 
+/**
+ * @brief append a log in out file
+ * backtrace size is 10 buy default, this can be modified by max_stack
+ * environment variable
+ *
+ * @param p pointer returned by malloc or passed to free
+ * @param size size allocated, 0 for free
+ * @param funct_name malloc or free
+ */
+static void dump_callstack(void* p, size_t size, const char* funct_name) {
+  int out_file = open_file();
   if (out_file < 0)
     return;
+  unsigned max_stack;
+  char* env_max_stack = getenv("max_stack");
+  if (env_max_stack && !absl::SimpleAtoi(env_max_stack, &max_stack)) {
+    max_stack = 10;
+  }
+
+  static funct_cache_map* _funct_cache = new funct_cache_map;
+  static std::mutex _funct_cache_m;
 
   constexpr unsigned size_buff = 0x10000;
   char buff[size_buff];
@@ -259,6 +272,7 @@ void dump_callstack(void* p,
   if (!call_stack.empty()) {
     unsigned stack_cpt = 0;
     auto stack_iter = call_stack.begin();
+    // one array element by stack layer
     for (++stack_iter; stack_iter != call_stack.end() && stack_cpt < max_stack;
          ++stack_iter, ++stack_cpt) {
       if (end_buff - work_pos < 1000) {
@@ -274,15 +288,14 @@ void dump_callstack(void* p,
       auto addr = stack_layer.address();
       funct_cache_map::const_iterator cache_entry;
       {
-        std::lock_guard l(_funct_cache_m);
+        std::unique_lock l(_funct_cache_m);
         cache_entry = _funct_cache->find(addr);
         if (cache_entry == _funct_cache->end()) {
-          cache_entry =
-              _funct_cache
-                  ->emplace(addr, funct_info(stack_layer.name(),
-                                             stack_layer.source_file(),
-                                             stack_layer.source_line()))
-                  .first;
+          l.unlock();
+          funct_info to_insert(stack_layer.name(), stack_layer.source_file(),
+                               stack_layer.source_line());
+          l.lock();
+          cache_entry = _funct_cache->emplace(addr, to_insert).first;
         }
       }
 
@@ -302,16 +315,103 @@ void dump_callstack(void* p,
   ::write(out_file, buff, work_pos - buff);
 }
 
+constexpr unsigned block_size = 4096;
+constexpr unsigned nb_block = 256;
+/**
+ * @brief basic allocator
+ * At the beginning, we don't know original malloc
+ * we must provide a simple malloc free for dlsym
+ *
+ */
+class simply_malloc {
+  class node_block {
+    unsigned char _buff[block_size];
+    bool _free = true;
+
+   public:
+    struct key_extractor {
+      using type = unsigned char const*;
+      type operator()(const node_block& block) const { return block._buff; }
+    };
+
+    bool is_free() const { return _free; }
+    void set_free(bool free) { _free = free; }
+    unsigned char* get_buff() { return _buff; }
+  };
+
+  node_block _blocks[nb_block];
+  std::mutex _protect;
+
+ public:
+  void* malloc(size_t size);
+  void free(void* p);
+};
+
+/**
+ * @brief same as malloc
+ *
+ * @param size
+ * @return void*
+ */
+void* simply_malloc::malloc(size_t size) {
+  if (size > block_size) {
+    return nullptr;
+  }
+  std::lock_guard l(_protect);
+  for (node_block* search = _blocks; search != _blocks + nb_block; ++search) {
+    if (search->is_free()) {
+      search->set_free(false);
+      return search->get_buff();
+    }
+  }
+  return nullptr;
+}
+
+/**
+ * @brief same as free
+ *
+ * @param p
+ */
+void simply_malloc::free(void* p) {
+  std::lock_guard l(_protect);
+  for (node_block* search = _blocks; search != _blocks + nb_block; ++search) {
+    if (search->get_buff() == p) {
+      search->set_free(true);
+    }
+  }
+}
+
+static simply_malloc _first_malloc;
+
+static void* first_malloc(size_t size) {
+  return _first_malloc.malloc(size);
+}
+
+typedef void* (*malloc_signature)(size_t);
+
+static malloc_signature original_malloc = first_malloc;
+
+/**
+ * @brief our malloc
+ *
+ * @param size
+ * @return void*
+ */
 void* malloc(size_t size) {
-  typedef void* (*malloc_signature)(size_t);
-
-  static malloc_signature original_malloc = nullptr;
-  if (!original_malloc)
-    original_malloc =
-        reinterpret_cast<malloc_signature>(dlsym(RTLD_NEXT, "malloc"));
-
+  if (original_malloc == first_malloc) {
+    // execute fist_malloc if dlsym allocate memory
+    static bool dl_sym_running = false;
+    if (!dl_sym_running) {
+      dl_sym_running = true;
+      original_malloc =
+          reinterpret_cast<malloc_signature>(dlsym(RTLD_NEXT, "malloc"));
+    } else {
+      return first_malloc(size);
+    }
+  }
   void* p = original_malloc(size);
   bool have_to_dump = _thread_dump_active.set_dump_active();
+  // if this thread is not yet dumping => call dump_callstack
   if (have_to_dump) {
     dump_callstack(p, size, "malloc");
     _thread_dump_active.reset_dump_active();
@@ -319,14 +419,25 @@ void* malloc(size_t size) {
   return p;
 }
 
+static void first_free(void* p) {
+  _first_malloc.free(p);
+}
+
+typedef void (*free_signature)(void*);
+static free_signature original_free = first_free;
+
+/**
+ * @brief our free
+ *
+ * @param p
+ */
 void free(void* p) {
-  typedef void (*free_signature)(void*);
-  static free_signature original_free = nullptr;
-  if (!original_free)
+  if (original_free == first_free)
     original_free = reinterpret_cast<free_signature>(dlsym(RTLD_NEXT, "free"));
 
   original_free(p);
   bool have_to_dump = _thread_dump_active.set_dump_active();
+  // if this thread is not yet dumping => call dump_callstack
   if (have_to_dump) {
     dump_callstack(p, 0, "free");
     _thread_dump_active.reset_dump_active();
