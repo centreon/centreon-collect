@@ -49,7 +49,7 @@ jobs:
   build:
     name: Binary preparation
     runs-on: [self-hosted, collect]
-    needs: [checks]
+    needs: [routing]
     if: needs.routing.outputs.development_stage != 'Development'
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
