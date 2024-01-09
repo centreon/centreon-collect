@@ -288,8 +288,7 @@ TEST_F(KpiBA, KpiBaDt) {
   };
 
   /* Construction of kpi_services */
-  for (int i = 0; i < 2; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 2, 3, 1 + i);
+  for (auto& s : kpis) {
     s->set_downtimed(false);
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
@@ -299,7 +298,6 @@ TEST_F(KpiBA, KpiBaDt) {
 
     // test_ba_child->add_impact(s);
     // s->add_parent(test_ba_child);
-    kpis.push_back(s);
   }
 
   /* Construction of kpi_ba */
