@@ -38,7 +38,7 @@ apt-get -y install cmake \
     zstd \
     sudo
 
-echo http://deb.debian.org/debian | apt-get install -y pbuilder
+echo 'http://deb.debian.org/debian' | apt-get install -y pbuilder
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
 apt-get update
