@@ -54,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [alma8, alma9, debian-bullseye]
+        image: [alma8, alma9, debian-bullseye, debian-bookworm]
     name: unit test ${{ matrix.image }}
 
     steps:
