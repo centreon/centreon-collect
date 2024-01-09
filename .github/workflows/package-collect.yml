@@ -38,6 +38,11 @@ jobs:
             package_extension: deb
             runner: collect
             arch: amd64
+          - image: centreon-collect-debian-bookworm
+            distrib: bookworm
+            package_extension: deb
+            runner: collect
+            arch: amd64
           - image: centreon-collect-debian-bullseye-arm64
             distrib: bullseye
             package_extension: deb
