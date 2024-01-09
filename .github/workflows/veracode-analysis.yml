@@ -27,9 +27,30 @@ on:
         required: true
 
 jobs:
+  routing:
+    name: Check before analysis
+    runs-on: ubuntu-latest
+    outputs:
+      development_stage: ${{ steps.routing-mode.outputs.development_stage }}
+
+    steps:
+      - name: Set routing mode
+        id: routing-mode
+        run: |
+          CHECK_BRANCH=`echo "${{ github.ref_name }}" | cut -d'/' -f2`
+          if [[ $CHECK_BRANCH != "merge" && '${{ github.event_name }}' != 'pull_request' ]]; then
+            DEVELOPMENT_STAGE="Release"
+          else
+            DEVELOPMENT_STAGE="Development"
+          fi
+          echo "development_stage=$DEVELOPMENT_STAGE" >> $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
+
   build:
     name: Binary preparation
     runs-on: [self-hosted, collect]
+    needs: [routing]
+    if: needs.routing.outputs.development_stage != 'Development'
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
       credentials:
@@ -114,8 +135,8 @@ jobs:
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
   sandbox-scan:
-    needs: [build]
     name: Sandbox scan
+    needs: [build]
     runs-on: ubuntu-latest
 
     steps:
