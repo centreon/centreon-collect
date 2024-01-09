@@ -282,7 +282,10 @@ TEST_F(KpiBA, KpiBaDt) {
   test_ba_child->set_name("test-ba-child");
   test_ba_child->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
 
-  std::vector<std::shared_ptr<bam::kpi_service>> kpis;
+  absl::FixedArray<std::shared_ptr<bam::kpi_service>, 2> kpis{
+      std::make_shared<bam::kpi_service>(1, 2, 3, 1),
+      std::make_shared<bam::kpi_service>(2, 2, 3, 2),
+  };
 
   /* Construction of kpi_services */
   for (int i = 0; i < 2; i++) {
