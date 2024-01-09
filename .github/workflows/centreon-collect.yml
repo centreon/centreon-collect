@@ -85,6 +85,7 @@ jobs:
       img_version: ${{ needs.get-version.outputs.img_version }}
       release: ${{ needs.get-version.outputs.release }}
       commit_hash: ${{ github.sha }}
+      stability: ${{ needs.get-version.outputs.stability }}
     secrets: inherit
 
   deliver-sources:
