@@ -49,6 +49,7 @@ jobs:
     needs: [get-version]
     uses: ./.github/workflows/package-collect.yml
     with:
+      stability: ${{ needs.get-version.outputs.stability }}
       version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
       img_version: ${{ needs.get-version.outputs.img_version }}
       release: ${{ needs.get-version.outputs.release }}
@@ -100,7 +101,7 @@ jobs:
       image: ${{ matrix.image }}
       image_test: ${{ matrix.image }}:${{ needs.get-version.outputs.test_img_version }}
       image_version: ${{ needs.get-version.outputs.img_version }}
-      package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+      package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension }}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
       package_cache_path: ./*.${{ matrix.package_extension}}
       database_type: ${{ matrix.database_type }}
       tests_params: ${{matrix.tests_params}}
@@ -142,6 +143,8 @@ jobs:
       matrix:
         include:
           - distrib: bullseye
+            arch: amd64
+          - distrib: bookworm
             arch: amd64
           - distrib: bullseye
             arch: arm64
