@@ -35,6 +35,8 @@
 
 #include <boost/asio.hpp>
 
+#include "rs_centreon/rs_centreon.h"
+
 namespace asio = boost::asio;
 
 // with this define boost::interprocess doesn't need Boost.DataTime
@@ -153,7 +155,7 @@ static void term_handler(int signum) {
  */
 int main(int argc, char* argv[]) {
   // Initialization.
-  int opt, option_index = 0, n_thread = 0;
+  int opt = 0, option_index = 0, n_thread = 0;
   std::string broker_name{"unknown"};
   uint16_t default_port{51000};
   std::string default_listen_address{"localhost"};

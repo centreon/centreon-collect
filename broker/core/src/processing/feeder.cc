@@ -29,6 +29,7 @@
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "rs_centreon/rs_centreon.h"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -83,6 +84,7 @@ feeder::feeder(const std::string& name,
                                          std::move(read_filters),
                                          std::move(write_filters),
                                          false)),
+      _rs_muxer(rsc::new_muxer(name)),
       _stat_timer(pool::io_context()),
       _read_from_stream_timer(pool::io_context()),
       _io_context(pool::io_context_ptr()) {

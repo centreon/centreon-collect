@@ -23,6 +23,7 @@
 
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/processing/stat_visitable.hh"
+#include "rs_centreon/rs_centreon.h"
 
 namespace com::centreon::broker {
 
@@ -48,6 +49,7 @@ class feeder : public stat_visitable,
   // as the muxer may be embeded in a lambda run by asio thread, we use a
   // shared_ptr
   std::shared_ptr<multiplexing::muxer> _muxer;
+  rust::Box<rsc::Muxer> _rs_muxer;
 
   asio::system_timer _stat_timer;
   asio::system_timer _read_from_stream_timer;

@@ -182,6 +182,7 @@ add_definitions(${CONAN_DEFINES_SPDLOG})
 include_directories(${CMAKE_SOURCE_DIR} ${CONAN_INCLUDE_DIRS}
                     ${CMAKE_SOURCE_DIR}/clib/inc)
 
+add_subdirectory(rs_centreon)
 add_subdirectory(bbdo)
 add_subdirectory(common)
 add_subdirectory(broker)

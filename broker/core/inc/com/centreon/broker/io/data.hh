@@ -19,6 +19,14 @@
 #ifndef CCB_IO_DATA_HH
 #define CCB_IO_DATA_HH
 
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+
+#include <cstdint>
+#include <functional>
+#include <memory>
+#include <ostream>
+
 namespace com::centreon::broker::io {
 /**
  *  @class data data.hh "com/centreon/broker/io/data.hh"
@@ -88,6 +96,10 @@ inline std::ostream& operator<<(std::ostream& s, const data::dump_json& d) {
 }
 
 using data_read_handler = std::function<void(const std::shared_ptr<data>&)>;
+
+inline std::shared_ptr<io::data> create_event() {
+  return std::make_shared<io::data>(0u);
+}
 
 }  // namespace com::centreon::broker::io
 

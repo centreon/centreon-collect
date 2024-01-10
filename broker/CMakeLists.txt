@@ -79,7 +79,8 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/neb/inc"
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
-  "${PROJECT_SOURCE_DIR}/core/sql/inc")
+  "${PROJECT_SOURCE_DIR}/core/sql/inc"
+  ${CMAKE_BINARY_DIR})
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")
@@ -460,6 +461,7 @@ target_link_libraries(
   CONAN_PKG::spdlog
   CONAN_PKG::openssl
   pthread
+  rs_centreon
   dl)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
@@ -468,7 +470,7 @@ target_link_libraries(roker rokerbase CONAN_PKG::openssl CONAN_PKG::grpc
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
-add_dependencies(cbd multiplexing centreon_common)
+add_dependencies(cbd multiplexing centreon_common target_rs_centreon)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(
@@ -491,7 +493,8 @@ target_link_libraries(
   ${CONAN_LIBS_PROTOBUF}
   "-Wl,--no-whole-archive"
   CONAN_PKG::spdlog
-  CONAN_PKG::grpc)
+  CONAN_PKG::grpc
+  rs_centreon)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)
