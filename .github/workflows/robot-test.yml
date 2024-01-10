@@ -189,23 +189,6 @@ jobs:
           path: reports
           merge-multiple: true
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - run: |
-          pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
-          cd reports
-          rebot -o output.xml ./*-output.xml || true
-        shell: bash
-
-      - name: Send report to commit
-        uses: joonvena/robotframework-reporter-action@1f1268f26d5eb74e298acec6f271962244524c1f # v2.1
-        with:
-          gh_access_token: ${{ secrets.GITHUB_TOKEN }}
-          report_path: reports
-          show_passed_tests: false
-
       - name: Upload the regrouped artifact
         uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
         with:
@@ -244,3 +227,20 @@ jobs:
           done
           echo "End of Deleting"
         shell: bash
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - run: |
+          pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
+          cd reports
+          rebot -o output.xml ./*-output.xml || true
+        shell: bash
+
+      - name: Send report to commit
+        uses: joonvena/robotframework-reporter-action@1f1268f26d5eb74e298acec6f271962244524c1f # v2.1
+        with:
+          gh_access_token: ${{ secrets.GITHUB_TOKEN }}
+          report_path: reports
+          show_passed_tests: false
