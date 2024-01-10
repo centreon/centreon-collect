@@ -89,7 +89,7 @@ runs:
         done
       shell: bash
 
-    - if: ${{ inputs.distrib == 'bullseye' }}
+    - if: ${{ inputs.distrib == 'bullseye' || inputs.distrib == "bookworm" }}
       name: Publish DEBs
       run: |
         FILES="*.${{ env.extfile }}"
