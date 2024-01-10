@@ -290,8 +290,8 @@ EMACROS_NOTIF
     Kindly Stop Broker
 
 EMACROS_SEMICOLON
-    [Documentation]    macros with a semicolon are used even after semicolon
-    [Tags]    engine    external_cmd    macros
+    [Documentation]    Macros with a semicolon are used even if they contain a semicolon.
+    [Tags]    engine    external_cmd    macros    MON-35560
     Config Engine    ${1}
     Config Broker    central
     Config Broker    rrd
