@@ -156,12 +156,21 @@ jobs:
             cp tests/log.html reports/$FILE_PREFIX-log.html
             cp tests/output.xml reports/$FILE_PREFIX-output.xml
           fi
+      
+      - name: Replace / with - in the feature path
+        id: feature-path
+        if: always()
+        run: |
+          feature_name="${{ matrix.feature }}"
+          feature_name_with_dash="${feature_name//\//-}"
+          echo "Modified Feature Name: $feature_name_with_dash"
+          echo "feature_name_with_dash=$feature_name_with_dash" >> $GITHUB_OUTPUT
 
       - name: Upload Test Results
         if: ${{ failure() }}
         uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
         with:
-          name: reports-${{inputs.test_group_name}}
+          name: reports-${{inputs.test_group_name}}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: reports
           retention-days: 1
 
@@ -176,8 +185,9 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110 # v4.1.0
         with:
-          name: reports-${{inputs.test_group_name}}
+          pattern: reports-${{inputs.test_group_name}}-*
           path: reports
+          merge-multiple: true
 
       - uses: actions/setup-python@v4
         with:
@@ -194,4 +204,43 @@ jobs:
         with:
           gh_access_token: ${{ secrets.GITHUB_TOKEN }}
           report_path: reports
-          show_passed_tests: false
+          show_passed_tests: 
+
+      - name: Upload the regrouped artifact
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        with:
+          name: reports-${{inputs.test_group_name}}
+          path: reports/**/*.xml
+          retention-days: 1
+
+      - name: Delete separated artifacts
+        run: |
+          artifact_pattern="reports-${{inputs.test_group_name}}-"
+          TOKEN=${{ secrets.GITHUB_TOKEN }}
+          artifact_exist=true
+          while [ "$artifact_exist" = true ] ;do
+            artifact_exist=false
+            artifacts_response=$(curl -L \
+                          -H "Accept: application/vnd.github+json" \
+                          -H "Authorization: Bearer $TOKEN" \
+                          -H "X-GitHub-Api-Version: 2022-11-28" \
+                          "https://api.github.com/repos/${{ github.repository }}/actions/artifacts?per_page=100")
+            artifacts=$(echo $artifacts_response | jq -c '.artifacts[]')
+            echo "Those are the artifacts : $artifacts"
+            while read row; do
+              artifact_name=$(echo "$row" | jq -r '.name')
+              if [[ "$artifact_name" =~ ^.*"$artifact_pattern".* ]]; then
+                artifact_exist=true
+                echo "Deleting : $artifact_name"
+                artifact_id=$(echo "$row" | jq -r '.id')
+                curl -L \
+                  -X DELETE \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${artifact_id}"
+              fi
+            done <<< "$artifacts"
+          done
+          echo "End of Deleting"
+        shell: bash
