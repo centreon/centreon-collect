@@ -204,7 +204,7 @@ jobs:
         with:
           gh_access_token: ${{ secrets.GITHUB_TOKEN }}
           report_path: reports
-          show_passed_tests: 
+          show_passed_tests: false
 
       - name: Upload the regrouped artifact
         uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
