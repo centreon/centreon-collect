@@ -895,7 +895,7 @@ not16
     [Tags]    broker    engine    services    unified_sql
     Config Engine    ${1}    ${1}    ${1}
     Config Notifications
-    engine_config_add_command
+    Engine Config Add Command
     ...    0
     ...    command_notif1
     ...    /usr/bin/false

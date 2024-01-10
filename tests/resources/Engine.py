@@ -692,11 +692,9 @@ define contact {
             with open(f"{config_dir}/contactgroups.cfg", "w") as f:
                 f.write("#contactgroups.cfg\n")
 
-            f = open(config_dir + "/escalations.cfg", "w")
-            f.close()
+            with open(f"{config_dir}/escalations.cfg", "w") as f:
+                f.write("#escalations.cfg\n")
 
-            f = open(f"{config_dir}/meta_services.cfg", "w")
-            f.close()
 
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
