@@ -206,8 +206,8 @@ BEUTAG5
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
-    Add Tags To Hosts    ${0}    group_tags    2,3    [1, 2]
-    Add Tags To Hosts    ${0}    category_tags    2,3    [2, 3, 4]
+    Add Tags To Hosts    ${0}    group_tags    2,3    [1]
+    Add Tags To Hosts    ${0}    category_tags    2,3    [2]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
