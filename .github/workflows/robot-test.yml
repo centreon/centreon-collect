@@ -210,7 +210,7 @@ jobs:
         uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
         with:
           name: reports-${{inputs.test_group_name}}
-          path: reports/**/*.xml
+          path: reports/
           retention-days: 1
 
       - name: Delete separated artifacts
