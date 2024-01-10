@@ -150,6 +150,8 @@ jobs:
             arch: amd64
           - distrib: bullseye
             arch: arm64
+          - distrib: bookworm
+            arch: amd64
 
     name: deliver ${{ matrix.distrib }}
 
@@ -173,7 +175,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye]
+        distrib: [el8, el9, bullseye, bookworm]
 
     steps:
       - name: Checkout sources
