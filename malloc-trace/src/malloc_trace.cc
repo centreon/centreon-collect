@@ -156,7 +156,7 @@ class thread_dump_active
  * @return false the flag was yet setted before call
  */
 bool thread_dump_active::set_dump_active() {
-  pid_t thread_id = gettid();
+  pid_t thread_id = m_gettid();
   std::lock_guard l(_protect);
   const thread_trace_active* exist = find(thread_id);
 
@@ -173,7 +173,7 @@ bool thread_dump_active::set_dump_active() {
 }
 
 void thread_dump_active::reset_dump_active() {
-  pid_t thread_id = gettid();
+  pid_t thread_id = m_gettid();
   std::lock_guard l(_protect);
   const thread_trace_active* exist = find(thread_id);
   if (exist) {
@@ -265,13 +265,14 @@ static void dump_callstack(void* p, size_t size, const char* funct_name) {
 
   char* work_pos =
       fmt::format_to_n(buff, size_buff, "\"{}\";{};{};{};\"[", funct_name,
-                       gettid(), reinterpret_cast<std::uintptr_t>(p), size)
+                       m_gettid(), reinterpret_cast<std::uintptr_t>(p), size)
           .out;
 
   boost::stacktrace::stacktrace call_stack;
   if (!call_stack.empty()) {
     unsigned stack_cpt = 0;
     auto stack_iter = call_stack.begin();
+    ++stack_iter;
     // one array element by stack layer
     for (++stack_iter; stack_iter != call_stack.end() && stack_cpt < max_stack;
          ++stack_iter, ++stack_cpt) {
@@ -323,7 +324,7 @@ constexpr unsigned nb_block = 256;
  * we must provide a simple malloc free for dlsym
  *
  */
-class simply_malloc {
+class simply_allocator {
   class node_block {
     unsigned char _buff[block_size];
     bool _free = true;
@@ -344,7 +345,8 @@ class simply_malloc {
 
  public:
   void* malloc(size_t size);
-  void free(void* p);
+  void* realloc(void* p, size_t size);
+  bool free(void* p);
 };
 
 /**
@@ -353,7 +355,7 @@ class simply_malloc {
  * @param size
  * @return void*
  */
-void* simply_malloc::malloc(size_t size) {
+void* simply_allocator::malloc(size_t size) {
   if (size > block_size) {
     return nullptr;
   }
@@ -368,56 +370,59 @@ void* simply_malloc::malloc(size_t size) {
 }
 
 /**
+ * @brief reallocate a pointer,
+ * if size > block_size or p doesn't belong to simply_allocator, it returns
+ * nullptr
+ *
+ * @param p
+ * @param size
+ * @return void*
+ */
+void* simply_allocator::realloc(void* p, size_t size) {
+  if (p < _blocks || p >= _blocks + block_size)
+    return nullptr;
+  if (size > block_size) {
+    return nullptr;
+  }
+  return p;
+}
+
+/**
  * @brief same as free
  *
  * @param p
+ * @return true if the pointer belong to this allocator
  */
-void simply_malloc::free(void* p) {
+bool simply_allocator::free(void* p) {
+  if (p < _blocks || p >= _blocks + block_size)
+    return false;
   std::lock_guard l(_protect);
   for (node_block* search = _blocks; search != _blocks + nb_block; ++search) {
     if (search->get_buff() == p) {
       search->set_free(true);
+      return true;
     }
   }
+  return false;
 }
 
-static simply_malloc _first_malloc;
+static simply_allocator _first_malloc;
 
 static void* first_malloc(size_t size) {
   return _first_malloc.malloc(size);
+}
+
+static void* first_realloc(void* p, size_t size) {
+  return _first_malloc.realloc(p, size);
 }
 
 typedef void* (*malloc_signature)(size_t);
 
 static malloc_signature original_malloc = first_malloc;
 
-/**
- * @brief our malloc
- *
- * @param size
- * @return void*
- */
-void* malloc(size_t size) {
-  if (original_malloc == first_malloc) {
-    // execute fist_malloc if dlsym allocate memory
-    static bool dl_sym_running = false;
-    if (!dl_sym_running) {
-      dl_sym_running = true;
-      original_malloc =
-          reinterpret_cast<malloc_signature>(dlsym(RTLD_NEXT, "malloc"));
-    } else {
-      return first_malloc(size);
-    }
-  }
-  void* p = original_malloc(size);
-  bool have_to_dump = _thread_dump_active.set_dump_active();
-  // if this thread is not yet dumping => call dump_callstack
-  if (have_to_dump) {
-    dump_callstack(p, size, "malloc");
-    _thread_dump_active.reset_dump_active();
-  }
-  return p;
-}
+typedef void* (*realloc_signature)(void*, size_t);
+
+static realloc_signature original_realloc = first_realloc;
 
 static void first_free(void* p) {
   _first_malloc.free(p);
@@ -427,14 +432,115 @@ typedef void (*free_signature)(void*);
 static free_signature original_free = first_free;
 
 /**
+ * @brief there is 3 stages
+ * on the first alloc, we don't know malloc, realloc and free address
+ * So we call dlsym to get these address
+ * As dlsym allocate memory, we are in dlsym_running state and we provide
+ * allocation mechanism by simply_allocator once dlsym are done, we are in hook
+ * state
+ *
+ */
+enum class e_library_state { not_hooked, dlsym_running, hooked };
+static e_library_state _state = e_library_state::not_hooked;
+
+void search_symbols() {
+  original_malloc =
+      reinterpret_cast<malloc_signature>(dlsym(RTLD_NEXT, "malloc"));
+  original_free = reinterpret_cast<free_signature>(dlsym(RTLD_NEXT, "free"));
+  original_realloc =
+      reinterpret_cast<realloc_signature>(dlsym(RTLD_NEXT, "realloc"));
+}
+
+/**
+ * @brief our malloc
+ *
+ * @param size
+ * @param funct_name  function name logged
+ * @return void*
+ */
+static void* malloc(size_t size, const char* funct_name) {
+  switch (_state) {
+    case e_library_state::not_hooked:
+      _state = e_library_state::dlsym_running;
+      search_symbols();
+      _state = e_library_state::hooked;
+      break;
+    case e_library_state::dlsym_running:
+      return first_malloc(size);
+    default:
+      break;
+  }
+  void* p = original_malloc(size);
+  bool have_to_dump = _thread_dump_active.set_dump_active();
+  // if this thread is not yet dumping => call dump_callstack
+  if (have_to_dump) {
+    dump_callstack(p, size, funct_name);
+    _thread_dump_active.reset_dump_active();
+  }
+  return p;
+}
+
+/**
+ * @brief our realloc function
+ *
+ * @param p
+ * @param size
+ * @return void*
+ */
+void* realloc(void* p, size_t size) {
+  switch (_state) {
+    case e_library_state::not_hooked:
+      _state = e_library_state::dlsym_running;
+      search_symbols();
+      _state = e_library_state::hooked;
+      break;
+    case e_library_state::dlsym_running:
+      return first_realloc(p, size);
+    default:
+      break;
+  }
+  p = original_realloc(p, size);
+  bool have_to_dump = _thread_dump_active.set_dump_active();
+  // if this thread is not yet dumping => call dump_callstack
+  if (have_to_dump) {
+    dump_callstack(p, size, "realloc");
+    _thread_dump_active.reset_dump_active();
+  }
+  return p;
+}
+
+/**
+ * @brief replacement of the original malloc
+ *
+ * @param size
+ * @return void*
+ */
+void* malloc(size_t size) {
+  return malloc(size, "malloc");
+}
+
+/**
+ * @brief our calloc function
+ *
+ * @param num
+ * @param size
+ * @return void*
+ */
+void* calloc(size_t num, size_t size) {
+  size_t total_size = num * size;
+  void* p = malloc(total_size, "calloc");
+  memset(p, 0, total_size);
+  return p;
+}
+
+/**
  * @brief our free
  *
  * @param p
  */
 void free(void* p) {
-  if (original_free == first_free)
-    original_free = reinterpret_cast<free_signature>(dlsym(RTLD_NEXT, "free"));
-
+  if (_first_malloc.free(p))
+    return;
   original_free(p);
   bool have_to_dump = _thread_dump_active.set_dump_active();
   // if this thread is not yet dumping => call dump_callstack
