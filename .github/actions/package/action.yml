@@ -75,6 +75,9 @@ runs:
         for FILE in ${{ inputs.nfpm_file_pattern }}; do
           DIRNAME=$(dirname $FILE)
           BASENAME=$(basename $FILE)
+          if [ -f $DIRNAME/env/.env.${{ inputs.distrib }} ]; then
+            source $DIRNAME/env/.env.${{ inputs.distrib }}
+          fi
           cd $DIRNAME
           sed -i "s/@COMMIT_HASH@/${{ inputs.commit_hash }}/g" $BASENAME
           nfpm package --config $BASENAME --packager ${{ inputs.package_extension }}
