@@ -262,7 +262,9 @@ elif [ -r /etc/issue ] ; then
   fi
 fi
 
-pip3 install conan==1.57.0 --upgrade --break-system-packages
+if ! pip3 install conan==1.62.0 --upgrade --break-system-packages ; then
+  pip3 install conan==1.62.0 --upgrade
+fi
 
 if which conan ; then
   conan=$(which conan)
@@ -313,7 +315,7 @@ cd build
 echo "$conan install .. --build=missing"
 $conan install .. --build=missing
 
-if [[ $STD -eq 17 ]] ; then
+if [[ $STD -eq gnu17 ]] ; then
   NG="-DNG=ON"
 else
   NG="-DNG=OFF"
