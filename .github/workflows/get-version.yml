@@ -69,7 +69,7 @@ jobs:
               STABILITY="unstable"
               ENV="development"
               ;;
-            release* | hotfix*)
+            release* | hotfix* | MON-34065*)
               STABILITY="testing"
               ENV="testing"
               ;;
