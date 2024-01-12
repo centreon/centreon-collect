@@ -114,18 +114,6 @@ void stream::_clean_tables(uint32_t instance_id) {
                    conn);
   _add_action(conn, actions::servicegroups);
 
-  /* Remove host dependencies. */
-  SPDLOG_LOGGER_DEBUG(_logger_sql,
-                      "unified sql: remove host dependencies (instance_id: {})",
-                      instance_id);
-  query = fmt::format(
-      "DELETE hhd FROM hosts_hosts_dependencies AS hhd INNER JOIN hosts as "
-      "h ON hhd.host_id=h.host_id OR hhd.dependent_host_id=h.host_id WHERE "
-      "h.instance_id={}",
-      instance_id);
-  _mysql.run_query(query, database::mysql_error::clean_host_dependencies, conn);
-  _add_action(conn, actions::host_dependencies);
-
   /* Remove host parents. */
   SPDLOG_LOGGER_DEBUG(_logger_sql,
                       "unified sql: remove host parents (instance_id: {})",
@@ -137,23 +125,6 @@ void stream::_clean_tables(uint32_t instance_id) {
       instance_id);
   _mysql.run_query(query, database::mysql_error::clean_host_parents, conn);
   _add_action(conn, actions::host_parents);
-
-  /* Remove service dependencies. */
-  SPDLOG_LOGGER_DEBUG(
-      _logger_sql, "unified sql: remove service dependencies (instance_id: {})",
-      instance_id);
-  query = fmt::format(
-      "DELETE ssd FROM services_services_dependencies AS ssd"
-      " INNER JOIN services as s"
-      " ON ssd.service_id=s.service_id OR "
-      "ssd.dependent_service_id=s.service_id"
-      " INNER JOIN hosts as h"
-      " ON s.host_id=h.host_id"
-      " WHERE h.instance_id={}",
-      instance_id);
-  _mysql.run_query(query, database::mysql_error::clean_service_dependencies,
-                   conn);
-  _add_action(conn, actions::service_dependencies);
 
   /* Remove list of modules. */
   SPDLOG_LOGGER_DEBUG(_logger_sql,
@@ -554,8 +525,7 @@ void stream::_process_pb_acknowledgement(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_comment(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::hosts | actions::instances |
-                         actions::host_parents | actions::host_dependencies |
-                         actions::service_dependencies | actions::comments);
+                         actions::host_parents | actions::comments);
 
   // Cast object.
   neb::comment const& cmmnt{*static_cast<neb::comment const*>(d.get())};
@@ -1031,8 +1001,7 @@ bool stream::_host_instance_known(uint64_t host_id) const {
  */
 void stream::_process_host_check(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::instances | actions::downtimes |
-                         actions::comments | actions::host_dependencies |
-                         actions::host_parents | actions::service_dependencies);
+                         actions::comments | actions::host_parents);
   // Cast object.
   neb::host_check const& hc = *static_cast<neb::host_check const*>(d.get());
   if (!_host_instance_known(hc.host_id)) {
@@ -1101,8 +1070,7 @@ void stream::_process_host_check(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_pb_host_check(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::instances | actions::downtimes |
-                         actions::comments | actions::host_dependencies |
-                         actions::host_parents | actions::service_dependencies);
+                         actions::comments | actions::host_parents);
   // Cast object.
   const neb::pb_host_check& hc_obj =
       *static_cast<neb::pb_host_check const*>(d.get());
@@ -1168,124 +1136,6 @@ void stream::_process_pb_host_check(const std::shared_ptr<io::data>& d) {
                        "type: {}, next check: {}, now: {})",
                        hc.host_id(), hc.command_line(), hc.check_type(),
                        hc.next_check(), now);
-}
-
-/**
- *  Process a host dependency event.
- *
- *  @param[in] e Uncasted host dependency.
- *
- * @return The number of events that can be acknowledged.
- */
-void stream::_process_host_dependency(const std::shared_ptr<io::data>& d) {
-  int32_t conn = special_conn::host_dependency % _mysql.connections_count();
-  _finish_action(-1, actions::hosts | actions::host_parents |
-                         actions::comments | actions::downtimes |
-                         actions::host_dependencies |
-                         actions::service_dependencies);
-
-  // Cast object.
-  neb::host_dependency const& hd =
-      *static_cast<neb::host_dependency const*>(d.get());
-  // Insert/Update.
-  if (hd.enabled) {
-    SPDLOG_LOGGER_INFO(_logger_sql,
-                       "unified_sql: enabling host dependency of {} on {}",
-                       hd.dependent_host_id, hd.host_id);
-
-    // Prepare queries.
-    if (!_host_dependency_insupdate.prepared()) {
-      query_preparator::event_unique unique;
-      unique.insert("host_id");
-      unique.insert("dependent_host_id");
-      query_preparator qp(neb::host_dependency::static_type(), unique);
-      _host_dependency_insupdate = qp.prepare_insert_or_update(_mysql);
-    }
-
-    // Process object.
-    _host_dependency_insupdate << hd;
-    _mysql.run_statement(_host_dependency_insupdate,
-                         database::mysql_error::store_host_dependency, conn);
-    _add_action(conn, actions::host_dependencies);
-  }
-  // Delete.
-  else {
-    SPDLOG_LOGGER_INFO(_logger_sql,
-                       "unified_sql: removing host dependency of {} on {}",
-                       hd.dependent_host_id, hd.host_id);
-    std::string query(fmt::format(
-        "DELETE FROM hosts_hosts_dependencies WHERE dependent_host_id={}"
-        " AND host_id={}",
-        hd.dependent_host_id, hd.host_id));
-    _mysql.run_query(query, database::mysql_error::empty, conn);
-    _add_action(conn, actions::host_dependencies);
-  }
-}
-
-/**
- *  Process a host dependency event.
- *
- *  @param[in] e Uncasted host dependency.
- *
- * @return The number of events that can be acknowledged.
- */
-void stream::_process_pb_host_dependency(const std::shared_ptr<io::data>& d) {
-  int32_t conn = special_conn::host_dependency % _mysql.connections_count();
-  _finish_action(-1, actions::hosts | actions::host_parents |
-                         actions::comments | actions::downtimes |
-                         actions::host_dependencies |
-                         actions::service_dependencies);
-
-  // Cast object.
-  const neb::pb_host_dependency& hd_protobuf =
-      *static_cast<neb::pb_host_dependency const*>(d.get());
-  const HostDependency& hd = hd_protobuf.obj();
-
-  // Insert/Update.
-  if (hd.enabled()) {
-    SPDLOG_LOGGER_INFO(_logger_sql, "SQL: enabling host dependency of {} on {}",
-                       hd.dependent_host_id(), hd.host_id());
-
-    // Prepare queries.
-    if (!_pb_host_dependency_insupdate.prepared()) {
-      query_preparator::event_pb_unique unique{
-          {6, "host_id", io::protobuf_base::invalid_on_zero, 0},
-          {3, "dependent_host_id", io::protobuf_base::invalid_on_zero, 0}};
-      query_preparator qp(neb::pb_host_dependency::static_type(), unique);
-      _pb_host_dependency_insupdate = qp.prepare_insert_or_update_table(
-          _mysql, "hosts_hosts_dependencies ", /*space is mandatory to avoid
-                               conflict with _process_host_dependency*/
-          {{3, "dependent_host_id", io::protobuf_base::invalid_on_zero, 0},
-           {6, "host_id", io::protobuf_base::invalid_on_zero, 0},
-           {2, "dependency_period", 0,
-            get_hosts_hosts_dependencies_col_size(
-                hosts_hosts_dependencies_dependency_period)},
-           {5, "execution_failure_options", 0,
-            get_hosts_hosts_dependencies_col_size(
-                hosts_hosts_dependencies_execution_failure_options)},
-           {7, "inherits_parent", 0, 0},
-           {8, "notification_failure_options", 0,
-            get_hosts_hosts_dependencies_col_size(
-                hosts_hosts_dependencies_notification_failure_options)}});
-    }
-
-    // Process object.
-    _pb_host_dependency_insupdate << hd_protobuf;
-    _mysql.run_statement(_pb_host_dependency_insupdate,
-                         database::mysql_error::store_host_dependency, conn);
-    _add_action(conn, actions::host_dependencies);
-  }
-  // Delete.
-  else {
-    SPDLOG_LOGGER_INFO(_logger_sql, "SQL: removing host dependency of {} on {}",
-                       hd.dependent_host_id(), hd.host_id());
-    std::string query(fmt::format(
-        "DELETE FROM hosts_hosts_dependencies WHERE dependent_host_id={}"
-        " AND host_id={}",
-        hd.dependent_host_id(), hd.host_id()));
-    _mysql.run_query(query, database::mysql_error::empty, conn);
-    _add_action(conn, actions::host_dependencies);
-  }
 }
 
 /**
@@ -1620,9 +1470,8 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_host(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::instances | actions::hostgroups |
-                         actions::host_dependencies | actions::host_parents |
-                         actions::custom_variables | actions::downtimes |
-                         actions::comments | actions::service_dependencies);
+                         actions::host_parents | actions::custom_variables |
+                         actions::downtimes | actions::comments);
   neb::host& h = *static_cast<neb::host*>(d.get());
 
   // Log message.
@@ -1681,8 +1530,7 @@ void stream::_process_host(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_host_parent(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::host_parent % _mysql.connections_count();
-  _finish_action(-1, actions::hosts | actions::host_dependencies |
-                         actions::comments | actions::downtimes);
+  _finish_action(-1, actions::hosts | actions::comments | actions::downtimes);
 
   neb::host_parent const& hp(*static_cast<neb::host_parent const*>(d.get()));
 
@@ -1739,8 +1587,7 @@ void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
     return;
   _finish_action(-1, actions::instances | actions::downtimes |
                          actions::comments | actions::custom_variables |
-                         actions::hostgroups | actions::host_dependencies |
-                         actions::host_parents);
+                         actions::hostgroups | actions::host_parents);
 
   // Processed object.
   neb::host_status const& hs(*static_cast<neb::host_status const*>(d.get()));
@@ -1800,9 +1647,8 @@ void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::instances | actions::hostgroups |
-                         actions::host_dependencies | actions::host_parents |
-                         actions::custom_variables | actions::downtimes |
-                         actions::comments | actions::service_dependencies |
+                         actions::host_parents | actions::custom_variables |
+                         actions::downtimes | actions::comments |
                          actions::severities | actions::resources_tags |
                          actions::tags);
   auto hst{static_cast<const neb::pb_host*>(d.get())};
@@ -2245,9 +2091,8 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
  */
 void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
   SPDLOG_LOGGER_INFO(_logger_sql, "unified_sql: processing pb adaptive host");
-  _finish_action(-1, actions::host_parents | actions::comments |
-                         actions::downtimes | actions::host_dependencies |
-                         actions::service_dependencies);
+  _finish_action(
+      -1, actions::host_parents | actions::comments | actions::downtimes);
   // Processed object.
   auto h{static_cast<const neb::pb_adaptive_host*>(d.get())};
   auto& ah = h->obj();
@@ -2355,8 +2200,8 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
  *
  */
 void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
-  _finish_action(-1, actions::host_parents | actions::comments |
-                         actions::downtimes | actions::host_dependencies);
+  _finish_action(
+      -1, actions::host_parents | actions::comments | actions::downtimes);
   // Processed object.
   auto h{static_cast<const neb::pb_host_status*>(d.get())};
   auto& hscr = h->obj();
@@ -2577,8 +2422,7 @@ void stream::_process_instance(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::hosts | actions::acknowledgements |
                          actions::modules | actions::downtimes |
                          actions::comments | actions::servicegroups |
-                         actions::hostgroups | actions::service_dependencies |
-                         actions::host_dependencies);
+                         actions::hostgroups);
 
   // Log message.
   SPDLOG_LOGGER_INFO(
@@ -2629,8 +2473,7 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::hosts | actions::acknowledgements |
                          actions::modules | actions::downtimes |
                          actions::comments | actions::servicegroups |
-                         actions::hostgroups | actions::service_dependencies |
-                         actions::host_dependencies);
+                         actions::hostgroups);
 
   // Log message.
   SPDLOG_LOGGER_INFO(
@@ -2926,9 +2769,8 @@ void stream::_process_pb_log(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_service_check(const std::shared_ptr<io::data>& d) {
-  _finish_action(-1, actions::downtimes | actions::comments |
-                         actions::host_dependencies | actions::host_parents |
-                         actions::service_dependencies);
+  _finish_action(
+      -1, actions::downtimes | actions::comments | actions::host_parents);
 
   // Cast object.
   neb::service_check const& sc(
@@ -3000,9 +2842,8 @@ void stream::_process_service_check(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_service_check(const std::shared_ptr<io::data>& d) {
-  _finish_action(-1, actions::downtimes | actions::comments |
-                         actions::host_dependencies | actions::host_parents |
-                         actions::service_dependencies);
+  _finish_action(
+      -1, actions::downtimes | actions::comments | actions::host_parents);
 
   // Cast object.
   const neb::pb_service_check& pb_sc(
@@ -3072,142 +2913,6 @@ void stream::_process_pb_service_check(const std::shared_ptr<io::data>& d) {
                        "command: {}, check_type: {}, next_check: {}, now: {})",
                        sc.host_id(), sc.service_id(), sc.command_line(),
                        sc.check_type(), sc.next_check(), now);
-}
-
-/**
- *  Process a service dependency event.
- *
- *  @param[in] e Uncasted service dependency.
- *
- * @return The number of events that can be acknowledged.
- */
-void stream::_process_service_dependency(const std::shared_ptr<io::data>& d) {
-  int32_t conn = special_conn::service_dependency % _mysql.connections_count();
-  _finish_action(-1, actions::hosts | actions::host_parents |
-                         actions::downtimes | actions::comments |
-                         actions::host_dependencies |
-                         actions::service_dependencies);
-
-  // Cast object.
-  neb::service_dependency const& sd(
-      *static_cast<neb::service_dependency const*>(d.get()));
-
-  // Insert/Update.
-  if (sd.enabled) {
-    SPDLOG_LOGGER_INFO(
-        _logger_sql,
-        "unified_sql: enabling service dependency of ({}, {}) on ({}, {})",
-        sd.dependent_host_id, sd.dependent_service_id, sd.host_id,
-        sd.service_id);
-
-    // Prepare queries.
-    if (!_service_dependency_insupdate.prepared()) {
-      query_preparator::event_unique unique;
-      unique.insert("dependent_host_id");
-      unique.insert("dependent_service_id");
-      unique.insert("host_id");
-      unique.insert("service_id");
-      query_preparator qp(neb::service_dependency::static_type(), unique);
-      _service_dependency_insupdate = qp.prepare_insert_or_update(_mysql);
-    }
-
-    // Process object.
-    _service_dependency_insupdate << sd;
-    _mysql.run_statement(_service_dependency_insupdate,
-                         database::mysql_error::store_service_dependency, conn);
-    _add_action(conn, actions::service_dependencies);
-  }
-  // Delete.
-  else {
-    SPDLOG_LOGGER_INFO(
-        _logger_sql,
-        "unified_sql: removing service dependency of ({}, {}) on ({}, {})",
-        sd.dependent_host_id, sd.dependent_service_id, sd.host_id,
-        sd.service_id);
-    std::string query(fmt::format(
-        "DELETE FROM services_services_dependencies WHERE dependent_host_id={} "
-        "AND dependent_service_id={} AND host_id={} AND service_id={}",
-        sd.dependent_host_id, sd.dependent_service_id, sd.host_id,
-        sd.service_id));
-    _mysql.run_query(query, database::mysql_error::empty, conn);
-    _add_action(conn, actions::service_dependencies);
-  }
-}
-
-/**
- *  Process a service dependency event.
- *
- *  @param[in] e Uncasted service dependency.
- *
- * @return The number of events that can be acknowledged.
- */
-void stream::_process_pb_service_dependency(
-    const std::shared_ptr<io::data>& d) {
-  int32_t conn = special_conn::service_dependency % _mysql.connections_count();
-  _finish_action(-1, actions::hosts | actions::host_parents |
-                         actions::downtimes | actions::comments |
-                         actions::host_dependencies |
-                         actions::service_dependencies);
-
-  // Cast object.
-  const neb::pb_service_dependency& proto_obj =
-      *static_cast<neb::pb_service_dependency const*>(d.get());
-  const ServiceDependency& sd = proto_obj.obj();
-
-  // Insert/Update.
-  if (sd.enabled()) {
-    SPDLOG_LOGGER_INFO(
-        _logger_sql, "SQL: enabling service dependency of ({}, {}) on ({}, {})",
-        sd.dependent_host_id(), sd.dependent_service_id(), sd.host_id(),
-        sd.service_id());
-
-    // Prepare queries.
-    if (!_pb_service_dependency_insupdate.prepared()) {
-      query_preparator::event_pb_unique unique{
-          {6, "host_id", io::protobuf_base::invalid_on_zero, 0},
-          {10, "service_id", io::protobuf_base::invalid_on_zero, 0},
-          {3, "dependent_host_id", io::protobuf_base::invalid_on_zero, 0},
-          {9, "dependent_service_id", io::protobuf_base::invalid_on_zero, 0}};
-      query_preparator qp(neb::pb_service_dependency::static_type(), unique);
-      _pb_service_dependency_insupdate = qp.prepare_insert_or_update_table(
-          _mysql, "services_services_dependencies ", /*space is mandatory to
-                              avoid conflict with _process_service_dependency*/
-          {{6, "host_id", io::protobuf_base::invalid_on_zero, 0},
-           {10, "service_id", io::protobuf_base::invalid_on_zero, 0},
-           {3, "dependent_host_id", io::protobuf_base::invalid_on_zero, 0},
-           {9, "dependent_service_id", io::protobuf_base::invalid_on_zero, 0},
-           {2, "dependency_period", 0,
-            get_services_services_dependencies_col_size(
-                services_services_dependencies_dependency_period)},
-           {5, "execution_failure_options", 0,
-            get_services_services_dependencies_col_size(
-                services_services_dependencies_execution_failure_options)},
-           {7, "inherits_parent", 0, 0},
-           {8, "notification_failure_options", 0,
-            get_services_services_dependencies_col_size(
-                services_services_dependencies_notification_failure_options)}});
-    }
-
-    // Process object.
-    _pb_service_dependency_insupdate << proto_obj;
-    _mysql.run_statement(_pb_service_dependency_insupdate,
-                         database::mysql_error::store_service_dependency, conn);
-    _add_action(conn, actions::service_dependencies);
-  }
-  // Delete.
-  else {
-    SPDLOG_LOGGER_INFO(
-        _logger_sql, "SQL: removing service dependency of ({}, {}) on ({}, {})",
-        sd.dependent_host_id(), sd.dependent_service_id(), sd.host_id(),
-        sd.service_id());
-    std::string query(fmt::format(
-        "DELETE FROM services_services_dependencies WHERE dependent_host_id={} "
-        "AND dependent_service_id={} AND host_id={} AND service_id={}",
-        sd.dependent_host_id(), sd.dependent_service_id(), sd.host_id(),
-        sd.service_id()));
-    _mysql.run_query(query, database::mysql_error::empty, conn);
-    _add_action(conn, actions::service_dependencies);
-  }
 }
 
 /**
@@ -3540,9 +3245,8 @@ void stream::_process_pb_service_group_member(
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_service(const std::shared_ptr<io::data>& d) {
-  _finish_action(-1, actions::host_parents | actions::comments |
-                         actions::downtimes | actions::host_dependencies |
-                         actions::service_dependencies);
+  _finish_action(
+      -1, actions::host_parents | actions::comments | actions::downtimes);
 
   // Processed object.
   const neb::service& s(*static_cast<neb::service const*>(d.get()));
@@ -3599,8 +3303,7 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::host_parents | actions::comments |
-                         actions::downtimes | actions::host_dependencies |
-                         actions::service_dependencies | actions::severities |
+                         actions::downtimes | actions::severities |
                          actions::resources_tags | actions::tags);
   // Processed object.
   auto svc{static_cast<neb::pb_service const*>(d.get())};
@@ -4050,9 +3753,8 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
 void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
   SPDLOG_LOGGER_DEBUG(_logger_sql,
                       "unified_sql: processing pb adaptive service");
-  _finish_action(-1, actions::host_parents | actions::comments |
-                         actions::downtimes | actions::host_dependencies |
-                         actions::service_dependencies);
+  _finish_action(
+      -1, actions::host_parents | actions::comments | actions::downtimes);
   // Processed object.
   auto s{static_cast<const neb::pb_adaptive_service*>(d.get())};
   auto& as = s->obj();
@@ -4284,9 +3986,8 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
   if (!_store_in_hosts_services)
     return;
 
-  _finish_action(-1, actions::host_parents | actions::comments |
-                         actions::downtimes | actions::host_dependencies |
-                         actions::service_dependencies);
+  _finish_action(
+      -1, actions::host_parents | actions::comments | actions::downtimes);
   // Processed object.
   neb::service_status const& ss{
       *static_cast<neb::service_status const*>(d.get())};
@@ -4355,9 +4056,8 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
  *
  */
 void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
-  _finish_action(-1, actions::host_parents | actions::comments |
-                         actions::downtimes | actions::host_dependencies |
-                         actions::service_dependencies);
+  _finish_action(
+      -1, actions::host_parents | actions::comments | actions::downtimes);
   // Processed object.
   auto s{static_cast<const neb::pb_service_status*>(d.get())};
   auto& sscr = s->obj();

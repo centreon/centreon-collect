@@ -37,7 +37,6 @@ set(NEB_SOURCES
     ${SRC_DIR}/group_member.cc
     ${SRC_DIR}/host.cc
     ${SRC_DIR}/host_check.cc
-    ${SRC_DIR}/host_dependency.cc
     ${SRC_DIR}/host_group.cc
     ${SRC_DIR}/host_group_member.cc
     ${SRC_DIR}/host_parent.cc
@@ -51,7 +50,6 @@ set(NEB_SOURCES
     ${SRC_DIR}/responsive_instance.cc
     ${SRC_DIR}/service.cc
     ${SRC_DIR}/service_check.cc
-    ${SRC_DIR}/service_dependency.cc
     ${SRC_DIR}/service_group.cc
     ${SRC_DIR}/service_group_member.cc
     ${SRC_DIR}/service_status.cc
@@ -68,7 +66,6 @@ set(NEB_SOURCES
     ${INC_DIR}/com/centreon/broker/neb/group_member.hh
     ${INC_DIR}/com/centreon/broker/neb/host.hh
     ${INC_DIR}/com/centreon/broker/neb/host_check.hh
-    ${INC_DIR}/com/centreon/broker/neb/host_dependency.hh
     ${INC_DIR}/com/centreon/broker/neb/host_group.hh
     ${INC_DIR}/com/centreon/broker/neb/host_group_member.hh
     ${INC_DIR}/com/centreon/broker/neb/host_parent.hh
@@ -83,7 +80,6 @@ set(NEB_SOURCES
     ${INC_DIR}/com/centreon/broker/neb/responsive_instance.hh
     ${INC_DIR}/com/centreon/broker/neb/service.hh
     ${INC_DIR}/com/centreon/broker/neb/service_check.hh
-    ${INC_DIR}/com/centreon/broker/neb/service_dependency.hh
     ${INC_DIR}/com/centreon/broker/neb/service_group.hh
     ${INC_DIR}/com/centreon/broker/neb/service_group_member.hh
     ${INC_DIR}/com/centreon/broker/neb/service_status.hh
@@ -171,7 +167,6 @@ if(WITH_TESTING)
       ${TEST_DIR}/custom_variable_status.cc
       ${TEST_DIR}/host.cc
       ${TEST_DIR}/host_check.cc
-      ${TEST_DIR}/host_dependency.cc
       ${TEST_DIR}/host_parent.cc
       ${TEST_DIR}/host_status.cc
       ${TEST_DIR}/instance.cc
@@ -181,7 +176,6 @@ if(WITH_TESTING)
       ${TEST_DIR}/randomize.hh
       ${TEST_DIR}/service.cc
       ${TEST_DIR}/service_check.cc
-      ${TEST_DIR}/service_dependency.cc
       ${TEST_DIR}/service_status.cc
       ${TEST_DIR}/set_log_data.cc
       PARENT_SCOPE)

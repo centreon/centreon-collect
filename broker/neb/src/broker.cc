@@ -1,20 +1,20 @@
 /**
-* Copyright 2009-2013,2015-2016 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2013,2015-2016 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
@@ -83,10 +83,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::neb, neb::de_host_check), "host_check",
                        &neb::host_check::operations, neb::host_check::entries,
                        "hosts");
-      e.register_event(make_type(io::neb, neb::de_host_dependency),
-                       "host_dependency", &neb::host_dependency::operations,
-                       neb::host_dependency::entries,
-                       "hosts_hosts_dependencies");
       e.register_event(make_type(io::neb, neb::de_host), "host",
                        &neb::host::operations, neb::host::entries, "hosts");
       e.register_event(make_type(io::neb, neb::de_host_group), "host_group",
@@ -113,10 +109,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::neb, neb::de_service_check),
                        "service_check", &neb::service_check::operations,
                        neb::service_check::entries, "services");
-      e.register_event(
-          make_type(io::neb, neb::de_service_dependency), "service_dependency",
-          &neb::service_dependency::operations,
-          neb::service_dependency::entries, "services_services_dependencies");
       e.register_event(make_type(io::neb, neb::de_service), "service",
                        &neb::service::operations, neb::service::entries,
                        "services");
@@ -200,13 +192,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::neb, neb::de_pb_acknowledgement),
                        "Acknowledgement", &neb::pb_acknowledgement::operations,
                        "acknowledgements");
-      e.register_event(neb::pb_host_dependency::static_type(), "HostDependency",
-                       &neb::pb_host_dependency::operations,
-                       "hosts_hosts_dependencies");
-      e.register_event(neb::pb_service_dependency::static_type(),
-                       "ServiceDependency",
-                       &neb::pb_service_dependency::operations,
-                       "services_services_dependencies");
       e.register_event(neb::pb_host_group::static_type(), "HostGroup",
                        &neb::pb_host_group::operations, "hostgroups");
       e.register_event(
