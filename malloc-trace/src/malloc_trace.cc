@@ -26,6 +26,12 @@
 
 using namespace com::centreon::malloc_trace;
 
+#include "by_thread_trace_active.hh"
+#include "funct_info_cache.hh"
+#include "simply_allocator.hh"
+
+using namespace com::centreon::malloc_trace;
+
 extern void* __libc_malloc(size_t size);
 
 pid_t gettid() __attribute__((weak));

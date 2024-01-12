@@ -45,7 +45,6 @@ class intrusive_map {
   node_map _nodes;
 
  public:
-
   ~intrusive_map() { _nodes.clear(); }
 
   const node_type* find(const key_type& key) const {
