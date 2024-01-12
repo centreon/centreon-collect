@@ -161,11 +161,9 @@ class stream : public io::stream {
   enum special_conn {
     custom_variable,
     downtime,
-    host_dependency,
     host_group,
     host_parent,
     log,
-    service_dependency,
     service_group,
     severity,
     tag,
@@ -178,14 +176,12 @@ class stream : public io::stream {
     comments = 1 << 1,
     custom_variables = 1 << 2,
     downtimes = 1 << 3,
-    host_dependencies = 1 << 4,
     host_hostgroups = 1 << 5,
     host_parents = 1 << 6,
     hostgroups = 1 << 7,
     hosts = 1 << 8,
     instances = 1 << 9,
     modules = 1 << 10,
-    service_dependencies = 1 << 11,
     service_servicegroups = 1 << 12,
     servicegroups = 1 << 13,
     services = 1 << 14,
@@ -341,8 +337,6 @@ class stream : public io::stream {
   database::mysql_stmt _custom_variable_delete;
   database::mysql_stmt _host_check_update;
   database::mysql_stmt _pb_host_check_update;
-  database::mysql_stmt _host_exe_dependency_insupdate;
-  database::mysql_stmt _host_notif_dependency_insupdate;
   database::mysql_stmt _host_group_insupdate;
   database::mysql_stmt _pb_host_group_insupdate;
   database::mysql_stmt _host_group_member_delete;
@@ -361,8 +355,6 @@ class stream : public io::stream {
   database::mysql_stmt _pb_instance_status_insupdate;
   database::mysql_stmt _service_check_update;
   database::mysql_stmt _pb_service_check_update;
-  database::mysql_stmt _service_dependency_insupdate;
-  database::mysql_stmt _pb_service_dependency_insupdate;
   database::mysql_stmt _service_group_insupdate;
   database::mysql_stmt _pb_service_group_insupdate;
   database::mysql_stmt _service_group_member_delete;
@@ -424,8 +416,6 @@ class stream : public io::stream {
   void _process_pb_downtime(const std::shared_ptr<io::data>& d);
   void _process_host_check(const std::shared_ptr<io::data>& d);
   void _process_pb_host_check(const std::shared_ptr<io::data>& d);
-  void _process_host_dependency(const std::shared_ptr<io::data>& d);
-  void _process_pb_host_dependency(const std::shared_ptr<io::data>& d);
   void _process_host_group(const std::shared_ptr<io::data>& d);
   void _process_pb_host_group(const std::shared_ptr<io::data>& d);
   void _process_host_group_member(const std::shared_ptr<io::data>& d);
@@ -441,8 +431,6 @@ class stream : public io::stream {
   void _process_log(const std::shared_ptr<io::data>& d);
   void _process_service_check(const std::shared_ptr<io::data>& d);
   void _process_pb_service_check(const std::shared_ptr<io::data>& d);
-  void _process_service_dependency(const std::shared_ptr<io::data>& d);
-  void _process_pb_service_dependency(const std::shared_ptr<io::data>& d);
   void _process_service_group(const std::shared_ptr<io::data>& d);
   void _process_pb_service_group(const std::shared_ptr<io::data>& d);
   void _process_service_group_member(const std::shared_ptr<io::data>& d);
