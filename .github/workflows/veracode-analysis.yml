@@ -37,12 +37,15 @@ jobs:
       - name: Set routing mode
         id: routing-mode
         run: |
-          CHECK_BRANCH=`echo "${{ github.ref_name }}" | cut -d'/' -f2`
-          if [[ $CHECK_BRANCH != "merge" && '${{ github.event_name }}' != 'pull_request' ]]; then
-            DEVELOPMENT_STAGE="Release"
-          else
-            DEVELOPMENT_STAGE="Development"
-          fi
+          DEVELOPMENT_STAGE="Development"
+
+          ALLOWED_BRANCHES=(develop master dev-${{ inputs.major_version }}.x ${{ inputs.major_version }}.x)
+          for BRANCH in "${ALLOWED_BRANCHES[@]}"; do
+            if [[ "${{ github.ref_name }}" == "$BRANCH" ]] && [[ '${{ github.event_name }}' != 'pull_request' ]]; then
+              DEVELOPMENT_STAGE="Release"
+            fi
+          done
+
           echo "development_stage=$DEVELOPMENT_STAGE" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
 
@@ -136,13 +139,15 @@ jobs:
           path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
-  sandbox-scan:
+  policy-scan:
     name: Sandbox scan
     needs: [build]
+    if: needs.routing.outputs.development_stage != 'Development'
     runs-on: ubuntu-latest
 
     steps:
       - name: Promote latest scan
+        # only develop will be promoted to policy scan
         if: github.ref_name == 'develop'
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
@@ -150,7 +155,7 @@ jobs:
 
         # Action forked as API calls hardcoded '.com' route
         uses: sc979/veracode-sandboxes-helper@cf67241c27cbe6405ad8705111121ece9a48c4ff # v0.2
-        # Promote should not fail if sandbox was not found.
+        # Promote should not fail to trigger following sandbox scan.
         continue-on-error: true
         with:
           activity: "promote-latest-scan"
