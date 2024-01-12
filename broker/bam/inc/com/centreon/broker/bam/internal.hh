@@ -25,7 +25,10 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
 
-namespace com::centreon::broker::bam {
+namespace com::centreon::broker {
+
+namespace bam {
+
 using pb_inherited_downtime =
     io::protobuf<InheritedDowntime,
                  make_type(io::bam, bam::de_pb_inherited_downtime)>;

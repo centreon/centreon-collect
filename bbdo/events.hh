@@ -104,8 +104,8 @@ enum data_element {
   de_event_handler = 6,    // unused
   de_flapping_status = 7,  // unused
   de_host_check = 8,
-  de_host_dependency = 9,
-  de_host_group,
+  // de_host_dependency = 9,   // removed because unused
+  de_host_group = 10,
   de_host_group_member,
   de_host,
   de_host_parent,
@@ -114,9 +114,9 @@ enum data_element {
   de_instance_status,
   de_log_entry,
   de_module,
-  de_service_check,
-  de_service_dependency,
-  de_service_group,
+  de_service_check = 19,
+  // de_service_dependency = 20,    // removed because unused
+  de_service_group = 21,
   de_service_group_member,
   de_service,
   de_service_status,
@@ -142,8 +142,8 @@ enum data_element {
   de_pb_instance = 44,
   de_pb_acknowledgement = 45,
   de_pb_responsive_instance = 46,
-  de_pb_host_dependency = 47,
-  de_pb_service_dependency = 48,
+  // de_pb_host_dependency = 47,	  // removed because unused
+  // de_pb_service_dependency = 48,  // removed because unused
   de_pb_host_group = 49,
   de_pb_host_group_member = 50,
   de_pb_service_group = 51,

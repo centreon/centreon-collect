@@ -21,7 +21,6 @@
 #define CCE_OBJECTS_SERVICEDEPENDENCY_HH
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/dependency.hh"
-#include "com/centreon/engine/hash.hh"
 
 /* Forward declaration. */
 namespace com::centreon::engine {
@@ -33,7 +32,7 @@ class timeperiod;
 typedef std::unordered_multimap<
     std::pair<std::string, std::string>,
     std::shared_ptr<com::centreon::engine::servicedependency>,
-    pair_hash>
+    absl::Hash<std::pair<std::string, std::string>>>
     servicedependency_mmap;
 
 namespace com::centreon::engine {

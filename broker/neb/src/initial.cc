@@ -538,8 +538,6 @@ void neb::send_initial_configuration() {
   send_host_parents_list();
   send_host_group_list();
   send_service_group_list();
-  send_host_dependencies_list();
-  send_service_dependencies_list();
   send_instance_configuration();
 }
 
@@ -563,7 +561,5 @@ void neb::send_initial_pb_configuration() {
   send_pb_host_parents_list();
   send_pb_host_group_list();
   send_pb_service_group_list();
-  send_pb_host_dependencies_list();
-  send_pb_service_dependencies_list();
-  send_pb_instance_configuration();
+  send_instance_configuration();
 }

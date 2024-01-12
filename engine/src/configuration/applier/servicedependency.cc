@@ -526,10 +526,11 @@ void applier::servicedependency::expand_objects(configuration::State& s) {
           exec_sdep->clear_dependent_service_description();
           exec_sdep->mutable_dependent_service_description()->add_data(
               p2.second);
-          exec_sdep->set_notification_failure_options(0);
           auto notif_sdep = std::make_unique<Servicedependency>();
           notif_sdep->CopyFrom(*exec_sdep);
+          exec_sdep->set_notification_failure_options(0);
           exec_sdep->set_dependency_type(execution_dependency);
+          notif_sdep->set_execution_failure_options(0);
           notif_sdep->set_dependency_type(notification_dependency);
 
           // Insert new service dependency. We do not need to expand it
