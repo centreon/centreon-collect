@@ -16,18 +16,15 @@
  * For more information : contact@centreon.com
  */
 
-#include <sys/syscall.h>
-#include <unistd.h>
-
-#include <map>
-#include <memory>
-#include <mutex>
-
-#include <absl/strings/numbers.h>
-#include <boost/intrusive/set.hpp>
 #include <boost/stacktrace.hpp>
 
 #include <fmt/format.h>
+
+#include "by_thread_trace_active.hh"
+#include "funct_info_cache.hh"
+#include "simply_allocator.hh"
+
+using namespace com::centreon::malloc_trace;
 
 extern void* __libc_malloc(size_t size);
 
@@ -46,168 +43,9 @@ pid_t m_gettid() {
   }
 }
 
-/**
- * @brief The goal of this class is to provide map without allocation
- *
- * @tparam node_type node (key and data) that must inherit from
- * boost::intrusive::set_base_hook<>
- * @tparam key_extractor struct with an operator that extract key from node_type
- * @tparam node_arrray_size  size max of the container
- */
-template <class node_type, class key_extractor, size_t node_array_size>
-class intrusive_map {
- public:
-  using key_type = typename key_extractor::type;
-
- private:
-  node_type _nodes_array[node_array_size];
-  node_type* _free_node;
-  const node_type* _array_end;
-
-  using node_map =
-      boost::intrusive::set<node_type,
-                            boost::intrusive::key_of_value<key_extractor> >;
-
-  node_map _nodes;
-
- public:
-  intrusive_map() {
-    _free_node = _nodes_array;
-    _array_end = _free_node + node_array_size;
-  }
-
-  const node_type* find(const key_type& key) const {
-    auto found = _nodes.find(key);
-    if (found == _nodes.end()) {
-      return nullptr;
-    } else {
-      return &*found;
-    }
-  }
-
-  node_type* insert_and_get(const key_type& key) {
-    if (_free_node == _array_end) {
-      return nullptr;
-    }
-
-    node_type* to_insert = _free_node++;
-    new (to_insert) node_type(key);
-    _nodes.insert(*to_insert);
-    return to_insert;
-  }
-};
-
-/**
- * @brief This class is used to store the tracing of a thread
- * if trace is active we don't log stacktrace
- *
- */
-class thread_trace_active : public boost::intrusive::set_base_hook<> {
-  pid_t _thread_id;
-  mutable bool _malloc_trace_active;
-
- public:
-  thread_trace_active() {}
-  thread_trace_active(pid_t thread_id) : _thread_id(thread_id) {}
-
-  pid_t get_thread_id() const { return _thread_id; }
-
-  bool set_malloc_trace_active() const {
-    if (_malloc_trace_active) {
-      return true;
-    }
-    _malloc_trace_active = true;
-    return false;
-  }
-
-  bool reset_malloc_trace_active() const {
-    if (!_malloc_trace_active) {
-      return false;
-    }
-    _malloc_trace_active = false;
-    return true;
-  }
-
-  bool is_malloc_trace_active() const { return _malloc_trace_active; }
-
-  struct key_extractor {
-    using type = pid_t;
-    type operator()(const thread_trace_active& node) const {
-      return node._thread_id;
-    }
-  };
-};
-
-class thread_dump_active
-    : protected intrusive_map<thread_trace_active,
-                              thread_trace_active::key_extractor,
-                              4096> {
-  std::mutex _protect;
-
- public:
-  bool set_dump_active();
-  void reset_dump_active();
-};
-
-/**
- * @brief Set the flag to true in _by_thread_dump_active
- *
- * @return true the flag was not setted before call
- * @return false the flag was yet setted before call
- */
-bool thread_dump_active::set_dump_active() {
-  pid_t thread_id = m_gettid();
-  std::lock_guard l(_protect);
-  const thread_trace_active* exist = find(thread_id);
-
-  if (!exist) {
-    thread_trace_active* inserted = insert_and_get(thread_id);
-    if (!inserted) {
-      return false;
-    }
-    inserted->set_malloc_trace_active();
-    return true;
-  } else {
-    return !exist->set_malloc_trace_active();
-  }
-}
-
-void thread_dump_active::reset_dump_active() {
-  pid_t thread_id = m_gettid();
-  std::lock_guard l(_protect);
-  const thread_trace_active* exist = find(thread_id);
-  if (exist) {
-    exist->reset_malloc_trace_active();
-  }
-}
-
 static thread_dump_active _thread_dump_active;
 
-/**
- * @brief symbol information research is very costly
- * so we store function informations in a cache
- *
- */
-class funct_info {
-  const std::string _funct_name;
-  const std::string _source_file;
-  const size_t _source_line;
-
- public:
-  funct_info(std::string&& funct_name,
-             std::string&& source_file,
-             size_t source_line)
-      : _funct_name(funct_name),
-        _source_file(source_file),
-        _source_line(source_line) {}
-
-  const std::string& get_funct_name() const { return _funct_name; }
-  const std::string& get_source_file() const { return _source_file; }
-  size_t get_source_line() const { return _source_line; }
-};
-
-using funct_cache_map =
-    std::map<boost::stacktrace::frame::native_frame_ptr_t, funct_info>;
+static std::mutex _write_m;
 
 /**
  * @brief this function open out file if it hasn't be done
@@ -216,21 +54,44 @@ using funct_cache_map =
  * @return int file descriptor
  */
 static int open_file() {
-  const char* out_file_path = "/tmp/malloc-trace.csv";
-  char* env_out_file_path = getenv("out_file_path");
-  if (env_out_file_path) {
-    out_file_path = env_out_file_path;
+  static const char* out_file_path = nullptr;
+  if (!out_file_path) {
+    char* env_out_file_path = getenv("out_file_path");
+    if (env_out_file_path && strlen(env_out_file_path) > 0)
+      out_file_path = env_out_file_path;
+
+    else
+      out_file_path = "/tmp/malloc-trace.csv";
   }
-  static std::mutex file_m;
-  std::lock_guard l(file_m);
+  static unsigned long long max_file_size = 0;
+  if (!max_file_size) {
+    char* env_out_file_max_size = getenv("out_file_max_size");
+    if (env_out_file_max_size && atoll(env_out_file_max_size) > 0)
+      max_file_size = atoll(env_out_file_max_size);
+    else
+      max_file_size = 0x100000000;
+  }
+
+  std::lock_guard l(_write_m);
   static int out_file = -1;
   if (out_file < 0) {
     out_file =
         open(out_file_path, O_APPEND | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
   } else {
     struct stat file_stat;
-    if (!fstat(out_file, &file_stat) && file_stat.st_size > 0x10000000) {
-      ftruncate(out_file, 0);
+    if (!fstat(out_file, &file_stat)) {
+      struct stat real_file_stat;
+      if (stat(out_file_path, &real_file_stat) ||
+          real_file_stat.st_ino !=
+              file_stat.st_ino) {  // file has been moved or deleted
+        if (out_file > 0)
+          close(out_file);
+        out_file =
+            open(out_file_path, O_APPEND | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+      }
+      if (file_stat.st_size > max_file_size) {
+        ftruncate(out_file, 0);
+      }
     }
   }
   return out_file;
@@ -256,11 +117,11 @@ static void dump_callstack(void* p, size_t size, const char* funct_name) {
   }
 
   static funct_cache_map* _funct_cache = new funct_cache_map;
-  static std::mutex _funct_cache_m;
+  static std::mutex funct_cache_m;
 
-  constexpr unsigned size_buff = 0x10000;
+  constexpr unsigned size_buff = 0x40000;
   char buff[size_buff];
-  char* end_buff = buff - 10;
+  char* end_buff = buff + size_buff - 10;
   *end_buff = 0;
 
   char* work_pos =
@@ -277,8 +138,7 @@ static void dump_callstack(void* p, size_t size, const char* funct_name) {
     for (++stack_iter; stack_iter != call_stack.end() && stack_cpt < max_stack;
          ++stack_iter, ++stack_cpt) {
       if (end_buff - work_pos < 1000) {
-        ::write(out_file, buff, work_pos - buff);
-        work_pos = buff;
+        break;
       }
 
       if (stack_cpt) {
@@ -289,7 +149,7 @@ static void dump_callstack(void* p, size_t size, const char* funct_name) {
       auto addr = stack_layer.address();
       funct_cache_map::const_iterator cache_entry;
       {
-        std::unique_lock l(_funct_cache_m);
+        std::unique_lock l(funct_cache_m);
         cache_entry = _funct_cache->find(addr);
         if (cache_entry == _funct_cache->end()) {
           l.unlock();
@@ -303,7 +163,7 @@ static void dump_callstack(void* p, size_t size, const char* funct_name) {
       work_pos =
           fmt::format_to_n(
               work_pos, end_buff - work_pos,
-              "{{\\\"f\\\":\\\"{}\\\",\\\"s\\\":\\\"{}\\\",\\\"l\\\":{}}}",
+              "{{\\\"f\\\":\\\"{}\\\" , \\\"s\\\":\\\"{}\\\" , \\\"l\\\":{}}}",
               cache_entry->second.get_funct_name(),
               cache_entry->second.get_source_file(),
               cache_entry->second.get_source_line())
@@ -313,97 +173,8 @@ static void dump_callstack(void* p, size_t size, const char* funct_name) {
   *work_pos++ = ']';
   *work_pos++ = '"';
   *work_pos++ = '\n';
+  std::lock_guard l(_write_m);
   ::write(out_file, buff, work_pos - buff);
-}
-
-constexpr unsigned block_size = 4096;
-constexpr unsigned nb_block = 256;
-/**
- * @brief basic allocator
- * At the beginning, we don't know original malloc
- * we must provide a simple malloc free for dlsym
- *
- */
-class simply_allocator {
-  class node_block {
-    unsigned char _buff[block_size];
-    bool _free = true;
-
-   public:
-    struct key_extractor {
-      using type = unsigned char const*;
-      type operator()(const node_block& block) const { return block._buff; }
-    };
-
-    bool is_free() const { return _free; }
-    void set_free(bool free) { _free = free; }
-    unsigned char* get_buff() { return _buff; }
-  };
-
-  node_block _blocks[nb_block];
-  std::mutex _protect;
-
- public:
-  void* malloc(size_t size);
-  void* realloc(void* p, size_t size);
-  bool free(void* p);
-};
-
-/**
- * @brief same as malloc
- *
- * @param size
- * @return void*
- */
-void* simply_allocator::malloc(size_t size) {
-  if (size > block_size) {
-    return nullptr;
-  }
-  std::lock_guard l(_protect);
-  for (node_block* search = _blocks; search != _blocks + nb_block; ++search) {
-    if (search->is_free()) {
-      search->set_free(false);
-      return search->get_buff();
-    }
-  }
-  return nullptr;
-}
-
-/**
- * @brief reallocate a pointer,
- * if size > block_size or p doesn't belong to simply_allocator, it returns
- * nullptr
- *
- * @param p
- * @param size
- * @return void*
- */
-void* simply_allocator::realloc(void* p, size_t size) {
-  if (p < _blocks || p >= _blocks + block_size)
-    return nullptr;
-  if (size > block_size) {
-    return nullptr;
-  }
-  return p;
-}
-
-/**
- * @brief same as free
- *
- * @param p
- * @return true if the pointer belong to this allocator
- */
-bool simply_allocator::free(void* p) {
-  if (p < _blocks || p >= _blocks + block_size)
-    return false;
-  std::lock_guard l(_protect);
-  for (node_block* search = _blocks; search != _blocks + nb_block; ++search) {
-    if (search->get_buff() == p) {
-      search->set_free(true);
-      return true;
-    }
-  }
-  return false;
 }
 
 static simply_allocator _first_malloc;
@@ -443,7 +214,7 @@ static free_signature original_free = first_free;
 enum class e_library_state { not_hooked, dlsym_running, hooked };
 static e_library_state _state = e_library_state::not_hooked;
 
-void search_symbols() {
+static void search_symbols() {
   original_malloc =
       reinterpret_cast<malloc_signature>(dlsym(RTLD_NEXT, "malloc"));
   original_free = reinterpret_cast<free_signature>(dlsym(RTLD_NEXT, "free"));
@@ -471,11 +242,11 @@ static void* malloc(size_t size, const char* funct_name) {
       break;
   }
   void* p = original_malloc(size);
-  bool have_to_dump = _thread_dump_active.set_dump_active();
+  bool have_to_dump = _thread_dump_active.set_dump_active(m_gettid());
   // if this thread is not yet dumping => call dump_callstack
   if (have_to_dump) {
     dump_callstack(p, size, funct_name);
-    _thread_dump_active.reset_dump_active();
+    _thread_dump_active.reset_dump_active(m_gettid());
   }
   return p;
 }
@@ -499,14 +270,16 @@ void* realloc(void* p, size_t size) {
     default:
       break;
   }
-  p = original_realloc(p, size);
-  bool have_to_dump = _thread_dump_active.set_dump_active();
+  void* new_p = original_realloc(p, size);
+  bool have_to_dump = _thread_dump_active.set_dump_active(m_gettid());
   // if this thread is not yet dumping => call dump_callstack
   if (have_to_dump) {
-    dump_callstack(p, size, "realloc");
-    _thread_dump_active.reset_dump_active();
+    if (new_p != p)
+      dump_callstack(p, size, "free_realloc");
+    dump_callstack(new_p, size, "realloc");
+    _thread_dump_active.reset_dump_active(m_gettid());
   }
-  return p;
+  return new_p;
 }
 
 /**
@@ -542,10 +315,10 @@ void free(void* p) {
   if (_first_malloc.free(p))
     return;
   original_free(p);
-  bool have_to_dump = _thread_dump_active.set_dump_active();
+  bool have_to_dump = _thread_dump_active.set_dump_active(m_gettid());
   // if this thread is not yet dumping => call dump_callstack
   if (have_to_dump) {
     dump_callstack(p, 0, "free");
-    _thread_dump_active.reset_dump_active();
+    _thread_dump_active.reset_dump_active(m_gettid());
   }
 }
