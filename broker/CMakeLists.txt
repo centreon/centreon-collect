@@ -87,23 +87,22 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_definitions(${spdlog_DEFINITIONS} ${mariadb-connector-c_DEFINITIONS})
 
-include_directories(${CONAN_INCLUDE_DIRS_MARIADB-CONNECTOR-C})
+include_directories(${mariadb_INCLUDE_DIRS})
 
-# link_directories(${mariadb-connector-c_LIB_DIRS})
 add_custom_command(
   DEPENDS ${SRC_DIR}/broker.proto
   COMMENT "Generating interface files of the proto file (grpc)"
   OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
   COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin
+  ${PROTOC} ARGS
+    --plugin=protoc-gen-grpc=${GRPC_COMPILER}
     --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
   DEPENDS ${SRC_DIR}/broker.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
   COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
+  ${PROTOC} ARGS --cpp_out="${SRC_DIR}"
     --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     ${SRC_DIR}/broker.proto)
 
@@ -115,7 +114,7 @@ include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
-target_link_libraries(berpc CONAN_PKG::protobuf)
+		       target_link_libraries(berpc ${PROTOBUF_LIBRARIES} ${GRPC_LIBRARIES} CONAN_PKG::abseil)
 set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 # Version.
@@ -458,12 +457,11 @@ target_link_libraries(
   berpc
   CONAN_PKG::zlib
   CONAN_PKG::spdlog
-  CONAN_PKG::openssl
   pthread
   dl)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
-target_link_libraries(roker rokerbase CONAN_PKG::openssl CONAN_PKG::grpc
+target_link_libraries(roker rokerbase
                       pthread dl)
 
 # Standalone binary.
@@ -484,14 +482,10 @@ target_link_libraries(
   "-Wl,--no-whole-archive"
   CONAN_PKG::nlohmann_json
   CONAN_PKG::fmt
-  -L${CONAN_LIB_DIRS_GRPC}
-  -L${CONAN_LIB_DIRS_PROTOBUF}
-  "-Wl,--whole-archive"
-  grpc++
-  ${CONAN_LIBS_PROTOBUF}
-  "-Wl,--no-whole-archive"
-  CONAN_PKG::spdlog
-  CONAN_PKG::grpc)
+  ${GRPC_LIBRARIES}
+  OpenSSL::SSL
+  OpenSSL::Crypto
+  CONAN_PKG::spdlog)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)
@@ -509,7 +503,7 @@ add_subdirectory(core/sql)
 # Generator module.
 add_broker_module(GENERATOR OFF)
 add_broker_module(STATS ON)
-add_broker_module(STATS_EXPORTER ON)
+add_broker_module(STATS_EXPORTER OFF)
 add_broker_module(NEB ON)
 add_broker_module(RRD ON)
 add_broker_module(UNIFIED_SQL ON)

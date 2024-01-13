@@ -533,17 +533,11 @@ target_link_libraries(
   enginerpc
   cce_core
   "-Wl,-no-whole-archive"
-  -L${CONAN_LIB_DIRS_GRPC}
-  "-Wl,--whole-archive"
-  grpc++
-  "-Wl,--no-whole-archive"
-  CONAN_PKG::grpc
-  ${absl_LIBS}
-  CONAN_PKG::openssl
-  ${c-ares_LIBS}
   CONAN_PKG::zlib
   CONAN_PKG::rapidyaml
   stdc++fs
+  ${PROTOBUF_LIBRARIES}
+  ${GRPC_LIBRARIES}
   dl)
 
 # centenginestats target.

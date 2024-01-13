@@ -25,6 +25,24 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 cmake_minimum_required(VERSION 3.16)
 project("Centreon Collect" C CXX)
+set(CMAKE_CXX_STANDARD 17)
+
+find_package(PkgConfig REQUIRED)
+
+find_package(OpenSSL REQUIRED)
+
+pkg_check_modules(MARIADB REQUIRED mariadb)
+
+pkg_check_modules(PROTOBUF REQUIRED protobuf)
+find_program(PROTOC protoc
+  PATHS /usr/bin /usr/local/bin
+  REQUIRED)
+
+pkg_check_modules(GRPC REQUIRED grpc++)
+
+find_program(GRPC_COMPILER grpc_cpp_plugin
+  PATHS /usr/bin /usr/local/bin
+  REQUIRED)
 
 option(WITH_ASAN
        "Add the libasan to check memory leaks and other memory issues." OFF)
@@ -39,16 +57,9 @@ endif()
 
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
 # set(CMAKE_CXX_COMPILER "clang++")
-add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 
-option(NG "C++17 build." OFF)
+add_definitions(-D_GLIBCXX_USE_CXX11_ABI=1)
 option(DEBUG_ROBOT OFF)
-
-if(NG)
-  set(CMAKE_CXX_STANDARD 17)
-else()
-  set(CMAKE_CXX_STANDARD 14)
-endif()
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -145,7 +156,7 @@ set(CMAKE_PROGRAM_PATH ${CONAN_BIN_DIRS_PROTOBUF};${CMAKE_PROGRAM_PATH})
 
 find_package(Protobuf REQUIRED)
 
-message(NOTICE "-- use protoc compiler: ${Protobuf_PROTOC_EXECUTABLE}")
+message(NOTICE "-- use protoc compiler: ${PROTOC}")
 
 include(GNUInstallDirs)
 

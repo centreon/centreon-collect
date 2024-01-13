@@ -93,7 +93,7 @@ add_custom_command(
   DEPENDS ${MODULE_DIR}/grpc_stream.proto
   COMMENT "Generating interface files of grpc_stream.proto"
   COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}
+  ${PROTOC} ARGS --cpp_out=${SRC_DIR}
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
     grpc_stream.proto
   VERBATIM)
@@ -103,8 +103,8 @@ add_custom_command(
   DEPENDS ${MODULE_DIR}/grpc_stream.proto
   COMMENT "Generating interface files grpc.pb of grpc_stream.proto"
   COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS --grpc_out=${SRC_DIR}
-    --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin
+  ${PROTOC} ARGS --grpc_out=${SRC_DIR}
+    --plugin=protoc-gen-grpc=${GRPC_COMPILER}
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
     grpc_stream.proto
   VERBATIM)

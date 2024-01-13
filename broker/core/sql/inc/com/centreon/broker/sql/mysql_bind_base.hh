@@ -19,7 +19,7 @@
 #ifndef CCB_MYSQL_BIND_BASE_HH
 #define CCB_MYSQL_BIND_BASE_HH
 
-#include <mysql.h>
+#include <mariadb/mysql.h>
 
 namespace com::centreon::broker {
 
@@ -56,6 +56,6 @@ class mysql_bind_base {
 
 }  // namespace database
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // CCB_MYSQL_BIND_BASE_HH

@@ -29,14 +29,14 @@ add_custom_command(
   COMMENT "Generating interface files of the proto file (grpc)"
   OUTPUT ${SRC_DIR}/process_stat.grpc.pb.cc ${SRC_DIR}/process_stat.grpc.pb.h
   COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin
+  ${PROTOC} ARGS
+    --plugin=protoc-gen-grpc=${GRPC_COMPILER}
     --proto_path=${SRC_DIR} --grpc_out="${SRC_DIR}"
     ${SRC_DIR}/process_stat.proto
   DEPENDS ${SRC_DIR}/process_stat.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${SRC_DIR}/process_stat.pb.cc ${SRC_DIR}/process_stat.pb.h
-  COMMAND ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
+  COMMAND ${PROTOC} ARGS --cpp_out="${SRC_DIR}"
           --proto_path=${SRC_DIR} ${SRC_DIR}/process_stat.proto)
 
 # Set sources.

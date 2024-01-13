@@ -74,8 +74,6 @@ target_link_libraries(
   rpc_client
   berpc
   centreon_common
-  CONAN_PKG::grpc
-  CONAN_PKG::openssl
   CONAN_PKG::zlib
   dl
   pthread)
@@ -141,10 +139,7 @@ target_link_libraries(
   CONAN_PKG::nlohmann_json
   CONAN_PKG::fmt
   CONAN_PKG::spdlog
-  CONAN_PKG::gtest
-  CONAN_PKG::mariadb-connector-c
-  CONAN_PKG::openssl
-  CONAN_PKG::grpc)
+  CONAN_PKG::gtest)
 
 add_dependencies(
   ut_broker

@@ -93,8 +93,10 @@ set(NEB_SOURCES
 add_library(nebbase STATIC ${NEB_SOURCES})
 add_dependencies(nebbase table_max_size target_neb target_severity target_tag)
 
-target_link_libraries(nebbase CONAN_PKG::protobuf pb_severity_lib pb_tag_lib
-                      pb_neb_lib pb_header_lib)
+target_link_libraries(nebbase
+  pb_severity_lib pb_tag_lib
+  pb_neb_lib
+  pb_header_lib)
 
 set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")
 set_property(TARGET nebbase PROPERTY COMPILE_FLAGS ${NEBBASE_CXXFLAGS})
