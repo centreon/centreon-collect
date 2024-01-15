@@ -153,6 +153,10 @@ if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
     perl-ExtUtils-Embed
     perl-srpm-macros
     libgcrypt-devel
+    mariadb-connector-c-devel
+    openssl-devel
+    protobuf-c-devel
+    grpc-devel
   )
   if [[ "$maj" == 'centos8' ]] ; then
     dnf config-manager --set-enabled powertools
@@ -215,6 +219,13 @@ elif [ -r /etc/issue ] ; then
       python3-pip
       libperl-dev
       libgcrypt20-dev
+      libssl-dev
+      libprotobuf-dev
+      protobuf-compiler
+      libgrpc++-dev
+      protobuf-compiler-grpc
+      libmariadb-dev
+      libcurl4-gnutls-dev
     )
     for i in "${pkgs[@]}"; do
       if ! $dpkg -l $i | grep "^ii" ; then
@@ -240,6 +251,13 @@ elif [ -r /etc/issue ] ; then
       python3-pip
       libperl-dev
       libgcrypt20-dev
+      libssl-dev
+      libprotobuf-dev
+      protobuf-compiler
+      libgrpc++-dev
+      protobuf-compiler-grpc
+      libmariadb-dev
+      libcurl4-gnutls-dev
     )
     for i in "${pkgs[@]}"; do
       if ! $dpkg -l $i | grep "^ii" ; then
