@@ -36,6 +36,7 @@ LIBCXX=libstdc++11
 WITH_CLANG=OFF
 EE=
 DR=
+SC=0
 
 for i in "$@"
 do

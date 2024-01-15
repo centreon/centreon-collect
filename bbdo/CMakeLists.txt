@@ -37,7 +37,7 @@ foreach(name IN LISTS protobuf_files)
     DEPENDS ${full_proto_file}
     COMMENT "Generating interface files of the bbdo file ${proto_file}"
     COMMAND
-    ${PROTOC} ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo
+    ${PROTOC} ARGS --experimental_allow_proto3_optional --cpp_out=${CMAKE_SOURCE_DIR}/bbdo
       --proto_path=${CMAKE_SOURCE_DIR}/bbdo ${proto_file}
     VERBATIM)
 

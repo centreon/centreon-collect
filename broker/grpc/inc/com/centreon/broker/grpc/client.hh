@@ -20,6 +20,8 @@
 #define CCB_GRPC_CLIENT_HH
 
 #include "channel.hh"
+#include "grpc_stream.grpc.pb.h"
+#include "grpc_stream.pb.h"
 
 namespace com::centreon::broker {
 
@@ -71,6 +73,6 @@ class client : public channel,
 
 }  // namespace grpc
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_GRPC_STREAM_HH

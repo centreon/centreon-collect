@@ -79,7 +79,9 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/neb/inc"
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
-  "${PROJECT_SOURCE_DIR}/core/sql/inc")
+  "${PROJECT_SOURCE_DIR}/core/sql/inc"
+  ${MARIADB_INCLUDE_DIRS}
+  )
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")
@@ -95,6 +97,7 @@ add_custom_command(
   OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
   COMMAND
   ${PROTOC} ARGS
+    --experimental_allow_proto3_optional
     --plugin=protoc-gen-grpc=${GRPC_COMPILER}
     --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
@@ -103,6 +106,7 @@ add_custom_command(
   OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
   COMMAND
   ${PROTOC} ARGS --cpp_out="${SRC_DIR}"
+    --experimental_allow_proto3_optional
     --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     ${SRC_DIR}/broker.proto)
 
@@ -114,7 +118,7 @@ include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
-		       target_link_libraries(berpc ${PROTOBUF_LIBRARIES} ${GRPC_LIBRARIES} CONAN_PKG::abseil)
+target_link_libraries(berpc ${PROTOBUF_LIBRARIES} ${GRPC_LIBRARIES} CONAN_PKG::abseil)
 set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 # Version.

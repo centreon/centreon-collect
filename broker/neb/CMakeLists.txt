@@ -96,7 +96,8 @@ add_dependencies(nebbase table_max_size target_neb target_severity target_tag)
 target_link_libraries(nebbase
   pb_severity_lib pb_tag_lib
   pb_neb_lib
-  pb_header_lib)
+  pb_header_lib
+  ${PROTOBUF_LIBRARIES})
 
 set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")
 set_property(TARGET nebbase PROPERTY COMPILE_FLAGS ${NEBBASE_CXXFLAGS})
@@ -155,10 +156,13 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     multiplexing
     "-Wl,--no-whole-archive"
     CONAN_PKG::nlohmann_json
-    CONAN_PKG::spdlog)
+    CONAN_PKG::spdlog
+    ${PROTOBUF_LIBRARIES}
+    nebbase)
 else()
   target_link_libraries("${CBMOD}" "rokerbase" CONAN_PKG::nlohmann_json
-                        CONAN_PKG::spdlog)
+                        CONAN_PKG::spdlog
+			${PROTOBUF_LIBRARIES})
 endif()
 
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")

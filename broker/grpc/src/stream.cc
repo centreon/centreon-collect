@@ -17,14 +17,13 @@
  *
  */
 
-#include "grpc_stream.grpc.pb.h"
-
 #include "com/centreon/broker/grpc/stream.hh"
 
 #include "com/centreon/broker/grpc/client.hh"
 #include "com/centreon/broker/grpc/grpc_bridge.hh"
 #include "com/centreon/broker/grpc/server.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "grpc_stream.grpc.pb.h"
 
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::broker;
@@ -59,15 +58,17 @@ com::centreon::broker::grpc::stream::~stream() noexcept {
   std::pair<event_ptr, bool> read_res = _channel->read(duration_or_deadline); \
   if (read_res.second) {                                                      \
     const grpc_event_type& to_convert = *read_res.first;                      \
-    if (to_convert.has_buffer()) {                                            \
-      d = std::make_shared<io::raw>();                                        \
-      std::static_pointer_cast<io::raw>(d)->_buffer.assign(                   \
-          to_convert.buffer().begin(), to_convert.buffer().end());            \
-      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "receive:{}",                       \
-                          *std::static_pointer_cast<io::raw>(d));             \
-    } else {                                                                  \
-      d = protobuf_to_event(read_res.first);                                  \
-      return d ? true : false;                                                \
+    switch (to_convert.content_case()) {                                      \
+      case grpc_event_type::kBuffer: {                                        \
+        d = std::make_shared<io::raw>();                                      \
+        std::static_pointer_cast<io::raw>(d)->_buffer.assign(                 \
+            to_convert.buffer().begin(), to_convert.buffer().end());          \
+        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "receive:{}",                     \
+                            *std::static_pointer_cast<io::raw>(d));           \
+      } break;                                                                \
+      default:                                                                \
+        d = protobuf_to_event(read_res.first);                                \
+        return d ? true : false;                                              \
     }                                                                         \
   } else {                                                                    \
     if (_channel->is_down()) {                                                \

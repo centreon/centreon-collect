@@ -19,6 +19,7 @@
  */
 
 #include <thread>
+
 #include "grpc_test_include.hh"
 
 using namespace com::centreon::broker;
@@ -57,7 +58,8 @@ class channel_test : public channel {
   channel_test(const grpc_config::pointer& conf)
       : channel("channel_test", conf) {}
 
-  void start_write(const channel::event_with_data::pointer& to_send) override {
+  void start_write(const channel::event_with_data::pointer& to_send
+                   [[maybe_unused]]) override {
     pool::io_context().post(
         [me = shared_from_this()]() { me->simul_on_write(); });
   }
@@ -67,7 +69,8 @@ class channel_test : public channel {
     on_write_done(true);
   }
 
-  void start_read(event_ptr& to_read, bool first_read) override {
+  void start_read(event_ptr& to_read,
+                  bool first_read [[maybe_unused]]) override {
     pool::io_context().post(
         [me = shared_from_this(), to_read]() { me->simul_on_read(); });
   }

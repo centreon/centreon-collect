@@ -31,7 +31,7 @@ find_package(PkgConfig REQUIRED)
 
 find_package(OpenSSL REQUIRED)
 
-pkg_check_modules(MARIADB REQUIRED mariadb)
+pkg_search_module(MARIADB REQUIRED mariadb libmariadb)
 
 pkg_check_modules(PROTOBUF REQUIRED protobuf)
 find_program(PROTOC protoc

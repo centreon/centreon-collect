@@ -1,22 +1,22 @@
 
 /*
-* Copyright 2022 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2022 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
@@ -99,7 +99,7 @@ std::ostream& operator<<(std::ostream& str, const ServiceIdentifier& serv_id) {
   return str;
 }
 
-}
+}  // namespace com::centreon::engine
 
 namespace fmt {
 template <>
@@ -3164,14 +3164,13 @@ grpc::Status engine_impl::ShutdownProgram(
   std::shared_ptr<anomalydetection> ano =
       std::static_pointer_cast<anomalydetection>(serv_info.first);
 
-  if (serv_and_value->has_dval()) {
-    ano->set_sensitivity(serv_and_value->dval());
-    return grpc::Status::OK;
-  }
-
-  if (serv_and_value->has_intval()) {
-    ano->set_sensitivity(serv_and_value->intval());
-    return grpc::Status::OK;
+  switch (serv_and_value->value_case()) {
+    case ChangeServiceNumber::kDval:
+      ano->set_sensitivity(serv_and_value->dval());
+      return grpc::Status::OK;
+    case ChangeServiceNumber::kIntval:
+      ano->set_sensitivity(serv_and_value->dval());
+      return grpc::Status::OK;
   }
   SPDLOG_LOGGER_ERROR(log_v2::external_command(), "{}({}) : no value provided",
                       __FUNCTION__, serv_and_value->serv());

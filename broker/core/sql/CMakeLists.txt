@@ -22,6 +22,10 @@
 
 set(TESTS_DIR "${PROJECT_SOURCE_DIR}/core/sql/test")
 
+include_directories(
+  ${MARIADB_INCLUDE_DIRS}
+  )
+
 add_custom_command(
   DEPENDS ${PROJECT_SOURCE_DIR}/core/sql/src/table_max_size.py
           "${CMAKE_SOURCE_DIR}/resources/centreon.sql"
