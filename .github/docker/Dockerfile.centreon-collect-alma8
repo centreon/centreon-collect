@@ -51,6 +51,10 @@ dnf install -y cmake \
     rpm-build \
     zstd \
     nfpm \
+    mariadb-connector-c-devel \
+    openssl-devel \
+    protobuf-c-devel \
+    grpc-devel \
     sudo
 
 dnf update libarchive

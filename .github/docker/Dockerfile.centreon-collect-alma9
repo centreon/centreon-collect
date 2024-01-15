@@ -46,6 +46,10 @@ dnf --best install -y cmake \
     procps-ng \
     zstd \
     nfpm \
+    mariadb-connector-c-devel \
+    openssl-devel \
+    protobuf-c-devel \
+    grpc-devel \
     sudo
 
 pip3 install conan==1.61.0 --prefix=/usr --upgrade

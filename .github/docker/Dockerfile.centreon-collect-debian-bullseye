@@ -42,6 +42,8 @@ apt-get -y install cmake \
     protobuf-compiler \
     libgrpc++-dev \
     protobuf-compiler-grpc \
+    libmariadb-dev \
+    libcurl4-gnutls-dev \
     sudo
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
