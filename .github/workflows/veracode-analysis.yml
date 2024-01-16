@@ -141,7 +141,7 @@ jobs:
 
   policy-scan:
     name: Sandbox scan
-    needs: [build]
+    needs: [routing, build]
     if: needs.routing.outputs.development_stage != 'Development'
     runs-on: ubuntu-latest
 
