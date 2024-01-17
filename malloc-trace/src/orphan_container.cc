@@ -269,7 +269,7 @@ void orphan_container::flush_to_file() {
     }
     _time_to_malloc.erase_and_dispose(
         _time_to_malloc.begin(), upper, [this](orphan_malloc* to_dispose) {
-      _malloc_allocator.deallocate(to_dispose);
+          _malloc_allocator.deallocate(to_dispose);
         });
   }
 

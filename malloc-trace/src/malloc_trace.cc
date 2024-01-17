@@ -28,6 +28,7 @@ using namespace com::centreon::malloc_trace;
 
 #include "by_thread_trace_active.hh"
 #include "funct_info_cache.hh"
+#include "orphan_container.hh"
 #include "simply_allocator.hh"
 
 using namespace com::centreon::malloc_trace;

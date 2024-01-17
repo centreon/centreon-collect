@@ -191,7 +191,10 @@ add_subdirectory(clib)
 add_subdirectory(engine)
 add_subdirectory(connectors)
 add_subdirectory(ccc)
-add_subdirectory(malloc-trace)
+
+if (WITH_MALLOC_TRACE)
+  add_subdirectory(malloc-trace)
+endif()
 
 if (WITH_MALLOC_TRACE)
   add_subdirectory(malloc-trace)
