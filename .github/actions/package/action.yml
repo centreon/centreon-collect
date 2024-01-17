@@ -64,7 +64,7 @@ runs:
           if [ "${{ inputs.stability }}" = "unstable" ] || [ "${{ inputs.stability }}" = "canary" ]; then
             export RELEASE="$RELEASE-${{ inputs.distrib }}"
           elif [ "${{ inputs.stability }}" = "testing" ]; then
-            export RELEASE="${{ inputs.distrib }}"
+            export RELEASE="1-${{ inputs.distrib }}"
           fi
         fi
 
