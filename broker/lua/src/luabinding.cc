@@ -41,6 +41,11 @@ static int l_pairs(lua_State* L) {
   return 3;
 }
 #endif
+
+#define RETURN_AND_POP(val)    \
+  lua_pop(_L, lua_gettop(_L)); \
+  return val
+
 /**
  *  Constructor.
  *
@@ -325,10 +330,6 @@ void luabinding::_init_script(
  *  @return The number of events written.
  */
 int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
-#define RETURN_AND_POP(val)    \
-  lua_pop(_L, lua_gettop(_L)); \
-  return val
-
   int retval = 0;
   if (log_v2::lua()->level() == spdlog::level::trace) {
     SPDLOG_LOGGER_TRACE(log_v2::lua(), "lua: luabinding::write call {}", *data);
@@ -451,19 +452,18 @@ int32_t luabinding::flush() noexcept {
     else
       SPDLOG_LOGGER_ERROR(log_v2::lua(),
                           "lua: unknown error running function `flush'");
-    return 0;
+    RETURN_AND_POP(0);
   }
   if (!lua_isboolean(_L, -1)) {
     SPDLOG_LOGGER_ERROR(log_v2::lua(), "lua: `flush' must return a boolean");
-    return 0;
+    RETURN_AND_POP(0);
   }
   bool acknowledge = lua_toboolean(_L, -1);
-  lua_pop(_L, -1);
 
   int32_t retval = 0;
   if (acknowledge) {
     retval = _total;
     _total = 0;
   }
-  return retval;
+  RETURN_AND_POP(retval);
 }
