@@ -92,12 +92,6 @@ runs:
     - if: ${{ inputs.distrib == 'bullseye' || inputs.distrib == 'bookworm' }}
       name: Publish DEBs
       run: |
-        if [ ${{ inputs.distrib == 'bookworm' }} ]; then
-          if [[ ${{ inputs.version }} =~ 22.* ]] || [[ ${{ inputs.version }} =~ 23.* ]]; then
-            echo "${{ inputs.distrib }} and ${{ inputs.version }} are not compatible. Nothing will be published"
-            exit 0
-          fi
-        fi
         FILES="*.${{ env.extfile }}"
 
         if [ -z "${{ inputs.module_name }}" ]; then
