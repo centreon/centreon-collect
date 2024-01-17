@@ -28,10 +28,13 @@ using namespace com::centreon::malloc_trace;
  */
 bool thread_dump_active::set_dump_active(pid_t thread_id) {
   std::lock_guard l(_protect);
+  if (!is_initialized()) {
+    return false;
+  }
   const thread_trace_active* exist = find(thread_id);
 
   if (!exist) {
-    thread_trace_active* inserted = insert_and_get(thread_id);
+    const thread_trace_active* inserted = insert_and_get(thread_id);
     if (!inserted) {
       return false;
     }
@@ -44,6 +47,9 @@ bool thread_dump_active::set_dump_active(pid_t thread_id) {
 
 void thread_dump_active::reset_dump_active(pid_t thread_id) {
   std::lock_guard l(_protect);
+  if (!is_initialized()) {
+    return;
+  }
   const thread_trace_active* exist = find(thread_id);
   if (exist) {
     exist->reset_malloc_trace_active();

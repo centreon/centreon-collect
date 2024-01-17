@@ -29,5 +29,6 @@
 
 #include <absl/strings/numbers.h>
 #include <boost/intrusive/set.hpp>
+#include <boost/intrusive/slist.hpp>
 
 #endif

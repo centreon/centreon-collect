@@ -16,12 +16,12 @@
  * For more information : contact@centreon.com
  */
 
-#include <boost/stacktrace.hpp>
-
 #include <fmt/format.h>
+#include <boost/stacktrace.hpp>
 
 #include "by_thread_trace_active.hh"
 #include "funct_info_cache.hh"
+#include "orphan_container.hh"
 #include "simply_allocator.hh"
 
 using namespace com::centreon::malloc_trace;
@@ -43,141 +43,26 @@ pid_t m_gettid() {
   }
 }
 
+/**
+ * @brief when we enter in malloc or free, we store information of stack trace,
+ * this will generate allocation that we don't want to store, this object allow
+ * us to store the active tracing on the active thread in order to avoid store
+ * recursion.
+ *
+ */
 static thread_dump_active _thread_dump_active;
 
-static std::mutex _write_m;
-
 /**
- * @brief this function open out file if it hasn't be done
- * if file size exceed 256Mo, file is truncated
+ * @brief simply allocator used by dlsym
  *
- * @return int file descriptor
  */
-static int open_file() {
-  static const char* out_file_path = nullptr;
-  if (!out_file_path) {
-    char* env_out_file_path = getenv("out_file_path");
-    if (env_out_file_path && strlen(env_out_file_path) > 0)
-      out_file_path = env_out_file_path;
-
-    else
-      out_file_path = "/tmp/malloc-trace.csv";
-  }
-  static unsigned long long max_file_size = 0;
-  if (!max_file_size) {
-    char* env_out_file_max_size = getenv("out_file_max_size");
-    if (env_out_file_max_size && atoll(env_out_file_max_size) > 0)
-      max_file_size = atoll(env_out_file_max_size);
-    else
-      max_file_size = 0x100000000;
-  }
-
-  std::lock_guard l(_write_m);
-  static int out_file = -1;
-  if (out_file < 0) {
-    out_file =
-        open(out_file_path, O_APPEND | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-  } else {
-    struct stat file_stat;
-    if (!fstat(out_file, &file_stat)) {
-      struct stat real_file_stat;
-      if (stat(out_file_path, &real_file_stat) ||
-          real_file_stat.st_ino !=
-              file_stat.st_ino) {  // file has been moved or deleted
-        if (out_file > 0)
-          close(out_file);
-        out_file =
-            open(out_file_path, O_APPEND | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-      }
-      if (file_stat.st_size > max_file_size) {
-        ftruncate(out_file, 0);
-      }
-    }
-  }
-  return out_file;
-}
-
-/**
- * @brief append a log in out file
- * backtrace size is 10 buy default, this can be modified by max_stack
- * environment variable
- *
- * @param p pointer returned by malloc or passed to free
- * @param size size allocated, 0 for free
- * @param funct_name malloc or free
- */
-static void dump_callstack(void* p, size_t size, const char* funct_name) {
-  int out_file = open_file();
-  if (out_file < 0)
-    return;
-  unsigned max_stack;
-  char* env_max_stack = getenv("max_stack");
-  if (env_max_stack && !absl::SimpleAtoi(env_max_stack, &max_stack)) {
-    max_stack = 10;
-  }
-
-  static funct_cache_map* _funct_cache = new funct_cache_map;
-  static std::mutex funct_cache_m;
-
-  constexpr unsigned size_buff = 0x40000;
-  char buff[size_buff];
-  char* end_buff = buff + size_buff - 10;
-  *end_buff = 0;
-
-  char* work_pos =
-      fmt::format_to_n(buff, size_buff, "\"{}\";{};{};{};\"[", funct_name,
-                       m_gettid(), reinterpret_cast<std::uintptr_t>(p), size)
-          .out;
-
-  boost::stacktrace::stacktrace call_stack;
-  if (!call_stack.empty()) {
-    unsigned stack_cpt = 0;
-    auto stack_iter = call_stack.begin();
-    ++stack_iter;
-    // one array element by stack layer
-    for (++stack_iter; stack_iter != call_stack.end() && stack_cpt < max_stack;
-         ++stack_iter, ++stack_cpt) {
-      if (end_buff - work_pos < 1000) {
-        break;
-      }
-
-      if (stack_cpt) {
-        *work_pos++ = ',';
-      }
-
-      const auto& stack_layer = *stack_iter;
-      auto addr = stack_layer.address();
-      funct_cache_map::const_iterator cache_entry;
-      {
-        std::unique_lock l(funct_cache_m);
-        cache_entry = _funct_cache->find(addr);
-        if (cache_entry == _funct_cache->end()) {
-          l.unlock();
-          funct_info to_insert(stack_layer.name(), stack_layer.source_file(),
-                               stack_layer.source_line());
-          l.lock();
-          cache_entry = _funct_cache->emplace(addr, to_insert).first;
-        }
-      }
-
-      work_pos =
-          fmt::format_to_n(
-              work_pos, end_buff - work_pos,
-              "{{\\\"f\\\":\\\"{}\\\" , \\\"s\\\":\\\"{}\\\" , \\\"l\\\":{}}}",
-              cache_entry->second.get_funct_name(),
-              cache_entry->second.get_source_file(),
-              cache_entry->second.get_source_line())
-              .out;
-    }
-  }
-  *work_pos++ = ']';
-  *work_pos++ = '"';
-  *work_pos++ = '\n';
-  std::lock_guard l(_write_m);
-  ::write(out_file, buff, work_pos - buff);
-}
-
 static simply_allocator _first_malloc;
+
+/**
+ * @brief the container that store every malloc and free
+ *
+ */
+static orphan_container* _orphans = new orphan_container;
 
 static void* first_malloc(size_t size) {
   return _first_malloc.malloc(size);
@@ -189,10 +74,12 @@ static void* first_realloc(void* p, size_t size) {
 
 typedef void* (*malloc_signature)(size_t);
 
+// will be filled by original malloc
 static malloc_signature original_malloc = first_malloc;
 
 typedef void* (*realloc_signature)(void*, size_t);
 
+// will be filled by original realloc
 static realloc_signature original_realloc = first_realloc;
 
 static void first_free(void* p) {
@@ -200,15 +87,16 @@ static void first_free(void* p) {
 }
 
 typedef void (*free_signature)(void*);
+// will be filled by original free
 static free_signature original_free = first_free;
 
 /**
  * @brief there is 3 stages
  * on the first alloc, we don't know malloc, realloc and free address
  * So we call dlsym to get these address
- * As dlsym allocate memory, we are in dlsym_running state and we provide
- * allocation mechanism by simply_allocator once dlsym are done, we are in hook
- * state
+ * As dlsym allocates memory, we are in dlsym_running state and we provide
+ * allocation mechanism by simply_allocator.
+ * Once dlsym are done, we are in hook state
  *
  */
 enum class e_library_state { not_hooked, dlsym_running, hooked };
@@ -241,12 +129,21 @@ static void* malloc(size_t size, const char* funct_name) {
     default:
       break;
   }
+
   void* p = original_malloc(size);
-  bool have_to_dump = _thread_dump_active.set_dump_active(m_gettid());
-  // if this thread is not yet dumping => call dump_callstack
+
+  pid_t thread_id = m_gettid();
+  bool have_to_dump = _thread_dump_active.set_dump_active(thread_id);
+
+  // if this thread is not yet dumping => store it
   if (have_to_dump) {
-    dump_callstack(p, size, funct_name);
-    _thread_dump_active.reset_dump_active(m_gettid());
+    if (_orphans) {
+      constexpr std::string_view _funct_name("malloc");
+      _orphans->add_malloc(p, size, thread_id, _funct_name,
+                           boost::stacktrace::stacktrace(), 2);
+      _orphans->flush_to_file();
+    }
+    _thread_dump_active.reset_dump_active(thread_id);
   }
   return p;
 }
@@ -271,13 +168,23 @@ void* realloc(void* p, size_t size) {
       break;
   }
   void* new_p = original_realloc(p, size);
-  bool have_to_dump = _thread_dump_active.set_dump_active(m_gettid());
+  pid_t thread_id = m_gettid();
+  bool have_to_dump = _thread_dump_active.set_dump_active(thread_id);
   // if this thread is not yet dumping => call dump_callstack
   if (have_to_dump) {
-    if (new_p != p)
-      dump_callstack(p, size, "free_realloc");
-    dump_callstack(new_p, size, "realloc");
-    _thread_dump_active.reset_dump_active(m_gettid());
+    constexpr std::string_view realloc_funct_name("realloc");
+    // if pointer has changed, we record a free
+    if (new_p != p && p) {
+      if (!_orphans->free(p)) {
+        constexpr std::string_view free_funct_name("freerealloc");
+        _orphans->add_free(p, thread_id, free_funct_name,
+                           boost::stacktrace::stacktrace(), 2);
+      }
+    }
+    _orphans->add_malloc(new_p, size, thread_id, realloc_funct_name,
+                         boost::stacktrace::stacktrace(), 2);
+    _orphans->flush_to_file();
+    _thread_dump_active.reset_dump_active(thread_id);
   }
   return new_p;
 }
@@ -294,6 +201,7 @@ void* malloc(size_t size) {
 
 /**
  * @brief our calloc function
+ * call to malloc
  *
  * @param num
  * @param size
@@ -315,10 +223,20 @@ void free(void* p) {
   if (_first_malloc.free(p))
     return;
   original_free(p);
-  bool have_to_dump = _thread_dump_active.set_dump_active(m_gettid());
+  if (!p)
+    return;
+
+  pid_t thread_id = m_gettid();
+  bool have_to_dump = _thread_dump_active.set_dump_active(thread_id);
+
   // if this thread is not yet dumping => call dump_callstack
   if (have_to_dump) {
-    dump_callstack(p, 0, "free");
-    _thread_dump_active.reset_dump_active(m_gettid());
+    if (!_orphans->free(p)) {
+      constexpr std::string_view free_funct_name("free");
+      _orphans->add_free(p, thread_id, free_funct_name,
+                         boost::stacktrace::stacktrace(), 2);
+      _orphans->flush_to_file();
+    }
+    _thread_dump_active.reset_dump_active(thread_id);
   }
 }

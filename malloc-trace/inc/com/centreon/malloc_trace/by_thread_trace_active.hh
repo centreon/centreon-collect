@@ -64,6 +64,11 @@ class thread_trace_active : public boost::intrusive::set_base_hook<> {
   };
 };
 
+/**
+ * @brief container of thread_trace_active with zero allocation
+ * the drawback is that we are limited to store 4096 thread trace states
+ *
+ */
 class thread_dump_active
     : protected intrusive_map<thread_trace_active,
                               thread_trace_active::key_extractor,

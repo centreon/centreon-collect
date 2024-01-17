@@ -23,10 +23,20 @@ project("Centreon malloc trace" C CXX)
 set(INC_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/malloc_trace")
 set(SRC_DIR "src")
 
-add_library(centreon-malloc-trace SHARED "src/malloc_trace.cc" "src/by_thread_trace_active.cc" "src/simply_allocator.cc")
-target_link_libraries(centreon-malloc-trace   CONAN_PKG::fmt
+add_library(centreon-malloc-trace SHARED 
+    "src/by_thread_trace_active.cc" 
+    "src/malloc_trace.cc" 
+    "src/orphan_container.cc" 
+    "src/simply_allocator.cc"
 )
 
-target_include_directories(centreon-malloc-trace PRIVATE ${INC_DIR}  )
+target_link_libraries(centreon-malloc-trace   
+    CONAN_PKG::fmt
+)
+
+target_include_directories(centreon-malloc-trace PRIVATE 
+    ${INC_DIR} 
+    ${CMAKE_SOURCE_DIR}/common/inc
+)
 
 target_precompile_headers(centreon-malloc-trace PRIVATE "precomp_inc/precomp.hh")

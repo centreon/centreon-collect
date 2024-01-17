@@ -9,5 +9,6 @@ CREATE TABLE `centreon_storage`.`malloc_trace` (
   `thread_id` INT UNSIGNED NULL,
   `address` BIGINT UNSIGNED NULL,
   `size` INT UNSIGNED NULL,
+  `ms_timestamp` BIGINT UNSIGNED NULL,
   `call_stack` TEXT(65535) NULL,
   FULLTEXT INDEX `call_stack_ind` (`call_stack`) VISIBLE);

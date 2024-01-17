@@ -35,8 +35,8 @@ class intrusive_map {
 
  private:
   node_type _nodes_array[node_array_size];
-  node_type* _free_node;
-  const node_type* _array_end;
+  node_type* _free_node = _nodes_array;
+  const node_type* _array_end = _free_node + node_array_size;
 
   using node_map =
       boost::intrusive::set<node_type,
@@ -45,10 +45,8 @@ class intrusive_map {
   node_map _nodes;
 
  public:
-  intrusive_map() {
-    _free_node = _nodes_array;
-    _array_end = _free_node + node_array_size;
-  }
+
+  ~intrusive_map() { _nodes.clear(); }
 
   const node_type* find(const key_type& key) const {
     auto found = _nodes.find(key);
@@ -59,8 +57,8 @@ class intrusive_map {
     }
   }
 
-  node_type* insert_and_get(const key_type& key) {
-    if (_free_node == _array_end) {
+  const node_type* insert_and_get(const key_type& key) {
+    if (_free_node >= _array_end) {
       return nullptr;
     }
 
@@ -69,6 +67,14 @@ class intrusive_map {
     _nodes.insert(*to_insert);
     return to_insert;
   }
+
+  /**
+   * @brief sometimes method are called before object construction
+   *
+   * @return true constructor has been called
+   * @return false
+   */
+  bool is_initialized() const { return _free_node; }
 };
 
 }  // namespace com::centreon::malloc_trace
