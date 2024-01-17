@@ -4787,3 +4787,46 @@ TEST_F(LuaTest, BadLua) {
   ASSERT_EQ(binding->write(svc), 0);
   RemoveFile(filename);
 }
+
+// When a lua script that contains a bad filter() function. "Bad" here
+// is because the return value is not a boolean.
+// Then has_filter() returns false and there is no leak on the stack.
+// (the leak is seen when compiled with -g).
+TEST_F(LuaTest, WithBadFilter1) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/with_bad_filter.lua");
+  CreateScript(filename,
+               "function init()\n"
+               "end\n"
+               "function filter(c, e)\n"
+               "  return \"foo\", \"bar\"\n"
+               "end\n"
+               "function write(d)\n"
+               "  return 1\n"
+               "end");
+  auto bb{std::make_unique<luabinding>(filename, conf, *_cache)};
+  ASSERT_FALSE(bb->has_filter());
+  RemoveFile(filename);
+}
+
+// When a lua script that contains a bad filter() function. "Bad" here
+// because the filter calls a function that doesn't exist.
+// Then has_filter() returns false and there is no leak on the stack.
+// (the leak is seen when compiled with -g).
+TEST_F(LuaTest, WithBadFilter2) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/with_bad_filter.lua");
+  CreateScript(filename,
+               "function init()\n"
+               "end\n"
+               "function filter(c, e)\n"
+               "  unexisting_function()\n"
+               "  return \"foo\", \"bar\"\n"
+               "end\n"
+               "function write(d)\n"
+               "  return 1\n"
+               "end");
+  auto bb{std::make_unique<luabinding>(filename, conf, *_cache)};
+  ASSERT_FALSE(bb->has_filter());
+  RemoveFile(filename);
+}
