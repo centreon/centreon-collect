@@ -1,20 +1,20 @@
 /**
-* Copyright 2018-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2018-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <absl/strings/str_split.h>
 #include <fmt/format.h>
@@ -4763,4 +4763,27 @@ TEST_F(LuaTest, JsonDecodeNull) {
   ASSERT_NE(result.find("INFO: v=>12"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
+}
+
+TEST_F(LuaTest, BadLua) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/bad.lua");
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  bad_function()\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  auto s{std::make_unique<neb::service>()};
+  s->host_id = 12;
+  s->service_id = 18;
+  s->output = "Bonjour";
+  std::shared_ptr<io::data> svc(s.release());
+  ASSERT_EQ(binding->write(svc), 0);
+  RemoveFile(filename);
 }
