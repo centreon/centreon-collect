@@ -293,8 +293,8 @@ elif [ -r /etc/issue ] ; then
   fi
 fi
 
-if ! pip3 install conan==1.62.0 --upgrade --break-system-packages ; then
-  pip3 install conan==1.62.0 --upgrade
+if ! pip3.8 install conan==1.62.0 --upgrade --break-system-packages ; then
+  pip3.8 install conan==1.62.0 --upgrade
 fi
 
 if which conan ; then

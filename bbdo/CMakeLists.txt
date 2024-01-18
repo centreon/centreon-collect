@@ -38,7 +38,9 @@ foreach(name IN LISTS protobuf_files)
     COMMENT "Generating interface files of the bbdo file ${proto_file}"
     COMMAND
     ${PROTOC} ARGS --experimental_allow_proto3_optional --cpp_out=${CMAKE_SOURCE_DIR}/bbdo
-      --proto_path=${CMAKE_SOURCE_DIR}/bbdo ${proto_file}
+      --proto_path=${CMAKE_BINARY_DIR}/_deps/grpc-src/third_party/protobuf/src/
+      --proto_path=${CMAKE_SOURCE_DIR}/bbdo
+      ${proto_file}
     VERBATIM)
 
   add_custom_target(

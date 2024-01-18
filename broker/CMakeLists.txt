@@ -99,6 +99,7 @@ add_custom_command(
   ${PROTOC} ARGS
     --experimental_allow_proto3_optional
     --plugin=protoc-gen-grpc=${GRPC_COMPILER}
+    --proto_path=${CMAKE_BINARY_DIR}/_deps/grpc-src/third_party/protobuf/src/
     --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
   DEPENDS ${SRC_DIR}/broker.proto
@@ -107,11 +108,13 @@ add_custom_command(
   COMMAND
   ${PROTOC} ARGS --cpp_out="${SRC_DIR}"
     --experimental_allow_proto3_optional
+    --proto_path=${CMAKE_BINARY_DIR}/_deps/grpc-src/third_party/protobuf/src/
     --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     ${SRC_DIR}/broker.proto)
 
 add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc"
                                                   "${SRC_DIR}/broker.pb.h")
+add_dependencies(target_broker_message grpc)
 
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
                     ${CMAKE_SOURCE_DIR}/common/inc)

@@ -94,6 +94,7 @@ add_custom_command(
   COMMENT "Generating interface files of grpc_stream.proto"
   COMMAND
   ${PROTOC} ARGS --cpp_out=${SRC_DIR}
+    --proto_path=${CMAKE_BINARY_DIR}/_deps/grpc-src/third_party/protobuf/src/
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
     grpc_stream.proto
   VERBATIM)
@@ -105,6 +106,7 @@ add_custom_command(
   COMMAND
   ${PROTOC} ARGS --grpc_out=${SRC_DIR}
     --plugin=protoc-gen-grpc=${GRPC_COMPILER}
+    --proto_path=${CMAKE_BINARY_DIR}/_deps/grpc-src/third_party/protobuf/src/
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
     grpc_stream.proto
   VERBATIM)

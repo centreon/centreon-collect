@@ -27,22 +27,87 @@ cmake_minimum_required(VERSION 3.16)
 project("Centreon Collect" C CXX)
 set(CMAKE_CXX_STANDARD 17)
 
+#
+# Get distributions name
+#
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  file(STRINGS "/etc/os-release" release REGEX "ID")
+
+  foreach(line ${release})
+    if(${line} MATCHES "ID_LIKE=.*")
+      string(REGEX REPLACE "ID_LIKE=\"(.*)\"" "\\1" like ${line})
+    endif()
+
+    if(${line} MATCHES "^ID=.*")
+      string(REGEX REPLACE "ID=\"(.*)\"" "\\1" id ${line})
+    endif()
+
+    if(${line} MATCHES "VERSION_ID=.*")
+      string(REGEX REPLACE "VERSION_ID=\"([0-9]*).*$" "\\1" os_version ${line})
+    endif()
+  endforeach()
+
+  string(TOLOWER "${like}" like)
+  string(TOLOWER "${id}" id)
+
+  if(("${id}" MATCHES "debian")
+     OR ("${like}" MATCHES "debian")
+     OR ("${id}" MATCHES "ubuntu")
+     OR ("${like}" MATCHES "ubuntu"))
+    set(OS_DISTRIBUTOR "Debian")
+  elseif(("${id}" MATCHES "centos") OR ("${like}" MATCHES "centos"))
+    set(OS_DISTRIBUTOR "CentOS")
+  else()
+    message(WARNING "lsb_release in not installed")
+    set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
+  endif()
+else()
+  set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
+endif()
+
 find_package(PkgConfig REQUIRED)
 
 find_package(OpenSSL REQUIRED)
 
 pkg_search_module(MARIADB REQUIRED mariadb libmariadb)
 
-pkg_check_modules(PROTOBUF REQUIRED protobuf)
-find_program(PROTOC protoc
-  PATHS /usr/bin /usr/local/bin
-  REQUIRED)
+message(NOTICE "-- use protoc compiler: ${PROTOC}")
 
-pkg_check_modules(GRPC REQUIRED grpc++)
+set(ABSL_PROPAGATE_CXX_STD ON)
 
-find_program(GRPC_COMPILER grpc_cpp_plugin
-  PATHS /usr/bin /usr/local/bin
-  REQUIRED)
+if (NOT os_version STREQUAL "8" OR NOT id STREQUAL "almalinux")
+  pkg_check_modules(PROTOBUF REQUIRED protobuf)
+  find_program(PROTOC protoc
+    PATHS /usr/bin /usr/local/bin
+    REQUIRED)
+
+  pkg_check_modules(GRPC REQUIRED grpc++)
+
+  find_program(GRPC_COMPILER grpc_cpp_plugin
+    PATHS /usr/bin /usr/local/bin
+    REQUIRED)
+else()
+  include(FetchContent)
+  set(gRPC_BUILD_CSHARP_EXT OFF CACHE INTERNAL "Turn off C# build")
+  set(gRPC_BUILD_GRPC_CSHARP_PLUGIN OFF CACHE INTERNAL "Turn off grpc C# plugin")
+  set(gRPC_BUILD_GRPC_NODE_PLUGIN OFF CACHE INTERNAL "Turn off grpc node plugin")
+  set(gRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN OFF CACHE INTERNAL "Turn off grpc objective C plugin")
+  set(gRPC_BUILD_GRPC_PHP_PLUGIN OFF CACHE INTERNAL "Turn off grpc php plugin")
+  set(gRPC_BUILD_GRPC_RUBY_PLUGIN OFF CACHE INTERNAL "Turn off grpc ruby plugin")
+  FetchContent_Declare(
+    GRPC
+    GIT_REPOSITORY    https://github.com/grpc/grpc
+    GIT_TAG           v1.51.1
+  )
+  set(FETCHCONTENT_QUIET OFF)
+  FetchContent_MakeAvailable(gRPC)
+  set(PROTOC "${CMAKE_BINARY_DIR}/_deps/grpc-build/third_party/protobuf/protoc")
+  include_directories(
+    "${CMAKE_BINARY_DIR}/_deps/grpc-src/third_party/protobuf/src"
+    "${CMAKE_BINARY_DIR}/_deps/grpc-src/include"
+    )
+  set(GRPC_COMPILER "${CMAKE_BINARY_DIR}/_deps/grpc-build/grpc_cpp_plugin")
+endif()
 
 option(WITH_ASAN
        "Add the libasan to check memory leaks and other memory issues." OFF)
@@ -92,40 +157,6 @@ set(BUILD_ARGS "-w" "dupbuild=warn")
 
 include_directories("inc")
 
-#
-# Get distributions name
-#
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  file(STRINGS "/etc/os-release" release REGEX "^ID")
-
-  foreach(line ${release})
-    if(${line} MATCHES "ID_LIKE=.*")
-      string(REGEX REPLACE "ID_LIKE=\"(.*)\"" "\\1" like ${line})
-    endif()
-
-    if(${line} MATCHES "ID=.*")
-      string(REGEX REPLACE "ID=\"(.*)\"" "\\1" id ${line})
-    endif()
-  endforeach()
-
-  string(TOLOWER "${like}" like)
-  string(TOLOWER "${id}" id)
-
-  if(("${id}" MATCHES "debian")
-     OR ("${like}" MATCHES "debian")
-     OR ("${id}" MATCHES "ubuntu")
-     OR ("${like}" MATCHES "ubuntu"))
-    set(OS_DISTRIBUTOR "Debian")
-  elseif(("${id}" MATCHES "centos") OR ("${like}" MATCHES "centos"))
-    set(OS_DISTRIBUTOR "CentOS")
-  else()
-    message(WARNING "lsb_release in not installed")
-    set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
-  endif()
-else()
-  set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
-endif()
-
 message(STATUS "${id} detected (compatible with ${OS_DISTRIBUTOR})")
 
 # set -latomic if OS is Raspbian.
@@ -154,10 +185,6 @@ conan_basic_setup(TARGETS)
 
 set(CMAKE_PROGRAM_PATH ${CONAN_BIN_DIRS_PROTOBUF};${CMAKE_PROGRAM_PATH})
 
-find_package(Protobuf REQUIRED)
-
-message(NOTICE "-- use protoc compiler: ${PROTOC}")
-
 include(GNUInstallDirs)
 
 # var directories.
@@ -185,6 +212,8 @@ if(WITH_TESTING AND WITH_COVERAGE)
   include(cmake/CodeCoverage.cmake)
   append_coverage_compiler_flags()
 endif()
+
+find_package(Protobuf REQUIRED)
 
 set(protobuf_MODULE_COMPATIBLE True)
 

@@ -38,6 +38,7 @@ add_custom_command(
   COMMAND
   ${PROTOC} ARGS
     --plugin=protoc-gen-grpc=${GRPC_COMPILER}
+    --proto_path=${CMAKE_BINARY_DIR}/_deps/grpc-src/third_party/protobuf/src/
     --proto_path=${ENGINERPC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     --grpc_out="${ENGINERPC_DIR}" ${ENGINERPC_DIR}/engine.proto
   DEPENDS ${ENGINERPC_DIR}/engine.proto
@@ -45,6 +46,7 @@ add_custom_command(
   OUTPUT ${ENGINERPC_DIR}/engine.pb.cc ${ENGINERPC_DIR}/engine.pb.h
   COMMAND
   ${PROTOC} ARGS --cpp_out="${ENGINERPC_DIR}"
+    --proto_path=${CMAKE_BINARY_DIR}/_deps/grpc-src/third_party/protobuf/src/
     --proto_path=${ENGINERPC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     ${ENGINERPC_DIR}/engine.proto)
 

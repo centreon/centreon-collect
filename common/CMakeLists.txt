@@ -31,12 +31,14 @@ add_custom_command(
   COMMAND
   ${PROTOC} ARGS
     --plugin=protoc-gen-grpc=${GRPC_COMPILER}
+    --proto_path=${CMAKE_BINARY_DIR}/_deps/grpc-src/third_party/protobuf/src/
     --proto_path=${SRC_DIR} --grpc_out="${SRC_DIR}"
     ${SRC_DIR}/process_stat.proto
   DEPENDS ${SRC_DIR}/process_stat.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${SRC_DIR}/process_stat.pb.cc ${SRC_DIR}/process_stat.pb.h
   COMMAND ${PROTOC} ARGS --cpp_out="${SRC_DIR}"
+          --proto_path=${CMAKE_BINARY_DIR}/_deps/grpc-src/third_party/protobuf/src/
           --proto_path=${SRC_DIR} ${SRC_DIR}/process_stat.proto)
 
 # Set sources.
