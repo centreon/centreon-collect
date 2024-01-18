@@ -848,6 +848,7 @@ void mysql_connection::_run() {
           ::mysql_error(_conn)));
       _state = finished;
       _start_condition.notify_all();
+      _clear_connection();
       return;
     }
     _last_access = std::time(nullptr);

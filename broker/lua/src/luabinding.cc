@@ -1,22 +1,23 @@
 /**
-* Copyright 2018 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2018-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <spdlog/fmt/ostr.h>
+
 #include <cassert>
 
 #include "com/centreon/broker/log_v2.hh"
@@ -40,6 +41,11 @@ static int l_pairs(lua_State* L) {
   return 3;
 }
 #endif
+
+#define RETURN_AND_POP(val)    \
+  lua_pop(_L, lua_gettop(_L)); \
+  return val
+
 /**
  *  Constructor.
  *
@@ -73,9 +79,17 @@ luabinding::luabinding(std::string const& lua_script,
   }
 }
 
+/**
+ * @brief Destructor of luabinding.
+ */
+luabinding::~luabinding() noexcept {
+  stop();
+}
+
 int32_t luabinding::stop() {
-  int32_t retval = flush();
+  int32_t retval = 0;
   if (_L) {
+    retval = flush();
     lua_close(_L);
     _L = nullptr;
   }
@@ -166,9 +180,30 @@ void luabinding::_load_script(const std::string& lua_script) {
         "lua: filter() global function is missing, the write() function will "
         "be called for each event");
     _filter = false;
-  } else
+  } else {
     _filter = true;
-  lua_pop(_L, 1);
+    /* Just a call with cat = 1 and elem = 2 of filter to check its return.
+     * It is not sufficent but checks almost all cases. */
+    lua_pushinteger(_L, 1);
+    lua_pushinteger(_L, 2);
+    if (lua_pcall(_L, 2, 1, 0) != 0) {
+      const char* ret = lua_tostring(_L, -1);
+      if (ret)
+        log_v2::lua()->error(
+            "lua: The filter() function doesn't work correctly: {}", ret);
+      else
+        log_v2::lua()->error(
+            "lua: The filter() function doesn't work correctly");
+      _filter = false;
+    } else {
+      if (!lua_isboolean(_L, -1)) {
+        log_v2::lua()->error(
+            "lua: The filter() function should return a boolean.");
+        _filter = false;
+      }
+    }
+  }
+  lua_pop(_L, lua_gettop(_L));
 
   // Checking for flush() availability: this function is optional
   lua_getglobal(_L, "flush");
@@ -231,6 +266,7 @@ void luabinding::_load_script(const std::string& lua_script) {
 
   // Registers the broker cache
   broker_cache::broker_cache_reg(_L, _cache, _broker_api_version);
+  assert(lua_gettop(_L) == 0);
 }
 
 /**
@@ -330,18 +366,18 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
         SPDLOG_LOGGER_ERROR(
             log_v2::lua(),
             "lua: unknown error while running function `filter()'");
-      return 0;
+      RETURN_AND_POP(0);
     }
 
     if (!lua_isboolean(_L, -1)) {
       SPDLOG_LOGGER_ERROR(log_v2::lua(), "lua: `filter' must return a boolean");
-      return 0;
+      RETURN_AND_POP(0);
     }
 
     execute_write = lua_toboolean(_L, -1);
     SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: `filter' returned {}",
                         (execute_write ? "true" : "false"));
-    lua_pop(_L, -1);
+    lua_pop(_L, lua_gettop(_L));
   }
 
   if (!execute_write)
@@ -371,15 +407,14 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
     else
       SPDLOG_LOGGER_ERROR(log_v2::lua(),
                           "lua: unknown error running function `write'");
-    return 0;
+    RETURN_AND_POP(0);
   }
 
   if (!lua_isboolean(_L, -1)) {
     SPDLOG_LOGGER_ERROR(log_v2::lua(), "lua: `write' must return a boolean");
-    return 0;
+    RETURN_AND_POP(0);
   }
   int acknowledge = lua_toboolean(_L, -1);
-  lua_pop(_L, -1);
 
   // We have to acknowledge rejected events by the filter. It is only possible
   // when an acknowledgement is sent by the write function.
@@ -387,7 +422,7 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
     retval = _total;
     _total = 0;
   }
-  return retval;
+  RETURN_AND_POP(retval);
 }
 
 /**
@@ -417,19 +452,18 @@ int32_t luabinding::flush() noexcept {
     else
       SPDLOG_LOGGER_ERROR(log_v2::lua(),
                           "lua: unknown error running function `flush'");
-    return 0;
+    RETURN_AND_POP(0);
   }
   if (!lua_isboolean(_L, -1)) {
     SPDLOG_LOGGER_ERROR(log_v2::lua(), "lua: `flush' must return a boolean");
-    return 0;
+    RETURN_AND_POP(0);
   }
   bool acknowledge = lua_toboolean(_L, -1);
-  lua_pop(_L, -1);
 
   int32_t retval = 0;
   if (acknowledge) {
     retval = _total;
     _total = 0;
   }
-  return retval;
+  RETURN_AND_POP(retval);
 }
