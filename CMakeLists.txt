@@ -37,6 +37,8 @@ if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_ID
     FATAL_ERROR "You can build broker with g++ or clang++. CMake will exit.")
 endif()
 
+option(WITH_MALLOC_TRACE "compile centreon-malloc-trace library." OFF)
+
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
 # set(CMAKE_CXX_COMPILER "clang++")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
@@ -189,6 +191,10 @@ add_subdirectory(clib)
 add_subdirectory(engine)
 add_subdirectory(connectors)
 add_subdirectory(ccc)
+
+if (WITH_MALLOC_TRACE)
+  add_subdirectory(malloc-trace)
+endif()
 
 add_custom_target(test-broker COMMAND tests/ut_broker)
 add_custom_target(test-engine COMMAND tests/ut_engine)
