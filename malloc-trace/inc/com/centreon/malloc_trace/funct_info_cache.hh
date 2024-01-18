@@ -20,7 +20,7 @@
 
 namespace com::centreon::malloc_trace {
 /**
- * @brief symbol information research is very costly
+ * @brief symbol information research is very expensive
  * so we store function informations in a cache
  *
  */

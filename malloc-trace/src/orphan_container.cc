@@ -29,7 +29,7 @@ using namespace com::centreon::malloc_trace;
  * @param allocated address allocated or freed
  * @param allocated_size size allocated
  * @param thread_id
- * @param funct_name
+ * @param funct_name malloc, free or freerealloc
  * @param backtrace
  * @param backtrace_offset we will ignore backtrace_offset first frames
  */

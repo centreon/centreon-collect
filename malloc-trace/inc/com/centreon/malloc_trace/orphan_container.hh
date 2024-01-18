@@ -28,8 +28,15 @@ namespace com::centreon::malloc_trace {
 constexpr size_t max_backtrace_size = 10;
 
 /**
- * @brief information or free or malloc with stacktrace
- *
+ * @brief information of free or malloc with stacktrace
+ * In this bean, we store:
+ *  - allocated address
+ *  - size of memory allocated (0 if free)
+ *  - thread id
+ *  - function name: malloc, free, realloc or freerealloc
+ *  - length of the backtrace
+ *  - backtrace
+ *  - timestamp
  */
 class backtrace_info {
   const void* _allocated;
@@ -131,8 +138,6 @@ class orphan_free : public backtrace_info,
  *
  */
 class orphan_container {
-  mutable std::mutex _protect;
-
   // malloc part
   // map alloc adress => orphan_malloc
   using orphan_malloc_address_set = boost::intrusive::set<
@@ -175,6 +180,8 @@ class orphan_container {
   std::chrono::system_clock::time_point _last_flush;
   size_t _max_file_size;
   std::string_view _out_file_path;
+
+  mutable std::mutex _protect;
 
   int open_file();
 

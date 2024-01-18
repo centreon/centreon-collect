@@ -25,12 +25,16 @@ namespace com::centreon::malloc_trace {
 
 /**
  * @brief This class is used to store the tracing of a thread
- * if trace is active we don't log stacktrace
+ * The problem is: malloc is called, we explore call stack and this research may
+ * do another malloc and we risk an infinite loop
+ * So the first malloc set the _malloc_trace_active and explore call stack
+ * The next malloc called by stacktrace process try to set _malloc_trace_active
+ * and as it's yet setted we don't try to explore call stack
  *
  */
 class thread_trace_active : public boost::intrusive::set_base_hook<> {
   pid_t _thread_id;
-  mutable bool _malloc_trace_active;
+  mutable bool _malloc_trace_active = false;
 
  public:
   thread_trace_active() {}
@@ -38,6 +42,11 @@ class thread_trace_active : public boost::intrusive::set_base_hook<> {
 
   pid_t get_thread_id() const { return _thread_id; }
 
+  /**
+   * @brief Set _malloc_trace_active
+   *
+   * @return old value of _malloc_trace_active
+   */
   bool set_malloc_trace_active() const {
     if (_malloc_trace_active) {
       return true;
@@ -46,6 +55,11 @@ class thread_trace_active : public boost::intrusive::set_base_hook<> {
     return false;
   }
 
+  /**
+   * @brief reset _malloc_trace_active
+   *
+   * @return old value of _malloc_trace_active
+   */
   bool reset_malloc_trace_active() const {
     if (!_malloc_trace_active) {
       return false;
