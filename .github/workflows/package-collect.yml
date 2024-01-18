@@ -146,14 +146,14 @@ jobs:
 
       - name: Tar binaries
         # used only to generate engine image only for develop
-        if: ${{  needs.get-version.outputs.branch == 'develop' }}
+        #if: ${{  needs.get-version.outputs.branch == 'develop' }}
         shell: bash
         run: tar -cf collect-binaries.tar  bin/centengine bin/centreon_connector_perl bin/centreon_connector_ssh lib/*.so
 
       - name: Save binaries in cache
         # used only to generate engine image only for develop
-        if: ${{  needs.get-version.outputs.branch == 'develop' }}
-        uses: actions/cache/save@v3
+        #if: ${{  needs.get-version.outputs.branch == 'develop' }}
+        uses: actions/cache/save@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
           path: collect-binaries.tar
           key: binaries-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.sha }}
