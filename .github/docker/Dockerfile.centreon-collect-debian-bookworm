@@ -6,8 +6,6 @@ RUN <<EOF
 
 apt-get update
 
-echo 'http://deb.debian.org/debian' | apt-get install -y pbuilder
-
 apt-get -y install cmake \
     curl \
     gcc \
@@ -25,13 +23,7 @@ apt-get -y install cmake \
     python3-pip \
     libperl-dev \
     libgcrypt20-dev \
-    dh-make \
     aptitude \
-    lintian \
-    quilt \
-    git-buildpackage \
-    debmake \
-    devscripts \
     fakeroot \
     strace \
     locales \
