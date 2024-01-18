@@ -15,6 +15,8 @@ COPY lib/70-lua.so /usr/share/centreon/lib/centreon-broker/
 COPY lib/15-stats.so /usr/share/centreon/lib/centreon-broker/
 COPY lib/60-tls.so /usr/share/centreon/lib/centreon-broker/
 COPY engine/scripts/launch-engine-in-container.sh /usr/sbin/launch-engine-in-container.sh
+COPY .github/docker/default_engine_config/*.cfg /etc/centreon-engine/
+COPY .github/docker/default_engine_config/central-module.json.origin /etc/centreon-broker/
 
 RUN <<EOF
 
@@ -59,5 +61,5 @@ usermod -a -G nagios centreon-engine
 
 EOF
 
-CMD [ "/bin/bash", "/usr/sbin/launch-engine-in-container.sh" ]
+ENTRYPOINT [ "/bin/bash", "/usr/sbin/launch-engine-in-container.sh" ]
 

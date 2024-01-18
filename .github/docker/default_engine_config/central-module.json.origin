@@ -1,0 +1,51 @@
+{
+    "centreonBroker": {
+        "broker_id": 3,
+        "broker_name": "central-module-master",
+        "poller_id": 1,
+        "poller_name": "Central",
+        "module_directory": "/usr/share/centreon/lib/centreon-broker",
+        "log_timestamp": false,
+        "log_thread_id": false,
+        "event_queue_max_size": 100000,
+        "command_file": "",
+        "cache_directory": "/var/lib/centreon-engine",
+        "bbdo_version": "3.0.0",
+        "log": {
+            "directory": "/var/log/centreon-broker/",
+            "filename": "",
+            "max_size": 0,
+            "loggers": {
+                "core": "info",
+                "config": "info",
+                "sql": "info",
+                "processing": "info",
+                "perfdata": "info",
+                "bbdo": "info",
+                "tcp": "info",
+                "tls": "info",
+                "lua": "info",
+                "bam": "info"
+            }
+        },
+        "output": [
+            {
+                "name": "central-module-master-output",
+                "port": "5669",
+                "host": "broker_host",
+                "protocol": "bbdo",
+                "tls": "no",
+                "negotiation": "yes",
+                "one_peer_retention_mode": "no",
+                "type": "ipv4"
+            }
+        ],
+        "stats": [
+            {
+                "type": "stats",
+                "name": "central-module-master-stats",
+                "json_fifo": "/var/lib/centreon-engine/central-module-master-stats.json"
+            }
+        ]
+    }
+}

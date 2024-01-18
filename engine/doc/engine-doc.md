@@ -35,9 +35,31 @@ Checkable class inherited by service and host classes keeps the last result of w
 ## Engine docker image
 
 Each time develop branch of collect is compiled several engine docker images are created: docker.centreon.com/centreon/centreon-collect-engine-....
-In this image, you will find of course centengine, but also cbmod, connectors, tcp and lua module, nagios plugins and dependencies needed by centreon perl plugins. 
+In this image, you will find of course centengine with default connection, but also cbmod, connectors, tcp and lua module, nagios plugins and dependencies needed by centreon perl plugins but no perl plugins. 
 
 centengine is started by engine/scripts/launch-engine-in-container.sh script. It creates all mandatory folders like /var/log/centreon-engine with the correct rights
+
+### Directories mapping
+| container directory       | description                                                                                                             |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| /etc/centreon-engine      | engine configuration (overrides default engine configuration)                                                           |
+| /etc/centreon-broker      | cbmod configuration (overrides default module configuration)                                                            |
+| /var/log                  | container will create centreon-engine and centreon-broker to write logs of cbmod and centengine                         |
+| /var/lib                  | container will create centreon-engine and centreon-broker to store queue files, stats and command pipe (centengine.cmd) |
+| /usr/lib/centreon/plugins | directory where centengine will find perl plugins (no plugins is provided by the container)                             |
+
+
+### Run with default configuration
+Default configuration contains four hosts with one ping service.
+You have to provide broker host address as a param to docker run.
+The default module configuration has broker host 'broker_host' that will be replaced by docker run first argument.
+
+Example to connect engine to a broker running on parent host:
+```bash
+docker run  -v /data/engine_folders/lib:/var/lib -v /data/engine_folders/log:/var/log -v /data/engine_folders/centron-plugins:/usr/lib/centreon/plugins docker.centreon.com/centreon/centreon-collect-engine-alma8-amd64:develop 172.17.0.1
+```
+
+### Provide your own configuration
 
 In order to use it, you must provides:
 * a directory that contains engine configuration that must be mapped in /etc/centreon-engine
@@ -47,6 +69,7 @@ In order to use it, you must provides:
 * a directory that contains centreon perl plugins that mus be mapped to /usr/lib/centreon/plugins
 
 An example:
+
 On host hard drive:
 /data/engine_folders/
   * centreon-engine
