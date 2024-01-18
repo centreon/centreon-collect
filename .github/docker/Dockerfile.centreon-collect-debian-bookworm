@@ -6,6 +6,8 @@ RUN <<EOF
 
 apt-get update
 
+echo 'http://deb.debian.org/debian' | apt-get install -y pbuilder
+
 apt-get -y install cmake \
     curl \
     gcc \
