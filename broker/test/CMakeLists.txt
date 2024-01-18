@@ -75,7 +75,7 @@ target_link_libraries(
   rpc_client
   berpc
   centreon_common
-  CONAN_PKG::zlib
+  ZLIB::ZLIB
   dl
   pthread)
 
@@ -137,10 +137,9 @@ target_link_libraries(
   ${TESTS_LIBRARIES}
   conflictmgr
   centreon_common
-  CONAN_PKG::nlohmann_json
-  CONAN_PKG::fmt
-  CONAN_PKG::spdlog
-  CONAN_PKG::gtest)
+  nlohmann_json::nlohmann_json
+  spdlog::spdlog
+  gtest::gtest)
 
 add_dependencies(
   ut_broker

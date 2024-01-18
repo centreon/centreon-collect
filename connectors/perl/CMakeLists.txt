@@ -52,7 +52,10 @@ add_executable(centreon_connector_perl
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/policy.hh
 )
 add_dependencies(centreon_connector_perl centreon_clib)
-target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} CONAN_PKG::spdlog CONAN_PKG::fmt CONAN_PKG::abseil pthread)
+target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} spdlog::spdlog
+  absl::any
+  #abseil::abseil
+  pthread)
 
 target_precompile_headers(centreon_connector_perl PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
 

@@ -51,7 +51,7 @@ add_library("${TCP}" SHARED
   ${HEADERS}
 )
 set_target_properties("${TCP}" PROPERTIES PREFIX "")
-target_link_libraries("${TCP}" CONAN_PKG::spdlog)
+target_link_libraries("${TCP}" spdlog::spdlog)
 target_precompile_headers(${TCP} PRIVATE precomp_inc/precomp.hpp)
 
 # Testing.

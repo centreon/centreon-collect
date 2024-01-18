@@ -40,7 +40,7 @@ set(CONFLICTMGR
     conflictmgr
     PARENT_SCOPE)
 set_target_properties(conflictmgr PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(conflictmgr CONAN_PKG::spdlog)
+target_link_libraries(conflictmgr spdlog::spdlog)
 target_precompile_headers(conflictmgr PRIVATE precomp_inc/precomp.hpp)
 
 # Storage module.

@@ -121,7 +121,10 @@ include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
-target_link_libraries(berpc ${PROTOBUF_LIBRARIES} ${GRPC_LIBRARIES} CONAN_PKG::abseil)
+target_link_libraries(berpc ${PROTOBUF_LIBRARIES} ${GRPC_LIBRARIES}
+  absl::any
+  #abseil::abseil
+)
 set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 # Version.
@@ -449,7 +452,7 @@ set(LIBROKER_SOURCES
 add_library(rokerlog STATIC ${SRC_DIR}/log_v2.cc)
 set_target_properties(rokerlog PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerlog REUSE_FROM multiplexing)
-target_link_libraries(rokerlog CONAN_PKG::spdlog)
+target_link_libraries(rokerlog spdlog::spdlog)
 
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
@@ -462,8 +465,8 @@ target_link_libraries(
   pb_bbdo_lib
   pb_extcmd_lib
   berpc
-  CONAN_PKG::zlib
-  CONAN_PKG::spdlog
+  ZLIB::ZLIB
+  spdlog::spdlog
   pthread
   dl)
 
@@ -487,12 +490,11 @@ target_link_libraries(
   multiplexing
   centreon_common
   "-Wl,--no-whole-archive"
-  CONAN_PKG::nlohmann_json
-  CONAN_PKG::fmt
+  nlohmann_json::nlohmann_json
   ${GRPC_LIBRARIES}
   OpenSSL::SSL
   OpenSSL::Crypto
-  CONAN_PKG::spdlog)
+  spdlog::spdlog)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)

@@ -115,7 +115,7 @@ add_library(
 )
 
 # Flags needed to include all symbols in binary.
-target_link_libraries(${NEB} nebbase CONAN_PKG::spdlog)
+target_link_libraries(${NEB} nebbase spdlog::spdlog)
 
 set_target_properties("${NEB}" PROPERTIES PREFIX "")
 target_precompile_headers(${NEB} REUSE_FROM nebbase)
@@ -155,13 +155,13 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     rokerbase
     multiplexing
     "-Wl,--no-whole-archive"
-    CONAN_PKG::nlohmann_json
-    CONAN_PKG::spdlog
+    nlohmann_json::nlohmann_json
+    spdlog::spdlog
     ${PROTOBUF_LIBRARIES}
     nebbase)
 else()
-  target_link_libraries("${CBMOD}" "rokerbase" CONAN_PKG::nlohmann_json
-                        CONAN_PKG::spdlog
+  target_link_libraries("${CBMOD}" "rokerbase" nlohmann_json::nlohmann_json
+                        spdlog::spdlog
 			${PROTOBUF_LIBRARIES})
 endif()
 

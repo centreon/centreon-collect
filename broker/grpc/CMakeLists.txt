@@ -69,7 +69,7 @@ target_link_libraries(
   pb_remove_graph_message_lib
   pb_header_lib
   "-Wl,--no-whole-archive"
-  CONAN_PKG::spdlog)
+  spdlog::spdlog)
 
 target_precompile_headers(${GRPC} PRIVATE precomp_inc/precomp.hh)
 

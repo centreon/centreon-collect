@@ -9,4 +9,7 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
 add_executable(bench int64_map.cc)
-target_link_libraries(bench CONAN_PKG::benchmark CONAN_PKG::abseil CONAN_PKG::fmt)
+target_link_libraries(bench CONAN_PKG::benchmark
+  #abseil::abseil
+  absl::any
+  fmt::fmt)

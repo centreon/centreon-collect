@@ -89,13 +89,12 @@ if(WITH_TESTING)
 
   target_link_libraries(
     ut_connector
-    CONAN_PKG::gtest
+    gtest::gtest
     centreon_clib
     ${PERL_LIBRARIES}
-    CONAN_PKG::fmt
-    CONAN_PKG::spdlog
-    CONAN_PKG::libssh2
-    CONAN_PKG::abseil
+    spdlog::spdlog
+    #abseil::abseil
+    absl::any
     ${LIBSSH2_LIBRARIES})
 
   set_target_properties(

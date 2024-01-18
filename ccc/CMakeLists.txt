@@ -57,7 +57,7 @@ target_link_libraries(
   cerpc
   berpc
   centreon_common
-  CONAN_PKG::fmt)
+  fmt::fmt)
 set_target_properties(
   ccc PROPERTIES COMPILE_FLAGS "-fPIC")
 

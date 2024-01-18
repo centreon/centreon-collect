@@ -32,7 +32,7 @@ set_target_properties(${STATS_EXPORTER} PROPERTIES PREFIX "")
 target_link_libraries(
   ${STATS_EXPORTER}
   CONAN_PKG::libcurl
-  CONAN_PKG::spdlog
+  spdlog::spdlog
   -L${CONAN_LIB_DIRS_OPENTELEMETRY-CPP}
   opentelemetry_version
   opentelemetry_exporter_otlp_grpc

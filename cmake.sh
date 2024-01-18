@@ -18,15 +18,6 @@ EOF
 }
 BUILD_TYPE="Debug"
 CONAN_REBUILD="0"
-for i in $(cat conanfile.txt) ; do
-  if [[ "$i" =~ / ]] ; then
-    if [ ! -d ~/.conan/data/$i ] ; then
-      echo "The package '$i' is missing"
-      CONAN_REBUILD="1"
-      break
-    fi
-  fi
-done
 
 STD=gnu17
 COMPILER=gcc
@@ -121,13 +112,17 @@ if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
     fi
   else
     yum -y install gcc-c++
-    if [[ ! -x /usr/bin/python3 ]] ; then
-      yum -y install python3
+    if [[ ! -x /usr/bin/python3.9 ]] ; then
+      yum -y install python39-devel
+      rm /etc/alternatives/python3
+      ln -s /usr/bin/python3.9 /etc/alternatives/python3
     else
       echo "python3 already installed"
     fi
-    if ! rpm -q python3-pip ; then
-      yum -y install python3-pip
+    if ! rpm -q python39-pip ; then
+      yum -y install python39-pip
+      rm /etc/alternatives/pip3
+      ln -s /usr/bin/pip3.9 /etc/alternatives/pip3
     else
       echo "pip3 already installed"
     fi
@@ -293,8 +288,8 @@ elif [ -r /etc/issue ] ; then
   fi
 fi
 
-if ! pip3.8 install conan==1.62.0 --upgrade --break-system-packages ; then
-  pip3.8 install conan==1.62.0 --upgrade
+if ! pip3 install conan --upgrade --break-system-packages ; then
+  pip3 install conan --upgrade
 fi
 
 if which conan ; then
@@ -326,10 +321,10 @@ gcc)
   ;;
 esac
 
-if [ "$CONAN_REBUILD" -eq 1 -o ! -r "$HOME/.conan/profiles/default" ] ; then
+if [ "$CONAN_REBUILD" -eq 1 -o ! -r "$HOME/.conan2/profiles/default" ] ; then
   echo "Creating default profile"
-  mkdir -p "$HOME/.conan/profiles"
-  cat << EOF > "$HOME/.conan/profiles/default"
+  mkdir -p "$HOME/.conan2/profiles"
+  cat << EOF > "$HOME/.conan2/profiles/default"
 [settings]
 arch=x86_64
 build_type=Release
@@ -341,10 +336,8 @@ os=Linux
 EOF
 fi
 
-cd build
-
 echo "$conan install .. --build=missing"
-$conan install .. --build=missing
+$conan install . --output-folder=build --build=missing
 
 if [ "$SC" -eq 1 ] ; then
   SCCACHE="-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
@@ -352,10 +345,12 @@ else
   SCCACHE=
 fi
 
+cd build
+
 if [[ "$maj" == "Raspbian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $* ..
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake --preset conan-release $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $* ..
 elif [[ "$maj" == "Debian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $* ..
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake --preset conan-release $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $* ..
 else
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $* ..
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake --preset conan-release $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $* ..
 fi

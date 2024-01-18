@@ -36,7 +36,7 @@ if(WITH_TESTING)
     centreon_common
     OpenSSL::SSL
     OpenSSL::Crypto
-    CONAN_PKG::zlib
+    ZLIB::ZLIB
     dl
     pthread)
 
@@ -172,11 +172,12 @@ if(WITH_TESTING)
     enginelog
     pthread
     ${GCOV}
-    CONAN_PKG::gtest
-    CONAN_PKG::zlib
-    CONAN_PKG::fmt
-    CONAN_PKG::rapidyaml
-    CONAN_PKG::abseil
+    gtest::gtest
+    ZLIB::ZLIB
+    fmt::fmt
+    ryml::ryml
+    absl::any
+    #abseil::abseil
     stdc++fs
     dl)
 endif()
