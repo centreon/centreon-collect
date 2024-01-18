@@ -38,6 +38,20 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
+      - name: install gh cli on self-hosted runner
+        run: |
+          if [[ $(gh) -ne 0 ]]; then
+            type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+            sudo apt update \
+            sudo apt install gh -y
+          else
+            echo "GH CLI is already installed."
+          fi
+        shell: bash
+
       - id: get_version
         run: |
           IMG_VERSION=$( cat `ls .github/docker/Dockerfile.centreon-collect-* | grep -v test` conanfile.txt | md5sum | awk '{print substr($1, 0, 8)}')
@@ -60,8 +74,10 @@ jobs:
               echo "release=1" >> $GITHUB_OUTPUT
               ;;
             release* | hotfix*)
-              if [[ "$GITHUB_BASE_REF" == "master" ]]; then
-                # This case is specific to cloud release
+              # Handle workflow_dispatch run triggers
+              GITHUB_RELEASE_BRANCH_BASE_REF_NAME="$(gh pr view -q .baseRefName --json headRefName,baseRefName,state)"
+              GITHUB_RELEASE_BRANCH_PR_STATE="$(gh pr view -q .state --json headRefName,baseRefName,state)"
+              if [[ "$GITHUB_RELEASE_BRANCH_BASE_REF_NAME" == "master" ]] && [[ "$GITHUB_RELEASE_BRANCH_PR_STATE" == "OPEN" ]]; then                # This case is specific to cloud release
                 echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
               else
                 echo "release=1" >> $GITHUB_OUTPUT
