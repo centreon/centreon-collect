@@ -17,8 +17,11 @@ on:
         type: string
 
 jobs:
-  package:
+  get-version:
+    uses: ./.github/workflows/get-version.yml
 
+  package:
+    needs: [get-version]
     strategy:
       fail-fast: false
       matrix:
@@ -89,7 +92,7 @@ jobs:
           sudo $CMAKE \
                   -G "Ninja" \
                   -DDEBUG_ROBOT=OFF \
-                  -DWITH_TESTING=OFF \
+                  -DWITH_TESTING=ON \
                   -DWITH_BENCH=ON \
                   -DWITH_MODULE_SIMU=OFF \
                   -DCMAKE_INSTALL_PREFIX=/usr \
@@ -108,6 +111,10 @@ jobs:
                   .
 
           sudo ninja
+        shell: bash
+
+      - name: Unit tests
+        run: .github/scripts/collect-unit-tests.sh
         shell: bash
 
       - name: Generate debug files
@@ -136,6 +143,20 @@ jobs:
       - name: Cleaning not needed packages
         shell: bash
         run: rm -rf *-debuginfo*.${{ matrix.package_extension }}
+
+      - name: Tar binaries
+        # used only to generate engine image only for develop
+        if: ${{  needs.get-version.outputs.branch == 'develop' }}
+        shell: bash
+        run: tar -cf collect-binaries.tar  bin/centengine bin/centreon_connector_perl bin/centreon_connector_ssh lib/*.so
+
+      - name: Save binaries in cache
+        # used only to generate engine image only for develop
+        if: ${{  needs.get-version.outputs.branch == 'develop' }}
+        uses: actions/cache/save@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        with:
+          path: collect-binaries.tar
+          key: binaries-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.sha }}
 
       # set condition to true if artifacts are needed
       - if: ${{ false }}
