@@ -7,6 +7,7 @@ RUN <<EOF
 apt-get update
 
 apt-get -y install cmake \
+    git \
     curl \
     gcc \
     g++ \
@@ -23,14 +24,9 @@ apt-get -y install cmake \
     python3-pip \
     libperl-dev \
     libgcrypt20-dev \
-    dh-make \
     aptitude \
-    lintian \
     pbuilder \
-    quilt \
     git-buildpackage \
-    debmake \
-    devscripts \
     fakeroot \
     strace \
     locales \
