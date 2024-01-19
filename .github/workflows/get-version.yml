@@ -50,6 +50,7 @@ jobs:
           else
             echo "GH CLI is already installed."
           fi
+          gh auth login --with-token ${{ secrets.GITHUB_TOKEN }}
         shell: bash
 
       - id: get_version
