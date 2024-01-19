@@ -102,31 +102,22 @@ if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
       cmake='cmake'
     fi
   fi
-  if [[ "$maj" == "centos7" ]] ; then
-    if [[ ! -x /opt/rh/rh-python38 ]] ; then
-      yum -y install centos-release-scl
-      yum -y install rh-python38
-      source /opt/rh/rh-python38/enable
-    else
-      echo "python38 already installed"
-    fi
+  yum -y install gcc-c++
+  if [[ ! -x /usr/bin/python3.9 ]] ; then
+    yum -y install python39-devel
+    rm /etc/alternatives/python3
+    ln -s /usr/bin/python3.9 /etc/alternatives/python3
   else
-    yum -y install gcc-c++
-    if [[ ! -x /usr/bin/python3.9 ]] ; then
-      yum -y install python39-devel
-      rm /etc/alternatives/python3
-      ln -s /usr/bin/python3.9 /etc/alternatives/python3
-    else
-      echo "python3 already installed"
-    fi
-    if ! rpm -q python39-pip ; then
-      yum -y install python39-pip
-      rm /etc/alternatives/pip3
-      ln -s /usr/bin/pip3.9 /etc/alternatives/pip3
-    else
-      echo "pip3 already installed"
-    fi
+    echo "python3 already installed"
   fi
+  if ! rpm -q python39-pip ; then
+    yum -y install python39-pip
+    rm /etc/alternatives/pip3
+    ln -s /usr/bin/pip3.9 /etc/alternatives/pip3
+  else
+    echo "pip3 already installed"
+  fi
+
 
   good=$(gcc --version | awk '/gcc/ && ($3+0)>5.0{print 1}')
 
@@ -171,7 +162,6 @@ if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
     fi
   done
 elif [ -r /etc/issue ] ; then
-  echo "####################### 1 #####################"
   maj=$(head -1 /etc/issue | awk '{print $1}')
   version=$(head -1 /etc/issue | awk '{print $3}')
   if [[ "$version" == "9" ]] ; then
@@ -239,25 +229,26 @@ elif [ -r /etc/issue ] ; then
     done
   elif [[ "$maj" == "Raspbian" ]] ; then
     pkgs=(
-      gcc
       g++
-      pkg-config
-      libmariadb3
-      librrd-dev
+      gcc
+      libcurl4-gnutls-dev
+      libgcrypt20-dev
       libgnutls28-dev
-      ninja-build
+      libgrpc++-dev
       liblua5.3-dev
+      libmariadb-dev
+      libmariadb3
+      libperl-dev
+      libprotobuf-dev
+      librrd-dev
+      libssh2-1-dev
+      libssl-dev
+      ninja-build
+      pkg-config
+      protobuf-compiler
+      protobuf-compiler-grpc
       python3
       python3-pip
-      libperl-dev
-      libgcrypt20-dev
-      libssl-dev
-      libprotobuf-dev
-      protobuf-compiler
-      libgrpc++-dev
-      protobuf-compiler-grpc
-      libmariadb-dev
-      libcurl4-gnutls-dev
     )
     for i in "${pkgs[@]}"; do
       if ! $dpkg -l $i | grep "^ii" ; then
@@ -347,6 +338,20 @@ if [ "$SC" -eq 1 ] ; then
   SCCACHE="-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
 else
   SCCACHE=
+fi
+
+if [[ "$maj" == "Raspbian" || "$maj" == "Debian" ]] ; then
+  v=$($cmake --version)
+  echo "##### CMake version ${v} #####"
+  regex="version 3\.([0-9]*)"
+  if [[ "$v" =~ $regex ]] ; then
+    min=${BASH_REMATCH[1]}
+    if ((min < 23)) ; then
+      echo "deb http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
+      apt update
+      apt install -y cmake/bullseye-backports
+    fi
+  fi
 fi
 
 cd build
