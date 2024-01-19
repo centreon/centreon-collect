@@ -25,7 +25,7 @@ add_definitions(${GTest_DEFINITIONS})
 
 target_link_libraries(ut_common centreon_common
   absl::strings
-  gtest::gtest
+  ${GTest_LIBRARIES}
   ${fmt_LIBRARIES}
   pthread)
 
