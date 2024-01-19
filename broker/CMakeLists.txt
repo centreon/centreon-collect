@@ -122,8 +122,7 @@ include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
 target_link_libraries(berpc ${PROTOBUF_LIBRARIES} ${GRPC_LIBRARIES}
-  absl::any
-  #abseil::abseil
+  ${ABSL_LIBRARIES}
 )
 set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 
@@ -467,6 +466,8 @@ target_link_libraries(
   berpc
   ZLIB::ZLIB
   spdlog::spdlog
+  OpenSSL::SSL
+  OpenSSL::Crypto
   pthread
   dl)
 
@@ -492,8 +493,6 @@ target_link_libraries(
   "-Wl,--no-whole-archive"
   nlohmann_json::nlohmann_json
   ${GRPC_LIBRARIES}
-  OpenSSL::SSL
-  OpenSSL::Crypto
   spdlog::spdlog)
 
 # Centreon Broker Watchdog

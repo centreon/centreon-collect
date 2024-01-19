@@ -24,6 +24,10 @@ set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/test")
 
+include_directories(
+  ${INCLUDE_DIR}
+  )
+
 add_custom_command(
   DEPENDS ${SRC_DIR}/process_stat.proto
   COMMENT "Generating interface files of the proto file (grpc)"
@@ -44,9 +48,6 @@ add_custom_command(
 # Set sources.
 set(SOURCES ${SRC_DIR}/process_stat.cc ${SRC_DIR}/process_stat.pb.cc
             ${SRC_DIR}/process_stat.grpc.pb.cc ${SRC_DIR}/hex_dump.cc)
-
-# Include directories.
-include_directories("${INCLUDE_DIR}")
 
 add_library(centreon_common STATIC ${SOURCES})
 set_property(TARGET centreon_common PROPERTY POSITION_INDEPENDENT_CODE ON)

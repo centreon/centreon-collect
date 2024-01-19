@@ -127,6 +127,8 @@ add_executable(
   # Module sources.
   ${TESTS_SOURCES})
 
+target_include_directories(ut_broker PUBLIC ${GTest_INCLUDE_DIRS})
+
 target_link_libraries(
   ut_broker
   test_util
@@ -139,6 +141,7 @@ target_link_libraries(
   centreon_common
   nlohmann_json::nlohmann_json
   spdlog::spdlog
+  absl::strings
   gtest::gtest)
 
 add_dependencies(

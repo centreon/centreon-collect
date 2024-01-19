@@ -19,12 +19,15 @@
 add_executable(ut_common process_stat_test.cc hex_dump_test.cc
                          node_allocator_test.cc)
 
-# target_include_directories(ut_common ${CONAN_INCLUDE_DIRS_GTEST})
+target_include_directories(ut_common PUBLIC ${GTest_INCLUDE_DIRS})
 
-target_link_libraries(ut_common centreon_common gtest::gtest
-  #abseil::abseil
-  absl::any
-  fmt::fmt pthread)
+add_definitions(${GTest_DEFINITIONS})
+
+target_link_libraries(ut_common centreon_common
+  absl::strings
+  gtest::gtest
+  ${fmt_LIBRARIES}
+  pthread)
 
 add_dependencies(ut_common centreon_common)
 

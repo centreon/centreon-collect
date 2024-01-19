@@ -59,8 +59,7 @@ target_link_libraries(
   centreon_clib
   spdlog::spdlog
   ${LIBSSH2_LIBRARIES}
-  absl::any
-  #abseil::abseil
+  ${ABSL_LIBRARIES}
   pthread)
 
 target_precompile_headers(centreon_connector_ssh REUSE_FROM

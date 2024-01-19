@@ -139,7 +139,8 @@ set(HEADERS
     "${INC_DIR}/unordered_hash.hh")
 
 # Include directories.
-include_directories("${INCLUDE_DIR}")
+include_directories("${INCLUDE_DIR}"
+  ${FMT_INC_DIR})
 
 # Add subdirectories.
 add_subdirectory(src/clib)

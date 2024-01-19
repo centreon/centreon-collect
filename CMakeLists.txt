@@ -67,17 +67,46 @@ endif()
 
 #find_package(absl REQUIRED)
 find_package(ZLIB REQUIRED)
+find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(GTest REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json)
 find_package(ryml)
+find_package(Boost)
 
 pkg_search_module(LIBSSH2 REQUIRED libssh2)
 pkg_search_module(MARIADB REQUIRED mariadb libmariadb)
 
-message(NOTICE "-- use protoc compiler: ${PROTOC}")
+include(FetchContent)
+set(gRPC_BUILD_CSHARP_EXT OFF CACHE INTERNAL "Turn off C# build")
+set(gRPC_BUILD_GRPC_CSHARP_PLUGIN OFF CACHE INTERNAL "Turn off grpc C# plugin")
+set(gRPC_BUILD_GRPC_NODE_PLUGIN OFF CACHE INTERNAL "Turn off grpc node plugin")
+set(gRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN OFF CACHE INTERNAL "Turn off grpc objective C plugin")
+set(gRPC_BUILD_GRPC_PHP_PLUGIN OFF CACHE INTERNAL "Turn off grpc php plugin")
+set(gRPC_BUILD_GRPC_RUBY_PLUGIN OFF CACHE INTERNAL "Turn off grpc ruby plugin")
+set(ABSL_PROPAGATE_CXX_STD ON)
+FetchContent_Declare(
+  gRPC
+  GIT_REPOSITORY    https://github.com/grpc/grpc
+  GIT_TAG           v1.51.1
+  FIND_PACKAGE_ARGS
+)
+set(FETCHCONTENT_QUIET OFF)
+FetchContent_MakeAvailable(gRPC)
+
+if (TARGET grpc++)
+  message(STATUS "gRPC FOUND !!!!!!!!!!!!!!!!!!!")
+else()
+  message(STATUS "gRPC NOT FOUND !!!!!!!!!!!!!!!!!!!")
+endif()
+
+if (TARGET absl::base)
+  message(STATUS "absl FOUND !!!!!!!!!!!!!!!!!!!")
+else()
+  message(STATUS "absl NOT FOUND !!!!!!!!!!!!!!!!!!!")
+endif()
 
 if (NOT os_version STREQUAL "8" OR NOT id STREQUAL "almalinux")
   find_package(Protobuf REQUIRED)
@@ -94,39 +123,34 @@ if (NOT os_version STREQUAL "8" OR NOT id STREQUAL "almalinux")
   find_program(GRPC_COMPILER grpc_cpp_plugin
     PATHS /usr/bin /usr/local/bin
     REQUIRED)
+  set(ABSL_LIBRARIES absl::absl)
 else()
-  set(ABSL_PROPAGATE_CXX_STD ON)
-  include(FetchContent)
-  set(gRPC_BUILD_CSHARP_EXT OFF CACHE INTERNAL "Turn off C# build")
-  set(gRPC_BUILD_GRPC_CSHARP_PLUGIN OFF CACHE INTERNAL "Turn off grpc C# plugin")
-  set(gRPC_BUILD_GRPC_NODE_PLUGIN OFF CACHE INTERNAL "Turn off grpc node plugin")
-  set(gRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN OFF CACHE INTERNAL "Turn off grpc objective C plugin")
-  set(gRPC_BUILD_GRPC_PHP_PLUGIN OFF CACHE INTERNAL "Turn off grpc php plugin")
-  set(gRPC_BUILD_GRPC_RUBY_PLUGIN OFF CACHE INTERNAL "Turn off grpc ruby plugin")
-  #set(gRPC_ABSL_PROVIDER "package" CACHE STRING "Provider of absl library")
-  FetchContent_Declare(
-    GRPC
-    GIT_REPOSITORY    https://github.com/grpc/grpc
-    GIT_TAG           v1.51.1
-  )
-  set(FETCHCONTENT_QUIET OFF)
-  FetchContent_MakeAvailable(gRPC)
   include_directories(
     "${CMAKE_BINARY_DIR}/_deps/grpc-src/third_party/protobuf/src"
     "${CMAKE_BINARY_DIR}/_deps/grpc-src/include"
     )
   set(PROTOC "${CMAKE_BINARY_DIR}/_deps/grpc-build/third_party/protobuf/protoc")
-set(PROTOBUF_LIBRARIES -L${CMAKE_BINARY_DIR}/_deps/grpc-build/third_party/protobuf
--lprotobuf-lited  -lprotobufd  -lprotocd
-)
+  set(PROTOBUF_LIBRARIES -L${CMAKE_BINARY_DIR}/_deps/grpc-build/third_party/protobuf
+      -lprotobuf-lited  -lprotobufd  -lprotocd
+  )
   set(GRPC_COMPILER "${CMAKE_BINARY_DIR}/_deps/grpc-build/grpc_cpp_plugin")
   set(GRPC_LIBRARIES -L${CMAKE_BINARY_DIR}/_deps/grpc-build
--laddress_sorting  -lgrpc++_alts		 -lgrpc++_unsecure	   -lgrpc_unsecure
--lgpr	      -lgrpc++_error_details  -lgrpc		   -lgrpcpp_channelz
--lgrpc++	      -lgrpc++_reflection	 -lgrpc_plugin_support  -lupb
+      -laddress_sorting -lgrpc++_alts -lgrpc++_unsecure -lgrpc_unsecure
+      -lgpr -lgrpc++_error_details -lgrpc -lgrpcpp_channelz
+      -lgrpc++ -lgrpc++_reflection -lgrpc_plugin_support -lupb
 )
-
+  set(ABSL_LIBRARIES -L${CMAKE_BINARY_DIR}/_deps/grpc-build/third_party/abseil-cpp/absl/strings libabsl_strings.a)
 endif()
+
+include_directories(
+  ${absl_SOURCE_DIR}
+  ${Boost_INCLUDE_DIRS}
+  ${fmt_INCLUDE_DIRS}
+  ${spdlog_INCLUDE_DIRS}
+  ${nlohmann_json_INCLUDE_DIRS}
+  )
+
+add_definitions(${spdlog_DEFINITIONS})
 
 option(WITH_ASAN
        "Add the libasan to check memory leaks and other memory issues." OFF)
@@ -231,8 +255,6 @@ if(WITH_TESTING AND WITH_COVERAGE)
   include(cmake/CodeCoverage.cmake)
   append_coverage_compiler_flags()
 endif()
-
-add_definitions(${CONAN_DEFINES_SPDLOG})
 
 include_directories(${CMAKE_SOURCE_DIR} ${CONAN_INCLUDE_DIRS}
                     ${CMAKE_SOURCE_DIR}/clib/inc)

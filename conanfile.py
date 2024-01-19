@@ -1,12 +1,14 @@
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain, CMakeDeps
+import re
 
 class CollectRecipe(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
 
     def requirements(self):
-#        self.requires("abseil/20230802.1")
-#        self.requires("boost/1.83.0")
+        if self.distribution() != "almalinux 8":
+            self.requires("abseil/20230802.1")
+        self.requires("boost/1.83.0")
         self.requires("fmt/9.1.0", override=True)
         self.requires("gtest/1.14.0")
         self.requires("nlohmann_json/3.11.2")
@@ -48,6 +50,31 @@ class CollectRecipe(ConanFile):
         self.options['boost'].without_url = True
         self.options['boost'].without_wave = True
         self.options['libssh2'].shared = False
+
+    @staticmethod
+    def distribution():
+        with open("/etc/os-release") as f:
+            lines = f.readlines()
+        id_like_re = re.compile(r"ID_LIKE=\"(.*)\"")
+        id_re = re.compile(r"^ID=\"(.*)\"")
+        version_id_re = re.compile(r"VERSION_ID=\"([0-9]*).*$")
+        like = ""
+        distrib = ""
+        os_version = ""
+        for l in lines:
+            if like == "":
+                m = id_like_re.match(l)
+                if m:
+                    like = m.group(1)
+            if distrib == "":
+                m = id_re.match(l)
+                if m:
+                    distrib = m.group(1)
+            if os_version == "":
+                m = version_id_re.match(l)
+                if m:
+                    os_version = m.group(1)
+        return f"{distrib} {os_version}"
 
     def build(self):
         cmake = CMake(self)

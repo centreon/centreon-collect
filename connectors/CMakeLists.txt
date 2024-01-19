@@ -93,8 +93,7 @@ if(WITH_TESTING)
     centreon_clib
     ${PERL_LIBRARIES}
     spdlog::spdlog
-    #abseil::abseil
-    absl::any
+    ${ABSL_LIBRARIES}
     ${LIBSSH2_LIBRARIES})
 
   set_target_properties(
