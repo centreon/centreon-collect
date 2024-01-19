@@ -122,7 +122,7 @@ include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
 target_link_libraries(berpc ${PROTOBUF_LIBRARIES} ${GRPC_LIBRARIES}
-  ${ABSL_LIBRARIES}
+	absl::strings
 )
 set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 

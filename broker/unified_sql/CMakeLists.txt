@@ -65,7 +65,7 @@ target_link_libraries(
   pb_rebuild_message_lib
   pb_remove_graph_message_lib
   spdlog::spdlog
-  ${ABSL_LIBRARIES}
+  absl::strings
   )
 
 # Testing.

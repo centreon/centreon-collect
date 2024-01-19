@@ -65,7 +65,6 @@ else()
   set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
 endif()
 
-#find_package(absl REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
@@ -78,35 +77,41 @@ find_package(Boost)
 
 pkg_search_module(LIBSSH2 REQUIRED libssh2)
 pkg_search_module(MARIADB REQUIRED mariadb libmariadb)
+pkg_search_module(GRPC REQUIRED grpc++)
 
-include(FetchContent)
-set(gRPC_BUILD_CSHARP_EXT OFF CACHE INTERNAL "Turn off C# build")
-set(gRPC_BUILD_GRPC_CSHARP_PLUGIN OFF CACHE INTERNAL "Turn off grpc C# plugin")
-set(gRPC_BUILD_GRPC_NODE_PLUGIN OFF CACHE INTERNAL "Turn off grpc node plugin")
-set(gRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN OFF CACHE INTERNAL "Turn off grpc objective C plugin")
-set(gRPC_BUILD_GRPC_PHP_PLUGIN OFF CACHE INTERNAL "Turn off grpc php plugin")
-set(gRPC_BUILD_GRPC_RUBY_PLUGIN OFF CACHE INTERNAL "Turn off grpc ruby plugin")
-set(ABSL_PROPAGATE_CXX_STD ON)
-FetchContent_Declare(
-  gRPC
-  GIT_REPOSITORY    https://github.com/grpc/grpc
-  GIT_TAG           v1.51.1
-  FIND_PACKAGE_ARGS
-)
-set(FETCHCONTENT_QUIET OFF)
-FetchContent_MakeAvailable(gRPC)
-
-if (TARGET grpc++)
-  message(STATUS "gRPC FOUND !!!!!!!!!!!!!!!!!!!")
+if (NOT GRPC_FOUND)
+  include(FetchContent)
+  set(gRPC_BUILD_CSHARP_EXT OFF CACHE INTERNAL "Turn off C# build")
+  set(gRPC_BUILD_GRPC_CSHARP_PLUGIN OFF CACHE INTERNAL "Turn off grpc C# plugin")
+  set(gRPC_BUILD_GRPC_NODE_PLUGIN OFF CACHE INTERNAL "Turn off grpc node plugin")
+  set(gRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN OFF CACHE INTERNAL "Turn off grpc objective C plugin")
+  set(gRPC_BUILD_GRPC_PHP_PLUGIN OFF CACHE INTERNAL "Turn off grpc php plugin")
+  set(gRPC_BUILD_GRPC_RUBY_PLUGIN OFF CACHE INTERNAL "Turn off grpc ruby plugin")
+  set(ABSL_PROPAGATE_CXX_STD ON)
+  FetchContent_Declare(
+    gRPC
+    GIT_REPOSITORY    https://github.com/grpc/grpc
+    GIT_TAG           v1.51.1
+    FIND_PACKAGE_ARGS NAMES grpc++
+  )
+  set(FETCHCONTENT_QUIET OFF)
+  FetchContent_MakeAvailable(gRPC)
 else()
-  message(STATUS "gRPC NOT FOUND !!!!!!!!!!!!!!!!!!!")
+  find_package(absl REQUIRED)
+  add_custom_target(grpc DEPENDS COMMAND echo "gRPC installed from system")
 endif()
 
-if (TARGET absl::base)
-  message(STATUS "absl FOUND !!!!!!!!!!!!!!!!!!!")
-else()
-  message(STATUS "absl NOT FOUND !!!!!!!!!!!!!!!!!!!")
-endif()
+#if (TARGET grpc++)
+#  message(STATUS "gRPC FOUND !!!!!!!!!!!!!!!!!!!")
+#else()
+#  message(STATUS "gRPC NOT FOUND !!!!!!!!!!!!!!!!!!!")
+#endif()
+#
+#if (TARGET absl::base)
+#  message(STATUS "absl FOUND !!!!!!!!!!!!!!!!!!!")
+#else()
+#  message(STATUS "absl NOT FOUND !!!!!!!!!!!!!!!!!!!")
+#endif()
 
 if (NOT os_version STREQUAL "8" OR NOT id STREQUAL "almalinux")
   find_package(Protobuf REQUIRED)
@@ -124,6 +129,7 @@ if (NOT os_version STREQUAL "8" OR NOT id STREQUAL "almalinux")
     PATHS /usr/bin /usr/local/bin
     REQUIRED)
   set(ABSL_LIBRARIES absl::absl)
+  set(GRPC_LIBRARIES -L${GRPC_LDFLAGS})
 else()
   include_directories(
     "${CMAKE_BINARY_DIR}/_deps/grpc-src/third_party/protobuf/src"

@@ -59,7 +59,7 @@ add_library(
   cerpc STATIC ${ENGINERPC_DIR}/engine.grpc.pb.cc ${ENGINERPC_DIR}/engine.pb.cc
                ${ENGINERPC_DIR}/engine.grpc.pb.h ${ENGINERPC_DIR}/engine.pb.h)
 target_link_libraries(cerpc ${PROTOBUF_LIBRARIES} ${GRPC_LIBRARIES}
-  ${ABSL_LIBRARIES}
+	absl::strings
   )
 
 # mod_enginerpc target.

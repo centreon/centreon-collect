@@ -176,7 +176,7 @@ if(WITH_TESTING)
     ZLIB::ZLIB
     fmt::fmt
     ryml::ryml
-    ${ABSL_LIBRARIES}
+    absl::strings
     stdc++fs
     dl)
 endif()
