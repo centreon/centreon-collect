@@ -25,7 +25,6 @@ apt-get -y install cmake \
     libperl-dev \
     libgcrypt20-dev \
     aptitude \
-    pbuilder \
     git-buildpackage \
     fakeroot \
     strace \
