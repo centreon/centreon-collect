@@ -138,7 +138,7 @@ jobs:
 
   deliver-engine-image:
     # generate image only for develop
-    # if: ${{  needs.get-version.outputs.branch == 'develop' }}
+    if: ${{  needs.get-version.outputs.branch == 'develop' }}
     needs: [get-version, package]
     runs-on: [self-hosted, common]
     strategy:
