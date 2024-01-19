@@ -77,7 +77,7 @@ find_package(Boost)
 
 pkg_search_module(LIBSSH2 REQUIRED libssh2)
 pkg_search_module(MARIADB REQUIRED mariadb libmariadb)
-pkg_search_module(GRPC REQUIRED grpc++)
+pkg_check_modules(GRPC grpc++)
 
 if (NOT GRPC_FOUND)
   include(FetchContent)
