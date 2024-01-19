@@ -128,7 +128,6 @@ if (NOT os_version STREQUAL "8" OR NOT id STREQUAL "almalinux")
   find_program(GRPC_COMPILER grpc_cpp_plugin
     PATHS /usr/bin /usr/local/bin
     REQUIRED)
-  set(ABSL_LIBRARIES absl::absl)
   set(GRPC_LIBRARIES -L${GRPC_LDFLAGS})
 else()
   include_directories(
@@ -146,10 +145,11 @@ else()
       -lgrpc++ -lgrpc++_reflection -lgrpc_plugin_support -lupb
 )
   set(ABSL_LIBRARIES -L${CMAKE_BINARY_DIR}/_deps/grpc-build/third_party/abseil-cpp/absl/strings libabsl_strings.a)
+  set(absl_INCLUDE_DIRS ${absl_SOURCE_DIR})
 endif()
 
 include_directories(
-  ${absl_SOURCE_DIR}
+  ${absl_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${fmt_INCLUDE_DIRS}
   ${spdlog_INCLUDE_DIRS}
