@@ -171,12 +171,16 @@ if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
     fi
   done
 elif [ -r /etc/issue ] ; then
+  echo "####################### 1 #####################"
   maj=$(head -1 /etc/issue | awk '{print $1}')
   version=$(head -1 /etc/issue | awk '{print $3}')
   if [[ "$version" == "9" ]] ; then
     dpkg="dpkg"
   else
     dpkg="dpkg --no-pager"
+  fi
+  if ! which cmake ; then
+    apt install -y cmake
   fi
   v=$(cmake --version)
   if [[ "$v" =~ "version 3" ]] ; then
