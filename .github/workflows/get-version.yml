@@ -51,7 +51,6 @@ jobs:
           else
             echo "GH CLI is already installed."
           fi
-          gh auth login --with-token ${{ secrets.GITHUB_TOKEN }}
         shell: bash
 
       - id: get_version
@@ -113,3 +112,4 @@ jobs:
           echo "env=$VERSION-$ENV" >> $GITHUB_OUTPUT
           echo "GH_ENV: $VERSION-$ENV"
         shell: bash
+        GH_TOKEN: ${{ github.token }}
