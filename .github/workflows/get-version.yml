@@ -112,4 +112,5 @@ jobs:
           echo "env=$VERSION-$ENV" >> $GITHUB_OUTPUT
           echo "GH_ENV: $VERSION-$ENV"
         shell: bash
-        GH_TOKEN: ${{ github.token }}
+        env:
+          GH_TOKEN: ${{ github.token }}
