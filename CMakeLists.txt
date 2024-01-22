@@ -25,6 +25,57 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 cmake_minimum_required(VERSION 3.16)
 project("Centreon Collect" C CXX)
+set(CMAKE_CXX_STANDARD 17)
+
+#
+# Get distributions name
+#
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  file(STRINGS "/etc/os-release" release REGEX "^ID")
+
+  foreach(line ${release})
+    if(${line} MATCHES "ID_LIKE=.*")
+      string(REGEX REPLACE "ID_LIKE=\"(.*)\"" "\\1" like ${line})
+    endif()
+
+    if(${line} MATCHES "ID=.*")
+      string(REGEX REPLACE "ID=\"(.*)\"" "\\1" id ${line})
+    endif()
+  endforeach()
+
+  string(TOLOWER "${like}" like)
+  string(TOLOWER "${id}" id)
+
+  if(("${id}" MATCHES "debian")
+     OR ("${like}" MATCHES "debian")
+     OR ("${id}" MATCHES "ubuntu")
+     OR ("${like}" MATCHES "ubuntu"))
+    set(OS_DISTRIBUTOR "Debian")
+  elseif(("${id}" MATCHES "centos") OR ("${like}" MATCHES "centos"))
+    set(OS_DISTRIBUTOR "CentOS")
+  else()
+    message(WARNING "lsb_release in not installed")
+    set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
+  endif()
+else()
+  set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
+endif()
+
+find_package(abseil REQUIRED)
+find_package(Boost REQUIRED)
+find_package(fmt REQUIRED)
+find_package(GRPC REQUIRED)
+find_package(GTest REQUIRED)
+find_package(libcurl REQUIRED)
+find_package(libssh2 REQUIRED)
+find_package(mariadb-connector-c REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(openssl REQUIRED)
+find_package(opentelemetry-cpp REQUIRED)
+find_package(rapidyaml REQUIRED)
+find_package(protobuf REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(ZLIB REQUIRED)
 
 option(WITH_ASAN
        "Add the libasan to check memory leaks and other memory issues." OFF)

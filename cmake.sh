@@ -18,15 +18,6 @@ EOF
 }
 BUILD_TYPE="Debug"
 CONAN_REBUILD="0"
-for i in $(cat conanfile.txt) ; do
-  if [[ "$i" =~ / ]] ; then
-    if [ ! -d ~/.conan/data/$i ] ; then
-      echo "The package '$i' is missing"
-      CONAN_REBUILD="1"
-      break
-    fi
-  fi
-done
 
 STD=gnu17
 COMPILER=gcc
@@ -36,6 +27,7 @@ LIBCXX=libstdc++11
 WITH_CLANG=OFF
 EE=
 DR=
+SC=0
 
 for i in "$@"
 do
@@ -110,27 +102,22 @@ if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
       cmake='cmake'
     fi
   fi
-  if [[ "$maj" == "centos7" ]] ; then
-    if [[ ! -x /opt/rh/rh-python38 ]] ; then
-      yum -y install centos-release-scl
-      yum -y install rh-python38
-      source /opt/rh/rh-python38/enable
-    else
-      echo "python38 already installed"
-    fi
+  yum -y install gcc-c++
+  if [[ ! -x /usr/bin/python3.9 ]] ; then
+    yum -y install python39-devel
+    rm /etc/alternatives/python3
+    ln -s /usr/bin/python3.9 /etc/alternatives/python3
   else
-    yum -y install gcc-c++
-    if [[ ! -x /usr/bin/python3 ]] ; then
-      yum -y install python3
-    else
-      echo "python3 already installed"
-    fi
-    if ! rpm -q python3-pip ; then
-      yum -y install python3-pip
-    else
-      echo "pip3 already installed"
-    fi
+    echo "python3 already installed"
   fi
+  if ! rpm -q python39-pip ; then
+    yum -y install python39-pip
+    rm /etc/alternatives/pip3
+    ln -s /usr/bin/pip3.9 /etc/alternatives/pip3
+  else
+    echo "pip3 already installed"
+  fi
+
 
   good=$(gcc --version | awk '/gcc/ && ($3+0)>5.0{print 1}')
 
@@ -153,6 +140,10 @@ if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
     perl-ExtUtils-Embed
     perl-srpm-macros
     libgcrypt-devel
+    mariadb-connector-c-devel
+    openssl-devel
+    protobuf-c-devel
+    grpc-devel
   )
   if [[ "$maj" == 'centos8' ]] ; then
     dnf config-manager --set-enabled powertools
@@ -177,6 +168,9 @@ elif [ -r /etc/issue ] ; then
     dpkg="dpkg"
   else
     dpkg="dpkg --no-pager"
+  fi
+  if ! which cmake ; then
+    apt install -y cmake
   fi
   v=$(cmake --version)
   if [[ "$v" =~ "version 3" ]] ; then
@@ -215,6 +209,13 @@ elif [ -r /etc/issue ] ; then
       python3-pip
       libperl-dev
       libgcrypt20-dev
+      libssl-dev
+      libprotobuf-dev
+      protobuf-compiler
+      libgrpc++-dev
+      protobuf-compiler-grpc
+      libmariadb-dev
+      libcurl4-gnutls-dev
     )
     for i in "${pkgs[@]}"; do
       if ! $dpkg -l $i | grep "^ii" ; then
@@ -228,18 +229,26 @@ elif [ -r /etc/issue ] ; then
     done
   elif [[ "$maj" == "Raspbian" ]] ; then
     pkgs=(
-      gcc
       g++
-      pkg-config
-      libmariadb3
-      librrd-dev
+      gcc
+      libcurl4-gnutls-dev
+      libgcrypt20-dev
       libgnutls28-dev
-      ninja-build
+      libgrpc++-dev
       liblua5.3-dev
+      libmariadb-dev
+      libmariadb3
+      libperl-dev
+      libprotobuf-dev
+      librrd-dev
+      libssh2-1-dev
+      libssl-dev
+      ninja-build
+      pkg-config
+      protobuf-compiler
+      protobuf-compiler-grpc
       python3
       python3-pip
-      libperl-dev
-      libgcrypt20-dev
     )
     for i in "${pkgs[@]}"; do
       if ! $dpkg -l $i | grep "^ii" ; then
@@ -274,8 +283,8 @@ elif [ -r /etc/issue ] ; then
   fi
 fi
 
-if ! pip3 install conan==1.61.0 --upgrade --break-system-packages ; then
-  pip3 install conan==1.61.0 --upgrade
+if ! pip3 install conan --upgrade --break-system-packages ; then
+  pip3 install conan --upgrade
 fi
 
 if which conan ; then
@@ -307,10 +316,10 @@ gcc)
   ;;
 esac
 
-if [ "$CONAN_REBUILD" -eq 1 -o ! -r "$HOME/.conan/profiles/default" ] ; then
+if [ "$CONAN_REBUILD" -eq 1 -o ! -r "$HOME/.conan2/profiles/default" ] ; then
   echo "Creating default profile"
-  mkdir -p "$HOME/.conan/profiles"
-  cat << EOF > "$HOME/.conan/profiles/default"
+  mkdir -p "$HOME/.conan2/profiles"
+  cat << EOF > "$HOME/.conan2/profiles/default"
 [settings]
 arch=x86_64
 build_type=Release
@@ -322,12 +331,8 @@ os=Linux
 EOF
 fi
 
-cd build
-
 echo "$conan install .. --build=missing"
-$conan install .. --build=missing
-
-NG="-DNG=ON"
+$conan install . --output-folder=build --build=missing
 
 if [ "$SC" -eq 1 ] ; then
   SCCACHE="-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
@@ -335,10 +340,26 @@ else
   SCCACHE=
 fi
 
+if [[ "$maj" == "Raspbian" || "$maj" == "Debian" ]] ; then
+  v=$($cmake --version)
+  echo "##### CMake version ${v} #####"
+  regex="version 3\.([0-9]*)"
+  if [[ "$v" =~ $regex ]] ; then
+    min=${BASH_REMATCH[1]}
+    if ((min < 23)) ; then
+      echo "deb http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
+      apt update
+      apt install -y cmake/bullseye-backports
+    fi
+  fi
+fi
+
+cd build
+
 if [[ "$maj" == "Raspbian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $NG $* ..
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake --preset conan-release $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $* ..
 elif [[ "$maj" == "Debian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $NG $* ..
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake --preset conan-release $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $* ..
 else
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $NG $* ..
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake --preset conan-release $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $* ..
 fi
