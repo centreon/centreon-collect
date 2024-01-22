@@ -1,8 +1,10 @@
+use std::cell::RefCell;
 use std::collections::VecDeque;
+use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
-use cxx::{SharedPtr, CxxString};
+use cxx::{CxxString, SharedPtr};
 
-//#[cxx::bridge(namespace = "com::centreon::broker")]
 #[cxx::bridge]
 mod ffi {
     #[namespace = "com::centreon::broker::io"]
@@ -15,34 +17,64 @@ mod ffi {
 
     #[namespace = "com::centreon::broker::rsc"]
     extern "Rust" {
+        type Engine;
         type Muxer;
 
-        fn push_event(self: &mut Muxer, d: &SharedPtr<data>);
-        fn new_muxer(name: &CxxString) -> Box<Muxer>;
+        //fn new_engine() -> Box<Engine>;
+        //fn add_muxer(self: &mut Engine, name: &CxxString) -> Rc<RefCell<Muxer>>;
+        fn write(self: &mut Muxer, d: &SharedPtr<data>);
     }
-
 }
 
-pub struct Muxer {
-    name: String,
+pub struct Engine {
+    muxers: Vec<Rc<RefCell<Muxer>>>,
     queue: VecDeque<SharedPtr<ffi::data>>,
 }
 
-impl Muxer {
-    pub fn new(name: &str) -> Muxer {
-        return Muxer {name: String::from(name), queue: VecDeque::new() };
-    }
-
-    pub fn push_event(&mut self, d: &SharedPtr<ffi::data>) {
+impl Engine {
+    pub fn publish(&mut self, d: &SharedPtr<ffi::data>) {
         self.queue.push_back(d.clone());
     }
 }
 
-fn new_muxer(name: &CxxString) -> Box<Muxer> {
+pub struct Muxer {
+    name: String,
+    parent: Arc<Mutex<Engine>>,
+    queue: Mutex<VecDeque<SharedPtr<ffi::data>>>,
+}
+
+impl Muxer {
+    pub fn write(&mut self, d: &SharedPtr<ffi::data>) {
+        let mut q = self.queue.lock().unwrap();
+        q.push_back(d.clone());
+    }
+
+    pub fn publish(&mut self, d: &SharedPtr<ffi::data>) {
+        let mut eng = self.parent.lock().unwrap();
+        eng.publish(d);
+    }
+}
+
+fn new_engine() -> Arc<Mutex<Engine>> {
+    return Arc::new(Mutex::new(Engine {
+        muxers: Vec::new(),
+        queue: VecDeque::new(),
+    }));
+}
+
+fn add_muxer(parent: &Arc<Mutex<Engine>>, name: &CxxString) -> Rc<RefCell<Muxer>> {
     let name_rs = match name.to_str() {
         Ok(s) => s,
         // The error message is thrown away, this error should not arrive.
-        Err(_e) => "Broker",
+        Err(_e) => "BrokerBadMuxerName",
     };
-    return Box::new(Muxer::new(name_rs));
+    let new_muxer = Muxer {
+        name: String::from(name_rs),
+        parent: parent.clone(),
+        queue: Mutex::new(VecDeque::new()),
+    };
+
+    let mut eng = parent.lock().unwrap();
+    eng.muxers.push(Rc::new(RefCell::new(new_muxer)));
+    return eng.muxers.last().unwrap().clone();
 }

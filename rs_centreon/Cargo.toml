@@ -8,6 +8,7 @@ authors = ["David Boucher <dboucher@centreon.com"]
 
 [dependencies]
 cxx = "1.0"
+threadpool = "1.8.1"
 
 [build-dependencies]
 cxx-build = "1.0"
