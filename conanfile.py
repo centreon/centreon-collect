@@ -6,7 +6,7 @@ class CollectRecipe(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
 
     def requirements(self):
-        self.requires("abseil/20230125.3")
+        self.requires("abseil/20230802.1", override=True)
         self.requires("boost/1.83.0", override=True)
         self.requires("fmt/9.1.0", override=True)
         self.requires("grpc/1.54.3")
@@ -15,7 +15,7 @@ class CollectRecipe(ConanFile):
         self.requires("libssh2/1.11.0")
         self.requires("mariadb-connector-c/3.3.3")
         self.requires("nlohmann_json/3.11.2")
-        self.requires("openssl/3.1.2")
+        self.requires("openssl/1.1.1t")
         self.requires("opentelemetry-cpp/1.9.1")
         self.requires("rapidyaml/0.5.0")
         self.requires("protobuf/3.21.12")

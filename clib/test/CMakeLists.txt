@@ -1,4 +1,5 @@
-include_directories(${CONAN_INCLUDE_DIRS_GTEST})
+include_directories(${GTest_INCLUDE_DIRS})
+add_definitions(${GTEST_DEFINITIONS})
 add_executable(bin_test_process_output ${PROJECT_SOURCE_DIR}/test/bin_test_process_output.cc)
 
 add_library(shared_testing_library
@@ -51,4 +52,8 @@ if (WITH_COVERAGE)
   set(GCOV gcov)
 endif ()
 add_test(NAME tests COMMAND ut_clib)
-target_link_libraries(ut_clib CONAN_PKG::gtest pthread centreon_clib)
+
+target_link_libraries(ut_clib
+  ${GTEST_LIBRARIES}
+  pthread
+  centreon_clib)

@@ -34,9 +34,9 @@ if(WITH_TESTING)
     rpc_client_engine
     cerpc
     centreon_common
-    CONAN_PKG::grpc
-    CONAN_PKG::openssl
-    CONAN_PKG::zlib
+    ${GRPC_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${ZLIB_LIBRARIES}
     dl
     pthread)
 
@@ -172,12 +172,12 @@ if(WITH_TESTING)
     enginelog
     pthread
     ${GCOV}
-    CONAN_PKG::gtest
-    CONAN_PKG::grpc
-    CONAN_PKG::openssl
-    CONAN_PKG::zlib
-    CONAN_PKG::fmt
-    CONAN_PKG::rapidyaml
+    ${GTEST_LIBRARIES}
+    ${GRPC_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${ZLIB_LIBRARIES}
+    ${FMT_LIBRARIES}
+    ryml::ryml
     stdc++fs
     dl)
 endif()

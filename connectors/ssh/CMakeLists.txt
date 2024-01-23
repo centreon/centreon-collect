@@ -57,10 +57,10 @@ add_dependencies(centreon_connector_ssh centreon_clib)
 target_link_libraries(
   centreon_connector_ssh
   centreon_clib
-  CONAN_PKG::spdlog
-  CONAN_PKG::fmt
-  CONAN_PKG::libssh2
-  CONAN_PKG::abseil
+  ${SPDLOG_LIBRARIES}
+  ${FMT_LIBRARIES}
+  Libssh2::libssh2
+  ${ABSL_LIBRARIES}
   pthread)
 
 target_precompile_headers(centreon_connector_ssh REUSE_FROM

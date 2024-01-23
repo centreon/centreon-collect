@@ -93,7 +93,7 @@ set(NEB_SOURCES
 add_library(nebbase STATIC ${NEB_SOURCES})
 add_dependencies(nebbase table_max_size target_neb target_severity target_tag)
 
-target_link_libraries(nebbase CONAN_PKG::protobuf pb_severity_lib pb_tag_lib
+target_link_libraries(nebbase ${PROTOBUF_LIBRARIES} pb_severity_lib pb_tag_lib
                       pb_neb_lib pb_header_lib)
 
 set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")
@@ -112,7 +112,7 @@ add_library(
 )
 
 # Flags needed to include all symbols in binary.
-target_link_libraries(${NEB} nebbase CONAN_PKG::spdlog)
+target_link_libraries(${NEB} nebbase ${SPDLOG_LIBRARIES})
 
 set_target_properties("${NEB}" PROPERTIES PREFIX "")
 target_precompile_headers(${NEB} REUSE_FROM nebbase)
@@ -152,11 +152,11 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     rokerbase
     multiplexing
     "-Wl,--no-whole-archive"
-    CONAN_PKG::nlohmann_json
-    CONAN_PKG::spdlog)
+    nlohmann_json::nlohmann_json
+    ${SPDLOG_LIBRARIES})
 else()
-  target_link_libraries("${CBMOD}" "rokerbase" CONAN_PKG::nlohmann_json
-                        CONAN_PKG::spdlog)
+  target_link_libraries("${CBMOD}" "rokerbase" nlohmann_json::nlohmann_json
+    ${SPDLOG_LIBRARIES})
 endif()
 
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")

@@ -36,8 +36,10 @@ if(WITH_ASAN)
 endif()
 
 # We will use pkg-config if available.
-include_directories(${PROJECT_SOURCE_DIR}/common/inc)
-include_directories(${CMAKE_SOURCE_DIR}/clib/inc)
+include_directories(
+  ${PROJECT_SOURCE_DIR}/common/inc
+  ${CMAKE_SOURCE_DIR}/clib/inc
+  )
 
 add_subdirectory(perl)
 add_subdirectory(ssh)
@@ -89,14 +91,14 @@ if(WITH_TESTING)
 
   target_link_libraries(
     ut_connector
-    CONAN_PKG::gtest
+    ${GTEST_LIBRARIES}
     centreon_clib
     ${PERL_LIBRARIES}
-    CONAN_PKG::fmt
-    CONAN_PKG::spdlog
-    CONAN_PKG::libssh2
-    CONAN_PKG::abseil
-    ${LIBSSH2_LIBRARIES})
+    ${FMT_LIBRARIES}
+    ${SPDLOG_LIBRARIES}
+    Libssh2::libssh2
+    ${ABSL_LIBRARIES}
+    )
 
   set_target_properties(
     ut_connector

@@ -23,8 +23,7 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/lua/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/lua/test")
 include_directories("${INC_DIR}"
   "${PROJECT_SOURCE_DIR}/neb/inc"
-  "${PROJECT_SOURCE_DIR}/bam/inc"
-  ${CONAN_INCLUDE_DIRS_OPENSSL})
+  "${PROJECT_SOURCE_DIR}/bam/inc")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/lua")
 
 # Storage module.
@@ -57,7 +56,7 @@ add_library("${LUA}" SHARED
   "${INC_DIR}/macro_cache.hh"
   "${INC_DIR}/stream.hh"
 )
-target_link_libraries("${LUA}" ${LUA_LIBRARIES} CONAN_PKG::openssl bbdo_storage bbdo_bam CONAN_PKG::spdlog pb_storage_lib)
+target_link_libraries("${LUA}" ${LUA_LIBRARIES} ${OPENSSL_LIBRARIES} bbdo_storage bbdo_bam ${SPDLOG_LIBRARIES} pb_storage_lib)
 target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${LUA}" PROPERTIES PREFIX "")
 

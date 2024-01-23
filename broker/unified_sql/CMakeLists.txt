@@ -64,8 +64,8 @@ target_link_libraries(
   pb_storage_lib
   pb_rebuild_message_lib
   pb_remove_graph_message_lib
-  CONAN_PKG::spdlog
-  CONAN_PKG::abseil)
+  ${SPDLOG_LIBRARIES}
+  ${ABSL_LIBRARIES})
 
 # Testing.
 if(WITH_TESTING)

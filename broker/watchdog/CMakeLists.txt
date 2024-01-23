@@ -42,7 +42,7 @@ add_executable("${WATCHDOG}"
   ${INC_DIR}/instance_configuration.hh
 )
 
-target_link_libraries(${WATCHDOG} pthread CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::nlohmann_json)
+target_link_libraries(${WATCHDOG} pthread ${FMT_LIBRARIES} ${SPDLOG_LIBRARIES} nlohmann_json::nlohmann_json)
 target_precompile_headers(${WATCHDOG} PRIVATE precomp_inc/precomp.hpp)
 
 if (WITH_TESTING)

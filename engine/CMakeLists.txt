@@ -499,7 +499,7 @@ include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src)
 add_library(enginelog STATIC src/log_v2.cc)
 target_precompile_headers(enginelog PRIVATE ${PRECOMP_HEADER})
 set_target_properties(enginelog PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(enginelog CONAN_PKG::spdlog)
+target_link_libraries(enginelog ${SPDLOG_LIBRARIES})
 
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
 add_dependencies(cce_core engine_rpc)
@@ -510,13 +510,13 @@ target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 # Link target with required libraries.
 target_link_libraries(
   cce_core
-  CONAN_PKG::nlohmann_json
+  nlohmann_json::nlohmann_json
   ${MATH_LIBRARIES}
   ${PTHREAD_LIBRARIES}
   ${SOCKET_LIBRARIES}
   centreon_clib
-  ${fmt_LIBRARIES}
-  CONAN_PKG::spdlog)
+  ${FMT_LIBRARIES}
+  ${SPDLOG_LIBRARIES})
 
 # centengine target.
 add_executable("centengine" "${SRC_DIR}/main.cc")
@@ -533,16 +533,16 @@ target_link_libraries(
   enginerpc
   cce_core
   "-Wl,-no-whole-archive"
-  -L${CONAN_LIB_DIRS_GRPC}
+  -L${grpc_LIB_DIRS_RELEASE}
   "-Wl,--whole-archive"
   grpc++
   "-Wl,--no-whole-archive"
-  CONAN_PKG::grpc
-  ${absl_LIBS}
-  CONAN_PKG::openssl
+  ${GRPC_LIBRARIES}
+  ${ABSL_LIBRARIES}
+  ${OPENSSL_LIBRARIES}
   ${c-ares_LIBS}
-  CONAN_PKG::zlib
-  CONAN_PKG::rapidyaml
+  ${ZLIB_LIBRARIES}
+  ryml::ryml
   stdc++fs
   dl)
 

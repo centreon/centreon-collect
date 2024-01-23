@@ -16,7 +16,7 @@
 # For more information : contact@centreon.com
 #
 
-include_directories(${CONAN_INCLUDE_DIRS_GTEST})
+include_directories(${GTest_INCLUDE_DIRS})
 
 # Tests directory.
 set(TESTS_DIR ${PROJECT_SOURCE_DIR}/core/test)
@@ -74,9 +74,9 @@ target_link_libraries(
   rpc_client
   berpc
   centreon_common
-  CONAN_PKG::grpc
-  CONAN_PKG::openssl
-  CONAN_PKG::zlib
+  ${GRPC_LIBRARIES}
+  ${OPENSSL_LIBRARIES}
+  ${ZLIB_LIBRARIES}
   dl
   pthread)
 
@@ -138,13 +138,13 @@ target_link_libraries(
   ${TESTS_LIBRARIES}
   conflictmgr
   centreon_common
-  CONAN_PKG::nlohmann_json
-  CONAN_PKG::fmt
-  CONAN_PKG::spdlog
-  CONAN_PKG::gtest
-  CONAN_PKG::mariadb-connector-c
-  CONAN_PKG::openssl
-  CONAN_PKG::grpc)
+  nlohmann_json::nlohmann_json
+  ${FMT_LIBRARIES}
+  ${SPDLOG_LIBRARIES}
+  ${GTEST_LIBRARIES}
+  mariadb-connector-c::mariadb-connector-c
+  ${OPENSSL_LIBRARIES}
+  ${GRPC_LIBRARIES})
 
 add_dependencies(
   ut_broker

@@ -56,12 +56,12 @@ endif()
 add_executable(ccc ${ccc_files})
 target_link_libraries(
   ccc
-  CONAN_PKG::grpc
+  ${GRPC_LIBRARIES}
   cerpc
   berpc
   centreon_common
-  CONAN_PKG::abseil
-  CONAN_PKG::fmt)
+  ${ABSL_LIBRARIES}
+  ${FMT_LIBRARIES})
 set_target_properties(ccc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 install(TARGETS ccc RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}")

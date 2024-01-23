@@ -26,6 +26,8 @@ set(CMAKE_COLOR_DIAGNOSTICS ON)
 cmake_minimum_required(VERSION 3.16)
 project("Centreon Collect" C CXX)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 #
 # Get distributions name
@@ -61,21 +63,44 @@ else()
   set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
 endif()
 
-find_package(abseil REQUIRED)
-find_package(Boost REQUIRED)
-find_package(fmt REQUIRED)
-find_package(GRPC REQUIRED)
-find_package(GTest REQUIRED)
-find_package(libcurl REQUIRED)
-find_package(libssh2 REQUIRED)
-find_package(mariadb-connector-c REQUIRED)
-find_package(nlohmann_json REQUIRED)
-find_package(openssl REQUIRED)
-find_package(opentelemetry-cpp REQUIRED)
-find_package(rapidyaml REQUIRED)
-find_package(protobuf REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(ZLIB REQUIRED)
+find_package(GTest)
+find_package(Boost)
+find_package(Libssh2)
+find_package(mariadb-connector-c)
+find_package(opentelemetry-cpp)
+find_package(gRPC)
+find_package(absl)
+find_package(nlohmann_json)
+find_package(CURL)
+find_package(OpenSSL)
+find_package(ryml)
+find_package(protobuf)
+find_package(spdlog)
+find_package(ZLIB)
+
+add_definitions(${spdlog_DEFINITIONS}
+${Boost_DEFINITIONS}
+${abseil_DEFINITIONS}
+${fmt_DEFINITIONS}
+${spdlog_DEFINITIONS}
+${gtest_DEFINITIONS}
+${grpc_DEFINITIONS}
+${protobuf_DEFINITIONS}
+${openssl_DEFINITIONS}
+${zlib_DEFINITIONS}
+  )
+set(ABSL_LIBRARIES -L${abseil_LIB_DIRS_RELEASE} ${abseil_LIBS_RELEASE})
+set(FMT_LIBRARIES -L${fmt_LIB_DIRS_RELEASE} ${fmt_LIBS_RELEASE})
+set(SPDLOG_LIBRARIES -L${spdlog_LIB_DIRS_RELEASE} ${spdlog_LIBS_RELEASE})
+set(GTEST_LIBRARIES -L${gtest_LIB_DIRS_RELEASE} ${gtest_LIBS_RELEASE})
+set(GRPC_LIBRARIES -L${grpc_LIB_DIRS_RELEASE} ${grpc_LIBS_RELEASE})
+set(PROTOBUF_LIBRARIES -L${protobuf_LIB_DIRS_RELEASE} ${protobuf_LIBS_RELEASE})
+set(OPENSSL_LIBRARIES -L${openssl_LIB_DIRS_RELEASE} ${openssl_LIBS_RELEASE})
+set(ZLIB_LIBRARIES -L${zlib_LIB_DIRS_RELEASE} ${zlib_LIBS_RELEASE})
+
+message(STATUS "&&&&&&&&&&&&&&&&&& ${zlib_LIB_DIRS_RELEASE}")
+message(STATUS "&&&&&&&&&&&&&&&&&& ${zlib_LIBS_RELEASE}")
+
 
 option(WITH_ASAN
        "Add the libasan to check memory leaks and other memory issues." OFF)
@@ -94,17 +119,7 @@ option(WITH_MALLOC_TRACE "compile centreon-malloc-trace library." OFF)
 # set(CMAKE_CXX_COMPILER "clang++")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 
-option(NG "C++17 build." OFF)
 option(DEBUG_ROBOT OFF)
-
-if(NG)
-  set(CMAKE_CXX_STANDARD 17)
-else()
-  set(CMAKE_CXX_STANDARD 14)
-endif()
-
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(WITH_TSAN)
   set(CMAKE_CXX_FLAGS_DEBUG
@@ -175,6 +190,24 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
   set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -latomic")
 endif()
 
+add_definitions(${ryml_DEFINITIONS})
+
+message(STATUS "##### ##################### ${boost_INCLUDE_DIRS_RELEASE}")
+
+include_directories(
+  ${absl_INCLUDE_DIRS}
+  boost::boost
+  ${fmt_INCLUDE_DIRS}
+  ${spdlog_INCLUDE_DIRS}
+  ${nlohmann_json_INCLUDE_DIRS}
+  ${gRPC_INCLUDE_DIRS}
+  ${mariadb-connector-c_INCLUDE_DIRS}
+  ${opentelemetry-cpp_INCLUDE_DIRS}
+  ${c4core_INCLUDE_DIRS}
+  ${FastFloat_INCLUDE_DIRS}
+  ${ryml_INCLUDE_DIRS}
+  )
+
 # Version.
 set(COLLECT_MAJOR 24)
 set(COLLECT_MINOR 04)
@@ -190,15 +223,11 @@ endif()
 set(USER_BROKER centreon-broker)
 set(USER_ENGINE centreon-engine)
 
-# ##############################################################################
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup(TARGETS)
+set(CMAKE_PROGRAM_PATH ${protobuf_BIN_DIRS_RELEASE};${grpc_BIN_DIRS_RELEASE};${CMAKE_PROGRAM_PATH})
 
-set(CMAKE_PROGRAM_PATH ${CONAN_BIN_DIRS_PROTOBUF};${CMAKE_PROGRAM_PATH})
-
-find_package(Protobuf REQUIRED)
-
-message(NOTICE "-- use protoc compiler: ${Protobuf_PROTOC_EXECUTABLE}")
+message(STATUS "#####################################################")
+message(NOTICE "-- use grpc compiler path: ${gRPC_LIBRARIES}")
+message(STATUS "#####################################################")
 
 include(GNUInstallDirs)
 
@@ -229,8 +258,6 @@ if(WITH_TESTING AND WITH_COVERAGE)
 endif()
 
 set(protobuf_MODULE_COMPATIBLE True)
-
-add_definitions(${CONAN_DEFINES_SPDLOG})
 
 include_directories(${CMAKE_SOURCE_DIR} ${CONAN_INCLUDE_DIRS}
                     ${CMAKE_SOURCE_DIR}/clib/inc)
