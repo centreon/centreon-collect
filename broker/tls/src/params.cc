@@ -221,7 +221,7 @@ void params::set_trusted_ca(std::string const& ca_cert) {
  *
  *  @param[in] session Session on which checks will be performed.
  */
-void params::validate_cert(gnutls_session_t session) {
+void params::validate_cert(gnutls_session_t session) const {
   if (!_ca.empty()) {
     int ret;
     uint32_t status;

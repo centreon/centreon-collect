@@ -26,12 +26,6 @@
 
 using namespace com::centreon::malloc_trace;
 
-#include "by_thread_trace_active.hh"
-#include "funct_info_cache.hh"
-#include "orphan_container.hh"
-#include "simply_allocator.hh"
-
-using namespace com::centreon::malloc_trace;
 
 extern void* __libc_malloc(size_t size);
 
@@ -145,8 +139,7 @@ static void* malloc(size_t size, const char* funct_name) {
   // if this thread is not yet dumping => store it
   if (have_to_dump) {
     if (_orphans) {
-      constexpr std::string_view _funct_name("malloc");
-      _orphans->add_malloc(p, size, thread_id, _funct_name,
+      _orphans->add_malloc(p, size, thread_id, funct_name,
                            boost::stacktrace::stacktrace(), 2);
       _orphans->flush_to_file();
     }
