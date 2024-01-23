@@ -23,7 +23,7 @@ ANO_NOFILE
     Clear Retention
     Clear Db    services
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Stop Broker    True
@@ -43,7 +43,7 @@ ANO_TOO_OLD_FILE
     Clear Retention
     Clear Db    services
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Stop Broker    True
@@ -63,7 +63,7 @@ ANO_OUT_LOWER_THAN_LIMIT
     Clear Retention
     Clear Db    services
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Stop Broker    True
@@ -83,7 +83,7 @@ ANO_OUT_UPPER_THAN_LIMIT
     Clear Retention
     Clear Db    services
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Stop Broker    True
@@ -103,7 +103,7 @@ ANO_JSON_SENSITIVITY_NOT_SAVED
     ...    55.0
     ...    ${predict_data}
     Clear Retention
-    Start Engine
+    Ctn Start Engine
     Sleep    5s
     Stop Engine
     ${retention_sensitivity}    Grep Retention    ${0}    sensitivity=0.00
@@ -123,7 +123,7 @@ ANO_CFG_SENSITIVITY_SAVED
     ...    55.0
     ...    ${predict_data}
     Clear Retention
-    Start Engine
+    Ctn Start Engine
     Sleep    5s
     Stop Engine
     ${retention_sensitivity}    Grep Retention    ${0}    sensitivity=4.00
@@ -144,7 +144,7 @@ ANO_EXTCMD_SENSITIVITY_SAVED
         ...    55.0
         ...    ${predict_data}
         Clear Retention
-        Start Engine
+        Ctn Start Engine
         Sleep    5s
         Update Ano Sensitivity    ${use_grpc}    host_1    anomaly_1001    4.55
         Sleep    1s
@@ -170,7 +170,7 @@ AOUTLU1
     Clear Db    services
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -204,7 +204,7 @@ ANO_DT1
     Clear Db    downtimes
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -239,7 +239,7 @@ ANO_DT2
     Clear Db    downtimes
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -278,7 +278,7 @@ ANO_DT3
     Clear Db    downtimes
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -318,7 +318,7 @@ ANO_DT4
     Clear Db    downtimes
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

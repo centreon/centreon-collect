@@ -32,7 +32,7 @@ BECT1
             Broker Config Log    module0    bbdo    info
             ${start}    Get Current Date
             Start Broker
-            Start Engine
+            Ctn Start Engine
             ${result}    Check Connections
             Should Be True    ${result}    Engine and Broker not connected
             Kindly Stop Broker
@@ -113,7 +113,7 @@ BECT2
     Broker Config Output Set    module0    central-module-master-output    tls    yes
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Kindly Stop Broker
@@ -158,7 +158,7 @@ BECT3
     # We get the current date just before starting broker
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Kindly Stop Broker
@@ -242,7 +242,7 @@ BECT4
     # We get the current date just before starting broker
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Kindly Stop Broker
@@ -278,7 +278,7 @@ BECT_GRPC1
             Change Broker Tcp Input To Grpc    central
             ${start}    Get Current Date
             Start Broker
-            Start Engine
+            Ctn Start Engine
             ${result}    Check Connections
             Should Be True    ${result}    Engine and Broker not connected
             Kindly Stop Broker
@@ -360,7 +360,7 @@ BECT_GRPC2
     Change Broker Tcp Input To Grpc    central
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Kindly Stop Broker
@@ -409,7 +409,7 @@ BECT_GRPC3
     # We get the current date just before starting broker
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Kindly Stop Broker
@@ -495,7 +495,7 @@ BECT_GRPC4
     # We get the current date just before starting broker
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Kindly Stop Broker

@@ -27,7 +27,7 @@ not1
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -67,7 +67,7 @@ not2
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -122,7 +122,7 @@ not3
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -173,7 +173,7 @@ not4
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -235,7 +235,7 @@ not5
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -285,7 +285,7 @@ not6
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -340,7 +340,7 @@ not7
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -381,7 +381,7 @@ not8
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -422,7 +422,7 @@ not9
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -463,7 +463,7 @@ not10
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -516,7 +516,7 @@ not11
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -577,7 +577,7 @@ not12
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -636,7 +636,7 @@ not13
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
   # Let's wait for the external command check start
     ${content}    Create List    check

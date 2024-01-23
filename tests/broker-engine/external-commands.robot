@@ -25,7 +25,7 @@ BEEXTCMD1
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -62,7 +62,7 @@ BEEXTCMD2
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -103,7 +103,7 @@ BEEXTCMD3
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -139,7 +139,7 @@ BEEXTCMD4
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -176,7 +176,7 @@ BEEXTCMD5
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -213,7 +213,7 @@ BEEXTCMD6
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -254,7 +254,7 @@ BEEXTCMD7
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -290,7 +290,7 @@ BEEXTCMD8
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -327,7 +327,7 @@ BEEXTCMD9
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -374,7 +374,7 @@ BEEXTCMD10
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -415,7 +415,7 @@ BEEXTCMD11
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -460,7 +460,7 @@ BEEXTCMD12
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -500,7 +500,7 @@ BEEXTCMD13
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -537,7 +537,7 @@ BEEXTCMD14
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -577,7 +577,7 @@ BEEXTCMD15
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -614,7 +614,7 @@ BEEXTCMD16
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -654,7 +654,7 @@ BEEXTCMD17
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -693,7 +693,7 @@ BEEXTCMD18
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -735,7 +735,7 @@ BEEXTCMD19
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -774,7 +774,7 @@ BEEXTCMD20
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -817,7 +817,7 @@ BEEXTCMD21
         ...    external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo3.0 use_grpc=${use_grpc}
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -884,7 +884,7 @@ BEEXTCMD22
         ...    external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo2.0 use_grpc=${use_grpc}
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -934,7 +934,7 @@ BEEXTCMD23
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1016,7 +1016,7 @@ BEEXTCMD24
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1084,7 +1084,7 @@ BEEXTCMD25
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1131,7 +1131,7 @@ BEEXTCMD26
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1181,7 +1181,7 @@ BEEXTCMD27
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1228,7 +1228,7 @@ BEEXTCMD28
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1280,7 +1280,7 @@ BEEXTCMD29
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True

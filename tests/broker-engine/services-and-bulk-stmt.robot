@@ -29,7 +29,7 @@ EBBPS1
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
@@ -112,7 +112,7 @@ EBBPS2
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
@@ -194,7 +194,7 @@ EBMSSM
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     Broker Set Sql Manager Stats    51001    5    5
 
     # Let's wait for the external command check start
@@ -243,7 +243,7 @@ EBPS2
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -297,7 +297,7 @@ RLCode
     ${start}    Get Current Date
 
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -367,7 +367,7 @@ metric_mapping
     ${start}    Get Current Date
 
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -407,7 +407,7 @@ Services_and_bulks_${id}
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     Broker Set Sql Manager Stats    51001    5    5
 
     # Let's wait for the external command check start

@@ -48,7 +48,7 @@ NetworkDBFail6
     Config Broker    module
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
@@ -76,7 +76,7 @@ NetworkDBFailU6
     Config Broker    module
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
@@ -107,7 +107,7 @@ NetworkDBFail7
     Config Broker    module
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
@@ -139,7 +139,7 @@ NetworkDBFailU7
     Config Broker    module
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
@@ -180,7 +180,7 @@ Network Failure
     Broker Config Source Log    central    true
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    SQL: performing mysql_ping
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
     Should Be True    ${result}    We should have a call to mysql_ping every 30s on inactive connections.

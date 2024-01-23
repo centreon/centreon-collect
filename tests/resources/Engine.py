@@ -43,7 +43,7 @@ class EngineInstance:
         self.instances = count
         self.service_cmd = {}
         self.anomaly_detection_internal_id = 1
-        self.build_configs(hosts, srv_by_host)
+        self.ctn_build_configs(hosts, srv_by_host)
         makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
         makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
         makedirs(CONF_DIR, mode=0o777, exist_ok=True)
@@ -52,7 +52,7 @@ class EngineInstance:
         makedirs(VAR_ROOT + "/log/centreon-engine/", mode=0o777, exist_ok=True)
         makedirs(VAR_ROOT + "/log/centreon-broker/", mode=0o777, exist_ok=True)
 
-    def create_centengine(self, id: int, debug_level=0):
+    def ctn_create_centengine(self, id: int, debug_level=0):
         grpc_port = id + 50001
         return ("cfg_file={2}/config{0}/hosts.cfg\n"
                 "cfg_file={2}/config{0}/services.cfg\n"
@@ -151,7 +151,7 @@ class EngineInstance:
                 "check_service_freshness=1\n"
                 "enable_flap_detection=0\n").format(id, debug_level, CONF_DIR, VAR_ROOT, ETC_ROOT, grpc_port)
 
-    def create_host(self):
+    def ctn_create_host(self):
         self.last_host_id += 1
         hid = self.last_host_id
         a = hid % 255
@@ -172,7 +172,7 @@ class EngineInstance:
             "hid": hid}
         return retval
 
-    def create_service(self, host_id: int, cmd_ids: int):
+    def ctn_create_service(self, host_id: int, cmd_ids: int):
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
@@ -196,7 +196,7 @@ class EngineInstance:
             host_id, service_id, self.service_cmd[service_id])
         return retval
 
-    def create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
+    def ctn_create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
         self.last_service_id += 1
         service_id = self.last_service_id
         retval = """define anomalydetection {{
@@ -214,7 +214,7 @@ class EngineInstance:
         self.anomaly_detection_internal_id += 1
         return retval
 
-    def create_bam_timeperiod(self):
+    def ctn_create_bam_timeperiod(self):
         retval = """define timeperiod {
   timeperiod_name                centreon-bam-timeperiod
   alias                          centreon-bam-timeperiod
@@ -232,7 +232,7 @@ class EngineInstance:
         ff.write(retval)
         ff.close()
 
-    def create_bam_command(self):
+    def ctn_create_bam_command(self):
         retval = """define command {
   command_name                   centreon-bam-check
   command_line                   $CENTREONPLUGINS$/check_centreon_bam -i $ARG1$
@@ -248,7 +248,7 @@ define command {
         ff.write(retval)
         ff.close()
 
-    def create_bam_host(self):
+    def ctn_create_bam_host(self):
         self.last_host_id += 1
         print(self.last_host_id)
         host_id = self.last_host_id
@@ -274,7 +274,7 @@ define command {
         ff.close()
         return host_id
 
-    def create_bam_service(self, name: str, display_name: str, host_name: str, check_command: str):
+    def ctn_create_bam_service(self, name: str, display_name: str, host_name: str, check_command: str):
         self.last_service_id += 1
         service_id = self.last_service_id
         retval = """define service {{
@@ -302,7 +302,7 @@ define command {
         return service_id
 
     @staticmethod
-    def create_command(cmd):
+    def ctn_create_command(cmd):
         retval: str
         if cmd % 2 == 0:
             retval = """define command {{
@@ -320,7 +320,7 @@ define command {
         return retval
 
     @staticmethod
-    def create_host_group(id, mbs):
+    def ctn_create_host_group(id, mbs):
         retval = """define hostgroup {{
     hostgroup_id                    {0}
     hostgroup_name                  hostgroup_{0}
@@ -332,7 +332,7 @@ define command {
         return retval
 
     @staticmethod
-    def create_service_group(id, mbs):
+    def ctn_create_service_group(id, mbs):
         retval = """define servicegroup {{
     servicegroup_id                    {0}
     servicegroup_name                  servicegroup_{0}
@@ -344,7 +344,7 @@ define command {
         return retval
 
     @staticmethod
-    def create_contact_group(id, mbs):
+    def ctn_create_contact_group(id, mbs):
         retval = """define contactgroup {{
     contactgroup_name              contactgroup_{0}
     alias                          contactgroup_{0}
@@ -355,7 +355,7 @@ define command {
         return retval
 
     @staticmethod
-    def create_severities(poller: int, nb: int, offset: int):
+    def ctn_create_severities(poller: int, nb: int, offset: int):
         config_file = "{}/config{}/severities.cfg".format(CONF_DIR, poller)
         ff = open(config_file, "w+")
         content = ""
@@ -374,7 +374,7 @@ define command {
         ff.close()
 
     @staticmethod
-    def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+    def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
         config_file = f"{CONF_DIR}/config{poller}/escalations.cfg"
         with open(config_file, "a+") as ff:
             content = """define serviceescalation {{
@@ -388,7 +388,7 @@ define command {
             ff.write(content)
 
     @staticmethod
-    def create_template_file(poller: int, typ: str, what: str, ids):
+    def ctn_create_template_file(poller: int, typ: str, what: str, ids):
         config_file = "{}/config{}/{}Templates.cfg".format(
             CONF_DIR, poller, typ)
         ff = open(config_file, "w+")
@@ -408,7 +408,7 @@ passive_checks_enabled 1
         ff.close()
 
     @staticmethod
-    def create_tags(poller: int, nb: int, offset: int, tag_type: str):
+    def ctn_create_tags(poller: int, nb: int, offset: int, tag_type: str):
         tt = ["servicegroup", "hostgroup", "servicecategory", "hostcategory"]
 
         config_file = "{}/config{}/tags.cfg".format(CONF_DIR, poller)
@@ -432,7 +432,7 @@ passive_checks_enabled 1
         ff.write(content)
         ff.close()
 
-    def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
+    def ctn_build_configs(self, hosts: int, services_by_host: int, debug_level=0):
         if exists(CONF_DIR):
             shutil.rmtree(CONF_DIR)
         r = 0
@@ -451,18 +451,18 @@ passive_checks_enabled 1
             config_dir = "{}/config{}".format(CONF_DIR, inst)
             makedirs(config_dir)
             f = open(config_dir + "/centengine.cfg", "w")
-            bb = self.create_centengine(inst, debug_level=debug_level)
+            bb = self.ctn_create_centengine(inst, debug_level=debug_level)
             f.write(bb)
             f.close()
 
             f = open(config_dir + "/hosts.cfg", "w")
             ff = open(config_dir + "/services.cfg", "w")
             for i in range(1, nb_hosts + 1):
-                h = self.create_host()
+                h = self.ctn_create_host()
                 f.write(h["config"])
                 self.hosts.append("host_{}".format(h["hid"]))
                 for j in range(1, services_by_host + 1):
-                    ff.write(self.create_service(h["hid"],
+                    ff.write(self.ctn_create_service(h["hid"],
                                                  (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
                     self.services.append("service_{}".format(h["hid"]))
             ff.close()
@@ -639,7 +639,7 @@ define contact {
             if not exists(ENGINE_HOME + "/config{}/rw".format(inst)):
                 makedirs(ENGINE_HOME + "/config{}/rw".format(inst))
 
-    def centengine_conf_add_bam(self):
+    def ctn_centengine_conf_add_bam(self):
         config_dir = "{}/config0".format(CONF_DIR)
         f = open(config_dir + "/centengine.cfg", "r")
         lines = f.readlines()
@@ -651,7 +651,7 @@ define contact {
         f.writelines(lines)
         f.close()
 
-    def centengine_conf_add_anomaly(self):
+    def ctn_centengine_conf_add_anomaly(self):
         config_dir = "{}/config0".format(CONF_DIR)
         f = open(config_dir + "/centengine.cfg", "r")
         lines = f.readlines()
@@ -672,7 +672,7 @@ engine = None
 #
 
 
-def config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
+def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
     global engine
     engine = EngineInstance(num, hosts, srv_by_host)
 
@@ -680,7 +680,7 @@ def config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
 ##
 # @brief Accessor to the number of centengine configurations
 #
-def get_engines_count():
+def ctn_get_engines_count():
     if engine is None:
         return 0
     else:
@@ -694,7 +694,7 @@ def get_engines_count():
 # @param key the key to change the value.
 # @param value the new value to set to the key variable.
 #
-def engine_config_set_value(idx: int, key: str, value: str, force: bool = False):
+def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = False):
     filename = ETC_ROOT + \
         "/centreon-engine/config{}/centengine.cfg".format(idx)
     f = open(filename, "r")
@@ -723,7 +723,7 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
 #
 
 
-def engine_config_add_value(idx: int, key: str, value: str):
+def ctn_engine_config_add_value(idx: int, key: str, value: str):
     filename = ETC_ROOT + \
         "/centreon-engine/config{}/centengine.cfg".format(idx)
     f = open(filename, "a")
@@ -739,7 +739,7 @@ def engine_config_add_value(idx: int, key: str, value: str):
 # @param key the key to change the value.
 # @param value the new value to set to the key variable.
 #
-def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value: str):
     filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
     f = open(filename, "r")
     lines = f.readlines()
@@ -755,13 +755,7 @@ def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: st
     f.close()
 
 
-def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
-    """! Function to update a value in the services.cfg for the config idx.
-    @param idx index of the configuration (from 0)
-    @param desc service description of the service to modify.
-    @param key the key to change the value.
-    @param value the new value to set to the key variable.
-    """
+def ctn_engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
 
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
     with open(filename, "r") as f:
@@ -789,7 +783,7 @@ def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value
 #
 
 
-def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
     filename = ETC_ROOT + "/centreon-engine/config{}/hosts.cfg".format(idx)
     f = open(filename, "r")
     lines = f.readlines()
@@ -813,7 +807,7 @@ def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
 # @param key the key to change the value.
 # @param value the new value to set to the key variable.
 #
-def engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: str):
     filename = ETC_ROOT + "/centreon-engine/config{}/hosts.cfg".format(idx)
     f = open(filename, "r")
     lines = f.readlines()
@@ -841,7 +835,7 @@ def engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: s
 # @param command_index  index of the command (may be a regex)
 # @param new_command
 #
-def engine_config_change_command(idx: int, command_index: str, new_command: str):
+def ctn_engine_config_change_command(idx: int, command_index: str, new_command: str):
     f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "r")
     lines = f.readlines()
     f.close
@@ -869,7 +863,7 @@ def engine_config_change_command(idx: int, command_index: str, new_command: str)
 # @param command_name
 # @param new_command
 #
-def engine_config_add_command(idx: int, command_name: str, new_command: str, connector: str = None):
+def ctn_engine_config_add_command(idx: int, command_name: str, new_command: str, connector: str = None):
     f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "a")
     if connector is None:
         f.write("""define command {{
@@ -893,7 +887,7 @@ def engine_config_add_command(idx: int, command_name: str, new_command: str, con
 # @param key the key to change the value.
 # @param value the new value to set to the key variable.
 #
-def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/contacts.cfg"
     f = open(filename, "r")
     lines = f.readlines()
@@ -910,7 +904,7 @@ def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: st
     f.close()
 
 
-def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
@@ -922,7 +916,7 @@ def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value:
         ff.writelines(lines)
 
 
-def engine_config_remove_service_host(idx: int, host: str):
+def ctn_engine_config_remove_service_host(idx: int, host: str):
     filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
     f = open(filename, "r")
     lines = f.readlines()
@@ -953,7 +947,7 @@ def engine_config_remove_service_host(idx: int, host: str):
     f.close()
 
 
-def engine_config_remove_host(idx: int, host: str):
+def ctn_engine_config_remove_host(idx: int, host: str):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
@@ -984,15 +978,15 @@ def engine_config_remove_host(idx: int, host: str):
     f.close()
 
 
-def add_host_group(index: int, id_host_group: int, members: list):
+def ctn_add_host_group(index: int, id_host_group: int, members: list):
     mbs = [l for l in members if l in engine.hosts]
     f = open(ETC_ROOT + "/centreon-engine/config{}/hostgroups.cfg".format(index), "a+")
     logger.console(mbs)
-    f.write(engine.create_host_group(id_host_group, mbs))
+    f.write(engine.ctn_create_host_group(id_host_group, mbs))
     f.close()
 
 
-def rename_host_group(index: int, id_host_group: int, name: str, members: list):
+def ctn_rename_host_group(index: int, id_host_group: int, name: str, members: list):
     mbs = [l for l in members if l in engine.hosts]
     f = open(ETC_ROOT + "/centreon-engine/config{}/hostgroups.cfg".format(index), "w")
     logger.console(mbs)
@@ -1006,7 +1000,7 @@ def rename_host_group(index: int, id_host_group: int, name: str, members: list):
     f.close()
 
 
-def rename_service(index: int, hst: str, svc: str, new_svc: str):
+def ctn_rename_service(index: int, hst: str, svc: str, new_svc: str):
     f = open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "r")
     ll = f.readlines()
     f.close()
@@ -1046,15 +1040,15 @@ def rename_service(index: int, hst: str, svc: str, new_svc: str):
     f.close()
 
 
-def add_service_group(index: int, id_service_group: int, members: list):
+def ctn_add_service_group(index: int, id_service_group: int, members: list):
     f = open(
         ETC_ROOT + "/centreon-engine/config{}/servicegroups.cfg".format(index), "a+")
     logger.console(members)
-    f.write(engine.create_service_group(id_service_group, members))
+    f.write(engine.ctn_create_service_group(id_service_group, members))
     f.close()
 
 
-def rename_service_group(index: int, old_servicegroup_name: str, new_service_group_name: str):
+def ctn_rename_service_group(index: int, old_servicegroup_name: str, new_service_group_name: str):
     """!
         rename a service group
         @param index index of the poller
@@ -1072,15 +1066,15 @@ def rename_service_group(index: int, old_servicegroup_name: str, new_service_gro
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/servicegroups.cfg", "w") as f:
         f.writelines(ll)
 
-def add_contact_group(index: int, id_contact_group: int, members: list):
+def ctn_add_contact_group(index: int, id_contact_group: int, members: list):
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/contactgroups.cfg", "a+") as f:
         logger.console(members)
         f.write(engine.create_contact_group(id_contact_group, members))
 
 
-def create_service(index: int, host_id: int, cmd_id: int):
+def ctn_create_service(index: int, host_id: int, cmd_id: int):
     f = open(ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(index), "a+")
-    svc = engine.create_service(host_id, [1, cmd_id])
+    svc = engine.ctn_create_service(host_id, [1, cmd_id])
     lst = svc.split('\n')
     good = [l for l in lst if "_SERVICE_ID" in l][0]
     m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)
@@ -1095,10 +1089,10 @@ def create_service(index: int, host_id: int, cmd_id: int):
     return retval
 
 
-def create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
+def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
     f = open(
         ETC_ROOT + "/centreon-engine/config{}/anomaly_detection.cfg".format(index), "a+")
-    to_append = engine.create_anomaly_detection(
+    to_append = engine.ctn_create_anomaly_detection(
         host_id, dependent_service_id, metric_name, sensitivity)
     lst = to_append.split('\n')
     good = [l for l in lst if "service_id" in l][0]
@@ -1111,11 +1105,11 @@ def create_anomaly_detection(index: int, host_id: int, dependent_service_id: int
         m = 0
     f.write(to_append)
     f.close()
-    engine.centengine_conf_add_anomaly()
+    engine.ctn_centengine_conf_add_anomaly()
     return retval
 
 
-def engine_log_duplicate(result: list):
+def ctn_engine_log_duplicate(result: list):
     dup = True
     for i in result:
         if (i[0] % 2) != 0:
@@ -1123,59 +1117,59 @@ def engine_log_duplicate(result: list):
     return dup
 
 
-def clone_engine_config_to_db():
+def ctn_clone_engine_config_to_db():
     global dbconf
     dbconf = db_conf.DbConf(engine)
     dbconf.create_conf_db()
 
 
-def add_bam_config_to_engine():
+def ctn_add_bam_config_to_engine():
     global dbconf
     dbconf.init_bam()
 
 
-def create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inherit"):
+def ctn_create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inherit"):
     global dbconf
-    return dbconf.create_ba_with_services(name, typ, svc, dt_policy)
+    return dbconf.cnt_create_ba_with_services(name, typ, svc, dt_policy)
 
 
-def create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit"):
+def ctn_create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit"):
     global dbconf
-    return dbconf.create_ba(name, typ, critical_impact, warning_impact, dt_policy)
+    return dbconf.ctn_create_ba(name, typ, critical_impact, warning_impact, dt_policy)
 
 
-def add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):
-    return dbconf.add_boolean_kpi(id_ba, expression, impact_if, critical_impact)
+def ctn_add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):
+    return dbconf.ctn_add_boolean_kpi(id_ba, expression, impact_if, critical_impact)
 
 
-def update_boolean_rule(boolean_id: int, expression: str):
-    dbconf.update_boolean_rule(boolean_id, expression)
+def ctn_update_boolean_rule(boolean_id: int, expression: str):
+    dbconf.ctn_update_boolean_rule(boolean_id, expression)
 
 
-def add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):
-    dbconf.add_ba_kpi(id_ba_src, id_ba_dest, critical_impact,
+def ctn_add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+    dbconf.ctn_add_ba_kpi(id_ba_src, id_ba_dest, critical_impact,
                       warning_impact, unknown_impact)
 
 
-def add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+def ctn_add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
     global dbconf
-    dbconf.add_service_kpi(
+    dbconf.ctn_add_service_kpi(
         host, serv, id_ba, critical_impact, warning_impact, unknown_impact)
 
 
-def get_command_id(service: int):
+def ctn_get_command_id(service: int):
     global engine
     global dbconf
     cmd_name = engine.service_cmd[service]
     return dbconf.command[cmd_name]
 
 
-def get_command_service_param(service: int):
+def ctn_get_command_service_param(service: int):
     global engine
     return engine.service_cmd[service][8:]
 
 
-def change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
+def ctn_change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1190,7 +1184,7 @@ def change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_in
         f.close()
 
 
-def change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: int):
+def ctn_change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: int):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1205,7 +1199,7 @@ def change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: i
         f.close()
 
 
-def change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_interval: int):
+def ctn_change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_interval: int):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1220,7 +1214,7 @@ def change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_int
         f.close()
 
 
-def change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: int):
+def ctn_change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: int):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1235,7 +1229,7 @@ def change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: in
         f.close()
 
 
-def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_attempts: int):
+def ctn_change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_attempts: int):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1250,7 +1244,7 @@ def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_a
         f.close()
 
 
-def change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: int):
+def ctn_change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: int):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1265,7 +1259,7 @@ def change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: 
         f.close()
 
 
-def change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str):
+def ctn_change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1280,7 +1274,7 @@ def change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str)
         f.close()
 
 
-def change_host_notification_timeperiod(use_grpc: int, hst: str, notification_timeperiod: str):
+def ctn_change_host_notification_timeperiod(use_grpc: int, hst: str, notification_timeperiod: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1295,7 +1289,7 @@ def change_host_notification_timeperiod(use_grpc: int, hst: str, notification_ti
         f.close()
 
 
-def change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeperiod: str):
+def ctn_change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeperiod: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1310,7 +1304,7 @@ def change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeper
         f.close()
 
 
-def change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notification_timeperiod: str):
+def ctn_change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notification_timeperiod: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1325,7 +1319,7 @@ def change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notifi
         f.close()
 
 
-def disable_host_and_child_notifications(use_grpc: int, hst: str):
+def ctn_disable_host_and_child_notifications(use_grpc: int, hst: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1340,7 +1334,7 @@ def disable_host_and_child_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_and_child_notifications(use_grpc: int, hst: str):
+def ctn_enable_host_and_child_notifications(use_grpc: int, hst: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1355,7 +1349,7 @@ def enable_host_and_child_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_check(use_grpc: int, hst: str):
+def ctn_disable_host_check(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_CHECK;{}\n".format(
@@ -1365,7 +1359,7 @@ def disable_host_check(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_check(use_grpc: int, hst: str):
+def ctn_enable_host_check(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_CHECK;{}\n".format(
@@ -1375,7 +1369,7 @@ def enable_host_check(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_event_handler(use_grpc: int, hst: str):
+def ctn_disable_host_event_handler(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_EVENT_HANDLER;{}\n".format(
@@ -1385,7 +1379,7 @@ def disable_host_event_handler(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_event_handler(use_grpc: int, hst: str):
+def ctn_enable_host_event_handler(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_EVENT_HANDLER;{}\n".format(
@@ -1395,7 +1389,7 @@ def enable_host_event_handler(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_flap_detection(use_grpc: int, hst: str):
+def ctn_disable_host_flap_detection(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_FLAP_DETECTION;{}\n".format(
@@ -1405,7 +1399,7 @@ def disable_host_flap_detection(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_flap_detection(use_grpc: int, hst: str):
+def ctn_enable_host_flap_detection(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_FLAP_DETECTION;{}\n".format(
@@ -1415,7 +1409,7 @@ def enable_host_flap_detection(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_notifications(use_grpc: int, hst: str):
+def ctn_disable_host_notifications(use_grpc: int, hst: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1430,7 +1424,7 @@ def disable_host_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_notifications(use_grpc: int, hst: str):
+def ctn_enable_host_notifications(use_grpc: int, hst: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1445,7 +1439,7 @@ def enable_host_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: float):
+def ctn_update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: float):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1460,7 +1454,7 @@ def update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: floa
         f.close()
 
 
-def disable_host_svc_checks(use_grpc: int, hst: str):
+def ctn_disable_host_svc_checks(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_SVC_CHECKS;{}\n".format(
@@ -1470,7 +1464,7 @@ def disable_host_svc_checks(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_svc_checks(use_grpc: int, hst: str):
+def ctn_enable_host_svc_checks(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_SVC_CHECKS;{}\n".format(
@@ -1480,7 +1474,7 @@ def enable_host_svc_checks(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_svc_notifications(use_grpc: int, hst: str):
+def ctn_disable_host_svc_notifications(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
@@ -1490,7 +1484,7 @@ def disable_host_svc_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_svc_notifications(use_grpc: int, hst: str):
+def ctn_enable_host_svc_notifications(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
@@ -1500,7 +1494,7 @@ def enable_host_svc_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_passive_host_checks(use_grpc: int, hst: str):
+def ctn_disable_passive_host_checks(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_PASSIVE_HOST_CHECKS;{}\n".format(
@@ -1510,7 +1504,7 @@ def disable_passive_host_checks(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_passive_host_checks(use_grpc: int, hst: str):
+def ctn_enable_passive_host_checks(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_PASSIVE_HOST_CHECKS;{}\n".format(
@@ -1520,7 +1514,7 @@ def enable_passive_host_checks(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
+def ctn_disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
@@ -1530,7 +1524,7 @@ def disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
         f.close()
 
 
-def enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
+def ctn_enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
@@ -1540,7 +1534,7 @@ def enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
         f.close()
 
 
-def start_obsessing_over_host(use_grpc: int, hst: str):
+def ctn_start_obsessing_over_host(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] START_OBSESSING_OVER_HOST;{}\n".format(
@@ -1550,7 +1544,7 @@ def start_obsessing_over_host(use_grpc: int, hst: str):
         f.close()
 
 
-def stop_obsessing_over_host(use_grpc: int, hst: str):
+def ctn_stop_obsessing_over_host(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] STOP_OBSESSING_OVER_HOST;{}\n".format(
@@ -1560,7 +1554,7 @@ def stop_obsessing_over_host(use_grpc: int, hst: str):
         f.close()
 
 
-def start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
+def ctn_start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] START_OBSESSING_OVER_SVC;{};{}\n".format(
@@ -1570,7 +1564,7 @@ def start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
         f.close()
 
 
-def stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
+def ctn_stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] STOP_OBSESSING_OVER_SVC;{};{}\n".format(
@@ -1580,7 +1574,7 @@ def stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
         f.close()
 
 
-def external_command(func):
+def ctn_external_command(func):
     def wrapper(*args):
         now = int(time.time())
         cmd = f"[{now}] {func(*args)}"
@@ -1591,28 +1585,28 @@ def external_command(func):
 
 
 @external_command
-def service_ext_commands(hst: str, svc: str, state: int, output: str):
+def ctn_service_ext_commands(hst: str, svc: str, state: int, output: str):
     return f"PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
 
 
 @external_command
-def process_host_check_result(hst: str, state: int, output: str):
+def ctn_process_host_check_result(hst: str, state: int, output: str):
     return f"PROCESS_HOST_CHECK_RESULT;{hst};{state};{output}\n"
 
 
 @external_command
-def schedule_service_downtime(hst: str, svc: str, duration: int):
+def ctn_schedule_service_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
     return f"SCHEDULE_SVC_DOWNTIME;{hst};{svc};{now};{now+int(duration)};0;0;{duration};admin;Downtime set by admin\n"
 
 
 @external_command
-def schedule_service_fixed_downtime(hst: str, svc: str, duration: int):
+def ctn_schedule_service_fixed_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
     return f"SCHEDULE_SVC_DOWNTIME;{hst};{svc};{now};{now+int(duration)};1;0;{duration};admin;Downtime set by admin\n"
 
 
-def schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
+def ctn_schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
     now = int(time.time())
     cmd1 = "[{1}] SCHEDULE_HOST_DOWNTIME;{0};{1};{2};1;0;;admin;Downtime set by admin\n".format(
         hst, now, now + duration)
@@ -1625,7 +1619,7 @@ def schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
     f.close()
 
 
-def schedule_host_downtime(poller: int, hst: str, duration: int):
+def ctn_schedule_host_downtime(poller: int, hst: str, duration: int):
     now = int(time.time())
     cmd1 = "[{1}] SCHEDULE_HOST_DOWNTIME;{0};{1};{2};1;0;{3};admin;Downtime set by admin\n".format(
         hst, now, now + duration, duration)
@@ -1638,7 +1632,7 @@ def schedule_host_downtime(poller: int, hst: str, duration: int):
     f.close()
 
 
-def delete_host_downtimes(poller: int, hst: str):
+def ctn_delete_host_downtimes(poller: int, hst: str):
     now = int(time.time())
     cmd = "[{}] DEL_HOST_DOWNTIME_FULL;{};;;;;;;;\n".format(now, hst)
     f = open(
@@ -1647,7 +1641,7 @@ def delete_host_downtimes(poller: int, hst: str):
     f.close()
 
 
-def delete_service_downtime_full(poller: int, hst: str, svc: str):
+def ctn_delete_service_downtime_full(poller: int, hst: str, svc: str):
     now = int(time.time())
     cmd = f"[{now}] DEL_SVC_DOWNTIME_FULL;{hst};{svc};;;;;;;\n"
     f = open(
@@ -1656,7 +1650,7 @@ def delete_service_downtime_full(poller: int, hst: str, svc: str):
     f.close()
 
 
-def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd"):
+def ctn_schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd"):
     now = int(time.time())
     f = open(pipe, "w")
     cmd = "[{2}] SCHEDULE_FORCED_SVC_CHECK;{0};{1};{2}\n".format(
@@ -1666,30 +1660,30 @@ def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/
     time.sleep(0.05)
 
 
-def schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
+def ctn_schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
     now = int(time.time())
     cmd = f"[{now}] SCHEDULE_FORCED_HOST_CHECK;{host};{now}\n"
     with open(pipe, "w") as f:
         f.write(cmd)
 
 
-def create_severities_file(poller: int, nb: int, offset: int = 1):
-    engine.create_severities(poller, nb, offset)
+def ctn_create_severities_file(poller: int, nb: int, offset: int = 1):
+    engine.ctn_create_severities(poller, nb, offset)
 
 
-def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
-    engine.create_escalations_file(poller, name, SG, contactgroup)
+def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+    engine.ctn_create_escalations_file(poller, name, SG, contactgroup)
 
 
-def create_template_file(poller: int, typ: str, what: str, ids: list):
-    engine.create_template_file(poller, typ, what, ids)
+def ctn_create_template_file(poller: int, typ: str, what: str, ids: list):
+    engine.ctn_create_template_file(poller, typ, what, ids)
 
 
-def create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
-    engine.create_tags(poller, nb, offset, tag_type)
+def ctn_create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
+    engine.ctn_create_tags(poller, nb, offset, tag_type)
 
 
-def engine_config_remove_tag(poller: int, tag_id: int):
+def ctn_engine_config_remove_tag(poller: int, tag_id: int):
     """! remove tags from tags.cfg where tag id = tag_id
     @param poller  poller index
     @param tag_id  id of the tag to remove
@@ -1723,7 +1717,7 @@ def engine_config_remove_tag(poller: int, tag_id: int):
 
 
 
-def config_engine_add_cfg_file(poller: int, cfg: str):
+def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1738,7 +1732,7 @@ def config_engine_add_cfg_file(poller: int, cfg: str):
     ff.close()
 
 
-def add_severity_to_services(poller: int, severity_id: int, svc_lst):
+def ctn_add_severity_to_services(poller: int, severity_id: int, svc_lst):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1754,7 +1748,7 @@ def add_severity_to_services(poller: int, severity_id: int, svc_lst):
     ff.close()
 
 
-def set_services_passive(poller: int, srv_regex):
+def ctn_set_services_passive(poller: int, srv_regex):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1783,7 +1777,7 @@ def set_services_passive(poller: int, srv_regex):
     ff.close()
 
 
-def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
+def ctn_add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1799,7 +1793,7 @@ def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     ff.close()
 
 
-def add_template_to_services(poller: int, tmpl: str, svc_lst):
+def ctn_add_template_to_services(poller: int, tmpl: str, svc_lst):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1815,7 +1809,7 @@ def add_template_to_services(poller: int, tmpl: str, svc_lst):
     ff.close()
 
 
-def add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
+def ctn_add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1830,7 +1824,7 @@ def add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
     ff.close()
 
 
-def remove_severities_from_services(poller: int):
+def ctn_remove_severities_from_services(poller: int):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1841,7 +1835,7 @@ def remove_severities_from_services(poller: int):
     ff.close()
 
 
-def remove_severities_from_hosts(poller: int):
+def ctn_remove_severities_from_hosts(poller: int):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1861,7 +1855,7 @@ def remove_severities_from_hosts(poller: int):
 #
 
 
-def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
+def ctn_check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         cmd_executed = False
@@ -1892,7 +1886,7 @@ def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
         return f"check_search doesn't find '{str_to_search}'"
 
 
-def add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
+def ctn_add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1908,7 +1902,7 @@ def add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
     ff.close()
 
 
-def remove_tags_from_services(poller: int, type: str):
+def ctn_remove_tags_from_services(poller: int, type: str):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1919,7 +1913,7 @@ def remove_tags_from_services(poller: int, type: str):
     ff.close()
 
 
-def remove_tags_from_hosts(poller: int, type: str):
+def ctn_remove_tags_from_hosts(poller: int, type: str):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1930,7 +1924,7 @@ def remove_tags_from_hosts(poller: int, type: str):
     ff.close()
 
 
-def add_template_to_services(poller: int, tmpl: str, svc_lst):
+def ctn_add_template_to_services(poller: int, tmpl: str, svc_lst):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1946,7 +1940,7 @@ def add_template_to_services(poller: int, tmpl: str, svc_lst):
     ff.close()
 
 
-def add_template_to_hosts(poller: int, tmpl: str, hst_lst):
+def ctn_add_template_to_hosts(poller: int, tmpl: str, hst_lst):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1962,7 +1956,7 @@ def add_template_to_hosts(poller: int, tmpl: str, hst_lst):
     ff.close()
 
 
-def config_engine_remove_cfg_file(poller: int, fic: str):
+def ctn_config_engine_remove_cfg_file(poller: int, fic: str):
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1974,7 +1968,7 @@ def config_engine_remove_cfg_file(poller: int, fic: str):
     ff.close()
 
 
-def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
+def ctn_process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
     now = int(time.time())
     pd = [output + " | "]
     for m in range(metrics):
@@ -1982,9 +1976,9 @@ def process_service_check_result_with_metrics(hst: str, svc: str, state: int, ou
         pd.append(f"{metric_name}{m}={v}")
         logger.trace(f"{metric_name}{m}={v}")
     full_output = " ".join(pd)
-    process_service_check_result(hst, svc, state, full_output, config)
+    ctn_process_service_check_result(hst, svc, state, full_output, config)
 
-def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
+def ctn_process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
     if use_grpc > 0:
         port = 50001 + int(config[6:])
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
@@ -2003,7 +1997,7 @@ def process_service_check_result(hst: str, svc: str, state: int, output: str, co
 
 
 @external_command
-def acknowledge_service_problem(hst, service, typ='NORMAL'):
+def ctn_acknowledge_service_problem(hst, service, typ='NORMAL'):
     if typ == 'NORMAL':
         logger.console('acknowledgement is normal')
         sticky = 1
@@ -2018,52 +2012,52 @@ def acknowledge_service_problem(hst, service, typ='NORMAL'):
 
 
 @external_command
-def remove_service_acknowledgement(hst, service):
+def ctn_remove_service_acknowledgement(hst, service):
     return f"REMOVE_SVC_ACKNOWLEDGEMENT;{hst};{service}\n"
 
 
 @external_command
-def send_custom_host_notification(hst, notification_option, author, comment):
+def ctn_send_custom_host_notification(hst, notification_option, author, comment):
     return f"SEND_CUSTOM_HOST_NOTIFICATION;{hst};{notification_option};{author};{comment}\n"
 
 
 @external_command
-def add_svc_comment(host_name, svc_description, persistent, user_name, comment):
+def ctn_add_svc_comment(host_name, svc_description, persistent, user_name, comment):
     return f"ADD_SVC_COMMENT;{host_name};{svc_description};{persistent};{user_name};{comment}\n"
 
 
 @external_command
-def add_host_comment(host_name, persistent, user_name, comment):
+def ctn_add_host_comment(host_name, persistent, user_name, comment):
     return f"ADD_HOST_COMMENT;{host_name};{persistent};{user_name};{comment}\n"
 
 
 @external_command
-def del_host_comment(comment_id):
+def ctn_del_host_comment(comment_id):
     return f"DEL_HOST_COMMENT;{comment_id}\n"
 
 
 @external_command
-def change_host_check_command(hst: str, Check_Command: str):
+def ctn_change_host_check_command(hst: str, Check_Command: str):
     return f"CHANGE_HOST_CHECK_COMMAND;{hst};{Check_Command}\n"
 
 
 @external_command
-def change_custom_host_var_command(hst: str, var_name: str, var_value):
+def ctn_change_custom_host_var_command(hst: str, var_name: str, var_value):
     return "CHANGE_CUSTOM_HOST_VAR;{};{};{}\n".format(hst, var_name, var_value)
 
 
 @external_command
-def change_custom_svc_var_command(hst: str, svc: str, var_name: str, var_value):
+def ctn_change_custom_svc_var_command(hst: str, svc: str, var_name: str, var_value):
     return "CHANGE_CUSTOM_SVC_VAR;{};{};{};{}\n".format(hst, svc, var_name, var_value)
 
 
 @external_command
-def change_global_host_event_handler(var_value: str):
+def ctn_change_global_host_event_handler(var_value: str):
     return "CHANGE_GLOBAL_HOST_EVENT_HANDLER;{}\n".format(var_value)
 
 
 @external_command
-def change_global_svc_event_handler(var_value: str):
+def ctn_change_global_svc_event_handler(var_value: str):
     return "CHANGE_GLOBAL_SVC_EVENT_HANDLER;{}\n".format(var_value)
 
 
@@ -2072,7 +2066,7 @@ def set_svc_notification_number(host_name: string, svc_description: string, valu
     return "SET_SVC_NOTIFICATION_NUMBER;{};{};{}\n".format(host_name, svc_description, value)
 
 
-def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
+def ctn_create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
     f = open(path, "w")
     f.write("""[
     {{
@@ -2099,7 +2093,7 @@ def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, m
     f.close()
 
 
-def create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int, metric_name: string, sensitivity: float, values: array):
+def ctn_create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int, metric_name: string, sensitivity: float, values: array):
     f = open(path, "w")
     f.write("""[
     {{
@@ -2128,11 +2122,11 @@ def create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int
     f.close()
 
 
-def grep_retention(poller: int, pattern: str):
+def ctn_grep_retention(poller: int, pattern: str):
     return Common.grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
 
 
-def modify_retention_dat(poller, host, service, key, value):
+def ctn_modify_retention_dat(poller, host, service, key, value):
     if host != "" and host != "":
         # We want a service
         ff = open(
@@ -2177,7 +2171,7 @@ def modify_retention_dat(poller, host, service, key, value):
         ff.close()
 
 
-def modify_retention_dat_host(poller, host, key, value):
+def ctn_modify_retention_dat_host(poller, host, key, value):
     if host != "" and host != "":
         # We want a host
         ff = open(
@@ -2222,7 +2216,7 @@ def modify_retention_dat_host(poller, host, key, value):
 #
 # @return process__stat__pb2.pb_process_stat
 #
-def get_engine_process_stat(port, timeout=10):
+def ctn_get_engine_process_stat(port, timeout=10):
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
@@ -2244,7 +2238,7 @@ def get_engine_process_stat(port, timeout=10):
 # @param id field of the protobuf Bench message
 # @param port of the grpc server
 #
-def send_bench(id: int, port: int):
+def ctn_send_bench(id: int, port: int):
     ts = Timestamp()
     ts.GetCurrentTime()
     with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
@@ -2252,7 +2246,7 @@ def send_bench(id: int, port: int):
         stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))
 
 
-def config_host_command_status(idx: int, cmd_name: str, status: int):
+def ctn_config_host_command_status(idx: int, cmd_name: str, status: int):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
@@ -2268,7 +2262,7 @@ def config_host_command_status(idx: int, cmd_name: str, status: int):
         f.writelines(lines)
 
 
-def add_host_dependency(idx: int, host_name:str, dependent_host_name:str):
+def ctn_add_host_dependency(idx: int, host_name:str, dependent_host_name:str):
     """!
     add a host dependency in dependencies.cfg file
     @param idx index ofthe poller usually 0
@@ -2288,7 +2282,7 @@ define hostdependency {{
 }}
 """)
         
-def add_service_dependency(idx: int, host_name:str, dependent_host_name:str, service:str, dependent_service:str):
+def ctn_add_service_dependency(idx: int, host_name:str, dependent_host_name:str, service:str, dependent_service:str):
     """!
     add a host dependency in dependencies.cfg file
     @param idx index ofthe poller usually 0

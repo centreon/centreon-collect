@@ -26,7 +26,7 @@ EFHC1
     Clear Retention
     Clear Db    hosts
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
     ${result}    Check Host Status    host_1    4    1    False
     Should Be True    ${result}    host_1 should be pending
@@ -72,7 +72,7 @@ EFHC2
 
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
     ${content}    Create List    INITIAL HOST STATE: host_1;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -120,7 +120,7 @@ EFHCU1
     Clear Retention
     Clear Db    resources
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
     ${result}    Check Host Status    host_1    4    1    True
     Should Be True    ${result}    host_1 should be pending
@@ -169,7 +169,7 @@ EFHCU2
 
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
     ${result}    Check Host Status    host_1    4    1    True
     Should Be True    ${result}    host_1 should be pending
@@ -215,7 +215,7 @@ EMACROS
     ...    /bin/echo "ResourceFile: $RESOURCEFILE$ - LogFile: $LOGFILE$ - AdminEmail: $ADMINEMAIL$ - AdminPager: $ADMINPAGER$"
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -258,7 +258,7 @@ EMACROS_NOTIF
     Remove File    /tmp/notif_toto.txt
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     ${content}    Create List    INITIAL HOST STATE: host_1;

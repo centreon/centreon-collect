@@ -183,7 +183,7 @@ BEDB2
     ${start}    Get Current Date
     Stop Mysql
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    error while starting connection
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
@@ -203,7 +203,7 @@ BEDB3
     ${start}    Get Current Date
     Start Mysql
     Start Broker
-    Start Engine
+    Ctn Start Engine
     FOR    ${t}    IN RANGE    60
         ${result}    Check Sql Connections Count With Grpc    51001    ${3}
         IF    ${result}    BREAK
@@ -235,7 +235,7 @@ BEDB4
     ${start}    Get Current Date
     Stop Mysql
     Start Broker
-    Start Engine
+    Ctn Start Engine
     FOR    ${t}    IN RANGE    60
         ${result}    Check All Sql connections Down With Grpc    51001
         IF    ${result}    BREAK
@@ -265,7 +265,7 @@ BDBM1
         ${start}    Get Round Current Date
         Stop Mysql
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    error while starting connection
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
@@ -377,7 +377,7 @@ BDBMU1
         ${start}    Get Current Date
         Stop Mysql
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    mysql_connection: error while starting connection
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True    ${result}    Broker does not see any issue with the db while it is switched off

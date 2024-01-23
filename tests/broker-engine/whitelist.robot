@@ -17,7 +17,7 @@ Whitelist_No_Whitelist_Directory
     Config Broker    module    ${1}
     Remove Directory    /etc/centreon-engine-whitelist    recursive=${True}
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List
     ...    no whitelist directory found, all commands are accepted
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -30,7 +30,7 @@ Whitelist_Empty_Directory
     Config Broker    module    ${1}
     Empty Directory    /etc/centreon-engine-whitelist
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List
     ...    whitelist directory found, but no restrictions, all commands are accepted
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -43,7 +43,7 @@ Whitelist_Directory_Rights
     Config Broker    module    ${1}
     Run    chown root:root /etc/centreon-engine-whitelist
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List
     ...    directory /etc/centreon-engine-whitelist must be owned by root@centreon-engine
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
@@ -79,7 +79,7 @@ Whitelist_Host
 
     ${start}    Get Current Date
     Start Broker    only_central=${True}
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -136,7 +136,7 @@ Whitelist_Service
 
     ${start}    Get Current Date
     Start Broker    only_central=${True}
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -197,7 +197,7 @@ Whitelist_Perl_Connector
 
     ${start}    Get Current Date
     Start Broker    only_central=${True}
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.

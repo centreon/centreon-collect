@@ -25,7 +25,7 @@ EBSNU1
     Engine Config Set Value In Services    0    service_1    notes_url    ${nu}
     Clear Retention
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
@@ -58,7 +58,7 @@ EBSAU2
     Engine Config Set Value In Services    0    service_2    action_url    ${au}
     Clear Retention
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
@@ -91,7 +91,7 @@ EBSN3
     Engine Config Set Value In Services    0    service_3    notes    ${n}
     Clear Retention
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60

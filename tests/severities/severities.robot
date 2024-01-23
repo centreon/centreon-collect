@@ -25,7 +25,7 @@ BESEV1
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Check Severity With Timeout    severity1    1    5    30
@@ -47,7 +47,7 @@ BESEV2
     Broker Config Log    central    sql    debug
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Sleep    1s
     Start Broker
     ${result}    Check Severity With Timeout    severity20    5    1    30
@@ -74,7 +74,7 @@ BEUSEV1
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Check Severity With Timeout    severity1    1    5    30
@@ -98,7 +98,7 @@ BEUSEV2
     Broker Config Log    central    sql    debug
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Sleep    1s
     Start Broker
     ${result}    Check Severity With Timeout    severity20    5    1    30
@@ -125,7 +125,7 @@ BEUSEV3
     Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
     Sleep    2s
 
@@ -168,7 +168,7 @@ BEUSEV4
     Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
@@ -243,7 +243,7 @@ BETUSEV1
     Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine

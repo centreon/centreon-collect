@@ -24,7 +24,7 @@ BETAG1
     Clear Retention
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -50,7 +50,7 @@ BETAG2
     Clear Retention
     Sleep    1s
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     # Let's wait for the external command check start
@@ -79,7 +79,7 @@ BEUTAG1
     Clear Retention
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -111,7 +111,7 @@ BEUTAG2
     Clear Retention
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -123,7 +123,7 @@ BEUTAG2
 
     Stop Engine
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Reload Broker
 
     # Let's wait for the external command check start
@@ -150,7 +150,7 @@ BEUTAG3
     Clear Retention
     Sleep    1s
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     # Let's wait for the external command check start
@@ -181,7 +181,7 @@ BEUTAG4
     Broker Config Log    central    sql    debug
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Sleep    1s
     Start Broker
 
@@ -218,7 +218,7 @@ BEUTAG5
     Clear Retention
     Sleep    1s
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     # Let's wait for the external command check start
@@ -256,7 +256,7 @@ BEUTAG6
     Clear Retention
     Sleep    1s
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     # Let's wait for the external command check start
@@ -297,7 +297,7 @@ BEUTAG7
     Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     # Let's wait for the external command check start
@@ -368,7 +368,7 @@ BEUTAG8
     Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     # Let's wait for the external command check start
@@ -421,7 +421,7 @@ BEUTAG9
     Clear Retention
     Sleep    1s
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     # Let's wait for the external command check start
@@ -478,7 +478,7 @@ BEUTAG10
     Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     # Let's wait for the external command check start
@@ -544,7 +544,7 @@ BEUTAG11
     Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     # Let's wait for the external command check start
@@ -605,7 +605,7 @@ BEUTAG12
     Clear Retention
     Sleep    1s
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     # Let's wait for the external command check start
@@ -660,7 +660,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Clear Retention
     Sleep    1s
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     # Let's wait for the external command check start

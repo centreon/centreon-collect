@@ -30,7 +30,7 @@ BENCH_${nb_check}STATUS
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -98,7 +98,7 @@ BENCH_${nb_check}STATUS_TRACES
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -166,7 +166,7 @@ BENCH_1000STATUS_100${suffixe}
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${connected}    Wait For Connections    5669    100
     Should Be True    ${connected}    100 engines should be connected to broker
     ${result}    Wait For Listen On Range    50001    50100    centengine    60

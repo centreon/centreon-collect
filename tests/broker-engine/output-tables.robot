@@ -26,7 +26,7 @@ BERES1
     ${start}    Get Current Date
     Sleep    1s
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content_not_present}    Create List
     ...    processing host status event (host:
     ...    UPDATE hosts SET checked=i
@@ -57,7 +57,7 @@ BEHS1
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content_present}    Create List    UPDATE hosts SET checked=    UPDATE services SET checked=
     ${content_not_present}    Create List
     ...    INSERT INTO resources
@@ -98,7 +98,7 @@ BEINSTANCESTATUS
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -154,7 +154,7 @@ BEINSTANCE
     # as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
     ${start}    Get Round Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${engine_pid}    Get Engine Pid    e0
     ${result}    Check Field Db Value    SELECT pid FROM instances WHERE instance_id=1    ${engine_pid}    30
     Should Be True    ${result}    no correct engine pid in instances table.
@@ -187,7 +187,7 @@ BE_NOTIF_OVERFLOW
     Clear Retention
 
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     ${start}    Get Current Date
     ${content}    Create List    INITIAL SERVICE STATE: host_16;service_314;
@@ -226,7 +226,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Clear Retention
 
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     FOR    ${index}    IN RANGE    300
         ${output}    Query
@@ -260,7 +260,7 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     Clear Retention
 
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     FOR    ${index}    IN RANGE    300
         ${output}    Query
