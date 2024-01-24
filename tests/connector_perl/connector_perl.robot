@@ -49,8 +49,8 @@ Start engine
     Copy Files    connector_perl/conf_engine/*    /tmp/test_connector_perl/
     Empty Directory    /tmp/test_connector_perl/log/
     Kill Engine
-    Start Custom Engine    /tmp/test_connector_perl/centengine.cfg    engine_alias
+    Ctn Start Custom Engine    /tmp/test_connector_perl/centengine.cfg    engine_alias
     Sleep    5 seconds    we wait engine start
 
 Stop engine
-    Stop Custom Engine    engine_alias
+    Ctn Stop Custom Engine    engine_alias

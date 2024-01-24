@@ -3,10 +3,10 @@ Documentation       Engine/Broker tests on tags.
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
 Test Setup          Init Test
-Test Teardown       Stop Engine Broker And Save Logs
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -73,7 +73,7 @@ BEUTAG1
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -101,7 +101,7 @@ BEUTAG2
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    1
     Broker Config Output Set    central    central-broker-unified-sql    queries_per_transaction    1
     Broker Config Output Set    central    central-broker-unified-sql    read_timeout    1
@@ -121,7 +121,7 @@ BEUTAG2
     ${svc}    Create Service    ${0}    1    1
     Add Tags To Services    ${0}    group_tags    4    [${svc}]
 
-    Stop Engine
+    Ctn Stop Engine
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Reload Broker
@@ -144,7 +144,7 @@ BEUTAG3
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -176,7 +176,7 @@ BEUTAG4
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -212,7 +212,7 @@ BEUTAG5
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -250,7 +250,7 @@ BEUTAG6
     Config Broker    rrd
     Config Broker    module    ${1}
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -291,7 +291,7 @@ BEUTAG7
     Config Broker    rrd
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    2
+    Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
@@ -322,7 +322,7 @@ BEUTAG7
     Create Tags File    ${1}    ${18}
     Add Tags To Services    ${1}    group_tags    3,5    [505, 506, 507, 508]
     ${start}    Get Round Current Date
-    Reload Engine
+    Ctn Reload Engine
     Ctn Reload Broker
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -362,7 +362,7 @@ BEUTAG8
     Config Broker    rrd
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    2
+    Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
@@ -414,7 +414,7 @@ BEUTAG9
     Config Broker    rrd
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    2
+    Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
@@ -472,7 +472,7 @@ BEUTAG10
     Config Broker    rrd
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    2
+    Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
@@ -506,7 +506,7 @@ BEUTAG10
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 4]
     Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503]
     Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 504]
-    Reload Engine
+    Ctn Reload Engine
     Ctn Reload Broker
     ${result}    Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60    False
     Should Be True    ${result}    Second step: Service (1, 4) should not have servicegroup tags 2 and 4
@@ -538,7 +538,7 @@ BEUTAG11
     Config Broker    rrd
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    2
+    Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
@@ -572,7 +572,7 @@ BEUTAG11
     Add Tags To Services    ${0}    category_tags    3    [1, 2, 3, 4]
     Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503]
     Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 504]
-    Reload Engine
+    Ctn Reload Engine
     Ctn Reload Broker
     ${result}    Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
     Should Be True    ${result}    Second step: Service (1, 4) should not have servicegroup tags 2 and 4
@@ -599,7 +599,7 @@ BEUTAG12
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -627,7 +627,7 @@ BEUTAG12
     Create Tags File    ${0}    ${5}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
 
-    Reload Engine
+    Ctn Reload Engine
     Ctn Reload Broker
 
     ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2,3]    60    False
@@ -654,7 +654,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention
@@ -678,7 +678,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Engine Config Remove Service Host    ${0}    host_1
     Engine Config Remove Host    0    host_1
     Engine Config Remove Tag    0    2
-    Reload Engine
+    Ctn Reload Engine
 
     ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    False
     Should Be True    ${result}    Host 1 should not have hostgroup tags 2
@@ -693,7 +693,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
 
     Create Tags File    ${0}    ${3}    ${0}    hostgroup
     Add Tags To Hosts    ${0}    group_tags    2    [2,3]
-    Reload Engine
+    Ctn Reload Engine
 
     ${result}    Check Resources Tags With Timeout    0    2    hostgroup    [2]    60    True
     Should Be True    ${result}    Host 2 should have hostgroup tags 2
@@ -704,5 +704,5 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
 
 *** Keywords ***
 Init Test
-    Stop Processes
+    Ctn Stop Processes
     Truncate Resource Host Service

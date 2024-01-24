@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine log_v2
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -42,4 +42,4 @@ ENRSCHE1
     ${result}    Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    False    240
     Should Be True    ${result}    The delta between last_check and next_check is not equal to 300 as expected for a normal check
 
-    [Teardown]    Stop Engine Broker And Save Logs
+    [Teardown]    Ctn Stop Engine Broker And Save Logs

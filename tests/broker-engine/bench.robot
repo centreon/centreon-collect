@@ -3,10 +3,10 @@ Documentation       Centreon Broker and Engine benchmark
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
-Test Teardown       Stop Engine Broker And Save Logs
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Variables ***
@@ -26,7 +26,7 @@ BENCH_${nb_check}STATUS
     Broker Config Log    central    sql    trace
     Broker Config Log    central    core    info
     Broker Config Log    central    processing    error
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
@@ -161,7 +161,7 @@ BENCH_1000STATUS_100${suffixe}
     Broker Config Log    central    sql    trace
     Broker Config Log    central    core    info
     Broker Config Log    central    processing    error
-    Config BBDO3    ${100}
+    Ctn Config BBDO3    ${100}
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
     ${start}    Get Current Date

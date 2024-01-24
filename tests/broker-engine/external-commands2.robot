@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine progressively add services
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -55,8 +55,8 @@ BEEXTCMD30
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD31
@@ -66,7 +66,7 @@ BEEXTCMD31
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
@@ -148,8 +148,8 @@ BEEXTCMD31
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD32
@@ -221,8 +221,8 @@ BEEXTCMD32
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD33
@@ -232,7 +232,7 @@ BEEXTCMD33
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
@@ -275,8 +275,8 @@ BEEXTCMD33
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD34
@@ -326,8 +326,8 @@ BEEXTCMD34
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD35
@@ -337,7 +337,7 @@ BEEXTCMD35
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
@@ -394,8 +394,8 @@ BEEXTCMD35
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD36
@@ -441,8 +441,8 @@ BEEXTCMD36
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD37
@@ -452,7 +452,7 @@ BEEXTCMD37
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
@@ -513,8 +513,8 @@ BEEXTCMD37
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD38
@@ -564,8 +564,8 @@ BEEXTCMD38
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD39
@@ -575,7 +575,7 @@ BEEXTCMD39
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
@@ -614,8 +614,8 @@ BEEXTCMD39
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD40
@@ -661,8 +661,8 @@ BEEXTCMD40
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD41
@@ -672,7 +672,7 @@ BEEXTCMD41
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
@@ -715,8 +715,8 @@ BEEXTCMD41
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD42
@@ -766,8 +766,8 @@ BEEXTCMD42
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_GRPC1
@@ -779,7 +779,7 @@ BEEXTCMD_GRPC1
     Config Broker    module    ${1}
     Change Broker tcp output to grpc    module0
     Change Broker tcp input to grpc    central
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
@@ -807,8 +807,8 @@ BEEXTCMD_GRPC1
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_GRPC2
@@ -846,8 +846,8 @@ BEEXTCMD_GRPC2
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_GRPC3
@@ -859,7 +859,7 @@ BEEXTCMD_GRPC3
     Config Broker    module    ${1}
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
@@ -887,8 +887,8 @@ BEEXTCMD_GRPC3
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_GRPC4
@@ -925,8 +925,8 @@ BEEXTCMD_GRPC4
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC1
@@ -942,7 +942,7 @@ BEEXTCMD_REVERSE_GRPC1
     Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
     Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
@@ -971,8 +971,8 @@ BEEXTCMD_REVERSE_GRPC1
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC2
@@ -1014,8 +1014,8 @@ BEEXTCMD_REVERSE_GRPC2
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC3
@@ -1027,7 +1027,7 @@ BEEXTCMD_REVERSE_GRPC3
     Config Broker    module    ${1}
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Output Remove    module0    central-module-master-output    host
     Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
@@ -1059,8 +1059,8 @@ BEEXTCMD_REVERSE_GRPC3
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC4
@@ -1102,8 +1102,8 @@ BEEXTCMD_REVERSE_GRPC4
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_COMPRESS_GRPC1
@@ -1117,7 +1117,7 @@ BEEXTCMD_COMPRESS_GRPC1
     Change Broker Tcp Input To Grpc    central
     Change Broker Compression Output    module0    central-module-master-output    yes
     Change Broker Compression Input    central    centreon-broker-master-input    yes
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
@@ -1145,8 +1145,8 @@ BEEXTCMD_COMPRESS_GRPC1
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Ctn Kindly Ctn Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEATOI11
@@ -1168,8 +1168,8 @@ BEATOI11
     ${content}    Create List    EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;foobar
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEATOI12
     [Documentation]    external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
@@ -1191,8 +1191,8 @@ BEATOI12
     ...    Error: could not send custom host notification: '8' must be an integer between 0 and 7
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEATOI13
     [Documentation]    external command Schedule Service Downtime with duration<0 should fail
@@ -1214,8 +1214,8 @@ BEATOI13
     ${content}    Create List    Error: could not schedule downtime : duration
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument duration must be an integer >= 0.
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEATOI21
     [Documentation]    external command ADD_HOST_COMMENT and DEL_HOST_COMMENT should work
@@ -1241,8 +1241,8 @@ BEATOI21
     DEL HOST COMMENT    ${com_id}
     ${result}    Find Internal Id    ${start}    False    30
     Should Be True    ${result}    the comment with id:${com_id} was not deleted.
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEATOI22
     [Documentation]    external command DEL_HOST_COMMENT with comment_id<0 should fail
@@ -1271,8 +1271,8 @@ BEATOI22
     Should Be True    ${result}    comment_id must be an unsigned integer.
     ${result}    Find Internal Id    ${start}    True    30
     Should Be True    ${result}    comment with id:-1 was deleted.
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEATOI23
     [Documentation]    external command ADD_SVC_COMMENT with persistent=0 should work
@@ -1294,8 +1294,8 @@ BEATOI23
     ${content}    Create List    ADD_SVC_COMMENT
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument persistent_flag must be 0 or 1.
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BECUSTOMHOSTVAR
     [Documentation]    external command CHANGE_CUSTOM_HOST_VAR on SNMPVERSION
@@ -1304,7 +1304,7 @@ BECUSTOMHOSTVAR
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
@@ -1328,8 +1328,8 @@ BECUSTOMHOSTVAR
     END
     Should Be Equal As Strings    ${output}    (('789456',),)
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BECUSTOMSVCVAR
     [Documentation]    external command CHANGE_CUSTOM_SVC_VAR on CRITICAL
@@ -1338,7 +1338,7 @@ BECUSTOMSVCVAR
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
@@ -1362,8 +1362,8 @@ BECUSTOMSVCVAR
     END
     Should Be Equal As Strings    ${output}    (('456123',),)
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BESERVCHECK
     [Documentation]    external command CHECK_SERVICE_RESULT
@@ -1372,7 +1372,7 @@ BESERVCHECK
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
@@ -1398,7 +1398,7 @@ BEHOSTCHECK
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker

@@ -3,9 +3,9 @@ Documentation       Creation of 4 pollers and then deletion of Poller3.
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -17,7 +17,7 @@ EBDP1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${4}
-    Config BBDO3    ${4}
+    Ctn Config BBDO3    ${4}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Ctn Start Broker
@@ -36,8 +36,8 @@ EBDP1
     END
     Should Be Equal As Strings    ${output}    ((4,),)
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
     Ctn Config Engine    ${3}    ${50}    ${20}
     ${start}    Get Current Date
@@ -52,8 +52,8 @@ EBDP1
     Remove Poller    51001    Poller3
     Sleep    6s
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
@@ -69,7 +69,7 @@ EBDP2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Config BBDO3    ${3}
+    Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     Broker Config Log    central    processing    info
     ${start}    Get Current Date
@@ -106,8 +106,8 @@ EBDP2
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
-    Ctn Kindly Ctn Stop Broker
-    Clear Engine Logs
+    Ctn Kindly Stop Broker
+    Ctn Clear Engine Logs
     Ctn Start Engine
     Ctn Start Broker
 
@@ -118,8 +118,8 @@ EBDP2
 
     Remove Poller    51001    Poller2
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -136,7 +136,7 @@ EBDP_GRPC2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Config BBDO3    ${3}
+    Ctn Config BBDO3    ${3}
     Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Config Broker BBDO Output    module0    bbdo_client    5669    grpc    localhost
     Config Broker BBDO Output    module1    bbdo_client    5669    grpc    localhost
@@ -179,8 +179,8 @@ EBDP_GRPC2
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
-    Ctn Kindly Ctn Stop Broker
-    Clear Engine Logs
+    Ctn Kindly Stop Broker
+    Ctn Clear Engine Logs
     Ctn Start Engine
     Ctn Start Broker
 
@@ -191,8 +191,8 @@ EBDP_GRPC2
 
     Remove Poller    51001    Poller2
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -209,7 +209,7 @@ EBDP3
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Config BBDO3    ${3}
+    Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Ctn Start Broker
@@ -241,7 +241,7 @@ EBDP3
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
-    Clear Engine Logs
+    Ctn Clear Engine Logs
     Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
@@ -251,8 +251,8 @@ EBDP3
 
     Remove Poller    51001    Poller2
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -269,7 +269,7 @@ EBDP4
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${4}
-    Config BBDO3    ${4}
+    Ctn Config BBDO3    ${4}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    trace
     Broker Config Log    module3    neb    trace
@@ -295,7 +295,7 @@ EBDP4
     ${content}    Create List    processing poller event (id: 4, name: Poller3, running:
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    We want the poller 4 event before stopping broker
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
     Remove Files    ${centralLog}    ${rrdLog}
 
     # Generation of many service status but kept in memory on poller3.
@@ -312,7 +312,7 @@ EBDP4
     ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
     ${result}    Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
     Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
-    Stop Engine
+    Ctn Stop Engine
 
     # Because poller3 is going to be removed, we move its memory file to poller0, 1 and 2.
     Move File
@@ -348,8 +348,8 @@ EBDP4
     Log To Console    date ${start}
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about these two wrong service status.
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 EBDP5
     [Documentation]    Four new pollers are started and then we remove Poller3.
@@ -358,7 +358,7 @@ EBDP5
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${4}
-    Config BBDO3    ${4}
+    Ctn Config BBDO3    ${4}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Ctn Start Broker
@@ -377,8 +377,8 @@ EBDP5
     END
     Should Be Equal As Strings    ${output}    ((4,),)
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
     Ctn Config Engine    ${3}    ${50}    ${20}
     ${start}    Get Current Date
@@ -398,8 +398,8 @@ EBDP5
     ${result}    Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
@@ -415,7 +415,7 @@ EBDP6
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Config BBDO3    ${3}
+    Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Ctn Start Broker
@@ -447,8 +447,8 @@ EBDP6
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
-    Ctn Kindly Ctn Stop Broker
-    Clear Engine Logs
+    Ctn Kindly Stop Broker
+    Ctn Clear Engine Logs
     Ctn Start Engine
     Ctn Start Broker
 
@@ -465,8 +465,8 @@ EBDP6
     ${result}    Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -483,7 +483,7 @@ EBDP7
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Config BBDO3    ${3}
+    Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Ctn Start Broker
@@ -515,7 +515,7 @@ EBDP7
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
-    Clear Engine Logs
+    Ctn Clear Engine Logs
     Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
@@ -531,8 +531,8 @@ EBDP7
     ${result}    Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -549,7 +549,7 @@ EBDP8
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${4}
-    Config BBDO3    ${4}
+    Ctn Config BBDO3    ${4}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    trace
     Broker Config Log    module3    neb    trace
@@ -575,7 +575,7 @@ EBDP8
     ${content}    Create List    processing poller event (id: 4, name: Poller3, running:
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    We want the poller 4 event before stopping broker
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
     Remove Files    ${centralLog}    ${rrdLog}
 
     # Generation of many service status but kept in memory on poller3.
@@ -592,7 +592,7 @@ EBDP8
     ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
     ${result}    Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
     Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
-    Stop Engine
+    Ctn Stop Engine
 
     # Because poller3 is going to be removed, we move its memory file to poller0, 1 and 2.
     Move File
@@ -622,5 +622,5 @@ EBDP8
     Log To Console    date ${start}
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about these two wrong service status.
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

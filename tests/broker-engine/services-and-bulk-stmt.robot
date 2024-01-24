@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine progressively add services
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Test Clean
 
 
@@ -19,7 +19,7 @@ EBBPS1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    core    info
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
@@ -67,7 +67,7 @@ EBBPS1
             ...    30
             Should Be True    ${result}    No service_status processing found.
             Log To Console    Stopping Broker
-            Ctn Kindly Ctn Stop Broker
+            Ctn Kindly Stop Broker
             Log To Console    Waiting for 5s
             Sleep    5s
             Log To Console    Restarting Broker
@@ -102,7 +102,7 @@ EBBPS2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    core    info
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
@@ -149,7 +149,7 @@ EBBPS2
             ...    ${first_service_status_content}
             ...    30
             Should Be True    ${result}    No service_status processing found.
-            Ctn Kindly Ctn Stop Broker
+            Ctn Kindly Stop Broker
             Log To Console    Waiting for 5s
             Sleep    5s
             Log To Console    Restarting Broker
@@ -185,7 +185,7 @@ EBMSSM
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    debug
@@ -231,7 +231,7 @@ EBPS2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
@@ -258,7 +258,7 @@ EBPS2
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that statements are available should be displayed
     Stop mysql
-    Stop Engine
+    Ctn Stop Engine
     Start mysql
 
 RLCode
@@ -272,7 +272,7 @@ RLCode
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    error
     Broker Config Log    central    lua    debug
@@ -328,8 +328,8 @@ RLCode
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    The Lua virtual machine is not correctly initialized
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 metric_mapping
     [Documentation]    Check if metric name exists using a stream connector
@@ -441,6 +441,6 @@ Services_and_bulks_${id}
 
 *** Keywords ***
 Test Clean
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     Save Logs If Failed

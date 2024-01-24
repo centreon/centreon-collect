@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine progressively add services
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -17,7 +17,7 @@ EBNSVC1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Config BBDO3    3
+    Ctn Config BBDO3    3
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Clear Retention
@@ -29,7 +29,7 @@ EBNSVC1
         ${srv_by_host}    Evaluate    20 + 4 * $i
         Log To Console    ${srv_by_host} services by host with 50 hosts among 3 pollers.
         Ctn Config Engine    ${3}    ${50}    ${srv_by_host}
-        Reload Engine
+        Ctn Reload Engine
         Ctn Reload Broker
         ${nb_srv}    Evaluate    17 * (20 + 4 * $i)
         ${nb_res}    Evaluate    $nb_srv + 17
@@ -42,8 +42,8 @@ EBNSVC1
         ${result}    Check Number Of Resources Monitored by Poller is    ${3}    ${nb_res}    30
         Should Be True    ${result}    Poller 3 should monitor ${nb_srv} services and 16 hosts.
     END
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 Service_increased_huge_check_interval
     [Documentation]    New services with high check interval at creation time.
@@ -53,7 +53,7 @@ Service_increased_huge_check_interval
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Source Log    central    1
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    debug
     Broker Config Log    rrd    core    error
@@ -112,7 +112,7 @@ Service_increased_huge_check_interval
 
     ${start}    Get Current Date
 
-    Reload Engine
+    Ctn Reload Engine
 
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_${new_service_id};
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -144,4 +144,4 @@ Service_increased_huge_check_interval
         ...    rra[0].pdp_per_row must be equal to 5400 for metric ${m}
     END
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker

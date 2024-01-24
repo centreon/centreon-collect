@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine communication with or without com
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -34,8 +34,8 @@ BECC1
             Ctn Start Engine
             ${result}    Check Connections
             Should Be True    ${result}    Engine and Broker not connected
-            Ctn Kindly Ctn Stop Broker
-            Stop Engine
+            Ctn Kindly Stop Broker
+            Ctn Stop Engine
             ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
             ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
             IF    "${comp1}" == "yes" and "${comp2}" == "no"

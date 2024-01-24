@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine communication with or without com
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -30,8 +30,8 @@ BRGC1
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     Run Reverse Bam    ${50}    ${0.2}
 
-    Ctn Kindly Ctn Stop Broker
-    Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
@@ -62,8 +62,8 @@ BRCTS1
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     Run Reverse Bam    ${150}    ${10}
 
-    Ctn Kindly Ctn Stop Broker
-    Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
@@ -92,8 +92,8 @@ BRCS1
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    Ctn Kindly Ctn Stop Broker
-    Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
@@ -112,7 +112,7 @@ BRCTSMN
     Config Broker    rrd
     Config Broker    central_map
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
 
     Broker Config Output Set Json    central    centreon-broker-master-map    filters    {"category": ["neb"]}
     Broker Config Log    central    bbdo    trace
@@ -133,7 +133,7 @@ BRCTSMN
     ${expected_events}    Create List    65563    65566    65565    65568
     ${categories}    Create List    1
     ${output}    Check Map Output    ${categories}    ${expected_events}    120
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
     Stop Map
     Should Be True    ${output}    Filters badly applied in Broker
 
@@ -147,7 +147,7 @@ BRCTSMN
     ${ret}    Get Line Count    ${ret}
     Should Be True    ${ret} >= 50
 
-    Stop Engine
+    Ctn Stop Engine
 
 BRCTSMNS
     [Documentation]    Broker connected to map with neb and storage filters
@@ -157,7 +157,7 @@ BRCTSMNS
     Config Broker    rrd
     Config Broker    central_map
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
 
     Broker Config Output Set Json
     ...    central
@@ -200,7 +200,7 @@ BRCTSMNS
     Log To Console    Second configuration with one more service per host
     # For each host, one service is added (20 -> 21)
     Ctn Config Engine    ${1}    ${50}    ${21}
-    Reload Engine
+    Ctn Reload Engine
     Ctn Reload Broker
 
     # pb_service we changed services 50 added and others moved...
@@ -209,6 +209,6 @@ BRCTSMNS
     ${output}    Check Map Output    ${categories}    ${expected_events}    120
     Should Be True    ${output}    Filters badly applied in Broker
 
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
     Stop Map
-    Stop Engine
+    Ctn Stop Engine

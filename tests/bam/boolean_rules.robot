@@ -3,8 +3,8 @@ Documentation       Centreon Broker and BAM with bbdo version 3.0.1 on boolean r
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
 Test Setup          BAM Setup
 Test Teardown       Save Logs If Failed
 
@@ -23,7 +23,7 @@ BABOO
     Broker Config Log    central    sql    error
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -80,7 +80,7 @@ BABOO
         Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
     END
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BABOOOR
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
@@ -95,7 +95,7 @@ BABOOOR
     Broker Config Log    central    sql    error
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -127,7 +127,7 @@ BABOOOR
     Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BABOOAND
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if both of its two services are ok is created. When one condition is false, the and operator returns false as a result even if the other child is unknown.
@@ -142,7 +142,7 @@ BABOOAND
     Broker Config Log    central    sql    error
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -174,7 +174,7 @@ BABOOAND
     Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BABOOORREL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if one of its two services is ok is created. One of the two underlying services must change of state to change the ba state. For this purpose, we change the service state and reload cbd. So the rule is something like "False OR True" which is equal to True. And to pass from True to False, we change the second service.
@@ -189,7 +189,7 @@ BABOOORREL
     Broker Config Log    central    sql    error
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -236,7 +236,7 @@ BABOOORREL
     ...    ${id_bool}
     ...    {host_16 service_302} {IS} {OK} {OR} {host_16 service_304} {IS} {OK}
 
-    Reload Engine
+    Ctn Reload Engine
     Ctn Reload Broker
 
     # Let's wait for the external command check start
@@ -255,7 +255,7 @@ BABOOORREL
     ...    ${id_bool}
     ...    {host_16 service_302} {IS} {OK} {OR} {host_16 service_303} {IS} {OK}
 
-    Reload Engine
+    Ctn Reload Engine
     Ctn Reload Broker
 
     Process Service Result Hard    host_16    service_302    2    output critical for service_302
@@ -269,7 +269,7 @@ BABOOORREL
     Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BABOOCOMPL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
@@ -284,7 +284,7 @@ BABOOCOMPL
     Broker Config Log    central    sql    error
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -324,12 +324,12 @@ BABOOCOMPL
     Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 
 *** Keywords ***
 BAM Setup
-    Stop Processes
+    Ctn Stop Processes
     Connect To Database    pymysql    ${DBName}    ${DBUserRoot}    ${DBPassRoot}    ${DBHost}    ${DBPort}
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=0
     Execute SQL String    DELETE FROM mod_bam_reporting_kpi

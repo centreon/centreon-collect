@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine anomaly detection
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -27,7 +27,7 @@ ANO_NOFILE
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Ctn Stop Broker    True
-    Stop Engine
+    Ctn Stop Engine
 
 ANO_TOO_OLD_FILE
     [Documentation]    an anomaly detection with an oldest threshold file must be in unknown state
@@ -47,7 +47,7 @@ ANO_TOO_OLD_FILE
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Ctn Stop Broker    True
-    Stop Engine
+    Ctn Stop Engine
 
 ANO_OUT_LOWER_THAN_LIMIT
     [Documentation]    an anomaly detection with a perfdata lower than lower limit make a critical state
@@ -67,7 +67,7 @@ ANO_OUT_LOWER_THAN_LIMIT
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Ctn Stop Broker    True
-    Stop Engine
+    Ctn Stop Engine
 
 ANO_OUT_UPPER_THAN_LIMIT
     [Documentation]    an anomaly detection with a perfdata upper than upper limit make a critical state
@@ -87,7 +87,7 @@ ANO_OUT_UPPER_THAN_LIMIT
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Ctn Stop Broker    True
-    Stop Engine
+    Ctn Stop Engine
 
 ANO_JSON_SENSITIVITY_NOT_SAVED
     [Documentation]    json sensitivity not saved in retention
@@ -105,7 +105,7 @@ ANO_JSON_SENSITIVITY_NOT_SAVED
     Clear Retention
     Ctn Start Engine
     Sleep    5s
-    Stop Engine
+    Ctn Stop Engine
     ${retention_sensitivity}    Grep Retention    ${0}    sensitivity=0.00
     Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=0.00
 
@@ -125,7 +125,7 @@ ANO_CFG_SENSITIVITY_SAVED
     Clear Retention
     Ctn Start Engine
     Sleep    5s
-    Stop Engine
+    Ctn Stop Engine
     ${retention_sensitivity}    Grep Retention    ${0}    sensitivity=4.00
     Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=4.00
 
@@ -148,7 +148,7 @@ ANO_EXTCMD_SENSITIVITY_SAVED
         Sleep    5s
         Update Ano Sensitivity    ${use_grpc}    host_1    anomaly_1001    4.55
         Sleep    1s
-        Stop Engine
+        Ctn Stop Engine
         ${retention_sensitivity}    Grep Retention    ${0}    sensitivity=4.55
         Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=4.55
     END
@@ -162,7 +162,7 @@ AOUTLU1
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
@@ -178,8 +178,8 @@ AOUTLU1
 
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     ${lst}    Create List    1    0    4
     ${result}    Check Types In Resources    ${lst}
     Should Be True
@@ -195,7 +195,7 @@ ANO_DT1
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
@@ -218,8 +218,8 @@ ANO_DT1
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in downtime
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 ANO_DT2
     [Documentation]    delete downtime on dependent service delete one on ano serv
@@ -230,7 +230,7 @@ ANO_DT2
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
@@ -257,8 +257,8 @@ ANO_DT2
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0    60
     Should Be True    ${result}    anomaly service must be in downtime
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 ANO_DT3
     [Documentation]    delete downtime on anomaly don t delete dependent service one
@@ -269,7 +269,7 @@ ANO_DT3
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
@@ -297,8 +297,8 @@ ANO_DT3
     ${result}    Check Service Downtime With Timeout    host_1    service_1    1    60
     Should Be True    ${result}    dependent service must be in downtime
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 ANO_DT4
     [Documentation]    set dt on anomaly and on dependent service, delete last one don t delete first one
@@ -309,7 +309,7 @@ ANO_DT4
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
@@ -337,5 +337,5 @@ ANO_DT4
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in simple downtime
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

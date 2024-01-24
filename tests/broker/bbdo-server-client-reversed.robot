@@ -4,8 +4,8 @@ Documentation       Centreon Broker start/stop tests with bbdo_server and bbdo_c
 Resource            ../resources/import.resource
 
 Suite Setup         Prepare Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -179,7 +179,7 @@ BSCSSTGRR2
     ${content}    Create List    write: buff:    write done: buff:
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 BSCSSCRR1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side. Connection reversed with retention.
@@ -199,7 +199,7 @@ BSCSSCRR1
     ${content}    Create List    compression: writing
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 BSCSSCRR2
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is disabled on client side. Connection reversed with retention.
@@ -220,7 +220,7 @@ BSCSSCRR2
     ${content}    Create List    BBDO: we have extensions '' and peer has 'COMPRESSION'
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Compression enabled but should not.
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 BSCSSCGRR1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on output side. Reversed connection with retention and grpc transport protocol.
@@ -242,7 +242,7 @@ BSCSSCGRR1
     ${content}    Create List    server default compression deflate
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 BSCSSCGRR2
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on output side. Reversed connection with retention and grpc transport protocol.
@@ -264,7 +264,7 @@ BSCSSCGRR2
     ${content}    Create List    server default compression deflate
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    15
     Should Be True    not ${result}    No compression enabled
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 
 *** Keywords ***
@@ -294,7 +294,7 @@ Start Stop Instance
     Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Broker instance badly stopped
 
 Prepare Suite
-    Clean Before Suite
+    Ctn Clean Before Suite
     Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key

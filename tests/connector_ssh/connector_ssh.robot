@@ -5,7 +5,7 @@ Resource            ../resources/import.resource
 
 Suite Setup         Prepare ssh
 Suite Teardown      Clean Whitelist
-Test Setup          Stop Processes
+Test Setup          Ctn Stop Processes
 Test Teardown       Save SSH Logs If Failed
 
 
@@ -42,7 +42,7 @@ TestBadUser
     ${content}    Create List    fail to connect to toto@127.0.0.10
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message fail to connect to toto@127.0.0.10 should be available.
-    Stop Engine
+    Ctn Stop Engine
 
 TestBadPwd
     [Documentation]    test bad password
@@ -75,7 +75,7 @@ TestBadPwd
     ${content}    Create List    fail to connect to testconnssh@127.0.0.11
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message fail to connect to testconnssh@127.0.0.11 should be available.
-    Stop Engine
+    Ctn Stop Engine
 
 Test6Hosts
     [Documentation]    as 127.0.0.x point to the localhost address we will simulate check on 6 hosts
@@ -140,7 +140,7 @@ Test6Hosts
         Should Be True    ${result}    A message output='toto=127.0.0.${idx}' should be available.
     END
 
-    Stop Engine
+    Ctn Stop Engine
 
 TestWhiteList
     [Documentation]    as 127.0.0.x point to the localhost address we will simulate check on 6 hosts
@@ -195,7 +195,7 @@ TestWhiteList
     ${whitelist_content}    Catenate
     ...    {"whitelist":{"regex":["/usr/lib64/nagios/plugins/check_by_ssh .+"]}}
     Create File    /etc/centreon-engine-whitelist/test2    ${whitelist_content}
-    Reload Engine
+    Ctn Reload Engine
     ${start}    Get Current Date
     Schedule Forced Host Check    host_1
 
@@ -212,7 +212,7 @@ TestWhiteList
         Should Be True    ${result}    A message 'toto=::1' should be available.
     END
 
-    Stop Engine
+    Ctn Stop Engine
 
 
 *** Keywords ***
@@ -227,7 +227,7 @@ Prepare ssh
     Run    echo testconnssh:passwd | chpasswd
     Run    su testconnssh -c "ssh-keygen -q -t rsa -N '' -f ~testconnssh/.ssh/id_rsa"
     Run    ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa
-    Clean Before Suite
+    Ctn Clean Before Suite
 
 Save SSH Logs If Failed
     Run Keyword If Test Failed    Save SSH Logs
@@ -238,5 +238,5 @@ Save SSH Logs
     Copy File    ${ENGINE_LOG}/config0/connector_ssh.log    ${failDir}
 
 Clean Whitelist
-    Clean After Suite
+    Ctn Clean After Suite
     Remove File    /etc/centreon-engine-whitelist/test

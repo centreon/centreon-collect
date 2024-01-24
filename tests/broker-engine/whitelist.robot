@@ -3,10 +3,10 @@ Documentation       Centreon Broker and Engine benchmark
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
+Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Clean Whitelist
 Test Setup          Whitelist Setup
-Test Teardown       Stop Engine Broker And Save Logs    only_central=${True}
+Test Teardown       Ctn Stop Engine Broker And Save Logs    only_central=${True}
 
 
 *** Test Cases ***
@@ -52,7 +52,7 @@ Whitelist_Directory_Rights
     ${start}    Get Current Date
     Run    chown root:centreon-engine /etc/centreon-engine-whitelist
     Run    chmod 0777 /etc/centreon-engine-whitelist
-    Reload Engine
+    Ctn Reload Engine
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Not Be True    ${result}    owned by root@centreon-engine must not be found in logs
     ${content}    Create List    directory /etc/centreon-engine-whitelist must have 750 right access
@@ -61,7 +61,7 @@ Whitelist_Directory_Rights
 
     ${start}    Get Current Date
     Run    chmod 0750 /etc/centreon-engine-whitelist
-    Reload Engine
+    Ctn Reload Engine
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Not Be True    ${result}    must have 750 right access must not be found in logs
 
@@ -95,7 +95,7 @@ Whitelist_Host
     ${whitelist_content}    Catenate
     ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/toto* * *"], "regex":["/tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]}}
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
-    Reload Engine
+    Ctn Reload Engine
     ${start}    Get Current Date
     Schedule Forced Host Check    host_1
     ${content}    Create List
@@ -105,7 +105,7 @@ Whitelist_Host
 
     # matching with /tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]
     Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
-    Reload Engine
+    Ctn Reload Engine
     ${start}    Get Current Date
     Schedule Forced Host Check    host_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
@@ -114,7 +114,7 @@ Whitelist_Host
 
     # matching with /tmp/var/lib/centreon-engine/toto* * */etc/centreon-engine-whitelist/test
     Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/totozea 1 $HOSTADDRESS$
-    Reload Engine
+    Ctn Reload Engine
     ${start}    Get Current Date
     Schedule Forced Host Check    host_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
@@ -152,7 +152,7 @@ Whitelist_Service
     ${whitelist_content}    Catenate
     ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/toto* * *"], "regex":["/tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]}}
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
-    Reload Engine
+    Ctn Reload Engine
     ${start}    Get Current Date
     Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List
@@ -162,7 +162,7 @@ Whitelist_Service
 
     # matching with /tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]
     Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
-    Reload Engine
+    Ctn Reload Engine
     ${start}    Get Current Date
     Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
@@ -171,7 +171,7 @@ Whitelist_Service
 
     # matching with /tmp/var/lib/centreon-engine/toto* * *
     Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/totozea 1 $HOSTADDRESS$
-    Reload Engine
+    Ctn Reload Engine
     ${start}    Get Current Date
     Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
@@ -212,7 +212,7 @@ Whitelist_Perl_Connector
 
     # command allowed by whitelist
     Ctn Change Command In Engine Conf    0    14    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
-    Reload Engine
+    Ctn Reload Engine
     ${start}    Get Current Date
     Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List
@@ -224,8 +224,8 @@ Whitelist_Perl_Connector
 *** Keywords ***
 Whitelist Setup
     Create Directory    /etc/centreon-engine-whitelist
-    Stop Processes
+    Ctn Stop Processes
 
 Clean Whitelist
-    Clean After Suite
+    Ctn Clean After Suite
     Remove File    /etc/centreon-engine-whitelist/test

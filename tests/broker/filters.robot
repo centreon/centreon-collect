@@ -3,9 +3,9 @@ Documentation       Centreon Broker only start/stop tests
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 
 
 *** Test Cases ***
@@ -31,7 +31,7 @@ BFC1
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    "Only neb filter should be applied on sql output"
 
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 BFC2
     [Documentation]    Start broker with only invalid filters on an output
@@ -55,4 +55,4 @@ BFC2
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    "Only neb filter should be applied on sql output"
 
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker

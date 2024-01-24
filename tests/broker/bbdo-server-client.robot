@@ -4,8 +4,8 @@ Documentation       Centreon Broker start/stop tests with bbdo_server and bbdo_c
 Resource            ../resources/import.resource
 
 Suite Setup         Prepare Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 
 
 *** Test Cases ***
@@ -218,7 +218,7 @@ BSCSSTG2
     ${content}    Create List    encrypted connection    write: buff:    write done: buff:
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 BSCSSTG3
     [Documentation]    Start-Stop two instances of broker. The connection cannot be established if the server private key is missing and an error message explains this issue.
@@ -291,7 +291,7 @@ BSCSSC1
     ${content}    Create List    compression: writing
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 BSCSSC2
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is disabled on client side.
@@ -312,7 +312,7 @@ BSCSSC2
     ${content}    Create List    BBDO: we have extensions '' and peer has 'COMPRESSION'
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Compression enabled but should not.
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 BSCSSCG1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on client side.
@@ -335,7 +335,7 @@ BSCSSCG1
     ${content}    Create List    activate compression deflate
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 BSCSSGA1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server. Error messages are raised.
@@ -358,7 +358,7 @@ BSCSSGA1
     ${content}    Create List    Wrong client authorization token
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
     Should Be True    ${result}    An error message about the authorization token should be raised.
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 BSCSSGA2
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server and also on the client. All looks ok.
@@ -384,7 +384,7 @@ BSCSSGA2
     ${content}    Create List    receive: buff
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
     Should Be True    ${result}    If the authorization token is the same on both side, no issue
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 
 *** Keywords ***
@@ -414,7 +414,7 @@ Start Stop Instance
     Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Broker instance badly stopped
 
 Prepare Suite
-    Clean Before Suite
+    Ctn Clean Before Suite
     Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key

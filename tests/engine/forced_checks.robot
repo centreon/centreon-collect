@@ -3,9 +3,9 @@ Documentation       Centreon Engine forced checks tests
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 
 
 *** Test Cases ***
@@ -54,8 +54,8 @@ EFHC1
 
     ${result}    Check Host Status    host_1    1    1    False
     Should Be True    ${result}    host_1 should be down/hard
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 EFHC2
     [Documentation]    Engine is configured with hosts and we force check on one 5 times on bbdo2
@@ -97,8 +97,8 @@ EFHC2
 
     ${result}    Check Host Status    host_1    1    1    False
     Should Be True    ${result}    host_1 should be down/hard
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 EFHCU1
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
@@ -115,7 +115,7 @@ EFHCU1
     Broker Config Log    module0    neb    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Log    central    sql    debug
-    Config BBDO3    1
+    Ctn Config BBDO3    1
 
     Clear Retention
     Clear Db    resources
@@ -147,8 +147,8 @@ EFHCU1
 
     ${result}    Check Host Status    host_1    1    1    True
     Should Be True    ${result}    host_1 should be down/hard
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 EFHCU2
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior.
@@ -165,7 +165,7 @@ EFHCU2
     Broker Config Log    module0    neb    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Log    central    sql    debug
-    Config BBDO3    1
+    Ctn Config BBDO3    1
 
     Clear Retention
     ${start}    Get Current Date
@@ -196,8 +196,8 @@ EFHCU2
 
     ${result}    Check Host Status    host_1    1    1    True
     Should Be True    ${result}    host_1 should be down/hard
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 EMACROS
     [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in check outputs
@@ -231,8 +231,8 @@ EMACROS
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    AdminEmail: titus@bidibule.com - AdminPager: admin not found in log.
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 EMACROS_NOTIF
     [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in notification commands
@@ -277,5 +277,5 @@ EMACROS_NOTIF
     ...    /tmp/notif_toto.txt
     ...    ResourceFile: /tmp/etc/centreon-engine/resource.cfg - LogFile: /tmp/var/log/centreon-engine/centengine.log - AdminEmail: titus@bidibule.com - AdminPager: admin
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

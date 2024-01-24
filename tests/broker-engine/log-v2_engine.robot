@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine log_v2
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -51,8 +51,8 @@ LOGV2EB1
         IF    "${output}" == "((1,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((1,),)
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 LOGV2EBU1
     [Documentation]    Checking broker sink when log-v2 is enabled and legacy logs are disabled with bbdo3.
@@ -61,7 +61,7 @@ LOGV2EBU1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Flush Log    module0    0
     Broker Config Flush Log    central    0
     Broker Config Log    central    sql    trace
@@ -98,8 +98,8 @@ LOGV2EBU1
         IF    "${output}" == "((1,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((1,),)
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 LOGV2DB1
     [Documentation]    log-v2 disabled old log enabled check broker sink
@@ -145,8 +145,8 @@ LOGV2DB1
         IF    "${output}" == "((1,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((1,),)
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 LOGV2DB2
     [Documentation]    log-v2 disabled old log disabled check broker sink
@@ -190,8 +190,8 @@ LOGV2DB2
         IF    "${output}" == "((0,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0,),)
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 LOGV2EB2
     [Documentation]    log-v2 enabled old log enabled check broker sink
@@ -237,8 +237,8 @@ LOGV2EB2
     END
     Should Be Equal As Strings    ${output}    ((2,),)
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 LOGV2EBU2
     [Documentation]    Check Broker sink with log-v2 enabled and legacy log enabled with BBDO3.
@@ -248,7 +248,7 @@ LOGV2EBU2
     Config Broker    central
     Config Broker    module
     Broker Config Flush Log    module0    0
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
@@ -285,8 +285,8 @@ LOGV2EBU2
     END
     Should Be Equal As Strings    ${output}    ((2,),)
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 LOGV2EF1
     [Documentation]    log-v2 enabled    old log disabled check logfile sink
@@ -310,8 +310,8 @@ LOGV2EF1
 
     ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 LOGV2DF1
     [Documentation]    log-v2 disabled old log enabled check logfile sink
@@ -338,8 +338,8 @@ LOGV2DF1
     ${result2}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
     Should Not Be True    ${result2}
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 LOGV2DF2
     [Documentation]    log-v2 disabled old log disabled check logfile sink
@@ -366,8 +366,8 @@ LOGV2DF2
     ${result2}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
     Should Not Be True    ${result1}
     Should Not Be True    ${result2}
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 LOGV2EF2
     [Documentation]    log-v2 enabled old log enabled check logfile sink
@@ -394,8 +394,8 @@ LOGV2EF2
     ${result2}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
     Should Be True    ${result1}
     Should Be True    ${result2}
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 LOGV2FE2
     [Documentation]    log-v2 enabled old log enabled check logfile sink
@@ -409,7 +409,7 @@ LOGV2FE2
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
-    Clear Engine Logs
+    Ctn Clear Engine Logs
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -424,5 +424,5 @@ LOGV2FE2
 
     ${res}    Check Engine Logs Are Duplicated    ${engineLog0}    ${start}
     Should Be True    ${res}    one or other log are not duplicate in logsfile
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

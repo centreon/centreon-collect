@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine Creation of hosts with long actio
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -17,7 +17,7 @@ EBSNU1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     ${nu}    Evaluate    2000*"X"
@@ -39,8 +39,8 @@ EBSNU1
         IF    "${output}" == "(('${nu}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${nu}',),)
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 EBSAU2
     [Documentation]    New hosts with action_url with more than 2000 characters
@@ -49,7 +49,7 @@ EBSAU2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     ${au}    Evaluate    2000*"Y"
@@ -71,8 +71,8 @@ EBSAU2
         IF    "${output}" == "(('${au}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${au}',),)
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 EBSN3
     [Documentation]    New hosts with notes with more than 500 characters
@@ -81,7 +81,7 @@ EBSN3
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     ${n}    Evaluate    500*"Z"
@@ -103,5 +103,5 @@ EBSN3
         IF    "${output}" == "(('${n}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${n}',),)
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

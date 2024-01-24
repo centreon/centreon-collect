@@ -3,10 +3,10 @@ Documentation       Centreon Broker RRD metric deletion
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
-Test Teardown       Stop Engine Broker And Save Logs
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -61,7 +61,7 @@ BRRDWM1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
     Broker Config Log    rrd    core    error
@@ -163,7 +163,7 @@ BRRDDMU1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
     Broker Config Log    rrd    core    error
@@ -207,7 +207,7 @@ BRRDDIDU1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
     Broker Config Log    rrd    core    error
@@ -254,7 +254,7 @@ BRRDDMIDU1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
     Broker Config Log    rrd    core    error
@@ -342,7 +342,7 @@ BRRDRMU1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
@@ -401,7 +401,7 @@ RRD1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
@@ -431,6 +431,6 @@ RRD1
 
 *** Keywords ***
 Test Clean
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     Save Logs If Failed

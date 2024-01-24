@@ -3,10 +3,10 @@ Documentation       Centreon Broker and Engine add Hostgroup
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
-Test Teardown       Stop Engine Broker And Save Logs
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -28,7 +28,7 @@ EBNHG1
 
     Sleep    3s
     Ctn Reload Broker
-    Reload Engine
+    Ctn Reload Engine
 
     ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
@@ -56,7 +56,7 @@ EBNHGU1
 
     Sleep    3s
     Ctn Reload Broker
-    Reload Engine
+    Ctn Reload Engine
 
     ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
@@ -77,7 +77,7 @@ EBNHGU2
     Broker Config Log    central    sql    info
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
-    Config BBDO3    3
+    Ctn Config BBDO3    3
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -85,7 +85,7 @@ EBNHGU2
 
     Sleep    3s
     Ctn Reload Broker
-    Reload Engine
+    Ctn Reload Engine
 
     ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
@@ -105,7 +105,7 @@ EBNHGU3
     Broker Config Log    central    sql    info
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
-    Config BBDO3    4
+    Ctn Config BBDO3    4
     Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date
@@ -118,7 +118,7 @@ EBNHGU3
 
     Sleep    3s
     Ctn Reload Broker
-    Reload Engine
+    Ctn Reload Engine
 
     ${result}    Check Number Of Relations Between Hostgroup And Hosts    1    12    30
     Should Be True    ${result}    We should have 12 hosts members of host 1.
@@ -127,7 +127,7 @@ EBNHGU3
 
     Sleep    3s
     Ctn Reload Broker
-    Reload Engine
+    Ctn Reload Engine
     ${result}    Check Number Of Relations Between Hostgroup And Hosts    1    9    30
     Should Be True    ${result}    We should have 12 hosts members of host 1.
 
@@ -149,7 +149,7 @@ EBNHG4
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Ctn Reload Broker
-    Reload Engine
+    Ctn Reload Engine
 
     ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
@@ -165,7 +165,7 @@ EBNHG4
     Log To Console    Step-1
     Ctn Reload Broker
     Log To Console    Step0
-    Reload Engine
+    Ctn Reload Engine
 
     Log To Console    Step1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -198,7 +198,7 @@ EBNHGU4_${test_label}
 
     Create File    /tmp/lua-engine.log
 
-    IF    ${Use_BBDO3}    Config BBDO3    ${3}
+    IF    ${Use_BBDO3}    Ctn Config BBDO3    ${3}
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -207,7 +207,7 @@ EBNHGU4_${test_label}
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Ctn Reload Broker
-    Reload Engine
+    Ctn Reload Engine
 
     ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
@@ -243,7 +243,7 @@ EBNHGU4_${test_label}
     Rename Host Group    ${0}    ${1}    test    ["host_1", "host_2", "host_3"]
 
     Sleep    10s
-    Reload Engine
+    Ctn Reload Engine
     Ctn Reload Broker
 
     Log To Console    hostgroup_1 renamed to hostgroup_test
@@ -272,7 +272,7 @@ EBNHGU4_${test_label}
 
     # remove hostgroup
     Ctn Config Engine    ${3}
-    Reload Engine
+    Ctn Reload Engine
     Ctn Reload Broker
 
     Log To Console    remove hostgroup

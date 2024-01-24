@@ -3,9 +3,9 @@ Documentation       Engine/Broker tests on bbdo_version 3.0.0 and protobuf bbdo 
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -28,7 +28,7 @@ BEPBBEE1
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Message about not matching bbdo versions not available
 
-    [Teardown]    Stop Engine Broker And Save Logs
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BEPBBEE2
     [Documentation]    bbdo_version 3 not compatible with sql/storage
@@ -50,7 +50,7 @@ BEPBBEE2
     ...    Configuration check error: bbdo versions >= 3.0.0 need the unified_sql module to be configured.
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Message about a missing config of unified_sql not available.
-    Stop Engine
+    Ctn Stop Engine
 
 BEPBBEE3
     [Documentation]    bbdo_version 3 generates new bbdo protobuf service status messages.
@@ -60,7 +60,7 @@ BEPBBEE3
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservicestatus.lua
@@ -70,7 +70,7 @@ BEPBBEE3
     Ctn Start Engine
     Wait Until Created    /tmp/pbservicestatus.log    1m
 
-    [Teardown]    Stop Engine Broker And Save Logs
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BEPBBEE4
     [Documentation]    bbdo_version 3 generates new bbdo protobuf host status messages.
@@ -80,7 +80,7 @@ BEPBBEE4
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbhoststatus.lua
@@ -90,7 +90,7 @@ BEPBBEE4
     Ctn Start Engine
     Wait Until Created    /tmp/pbhoststatus.log    1m
 
-    [Teardown]    Stop Engine Broker And Save Logs
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BEPBBEE5
     [Documentation]    bbdo_version 3 generates new bbdo protobuf service messages.
@@ -100,7 +100,7 @@ BEPBBEE5
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservice.lua
@@ -110,7 +110,7 @@ BEPBBEE5
     Ctn Start Engine
     Wait Until Created    /tmp/pbservice.log    1m
 
-    [Teardown]    Stop Engine Broker And Save Logs
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BEPBRI1
     [Documentation]    bbdo_version 3 use pb_resource new bbdo protobuf ResponsiveInstance message.
@@ -119,7 +119,7 @@ BEPBRI1
     Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker    module
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    read_timeout    2
@@ -136,7 +136,7 @@ BEPBRI1
     ${grep_res}    Grep File    /tmp/pbresponsiveinstance.log    "_type":65582, "category":1, "element":46,
     ${grep_res}    Get Lines Containing String    ${grep_res}    "poller_id":1, "responsive":true
     Should Not Be Empty    ${grep_res}    "responsive":true not found
-    Stop Engine
+    Ctn Stop Engine
     FOR    ${index}    IN RANGE    60
         Sleep    1s
         ${grep_res}    Grep File    /tmp/pbresponsiveinstance.log    "_type":65582, "category":1, "element":46,
@@ -145,14 +145,14 @@ BEPBRI1
     END
 
     Should Not Be Empty    ${grep_res}    "responsive":false not found
-    Ctn Kindly Ctn Stop Broker    True
+    Ctn Kindly Stop Broker    True
 
 BEPBCVS
     [Documentation]    bbdo_version 3 communication of custom variables.
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Config Broker    central
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Clear Retention
@@ -173,7 +173,7 @@ BEPBCVS
     END
     Should Be Equal As Strings    ${output}    (('VAL1',), ('VAL_SERV1',))
 
-    [Teardown]    Stop Engine Broker And Save Logs    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    True
 
 BEPB_HOST_DEPENDENCY
     [Documentation]    bbdo_version 3 communication of host dependencies.
@@ -183,7 +183,7 @@ BEPB_HOST_DEPENDENCY
     Add Host Dependency    0    host_1    host_2
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Clear Retention
@@ -203,7 +203,7 @@ BEPB_HOST_DEPENDENCY
     Should Be Equal As Strings    ${output}    ((2, 1, '24x7', 1, 'ou'),)    host dependency not found in database
 
     Ctn Config Engine    ${1}
-    Reload Engine
+    Ctn Reload Engine
 
     FOR    ${index}    IN RANGE    30
         ${output}    Query
@@ -214,7 +214,7 @@ BEPB_HOST_DEPENDENCY
     END
     Should Be Equal As Strings    ${output}    ()    host dependency not deleted from database
 
-    [Teardown]    Stop Engine Broker And Save Logs    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    True
 
 BEPB_SERVICE_DEPENDENCY
     [Documentation]    bbdo_version 3 communication of host dependencies.
@@ -224,7 +224,7 @@ BEPB_SERVICE_DEPENDENCY
     Add Service Dependency    0    host_1    host_2    service_1    service_21
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Clear Retention
@@ -248,7 +248,7 @@ BEPB_SERVICE_DEPENDENCY
     ...    host dependency not found in database
 
     Ctn Config Engine    ${1}
-    Reload Engine
+    Ctn Reload Engine
 
     FOR    ${index}    IN RANGE    30
         ${output}    Query
@@ -259,4 +259,4 @@ BEPB_SERVICE_DEPENDENCY
     END
     Should Be Equal As Strings    ${output}    ()    host dependency not deleted from database
 
-    [Teardown]    Stop Engine Broker And Save Logs    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    True

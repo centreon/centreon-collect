@@ -3,9 +3,9 @@ Documentation       Centreon notification
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -47,8 +47,8 @@ not1
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification is not sent
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 not2
     [Documentation]    This test case configures a single service and verifies that a recovery notification is sent after a service recovers from a non-OK state.
@@ -102,8 +102,8 @@ not2
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification recovery is not sent
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 not3
     [Documentation]    This test case configures a single service and verifies that a non-OK notification is sent after the service exits downtime.
@@ -153,8 +153,8 @@ not3
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The critical notification is not sent
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 not4
     [Documentation]    This test case configures a single service and verifies that a non-OK notification is sent when the acknowledgement is completed.
@@ -206,8 +206,8 @@ not4
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The recovery notification for service_1 is not sent
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 not5
     [Documentation]    This test case configures two services with two different users being notified when the services transition to a critical state.
@@ -265,8 +265,8 @@ not5
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The critical notification of service_2 is not sent
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 not6
     [Documentation]     This test case validates the behavior when the notification time period is set to null.
@@ -310,7 +310,7 @@ not6
 
     ${start}    Get Current Date
     Ctn Reload Broker
-    Reload Engine
+    Ctn Reload Engine
 
     ## Time to set the service to UP  hard
 
@@ -323,8 +323,8 @@ not6
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The timeperiod is not working
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 not7
     [Documentation]    This test case simulates a host alert scenario.
@@ -364,8 +364,8 @@ not7
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    the host alert is not sent
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 not8
     [Documentation]    This test validates the critical host notification.
@@ -405,8 +405,8 @@ not8
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The down notification of host_1 is not sent
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 not9
     [Documentation]    This test case configures a single host and verifies that a recovery notification is sent after the host recovers from a non-OK state.
@@ -446,8 +446,8 @@ not9
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The recovery notification of host_1 is not sent
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 not10
     [Documentation]    This test case involves scheduling downtime on a down host. After the downtime is finished and the host is still critical, we should receive a critical notification.
@@ -499,8 +499,8 @@ not10
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The down notification of host_1 is not sent
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 not11
     [Documentation]    This test case involves scheduling downtime on a down host that already had a critical notification. After putting it in the UP state when the downtime is finished and the host is UP, we should receive a recovery notification.
@@ -556,8 +556,8 @@ not11
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The recovery notification of host_1 is not sent
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 
 not12
@@ -606,8 +606,8 @@ not12
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The third service alert hard is not sent
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 
 not13

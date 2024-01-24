@@ -3,9 +3,9 @@ Documentation       Centreon Broker RRD metric deletion from the legacy query ma
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite With rrdcached
-Suite Teardown      Clean After Suite With rrdcached
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite With rrdcached
+Suite Teardown      Ctn Clean After Suite With rrdcached
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -158,7 +158,7 @@ BRRDCDRBUDB1
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
     Broker Config Flush Log    rrd    0
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Create Metrics    3
 
     ${start}    Get Current Date    exclude_millis=True

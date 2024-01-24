@@ -3,9 +3,9 @@ Documentation       Engine/Broker tests on severities.
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 
 
 *** Test Cases ***
@@ -21,7 +21,7 @@ BEUHSEV1
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention
@@ -36,15 +36,15 @@ BEUHSEV1
     Remove Severities From Hosts    ${0}
     Add Severity To Hosts    0    10    [2, 4]
     Add Severity To Hosts    0    8    [3]
-    Reload Engine
+    Ctn Reload Engine
     Ctn Reload Broker
     ${result}    Check Host Severity With Timeout    3    8    60
     Should Be True    ${result}    Host 3 should have severity_id=8
     ${result}    Check Host Severity With Timeout    1    None    60
     Should Be True    ${result}    Host 1 should have no severity
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEUHSEV2
     [Documentation]    Seven hosts are configured with a severity on two pollers. Then we remove severities from the first and second hosts of the first poller but only the severity from the first host of the second poller.
@@ -64,7 +64,7 @@ BEUHSEV2
     Config Broker    rrd
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    2
+    Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
@@ -99,7 +99,7 @@ BEUHSEV2
     Create Severities File    ${0}    ${18}
     Create Severities File    ${1}    ${18}
     Add Severity To Hosts    1    17    [28]
-    Reload Engine
+    Ctn Reload Engine
     Ctn Reload Broker
     Sleep    3s
     ${result}    Check Host Severity With Timeout    28    16    60
@@ -114,8 +114,8 @@ BEUHSEV2
     ${result}    Check Host Severity With Timeout    5    None    60
     Should Be True    ${result}    Second step: Host 5 should have severity_id=17
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BETUHSEV1
     [Documentation]    Hosts have severities provided by templates.
@@ -140,7 +140,7 @@ BETUHSEV1
     Config Broker    rrd
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    2
+    Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
@@ -165,5 +165,5 @@ BETUHSEV1
     ${result}    Check Host Severity With Timeout    33    10    60
     Should Be True    ${result}    First step: Host 33 should have severity_id=10
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

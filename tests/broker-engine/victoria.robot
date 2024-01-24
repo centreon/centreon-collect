@@ -3,9 +3,9 @@ Documentation       Centreon Broker victoria metrics tests
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -17,7 +17,7 @@ VICT_ONE_CHECK_METRIC
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Clear Retention
     Broker Config Log    central    victoria_metrics    trace
     Broker Config Log    central    perfdata    trace
@@ -67,7 +67,7 @@ VICT_ONE_CHECK_METRIC
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    AND    Stop Server
 
 VICT_ONE_CHECK_STATUS
     [Documentation]    victoria metrics status output
@@ -76,7 +76,7 @@ VICT_ONE_CHECK_STATUS
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Clear Retention
     Broker Config Log    central    victoria_metrics    trace
     Broker Config Log    central    perfdata    trace
@@ -190,7 +190,7 @@ VICT_ONE_CHECK_STATUS
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    AND    Stop Server
 
 VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     [Documentation]    victoria metrics metric output after victoria shutdown
@@ -199,7 +199,7 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Clear Retention
     Broker Config Log    central    victoria_metrics    trace
     Broker Config Log    central    perfdata    trace
@@ -253,4 +253,4 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    AND    Stop Server

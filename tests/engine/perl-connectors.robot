@@ -3,9 +3,9 @@ Documentation       Centreon Engine test perl connectors
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 
 
 *** Test Cases ***
@@ -26,4 +26,4 @@ EPC1
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    Missing a message telling data is available from the Perl connector
 
-    Stop Engine
+    Ctn Stop Engine

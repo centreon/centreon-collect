@@ -24,7 +24,7 @@ ${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
 
 
 *** Keywords ***
-Config BBDO3
+Ctn Config BBDO3
     [Arguments]    ${nbEngine}    ${version}=3.0.1
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    rrd    bbdo_version    ${version}
@@ -34,39 +34,39 @@ Config BBDO3
         Broker Config Add Item    ${mod}    bbdo_version    ${version}
     END
 
-Clean Before Suite
+Ctn Clean Before Suite
     Clear Db    resources
     Clear Db    hosts
     Clear Db    services
     Clear Db    tags
-    Stop Processes
-    Clear Engine Logs
-    Clear Broker Logs
+    Ctn Stop Processes
+    Ctn Clear Engine Logs
+    Ctn Clear Broker Logs
 
-Clean Before Suite With rrdcached
-    Clean Before Suite
+Ctn Clean Before Suite With rrdcached
+    Ctn Clean Before Suite
     Log To Console    Starting RRDCached
     Run Process    /usr/bin/rrdcached    -l    unix:${BROKER_LIB}/rrdcached.sock    -V    LOG_DEBUG    -F
 
-Clean Grpc Before Suite
+Ctn Clean Grpc Before Suite
     Set Grpc Port    0
-    Clean Before Suite
+    Ctn Clean Before Suite
 
-Clean After Suite
+Ctn Clean After Suite
     # Remove Files    ${ENGINE_LOG}${/}centengine.log ${ENGINE_LOG}${/}centengine.debug
     # Remove Files    ${BROKER_LOG}${/}central-broker-master.log    ${BROKER_LOG}${/}central-rrd-master.log    ${BROKER_LOG}${/}central-module-master.log
     Terminate All Processes    kill=True
 
-Clean After Suite With rrdcached
-    Clean After Suite
+Ctn Clean After Suite With rrdcached
+    Ctn Clean After Suite
     Log To Console    Stopping RRDCached
     Stop rrdcached
 
-Clear Engine Logs
+Ctn Clear Engine Logs
     Remove Directory    ${ENGINE_LOG}    Recursive=True
     Create Directory    ${ENGINE_LOG}
 
-Clear Broker Logs
+Ctn Clear Broker Logs
     Remove Directory    ${BROKER_LOG}    Recursive=True
     Create Directory    ${BROKER_LOG}
 
@@ -119,7 +119,7 @@ Ctn Kindly Stop Broker
         END
     END
 
-Stop Broker
+Ctn Stop Broker
     [Arguments]    ${only_central}=False
     ${result}    Terminate Process    b1    kill=False
     Should Be Equal As Integers    ${result.rc}    0
@@ -128,7 +128,7 @@ Stop Broker
         Should Be Equal As Integers    ${result.rc}    0
     END
 
-Stop Processes
+Ctn Stop Processes
     Terminate All Processes    kill=True
     Kill Broker
     Kill Engine
@@ -150,22 +150,22 @@ Ctn Start Engine
         Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}
     END
 
-Restart Engine
-    Stop Engine
+Ctn Restart Engine
+    Ctn Stop Engine
     Ctn Start Engine
 
-Start Custom Engine
+Ctn Start Custom Engine
     [Arguments]    ${conf_path}    ${process_alias}
     Start Process    /usr/sbin/centengine    ${conf_path}    alias=${process_alias}
 
-Stop Custom Engine
+Ctn Stop Custom Engine
     [Arguments]    ${process_alias}
     ${result}    Terminate Process    ${process_alias}
     Should Be True
     ...    ${result.rc} == -15 or ${result.rc} == 0
     ...    Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
-Stop Engine
+Ctn Stop Engine
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -190,33 +190,33 @@ Stop Engine
         END
     END
 
-Stop Engine Broker And Save Logs
+Ctn Stop Engine Broker And Save Logs
     [Arguments]    ${only_central}=False
     TRY
-        Stop Engine
+        Ctn Stop Engine
     EXCEPT
         Log    can't kindly stop engine
     END
     TRY
-        Kindly Stop Broker    only_central=${only_central}
+        Ctn Kindly Stop Broker    only_central=${only_central}
     EXCEPT
         Log    Can't kindly stop Broker
     END
     Save Logs If Failed
 
-Get Engine Pid
+Ctn Get Engine Pid
     [Arguments]    ${process_alias}
     ${pid}    Get Process Id    ${process_alias}
     RETURN    ${pid}
 
-Reload Engine
+Ctn Reload Engine
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         Send Signal To Process    SIGHUP    ${alias}
     END
 
-Check Connections
+Ctn Check Connections
     ${count}    Ctn Get Engines Count
     ${pid1}    Get Process Id    b1
     FOR    ${idx}    IN RANGE    0    ${count}

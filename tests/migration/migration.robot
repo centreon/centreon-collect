@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine are configured in bbdo2 with sql/
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 
 
 *** Test Cases ***
@@ -37,9 +37,9 @@ MIGRATION
     ${start}    Get Current Date
 
     Log To Console    Move to BBDO 2.0.0 with unified_sql
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
     Ctn Start Broker
-    Stop Engine
+    Ctn Stop Engine
     Ctn Start Engine
     Sleep    2s
 
@@ -50,13 +50,13 @@ MIGRATION
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    30
     Should Be True    ${result}    No metric sent to rrd cbd by unified_sql for 30s
 
-    Config BBDO3    3
+    Ctn Config BBDO3    3
     ${start}    Get Current Date
 
     Log To Console    Move to BBDO 3.0.0 with unified_sql
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
     Ctn Start Broker
-    Stop Engine
+    Ctn Stop Engine
     Ctn Start Engine
     Sleep    2s
 
@@ -75,9 +75,9 @@ MIGRATION
     ${start}    Get Current Date
 
     Log To Console    Move back to BBDO 2.0.0 with unified_sql
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
     Ctn Start Broker
-    Stop Engine
+    Ctn Stop Engine
     Ctn Start Engine
     Sleep    2s
 
@@ -90,9 +90,9 @@ MIGRATION
 
     Log To Console    Move back to BBDO 2.0.0 with sql/storage
     Config Broker Sql Output    central    sql/perfdata
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
     Ctn Start Broker
-    Stop Engine
+    Ctn Stop Engine
     Ctn Start Engine
     Sleep    2s
 
@@ -103,4 +103,4 @@ MIGRATION
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    30
     Should Be True    ${result}    No metric sent to rrd cbd for 30s
 
-    [Teardown]    Stop Engine Broker And Save Logs
+    [Teardown]    Ctn Stop Engine Broker And Save Logs

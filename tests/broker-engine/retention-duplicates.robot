@@ -3,9 +3,9 @@ Documentation       Centreon Broker tests on dublicated data that could come fro
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -37,13 +37,13 @@ BERD1
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
     Sleep    5s
     Clear Cache
     Ctn Start Broker
     Sleep    25s
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     ${result}    Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
@@ -78,11 +78,11 @@ BERD2
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    15s
-    Stop Engine
+    Ctn Stop Engine
     Ctn Start Engine
     Sleep    25s
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     ${result}    Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
@@ -118,13 +118,13 @@ BERDUC1
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
     Sleep    5s
     Clear Cache
     Ctn Start Broker
     Sleep    25s
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -155,13 +155,13 @@ BERDUCU1
     ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     Sleep    5s
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
     Sleep    5s
     Clear Cache
     Ctn Start Broker
     Sleep    25s
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -192,13 +192,13 @@ BERDUC2
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Stop Engine
+    Ctn Stop Engine
     Sleep    5s
     Clear Cache
     Ctn Start Engine
     Sleep    25s
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -231,13 +231,13 @@ BERDUCU2
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Stop Engine
+    Ctn Stop Engine
     Sleep    5s
     Clear Cache
     Ctn Start Engine
     Sleep    25s
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -256,7 +256,7 @@ BERDUC3U1
     Broker Config Flush Log    central    0
     Broker Config Flush Log    module0    0
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -269,13 +269,13 @@ BERDUC3U1
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
     Sleep    5s
     Clear Cache
     Ctn Start Broker
     Sleep    25s
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -297,7 +297,7 @@ BERDUC3U2
     Broker Config Flush Log    central    0
     Broker Config Flush Log    module0    0
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -322,13 +322,13 @@ BERDUC3U2
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Stop Engine
+    Ctn Stop Engine
     Sleep    5s
     Clear Cache
     Ctn Start Engine
     Sleep    25s
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -366,7 +366,7 @@ BERDUCA300
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
 
-    Stop Engine
+    Ctn Stop Engine
     ${content}    Create List    BBDO: sending pb stop packet to peer
     ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Engine should send a pb stop message to cbd.
@@ -383,7 +383,7 @@ BERDUCA300
     ${result}    Find Regex In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result[0]}    Engine should receive an ack for handled events from broker.
 
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 BERDUCA301
     [Documentation]    Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker with bbdo 3.0.1.
@@ -406,7 +406,7 @@ BERDUCA301
     Broker Config Flush Log    module0    0
     Config Broker    rrd
 
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     ${start}    Get Current Date
 
     Ctn Start Broker
@@ -419,7 +419,7 @@ BERDUCA301
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
 
-    Stop Engine
+    Ctn Stop Engine
     ${content}    Create List    BBDO: sending pb stop packet to peer
     ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Engine should send a pb stop message to cbd.
@@ -436,4 +436,4 @@ BERDUCA301
     ${result}    Find Regex In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result[0]}    Engine should receive an ack for handled events from broker.
 
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker

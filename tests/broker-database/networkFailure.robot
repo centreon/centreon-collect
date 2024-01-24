@@ -3,9 +3,9 @@ Documentation       Centreon Broker database connection failure
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 
 
 *** Test Cases ***
@@ -59,8 +59,8 @@ NetworkDBFail6
     Reset Eth Connection
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 NetworkDBFailU6
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
@@ -89,8 +89,8 @@ NetworkDBFailU6
     Reset Eth Connection
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 NetworkDBFail7
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s
@@ -122,8 +122,8 @@ NetworkDBFail7
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    There are still events in the queue.
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 NetworkDBFailU7
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
@@ -154,8 +154,8 @@ NetworkDBFailU7
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    There are still events in the queue.
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 
 *** Keywords ***
@@ -191,5 +191,5 @@ Network Failure
     Should Be True
     ...    ${result[0]}
     ...    timeout after network to be restablished (network failure duration : ${interval})
-    Ctn Kindly Ctn Stop Broker
-    Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine

@@ -3,10 +3,10 @@ Documentation       Centreon Broker data_bin and logs dedicated connections
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
-Test Teardown       Stop Engine Broker And Save Logs    only_central=True
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Stop Engine Broker And Save Logs    only_central=True
 
 
 *** Test Cases ***

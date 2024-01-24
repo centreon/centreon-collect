@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine communication with or without TLS
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -35,8 +35,8 @@ BECT1
             Ctn Start Engine
             ${result}    Check Connections
             Should Be True    ${result}    Engine and Broker not connected
-            Ctn Kindly Ctn Stop Broker
-            Stop Engine
+            Ctn Kindly Stop Broker
+            Ctn Stop Engine
             ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
             ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
             IF    "${comp1}" == "yes" and "${comp2}" == "no"
@@ -116,8 +116,8 @@ BECT2
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Ctn Kindly Ctn Stop Broker
-    Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -161,8 +161,8 @@ BECT3
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Ctn Kindly Ctn Stop Broker
-    Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous server credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous client credentials
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -245,8 +245,8 @@ BECT4
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Ctn Kindly Ctn Stop Broker
-    Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -281,8 +281,8 @@ BECT_GRPC1
             Ctn Start Engine
             ${result}    Check Connections
             Should Be True    ${result}    Engine and Broker not connected
-            Ctn Kindly Ctn Stop Broker
-            Stop Engine
+            Ctn Kindly Stop Broker
+            Ctn Stop Engine
             ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
             ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
             IF    "${comp1}" == "yes" and "${comp2}" == "no"
@@ -363,8 +363,8 @@ BECT_GRPC2
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Ctn Kindly Ctn Stop Broker
-    Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -412,8 +412,8 @@ BECT_GRPC3
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Ctn Kindly Ctn Stop Broker
-    Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous server credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous client credentials
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -498,8 +498,8 @@ BECT_GRPC4
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Ctn Kindly Ctn Stop Broker
-    Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}

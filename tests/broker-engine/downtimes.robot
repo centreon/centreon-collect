@@ -4,8 +4,8 @@ Documentation       Centreon Broker and Engine progressively add services
 Resource            ../resources/import.resource
 
 Suite Setup         Clean Downtimes Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save Logs If Failed
 
 
@@ -25,7 +25,7 @@ BEDTMASS1
     Broker Config Log    module1    neb    debug
     Broker Config Log    module2    neb    debug
 
-    Config BBDO3    3
+    Ctn Config BBDO3    3
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Clear Retention
@@ -65,8 +65,8 @@ BEDTMASS1
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEDTMASS2
     [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 2.0
@@ -121,8 +121,8 @@ BEDTMASS2
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEDTSVCREN1
     [Documentation]    A downtime is set on a service then the service is renamed. The downtime is still active on the renamed service. The downtime is removed from the renamed service and it is well removed.
@@ -153,7 +153,7 @@ BEDTSVCREN1
     # Let's rename the service service_1
     Rename Service    ${0}    host_1    service_1    toto_1
 
-    Reload Engine
+    Ctn Reload Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -164,8 +164,8 @@ BEDTSVCREN1
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEDTSVCFIXED
     [Documentation]    A downtime is set on a service, the total number of downtimes is really 1 then we delete this downtime and the number of downtime is 0.
@@ -198,8 +198,8 @@ BEDTSVCFIXED
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEDTHOSTFIXED
     [Documentation]    A downtime is set on a host, the total number of downtimes is really 21 (1 for the host and 20 for its 20 services) then we delete this downtime and the number is 0.
@@ -234,13 +234,13 @@ BEDTHOSTFIXED
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 
 *** Keywords ***
 Clean Downtimes Before Suite
-    Clean Before Suite
+    Ctn Clean Before Suite
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${output}    Execute SQL String    DELETE FROM downtimes WHERE deletion_time IS NULL

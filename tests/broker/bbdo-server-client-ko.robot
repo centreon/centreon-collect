@@ -3,9 +3,9 @@ Documentation       Centreon Broker start/stop tests with bbdo_server and bbdo_c
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 
 
 *** Test Cases ***
@@ -32,7 +32,7 @@ BSCSSK1
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the bad connection.
 
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 BSCSSK2
     [Documentation]    Start-Stop two instances of broker, server configured with tcp and client with grpc. No connection established and error raised on client side.
@@ -58,7 +58,7 @@ BSCSSK2
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the bad connection.
 
-    Ctn Kindly Ctn Stop Broker
+    Ctn Kindly Stop Broker
 
 
 *** Keywords ***

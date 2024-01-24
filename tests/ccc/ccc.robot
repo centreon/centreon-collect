@@ -3,9 +3,9 @@ Documentation       ccc tests with engine and broker
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 
 
 *** Test Cases ***
@@ -30,8 +30,8 @@ BECCC1
         Sleep    1s
     END
     Should Be Equal As Strings    ${content.strip()}    You must specify a port for the connection to the gRPC server
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
 BECCC2
@@ -41,7 +41,7 @@ BECCC2
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -63,8 +63,8 @@ BECCC2
     ${version}    Common.Get Collect Version
     ${expected}    Catenate    Connected to a Centreon Broker    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
 BECCC3
@@ -74,7 +74,7 @@ BECCC3
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -95,8 +95,8 @@ BECCC3
     ${version}    Common.Get Collect Version
     ${expected}    Catenate    Connected to a Centreon Engine    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
 BECCC4
@@ -106,7 +106,7 @@ BECCC4
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -126,8 +126,8 @@ BECCC4
     END
     ${contains}    Evaluate    "GetVersion" in """${content}""" and "RemovePoller" in """${content}"""
     Should Be True    ${contains}    The list of methods should contain GetVersion(Empty)
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
 BECCC5
@@ -137,7 +137,7 @@ BECCC5
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -157,8 +157,8 @@ BECCC5
     END
     ${contains}    Evaluate    "The list argument expects no command" in """${content}"""
     Should Be True    ${contains}    When -l option is applied, we can't call a command.
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
 BECCC6
@@ -168,7 +168,7 @@ BECCC6
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -202,8 +202,8 @@ BECCC6
         ...    {\n \"major\": ${mm},\n \"minor\": ${m},\n \"patch\": ${p}\n}
         ...    A version as json string should be returned
     END
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
 BECCC7
@@ -213,7 +213,7 @@ BECCC7
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -235,8 +235,8 @@ BECCC7
     ...    ${content}
     ...    Error during the execution of '/com.centreon.broker.Broker/GetVersion' method:
     ...    GetVersion{"idx":1} should return an error because the input message is incompatible with the expected one.
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
 BECCC8
@@ -246,7 +246,7 @@ BECCC8
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -269,6 +269,6 @@ BECCC8
         Sleep    1s
     END
     Should Contain    ${content}    {}
-    Stop Engine
-    Ctn Kindly Ctn Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
