@@ -27,7 +27,7 @@
 #include <boost/exception/errinfo_file_name.hpp>
 #include <boost/throw_exception.hpp>
 
-#include "com/centreon/common/process_stat.hh"
+#include "process_stat.hh"
 
 using namespace com::centreon::common;
 

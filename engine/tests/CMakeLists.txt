@@ -20,8 +20,9 @@
 if(WITH_TESTING)
   # Tests directory. Add root inclusion direction.
   set(MODULE_DIR "${PROJECT_SOURCE_DIR}/modules/external_commands")
-  set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/external_commands")
-  include_directories(${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc)
+  set(MODULE_DIR_OTL "${PROJECT_SOURCE_DIR}/modules/otl_server")
+  include_directories(${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc
+                      ${MODULE_DIR_OTL}/inc)
 
   # Set directory.
   set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
@@ -101,6 +102,8 @@ if(WITH_TESTING)
       "${TESTS_DIR}/notifications/service_timeperiod_notification.cc"
       "${TESTS_DIR}/notifications/service_flapping_notification.cc"
       "${TESTS_DIR}/notifications/service_downtime_notification_test.cc"
+      "${TESTS_DIR}/otl_server/grpc_config_test.cc"
+      "${TESTS_DIR}/otl_server/otl_server_test.cc"
       "${TESTS_DIR}/perfdata/perfdata.cc"
       "${TESTS_DIR}/retention/host.cc"
       "${TESTS_DIR}/retention/service.cc"
@@ -171,7 +174,11 @@ if(WITH_TESTING)
     ${ENGINERPC}
     ut_engine_utils
     cce_core
+    otl_server
     enginelog
+    -L${CONAN_LIB_DIRS_OPENTELEMETRY-CPP}
+    opentelemetry_proto
+    opentelemetry_proto_grpc
     pthread
     ${GCOV}
     GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
