@@ -225,8 +225,7 @@ class rapidjson_helper {
   uint64_t get_uint64_t(const char* field_name) const;
 
   unsigned get_unsigned(const char* field_name) const;
-unsigned get_unsigned(const char* field_name, unsigned dafault) const;
-
+  unsigned get_unsigned(const char* field_name, unsigned dafault) const;
 
   int get_int(const char* field_name) const;
 
