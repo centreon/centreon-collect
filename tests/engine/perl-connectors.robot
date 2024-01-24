@@ -14,7 +14,7 @@ EPC1
     [Tags]    engine    start-stop
     Ctn Config Engine    ${1}
     Config Broker    module
-    Engine Config Set Value    ${0}    log_level_commands    trace
+    Ctn Set Value In Engine Conf    ${0}    log_level_commands    trace
     ${start}    Get Current Date
 
     Ctn Start Engine

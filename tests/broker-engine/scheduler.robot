@@ -17,10 +17,10 @@ ENRSCHE1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_level_checks    debug
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_level_checks    debug
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date
 

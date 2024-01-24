@@ -15,15 +15,15 @@ not1
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notifications_enabled    1
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_options    d,r
+    Ctn Set Value In Engine Hosts Conf    0    host_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_options    w,c,r
+    Ctn Set Value In Engine Services Conf    0    service_1    notifications_enabled    1
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_period    24x7
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -55,15 +55,15 @@ not2
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notifications_enabled    1
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_options    d,r
+    Ctn Set Value In Engine Hosts Conf    0    host_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_options    w,c,r
+    Ctn Set Value In Engine Services Conf    0    service_1    notifications_enabled    1
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_period    24x7
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -110,15 +110,15 @@ not3
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notifications_enabled    1
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_options    d,r
+    Ctn Set Value In Engine Hosts Conf    0    host_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_options    w,c,r
+    Ctn Set Value In Engine Services Conf    0    service_1    notifications_enabled    1
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_period    24x7
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -161,15 +161,15 @@ not4
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notifications_enabled    1
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_options    d,r
+    Ctn Set Value In Engine Hosts Conf    0    host_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_options    w,c,r
+    Ctn Set Value In Engine Services Conf    0    service_1    notifications_enabled    1
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_period    24x7
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -214,24 +214,24 @@ not5
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${2}    ${1}
     Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Engine Config Set Value In Hosts    0    host_2    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_2    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_2    contacts    U2
-    Engine Config Set Value In Services    0    service_2    contacts    U2
-    Engine Config Set Value In Services    0    service_2    notification_options    w,c,r
-    Engine Config Set Value In Services    0    service_2    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_2    notification_period    24x7
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    U2    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    U2    service_notification_commands    command_notif
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notifications_enabled    1
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_options    d,r
+    Ctn Set Value In Engine Hosts Conf    0    host_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_options    w,c,r
+    Ctn Set Value In Engine Services Conf    0    service_1    notifications_enabled    1
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_period    24x7
+    Ctn Set Value In Engine Hosts Conf    0    host_2    notifications_enabled    1
+    Ctn Set Value In Engine Hosts Conf    0    host_2    notification_options    d,r
+    Ctn Set Value In Engine Hosts Conf    0    host_2    contacts    U2
+    Ctn Set Value In Engine Services Conf    0    service_2    contacts    U2
+    Ctn Set Value In Engine Services Conf    0    service_2    notification_options    w,c,r
+    Ctn Set Value In Engine Services Conf    0    service_2    notifications_enabled    1
+    Ctn Set Value In Engine Services Conf    0    service_2    notification_period    24x7
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    U2    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    U2    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -273,15 +273,15 @@ not6
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notifications_enabled    1
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_options    d,r
+    Ctn Set Value In Engine Hosts Conf    0    host_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_options    w,c,r
+    Ctn Set Value In Engine Services Conf    0    service_1    notifications_enabled    1
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_period    24x7
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -305,7 +305,7 @@ not6
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The critical notification of service_1 is not sent
 
-    Engine Config Replace Value In Services    0    service_1    notification_period    none
+    Ctn Replace Value In Engine Services Conf    0    service_1    notification_period    none
     Sleep    5s
 
     ${start}    Get Current Date
@@ -331,12 +331,12 @@ not7
     [Tags]    broker    engine    host    hosts    notification
     Ctn Config Engine    ${1}    ${1}
     Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notifications_enabled    1
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_options    d,r
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_period    24x7
+    Ctn Set Value In Engine Hosts Conf    0    host_1    contacts    John_Doe
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -372,12 +372,12 @@ not8
     [Tags]    broker    engine    host    notification
     Ctn Config Engine    ${1}    ${1}
     Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notifications_enabled    1
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_options    d,r
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_period    24x7
+    Ctn Set Value In Engine Hosts Conf    0    host_1    contacts    John_Doe
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -413,12 +413,12 @@ not9
     [Tags]    broker    engine    host    notification
     Ctn Config Engine    ${1}    ${1}
     Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notifications_enabled    1
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_options    d,r
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_period    24x7
+    Ctn Set Value In Engine Hosts Conf    0    host_1    contacts    John_Doe
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -454,12 +454,12 @@ not10
     [Tags]    broker    engine    host    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notifications_enabled    1
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_options    d,r
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_period    24x7
+    Ctn Set Value In Engine Hosts Conf    0    host_1    contacts    John_Doe
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -507,12 +507,12 @@ not11
     [Tags]    broker    engine    host    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notifications_enabled    1
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_options    d,r
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_period    24x7
+    Ctn Set Value In Engine Hosts Conf    0    host_1    contacts    John_Doe
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -565,15 +565,15 @@ not12
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notifications_enabled    1
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notification_options    d,r
+    Ctn Set Value In Engine Hosts Conf    0    host_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_options    w,c,r
+    Ctn Set Value In Engine Services Conf    0    service_1    notifications_enabled    1
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_period    24x7
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -614,7 +614,7 @@ not13
     [Documentation]    Escalations
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${2}    ${1}
-    Engine Config Set Value    0    interval_length    10    True
+    Ctn Set Value In Engine Conf    0    interval_length    10    True
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
     Config Notifications
@@ -627,12 +627,12 @@ not13
     Create Escalations File    0    1    servicegroup_1    contactgroup_2
     Create Escalations File    0    2    servicegroup_1    contactgroup_3
 
-    Engine Config Set Value In Escalations    0    esc1    first_notification    2
-    Engine Config Set Value In Escalations    0    esc1    last_notification    2
-    Engine Config Set Value In Escalations    0    esc1    notification_interval    1
-    Engine Config Set Value In Escalations    0    esc2    first_notification    3
-    Engine Config Set Value In Escalations    0    esc2    last_notification    0
-    Engine Config Set Value In Escalations    0    esc2    notification_interval    1
+    Ctn Set Value In Engine Conf In Escalations    0    esc1    first_notification    2
+    Ctn Set Value In Engine Conf In Escalations    0    esc1    last_notification    2
+    Ctn Set Value In Engine Conf In Escalations    0    esc1    notification_interval    1
+    Ctn Set Value In Engine Conf In Escalations    0    esc2    first_notification    3
+    Ctn Set Value In Engine Conf In Escalations    0    esc2    last_notification    0
+    Ctn Set Value In Engine Conf In Escalations    0    esc2    notification_interval    1
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -696,11 +696,11 @@ not13
 *** Keywords ***
 Config Notifications
     [Documentation]    Configuring engine notification settings.
-    Engine Config Set Value    0    enable_notifications    1    True
-    Engine Config Set Value    0    execute_host_checks    1    True
-    Engine Config Set Value    0    execute_service_checks    1    True
-    Engine Config Set Value    0    log_notifications    1    True
-    Engine Config Set Value    0    log_level_notifications    trace    True
+    Ctn Set Value In Engine Conf    0    enable_notifications    1    True
+    Ctn Set Value In Engine Conf    0    execute_host_checks    1    True
+    Ctn Set Value In Engine Conf    0    execute_service_checks    1    True
+    Ctn Set Value In Engine Conf    0    log_notifications    1    True
+    Ctn Set Value In Engine Conf    0    log_level_notifications    trace    True
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -717,38 +717,38 @@ Config Notifications
     Ctn Config Engine Add Cfg File    ${0}    contacts.cfg
     Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg
     Ctn Config Engine Add Cfg File    ${0}    escalations.cfg
-    Engine Config Add Command
+    Ctn Add Command In Engine Conf
     ...    0
     ...    command_notif
     ...    /usr/bin/true
 
 Config Escalations
     [Documentation]    Configuring engine notification escalations settings.
-    Engine Config Set Value In Services    0    service_1    notification_options    c
-    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_1    first_notification_delay    0
-    Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Engine Config Set Value In Services    0    service_1    contact_groups    contactgroup_1
-    Engine Config Replace Value In Services    0    service_1    active_checks_enabled    0
-    Engine Config Replace Value In Services    0    service_1    max_check_attempts     1
-    Engine Config Replace Value In Services    0    service_1    retry_interval     1
-    Engine Config Set Value In Services    0    service_1    notification_interval    1
-    Engine Config Replace Value In Services    0    service_1    check_interval     1
-    Engine Config Replace Value In Services    0    service_1    check_command    command_4
-    Engine Config Set Value In Services    0    service_2    contact_groups    contactgroup_1
-    Engine Config Replace Value In Services    0    service_2    max_check_attempts     1
-    Engine Config Set Value In Services    0    service_2    notification_options    c
-    Engine Config Set Value In Services    0    service_2    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_2    first_notification_delay    0
-    Engine Config Set Value In Services    0    service_2    notification_period    24x7
-    Engine Config Set Value In Services    0    service_2    notification_interval    1
-    Engine Config Replace Value In Services    0    service_2    first_notification_delay    0
-    Engine Config Replace Value In Services    0    service_2    check_interval     1
-    Engine Config Replace Value In Services    0    service_2    active_checks_enabled    0
-    Engine Config Replace Value In Services    0    service_2    retry_interval     1
-    Engine Config Replace Value In Services    0    service_2    check_command    command_4
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_options    c
+    Ctn Set Value In Engine Services Conf    0    service_1    notifications_enabled    1
+    Ctn Set Value In Engine Services Conf    0    service_1    first_notification_delay    0
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_period    24x7
+    Ctn Set Value In Engine Services Conf    0    service_1    contact_groups    contactgroup_1
+    Ctn Replace Value In Engine Services Conf    0    service_1    active_checks_enabled    0
+    Ctn Replace Value In Engine Services Conf    0    service_1    max_check_attempts     1
+    Ctn Replace Value In Engine Services Conf    0    service_1    retry_interval     1
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_interval    1
+    Ctn Replace Value In Engine Services Conf    0    service_1    check_interval     1
+    Ctn Replace Value In Engine Services Conf    0    service_1    check_command    command_4
+    Ctn Set Value In Engine Services Conf    0    service_2    contact_groups    contactgroup_1
+    Ctn Replace Value In Engine Services Conf    0    service_2    max_check_attempts     1
+    Ctn Set Value In Engine Services Conf    0    service_2    notification_options    c
+    Ctn Set Value In Engine Services Conf    0    service_2    notifications_enabled    1
+    Ctn Set Value In Engine Services Conf    0    service_2    first_notification_delay    0
+    Ctn Set Value In Engine Services Conf    0    service_2    notification_period    24x7
+    Ctn Set Value In Engine Services Conf    0    service_2    notification_interval    1
+    Ctn Replace Value In Engine Services Conf    0    service_2    first_notification_delay    0
+    Ctn Replace Value In Engine Services Conf    0    service_2    check_interval     1
+    Ctn Replace Value In Engine Services Conf    0    service_2    active_checks_enabled    0
+    Ctn Replace Value In Engine Services Conf    0    service_2    retry_interval     1
+    Ctn Replace Value In Engine Services Conf    0    service_2    check_command    command_4
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
 
 Service Check
     FOR   ${i}    IN RANGE    ${4}

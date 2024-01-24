@@ -21,7 +21,7 @@ EBSNU1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     ${nu}    Evaluate    2000*"X"
-    Engine Config Set Value In Hosts    0    host_1    notes_url    ${nu}
+    Ctn Set Value In Engine Hosts Conf    0    host_1    notes_url    ${nu}
     Clear Retention
     Ctn Start Broker
     Ctn Start Engine
@@ -53,7 +53,7 @@ EBSAU2
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     ${au}    Evaluate    2000*"Y"
-    Engine Config Set Value In Hosts    0    host_2    action_url    ${au}
+    Ctn Set Value In Engine Hosts Conf    0    host_2    action_url    ${au}
     Clear Retention
     Ctn Start Broker
     Ctn Start Engine
@@ -85,7 +85,7 @@ EBSN3
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     ${n}    Evaluate    500*"Z"
-    Engine Config Set Value In Hosts    0    host_3    notes    ${n}
+    Ctn Set Value In Engine Hosts Conf    0    host_3    notes    ${n}
     Clear Retention
     Ctn Start Broker
     Ctn Start Engine

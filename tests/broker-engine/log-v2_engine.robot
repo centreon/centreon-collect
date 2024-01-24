@@ -18,10 +18,10 @@ LOGV2EB1
     Config Broker    central
     Config Broker    module
     Broker Config Flush Log    module0    0
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_level_config    trace
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_level_config    trace
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date    exclude_millis=yes
     ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
@@ -65,10 +65,10 @@ LOGV2EBU1
     Broker Config Flush Log    module0    0
     Broker Config Flush Log    central    0
     Broker Config Log    central    sql    trace
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_level_config    trace
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_level_config    trace
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date    exclude_millis=yes
     ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
@@ -110,9 +110,9 @@ LOGV2DB1
     Config Broker    module
     Broker Config Flush Log    module0    0
     Broker Config Log    central    sql    trace
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${1}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${0}
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date    exclude_millis=yes
     ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
@@ -156,9 +156,9 @@ LOGV2DB2
     Config Broker    central
     Config Broker    module
     Broker Config Flush Log    module0    0
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${0}
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date    exclude_millis=yes
     ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
@@ -201,9 +201,9 @@ LOGV2EB2
     Config Broker    central
     Config Broker    module
     Broker Config Flush Log    module0    0
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${1}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date    exclude_millis=yes
     ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
@@ -249,9 +249,9 @@ LOGV2EBU2
     Config Broker    module
     Broker Config Flush Log    module0    0
     Config BBDO3    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${1}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date    exclude_millis=yes
     ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
@@ -296,9 +296,9 @@ LOGV2EF1
     Config Broker    central
     Config Broker    module
     Broker Config Flush Log    module0    0
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -321,9 +321,9 @@ LOGV2DF1
     Config Broker    central
     Config Broker    module
     Broker Config Flush Log    module0    0
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${1}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${0}
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -349,9 +349,9 @@ LOGV2DF2
     Config Broker    central
     Config Broker    module
     Broker Config Flush Log    module0    0
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${0}
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -377,9 +377,9 @@ LOGV2EF2
     Config Broker    central
     Config Broker    module
     Broker Config Flush Log    module0    0
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${1}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -405,9 +405,9 @@ LOGV2FE2
     Config Broker    central
     Config Broker    module
     Broker Config Flush Log    module0    0
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${1}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     Clear Engine Logs
 

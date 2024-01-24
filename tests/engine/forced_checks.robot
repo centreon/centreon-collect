@@ -18,10 +18,10 @@ EFHC1
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_level_events    info
-    Engine Config Set Value    ${0}    log_flush_period    0
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_level_events    info
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0
 
     Clear Retention
     Clear Db    hosts
@@ -67,8 +67,8 @@ EFHC2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
 
     Clear Retention
     ${start}    Get Current Date
@@ -110,8 +110,8 @@ EFHCU1
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Broker Config Log    module0    neb    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Log    central    sql    debug
@@ -160,8 +160,8 @@ EFHCU2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Broker Config Log    module0    neb    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Log    central    sql    debug
@@ -206,10 +206,10 @@ EMACROS
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    0    log_level_checks    trace    True
-    Engine Config Change Command
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    0    log_level_checks    trace    True
+    Ctn Change Command In Engine Conf
     ...    0
     ...    \\d+
     ...    /bin/echo "ResourceFile: $RESOURCEFILE$ - LogFile: $LOGFILE$ - AdminEmail: $ADMINEMAIL$ - AdminPager: $ADMINPAGER$"
@@ -241,19 +241,19 @@ EMACROS_NOTIF
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    0    log_level_checks    trace    True
-    Engine Config Add Value    0    cfg_file    ${EtcRoot}/centreon-engine/config0/contacts.cfg
-    Engine Config Add Command
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    0    log_level_checks    trace    True
+    Ctn Add Value In Engine Conf    0    cfg_file    ${EtcRoot}/centreon-engine/config0/contacts.cfg
+    Ctn Add Command In Engine Conf
     ...    0
     ...    command_notif
     ...    /bin/sh -c '/bin/echo "ResourceFile: $RESOURCEFILE$ - LogFile: $LOGFILE$ - AdminEmail: $ADMINEMAIL$ - AdminPager: $ADMINPAGER$" >> /tmp/notif_toto.txt'
-    Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Set Value In Engine Services Conf    0    service_1    contacts    John_Doe
+    Ctn Set Value In Engine Services Conf    0    service_1    notification_options    w,c,r
+    Ctn Set Value In Engine Services Conf    0    service_1    notifications_enabled    1
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    host_notification_commands    command_notif
+    Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
 
     Remove File    /tmp/notif_toto.txt
     Clear Retention

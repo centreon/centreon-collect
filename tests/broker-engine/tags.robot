@@ -281,8 +281,8 @@ BEUTAG7
     Create Tags File    ${1}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Ctn Config Engine Add Cfg File    ${1}    tags.cfg
-    Engine Config Set Value    ${0}    log_level_config    debug
-    Engine Config Set Value    ${1}    log_level_config    debug
+    Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
+    Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
     Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
     Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]
@@ -348,8 +348,8 @@ BEUTAG8
     Ctn Config Engine Add Cfg File    ${1}    tags.cfg
     Ctn Config Engine Add Cfg File    ${0}    serviceTemplates.cfg
     Ctn Config Engine Add Cfg File    ${1}    serviceTemplates.cfg
-    Engine Config Set Value    ${0}    log_level_config    debug
-    Engine Config Set Value    ${1}    log_level_config    debug
+    Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
+    Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
     Add Template To Services    0    service_template_1    [2, 4]
     Add Template To Services    0    service_template_2    [5, 7]
     Add Template To Services    1    service_template_1    [501, 502]
@@ -404,8 +404,8 @@ BEUTAG9
     Ctn Config Engine Add Cfg File    ${1}    tags.cfg
     Ctn Config Engine Add Cfg File    ${0}    hostTemplates.cfg
     Ctn Config Engine Add Cfg File    ${1}    hostTemplates.cfg
-    Engine Config Set Value    ${0}    log_level_config    debug
-    Engine Config Set Value    ${1}    log_level_config    debug
+    Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
+    Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
     Add Template To Hosts    0    host_template_1    [9, 10]
     Add Template To Hosts    0    host_template_2    [11, 12]
     Add Template To Hosts    1    host_template_1    [30, 31]
@@ -462,8 +462,8 @@ BEUTAG10
     Create Tags File    ${1}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Ctn Config Engine Add Cfg File    ${1}    tags.cfg
-    Engine Config Set Value    ${0}    log_level_config    debug
-    Engine Config Set Value    ${1}    log_level_config    debug
+    Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
+    Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
     Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
     Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]
@@ -528,8 +528,8 @@ BEUTAG11
     Create Tags File    ${1}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Ctn Config Engine Add Cfg File    ${1}    tags.cfg
-    Engine Config Set Value    ${0}    log_level_config    debug
-    Engine Config Set Value    ${1}    log_level_config    debug
+    Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
+    Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
     Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
     Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]

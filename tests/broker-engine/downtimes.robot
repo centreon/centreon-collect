@@ -14,9 +14,9 @@ BEDTMASS1
     [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.0
     [Tags]    broker    engine    services    protobuf
     Ctn Config Engine    ${3}    ${50}    ${20}
-    Engine Config Set Value    ${0}    log_level_functions    trace
-    Engine Config Set Value    ${1}    log_level_functions    trace
-    Engine Config Set Value    ${2}    log_level_functions    trace
+    Ctn Set Value In Engine Conf    ${0}    log_level_functions    trace
+    Ctn Set Value In Engine Conf    ${1}    log_level_functions    trace
+    Ctn Set Value In Engine Conf    ${2}    log_level_functions    trace
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
@@ -72,9 +72,9 @@ BEDTMASS2
     [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 2.0
     [Tags]    broker    engine    services    protobuf
     Ctn Config Engine    ${3}    ${50}    ${20}
-    Engine Config Set Value    ${0}    log_level_functions    trace
-    Engine Config Set Value    ${1}    log_level_functions    trace
-    Engine Config Set Value    ${2}    log_level_functions    trace
+    Ctn Set Value In Engine Conf    ${0}    log_level_functions    trace
+    Ctn Set Value In Engine Conf    ${1}    log_level_functions    trace
+    Ctn Set Value In Engine Conf    ${2}    log_level_functions    trace
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
@@ -128,7 +128,7 @@ BEDTSVCREN1
     [Documentation]    A downtime is set on a service then the service is renamed. The downtime is still active on the renamed service. The downtime is removed from the renamed service and it is well removed.
     [Tags]    broker    engine    services    downtime
     Ctn Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_level_functions    trace
+    Ctn Set Value In Engine Conf    ${0}    log_level_functions    trace
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -171,7 +171,7 @@ BEDTSVCFIXED
     [Documentation]    A downtime is set on a service, the total number of downtimes is really 1 then we delete this downtime and the number of downtime is 0.
     [Tags]    broker    engine    downtime
     Ctn Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_level_functions    trace
+    Ctn Set Value In Engine Conf    ${0}    log_level_functions    trace
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -205,7 +205,7 @@ BEDTHOSTFIXED
     [Documentation]    A downtime is set on a host, the total number of downtimes is really 21 (1 for the host and 20 for its 20 services) then we delete this downtime and the number is 0.
     [Tags]    broker    engine    downtime
     Ctn Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_level_functions    trace
+    Ctn Set Value In Engine Conf    ${0}    log_level_functions    trace
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}

@@ -108,7 +108,7 @@ Service_increased_huge_check_interval
     Execute Sql String
     ...    INSERT INTO index_data (host_id, service_id, host_name, service_description) VALUES (1, ${new_service_id}, 'host1', 'service_${new_service_id}')
 
-    Engine Config Replace Value In Services    0    service_${new_service_id}    check_interval    90
+    Ctn Replace Value In Engine Services Conf    0    service_${new_service_id}    check_interval    90
 
     ${start}    Get Current Date
 

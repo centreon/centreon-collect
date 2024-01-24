@@ -694,7 +694,7 @@ def ctn_get_engines_count():
 # @param key the key to change the value.
 # @param value the new value to set to the key variable.
 #
-def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = False):
+def ctn_set_value_in_engine_conf(idx: int, key: str, value: str, force: bool = False):
     filename = ETC_ROOT + \
         "/centreon-engine/config{}/centengine.cfg".format(idx)
     f = open(filename, "r")
@@ -723,7 +723,7 @@ def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = Fa
 #
 
 
-def ctn_engine_config_add_value(idx: int, key: str, value: str):
+def ctn_add_value_in_engine_conf(idx: int, key: str, value: str):
     filename = ETC_ROOT + \
         "/centreon-engine/config{}/centengine.cfg".format(idx)
     f = open(filename, "a")
@@ -739,7 +739,7 @@ def ctn_engine_config_add_value(idx: int, key: str, value: str):
 # @param key the key to change the value.
 # @param value the new value to set to the key variable.
 #
-def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value: str):
+def ctn_set_value_in_engine_conf_in_services(idx: int, desc: str, key: str, value: str):
     filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
     f = open(filename, "r")
     lines = f.readlines()
@@ -783,7 +783,7 @@ def ctn_engine_config_replace_value_in_services(idx: int, desc: str, key: str, v
 #
 
 
-def ctn_engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
+def ctn_set_value_in_engine_conf_in_hosts(idx: int, desc: str, key: str, value: str):
     filename = ETC_ROOT + "/centreon-engine/config{}/hosts.cfg".format(idx)
     f = open(filename, "r")
     lines = f.readlines()
@@ -887,7 +887,7 @@ def ctn_engine_config_add_command(idx: int, command_name: str, new_command: str,
 # @param key the key to change the value.
 # @param value the new value to set to the key variable.
 #
-def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str):
+def ctn_set_value_in_engine_conf_in_contacts(idx: int, desc: str, key: str, value: str):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/contacts.cfg"
     f = open(filename, "r")
     lines = f.readlines()
@@ -904,7 +904,7 @@ def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value
     f.close()
 
 
-def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
+def ctn_set_value_in_engine_conf_in_escalations(idx: int, desc: str, key: str, value: str):
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
@@ -1089,7 +1089,7 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
     return retval
 
 
-def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
+def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: fgit
     f = open(
         ETC_ROOT + "/centreon-engine/config{}/anomaly_detection.cfg".format(index), "a+")
     to_append = engine.ctn_create_anomaly_detection(
@@ -1151,7 +1151,7 @@ def ctn_add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warnin
                       warning_impact, unknown_impact)
 
 
-def ctn_add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+def ctn_add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int)git
     global dbconf
     dbconf.ctn_add_service_kpi(
         host, serv, id_ba, critical_impact, warning_impact, unknown_impact)

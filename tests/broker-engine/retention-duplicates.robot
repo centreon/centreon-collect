@@ -14,8 +14,8 @@ BERD1
     [Documentation]    Starting/stopping Broker does not create duplicated events.
     [Tags]    broker    engine    start-stop    duplicate    retention
     Ctn Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Config Broker    central
     Broker Config Clear Outputs Except    central    ["ipv4"]
     Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -53,9 +53,9 @@ BERD2
     [Documentation]    Starting/stopping Engine does not create duplicated events.
     [Tags]    broker    engine    start-stop    duplicate    retention
     Ctn Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_level_runtime    info
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_level_runtime    info
     Config Broker    central
     Broker Config Clear Outputs Except    central    ["ipv4"]
     Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -92,8 +92,8 @@ BERDUC1
     [Documentation]    Starting/stopping Broker does not create duplicated events in usual cases
     [Tags]    broker    engine    start-stop    duplicate    retention
     Ctn Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Config Broker    central
     Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Broker Config Log    central    lua    debug
@@ -132,8 +132,8 @@ BERDUCU1
     [Documentation]    Starting/stopping Broker does not create duplicated events in usual cases with unified_sql
     [Tags]    broker    engine    start-stop    duplicate    retention
     Ctn Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Config Broker    central
     Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Broker Config Log    central    lua    debug
@@ -170,8 +170,8 @@ BERDUC2
     [Tags]    broker    engine    start-stop    duplicate    retention
     Clear Retention
     Ctn Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Config Broker    central
     Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Broker Config Log    central    lua    debug
@@ -207,8 +207,8 @@ BERDUCU2
     [Tags]    broker    engine    start-stop    duplicate    retention
     Clear Retention
     Ctn Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -245,8 +245,8 @@ BERDUC3U1
     [Documentation]    Starting/stopping Broker does not create duplicated events in usual cases with unified_sql and BBDO 3.0
     [Tags]    broker    engine    start-stop    duplicate    retention
     Ctn Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Config Broker    central
     Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Broker Config Log    central    lua    debug
@@ -284,8 +284,8 @@ BERDUC3U2
     [Tags]    broker    engine    start-stop    duplicate    retention
     Clear Retention
     Ctn Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -337,8 +337,8 @@ BERDUCA300
     [Tags]    broker    engine    start-stop    duplicate    retention    unified_sql
     Clear Retention
     Ctn Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -390,8 +390,8 @@ BERDUCA301
     [Tags]    broker    engine    start-stop    duplicate    retention    unified_sql
     Clear Retention
     Ctn Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua

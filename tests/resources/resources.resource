@@ -134,7 +134,7 @@ Stop Processes
     Kill Engine
 
 Ctn Start Engine
-    ${count}    Ctn Get Engines Count
+    ${count}    Ctn Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${conf}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg
@@ -166,7 +166,7 @@ Stop Custom Engine
     ...    Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
 Stop Engine
-    ${count}    Ctn Get Engines Count
+    ${count}    Ctn Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         Send Signal To Process    SIGTERM    ${alias}
@@ -210,14 +210,14 @@ Get Engine Pid
     RETURN    ${pid}
 
 Reload Engine
-    ${count}    Ctn Get Engines Count
+    ${count}    Ctn Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         Send Signal To Process    SIGHUP    ${alias}
     END
 
 Check Connections
-    ${count}    Ctn Get Engines Count
+    ${count}    Ctn Ctn Get Engines Count
     ${pid1}    Get Process Id    b1
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}

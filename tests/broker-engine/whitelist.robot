@@ -72,10 +72,10 @@ Whitelist_Host
     Empty Directory    /etc/centreon-engine-whitelist
     Config Broker    central
     Config Broker    module    ${1}
-    Engine Config Set Value    0    log_level_checks    trace    True
-    Engine Config Set Value    0    log_level_commands    trace    True
-    Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/check.pl 0 $HOSTADDRESS$
-    Engine Config Replace Value In Hosts    0    host_1    check_command    command_1
+    Ctn Set Value In Engine Conf    0    log_level_checks    trace    True
+    Ctn Set Value In Engine Conf    0    log_level_commands    trace    True
+    Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/check.pl 0 $HOSTADDRESS$
+    Ctn Replace Value In Engine Hosts Conf    0    host_1    check_command    command_1
 
     ${start}    Get Current Date
     Ctn Start Broker    only_central=${True}
@@ -104,7 +104,7 @@ Whitelist_Host
     Should Be True    ${result}    No command not allowed found for host_1
 
     # matching with /tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]
-    Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
+    Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
     Reload Engine
     ${start}    Get Current Date
     Schedule Forced Host Check    host_1
@@ -113,7 +113,7 @@ Whitelist_Host
     Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 not run
 
     # matching with /tmp/var/lib/centreon-engine/toto* * */etc/centreon-engine-whitelist/test
-    Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/totozea 1 $HOSTADDRESS$
+    Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/totozea 1 $HOSTADDRESS$
     Reload Engine
     ${start}    Get Current Date
     Schedule Forced Host Check    host_1
@@ -128,11 +128,11 @@ Whitelist_Service
     Empty Directory    /etc/centreon-engine-whitelist
     Config Broker    central
     Config Broker    module    ${1}
-    Engine Config Set Value    0    log_level_checks    trace    True
-    Engine Config Set Value    0    log_level_commands    trace    True
+    Ctn Set Value In Engine Conf    0    log_level_checks    trace    True
+    Ctn Set Value In Engine Conf    0    log_level_commands    trace    True
     # service_1 uses command_1
-    Engine Config Replace Value In Services    0    service_1    check_command    command_1
-    Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/check.pl 0 $HOSTADDRESS$
+    Ctn Replace Value In Engine Services Conf    0    service_1    check_command    command_1
+    Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/check.pl 0 $HOSTADDRESS$
 
     ${start}    Get Current Date
     Ctn Start Broker    only_central=${True}
@@ -161,7 +161,7 @@ Whitelist_Service
     Should Be True    ${result}    No command not allowed found for service_1
 
     # matching with /tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]
-    Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
+    Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
     Reload Engine
     ${start}    Get Current Date
     Schedule Forced Svc Check    host_1    service_1
@@ -170,7 +170,7 @@ Whitelist_Service
     Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 not run
 
     # matching with /tmp/var/lib/centreon-engine/toto* * *
-    Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/totozea 1 $HOSTADDRESS$
+    Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/totozea 1 $HOSTADDRESS$
     Reload Engine
     ${start}    Get Current Date
     Schedule Forced Svc Check    host_1    service_1
@@ -185,11 +185,11 @@ Whitelist_Perl_Connector
     Empty Directory    /etc/centreon-engine-whitelist
     Config Broker    central
     Config Broker    module    ${1}
-    Engine Config Set Value    0    log_level_checks    trace    True
-    Engine Config Set Value    0    log_level_commands    trace    True
+    Ctn Set Value In Engine Conf    0    log_level_checks    trace    True
+    Ctn Set Value In Engine Conf    0    log_level_commands    trace    True
     # service_1 uses command_14 (uses perl connector)
-    Engine Config Replace Value In Services    0    service_1    check_command    command_14
-    Engine Config Change Command    0    14    /tmp/var/lib/centreon-engine/check.pl 0 $HOSTADDRESS$
+    Ctn Replace Value In Engine Services Conf    0    service_1    check_command    command_14
+    Ctn Change Command In Engine Conf    0    14    /tmp/var/lib/centreon-engine/check.pl 0 $HOSTADDRESS$
 
     ${whitelist_content}    Catenate
     ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/toto* * *"], "regex":["/tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]}}
@@ -211,7 +211,7 @@ Whitelist_Perl_Connector
     Should Be True    ${result}    No command not allowed found for service_1
 
     # command allowed by whitelist
-    Engine Config Change Command    0    14    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
+    Ctn Change Command In Engine Conf    0    14    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
     Reload Engine
     ${start}    Get Current Date
     Schedule Forced Svc Check    host_1    service_1

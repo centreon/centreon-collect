@@ -170,10 +170,10 @@ BEBAMIGNDTU1
     Config Broker Sql Output    central    unified_sql
     Config BBDO3    1
     Ctn Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_level_functions    trace
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_level_functions    trace
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     Clone Engine Config To DB
     Add Bam Config To Engine

@@ -54,8 +54,8 @@ BEUHSEV2
     Create Severities File    ${1}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Ctn Config Engine Add Cfg File    ${1}    severities.cfg
-    Engine Config Set Value    ${0}    log_level_config    debug
-    Engine Config Set Value    ${1}    log_level_config    debug
+    Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
+    Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
     Add Severity To Hosts    0    18    [2, 4]
     Add Severity To Hosts    0    16    [3, 5]
     Add Severity To Hosts    1    18    [26, 27]
@@ -130,8 +130,8 @@ BETUHSEV1
     Ctn Config Engine Add Cfg File    ${1}    severities.cfg
     Ctn Config Engine Add Cfg File    ${0}    hostTemplates.cfg
     Ctn Config Engine Add Cfg File    ${1}    hostTemplates.cfg
-    Engine Config Set Value    ${0}    log_level_config    debug
-    Engine Config Set Value    ${1}    log_level_config    debug
+    Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
+    Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
     Add Template To Hosts    0    host_template_1    [1, 2, 3, 4]
     Add Template To Hosts    0    host_template_2    [5, 6, 7, 8]
     Add Template To Hosts    1    host_template_1    [31, 32]

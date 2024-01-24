@@ -178,9 +178,9 @@ BEACK5
     Config Broker    module    ${1}
     Broker Config Log    module0    neb    trace
     Broker Config Log    central    sql    debug
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_level_external_command    trace
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
+    Ctn Set Value In Engine Conf    ${0}    log_level_external_command    trace
+    Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date
     Ctn Start Broker

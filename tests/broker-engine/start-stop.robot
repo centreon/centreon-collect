@@ -83,7 +83,7 @@ BESS5
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Engine Config Set Value    ${0}    debug_level    ${-1}
+    Ctn Set Value In Engine Conf    ${0}    debug_level    ${-1}
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
@@ -177,7 +177,7 @@ BESS_GRPC5
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Engine Config Set Value    ${0}    debug_level    ${-1}
+    Ctn Set Value In Engine Conf    ${0}    debug_level    ${-1}
     Change Broker Tcp Output To Grpc    central
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
