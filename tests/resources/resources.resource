@@ -77,11 +77,11 @@ Ctn Start Broker
         Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2
     END
 
-Reload Broker
+Ctn Reload Broker
     Send Signal To Process    SIGHUP    b1
     Send Signal To Process    SIGHUP    b2
 
-Kindly Stop Broker
+Ctn Kindly Stop Broker
     [Arguments]    ${only_central}=False
     Send Signal To Process    SIGTERM    b1
     IF    not ${only_central}    Send Signal To Process    SIGTERM    b2
@@ -134,7 +134,7 @@ Stop Processes
     Kill Engine
 
 Ctn Start Engine
-    ${count}    Ctn Ctn Get Engines Count
+    ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${conf}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg
@@ -166,7 +166,7 @@ Stop Custom Engine
     ...    Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
 Stop Engine
-    ${count}    Ctn Ctn Get Engines Count
+    ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         Send Signal To Process    SIGTERM    ${alias}
@@ -210,14 +210,14 @@ Get Engine Pid
     RETURN    ${pid}
 
 Reload Engine
-    ${count}    Ctn Ctn Get Engines Count
+    ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         Send Signal To Process    SIGHUP    ${alias}
     END
 
 Check Connections
-    ${count}    Ctn Ctn Get Engines Count
+    ${count}    Ctn Get Engines Count
     ${pid1}    Get Process Id    b1
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
