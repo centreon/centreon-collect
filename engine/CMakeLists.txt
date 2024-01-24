@@ -493,7 +493,7 @@ add_subdirectory(src/macros)
 add_subdirectory(modules)
 add_subdirectory(src/retention)
 add_subdirectory(enginerpc)
-include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src)
+include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src ${CMAKE_SOURCE_DIR}/common/inc)
 
 # Library engine target.
 add_library(enginelog STATIC src/log_v2.cc)
@@ -510,7 +510,7 @@ target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 # Link target with required libraries.
 target_link_libraries(
   cce_core
-  nlohmann_json::nlohmann_json
+  rapidjson::rapidjson
   ${MATH_LIBRARIES}
   ${PTHREAD_LIBRARIES}
   ${SOCKET_LIBRARIES}
