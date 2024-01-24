@@ -13,7 +13,7 @@ Test Teardown       Save Logs If Failed
 VICT_ONE_CHECK_METRIC
     [Documentation]    victoria metrics metric output
     [Tags]    broker    engine    victoria_metrics
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -25,7 +25,7 @@ VICT_ONE_CHECK_METRIC
     Config Broker Sql Output    central    unified_sql
     Config Broker Victoria Output
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Start Server    127.0.0.1    8000
     # wait all is started
@@ -67,12 +67,12 @@ VICT_ONE_CHECK_METRIC
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker    AND    Stop Server
 
 VICT_ONE_CHECK_STATUS
     [Documentation]    victoria metrics status output
     [Tags]    broker    engine    victoria_metrics
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -84,7 +84,7 @@ VICT_ONE_CHECK_STATUS
     Config Broker Sql Output    central    unified_sql
     Config Broker Victoria Output
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Start Server    127.0.0.1    8000
     # wait all is started
@@ -190,12 +190,12 @@ VICT_ONE_CHECK_STATUS
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker    AND    Stop Server
 
 VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     [Documentation]    victoria metrics metric output after victoria shutdown
     [Tags]    broker    engine    victoria_metrics
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -207,7 +207,7 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     Config Broker Sql Output    central    unified_sql
     Config Broker Victoria Output
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
@@ -253,4 +253,4 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker    AND    Stop Server

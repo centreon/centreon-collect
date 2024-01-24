@@ -13,7 +13,7 @@ Test Teardown       Save Logs If Failed
 EBNSVC1
     [Documentation]    New services with several pollers
     [Tags]    broker    engine    services    protobuf
-    Config Engine    ${3}    ${50}    ${20}
+    Ctn Config Engine    ${3}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
@@ -22,15 +22,15 @@ EBNSVC1
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     FOR    ${i}    IN RANGE    ${3}
         Sleep    10s
         ${srv_by_host}    Evaluate    20 + 4 * $i
         Log To Console    ${srv_by_host} services by host with 50 hosts among 3 pollers.
-        Config Engine    ${3}    ${50}    ${srv_by_host}
+        Ctn Config Engine    ${3}    ${50}    ${srv_by_host}
         Reload Engine
-        Reload Broker
+        Ctn Reload Broker
         ${nb_srv}    Evaluate    17 * (20 + 4 * $i)
         ${nb_res}    Evaluate    $nb_srv + 17
         ${result}    Check Number Of Resources Monitored by Poller is    ${1}    ${nb_res}    30
@@ -43,12 +43,12 @@ EBNSVC1
         Should Be True    ${result}    Poller 3 should monitor ${nb_srv} services and 16 hosts.
     END
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 Service_increased_huge_check_interval
     [Documentation]    New services with high check interval at creation time.
     [Tags]    broker    engine    services    protobuf
-    Config Engine    ${1}    ${10}    ${10}
+    Ctn Config Engine    ${1}    ${10}    ${10}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -68,7 +68,7 @@ Service_increased_huge_check_interval
     Delete All Rrd Metrics
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     # Start Checkers
     ${result}    Check Host Status    host_1    4    1    False
@@ -144,4 +144,4 @@ Service_increased_huge_check_interval
         ...    rra[0].pdp_per_row must be equal to 5400 for metric ${m}
     END
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker

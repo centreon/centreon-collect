@@ -13,7 +13,7 @@ Test Teardown       Save Logs If Failed
 BERD1
     [Documentation]    Starting/stopping Broker does not create duplicated events.
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Config Broker    central
@@ -27,7 +27,7 @@ BERD1
     Config Broker    rrd
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -37,13 +37,13 @@ BERD1
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Sleep    5s
     Clear Cache
-    Start Broker
+    Ctn Start Broker
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     ${result}    Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
@@ -52,7 +52,7 @@ BERD1
 BERD2
     [Documentation]    Starting/stopping Engine does not create duplicated events.
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_level_runtime    info
@@ -68,7 +68,7 @@ BERD2
     Config Broker    rrd
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -82,7 +82,7 @@ BERD2
     Ctn Start Engine
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     ${result}    Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
@@ -91,7 +91,7 @@ BERD2
 BERDUC1
     [Documentation]    Starting/stopping Broker does not create duplicated events in usual cases
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Config Broker    central
@@ -108,7 +108,7 @@ BERDUC1
     Config Broker    rrd
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -118,20 +118,20 @@ BERDUC1
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Sleep    5s
     Clear Cache
-    Start Broker
+    Ctn Start Broker
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUCU1
     [Documentation]    Starting/stopping Broker does not create duplicated events in usual cases with unified_sql
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Config Broker    central
@@ -147,7 +147,7 @@ BERDUCU1
     Config Broker    rrd
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -155,13 +155,13 @@ BERDUCU1
     ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     Sleep    5s
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Sleep    5s
     Clear Cache
-    Start Broker
+    Ctn Start Broker
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -169,7 +169,7 @@ BERDUC2
     [Documentation]    Starting/stopping Engine does not create duplicated events in usual cases
     [Tags]    broker    engine    start-stop    duplicate    retention
     Clear Retention
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Config Broker    central
@@ -182,7 +182,7 @@ BERDUC2
     Broker Config Flush Log    module0    0
     Config Broker    rrd
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -198,7 +198,7 @@ BERDUC2
     Ctn Start Engine
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -206,7 +206,7 @@ BERDUCU2
     [Documentation]    Starting/stopping Engine does not create duplicated events in usual cases with unified_sql
     [Tags]    broker    engine    start-stop    duplicate    retention
     Clear Retention
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Config Broker    central
@@ -221,7 +221,7 @@ BERDUCU2
     Broker Config Flush Log    module0    0
     Config Broker    rrd
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -237,14 +237,14 @@ BERDUCU2
     Ctn Start Engine
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUC3U1
     [Documentation]    Starting/stopping Broker does not create duplicated events in usual cases with unified_sql and BBDO 3.0
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Config Broker    central
@@ -259,7 +259,7 @@ BERDUC3U1
     Config BBDO3    1
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -269,13 +269,13 @@ BERDUC3U1
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Sleep    5s
     Clear Cache
-    Start Broker
+    Ctn Start Broker
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -283,7 +283,7 @@ BERDUC3U2
     [Documentation]    Starting/stopping Engine does not create duplicated events in usual cases with unified_sql and BBDO 3.0
     [Tags]    broker    engine    start-stop    duplicate    retention
     Clear Retention
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Config Broker    central
@@ -299,7 +299,7 @@ BERDUC3U2
     Config Broker    rrd
     Config BBDO3    1
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the lua to be correctly initialized
@@ -328,7 +328,7 @@ BERDUC3U2
     Ctn Start Engine
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -336,7 +336,7 @@ BERDUCA300
     [Documentation]    Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker.
     [Tags]    broker    engine    start-stop    duplicate    retention    unified_sql
     Clear Retention
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Config Broker    central
@@ -356,7 +356,7 @@ BERDUCA300
     Broker Config Add Item    central    bbdo_version    3.0.0
     Broker Config Add Item    rrd    bbdo_version    3.0.0
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${result}    Check Connections
@@ -383,13 +383,13 @@ BERDUCA300
     ${result}    Find Regex In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result[0]}    Engine should receive an ack for handled events from broker.
 
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BERDUCA301
     [Documentation]    Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker with bbdo 3.0.1.
     [Tags]    broker    engine    start-stop    duplicate    retention    unified_sql
     Clear Retention
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Config Broker    central
@@ -409,7 +409,7 @@ BERDUCA301
     Config BBDO3    1
     ${start}    Get Current Date
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${result}    Check Connections
@@ -436,4 +436,4 @@ BERDUCA301
     ${result}    Find Regex In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result[0]}    Engine should receive an ack for handled events from broker.
 
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker

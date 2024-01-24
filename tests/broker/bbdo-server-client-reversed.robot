@@ -175,11 +175,11 @@ BSCSSTGRR2
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    write: buff:    write done: buff:
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BSCSSCRR1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side. Connection reversed with retention.
@@ -195,11 +195,11 @@ BSCSSCRR1
     Broker Config Log    rrd    core    trace
     Broker Config Flush Log    central    0
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    compression: writing
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BSCSSCRR2
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is disabled on client side. Connection reversed with retention.
@@ -216,11 +216,11 @@ BSCSSCRR2
     Broker Config Log    central    bbdo    trace
     Broker Config Flush Log    central    0
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    BBDO: we have extensions '' and peer has 'COMPRESSION'
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Compression enabled but should not.
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BSCSSCGRR1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on output side. Reversed connection with retention and grpc transport protocol.
@@ -238,11 +238,11 @@ BSCSSCGRR1
     Broker Config Log    central    grpc    debug
     Broker Config Flush Log    central    0
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    server default compression deflate
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BSCSSCGRR2
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on output side. Reversed connection with retention and grpc transport protocol.
@@ -260,11 +260,11 @@ BSCSSCGRR2
     Broker Config Log    central    grpc    debug
     Broker Config Flush Log    central    0
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    server default compression deflate
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    15
     Should Be True    not ${result}    No compression enabled
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 
 *** Keywords ***

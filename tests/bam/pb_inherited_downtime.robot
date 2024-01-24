@@ -19,7 +19,7 @@ BEBAMIDTU1
     Config Broker    rrd
     Broker Config Log    central    bam    trace
     Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
     Add Bam Config To Engine
@@ -31,7 +31,7 @@ BEBAMIDTU1
     ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    2
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the initial service states.
@@ -68,7 +68,7 @@ BEBAMIDTU1
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEBAMIDTU2
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
@@ -80,7 +80,7 @@ BEBAMIDTU2
     Broker Config Log    central    bam    trace
     Config Broker Sql Output    central    unified_sql
     Config BBDO3    1
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
     Add Bam Config To Engine
@@ -92,7 +92,7 @@ BEBAMIDTU2
     ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    2
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the initial service states.
@@ -132,9 +132,9 @@ BEBAMIDTU2
 
         # Broker is restarted
         Log To Console    Broker is stopped (step ${i})
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
         Log To Console    Broker is started
-        Start Broker
+        Ctn Start Broker
     END
 
     # There are still two downtimes: the one on the ba and the one on the kpi.
@@ -154,7 +154,7 @@ BEBAMIDTU2
 
     Log To Console    Broker is stopped (end of BEBAMIDT2)
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEBAMIGNDTU1
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
@@ -169,7 +169,7 @@ BEBAMIGNDTU1
     Config Broker    rrd
     Config Broker Sql Output    central    unified_sql
     Config BBDO3    1
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_level_functions    trace
@@ -192,7 +192,7 @@ BEBAMIGNDTU1
     Log To Console    service_314 has command id ${cmd_2}
     Set Command Status    ${cmd_2}    2
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the initial service states.
@@ -265,7 +265,7 @@ BEBAMIGNDTU1
     Log To Console    The BA is now critical (no more downtime)
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEBAMIGNDTU2
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
@@ -278,7 +278,7 @@ BEBAMIGNDTU2
     Config Broker    rrd
     Config Broker Sql Output    central    unified_sql
     Config BBDO3    1
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
     Add Bam Config To Engine
@@ -293,7 +293,7 @@ BEBAMIGNDTU2
     ${cmd_2}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_2}
     Set Command Status    ${cmd_2}    2
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the initial service states.
@@ -355,7 +355,7 @@ BEBAMIGNDTU2
     Log To Console    The BA is now critical (no more downtime)
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 
 *** Keywords ***

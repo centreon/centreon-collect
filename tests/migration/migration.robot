@@ -14,7 +14,7 @@ MIGRATION
     [Tags]    broker    engine    services    protobuf
 
     Log To Console    Pure legacy mode
-    Config Engine    ${3}    ${50}    ${20}
+    Ctn Config Engine    ${3}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
@@ -23,7 +23,7 @@ MIGRATION
     Broker Config Log    rrd    rrd    trace
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${contentCentral}    Create List    SQL: processing service status event
@@ -37,8 +37,8 @@ MIGRATION
     ${start}    Get Current Date
 
     Log To Console    Move to BBDO 2.0.0 with unified_sql
-    Kindly Stop Broker
-    Start Broker
+    Ctn Kindly Ctn Stop Broker
+    Ctn Start Broker
     Stop Engine
     Ctn Start Engine
     Sleep    2s
@@ -54,8 +54,8 @@ MIGRATION
     ${start}    Get Current Date
 
     Log To Console    Move to BBDO 3.0.0 with unified_sql
-    Kindly Stop Broker
-    Start Broker
+    Ctn Kindly Ctn Stop Broker
+    Ctn Start Broker
     Stop Engine
     Ctn Start Engine
     Sleep    2s
@@ -75,8 +75,8 @@ MIGRATION
     ${start}    Get Current Date
 
     Log To Console    Move back to BBDO 2.0.0 with unified_sql
-    Kindly Stop Broker
-    Start Broker
+    Ctn Kindly Ctn Stop Broker
+    Ctn Start Broker
     Stop Engine
     Ctn Start Engine
     Sleep    2s
@@ -90,8 +90,8 @@ MIGRATION
 
     Log To Console    Move back to BBDO 2.0.0 with sql/storage
     Config Broker Sql Output    central    sql/perfdata
-    Kindly Stop Broker
-    Start Broker
+    Ctn Kindly Ctn Stop Broker
+    Ctn Start Broker
     Stop Engine
     Ctn Start Engine
     Sleep    2s

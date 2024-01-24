@@ -88,7 +88,7 @@ START_STOP_CBD
     Config Broker    rrd
     Config Broker    module    ${1}
     Config BBDO3    nbEngine=1
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker Sql Output    central    unified_sql
 
     Clear Db    services
@@ -96,7 +96,7 @@ START_STOP_CBD
     ${start}    Get Current Date
 
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
 
     # wait engine start
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
@@ -106,8 +106,8 @@ START_STOP_CBD
     ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
 
     # restart central broker
-    Stop Broker
-    Start Broker
+    Ctn Stop Broker
+    Ctn Start Broker
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -120,7 +120,7 @@ START_STOP_CBD
         Should Be Equal    "${output}"    "()"    at least one host state is null
     END
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Stop Broker
+    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Stop Broker
 
 
 *** Keywords ***

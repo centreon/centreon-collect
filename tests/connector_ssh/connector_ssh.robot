@@ -15,7 +15,7 @@ TestBadUser
     [Tags]    connector    engine
     Clear Retention
     Config Broker    module    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Engine Config Set Value    ${0}    log_level_commands    trace
     Engine Config Set Value In Hosts    ${0}    host_1    _USER    toto
@@ -49,7 +49,7 @@ TestBadPwd
     [Tags]    connector    engine
     Clear Retention
     Config Broker    module    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Engine Config Set Value    ${0}    log_level_commands    trace
     Engine Config Set Value In Hosts    ${0}    host_1    _USER    testconnssh
     Engine Config Replace Value In Hosts    ${0}    host_1    check_command    ssh_linux_snmp
@@ -86,7 +86,7 @@ Test6Hosts
     # Run    chmod 600 ~testconnssh/.ssh/authorized_keys
     Clear Retention
     Config Broker    module    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Engine Config Set Value    ${0}    log_level_commands    trace
     Engine Config Add Command
     ...    ${0}
@@ -151,7 +151,7 @@ TestWhiteList
     # Run    chmod 600 ~testconnssh/.ssh/authorized_keys
     Clear Retention
     Config Broker    module    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Engine Config Set Value    ${0}    log_level_commands    trace
     Engine Config Add Command
     ...    ${0}

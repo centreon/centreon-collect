@@ -25,14 +25,14 @@ BSCSSK1
     Broker Config Log    rrd    core    error
     ${start}    Get Current Date    exclude_millis=True
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
 
     # Client cannot connect. It returns an error
     ${content}    Create List    peer tcp://localhost:5670 is sending corrupted data
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the bad connection.
 
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BSCSSK2
     [Documentation]    Start-Stop two instances of broker, server configured with tcp and client with grpc. No connection established and error raised on client side.
@@ -50,7 +50,7 @@ BSCSSK2
     Broker Config Log    rrd    core    error
     ${start}    Get Current Date    exclude_millis=True
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
 
     # Client cannot connect. It returns an error
     ${content}    Create List
@@ -58,7 +58,7 @@ BSCSSK2
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the bad connection.
 
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 
 *** Keywords ***

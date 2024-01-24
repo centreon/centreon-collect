@@ -37,7 +37,7 @@ NetworkDbFail5
 NetworkDBFail6
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s
     [Tags]    broker    database    network    unstable
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
     Broker Config Output Set    central    central-broker-master-sql    connections_count    5
@@ -47,7 +47,7 @@ NetworkDBFail6
     Config Broker    rrd
     Config Broker    module
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
@@ -60,13 +60,13 @@ NetworkDBFail6
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 NetworkDBFailU6
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
     [Tags]    broker    database    network    unified_sql    unstable
     Reset Eth Connection
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
@@ -75,7 +75,7 @@ NetworkDBFailU6
     Config Broker    rrd
     Config Broker    module
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
@@ -90,12 +90,12 @@ NetworkDBFailU6
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 NetworkDBFail7
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s
     [Tags]    broker    database    network
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Reset Eth Connection
     Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
@@ -106,7 +106,7 @@ NetworkDBFail7
     Config Broker    rrd
     Config Broker    module
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
@@ -123,13 +123,13 @@ NetworkDBFail7
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    There are still events in the queue.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 NetworkDBFailU7
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
     [Tags]    broker    database    network    unified_sql
     Reset Eth Connection
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
@@ -138,7 +138,7 @@ NetworkDBFailU7
     Config Broker    rrd
     Config Broker    module
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
@@ -155,7 +155,7 @@ NetworkDBFailU7
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    There are still events in the queue.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 
 *** Keywords ***
@@ -168,7 +168,7 @@ Disable Sleep Enable
 Network Failure
     [Arguments]    ${interval}
     Reset Eth Connection
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    module
     Config Broker    rrd
     Config Broker    central
@@ -179,7 +179,7 @@ Network Failure
     Broker Config Log    central    sql    trace
     Broker Config Source Log    central    true
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    SQL: performing mysql_ping
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
@@ -191,5 +191,5 @@ Network Failure
     Should Be True
     ...    ${result[0]}
     ...    timeout after network to be restablished (network failure duration : ${interval})
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Stop Engine

@@ -13,7 +13,7 @@ Test Teardown       Save Logs If Failed
 BEPBBEE1
     [Documentation]    central-module configured with bbdo_version 3.0 but not others. Unable to establish connection.
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
@@ -22,7 +22,7 @@ BEPBBEE1
     Broker Config Log    central    bbdo    debug
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    BBDO: peer is using protocol version 3.0.0 whereas we're using protocol version 2.0.0
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -33,7 +33,7 @@ BEPBBEE1
 BEPBBEE2
     [Documentation]    bbdo_version 3 not compatible with sql/storage
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
@@ -44,7 +44,7 @@ BEPBBEE2
     Broker Config Flush Log    central    0
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List
     ...    Configuration check error: bbdo versions >= 3.0.0 need the unified_sql module to be configured.
@@ -56,7 +56,7 @@ BEPBBEE3
     [Documentation]    bbdo_version 3 generates new bbdo protobuf service status messages.
     [Tags]    broker    engine    protobuf    bbdo
     Remove File    /tmp/pbservicestatus.log
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
@@ -66,7 +66,7 @@ BEPBBEE3
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservicestatus.lua
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Wait Until Created    /tmp/pbservicestatus.log    1m
 
@@ -76,7 +76,7 @@ BEPBBEE4
     [Documentation]    bbdo_version 3 generates new bbdo protobuf host status messages.
     [Tags]    broker    engine    protobuf    bbdo
     Remove File    /tmp/pbhoststatus.log
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
@@ -86,7 +86,7 @@ BEPBBEE4
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbhoststatus.lua
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Wait Until Created    /tmp/pbhoststatus.log    1m
 
@@ -96,7 +96,7 @@ BEPBBEE5
     [Documentation]    bbdo_version 3 generates new bbdo protobuf service messages.
     [Tags]    broker    engine    protobuf    bbdo
     Remove File    /tmp/pbservice.log
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
@@ -106,7 +106,7 @@ BEPBBEE5
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservice.lua
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Wait Until Created    /tmp/pbservice.log    1m
 
@@ -116,7 +116,7 @@ BEPBRI1
     [Documentation]    bbdo_version 3 use pb_resource new bbdo protobuf ResponsiveInstance message.
     [Tags]    broker    engine    protobuf    bbdo
     Remove File    /tmp/pbresponsiveinstance.log
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker    module
     Config BBDO3    1
@@ -130,7 +130,7 @@ BEPBRI1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM instances
     ${start}    Get Current Date
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Wait Until Created    /tmp/pbresponsiveinstance.log    30s
     ${grep_res}    Grep File    /tmp/pbresponsiveinstance.log    "_type":65582, "category":1, "element":46,
@@ -145,19 +145,19 @@ BEPBRI1
     END
 
     Should Not Be Empty    ${grep_res}    "responsive":false not found
-    Kindly Stop Broker    True
+    Ctn Kindly Ctn Stop Broker    True
 
 BEPBCVS
     [Documentation]    bbdo_version 3 communication of custom variables.
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config BBDO3    ${1}
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -178,8 +178,8 @@ BEPBCVS
 BEPB_HOST_DEPENDENCY
     [Documentation]    bbdo_version 3 communication of host dependencies.
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
-    Config Engine Add Cfg File    0    dependencies.cfg
+    Ctn Config Engine    ${1}
+    Ctn Config Engine Add Cfg File    0    dependencies.cfg
     Add Host Dependency    0    host_1    host_2
     Config Broker    central
     Config Broker    module
@@ -188,7 +188,7 @@ BEPB_HOST_DEPENDENCY
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -202,7 +202,7 @@ BEPB_HOST_DEPENDENCY
     END
     Should Be Equal As Strings    ${output}    ((2, 1, '24x7', 1, 'ou'),)    host dependency not found in database
 
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Reload Engine
 
     FOR    ${index}    IN RANGE    30
@@ -219,8 +219,8 @@ BEPB_HOST_DEPENDENCY
 BEPB_SERVICE_DEPENDENCY
     [Documentation]    bbdo_version 3 communication of host dependencies.
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
-    Config Engine Add Cfg File    0    dependencies.cfg
+    Ctn Config Engine    ${1}
+    Ctn Config Engine Add Cfg File    0    dependencies.cfg
     Add Service Dependency    0    host_1    host_2    service_1    service_21
     Config Broker    central
     Config Broker    module
@@ -229,7 +229,7 @@ BEPB_SERVICE_DEPENDENCY
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -247,7 +247,7 @@ BEPB_SERVICE_DEPENDENCY
     ...    ((2, 21, 1, 1, '24x7', 1, 'c'),)
     ...    host dependency not found in database
 
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Reload Engine
 
     FOR    ${index}    IN RANGE    30

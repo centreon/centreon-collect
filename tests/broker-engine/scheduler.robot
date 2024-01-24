@@ -13,7 +13,7 @@ Test Teardown       Save Logs If Failed
 ENRSCHE1
     [Documentation]    Verify that next check of a rescheduled host is made at last_check + interval_check
     [Tags]    broker    engine    scheduler
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -24,7 +24,7 @@ ENRSCHE1
 
     ${start}    Get Current Date
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected

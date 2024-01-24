@@ -13,7 +13,7 @@ Test Teardown       Save Logs If Failed
 ANO_NOFILE
     [Documentation]    an anomaly detection without threshold file must be in unknown state
     [Tags]    broker    engine    anomaly
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
@@ -22,17 +22,17 @@ ANO_NOFILE
     Remove File    /tmp/anomaly_threshold.json
     Clear Retention
     Clear Db    services
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
-    Stop Broker    True
+    Ctn Stop Broker    True
     Stop Engine
 
 ANO_TOO_OLD_FILE
     [Documentation]    an anomaly detection with an oldest threshold file must be in unknown state
     [Tags]    broker    engine    anomaly
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
@@ -42,17 +42,17 @@ ANO_TOO_OLD_FILE
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Clear Retention
     Clear Db    services
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
-    Stop Broker    True
+    Ctn Stop Broker    True
     Stop Engine
 
 ANO_OUT_LOWER_THAN_LIMIT
     [Documentation]    an anomaly detection with a perfdata lower than lower limit make a critical state
     [Tags]    broker    engine    anomaly
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
@@ -62,17 +62,17 @@ ANO_OUT_LOWER_THAN_LIMIT
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Clear Retention
     Clear Db    services
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
-    Stop Broker    True
+    Ctn Stop Broker    True
     Stop Engine
 
 ANO_OUT_UPPER_THAN_LIMIT
     [Documentation]    an anomaly detection with a perfdata upper than upper limit make a critical state
     [Tags]    broker    engine    anomaly
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
@@ -82,17 +82,17 @@ ANO_OUT_UPPER_THAN_LIMIT
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Clear Retention
     Clear Db    services
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
-    Stop Broker    True
+    Ctn Stop Broker    True
     Stop Engine
 
 ANO_JSON_SENSITIVITY_NOT_SAVED
     [Documentation]    json sensitivity not saved in retention
     [Tags]    engine    anomaly    retention
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,2, 10],[2648812678,25,-5,6]]
     Create Anomaly Threshold File V2
@@ -112,7 +112,7 @@ ANO_JSON_SENSITIVITY_NOT_SAVED
 ANO_CFG_SENSITIVITY_SAVED
     [Documentation]    cfg sensitivity saved in retention
     [Tags]    engine    anomaly    retention
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric    4.00
     ${predict_data}    Evaluate    [[0,50,2, 10],[2648812678,25,-5,6]]
     Create Anomaly Threshold File V2
@@ -133,7 +133,7 @@ ANO_EXTCMD_SENSITIVITY_SAVED
     [Documentation]    extcmd sensitivity saved in retention
     [Tags]    engine    anomaly    retention    extcmd
     FOR    ${use_grpc}    IN RANGE    1    2
-        Config Engine    ${1}    ${50}    ${20}
+        Ctn Config Engine    ${1}    ${50}    ${20}
         ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
         ${predict_data}    Evaluate    [[0,50,2, 10],[2648812678,25,-5,6]]
         Create Anomaly Threshold File V2
@@ -156,7 +156,7 @@ ANO_EXTCMD_SENSITIVITY_SAVED
 AOUTLU1
     [Documentation]    an anomaly detection with a perfdata upper than upper limit make a critical state with bbdo 3
     [Tags]    broker    engine    anomaly    bbdo
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -168,7 +168,7 @@ AOUTLU1
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Clear Retention
     Clear Db    services
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the check of external commands
@@ -179,7 +179,7 @@ AOUTLU1
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     ${lst}    Create List    1    0    4
     ${result}    Check Types In Resources    ${lst}
     Should Be True
@@ -189,7 +189,7 @@ AOUTLU1
 ANO_DT1
     [Documentation]    downtime on dependent service is inherited by ano
     [Tags]    broker    engine    anomaly
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -202,7 +202,7 @@ ANO_DT1
     Clear Retention
     Clear Db    services
     Clear Db    downtimes
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the check of external commands
@@ -219,12 +219,12 @@ ANO_DT1
     Should Be True    ${result}    anomaly service must be in downtime
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 ANO_DT2
     [Documentation]    delete downtime on dependent service delete one on ano serv
     [Tags]    broker    engine    anomaly
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -237,7 +237,7 @@ ANO_DT2
     Clear Retention
     Clear Db    services
     Clear Db    downtimes
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the check of external commands
@@ -258,12 +258,12 @@ ANO_DT2
     Should Be True    ${result}    anomaly service must be in downtime
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 ANO_DT3
     [Documentation]    delete downtime on anomaly don t delete dependent service one
     [Tags]    broker    engine    anomaly
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -276,7 +276,7 @@ ANO_DT3
     Clear Retention
     Clear Db    services
     Clear Db    downtimes
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the check of external commands
@@ -298,12 +298,12 @@ ANO_DT3
     Should Be True    ${result}    dependent service must be in downtime
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 ANO_DT4
     [Documentation]    set dt on anomaly and on dependent service, delete last one don t delete first one
     [Tags]    broker    engine    anomaly
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -316,7 +316,7 @@ ANO_DT4
     Clear Retention
     Clear Db    services
     Clear Db    downtimes
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the check of external commands
@@ -338,4 +338,4 @@ ANO_DT4
     Should Be True    ${result}    anomaly service must be in simple downtime
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker

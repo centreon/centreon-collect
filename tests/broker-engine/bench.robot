@@ -17,7 +17,7 @@ Test Teardown       Stop Engine Broker And Save Logs
 BENCH_${nb_check}STATUS
     [Documentation]    external command CHECK_SERVICE_RESULT 1000 times
     [Tags]    broker    engine    bench
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
     Config Broker    central
@@ -29,7 +29,7 @@ BENCH_${nb_check}STATUS
     Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -82,7 +82,7 @@ BENCH_${nb_check}STATUS
 BENCH_${nb_check}STATUS_TRACES
     [Documentation]    external command CHECK_SERVICE_RESULT ${nb_check} times
     [Tags]    broker    engine    bench
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
     Config Broker    central
@@ -97,7 +97,7 @@ BENCH_${nb_check}STATUS_TRACES
     Broker Config Add Item    rrd    bbdo_version    3.0.0
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -150,7 +150,7 @@ BENCH_${nb_check}STATUS_TRACES
 BENCH_1000STATUS_100${suffixe}
     [Documentation]    external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
     [Tags]    broker    engine    bench
-    Config Engine    ${100}    ${100}    ${20}
+    Ctn Config Engine    ${100}    ${100}    ${20}
     Config Broker    module    ${100}
     Config Broker    central
     FOR    ${poller_index}    IN RANGE    100
@@ -165,7 +165,7 @@ BENCH_1000STATUS_100${suffixe}
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${connected}    Wait For Connections    5669    100
     Should Be True    ${connected}    100 engines should be connected to broker

@@ -13,7 +13,7 @@ Test Teardown       Save Logs If Failed
 BRRDCDDM1
     [Documentation]    RRD metrics deletion from metric ids with rrdcached.
     [Tags]    rrd    metric    deletion    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Config Broker    central
@@ -25,7 +25,7 @@ BRRDCDDM1
     Broker Config Flush Log    rrd    0
     Create Metrics    3
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -49,7 +49,7 @@ BRRDCDDM1
 BRRDCDDID1
     [Documentation]    RRD metrics deletion from index ids with rrdcached.
     [Tags]    rrd    metric    deletion    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Config Broker    central
@@ -61,7 +61,7 @@ BRRDCDDID1
 
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -89,7 +89,7 @@ BRRDCDDID1
 BRRDCDDMID1
     [Documentation]    RRD deletion of non existing metrics and indexes with rrdcached
     [Tags]    rrd    metric    deletion    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Config Broker    central
@@ -101,7 +101,7 @@ BRRDCDDMID1
     Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -120,7 +120,7 @@ BRRDCDDMID1
 BRRDCDDMU1
     [Documentation]    RRD metric deletion on table metric with unified sql output with rrdcached
     [Tags]    rrd    metric    deletion unified_sql    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Config Broker    central
@@ -134,7 +134,7 @@ BRRDCDDMU1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -157,7 +157,7 @@ BRRDCDDMU1
 BRRDCDDIDU1
     [Documentation]    RRD metrics deletion from index ids with unified sql output with rrdcached.
     [Tags]    rrd    metric    deletion    unified_sql    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Config Broker    central
@@ -171,7 +171,7 @@ BRRDCDDIDU1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -197,7 +197,7 @@ BRRDCDDIDU1
 BRRDCDDMIDU1
     [Documentation]    RRD deletion of non existing metrics and indexes with rrdcached
     [Tags]    rrd    metric    deletion    unified_sql    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Config Broker    central
@@ -210,7 +210,7 @@ BRRDCDDMIDU1
     Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -229,7 +229,7 @@ BRRDCDDMIDU1
 BRRDCDRB1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output and rrdcached.
     [Tags]    rrd    metric    rebuild    grpc    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Config Broker    central
@@ -241,7 +241,7 @@ BRRDCDRB1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -286,7 +286,7 @@ BRRDCDRB1
 BRRDCDRBU1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output and rrdcached.
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Config Broker    central
@@ -301,7 +301,7 @@ BRRDCDRBU1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected

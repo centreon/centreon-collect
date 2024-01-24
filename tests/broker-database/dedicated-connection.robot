@@ -22,7 +22,7 @@ DEDICATED_DB_CONNECTION_${nb_conn}_${store_in_data_bin}
     Broker Config Output Set    central    central-broker-unified-sql    store_in_data_bin    ${store_in_data_bin}
 
     ${start}    Get Current Date
-    Start Broker    only_central=${True}
+    Ctn Start Broker    only_central=${True}
     ${content}    Create List    unified sql: stream class instanciation
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No unified sql instanciation

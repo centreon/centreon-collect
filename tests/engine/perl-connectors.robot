@@ -12,7 +12,7 @@ Test Setup          Stop Processes
 EPC1
     [Documentation]    Check with perl connector
     [Tags]    engine    start-stop
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    module
     Engine Config Set Value    ${0}    log_level_commands    trace
     ${start}    Get Current Date

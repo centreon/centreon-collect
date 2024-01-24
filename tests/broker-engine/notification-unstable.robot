@@ -13,7 +13,7 @@ Test Teardown       Save Logs If Failed
 not1
     [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state.
     [Tags]    broker    engine    services    hosts    notification
-    Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -26,7 +26,7 @@ not1
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -48,12 +48,12 @@ not1
     Should Be True    ${result}    The notification is not sent
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 not2
     [Documentation]    This test case configures a single service and verifies that a recovery notification is sent after a service recovers from a non-OK state.
     [Tags]    broker    engine    services    hosts    notification
-    Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -66,7 +66,7 @@ not2
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -103,12 +103,12 @@ not2
     Should Be True    ${result}    The notification recovery is not sent
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 not3
     [Documentation]    This test case configures a single service and verifies that a non-OK notification is sent after the service exits downtime.
     [Tags]    broker    engine    services    hosts    notification
-    Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -121,7 +121,7 @@ not3
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -154,12 +154,12 @@ not3
     Should Be True    ${result}    The critical notification is not sent
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 not4
     [Documentation]    This test case configures a single service and verifies that a non-OK notification is sent when the acknowledgement is completed.
     [Tags]    broker    engine    services    hosts    notification
-    Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -172,7 +172,7 @@ not4
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -207,12 +207,12 @@ not4
     Should Be True    ${result}    The recovery notification for service_1 is not sent
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 not5
     [Documentation]    This test case configures two services with two different users being notified when the services transition to a critical state.
     [Tags]    broker    engine    services    hosts    notification
-    Config Engine    ${1}    ${2}    ${1}
+    Ctn Config Engine    ${1}    ${2}    ${1}
     Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -234,7 +234,7 @@ not5
     Engine Config Set Value In Contacts    0    U2    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -266,12 +266,12 @@ not5
     Should Be True    ${result}    The critical notification of service_2 is not sent
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 not6
     [Documentation]     This test case validates the behavior when the notification time period is set to null.
     [Tags]    broker    engine    services    hosts    notification
-    Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -284,7 +284,7 @@ not6
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -309,7 +309,7 @@ not6
     Sleep    5s
 
     ${start}    Get Current Date
-    Reload Broker
+    Ctn Reload Broker
     Reload Engine
 
     ## Time to set the service to UP  hard
@@ -324,12 +324,12 @@ not6
     Should Be True    ${result}    The timeperiod is not working
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 not7
     [Documentation]    This test case simulates a host alert scenario.
     [Tags]    broker    engine    host    hosts    notification
-    Config Engine    ${1}    ${1}
+    Ctn Config Engine    ${1}    ${1}
     Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -339,7 +339,7 @@ not7
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -365,12 +365,12 @@ not7
     Should Be True    ${result}    the host alert is not sent
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 not8
     [Documentation]    This test validates the critical host notification.
     [Tags]    broker    engine    host    notification
-    Config Engine    ${1}    ${1}
+    Ctn Config Engine    ${1}    ${1}
     Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -380,7 +380,7 @@ not8
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -406,12 +406,12 @@ not8
     Should Be True    ${result}    The down notification of host_1 is not sent
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 not9
     [Documentation]    This test case configures a single host and verifies that a recovery notification is sent after the host recovers from a non-OK state.
     [Tags]    broker    engine    host    notification
-    Config Engine    ${1}    ${1}
+    Ctn Config Engine    ${1}    ${1}
     Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -421,7 +421,7 @@ not9
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -447,12 +447,12 @@ not9
     Should Be True    ${result}    The recovery notification of host_1 is not sent
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 not10
     [Documentation]    This test case involves scheduling downtime on a down host. After the downtime is finished and the host is still critical, we should receive a critical notification.
     [Tags]    broker    engine    host    notification
-    Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -462,7 +462,7 @@ not10
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -500,12 +500,12 @@ not10
     Should Be True    ${result}    The down notification of host_1 is not sent
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 not11
     [Documentation]    This test case involves scheduling downtime on a down host that already had a critical notification. After putting it in the UP state when the downtime is finished and the host is UP, we should receive a recovery notification.
     [Tags]    broker    engine    host    notification
-    Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -515,7 +515,7 @@ not11
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -557,13 +557,13 @@ not11
     Should Be True    ${result}    The recovery notification of host_1 is not sent
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 
 not12
     [Documentation]    This test case involves configuring one service and checking that three alerts are sent for it.
     [Tags]    broker    engine    services    hosts    notification
-    Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Engine    ${1}    ${1}    ${1}
     Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -576,7 +576,7 @@ not12
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -607,15 +607,15 @@ not12
     Should Be True    ${result}    The third service alert hard is not sent
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 
 not13
     [Documentation]    Escalations
     [Tags]    broker    engine    services    hosts    notification
-    Config Engine    ${1}    ${2}    ${1}
+    Ctn Config Engine    ${1}    ${2}    ${1}
     Engine Config Set Value    0    interval_length    10    True
-    Config Engine Add Cfg File    ${0}    servicegroups.cfg
+    Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
     Config Notifications
     Config Escalations
@@ -635,7 +635,7 @@ not13
     Engine Config Set Value In Escalations    0    esc2    notification_interval    1
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
   # Let's wait for the external command check start
@@ -714,9 +714,9 @@ Config Notifications
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
-    Config Engine Add Cfg File    ${0}    contacts.cfg
-    Config Engine Add Cfg File    ${0}    contactgroups.cfg
-    Config Engine Add Cfg File    ${0}    escalations.cfg
+    Ctn Config Engine Add Cfg File    ${0}    contacts.cfg
+    Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg
+    Ctn Config Engine Add Cfg File    ${0}    escalations.cfg
     Engine Config Add Command
     ...    0
     ...    command_notif

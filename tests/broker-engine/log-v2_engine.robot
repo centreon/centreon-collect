@@ -13,7 +13,7 @@ Test Teardown       Save Logs If Failed
 LOGV2EB1
     [Documentation]    Checking broker sink when log-v2 is enabled and legacy logs are disabled.
     [Tags]    broker    engine    log-v2 sink broker
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -28,7 +28,7 @@ LOGV2EB1
     ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -52,12 +52,12 @@ LOGV2EB1
     END
     Should Be Equal As Strings    ${output}    ((1,),)
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 LOGV2EBU1
     [Documentation]    Checking broker sink when log-v2 is enabled and legacy logs are disabled with bbdo3.
     [Tags]    broker    engine    log-v2 sink broker    bbdo3    unified_sql
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -75,7 +75,7 @@ LOGV2EBU1
     ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -99,12 +99,12 @@ LOGV2EBU1
     END
     Should Be Equal As Strings    ${output}    ((1,),)
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 LOGV2DB1
     [Documentation]    log-v2 disabled old log enabled check broker sink
     [Tags]    broker    engine    log-v2 sink broker
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -119,7 +119,7 @@ LOGV2DB1
     ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -146,12 +146,12 @@ LOGV2DB1
     END
     Should Be Equal As Strings    ${output}    ((1,),)
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 LOGV2DB2
     [Documentation]    log-v2 disabled old log disabled check broker sink
     [Tags]    broker    engine    log-v2 sink broker
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -164,7 +164,7 @@ LOGV2DB2
     ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
     ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -191,12 +191,12 @@ LOGV2DB2
     END
     Should Be Equal As Strings    ${output}    ((0,),)
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 LOGV2EB2
     [Documentation]    log-v2 enabled old log enabled check broker sink
     [Tags]    broker    engine    log-v2    sinkbroker
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -210,7 +210,7 @@ LOGV2EB2
     ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -238,12 +238,12 @@ LOGV2EB2
     Should Be Equal As Strings    ${output}    ((2,),)
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 LOGV2EBU2
     [Documentation]    Check Broker sink with log-v2 enabled and legacy log enabled with BBDO3.
     [Tags]    broker    engine    log-v2    sinkbroker    unified_sql    bbdo3
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -258,7 +258,7 @@ LOGV2EBU2
     ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -286,12 +286,12 @@ LOGV2EBU2
     Should Be Equal As Strings    ${output}    ((2,),)
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 LOGV2EF1
     [Documentation]    log-v2 enabled    old log disabled check logfile sink
     [Tags]    broker    engine    log-v2
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -301,7 +301,7 @@ LOGV2EF1
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -311,12 +311,12 @@ LOGV2EF1
     ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 LOGV2DF1
     [Documentation]    log-v2 disabled old log enabled check logfile sink
     [Tags]    broker    engine    log-v2
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -326,7 +326,7 @@ LOGV2DF1
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -339,12 +339,12 @@ LOGV2DF1
     Should Be True    ${result1}
     Should Not Be True    ${result2}
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 LOGV2DF2
     [Documentation]    log-v2 disabled old log disabled check logfile sink
     [Tags]    broker    engine    log-v2
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -354,7 +354,7 @@ LOGV2DF2
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -367,12 +367,12 @@ LOGV2DF2
     Should Not Be True    ${result1}
     Should Not Be True    ${result2}
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 LOGV2EF2
     [Documentation]    log-v2 enabled old log enabled check logfile sink
     [Tags]    broker    engine    log-v2
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -382,7 +382,7 @@ LOGV2EF2
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -395,12 +395,12 @@ LOGV2EF2
     Should Be True    ${result1}
     Should Be True    ${result2}
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 LOGV2FE2
     [Documentation]    log-v2 enabled old log enabled check logfile sink
     [Tags]    broker    engine    log-v2
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -412,7 +412,7 @@ LOGV2FE2
     Clear Engine Logs
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -425,4 +425,4 @@ LOGV2FE2
     ${res}    Check Engine Logs Are Duplicated    ${engineLog0}    ${start}
     Should Be True    ${res}    one or other log are not duplicate in logsfile
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker

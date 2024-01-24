@@ -12,7 +12,7 @@ Test Setup          Stop Processes
 EFHC1
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo2
     [Tags]    engine    external_cmd    log-v2
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     # We force the check command of host_1 to return 2 as status.
     Config Host Command Status    ${0}    checkh1    2
     Config Broker    central
@@ -27,7 +27,7 @@ EFHC1
     Clear Db    hosts
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     ${result}    Check Host Status    host_1    4    1    False
     Should Be True    ${result}    host_1 should be pending
 
@@ -55,12 +55,12 @@ EFHC1
     ${result}    Check Host Status    host_1    1    1    False
     Should Be True    ${result}    host_1 should be down/hard
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 EFHC2
     [Documentation]    Engine is configured with hosts and we force check on one 5 times on bbdo2
     [Tags]    engine    external_cmd    log-v2
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     # We force the check command of host_1 to return 2 as status.
     Config Host Command Status    ${0}    checkh1    2
@@ -73,7 +73,7 @@ EFHC2
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    INITIAL HOST STATE: host_1;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
@@ -98,12 +98,12 @@ EFHC2
     ${result}    Check Host Status    host_1    1    1    False
     Should Be True    ${result}    host_1 should be down/hard
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 EFHCU1
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
     [Tags]    engine    external_cmd
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     # We force the check command of host_1 to return 2 as status.
     Config Host Command Status    ${0}    checkh1    2
@@ -121,7 +121,7 @@ EFHCU1
     Clear Db    resources
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     ${result}    Check Host Status    host_1    4    1    True
     Should Be True    ${result}    host_1 should be pending
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -148,12 +148,12 @@ EFHCU1
     ${result}    Check Host Status    host_1    1    1    True
     Should Be True    ${result}    host_1 should be down/hard
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 EFHCU2
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior.
     [Tags]    engine    external_cmd
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     # We force the check command of host_1 to return 2 as status.
     Config Host Command Status    ${0}    checkh1    2
@@ -170,7 +170,7 @@ EFHCU2
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     ${result}    Check Host Status    host_1    4    1    True
     Should Be True    ${result}    host_1 should be pending
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -197,12 +197,12 @@ EFHCU2
     ${result}    Check Host Status    host_1    1    1    True
     Should Be True    ${result}    host_1 should be down/hard
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 EMACROS
     [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in check outputs
     [Tags]    engine    external_cmd    macros
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -216,7 +216,7 @@ EMACROS
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -232,12 +232,12 @@ EMACROS
     Should Be True    ${result}    AdminEmail: titus@bidibule.com - AdminPager: admin not found in log.
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 EMACROS_NOTIF
     [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in notification commands
     [Tags]    engine    external_cmd    macros
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -259,7 +259,7 @@ EMACROS_NOTIF
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -278,4 +278,4 @@ EMACROS_NOTIF
     ...    ResourceFile: /tmp/etc/centreon-engine/resource.cfg - LogFile: /tmp/var/log/centreon-engine/centengine.log - AdminEmail: titus@bidibule.com - AdminPager: admin
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker

@@ -13,7 +13,7 @@ Test Teardown       Stop Engine Broker And Save Logs
 BRRDDM1
     [Documentation]    RRD metrics deletion from metric ids.
     [Tags]    rrd    metric    deletion
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -25,7 +25,7 @@ BRRDDM1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -57,7 +57,7 @@ BRRDDM1
 BRRDWM1
     [Documentation]    We are working with BBDO3. This test checks protobuf metrics and status are sent to cbd RRD.
     [Tags]    rrd    metric    bbdo3    unified_sql
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -69,7 +69,7 @@ BRRDWM1
     Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -82,7 +82,7 @@ BRRDWM1
 BRRDDID1
     [Documentation]    RRD metrics deletion from index ids.
     [Tags]    rrd    metric    deletion
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -93,7 +93,7 @@ BRRDDID1
 
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -129,7 +129,7 @@ BRRDDID1
 BRRDDMID1
     [Documentation]    RRD deletion of non existing metrics and indexes
     [Tags]    rrd    metric    deletion
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -140,7 +140,7 @@ BRRDDMID1
     Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -159,7 +159,7 @@ BRRDDMID1
 BRRDDMU1
     [Documentation]    RRD metric deletion on table metric with unified sql output
     [Tags]    rrd    metric    deletion unified_sql
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -172,7 +172,7 @@ BRRDDMU1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -203,7 +203,7 @@ BRRDDMU1
 BRRDDIDU1
     [Documentation]    RRD metrics deletion from index ids with unified sql output.
     [Tags]    rrd    metric    deletion    unified_sql
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -216,7 +216,7 @@ BRRDDIDU1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -250,7 +250,7 @@ BRRDDIDU1
 BRRDDMIDU1
     [Documentation]    RRD deletion of non existing metrics and indexes
     [Tags]    rrd    metric    deletion    unified_sql
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -262,7 +262,7 @@ BRRDDMIDU1
     Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -281,7 +281,7 @@ BRRDDMIDU1
 BRRDRM1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output.
     [Tags]    rrd    metric    rebuild    grpc
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -293,7 +293,7 @@ BRRDRM1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -338,7 +338,7 @@ BRRDRM1
 BRRDRMU1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output.
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -352,7 +352,7 @@ BRRDRMU1
     Create Metrics    3
 
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -397,7 +397,7 @@ BRRDRMU1
 RRD1
     [Documentation]    RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -411,7 +411,7 @@ RRD1
     Create Metrics    3
 
     ${start}    Get Round Current Date
-    Run Keywords    Start Broker    AND    Ctn Start Engine
+    Run Keywords    Ctn Start Broker    AND    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -432,5 +432,5 @@ RRD1
 *** Keywords ***
 Test Clean
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Save Logs If Failed

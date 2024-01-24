@@ -13,7 +13,7 @@ Test Teardown       Save Logs If Failed
 BERES1
     [Documentation]    store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
@@ -25,7 +25,7 @@ BERES1
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content_not_present}    Create List
     ...    processing host status event (host:
@@ -40,12 +40,12 @@ BERES1
         Should Not Be True    ${result[0]}    There are updates of hosts/services table(s).
     END
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEHS1
     [Documentation]    store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
@@ -56,7 +56,7 @@ BEHS1
     Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    yes
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content_present}    Create List    UPDATE hosts SET checked=    UPDATE services SET checked=
     ${content_not_present}    Create List
@@ -73,12 +73,12 @@ BEHS1
         Should Not Be True    ${result[0]}    There are updates of the resources table.
     END
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEINSTANCESTATUS
     [Documentation]    Instance status to bdd
     [Tags]    broker    engine
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Engine Config Set Value    0    enable_flap_detection    1    True
     Engine Config Set Value    0    enable_notifications    0    True
     Engine Config Set Value    0    execute_host_checks    0    True
@@ -97,7 +97,7 @@ BEINSTANCESTATUS
     Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -136,12 +136,12 @@ BEINSTANCESTATUS
     ${result}    Check Field Db Value    SELECT passive_service_checks FROM instances WHERE instance_id=1    ${0}    3
     Should Be True    ${result}    passive_service_checks not updated.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEINSTANCE
     [Documentation]    Instance to bdd
     [Tags]    broker    engine
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
 
     Config Broker    central
     Config Broker    module    ${1}
@@ -153,7 +153,7 @@ BEINSTANCE
 
     # as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${engine_pid}    Get Engine Pid    e0
     ${result}    Check Field Db Value    SELECT pid FROM instances WHERE instance_id=1    ${engine_pid}    30
@@ -175,7 +175,7 @@ BEINSTANCE
 BE_NOTIF_OVERFLOW
     [Documentation]    bbdo 2.0 notification number =40000. make an overflow => notification_number null in db
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker    module
     Broker Config Add Item    module0    bbdo_version    2.0.0
@@ -186,7 +186,7 @@ BE_NOTIF_OVERFLOW
 
     Clear Retention
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${start}    Get Current Date
@@ -207,12 +207,12 @@ BE_NOTIF_OVERFLOW
     Should Be True    ${output[0][0]} == None    notification_number is not null
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BE_TIME_NULL_SERVICE_RESOURCE
     [Documentation]    With BBDO 3, notification_interval time must be set to NULL on 0 in services, hosts and resources tables.
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
@@ -225,7 +225,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
 
     Clear Retention
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     FOR    ${index}    IN RANGE    300
@@ -241,12 +241,12 @@ BE_TIME_NULL_SERVICE_RESOURCE
     ...    ${output}
     ...    ((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     [Documentation]    default notification_interval must be set to NULL in services, hosts and resources tables.
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
@@ -259,7 +259,7 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
 
     Clear Retention
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     FOR    ${index}    IN RANGE    300
@@ -271,4 +271,4 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     END
     Should Be Equal As Strings    ${output}    ((0.0, 0.0),)
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker

@@ -19,7 +19,7 @@ Test Teardown       Save Logs If Failed
 BECT1
     [Documentation]    Broker/Engine communication with anonymous TLS between central and poller
     [Tags]    broker    engine    tls    tcp
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     FOR    ${comp1}    IN    @{choices}
         FOR    ${comp2}    IN    @{choices}
@@ -31,11 +31,11 @@ BECT1
             Broker Config Log    central    bbdo    info
             Broker Config Log    module0    bbdo    info
             ${start}    Get Current Date
-            Start Broker
+            Ctn Start Broker
             Ctn Start Engine
             ${result}    Check Connections
             Should Be True    ${result}    Engine and Broker not connected
-            Kindly Stop Broker
+            Ctn Kindly Ctn Stop Broker
             Stop Engine
             ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
             ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
@@ -60,7 +60,7 @@ BECT1
 BECT2
     [Documentation]    Broker/Engine communication with TLS between central and poller with key/cert
     [Tags]    broker    engine    tls    tcp
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -112,11 +112,11 @@ BECT2
     Broker Config Input Set    central    central-broker-master-input    tls    yes
     Broker Config Output Set    module0    central-module-master-output    tls    yes
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
@@ -130,7 +130,7 @@ BECT2
 BECT3
     [Documentation]    Broker/Engine communication with anonymous TLS and ca certificate
     [Tags]    broker    engine    tls    tcp
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -157,11 +157,11 @@ BECT3
     Broker Config Output Set    module0    central-module-master-output    tls    yes
     # We get the current date just before starting broker
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous server credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous client credentials
@@ -177,7 +177,7 @@ BECT3
 BECT4
     [Documentation]    Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
     [Tags]    broker    engine    tls    tcp
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -241,11 +241,11 @@ BECT4
     ...    ${EtcRoot}/centreon-broker/client.crt
     # We get the current date just before starting broker
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
@@ -261,7 +261,7 @@ BECT4
 BECT_GRPC1
     [Documentation]    Broker/Engine communication with GRPC and with anonymous TLS between central and poller
     [Tags]    broker    engine    tls    tcp
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     FOR    ${comp1}    IN    @{choices}
         FOR    ${comp2}    IN    @{choices}
@@ -277,11 +277,11 @@ BECT_GRPC1
             Change Broker Tcp Output To Grpc    module0
             Change Broker Tcp Input To Grpc    central
             ${start}    Get Current Date
-            Start Broker
+            Ctn Start Broker
             Ctn Start Engine
             ${result}    Check Connections
             Should Be True    ${result}    Engine and Broker not connected
-            Kindly Stop Broker
+            Ctn Kindly Ctn Stop Broker
             Stop Engine
             ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
             ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
@@ -306,7 +306,7 @@ BECT_GRPC1
 BECT_GRPC2
     [Documentation]    Broker/Engine communication with TLS between central and poller with key/cert
     [Tags]    broker    engine    tls    tcp
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -359,11 +359,11 @@ BECT_GRPC2
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
@@ -379,7 +379,7 @@ BECT_GRPC2
 BECT_GRPC3
     [Documentation]    Broker/Engine communication with anonymous TLS and ca certificate
     [Tags]    broker    engine    tls    tcp
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -408,11 +408,11 @@ BECT_GRPC3
     Broker Config Output Set    module0    central-module-master-output    tls    yes
     # We get the current date just before starting broker
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous server credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous client credentials
@@ -428,7 +428,7 @@ BECT_GRPC3
 BECT_GRPC4
     [Documentation]    Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
     [Tags]    broker    engine    tls    tcp
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -494,11 +494,11 @@ BECT_GRPC4
     ...    ${EtcRoot}/centreon-broker/client.crt
     # We get the current date just before starting broker
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials

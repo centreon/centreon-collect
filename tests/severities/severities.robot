@@ -14,9 +14,9 @@ BESEV1
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
     [Tags]    broker    engine    protobuf    bbdo    severities
     # Clear Db    severities
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Create Severities File    ${0}    ${20}
-    Config Engine Add Cfg File    ${0}    severities.cfg
+    Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
@@ -24,22 +24,22 @@ BESEV1
     Broker Config Log    central    sql    debug
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BESEV2
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
     [Tags]    broker    engine    protobuf    bbdo    severities
     # Clear Db    severities
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Create Severities File    ${0}    ${20}
-    Config Engine Add Cfg File    ${0}    severities.cfg
+    Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
@@ -49,21 +49,21 @@ BESEV2
     ${start}    Get Current Date
     Ctn Start Engine
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     ${result}    Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEUSEV1
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
     [Tags]    broker    engine    protobuf    bbdo    severities
     # Clear Db    severities
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Create Severities File    ${0}    ${20}
-    Config Engine Add Cfg File    ${0}    severities.cfg
+    Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
@@ -73,22 +73,22 @@ BEUSEV1
     Broker Config Log    central    sql    debug
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEUSEV2
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
     [Tags]    broker    engine    protobuf    bbdo    severities
     # Clear Db    severities
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Create Severities File    ${0}    ${20}
-    Config Engine Add Cfg File    ${0}    severities.cfg
+    Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
@@ -100,21 +100,21 @@ BEUSEV2
     ${start}    Get Current Date
     Ctn Start Engine
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     ${result}    Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEUSEV3
     [Documentation]    Four services have a severity added. Then we remove the severity from service 1. Then we change severity 11 to severity7 for service 3.
     [Tags]    broker    engine    protobuf    bbdo    severities
     # Clear Db    severities
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Create Severities File    ${0}    ${20}
-    Config Engine Add Cfg File    ${0}    severities.cfg
+    Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Add Severity To Services    0    11    [1, 2, 3, 4]
     Config Broker    central
     Config Broker    rrd
@@ -126,7 +126,7 @@ BEUSEV3
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     Sleep    2s
 
     ${result}    Check Service Severity With Timeout    1    1    11    60
@@ -136,23 +136,23 @@ BEUSEV3
     Add Severity To Services    0    11    [2, 4]
     Add Severity To Services    0    7    [3]
     Reload Engine
-    Reload Broker
+    Ctn Reload Broker
     ${result}    Check Service Severity With Timeout    1    3    7    60
     Should Be True    ${result}    Service (1, 3) should have severity_id=7
     ${result}    Check Service Severity With Timeout    1    1    None    60
     Should Be True    ${result}    Service (1, 1) should have no severity
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEUSEV4
     [Documentation]    Seven services are configured with a severity on two pollers. Then we remove severities from the first and second services of the first poller but only the severity from the first service of the second poller. Then only severities no more used should be removed from the database.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    Config Engine    ${2}
+    Ctn Config Engine    ${2}
     Create Severities File    ${0}    ${20}
     Create Severities File    ${1}    ${20}
-    Config Engine Add Cfg File    ${0}    severities.cfg
-    Config Engine Add Cfg File    ${1}    severities.cfg
+    Ctn Config Engine Add Cfg File    ${0}    severities.cfg
+    Ctn Config Engine Add Cfg File    ${1}    severities.cfg
     Engine Config Set Value    ${0}    log_level_config    debug
     Engine Config Set Value    ${1}    log_level_config    debug
     Add Severity To Services    0    19    [2, 4]
@@ -169,7 +169,7 @@ BEUSEV4
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
     ${result}    Check Service Severity With Timeout    1    2    19    60
@@ -198,7 +198,7 @@ BEUSEV4
     Create Severities File    ${1}    ${18}
     Add Severity To Services    1    17    [503]
     Reload Engine
-    Reload Broker
+    Ctn Reload Broker
     Sleep    3s
     ${result}    Check Service Severity With Timeout    26    503    17    60
     Should Be True    ${result}    Second step: Service (26, 503) should have severity_id=17
@@ -213,21 +213,21 @@ BEUSEV4
     Should Be True    ${result}    Second step: Service (1, 5) should have severity_id=17
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BETUSEV1
     [Documentation]    Services have severities provided by templates.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    Config Engine    ${2}
+    Ctn Config Engine    ${2}
     Create Severities File    ${0}    ${20}
     Create Severities File    ${1}    ${20}
     Create Template File    ${0}    service    severity    [1, 3]
     Create Template File    ${1}    service    severity    [3, 5]
 
-    Config Engine Add Cfg File    ${0}    severities.cfg
-    Config Engine Add Cfg File    ${1}    severities.cfg
-    Config Engine Add Cfg File    ${0}    serviceTemplates.cfg
-    Config Engine Add Cfg File    ${1}    serviceTemplates.cfg
+    Ctn Config Engine Add Cfg File    ${0}    severities.cfg
+    Ctn Config Engine Add Cfg File    ${1}    severities.cfg
+    Ctn Config Engine Add Cfg File    ${0}    serviceTemplates.cfg
+    Ctn Config Engine Add Cfg File    ${1}    serviceTemplates.cfg
     Engine Config Set Value    ${0}    log_level_config    debug
     Engine Config Set Value    ${1}    log_level_config    debug
     Add Template To Services    0    service_template_1    [1, 2, 3, 4]
@@ -244,7 +244,7 @@ BETUSEV1
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
     ${result}    Check Service Severity With Timeout    1    2    1    60
@@ -263,4 +263,4 @@ BETUSEV1
     Should Be True    ${result}    First step: Service (26, 503) should have severity_id=5
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker

@@ -24,7 +24,7 @@ BABOO
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
     Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
     Add Bam Config To Engine
@@ -43,7 +43,7 @@ BABOO
     ...    True
     ...    100
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -80,7 +80,7 @@ BABOO
         Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
     END
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker
 
 BABOOOR
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
@@ -96,7 +96,7 @@ BABOOOR
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
     Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
     Add Bam Config To Engine
@@ -111,7 +111,7 @@ BABOOOR
     ...    True
     ...    100
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -127,7 +127,7 @@ BABOOOR
     Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker
 
 BABOOAND
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if both of its two services are ok is created. When one condition is false, the and operator returns false as a result even if the other child is unknown.
@@ -143,7 +143,7 @@ BABOOAND
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
     Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
     Add Bam Config To Engine
@@ -158,7 +158,7 @@ BABOOAND
     ...    False
     ...    100
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -174,7 +174,7 @@ BABOOAND
     Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker
 
 BABOOORREL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if one of its two services is ok is created. One of the two underlying services must change of state to change the ba state. For this purpose, we change the service state and reload cbd. So the rule is something like "False OR True" which is equal to True. And to pass from True to False, we change the second service.
@@ -190,7 +190,7 @@ BABOOORREL
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
     Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
     Add Bam Config To Engine
@@ -206,7 +206,7 @@ BABOOORREL
     ...    False
     ...    100
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -237,7 +237,7 @@ BABOOORREL
     ...    {host_16 service_302} {IS} {OK} {OR} {host_16 service_304} {IS} {OK}
 
     Reload Engine
-    Reload Broker
+    Ctn Reload Broker
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -256,7 +256,7 @@ BABOOORREL
     ...    {host_16 service_302} {IS} {OK} {OR} {host_16 service_303} {IS} {OK}
 
     Reload Engine
-    Reload Broker
+    Ctn Reload Broker
 
     Process Service Result Hard    host_16    service_302    2    output critical for service_302
     Process Service Result Hard    host_16    service_303    2    output critical for service_303
@@ -269,7 +269,7 @@ BABOOORREL
     Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker
 
 BABOOCOMPL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
@@ -285,7 +285,7 @@ BABOOCOMPL
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
     Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
     Add Bam Config To Engine
@@ -302,7 +302,7 @@ BABOOCOMPL
     ...    False
     ...    100
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -324,7 +324,7 @@ BABOOCOMPL
     Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Ctn Stop Broker
 
 
 *** Keywords ***

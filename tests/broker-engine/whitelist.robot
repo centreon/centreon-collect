@@ -13,7 +13,7 @@ Test Teardown       Stop Engine Broker And Save Logs    only_central=${True}
 Whitelist_No_Whitelist_Directory
     [Documentation]    log if /etc/centreon-engine-whitelist doesn't exist
     [Tags]    whitelist    engine
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    module    ${1}
     Remove Directory    /etc/centreon-engine-whitelist    recursive=${True}
     ${start}    Get Current Date
@@ -26,7 +26,7 @@ Whitelist_No_Whitelist_Directory
 Whitelist_Empty_Directory
     [Documentation]    log if /etc/centreon-engine-whitelist if empty
     [Tags]    whitelist    engine
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    module    ${1}
     Empty Directory    /etc/centreon-engine-whitelist
     ${start}    Get Current Date
@@ -39,7 +39,7 @@ Whitelist_Empty_Directory
 Whitelist_Directory_Rights
     [Documentation]    log if /etc/centreon-engine-whitelist has not mandatory rights or owner
     [Tags]    whitelist    engine
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    module    ${1}
     Run    chown root:root /etc/centreon-engine-whitelist
     ${start}    Get Current Date
@@ -68,7 +68,7 @@ Whitelist_Directory_Rights
 Whitelist_Host
     [Documentation]    test allowed and forbidden commands for hosts
     [Tags]    whitelist    engine
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Empty Directory    /etc/centreon-engine-whitelist
     Config Broker    central
     Config Broker    module    ${1}
@@ -78,7 +78,7 @@ Whitelist_Host
     Engine Config Replace Value In Hosts    0    host_1    check_command    command_1
 
     ${start}    Get Current Date
-    Start Broker    only_central=${True}
+    Ctn Start Broker    only_central=${True}
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -124,7 +124,7 @@ Whitelist_Host
 Whitelist_Service
     [Documentation]    test allowed and forbidden commands for services
     [Tags]    whitelist    engine
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Empty Directory    /etc/centreon-engine-whitelist
     Config Broker    central
     Config Broker    module    ${1}
@@ -135,7 +135,7 @@ Whitelist_Service
     Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/check.pl 0 $HOSTADDRESS$
 
     ${start}    Get Current Date
-    Start Broker    only_central=${True}
+    Ctn Start Broker    only_central=${True}
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -181,7 +181,7 @@ Whitelist_Service
 Whitelist_Perl_Connector
     [Documentation]    test allowed and forbidden commands for services
     [Tags]    whitelist    engine    connector
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Empty Directory    /etc/centreon-engine-whitelist
     Config Broker    central
     Config Broker    module    ${1}
@@ -196,7 +196,7 @@ Whitelist_Perl_Connector
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
 
     ${start}    Get Current Date
-    Start Broker    only_central=${True}
+    Ctn Start Broker    only_central=${True}
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

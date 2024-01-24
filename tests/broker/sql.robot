@@ -19,13 +19,13 @@ BDB1
     Broker Config Output Set    central    central-broker-master-sql    db_name    centreon
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         ${content}    Create List    storage and sql streams do not have the same database configuration
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
         Should Be True
         ...    ${result}
         ...    A message should tell that sql and storage outputs do not have the same configuration.
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BDB2
@@ -38,13 +38,13 @@ BDB2
     Broker Config Output Set    central    central-broker-master-perfdata    db_name    centreon
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         ${content}    Create List    storage and sql streams do not have the same database configuration
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True
         ...    ${result}
         ...    A log telling the impossibility to establish a connection between the storage stream and the database should appear.
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BDB3
@@ -56,11 +56,11 @@ BDB3
     Broker Config Output Set    central    central-broker-master-sql    db_name    centreon1
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         ${content}    Create List    global error: mysql_connection: error while starting connection
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
         Should Be True    ${result}    No message about the database not connected.
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BDB4
@@ -73,13 +73,13 @@ BDB4
     Broker Config Output Set    central    central-broker-master-sql    db_name    centreon1
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         ${content}    Create List    error while starting connection
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True
         ...    ${result}
         ...    No message about the fact that cbd is not correctly connected to the database.
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BDB5
@@ -92,11 +92,11 @@ BDB5
     Broker Config Output Set    central    central-broker-master-sql    db_host    1.2.3.4
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         ${content}    Create List    error while starting connection
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    50
         Should Be True    ${result}    No message about the disconnection between cbd and the database
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BDB6
@@ -108,11 +108,11 @@ BDB6
     Broker Config Output Set    central    central-broker-master-sql    db_host    1.2.3.4
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         ${content}    Create List    error while starting connection
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True    ${result}    No message about the disconnection between cbd and the database
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BDB7
@@ -124,11 +124,11 @@ BDB7
     Broker Config Output Set    central    central-broker-master-sql    db_password    centreon1
     Broker Config Output Set    central    central-broker-master-perfdata    db_password    centreon1
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    mysql_connection: error while starting connection
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
     Should Be True    ${result}
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BDB8
     [Documentation]    access denied when database user password is wrong for perfdata/sql
@@ -139,11 +139,11 @@ BDB8
     Broker Config Output Set    central    central-broker-master-perfdata    db_password    centreon1
     Broker Config Output Set    central    central-broker-master-sql    db_password    centreon1
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    mysql_connection: error while starting connection
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
     Should Be True    ${result}
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BDB9
     [Documentation]    access denied when database user password is wrong for sql
@@ -153,11 +153,11 @@ BDB9
     Config Broker    module
     Broker Config Output Set    central    central-broker-master-sql    db_password    centreon1
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    mysql_connection: error while starting connection
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
     Should Be True    ${result}
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BDB10
     [Documentation]    connection should be established when user password is good for sql/perfdata
@@ -167,11 +167,11 @@ BDB10
     Config Broker    module
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    sql stream initialization    storage stream initialization
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEDB2
     [Documentation]    start broker/engine and then start MariaDB => connection is established
@@ -179,10 +179,10 @@ BEDB2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     ${start}    Get Current Date
     Stop Mysql
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    error while starting connection
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
@@ -190,7 +190,7 @@ BEDB2
     Start Mysql
     ${result}    Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    60
     Should Be True    ${result}    Message about the connection to the database is missing.
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Stop Engine
 
 BEDB3
@@ -199,10 +199,10 @@ BEDB3
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     ${start}    Get Current Date
     Start Mysql
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     FOR    ${t}    IN RANGE    60
         ${result}    Check Sql Connections Count With Grpc    51001    ${3}
@@ -222,7 +222,7 @@ BEDB3
         IF    ${result}    BREAK
     END
     Should Be True    ${result}    gRPC does not return 3 connections as expected
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Stop Engine
 
 BEDB4
@@ -231,10 +231,10 @@ BEDB4
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     ${start}    Get Current Date
     Stop Mysql
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     FOR    ${t}    IN RANGE    60
         ${result}    Check All Sql connections Down With Grpc    51001
@@ -248,7 +248,7 @@ BEDB4
         IF    ${result}    BREAK
     END
     Should Be True    ${result}    gRPC does not return 3 connections as expected
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
     Stop Engine
 
 BDBM1
@@ -261,10 +261,10 @@ BDBM1
         Broker Config Output Set    central    central-broker-master-perfdata    connections_count    ${c}
         Config Broker    rrd
         Config Broker    module
-        Config Engine    ${1}
+        Ctn Config Engine    ${1}
         ${start}    Get Round Current Date
         Stop Mysql
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    error while starting connection
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
@@ -274,7 +274,7 @@ BDBM1
         Should Be True
         ...    ${result} >= ${c} + 1
         ...    The stats file should contain at least ${c} + 1 connections to the database.
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
         Stop Engine
     END
 
@@ -290,11 +290,11 @@ BDBU1
     Broker Config Flush Log    central    0
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         ${content}    Create List    Table 'centreon\..*' doesn't exist
         ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
         Should Be True    ${result}    A message about some missing tables in 'centreon' database should appear
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BDBU3
@@ -307,11 +307,11 @@ BDBU3
     Broker Config Output Set    central    central-broker-unified-sql    db_name    centreon1
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         ${content}    Create List    global error: mysql_connection: error while starting connection
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
         Should Be True    ${result}
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BDBU5
@@ -324,11 +324,11 @@ BDBU5
     Broker Config Output Set    central    central-broker-unified-sql    db_host    1.2.3.4
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         ${content}    Create List    error while starting connection
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    50
         Should Be True    ${result}    Cannot find the message telling cbd is not connected to the database.
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BDBU7
@@ -340,11 +340,11 @@ BDBU7
     Config Broker    module
     Broker Config Output Set    central    central-broker-unified-sql    db_password    centreon1
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    mysql_connection: error while starting connection
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
     Should Be True    ${result}    Error concerning cbd not connected to the database is missing.
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BDBU10
     [Documentation]    Connection should be established when user password is good for unified sql
@@ -356,11 +356,11 @@ BDBU10
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    sql    debug
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    mysql_connection 0x[0-9a-f]* : commit
     ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result[0]}    Log concerning a commit (connection ok) is missing.
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BDBMU1
     [Documentation]    start broker/engine with unified sql and then start MariaDB => connection is established
@@ -373,10 +373,10 @@ BDBMU1
         Broker Config Output Set    central    central-broker-unified-sql    retry_interval    5
         Config Broker    rrd
         Config Broker    module
-        Config Engine    ${1}
+        Ctn Config Engine    ${1}
         ${start}    Get Current Date
         Stop Mysql
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    mysql_connection: error while starting connection
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
@@ -386,6 +386,6 @@ BDBMU1
         Should Be True    ${result}    No stats on mysql manager found
         ${result}    Get Broker Stats Size    central    mysql manager    ${60}
         Should Be True    ${result} >= ${c} + 1    Broker mysql manager stats do not show the ${c} connections
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
         Stop Engine
     END

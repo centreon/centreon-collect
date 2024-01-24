@@ -13,7 +13,7 @@ Test Teardown       Stop Engine Broker And Save Logs
 BRRDDMDB1
     [Documentation]    RRD metrics deletion from metric ids with a query in centreon_storage.
     [Tags]    rrd    metric    deletion    unified_sql    mysql
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
@@ -27,7 +27,7 @@ BRRDDMDB1
     Broker Config Flush Log    rrd    0
     Create Metrics    3
     ${start}    Get Current Date    exclude_millis=True
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -38,7 +38,7 @@ BRRDDMDB1
 
     ${empty}    Create List
     Remove Graphs From Db    ${empty}    ${metrics}
-    Reload Broker
+    Ctn Reload Broker
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics ${metrics_str} erased from database
 
@@ -52,7 +52,7 @@ BRRDDMDB1
 BRRDDIDDB1
     [Documentation]    RRD metrics deletion from index ids with a query in centreon_storage.
     [Tags]    rrd    metric    deletion    unified_sql
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
@@ -66,7 +66,7 @@ BRRDDIDDB1
 
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -80,7 +80,7 @@ BRRDDIDDB1
 
     ${empty}    Create List
     Remove Graphs From Db    ${indexes}    ${empty}
-    Reload Broker
+    Ctn Reload Broker
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes ${indexes_str} erased from database
 
@@ -98,7 +98,7 @@ BRRDDIDDB1
 BRRDRBDB1
     [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql
     [Tags]    rrd    metric    rebuild    unified_sql
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
@@ -110,7 +110,7 @@ BRRDRBDB1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -121,7 +121,7 @@ BRRDRBDB1
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
-    Reload Broker
+    Ctn Reload Broker
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
@@ -145,7 +145,7 @@ BRRDRBDB1
 BRRDRBUDB1
     [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
@@ -158,7 +158,7 @@ BRRDRBUDB1
     Create Metrics    3
 
     ${start}    Get Current Date    exclude_millis=True
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -166,7 +166,7 @@ BRRDRBUDB1
     # We get 3 indexes to rebuild
     ${index}    Get Indexes To Rebuild    3
     Rebuild Rrd Graphs From Db    ${index}
-    Reload Broker
+    Ctn Reload Broker
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
 
@@ -192,7 +192,7 @@ BRRDRBUDB1
 BRRDUPLICATE
     [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql with duplicate rows in database
     [Tags]    rrd    metric    rebuild    unified_sql
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
@@ -204,7 +204,7 @@ BRRDUPLICATE
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -216,7 +216,7 @@ BRRDUPLICATE
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
-    Reload Broker
+    Ctn Reload Broker
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45

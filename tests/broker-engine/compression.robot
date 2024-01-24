@@ -18,7 +18,7 @@ Test Teardown       Save Logs If Failed
 BECC1
     [Documentation]    Broker/Engine communication with compression between central and poller
     [Tags]    broker    engine    compression    tcp
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Config Broker    rrd
     FOR    ${comp1}    IN    @{choices}
         FOR    ${comp2}    IN    @{choices}
@@ -30,11 +30,11 @@ BECC1
             Broker Config Log    central    bbdo    info
             Broker Config Log    module0    bbdo    info
             ${start}    Get Current Date
-            Start Broker
+            Ctn Start Broker
             Ctn Start Engine
             ${result}    Check Connections
             Should Be True    ${result}    Engine and Broker not connected
-            Kindly Stop Broker
+            Ctn Kindly Ctn Stop Broker
             Stop Engine
             ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
             ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'

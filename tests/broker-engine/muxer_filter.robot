@@ -13,7 +13,7 @@ Test Teardown       Save Logs If Failed
 STUPID_FILTER
     [Documentation]    Unified SQL is configured with only the bbdo category as filter. An error is raised by broker and broker should run correctly.
     [Tags]    broker    engine    filter
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
     Config Broker    rrd
@@ -23,7 +23,7 @@ STUPID_FILTER
     Broker Config Output Set Json    central    central-broker-unified-sql    filters    {"category": ["bbdo"]}
 
     ${start}    Get Current Date
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     ${content}    Create List
@@ -32,14 +32,14 @@ STUPID_FILTER
     Should Be True    ${result}    A message telling bad filter should be available.
 
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Ctn Stop Broker    True
 
 STORAGE_ON_LUA
     [Documentation]    The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
     [Tags]    broker    engine    filter
     Remove File    /tmp/all_lua_event.log
 
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
     Config Broker    rrd
@@ -49,7 +49,7 @@ STORAGE_ON_LUA
     Broker Config Add Lua Output    central    test-filter    ${SCRIPTS}test-log-all-event.lua
     Broker Config Output Set Json    central    test-filter    filters    {"category": [ "storage"]}
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log
@@ -62,14 +62,14 @@ STORAGE_ON_LUA
     Should Be Empty    ${grep_res}    Events of category different than 'storage' found.
 
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Ctn Stop Broker    True
 
 FILTER_ON_LUA_EVENT
     [Documentation]    stream connector with a bad configured filter generate a log error message
     [Tags]    broker    engine    filter
     Remove File    /tmp/all_lua_event.log
 
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
     Config Broker    rrd
@@ -88,7 +88,7 @@ FILTER_ON_LUA_EVENT
     ...    filters
     ...    {"category": [ "storage:pb_metric_mapping"]}
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log
@@ -108,7 +108,7 @@ FILTER_ON_LUA_EVENT
     END
 
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Ctn Stop Broker    True
 
 BAM_STREAM_FILTER
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. we watch its events
@@ -120,7 +120,7 @@ BAM_STREAM_FILTER
     Broker Config Log    central    core    trace
     Broker Config Log    central    config    trace
     Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
     Add Bam Config To Engine
@@ -132,7 +132,7 @@ BAM_STREAM_FILTER
     ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    2
-    Start Broker    True
+    Ctn Start Broker    True
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -201,7 +201,7 @@ BAM_STREAM_FILTER
     Should Not Be Empty    ${grep_res}    no rejected neb event
 
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Ctn Stop Broker    True
 
 UNIFIED_SQL_FILTER
     [Documentation]    With bbdo version 3.0.1, we watch events written or rejected in unified_sql
@@ -212,10 +212,10 @@ UNIFIED_SQL_FILTER
     Config Broker    rrd
     Broker Config Log    central    core    trace
     Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     ${start}    Get Current Date
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -237,7 +237,7 @@ UNIFIED_SQL_FILTER
     END
 
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Ctn Stop Broker    True
 
 CBD_RELOAD_AND_FILTERS
     [Documentation]    We start engine/broker with a classical configuration. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
@@ -250,11 +250,11 @@ CBD_RELOAD_AND_FILTERS
     Broker Config Log    central    config    trace
     Broker Config Log    rrd    rrd    debug
     Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Log To Console    First configuration: all events are sent to rrd.
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -279,7 +279,7 @@ CBD_RELOAD_AND_FILTERS
     Log To Console    Second configuration: only storage events are sent.
     ${start}    Get Current Date
     Restart Engine
-    Reload Broker
+    Ctn Reload Broker
     #wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
@@ -309,7 +309,7 @@ CBD_RELOAD_AND_FILTERS
     Broker Config Output Remove    central    centreon-broker-master-rrd    filters
     ${start}    Get Current Date
     Restart Engine
-    Reload Broker
+    Ctn Reload Broker
     # wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
@@ -337,7 +337,7 @@ CBD_RELOAD_AND_FILTERS
     ...    Some events are rejected by the rrd output whereas all categories are enabled.
 
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Ctn Stop Broker    True
 
 CBD_RELOAD_AND_FILTERS_WITH_OPR
     [Documentation]    We start engine/broker with an almost classical configuration, just the connection between cbd central and cbd rrd is reversed with one peer retention. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
@@ -353,11 +353,11 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Broker Config Log    central    config    trace
     Broker Config Log    rrd    rrd    debug
     Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Log To Console    First configuration: all events are sent to rrd.
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -382,7 +382,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Log To Console    Second configuration: only storage events are sent.
     ${start}    Get Current Date
     Restart Engine
-    Reload Broker
+    Ctn Reload Broker
     #wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
@@ -412,7 +412,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Broker Config Output Remove    central    centreon-broker-master-rrd    filters
     ${start}    Get Current Date
     Restart Engine
-    Reload Broker
+    Ctn Reload Broker
     #wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
@@ -439,7 +439,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     ...    Some events are rejected by the rrd output whereas all categories are enabled.
 
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Ctn Stop Broker    True
 
 SEVERAL_FILTERS_ON_LUA_EVENT
     [Documentation]    Two stream connectors with different filters are configured.
@@ -447,7 +447,7 @@ SEVERAL_FILTERS_ON_LUA_EVENT
     Remove File    /tmp/all_lua_event.log
     Remove File    /tmp/all_lua_event-bis.log
 
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
     Config Broker    rrd
@@ -476,7 +476,7 @@ SEVERAL_FILTERS_ON_LUA_EVENT
     ...    filters
     ...    {"category": [ "neb:ServiceStatus"]}
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log
@@ -511,4 +511,4 @@ SEVERAL_FILTERS_ON_LUA_EVENT
         ...    All the lines in all_lua_event-bis.log should contain "_type":65565
     END
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Ctn Stop Broker    True

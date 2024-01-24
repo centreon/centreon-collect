@@ -70,7 +70,7 @@ Clear Broker Logs
     Remove Directory    ${BROKER_LOG}    Recursive=True
     Create Directory    ${BROKER_LOG}
 
-Start Broker
+Ctn Start Broker
     [Arguments]    ${only_central}=False
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
     IF    not ${only_central}
@@ -134,7 +134,7 @@ Stop Processes
     Kill Engine
 
 Ctn Start Engine
-    ${count}    Get Engines Count
+    ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${conf}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg
@@ -166,7 +166,7 @@ Stop Custom Engine
     ...    Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
 Stop Engine
-    ${count}    Get Engines Count
+    ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         Send Signal To Process    SIGTERM    ${alias}
@@ -210,14 +210,14 @@ Get Engine Pid
     RETURN    ${pid}
 
 Reload Engine
-    ${count}    Get Engines Count
+    ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         Send Signal To Process    SIGHUP    ${alias}
     END
 
 Check Connections
-    ${count}    Get Engines Count
+    ${count}    Ctn Get Engines Count
     ${pid1}    Get Process Id    b1
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}

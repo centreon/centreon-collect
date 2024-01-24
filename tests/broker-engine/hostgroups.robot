@@ -13,7 +13,7 @@ Test Teardown       Stop Engine Broker And Save Logs
 EBNHG1
     [Documentation]    New host group with several pollers and connections to DB
     [Tags]    broker    engine    hostgroup
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
@@ -22,12 +22,12 @@ EBNHG1
     Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
-    Reload Broker
+    Ctn Reload Broker
     Reload Engine
 
     ${content}    Create List
@@ -41,7 +41,7 @@ EBNHG1
 EBNHGU1
     [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    hostgroup    unified_sql
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
@@ -50,12 +50,12 @@ EBNHGU1
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
-    Reload Broker
+    Ctn Reload Broker
     Reload Engine
 
     ${content}    Create List
@@ -69,7 +69,7 @@ EBNHGU1
 EBNHGU2
     [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    hostgroup    unified_sql
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
@@ -79,12 +79,12 @@ EBNHGU2
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Config BBDO3    3
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
-    Reload Broker
+    Ctn Reload Broker
     Reload Engine
 
     ${content}    Create List
@@ -97,7 +97,7 @@ EBNHGU2
 EBNHGU3
     [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    hostgroup    unified_sql
-    Config Engine    ${4}
+    Ctn Config Engine    ${4}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${4}
@@ -109,7 +109,7 @@ EBNHGU3
     Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
     Add Host Group    ${1}    ${1}    ["host_21", "host_22", "host_23"]
@@ -117,16 +117,16 @@ EBNHGU3
     Add Host Group    ${3}    ${1}    ["host_41", "host_42", "host_43"]
 
     Sleep    3s
-    Reload Broker
+    Ctn Reload Broker
     Reload Engine
 
     ${result}    Check Number Of Relations Between Hostgroup And Hosts    1    12    30
     Should Be True    ${result}    We should have 12 hosts members of host 1.
 
-    Config Engine Remove Cfg File    ${0}    hostgroups.cfg
+    Ctn Config Engine Remove Cfg File    ${0}    hostgroups.cfg
 
     Sleep    3s
-    Reload Broker
+    Ctn Reload Broker
     Reload Engine
     ${result}    Check Number Of Relations Between Hostgroup And Hosts    1    9    30
     Should Be True    ${result}    We should have 12 hosts members of host 1.
@@ -134,7 +134,7 @@ EBNHGU3
 EBNHG4
     [Documentation]    New host group with several pollers and connections to DB with broker and rename this hostgroup
     [Tags]    broker    engine    hostgroup
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
@@ -143,12 +143,12 @@ EBNHG4
     Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
-    Reload Broker
+    Ctn Reload Broker
     Reload Engine
 
     ${content}    Create List
@@ -163,7 +163,7 @@ EBNHG4
     Sleep    10s
     ${start}    Get Current Date
     Log To Console    Step-1
-    Reload Broker
+    Ctn Reload Broker
     Log To Console    Step0
     Reload Engine
 
@@ -182,7 +182,7 @@ EBNHG4
 EBNHGU4_${test_label}
     [Documentation]    New host group with several pollers and connections to DB with broker and rename this hostgroup
     [Tags]    broker    engine    hostgroup
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
@@ -201,12 +201,12 @@ EBNHGU4_${test_label}
     IF    ${Use_BBDO3}    Config BBDO3    ${3}
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
-    Reload Broker
+    Ctn Reload Broker
     Reload Engine
 
     ${content}    Create List
@@ -244,7 +244,7 @@ EBNHGU4_${test_label}
 
     Sleep    10s
     Reload Engine
-    Reload Broker
+    Ctn Reload Broker
 
     Log To Console    hostgroup_1 renamed to hostgroup_test
 
@@ -271,9 +271,9 @@ EBNHGU4_${test_label}
     Should Be True    len("""${grep_result}""") > 10    hostgroup_1 not found in /tmp/lua-engine.log
 
     # remove hostgroup
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Reload Engine
-    Reload Broker
+    Ctn Reload Broker
 
     Log To Console    remove hostgroup
 

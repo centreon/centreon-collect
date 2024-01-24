@@ -13,9 +13,9 @@ BEUHSEV1
     [Documentation]    Four hosts have a severity added. Then we remove the severity from host 1. Then we change severity 10 to severity8 for host 3.
     [Tags]    broker    engine    protobuf    bbdo    severities
     # Clear Db    severities
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Create Severities File    ${0}    ${20}
-    Config Engine Add Cfg File    ${0}    severities.cfg
+    Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Add Severity To Hosts    0    10    [1, 2, 3, 4]
     Config Broker    central
     Config Broker    rrd
@@ -27,7 +27,7 @@ BEUHSEV1
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     Sleep    2s
 
     ${result}    Check Host Severity With Timeout    1    10    60
@@ -37,23 +37,23 @@ BEUHSEV1
     Add Severity To Hosts    0    10    [2, 4]
     Add Severity To Hosts    0    8    [3]
     Reload Engine
-    Reload Broker
+    Ctn Reload Broker
     ${result}    Check Host Severity With Timeout    3    8    60
     Should Be True    ${result}    Host 3 should have severity_id=8
     ${result}    Check Host Severity With Timeout    1    None    60
     Should Be True    ${result}    Host 1 should have no severity
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEUHSEV2
     [Documentation]    Seven hosts are configured with a severity on two pollers. Then we remove severities from the first and second hosts of the first poller but only the severity from the first host of the second poller.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    Config Engine    ${2}
+    Ctn Config Engine    ${2}
     Create Severities File    ${0}    ${20}
     Create Severities File    ${1}    ${20}
-    Config Engine Add Cfg File    ${0}    severities.cfg
-    Config Engine Add Cfg File    ${1}    severities.cfg
+    Ctn Config Engine Add Cfg File    ${0}    severities.cfg
+    Ctn Config Engine Add Cfg File    ${1}    severities.cfg
     Engine Config Set Value    ${0}    log_level_config    debug
     Engine Config Set Value    ${1}    log_level_config    debug
     Add Severity To Hosts    0    18    [2, 4]
@@ -71,7 +71,7 @@ BEUHSEV2
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
     ${result}    Check Host Severity With Timeout    2    18    60
@@ -100,7 +100,7 @@ BEUHSEV2
     Create Severities File    ${1}    ${18}
     Add Severity To Hosts    1    17    [28]
     Reload Engine
-    Reload Broker
+    Ctn Reload Broker
     Sleep    3s
     ${result}    Check Host Severity With Timeout    28    16    60
     Should Be True    ${result}    Second step: Host 28 should have severity_id=16
@@ -115,21 +115,21 @@ BEUHSEV2
     Should Be True    ${result}    Second step: Host 5 should have severity_id=17
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BETUHSEV1
     [Documentation]    Hosts have severities provided by templates.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    Config Engine    ${2}
+    Ctn Config Engine    ${2}
     Create Severities File    ${0}    ${20}
     Create Severities File    ${1}    ${20}
     Create Template File    ${0}    host    severity    [2, 4]
     Create Template File    ${1}    host    severity    [6, 10]
 
-    Config Engine Add Cfg File    ${0}    severities.cfg
-    Config Engine Add Cfg File    ${1}    severities.cfg
-    Config Engine Add Cfg File    ${0}    hostTemplates.cfg
-    Config Engine Add Cfg File    ${1}    hostTemplates.cfg
+    Ctn Config Engine Add Cfg File    ${0}    severities.cfg
+    Ctn Config Engine Add Cfg File    ${1}    severities.cfg
+    Ctn Config Engine Add Cfg File    ${0}    hostTemplates.cfg
+    Ctn Config Engine Add Cfg File    ${1}    hostTemplates.cfg
     Engine Config Set Value    ${0}    log_level_config    debug
     Engine Config Set Value    ${1}    log_level_config    debug
     Add Template To Hosts    0    host_template_1    [1, 2, 3, 4]
@@ -147,7 +147,7 @@ BETUHSEV1
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
     ${result}    Check Host Severity With Timeout    2    2    60
@@ -166,4 +166,4 @@ BETUHSEV1
     Should Be True    ${result}    First step: Host 33 should have severity_id=10
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker

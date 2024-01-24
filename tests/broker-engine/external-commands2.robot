@@ -13,7 +13,7 @@ Test Teardown       Save Logs If Failed
 BEEXTCMD30
     [Documentation]    external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -24,7 +24,7 @@ BEEXTCMD30
         ...    external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -56,13 +56,13 @@ BEEXTCMD30
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD31
     [Documentation]    external command DISABLE_HOST_SVC_CHECKS and ENABLE_HOST_SVC_CHECKS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -74,7 +74,7 @@ BEEXTCMD31
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -149,13 +149,13 @@ BEEXTCMD31
         END
         Should Be Equal As Strings    ${output}    ((1,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD32
     [Documentation]    external command DISABLE_HOST_SVC_CHECKS and ENABLE_HOST_SVC_CHECKS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -164,7 +164,7 @@ BEEXTCMD32
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -222,13 +222,13 @@ BEEXTCMD32
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD33
     [Documentation]    external command DISABLE_HOST_SVC_NOTIFICATIONS and ENABLE_HOST_SVC_NOTIFICATIONS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -240,7 +240,7 @@ BEEXTCMD33
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -276,13 +276,13 @@ BEEXTCMD33
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD34
     [Documentation]    external command DISABLE_HOST_SVC_NOTIFICATIONS and ENABLE_HOST_SVC_NOTIFICATIONS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -291,7 +291,7 @@ BEEXTCMD34
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -327,13 +327,13 @@ BEEXTCMD34
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD35
     [Documentation]    external command DISABLE_PASSIVE_HOST_CHECKS and ENABLE_PASSIVE_HOST_CHECKS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -345,7 +345,7 @@ BEEXTCMD35
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -395,13 +395,13 @@ BEEXTCMD35
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD36
     [Documentation]    external command DISABLE_PASSIVE_HOST_CHECKS and ENABLE_PASSIVE_HOST_CHECKS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -410,7 +410,7 @@ BEEXTCMD36
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -442,13 +442,13 @@ BEEXTCMD36
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD37
     [Documentation]    external command DISABLE_PASSIVE_SVC_CHECKS and ENABLE_PASSIVE_SVC_CHECKS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -460,7 +460,7 @@ BEEXTCMD37
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -514,13 +514,13 @@ BEEXTCMD37
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD38
     [Documentation]    external command DISABLE_PASSIVE_SVC_CHECKS and ENABLE_PASSIVE_SVC_CHECKS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -529,7 +529,7 @@ BEEXTCMD38
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -565,13 +565,13 @@ BEEXTCMD38
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD39
     [Documentation]    external command START_OBSESSING_OVER_HOST and STOP_OBSESSING_OVER_HOST on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -583,7 +583,7 @@ BEEXTCMD39
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -615,13 +615,13 @@ BEEXTCMD39
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD40
     [Documentation]    external command START_OBSESSING_OVER_HOST and STOP_OBSESSING_OVER_HOST on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -630,7 +630,7 @@ BEEXTCMD40
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -662,13 +662,13 @@ BEEXTCMD40
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD41
     [Documentation]    external command START_OBSESSING_OVER_SVC and STOP_OBSESSING_OVER_SVC on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -680,7 +680,7 @@ BEEXTCMD41
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -716,13 +716,13 @@ BEEXTCMD41
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD42
     [Documentation]    external command START_OBSESSING_OVER_SVC and STOP_OBSESSING_OVER_SVC on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -731,7 +731,7 @@ BEEXTCMD42
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -767,13 +767,13 @@ BEEXTCMD42
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD_GRPC1
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and grpc
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -786,7 +786,7 @@ BEEXTCMD_GRPC1
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -808,13 +808,13 @@ BEEXTCMD_GRPC1
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD_GRPC2
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -825,7 +825,7 @@ BEEXTCMD_GRPC2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -847,13 +847,13 @@ BEEXTCMD_GRPC2
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD_GRPC3
     [Documentation]    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -868,7 +868,7 @@ BEEXTCMD_GRPC3
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -888,13 +888,13 @@ BEEXTCMD_GRPC3
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD_GRPC4
     [Documentation]    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -906,7 +906,7 @@ BEEXTCMD_GRPC4
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -926,13 +926,13 @@ BEEXTCMD_GRPC4
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC1
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and reversed gRPC
     [Tags]    broker    engine    services    extcmd    bbdo3
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -950,7 +950,7 @@ BEEXTCMD_REVERSE_GRPC1
         Clear Retention
         ${start}    Get Current Date
         Sleep    1s
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -972,13 +972,13 @@ BEEXTCMD_REVERSE_GRPC1
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC2
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc reversed
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -993,7 +993,7 @@ BEEXTCMD_REVERSE_GRPC2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc} reversed
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1015,13 +1015,13 @@ BEEXTCMD_REVERSE_GRPC2
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC3
     [Documentation]    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc reversed
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -1040,7 +1040,7 @@ BEEXTCMD_REVERSE_GRPC3
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc} reversed
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1060,13 +1060,13 @@ BEEXTCMD_REVERSE_GRPC3
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC4
     [Documentation]    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc reversed
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -1082,7 +1082,7 @@ BEEXTCMD_REVERSE_GRPC4
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc} reversed
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1103,13 +1103,13 @@ BEEXTCMD_REVERSE_GRPC4
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEEXTCMD_COMPRESS_GRPC1
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and compressed grpc
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -1124,7 +1124,7 @@ BEEXTCMD_COMPRESS_GRPC1
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1146,20 +1146,20 @@ BEEXTCMD_COMPRESS_GRPC1
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Ctn Stop Broker
     END
 
 BEATOI11
     [Documentation]    external command SEND_CUSTOM_HOST_NOTIFICATION with option_number=1 should work
     [Tags]    broker    engine    host    extcmd    notification    atoi
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1169,19 +1169,19 @@ BEATOI11
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEATOI12
     [Documentation]    external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
     [Tags]    broker    engine    host    extcmd    notification    atoi
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1192,19 +1192,19 @@ BEATOI12
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEATOI13
     [Documentation]    external command Schedule Service Downtime with duration<0 should fail
     [Tags]    broker    engine    host    extcmd    atoi
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1215,19 +1215,19 @@ BEATOI13
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument duration must be an integer >= 0.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEATOI21
     [Documentation]    external command ADD_HOST_COMMENT and DEL_HOST_COMMENT should work
     [Tags]    broker    engine    host    extcmd    atoi
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date    exclude_millis=True
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1242,12 +1242,12 @@ BEATOI21
     ${result}    Find Internal Id    ${start}    False    30
     Should Be True    ${result}    the comment with id:${com_id} was not deleted.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEATOI22
     [Documentation]    external command DEL_HOST_COMMENT with comment_id<0 should fail
     [Tags]    broker    engine    host    extcmd    atoi
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -1255,7 +1255,7 @@ BEATOI22
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1272,19 +1272,19 @@ BEATOI22
     ${result}    Find Internal Id    ${start}    True    30
     Should Be True    ${result}    comment with id:-1 was deleted.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BEATOI23
     [Documentation]    external command ADD_SVC_COMMENT with persistent=0 should work
     [Tags]    broker    engine    host    extcmd    atoi
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    error
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1295,19 +1295,19 @@ BEATOI23
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument persistent_flag must be 0 or 1.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BECUSTOMHOSTVAR
     [Documentation]    external command CHANGE_CUSTOM_HOST_VAR on SNMPVERSION
     [Tags]    broker    engine    host    extcmd    atoi
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
     Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1329,19 +1329,19 @@ BECUSTOMHOSTVAR
     Should Be Equal As Strings    ${output}    (('789456',),)
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BECUSTOMSVCVAR
     [Documentation]    external command CHANGE_CUSTOM_SVC_VAR on CRITICAL
     [Tags]    broker    engine    host    extcmd    atoi
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
     Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1363,19 +1363,19 @@ BECUSTOMSVCVAR
     Should Be Equal As Strings    ${output}    (('456123',),)
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Ctn Stop Broker
 
 BESERVCHECK
     [Documentation]    external command CHECK_SERVICE_RESULT
     [Tags]    broker    engine    host    extcmd    atoi
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
     Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1394,14 +1394,14 @@ BESERVCHECK
 BEHOSTCHECK
     [Documentation]    external command CHECK_HOST_RESULT
     [Tags]    broker    engine    host    extcmd    atoi
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
     Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

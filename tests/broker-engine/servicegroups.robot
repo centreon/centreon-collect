@@ -13,7 +13,7 @@ Test Teardown       Stop Engine Broker And Save Logs
 EBNSG1
     [Documentation]    New service group with several pollers and connections to DB
     [Tags]    broker    engine    servicegroup
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
@@ -24,13 +24,13 @@ EBNSG1
 
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
-    Config Engine Add Cfg File    ${0}    servicegroups.cfg
+    Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Sleep    3s
 
-    Reload Broker
+    Ctn Reload Broker
     Reload Engine
 
     ${content}    Create List
@@ -44,7 +44,7 @@ EBNSG1
 EBNSGU1
     [Documentation]    New service group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    servicegroup    unified_sql
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
@@ -55,13 +55,13 @@ EBNSGU1
 
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
-    Config Engine Add Cfg File    ${0}    servicegroups.cfg
+    Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Sleep    3s
 
-    Reload Broker
+    Ctn Reload Broker
     Reload Engine
 
     ${content}    Create List
@@ -75,7 +75,7 @@ EBNSGU1
 EBNSGU2
     [Documentation]    New service group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    servicegroup    unified_sql
-    Config Engine    ${4}
+    Ctn Config Engine    ${4}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${4}
@@ -87,25 +87,25 @@ EBNSGU2
     Broker Config Log    central    sql    debug
 
     Clear Retention
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Add Service Group    ${1}    ${1}    ["host_14","service_261", "host_14","service_262","host_14", "service_263"]
     Add Service Group    ${2}    ${1}    ["host_27","service_521", "host_27","service_522","host_27", "service_523"]
     Add Service Group    ${3}    ${1}    ["host_40","service_781", "host_40","service_782","host_40", "service_783"]
-    Config Engine Add Cfg File    ${0}    servicegroups.cfg
-    Config Engine Add Cfg File    ${1}    servicegroups.cfg
-    Config Engine Add Cfg File    ${2}    servicegroups.cfg
-    Config Engine Add Cfg File    ${3}    servicegroups.cfg
+    Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
+    Ctn Config Engine Add Cfg File    ${1}    servicegroups.cfg
+    Ctn Config Engine Add Cfg File    ${2}    servicegroups.cfg
+    Ctn Config Engine Add Cfg File    ${3}    servicegroups.cfg
     Sleep    3s
-    Reload Broker
+    Ctn Reload Broker
     Reload Engine
     Sleep    3s
 
     ${result}    Check Number Of Relations Between Servicegroup And Services    1    12    30
     Should Be True    ${result}    We should get 12 relations between the servicegroup 1 and services.
-    Config Engine Remove Cfg File    ${0}    servicegroups.cfg
-    Reload Broker
+    Ctn Config Engine Remove Cfg File    ${0}    servicegroups.cfg
+    Ctn Reload Broker
     Reload Engine
 
     ${result}    Check Number Of Relations Between Servicegroup And Services    1    9    30
@@ -114,7 +114,7 @@ EBNSGU2
 EBNSGU3_${test_label}
     [Documentation]    New service group with several pollers and connections to DB with broker and rename this servicegroup
     [Tags]    broker    engine    servicegroup unified_sql
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
@@ -135,17 +135,17 @@ EBNSGU3_${test_label}
     Config BBDO3    ${3}
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
     Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Add Service Group    ${1}    ${1}    ["host_18","service_341", "host_19","service_362","host_19", "service_363"]
     Add Service Group    ${2}    ${1}    ["host_35","service_681", "host_35","service_682","host_36", "service_706"]
-    Config Engine Add Cfg File    ${0}    servicegroups.cfg
-    Config Engine Add Cfg File    ${1}    servicegroups.cfg
-    Config Engine Add Cfg File    ${2}    servicegroups.cfg
+    Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
+    Ctn Config Engine Add Cfg File    ${1}    servicegroups.cfg
+    Ctn Config Engine Add Cfg File    ${2}    servicegroups.cfg
 
-    Reload Broker
+    Ctn Reload Broker
     Reload Engine
 
     ${result}    Check Number Of Relations Between Servicegroup And Services    1    9    30
@@ -164,7 +164,7 @@ EBNSGU3_${test_label}
     Rename Service Group    ${2}    servicegroup_1    servicegroup_test
 
     Reload Engine
-    Reload Broker
+    Ctn Reload Broker
     ${result}    Check Number Of Relations Between Servicegroup And Services    1    9    30    servicegroup_test
     Should Be True    ${result}    We should get 9 relations between the servicegroup 1 and services.
 
@@ -179,9 +179,9 @@ EBNSGU3_${test_label}
     Should Be True    len("""${grep_result}""") > 10    servicegroup_test not found in /tmp/lua-engine.log
 
     # remove servicegroup
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Reload Engine
-    Reload Broker
+    Ctn Reload Broker
 
     Log To Console    \nremove servicegroup
 
