@@ -23,7 +23,7 @@
 #include <map>
 #include <mutex>
 
-#include <nlohmann/json.hpp>
+#include <rapidjson/document.h>
 #include <tuple>
 
 #include "com/centreon/engine/service.hh"
@@ -45,7 +45,7 @@ class anomalydetection : public service {
    public:
     threshold_point(time_t timepoint,
                     double factor,
-                    const nlohmann::json& json_data);
+                    const rapidjson::Value& json_data);
     threshold_point(time_t timepoint);
 
     void set_factor(double factor);
@@ -124,10 +124,10 @@ class anomalydetection : public service {
 
   void set_thresholds_lock(const std::string& filename,
                            double json_sensitivity,
-                           const nlohmann::json& thresholds);
+                           const rapidjson::Value& thresholds);
   void set_thresholds_no_lock(const std::string& filename,
                               double json_sensitivity,
-                              const nlohmann::json& thresholds);
+                              const rapidjson::Value& thresholds);
 
   void set_sensitivity(double sensitivity);
   double get_sensitivity() const { return _sensitivity; }
@@ -152,7 +152,7 @@ class anomalydetection : public service {
 
   static const pointer_set& get_anomaly(uint64_t dependent_service_id);
 };
-}
+}  // namespace com::centreon::engine
 
 com::centreon::engine::anomalydetection* add_anomalydetection(
     uint64_t host_id,
