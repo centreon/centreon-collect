@@ -19,6 +19,7 @@
 
 #include "com/centreon/engine/anomalydetection.hh"
 
+#include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/globals.hh"
@@ -34,6 +35,8 @@
 #include "com/centreon/exceptions/interruption.hh"
 
 using namespace com::centreon::engine;
+
+using com::centreon::common::rapidjson_helper;
 using namespace com::centreon::engine::logging;
 
 namespace com::centreon::engine {
@@ -52,19 +55,22 @@ anomalydetection::threshold_point::threshold_point(time_t timepoint)
       _format(e_format::V1) {}
 
 anomalydetection::threshold_point::threshold_point(
-    time_t timepoint, double factor, const nlohmann::json& json_data)
+    time_t timepoint,
+    double factor,
+    const rapidjson::Value& json_data)
     : threshold_point(timepoint) {
-  if (json_data.contains("upper") && json_data.contains("lower")) {
-    _upper = json_data.at("upper").get<double>();
-    _lower = json_data.at("lower").get<double>();
-    if (json_data.contains("fit")) {
-      _fit = json_data.at("fit").get<double>();
+  rapidjson_helper json(json_data);
+  if (json.has_member("upper") && json.has_member("lower")) {
+    _upper = json.get_double("upper");
+    _lower = json.get_double("lower");
+    if (json_data.HasMember("fit")) {
+      _fit = json.get_double("fit");
     }
     _format = e_format::V1;
   } else {
-    _fit = json_data.at("fit").get<double>();
-    _lower_margin = json_data.at("lower_margin").get<double>();
-    _upper_margin = json_data.at("upper_margin").get<double>();
+    _fit = json.get_double("fit");
+    _lower_margin = json.get_double("lower_margin");
+    _upper_margin = json.get_double("upper_margin");
     _format = e_format::V2;
     set_factor(factor);
   }
@@ -105,7 +111,8 @@ void anomalydetection::threshold_point::set_factor(double factor) {
  * @return anomalydetection::threshold_point
  */
 anomalydetection::threshold_point anomalydetection::threshold_point::interpoll(
-    time_t timepoint, const anomalydetection::threshold_point& left) const {
+    time_t timepoint,
+    const anomalydetection::threshold_point& left) const {
   anomalydetection::threshold_point ret(timepoint);
   double bary =
       ((double)(timepoint - left._timepoint)) / (_timepoint - left._timepoint);
@@ -159,12 +166,15 @@ class cancellable_command : public command {
     return _original_command;
   }
 
-  uint64_t run(const std::string& processed_cmd, nagios_macros& macors,
+  uint64_t run(const std::string& processed_cmd,
+               nagios_macros& macors,
                uint32_t timeout,
                const check_result::pointer& to_push_to_checker,
                const void* caller = nullptr) override;
-  void run(const std::string& process_cmd, nagios_macros& macros,
-           uint32_t timeout, result& res) override;
+  void run(const std::string& process_cmd,
+           nagios_macros& macros,
+           uint32_t timeout,
+           result& res) override;
 };
 
 const std::string cancellable_command::_empty;
@@ -181,8 +191,11 @@ const std::string cancellable_command::_empty;
  *  @return The command id or 0 if it uses the perf_data of dependent_service
  */
 uint64_t cancellable_command::run(
-    const std::string& processed_cmd, nagios_macros& macros, uint32_t timeout,
-    const check_result::pointer& to_push_to_checker, const void* caller) {
+    const std::string& processed_cmd,
+    nagios_macros& macros,
+    uint32_t timeout,
+    const check_result::pointer& to_push_to_checker,
+    const void* caller) {
   if (_fake_result) {
     checks::checker::instance().add_check_result_to_reap(_fake_result);
     return 0;  // no command => no async result
@@ -200,7 +213,8 @@ uint64_t cancellable_command::run(
 }
 
 void cancellable_command::run(const std::string& process_cmd,
-                              nagios_macros& macros, uint32_t timeout,
+                              nagios_macros& macros,
+                              uint32_t timeout,
                               result& res) {
   if (_fake_result) {
     res = result(*_fake_result);
@@ -370,24 +384,44 @@ const anomalydetection::pointer_set& anomalydetection::get_anomaly(
  *
  *  @return New service.
  */
-anomalydetection::anomalydetection(
-    uint64_t host_id, uint64_t service_id, std::string const& hostname,
-    std::string const& description, std::string const& display_name,
-    uint64_t internal_id, service* dependent_service,
-    std::string const& metric_name, std::string const& thresholds_file,
-    bool status_change, bool checks_enabled, bool accept_passive_checks,
-    enum service::service_state initial_state, uint32_t check_interval,
-    uint32_t retry_interval, uint32_t notification_interval, int max_attempts,
-    uint32_t first_notification_delay, uint32_t recovery_notification_delay,
-    std::string const& notification_period, bool notifications_enabled,
-    bool is_volatile, std::string const& event_handler,
-    bool event_handler_enabled, std::string const& notes,
-    std::string const& notes_url, std::string const& action_url,
-    std::string const& icon_image, std::string const& icon_image_alt,
-    bool flap_detection_enabled, double low_flap_threshold,
-    double high_flap_threshold, bool check_freshness, int freshness_threshold,
-    bool obsess_over, std::string const& timezone, uint64_t icon_id,
-    double sensitivity)
+anomalydetection::anomalydetection(uint64_t host_id,
+                                   uint64_t service_id,
+                                   std::string const& hostname,
+                                   std::string const& description,
+                                   std::string const& display_name,
+                                   uint64_t internal_id,
+                                   service* dependent_service,
+                                   std::string const& metric_name,
+                                   std::string const& thresholds_file,
+                                   bool status_change,
+                                   bool checks_enabled,
+                                   bool accept_passive_checks,
+                                   enum service::service_state initial_state,
+                                   uint32_t check_interval,
+                                   uint32_t retry_interval,
+                                   uint32_t notification_interval,
+                                   int max_attempts,
+                                   uint32_t first_notification_delay,
+                                   uint32_t recovery_notification_delay,
+                                   std::string const& notification_period,
+                                   bool notifications_enabled,
+                                   bool is_volatile,
+                                   std::string const& event_handler,
+                                   bool event_handler_enabled,
+                                   std::string const& notes,
+                                   std::string const& notes_url,
+                                   std::string const& action_url,
+                                   std::string const& icon_image,
+                                   std::string const& icon_image_alt,
+                                   bool flap_detection_enabled,
+                                   double low_flap_threshold,
+                                   double high_flap_threshold,
+                                   bool check_freshness,
+                                   int freshness_threshold,
+                                   bool obsess_over,
+                                   std::string const& timezone,
+                                   uint64_t icon_id,
+                                   double sensitivity)
     : service{hostname,
               description,
               display_name,
@@ -519,21 +553,38 @@ anomalydetection::~anomalydetection() {
  *  @return New service.
  */
 com::centreon::engine::anomalydetection* add_anomalydetection(
-    uint64_t host_id, uint64_t service_id, std::string const& host_name,
-    std::string const& description, std::string const& display_name,
-    uint64_t internal_id, uint64_t dependent_service_id,
-    std::string const& metric_name, std::string const& thresholds_file,
+    uint64_t host_id,
+    uint64_t service_id,
+    std::string const& host_name,
+    std::string const& description,
+    std::string const& display_name,
+    uint64_t internal_id,
+    uint64_t dependent_service_id,
+    std::string const& metric_name,
+    std::string const& thresholds_file,
     bool status_change,
     com::centreon::engine::service::service_state initial_state,
-    int max_attempts, double check_interval, double retry_interval,
-    double notification_interval, uint32_t first_notification_delay,
+    int max_attempts,
+    double check_interval,
+    double retry_interval,
+    double notification_interval,
+    uint32_t first_notification_delay,
     uint32_t recovery_notification_delay,
-    std::string const& notification_period, bool notify_recovery,
-    bool notify_unknown, bool notify_warning, bool notify_critical,
-    bool notify_flapping, bool notify_downtime, bool notifications_enabled,
-    bool is_volatile, std::string const& event_handler,
-    bool event_handler_enabled, bool checks_enabled, bool accept_passive_checks,
-    bool flap_detection_enabled, double low_flap_threshold,
+    std::string const& notification_period,
+    bool notify_recovery,
+    bool notify_unknown,
+    bool notify_warning,
+    bool notify_critical,
+    bool notify_flapping,
+    bool notify_downtime,
+    bool notifications_enabled,
+    bool is_volatile,
+    std::string const& event_handler,
+    bool event_handler_enabled,
+    bool checks_enabled,
+    bool accept_passive_checks,
+    bool flap_detection_enabled,
+    double low_flap_threshold,
     double high_flap_threshold,
     bool flap_detection_on_ok, /**
                                 * @brief Parse the given perfdata. The only
@@ -547,14 +598,26 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
                                 * bound
                                 */
 
-    bool flap_detection_on_warning, bool flap_detection_on_unknown,
-    bool flap_detection_on_critical, bool stalk_on_ok, bool stalk_on_warning,
-    bool stalk_on_unknown, bool stalk_on_critical, int process_perfdata,
-    bool check_freshness, int freshness_threshold, std::string const& notes,
-    std::string const& notes_url, std::string const& action_url,
-    std::string const& icon_image, std::string const& icon_image_alt,
-    int retain_status_information, int retain_nonstatus_information,
-    bool obsess_over_service, std::string const& timezone, uint64_t icon_id,
+    bool flap_detection_on_warning,
+    bool flap_detection_on_unknown,
+    bool flap_detection_on_critical,
+    bool stalk_on_ok,
+    bool stalk_on_warning,
+    bool stalk_on_unknown,
+    bool stalk_on_critical,
+    int process_perfdata,
+    bool check_freshness,
+    int freshness_threshold,
+    std::string const& notes,
+    std::string const& notes_url,
+    std::string const& action_url,
+    std::string const& icon_image,
+    std::string const& icon_image_alt,
+    int retain_status_information,
+    int retain_nonstatus_information,
+    bool obsess_over_service,
+    std::string const& timezone,
+    uint64_t icon_id,
     double sensitivity) {
   // Make sure we have everything we need.
   if (!service_id) {
@@ -731,13 +794,17 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
   return obj.get();
 }
 
-uint64_t anomalydetection::get_internal_id() const { return _internal_id; }
+uint64_t anomalydetection::get_internal_id() const {
+  return _internal_id;
+}
 
 service* anomalydetection::get_dependent_service() const {
   return _dependent_service;
 }
 
-void anomalydetection::set_internal_id(uint64_t id) { _internal_id = id; }
+void anomalydetection::set_internal_id(uint64_t id) {
+  _internal_id = id;
+}
 
 void anomalydetection::set_dependent_service(service* svc) {
   uint64_t old_dep_serv_id = _dependent_service_id;
@@ -760,7 +827,8 @@ void anomalydetection::set_thresholds_file(std::string const& file) {
  * forks a child process to run a service check, but does not wait for the
  * service check result
  */
-int anomalydetection::run_async_check(int check_options, double latency,
+int anomalydetection::run_async_check(int check_options,
+                                      double latency,
                                       bool scheduled_check,
                                       bool reschedule_check,
                                       bool* time_is_valid,
@@ -935,7 +1003,8 @@ bool anomalydetection::parse_perfdata(std::string const& perfdata,
   char const* end = without_thresholds.c_str() + without_thresholds.size() - 1;
   size_t l = 0;
   /* If there is a unit, it starts at unit char* */
-  while (unit + l <= end && unit[l] != ' ' && unit[l] != ';') ++l;
+  while (unit + l <= end && unit[l] != ' ' && unit[l] != ';')
+    ++l;
   std::string uom = std::string(unit, l);
 
   service::service_state status;
@@ -1050,38 +1119,17 @@ void anomalydetection::init_thresholds() {
       << "Trying to read thresholds file '" << _thresholds_file << "'";
   SPDLOG_LOGGER_DEBUG(log_v2::config(), "Trying to read thresholds file '{}'",
                       _thresholds_file);
-  std::ifstream t;
-  t.exceptions(t.exceptions() | std::ios::failbit);
+
+  rapidjson::Document json_doc;
   try {
-    t.open(_thresholds_file);
-  } catch (const std::system_error& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "Fail to read thresholds file '{}' : {}",
-                        _thresholds_file, e.code().message());
-    return;
+    json_doc = rapidjson_helper::read_from_file(_thresholds_file);
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "Fail to read thresholds file '{}' : {}",
+    SPDLOG_LOGGER_ERROR(log_v2::config(), "Fail to load {}: {}",
                         _thresholds_file, e.what());
     return;
   }
 
-  std::stringstream buffer;
-  buffer << t.rdbuf();
-  std::string err;
-  nlohmann::json json;
-  try {
-    json = nlohmann::json::parse(buffer.str());
-  } catch (const nlohmann::json::parse_error& e) {
-    engine_logger(log_config_error, basic)
-        << "Error: the file '" << _thresholds_file
-        << "' contains errors: " << e.what();
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "Error: the file '{}' contains errors: {}",
-                        _thresholds_file, e.what());
-    return;
-  }
-  if (!json.is_array()) {
+  if (!json_doc.IsArray()) {
     engine_logger(log_config_error, basic)
         << "Error: the file '" << _thresholds_file
         << "' is not a thresholds file. Its global structure is not an array.";
@@ -1093,21 +1141,23 @@ void anomalydetection::init_thresholds() {
     return;
   }
 
+  rapidjson_helper json(json_doc);
+
   bool found = false;
-  for (auto it = json.begin(); it != json.end(); ++it) {
+  for (const auto& value : json) {
     uint64_t host_id, service_id;
-    std::string metric_name;
-    nlohmann::json predict;
-    auto item = it.value();
+    std::string_view metric_name;
+    const rapidjson::Value* predict = nullptr;
+    rapidjson_helper item(value);
     double sensitivity = 0.0;
     try {
-      host_id = stoull(item.at("host_id").get<std::string>());
-      service_id = stoull(item.at("service_id").get<std::string>());
-      metric_name = item.at("metric_name").get<std::string>();
-      predict = item.at("predict");
+      host_id = item.get_double("host_id");
+      service_id = item.get_double("service_id");
+      metric_name = item.get_string("metric_name");
+      predict = &item.get_member("predict");
       try {
-        sensitivity = item.at("sensitivity").get<double>();
-      } catch (std::exception const&) {  // json sensitivity is not mandatory
+        sensitivity = item.get_double("sensitivity");
+      } catch (const std::exception&) {  // sensitivity is not mandatory
       }
     } catch (std::exception const& e) {
       engine_logger(log_config_error, basic)
@@ -1124,11 +1174,11 @@ void anomalydetection::init_thresholds() {
     }
     if (host_id == this->host_id() && service_id == this->service_id() &&
         metric_name == _metric_name) {
-      set_thresholds_no_lock(_thresholds_file, sensitivity, predict);
+      set_thresholds_no_lock(_thresholds_file, sensitivity, *predict);
       if (!_thresholds_file_viable) {
         SPDLOG_LOGGER_ERROR(log_v2::config(),
                             "{} don't contain at least 2 thresholds datas for "
-                            "host_id {} and service_id {}",
+                            "host_id{} and service_id {} ",
                             _thresholds_file, this->host_id(),
                             this->service_id());
       }
@@ -1158,39 +1208,16 @@ int anomalydetection::update_thresholds(const std::string& filename) {
   SPDLOG_LOGGER_INFO(log_v2::checks(), "Reading thresholds file '{}'.",
                      filename);
 
-  std::ifstream t;
-  t.exceptions(t.exceptions() | std::ios::failbit);
+  rapidjson::Document json_doc;
   try {
-    t.open(filename);
-  } catch (const std::system_error& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "Fail to read thresholds file '{}' : {}", filename,
-                        e.code().message());
-    return -1;
+    json_doc = rapidjson_helper::read_from_file(filename);
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "Fail to read thresholds file '{}' : {}", filename,
+    SPDLOG_LOGGER_ERROR(log_v2::config(), "Fail to load {}: {}", filename,
                         e.what());
     return -1;
   }
 
-  std::stringstream buffer;
-  buffer << t.rdbuf();
-  nlohmann::json json;
-  try {
-    json = nlohmann::json::parse(buffer.str());
-  } catch (const nlohmann::json::parse_error& e) {
-    engine_logger(log_config_error, basic)
-        << "Error: The thresholds file '" << filename
-        << "' should be a json file: " << e.what();
-    SPDLOG_LOGGER_ERROR(
-        log_v2::config(),
-        "Error: The thresholds file '{}' should be a json file: {}", filename,
-        e.what());
-    return -2;
-  }
-
-  if (!json.is_array()) {
+  if (!json_doc.IsArray()) {
     engine_logger(log_config_error, basic)
         << "Error: the file '" << filename
         << "' is not a thresholds file. Its global structure is not an array.";
@@ -1202,19 +1229,20 @@ int anomalydetection::update_thresholds(const std::string& filename) {
     return -3;
   }
 
-  for (auto it = json.begin(); it != json.end(); ++it) {
+  rapidjson_helper json(json_doc);
+  for (const auto& value : json) {
     uint64_t host_id, svc_id;
-    auto item = it.value();
     double sensitivity = 0.0;
-    std::string metric_name;
-    nlohmann::json predict;
+    std::string_view metric_name;
+    rapidjson_helper item(value);
+    const rapidjson::Value* predict = nullptr;
     try {
-      host_id = stoull(item.at("host_id").get<std::string>());
-      svc_id = stoull(item.at("service_id").get<std::string>());
-      metric_name = item.at("metric_name");
-      predict = item.at("predict");
+      host_id = item.get_double("host_id");
+      svc_id = item.get_double("service_id");
+      metric_name = item.get_string("metric_name");
+      predict = &item.get_member("predict");
       try {
-        sensitivity = item.at("sensitivity").get<double>();
+        sensitivity = item.get_double("sensitivity");
       } catch (const std::exception&) {  // sensitivity is not mandatory
       }
     } catch (std::exception const& e) {
@@ -1254,13 +1282,6 @@ int anomalydetection::update_thresholds(const std::string& filename) {
         std::static_pointer_cast<anomalydetection>(found->second);
 
     if (ad->get_metric_name() != metric_name) {
-      engine_logger(log_config_error, basic)
-          << "Error: The thresholds file contains thresholds for the anomaly "
-             "detection service (host_id: "
-          << ad->host_id() << ", service_id: " << ad->service_id()
-          << ") with metric_name='" << metric_name
-          << "' whereas the configured metric name is '"
-          << ad->get_metric_name() << "'";
       SPDLOG_LOGGER_ERROR(
           log_v2::config(),
           "Error: The thresholds file contains thresholds for the anomaly "
@@ -1269,24 +1290,20 @@ int anomalydetection::update_thresholds(const std::string& filename) {
           ad->host_id(), ad->service_id(), metric_name, ad->get_metric_name());
       continue;
     }
-    engine_logger(log_info_message, basic)
-        << "Filling thresholds in anomaly detection (host_id: " << ad->host_id()
-        << ", service_id: " << ad->service_id()
-        << ", metric: " << ad->get_metric_name() << ")";
     SPDLOG_LOGGER_INFO(
         log_v2::checks(),
         "Filling thresholds in anomaly detection (host_id: {}, service_id: {}, "
         "metric: {})",
         ad->host_id(), ad->service_id(), ad->get_metric_name());
 
-    ad->set_thresholds_lock(filename, sensitivity, predict);
+    ad->set_thresholds_lock(filename, sensitivity, *predict);
   }
   return 0;
 }
 
 void anomalydetection::set_thresholds_lock(const std::string& filename,
                                            double json_sensitivity,
-                                           const nlohmann::json& thresholds) {
+                                           const rapidjson::Value& thresholds) {
   std::lock_guard<std::mutex> _lock(_thresholds_m);
   set_thresholds_no_lock(filename, json_sensitivity, thresholds);
 }
@@ -1299,8 +1316,9 @@ void anomalydetection::set_thresholds_lock(const std::string& filename,
  * @param thresholds //predict data
  */
 void anomalydetection::set_thresholds_no_lock(
-    const std::string& filename, double json_sensitivity,
-    const nlohmann::json& thresholds) {
+    const std::string& filename,
+    double json_sensitivity,
+    const rapidjson::Value& thresholds_val) {
   if (_thresholds_file != filename) {
     _thresholds_file = filename;
   }
@@ -1311,22 +1329,17 @@ void anomalydetection::set_thresholds_no_lock(
   if (_sensitivity > 0) {
     sensitivity = _sensitivity;
   }
-  for (const nlohmann::json& threshold_obj : thresholds) {
+  rapidjson_helper thresholds(thresholds_val);
+  for (const auto& threshold_obj : thresholds) {
     try {
-      time_t timepoint =
-          static_cast<time_t>(threshold_obj.at("timestamp").get<uint64_t>());
+      time_t timepoint = static_cast<time_t>(
+          rapidjson_helper(threshold_obj).get_uint64_t("timestamp"));
       _thresholds.emplace_hint(
           _thresholds.end(), timepoint,
           threshold_point(timepoint, sensitivity, threshold_obj));
-    } catch (const nlohmann::json::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to parse predict:{} cause:{}",
-                          threshold_obj.dump(), e.what());
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to parse predict:{} cause {}",
-                          threshold_obj.dump(), e.what());
-    } catch (...) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "unknown exception {}",
-                          threshold_obj.dump());
+                          thresholds_val, e.what());
     }
   }
   if (_thresholds.size() > 1) {
