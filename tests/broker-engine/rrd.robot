@@ -145,8 +145,8 @@ BRRDDMID1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
-    ${indexes}    Get Not Existing Indexes    2
-    ${metrics}    Get Not Existing Metrics    2
+    ${indexes}    Ctn Get Not Existing Indexes    2
+    ${metrics}    Ctn Get Not Existing Metrics    2
     Log To Console    indexes ${indexes} and metrics ${metrics} to delete but they do not exist.
 
     Remove Graphs    51001    ${indexes}    ${metrics}
@@ -267,8 +267,8 @@ BRRDDMIDU1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
-    ${indexes}    Get Not Existing Indexes    2
-    ${metrics}    Get Not Existing Metrics    2
+    ${indexes}    Ctn Get Not Existing Indexes    2
+    ${metrics}    Ctn Get Not Existing Metrics    2
     Log To Console    indexes ${indexes} and metrics ${metrics} to delete but they do not exist.
 
     Remove Graphs    51001    ${indexes}    ${metrics}
@@ -416,7 +416,7 @@ RRD1
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
-    ${index}    Get Not Existing Indexes    3
+    ${index}    Ctn Get Not Existing Indexes    3
     Rebuild Rrd Graphs    51001    ${index}    1
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}

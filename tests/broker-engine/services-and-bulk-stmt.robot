@@ -417,7 +417,7 @@ Services_and_bulks_${id}
 
     ${start_1}    Get Round Current Date
 
-    Process Service Check result with metrics
+    Ctn Process Service Check Result With Metrics
     ...    host_1
     ...    service_${1}
     ...    ${1}

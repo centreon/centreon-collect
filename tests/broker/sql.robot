@@ -188,7 +188,7 @@ BEDB2
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
     Start Mysql
-    ${result}    Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    60
+    ${result}    Ctn Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    60
     Should Be True    ${result}    Message about the connection to the database is missing.
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -270,7 +270,7 @@ BDBM1
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
         Start Mysql
-        ${result}    Get Broker Stats Size    central    mysql manager
+        ${result}    Ctn Get Broker Stats Size    central    mysql manager
         Should Be True
         ...    ${result} >= ${c} + 1
         ...    The stats file should contain at least ${c} + 1 connections to the database.
@@ -382,9 +382,9 @@ BDBMU1
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True    ${result}    Broker does not see any issue with the db while it is switched off
         Start Mysql
-        ${result}    Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    80
+        ${result}    Ctn Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    80
         Should Be True    ${result}    No stats on mysql manager found
-        ${result}    Get Broker Stats Size    central    mysql manager    ${60}
+        ${result}    Ctn Get Broker Stats Size    central    mysql manager    ${60}
         Should Be True    ${result} >= ${c} + 1    Broker mysql manager stats do not show the ${c} connections
         Ctn Kindly Stop Broker
         Ctn Stop Engine

@@ -1012,7 +1012,7 @@ def ctn_broker_config_flush_log(name, value):
     f.close()
 
 
-def ctn_ctn_broker_config_source_log(name, value):
+def ctn_broker_config_source_log(name, value):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -1030,7 +1030,7 @@ def ctn_ctn_broker_config_source_log(name, value):
     f.close()
 
 
-def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
+def ctn_check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         if name == 'central':
@@ -1057,7 +1057,7 @@ def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
     return False
 
 
-def get_broker_stats_size(name, key, timeout=TIMEOUT):
+def ctn_get_brokerstats_size(name, key, timeout=TIMEOUT):
     limit = time.time() + timeout
     retval = 0
     while time.time() < limit:
@@ -1984,7 +1984,7 @@ def check_poller_enabled_in_database(poller_id: int, timeout: int):
     return False
 
 
-def get_broker_log_level(port, name, log, timeout=TIMEOUT):
+def ctn_get_brokerlog_level(port, name, log, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         logger.console("Try to call GetLogInfo")
@@ -2037,7 +2037,7 @@ def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
 # @param port of the grpc server
 #
 # @return process__stat__pb2.pb_process_stat
-def get_broker_process_stat(port, timeout=10):
+def ctn_get_brokerprocess_stat(port, timeout=10):
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
