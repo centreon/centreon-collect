@@ -1138,7 +1138,7 @@ def ctn_create_ba(name: str, typ: str, critical_impact: int, warning_impact: int
     return dbconf.ctn_create_ba(name, typ, critical_impact, warning_impact, dt_policy)
 
 
-def add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):
+def ctn_add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):
     return dbconf.ctn_add_boolean_kpi(id_ba, expression, impact_if, critical_impact)
 
 
