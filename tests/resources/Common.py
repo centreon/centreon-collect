@@ -994,7 +994,7 @@ def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
     return False
 
 
-def clear_db(table: str):
+def ctn_clear_db(table: str):
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -1008,7 +1008,7 @@ def clear_db(table: str):
         connection.commit()
 
 
-def clear_db_conf(table: str):
+def ctn_clear_db_conf(table: str):
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -1073,7 +1073,7 @@ def ctn_check_host_severity_with_timeout(host_id: int, severity_id, timeout: int
     return False
 
 
-def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_ids: list, timeout: int, enabled: bool = True):
+def ctn_check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_ids: list, timeout: int, enabled: bool = True):
     if typ == 'servicegroup':
         t = 0
     elif typ == 'hostgroup':
@@ -1243,7 +1243,7 @@ def ctn_check_number_of_relations_between_servicegroup_and_services(servicegroup
     return False
 
 
-def check_field_db_value(request: str, value, timeout: int):
+def ctn_check_field_db_value(request: str, value, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
