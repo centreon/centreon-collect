@@ -28,7 +28,7 @@ BETAG1
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Tag With Timeout    tag20    3    30
@@ -55,7 +55,7 @@ BETAG2
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Tag With Timeout    tag20    3    30
@@ -83,7 +83,7 @@ BEUTAG1
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Tag With Timeout    tag20    3    30
@@ -115,7 +115,7 @@ BEUTAG2
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${svc}    Create Service    ${0}    1    1
@@ -128,7 +128,7 @@ BEUTAG2
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Resources Tags With Timeout    1    ${svc}    servicegroup    [4]    60
@@ -155,7 +155,7 @@ BEUTAG3
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Tag With Timeout    tag20    3    30
@@ -187,7 +187,7 @@ BEUTAG4
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Resources Tags With Timeout    1    1    servicegroup    [4, 5]    60
@@ -223,7 +223,7 @@ BEUTAG5
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2,3]    60
@@ -261,7 +261,7 @@ BEUTAG6
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2,4]    60
@@ -302,7 +302,7 @@ BEUTAG7
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # We check in the DB if the service (1,1) has well its servicegroup tags configured.
@@ -326,7 +326,7 @@ BEUTAG7
     Ctn Reload Broker
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Resources Tags With Timeout    26    507    servicegroup    [3,5]    60
@@ -373,7 +373,7 @@ BEUTAG8
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # We need to wait a little before reloading Engine
@@ -426,7 +426,7 @@ BEUTAG9
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # We need to wait a little before reloading Engine
@@ -483,7 +483,7 @@ BEUTAG10
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
@@ -549,7 +549,7 @@ BEUTAG11
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
@@ -610,7 +610,7 @@ BEUTAG12
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2,3]    60
@@ -665,14 +665,14 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    True
     Should Be True    ${result}    Host 1 should not have hostgroup tags 2
 
     ${content}    Create List    unified_sql:_check_queues
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message unified_sql:_check_queues should be available.
 
     Ctn Remove Service Host From Engine Conf    ${0}    host_1
@@ -686,7 +686,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     # wait for commits
     ${start}    Get Current Date
     ${content}    Create List    unified_sql:_check_queues
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message unified_sql:_check_queues should be available.
 
     Sleep    5

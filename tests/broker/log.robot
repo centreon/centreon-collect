@@ -19,11 +19,11 @@ BLDIS1
     ${start}    Get Current Date
     Ctn Start Broker
     ${content}    Create List    [sql]
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    "No sql logs produced"
 
     ${content}    Create List    [core]
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be Equal    ${result}    ${False}    "We should not have core logs"
     Ctn Kindly Stop Broker
 

@@ -35,7 +35,7 @@ EBNHG1
     ...    enabling membership of host 2 to host group 1 on instance 1
     ...    enabling membership of host 1 to host group 1 on instance 1
 
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
 
 EBNHGU1
@@ -63,7 +63,7 @@ EBNHGU1
     ...    enabling membership of host 2 to host group 1 on instance 1
     ...    enabling membership of host 1 to host group 1 on instance 1
 
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
 
 EBNHGU2
@@ -91,7 +91,7 @@ EBNHGU2
     ...    enabling membership of host 3 to host group 1 on instance 1
     ...    enabling membership of host 2 to host group 1 on instance 1
 
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
 
 EBNHGU3
@@ -155,7 +155,7 @@ EBNHG4
     ...    enabling membership of host 3 to host group 1 on instance 1
     ...    enabling membership of host 2 to host group 1
 
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
 
     Ctn Rename Host Group    ${0}    ${1}    test    ["host_1", "host_2", "host_3"]
@@ -213,7 +213,7 @@ EBNHGU4_${test_label}
     ...    enabling membership of host 3 to host group 1 on instance 1
     ...    enabling membership of host 2 to host group 1
 
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}

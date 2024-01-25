@@ -26,7 +26,7 @@ BRGC1
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     Ctn Run Reverse Bam    ${50}    ${0.2}
 
@@ -37,7 +37,7 @@ BRGC1
     ...    New incoming connection 'centreon-broker-master-map-2'
     ...    file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}    Find In Log With Timeout    ${log}    ${start}    ${content}    40
+    ${result}    Ctn Find In Log With Timeout    ${log}    ${start}    ${content}    40
     Should Be True    ${result}    Connection to map has failed.
     File Should Not Exist
     ...    ${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*
@@ -58,7 +58,7 @@ BRCTS1
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     Ctn Run Reverse Bam    ${150}    ${10}
 
@@ -69,7 +69,7 @@ BRCTS1
     ...    New incoming connection 'centreon-broker-master-map-2'
     ...    file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}    Find In Log With Timeout    ${log}    ${start}    ${content}    40
+    ${result}    Ctn Find In Log With Timeout    ${log}    ${start}    ${content}    40
     Should Be True    ${result}    Connection to map has failed
     File Should Not Exist
     ...    ${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*
@@ -90,7 +90,7 @@ BRCS1
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -99,7 +99,7 @@ BRCS1
     ...    New incoming connection 'centreon-broker-master-map-2'
     ...    file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}    Find In Log With Timeout    ${log}    ${start}    ${content}    40
+    ${result}    Ctn Find In Log With Timeout    ${log}    ${start}    ${content}    40
     Should Not Be True    ${result}    Connection to map has failed
     File Should Not Exist
     ...    ${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map-2
@@ -127,7 +127,7 @@ BRCTSMN
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     # pb_service pb_host pb_service_status pb_host_status
     ${expected_events}    Create List    65563    65566    65565    65568
@@ -176,7 +176,7 @@ BRCTSMNS
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message about check_for_external_commands() should be available.
     # pb_service pb_host pb_service_status pb_host_status pb_metric pb_status pb_index_mapping
     ${expected_events}    Create List    65563    65566    65565    65568    196617    196618    196619

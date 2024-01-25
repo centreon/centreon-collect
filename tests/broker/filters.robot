@@ -28,7 +28,7 @@ BFC1
     ...    'foo' is not a known category: cannot find event category 'foo'
     ...    'bar' is not a known category: cannot find event category 'bar'
     ...    Filters applied on endpoint:neb
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    "Only neb filter should be applied on sql output"
 
     Ctn Kindly Stop Broker
@@ -52,7 +52,7 @@ BFC2
     ...    'doe' is not a known category: cannot find event category 'doe'
     ...    'bar' is not a known category: cannot find event category 'bar'
     ...    Filters applied on endpoint:all
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    "Only neb filter should be applied on sql output"
 
     Ctn Kindly Stop Broker

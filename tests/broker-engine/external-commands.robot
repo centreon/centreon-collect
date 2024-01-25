@@ -27,7 +27,7 @@ BEEXTCMD1
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -64,7 +64,7 @@ BEEXTCMD2
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -105,7 +105,7 @@ BEEXTCMD3
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -141,7 +141,7 @@ BEEXTCMD4
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -178,7 +178,7 @@ BEEXTCMD5
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -215,7 +215,7 @@ BEEXTCMD6
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -256,7 +256,7 @@ BEEXTCMD7
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -292,7 +292,7 @@ BEEXTCMD8
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -329,7 +329,7 @@ BEEXTCMD9
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -376,7 +376,7 @@ BEEXTCMD10
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -417,7 +417,7 @@ BEEXTCMD11
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -462,7 +462,7 @@ BEEXTCMD12
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -502,7 +502,7 @@ BEEXTCMD13
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -539,7 +539,7 @@ BEEXTCMD14
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -579,7 +579,7 @@ BEEXTCMD15
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -616,7 +616,7 @@ BEEXTCMD16
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -656,7 +656,7 @@ BEEXTCMD17
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -695,7 +695,7 @@ BEEXTCMD18
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -737,7 +737,7 @@ BEEXTCMD19
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -776,7 +776,7 @@ BEEXTCMD20
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -819,7 +819,7 @@ BEEXTCMD21
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -886,7 +886,7 @@ BEEXTCMD22
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -936,7 +936,7 @@ BEEXTCMD23
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -1018,7 +1018,7 @@ BEEXTCMD24
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -1086,7 +1086,7 @@ BEEXTCMD25
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -1133,7 +1133,7 @@ BEEXTCMD26
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -1183,7 +1183,7 @@ BEEXTCMD27
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -1230,7 +1230,7 @@ BEEXTCMD28
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -1282,7 +1282,7 @@ BEEXTCMD29
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.

@@ -20,7 +20,7 @@ Whitelist_No_Whitelist_Directory
     Ctn Start Engine
     ${content}    Create List
     ...    no whitelist directory found, all commands are accepted
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    no whitelist directory found must be found in logs
 
 Whitelist_Empty_Directory
@@ -33,7 +33,7 @@ Whitelist_Empty_Directory
     Ctn Start Engine
     ${content}    Create List
     ...    whitelist directory found, but no restrictions, all commands are accepted
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    all commands are accepted must be found in logs
 
 Whitelist_Directory_Rights
@@ -46,23 +46,23 @@ Whitelist_Directory_Rights
     Ctn Start Engine
     ${content}    Create List
     ...    directory /etc/centreon-engine-whitelist must be owned by root@centreon-engine
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    owned by root@centreon-engine must be found in logs
 
     ${start}    Get Current Date
     Run    chown root:centreon-engine /etc/centreon-engine-whitelist
     Run    chmod 0777 /etc/centreon-engine-whitelist
     Ctn Reload Engine
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Not Be True    ${result}    owned by root@centreon-engine must not be found in logs
     ${content}    Create List    directory /etc/centreon-engine-whitelist must have 750 right access
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    must have 750 right access must be found in logs
 
     ${start}    Get Current Date
     Run    chmod 0750 /etc/centreon-engine-whitelist
     Ctn Reload Engine
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Not Be True    ${result}    must have 750 right access must not be found in logs
 
 Whitelist_Host
@@ -81,14 +81,14 @@ Whitelist_Host
     Ctn Start Broker    only_central=${True}
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # no file => no restriction
     ${start}    Get Current Date
     Ctn Schedule Forced Host Check    host_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0'
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check result found for host_1
 
     # create non matching file with /tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0
@@ -100,7 +100,7 @@ Whitelist_Host
     Ctn Schedule Forced Host Check    host_1
     ${content}    Create List
     ...    host_1: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No command not allowed found for host_1
 
     # matching with /tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]
@@ -109,7 +109,7 @@ Whitelist_Host
     ${start}    Get Current Date
     Ctn Schedule Forced Host Check    host_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 not run
 
     # matching with /tmp/var/lib/centreon-engine/toto* * */etc/centreon-engine-whitelist/test
@@ -118,7 +118,7 @@ Whitelist_Host
     ${start}    Get Current Date
     Ctn Schedule Forced Host Check    host_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    totozea not found
 
 Whitelist_Service
@@ -138,14 +138,14 @@ Whitelist_Service
     Ctn Start Broker    only_central=${True}
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # no file => no restriction
     ${start}    Get Current Date
     Ctn Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0'
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check result found for service_1
 
     # create non matching file with /tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0
@@ -157,7 +157,7 @@ Whitelist_Service
     Ctn Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List
     ...    service_1: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No command not allowed found for service_1
 
     # matching with /tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]
@@ -166,7 +166,7 @@ Whitelist_Service
     ${start}    Get Current Date
     Ctn Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 not run
 
     # matching with /tmp/var/lib/centreon-engine/toto* * *
@@ -175,7 +175,7 @@ Whitelist_Service
     ${start}    Get Current Date
     Ctn Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    totozea not found
 
 Whitelist_Perl_Connector
@@ -199,7 +199,7 @@ Whitelist_Perl_Connector
     Ctn Start Broker    only_central=${True}
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # command not allowed because of 0 in first argument
@@ -207,7 +207,7 @@ Whitelist_Perl_Connector
     Ctn Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List
     ...    service_1: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No command not allowed found for service_1
 
     # command allowed by whitelist
@@ -217,7 +217,7 @@ Whitelist_Perl_Connector
     Ctn Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List
     ...    connector::run: connector='Perl Connector', cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0 not found
 
 

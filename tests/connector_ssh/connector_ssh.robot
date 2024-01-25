@@ -31,7 +31,7 @@ TestBadUser
 
     ${start}    Get Current Date
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -40,7 +40,7 @@ TestBadUser
     Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
     ${content}    Create List    fail to connect to toto@127.0.0.10
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message fail to connect to toto@127.0.0.10 should be available.
     Ctn Stop Engine
 
@@ -64,7 +64,7 @@ TestBadPwd
 
     ${start}    Get Current Date
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -73,7 +73,7 @@ TestBadPwd
     Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
     ${content}    Create List    fail to connect to testconnssh@127.0.0.11
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message fail to connect to testconnssh@127.0.0.11 should be available.
     Ctn Stop Engine
 
@@ -114,7 +114,7 @@ Test6Hosts
 
     ${start}    Get Current Date
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -126,17 +126,17 @@ Test6Hosts
 
     IF    "${run_env}" == "docker"
         ${content}    Create List    output='toto=127.0.0.1'
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True    ${result}    A message output='toto=127.0.0.1' should be available.
     ELSE
         ${content}    Create List    output='toto=::1'
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True    ${result}    A message output='toto=::1' should be available.
     END
 
     FOR    ${idx}    IN RANGE    2    7
         ${content}    Create List    output='toto=127.0.0.${idx}
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True    ${result}    A message output='toto=127.0.0.${idx}' should be available.
     END
 
@@ -177,7 +177,7 @@ TestWhiteList
 
     ${start}    Get Current Date
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -188,7 +188,7 @@ TestWhiteList
 
     ${content}    Create List
     ...    host_1: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message 'command rejected by whitelis' should be available.
 
     # ssh_linuw allowed
@@ -200,15 +200,15 @@ TestWhiteList
     Ctn Schedule Forced Host Check    host_1
 
     ${content}    Create List    'toto=127.0.0.1'
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
 
     IF    "${run_env}" == "docker"
         ${content}    Create List    'toto=127.0.0.1'
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True    ${result}    A message 'toto=127.0.0.1' should be available.
     ELSE
         ${content}    Create List    'toto=::1'
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True    ${result}    A message 'toto=::1' should be available.
     END
 

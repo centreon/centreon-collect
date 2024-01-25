@@ -160,7 +160,7 @@ def find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = find_in_log(log, date, content, True)
+        ok, c = ctn_find_in_log(log, date, content, True)
         if ok:
             return True, c
         time.sleep(5)
@@ -168,12 +168,12 @@ def find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
     return False, c
 
 
-def find_in_log_with_timeout(log: str, date, content, timeout: int):
+def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int):
 
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = find_in_log(log, date, content, False)
+        ok, c = ctn_find_in_log(log, date, content, False)
         if ok:
             return True
         time.sleep(5)
@@ -181,7 +181,7 @@ def find_in_log_with_timeout(log: str, date, content, timeout: int):
     return False
 
 
-def find_in_log_with_timeout_with_line(log: str, date, content, timeout: int):
+def ctn_find_in_log_with_timeout_with_line(log: str, date, content, timeout: int):
     """! search a pattern in log from date param
     @param log: path of the log file
     @param date: date from witch it begins search
@@ -192,7 +192,7 @@ def find_in_log_with_timeout_with_line(log: str, date, content, timeout: int):
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = find_in_log(log, date, content, False)
+        ok, c = ctn_find_in_log(log, date, content, False)
         if ok:
             return ok, c
         time.sleep(5)
@@ -200,7 +200,7 @@ def find_in_log_with_timeout_with_line(log: str, date, content, timeout: int):
     return False, None
 
 
-def find_in_log(log: str, date, content, regex=False):
+def ctn_find_in_log(log: str, date, content, regex=False):
     """Find content in log file from the given date
 
     Args:

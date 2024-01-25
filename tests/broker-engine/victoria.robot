@@ -30,7 +30,7 @@ VICT_ONE_CHECK_METRIC
     Start Server    127.0.0.1    8000
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -89,7 +89,7 @@ VICT_ONE_CHECK_STATUS
     Start Server    127.0.0.1    8000
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -211,7 +211,7 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     Ctn Start Engine
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -220,7 +220,7 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     ${start}    Get Round Current Date
 
     ${content}    Create List    [victoria_metrics]    name: "metric_taratata"
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    victoria should add metric in a request
 
     Start Server    127.0.0.1    8000

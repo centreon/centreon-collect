@@ -25,7 +25,7 @@ EBDP1
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -46,7 +46,7 @@ EBDP1
 
     # Let's wait for the initial service states.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Ctn Remove Poller    51001    Poller3
@@ -78,7 +78,7 @@ EBDP2
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -113,7 +113,7 @@ EBDP2
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Ctn Remove Poller    51001    Poller2
@@ -150,7 +150,7 @@ EBDP_GRPC2
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -186,7 +186,7 @@ EBDP_GRPC2
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Ctn Remove Poller    51001    Poller2
@@ -217,7 +217,7 @@ EBDP3
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -246,7 +246,7 @@ EBDP3
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Ctn Remove Poller    51001    Poller2
@@ -280,7 +280,7 @@ EBDP4
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -293,7 +293,7 @@ EBDP4
 
     # Let's brutally kill the poller
     ${content}    Create List    processing poller event (id: 4, name: Poller3, running:
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    We want the poller 4 event before stopping broker
     Ctn Kindly Stop Broker
     Remove Files    ${centralLog}    ${rrdLog}
@@ -306,11 +306,11 @@ EBDP4
     ${content}    Create List
     ...    SERVICE ALERT: host_40;service_781;CRITICAL
     ...    SERVICE ALERT: host_40;service_782;WARNING
-    ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    Service alerts about service 781 and 782 should be raised
 
     ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
-    ${result}    Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
     Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
     Ctn Stop Engine
 
@@ -327,7 +327,7 @@ EBDP4
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Ctn Remove Poller    51001    Poller3
@@ -341,12 +341,12 @@ EBDP4
     Ctn Start Engine
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${content}    Create List    service status (40, 781) thrown away because host 40 is not known by any poller
     Log To Console    date ${start}
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about these two wrong service status.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -366,7 +366,7 @@ EBDP5
 
     # Let's wait until engine listens to external_commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -387,7 +387,7 @@ EBDP5
 
     # Let's wait until engine listens to external_commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
@@ -395,7 +395,7 @@ EBDP5
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
-    ${result}    Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
     Ctn Stop Engine
@@ -423,7 +423,7 @@ EBDP6
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -454,7 +454,7 @@ EBDP6
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
@@ -462,7 +462,7 @@ EBDP6
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
-    ${result}    Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
     Ctn Stop Engine
@@ -491,7 +491,7 @@ EBDP7
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -520,7 +520,7 @@ EBDP7
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
@@ -528,7 +528,7 @@ EBDP7
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
-    ${result}    Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
     Ctn Stop Engine
@@ -560,7 +560,7 @@ EBDP8
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -573,7 +573,7 @@ EBDP8
 
     # Let's brutally kill the poller
     ${content}    Create List    processing poller event (id: 4, name: Poller3, running:
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    We want the poller 4 event before stopping broker
     Ctn Kindly Stop Broker
     Remove Files    ${centralLog}    ${rrdLog}
@@ -586,11 +586,11 @@ EBDP8
     ${content}    Create List
     ...    SERVICE ALERT: host_40;service_781;CRITICAL
     ...    SERVICE ALERT: host_40;service_782;WARNING
-    ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    Service alerts about service 781 and 782 should be raised
 
     ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
-    ${result}    Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
     Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
     Ctn Stop Engine
 
@@ -615,12 +615,12 @@ EBDP8
     Ctn Start Engine
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${content}    Create List    service status (40, 781) thrown away because host 40 is not known by any poller
     Log To Console    date ${start}
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about these two wrong service status.
     Ctn Stop Engine
     Ctn Kindly Stop Broker

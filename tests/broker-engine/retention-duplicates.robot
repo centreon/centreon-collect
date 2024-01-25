@@ -30,9 +30,9 @@ BERD1
     Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
@@ -71,9 +71,9 @@ BERD2
     Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
@@ -111,9 +111,9 @@ BERDUC1
     Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
@@ -150,9 +150,9 @@ BERDUCU1
     Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     Sleep    5s
     Ctn Kindly Stop Broker
@@ -185,9 +185,9 @@ BERDUC2
     Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
@@ -224,9 +224,9 @@ BERDUCU2
     Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
@@ -262,9 +262,9 @@ BERDUC3U1
     Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
@@ -304,14 +304,14 @@ BERDUC3U2
 
     # Let's wait for the lua to be correctly initialized
     ${content}    Create List    lua: initializing the Lua virtual machine
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
 
     # Let's wait for all the services configuration.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
 
     ${start}    Get Round Current Date
     # Let's wait for a first service status.
@@ -364,15 +364,15 @@ BERDUCA300
 
     # Let's wait for all the services configuration.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
 
     Ctn Stop Engine
     ${content}    Create List    BBDO: sending pb stop packet to peer
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Engine should send a pb stop message to cbd.
 
     ${content}    Create List    BBDO: received pb stop from peer
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should receive a pb stop message from engine.
 
     ${content}    Create List    send acknowledgement for [0-9]+ events
@@ -417,15 +417,15 @@ BERDUCA301
 
     # Let's wait for all the services configuration.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
 
     Ctn Stop Engine
     ${content}    Create List    BBDO: sending pb stop packet to peer
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Engine should send a pb stop message to cbd.
 
     ${content}    Create List    BBDO: received pb stop from peer
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should receive a pb stop message from engine.
 
     ${content}    Create List    send pb acknowledgement for [0-9]+ events
