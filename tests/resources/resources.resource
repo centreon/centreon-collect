@@ -130,8 +130,8 @@ Ctn Stop Broker
 
 Ctn Stop Processes
     Terminate All Processes    kill=True
-    Kill Broker
-    Kill Engine
+    Ctn Kill Broker
+    Ctn Kill Engine
 
 Ctn Start Engine
     ${count}    Ctn Get Engines Count

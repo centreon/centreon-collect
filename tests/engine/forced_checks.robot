@@ -23,7 +23,7 @@ EFHC1
     Ctn Set Value In Engine Conf    ${0}    log_level_events    info
     Ctn Set Value In Engine Conf    ${0}    log_flush_period    0
 
-    Clear Retention
+    Ctn Clear All Retention Files
     Clear Db    hosts
     ${start}    Get Current Date
     Ctn Start Engine
@@ -70,7 +70,7 @@ EFHC2
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
 
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -117,7 +117,7 @@ EFHCU1
     Ctn Broker Config Log    central    sql    debug
     Ctn Config BBDO3    1
 
-    Clear Retention
+    Ctn Clear All Retention Files
     Clear Db    resources
     ${start}    Get Current Date
     Ctn Start Engine
@@ -167,7 +167,7 @@ EFHCU2
     Ctn Broker Config Log    central    sql    debug
     Ctn Config BBDO3    1
 
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -213,7 +213,7 @@ EMACROS
     ...    0
     ...    \\d+
     ...    /bin/echo "ResourceFile: $RESOURCEFILE$ - LogFile: $LOGFILE$ - AdminEmail: $ADMINEMAIL$ - AdminPager: $ADMINPAGER$"
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -256,7 +256,7 @@ EMACROS_NOTIF
     Ctn Set Value In Engine Contacts Conf    0    John_Doe    service_notification_commands    command_notif
 
     Remove File    /tmp/notif_toto.txt
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker

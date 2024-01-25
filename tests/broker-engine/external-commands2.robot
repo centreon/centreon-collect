@@ -22,7 +22,7 @@ BEEXTCMD30
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console
         ...    external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear All Retention Files
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -71,7 +71,7 @@ BEEXTCMD31
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -161,7 +161,7 @@ BEEXTCMD32
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -237,7 +237,7 @@ BEEXTCMD33
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -288,7 +288,7 @@ BEEXTCMD34
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -342,7 +342,7 @@ BEEXTCMD35
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -407,7 +407,7 @@ BEEXTCMD36
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -457,7 +457,7 @@ BEEXTCMD37
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -526,7 +526,7 @@ BEEXTCMD38
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -580,7 +580,7 @@ BEEXTCMD39
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -627,7 +627,7 @@ BEEXTCMD40
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -677,7 +677,7 @@ BEEXTCMD41
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -728,7 +728,7 @@ BEEXTCMD42
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -784,7 +784,7 @@ BEEXTCMD_GRPC1
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear All Retention Files
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -823,7 +823,7 @@ BEEXTCMD_GRPC2
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear All Retention Files
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -866,7 +866,7 @@ BEEXTCMD_GRPC3
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear All Retention Files
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -904,7 +904,7 @@ BEEXTCMD_GRPC4
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear All Retention Files
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -947,7 +947,7 @@ BEEXTCMD_REVERSE_GRPC1
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear All Retention Files
         ${start}    Get Current Date
         Sleep    1s
         Ctn Start Broker
@@ -991,7 +991,7 @@ BEEXTCMD_REVERSE_GRPC2
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc} reversed
-        Clear Retention
+        Ctn Clear All Retention Files
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -1038,7 +1038,7 @@ BEEXTCMD_REVERSE_GRPC3
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc} reversed
-        Clear Retention
+        Ctn Clear All Retention Files
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -1080,7 +1080,7 @@ BEEXTCMD_REVERSE_GRPC4
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc} reversed
-        Clear Retention
+        Ctn Clear All Retention Files
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -1122,7 +1122,7 @@ BEEXTCMD_COMPRESS_GRPC1
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear All Retention Files
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine

@@ -20,7 +20,7 @@ ANO_NOFILE
     Ctn Config Broker Sql Output    central    unified_sql
     ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     Remove File    /tmp/anomaly_threshold.json
-    Clear Retention
+    Ctn Clear All Retention Files
     Clear Db    services
     Ctn Start Broker    True
     Ctn Start Engine
@@ -40,7 +40,7 @@ ANO_TOO_OLD_FILE
     ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,0,2],[1648812678,0,3]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
-    Clear Retention
+    Ctn Clear All Retention Files
     Clear Db    services
     Ctn Start Broker    True
     Ctn Start Engine
@@ -60,7 +60,7 @@ ANO_OUT_LOWER_THAN_LIMIT
     ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
-    Clear Retention
+    Ctn Clear All Retention Files
     Clear Db    services
     Ctn Start Broker    True
     Ctn Start Engine
@@ -80,7 +80,7 @@ ANO_OUT_UPPER_THAN_LIMIT
     ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
-    Clear Retention
+    Ctn Clear All Retention Files
     Clear Db    services
     Ctn Start Broker    True
     Ctn Start Engine
@@ -102,7 +102,7 @@ ANO_JSON_SENSITIVITY_NOT_SAVED
     ...    metric
     ...    55.0
     ...    ${predict_data}
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Start Engine
     Sleep    5s
     Ctn Stop Engine
@@ -122,7 +122,7 @@ ANO_CFG_SENSITIVITY_SAVED
     ...    metric
     ...    55.0
     ...    ${predict_data}
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Start Engine
     Sleep    5s
     Ctn Stop Engine
@@ -143,7 +143,7 @@ ANO_EXTCMD_SENSITIVITY_SAVED
         ...    metric
         ...    55.0
         ...    ${predict_data}
-        Clear Retention
+        Ctn Clear All Retention Files
         Ctn Start Engine
         Sleep    5s
         Update Ano Sensitivity    ${use_grpc}    host_1    anomaly_1001    4.55
@@ -166,7 +166,7 @@ AOUTLU1
     ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
-    Clear Retention
+    Ctn Clear All Retention Files
     Clear Db    services
     Ctn Start Broker
     ${start}    Get Current Date
@@ -199,7 +199,7 @@ ANO_DT1
     ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
-    Clear Retention
+    Ctn Clear All Retention Files
     Clear Db    services
     Clear Db    downtimes
     Ctn Start Broker
@@ -234,7 +234,7 @@ ANO_DT2
     ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
-    Clear Retention
+    Ctn Clear All Retention Files
     Clear Db    services
     Clear Db    downtimes
     Ctn Start Broker
@@ -273,7 +273,7 @@ ANO_DT3
     ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
-    Clear Retention
+    Ctn Clear All Retention Files
     Clear Db    services
     Clear Db    downtimes
     Ctn Start Broker
@@ -313,7 +313,7 @@ ANO_DT4
     ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
-    Clear Retention
+    Ctn Clear All Retention Files
     Clear Db    services
     Clear Db    downtimes
     Ctn Start Broker

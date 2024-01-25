@@ -206,7 +206,7 @@ BAM_STREAM_FILTER
 UNIFIED_SQL_FILTER
     [Documentation]    With bbdo version 3.0.1, we watch events written or rejected in unified_sql
     [Tags]    broker    engine    bam    filter
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -243,7 +243,7 @@ CBD_RELOAD_AND_FILTERS
     [Documentation]    We start engine/broker with a classical configuration. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
     [Tags]    broker    engine    filter
 
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -343,7 +343,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     [Documentation]    We start engine/broker with an almost classical configuration, just the connection between cbd central and cbd rrd is reversed with one peer retention. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
     [Tags]    broker    engine    filter
 
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd

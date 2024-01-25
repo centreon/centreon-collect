@@ -20,7 +20,7 @@ BEPBBEE1
     Ctn Add Item To Broker Conf    module0    bbdo_version    3.0.0
     Ctn Broker Config Log    module0    bbdo    debug
     Ctn Broker Config Log    central    bbdo    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -42,7 +42,7 @@ BEPBBEE2
     Ctn Add Item To Broker Conf    rrd    bbdo_version    3.0.0
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Flush Log    central    0
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -64,7 +64,7 @@ BEPBBEE3
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-pbservicestatus.lua
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -84,7 +84,7 @@ BEPBBEE4
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-pbhoststatus.lua
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -104,7 +104,7 @@ BEPBBEE5
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-pbservice.lua
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -126,7 +126,7 @@ BEPBRI1
     Ctn Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    2
 
     Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-responsiveinstance.lua
-    Clear Retention
+    Ctn Clear All Retention Files
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM instances
     ${start}    Get Current Date
@@ -155,7 +155,7 @@ BEPBCVS
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker    True
     Ctn Start Engine
@@ -186,7 +186,7 @@ BEPB_HOST_DEPENDENCY
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker    True
     Ctn Start Engine
@@ -227,7 +227,7 @@ BEPB_SERVICE_DEPENDENCY
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker    True
     Ctn Start Engine

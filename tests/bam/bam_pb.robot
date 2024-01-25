@@ -1112,7 +1112,7 @@ BAM Setup
 
 BAM Init
     Clear Commands Status
-    Clear Retention
+    Ctn Clear All Retention Files
     Clear Db Conf    mod_bam
     Ctn Config Broker    module
     Ctn Config Broker    central

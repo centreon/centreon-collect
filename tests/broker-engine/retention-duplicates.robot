@@ -25,7 +25,7 @@ BERD1
     Ctn Add Lua Output To Broker Conf    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Ctn Broker Config Log    module0    lua    debug
     Ctn Config Broker    rrd
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -66,7 +66,7 @@ BERD2
     Ctn Broker Config Log    module0    lua    debug
     Ctn Broker Config Log    module0    neb    debug
     Ctn Config Broker    rrd
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -106,7 +106,7 @@ BERDUC1
     Ctn Broker Config Log    module0    lua    debug
     Ctn Broker Config Log    module0    neb    debug
     Ctn Config Broker    rrd
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -145,7 +145,7 @@ BERDUCU1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Broker Config Flush Log    module0    0
     Ctn Config Broker    rrd
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -168,7 +168,7 @@ BERDUCU1
 BERDUC2
     [Documentation]    Starting/stopping Engine does not create duplicated events in usual cases
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Engine    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
@@ -205,7 +205,7 @@ BERDUC2
 BERDUCU2
     [Documentation]    Starting/stopping Engine does not create duplicated events in usual cases with unified_sql
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Engine    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
@@ -257,7 +257,7 @@ BERDUC3U1
     Ctn Broker Config Flush Log    module0    0
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -282,7 +282,7 @@ BERDUC3U1
 BERDUC3U2
     [Documentation]    Starting/stopping Engine does not create duplicated events in usual cases with unified_sql and BBDO 3.0
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Engine    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
@@ -335,7 +335,7 @@ BERDUC3U2
 BERDUCA300
     [Documentation]    Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker.
     [Tags]    broker    engine    start-stop    duplicate    retention    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Engine    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
@@ -388,7 +388,7 @@ BERDUCA300
 BERDUCA301
     [Documentation]    Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker with bbdo 3.0.1.
     [Tags]    broker    engine    start-stop    duplicate    retention    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Engine    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}

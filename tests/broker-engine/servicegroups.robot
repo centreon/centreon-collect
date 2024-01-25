@@ -22,7 +22,7 @@ EBNSG1
     Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
 
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -53,7 +53,7 @@ EBNSGU1
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
 
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -86,7 +86,7 @@ EBNSGU2
     Ctn Config BBDO3    4
     Ctn Broker Config Log    central    sql    debug
 
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Start Broker
     Ctn Start Engine
     Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
@@ -126,7 +126,7 @@ EBNSGU3_${test_label}
     Ctn Config Broker Sql Output    central    unified_sql    5
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Add Lua Output To Broker Conf    central    test-cache    ${SCRIPTS}test-dump-groups.lua
-    Clear Retention
+    Ctn Clear All Retention Files
 
     Create File    /tmp/lua-engine.log
 

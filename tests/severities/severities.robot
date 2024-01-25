@@ -22,7 +22,7 @@ BESEV1
     Ctn Config Broker    module
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -45,7 +45,7 @@ BESEV2
     Ctn Config Broker    module
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Sleep    1s
@@ -71,7 +71,7 @@ BEUSEV1
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -96,7 +96,7 @@ BEUSEV2
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Sleep    1s
@@ -123,7 +123,7 @@ BEUSEV3
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    trace
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -166,7 +166,7 @@ BEUSEV4
     Ctn Config BBDO3    2
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    trace
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -241,7 +241,7 @@ BETUSEV1
     Ctn Config BBDO3    2
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    trace
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker

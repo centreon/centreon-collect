@@ -24,7 +24,7 @@ BEUHSEV1
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    trace
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -68,7 +68,7 @@ BEUHSEV2
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
     Ctn Broker Config Log    central    sql    trace
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -144,7 +144,7 @@ BETUHSEV1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
     Ctn Broker Config Log    central    sql    trace
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker

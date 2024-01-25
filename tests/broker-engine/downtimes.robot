@@ -28,7 +28,7 @@ BEDTMASS1
     Ctn Config BBDO3    3
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -84,7 +84,7 @@ BEDTMASS2
     Ctn Broker Config Log    module2    neb    debug
 
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -135,7 +135,7 @@ BEDTSVCREN1
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    debug
 
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -178,7 +178,7 @@ BEDTSVCFIXED
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    debug
 
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -213,7 +213,7 @@ BEDTHOSTFIXED
     Ctn Broker Config Log    module0    neb    debug
     Ctn Config Broker Sql Output    central    unified_sql
 
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine

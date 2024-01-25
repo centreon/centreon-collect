@@ -20,7 +20,7 @@ EBNSVC1
     Ctn Config BBDO3    3
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -60,7 +60,7 @@ Service_increased_huge_check_interval
     Ctn Config Broker Sql Output    central    unified_sql    10
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Clear Retention
+    Ctn Clear All Retention Files
     Clear Db    services
     Clear Db    index_data
     Clear Db    metrics

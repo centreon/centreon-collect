@@ -22,7 +22,7 @@ BERES1
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
@@ -54,7 +54,7 @@ BEHS1
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    no
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    yes
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -184,7 +184,7 @@ BE_NOTIF_OVERFLOW
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    perfdata    trace
 
-    Clear Retention
+    Ctn Clear All Retention Files
 
     Ctn Start Broker
     Ctn Start Engine
@@ -223,7 +223,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Execute SQL String    DELETE FROM resources
     Execute SQL String    DELETE FROM hosts
 
-    Clear Retention
+    Ctn Clear All Retention Files
 
     Ctn Start Broker
     Ctn Start Engine
@@ -257,7 +257,7 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     Execute SQL String    DELETE FROM resources
     Execute SQL String    DELETE FROM hosts
 
-    Clear Retention
+    Ctn Clear All Retention Files
 
     Ctn Start Broker
     Ctn Start Engine

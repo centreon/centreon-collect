@@ -25,7 +25,7 @@ EBBPS1
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    perfdata    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
     Ctn Start Broker
@@ -108,7 +108,7 @@ EBBPS2
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    perfdata    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
     Ctn Start Broker
@@ -191,7 +191,7 @@ EBMSSM
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker Remove Rrd Output    central
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -239,7 +239,7 @@ EBPS2
     Ctn Broker Config Log    central    perfdata    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker Remove Rrd Output    central
-    Clear Retention
+    Ctn Clear All Retention Files
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -265,7 +265,7 @@ RLCode
     [Documentation]    Test if reloading LUA code in a stream connector applies the changes
     [Tags]    lua    stream connector
     Clear Commands Status
-    Clear Retention
+    Ctn Clear All Retention Files
 
     Remove File    /tmp/toto.lua
     Ctn Config Engine    ${1}    ${1}    ${10}
@@ -335,7 +335,7 @@ metric_mapping
     [Documentation]    Check if metric name exists using a stream connector
     [Tags]    broker    engine    bbdo    unified_sql    metric
     Clear Commands Status
-    Clear Retention
+    Ctn Clear All Retention Files
 
     Remove File    /tmp/test.log
     Ctn Config Engine    ${1}    ${1}    ${10}
@@ -402,7 +402,7 @@ Services_and_bulks_${id}
     Ctn Broker Config Source Log    central    1
 
     Ctn Config Broker Remove Rrd Output    central
-    Clear Retention
+    Ctn Clear All Retention Files
     Clear Db    metrics
 
     ${start}    Get Current Date

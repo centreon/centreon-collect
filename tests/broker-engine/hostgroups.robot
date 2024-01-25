@@ -194,7 +194,7 @@ EBNHGU4_${test_label}
     Ctn Config Broker Sql Output    central    unified_sql    5
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Add Lua Output To Broker Conf    central    test-cache    ${SCRIPTS}test-dump-groups.lua
-    Clear Retention
+    Ctn Clear All Retention Files
 
     Create File    /tmp/lua-engine.log
 

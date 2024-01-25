@@ -13,7 +13,7 @@ Test Teardown       Save SSH Logs If Failed
 TestBadUser
     [Documentation]    test unknown user
     [Tags]    connector    engine
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Broker    module    ${1}
     Ctn Config Engine    ${1}
 
@@ -47,7 +47,7 @@ TestBadUser
 TestBadPwd
     [Documentation]    test bad password
     [Tags]    connector    engine
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Broker    module    ${1}
     Ctn Config Engine    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_level_commands    trace
@@ -84,7 +84,7 @@ Test6Hosts
     Run    cat ~testconnssh/.ssh/id_rsa.pub ~root/.ssh/id_rsa.pub > ~testconnssh/.ssh/authorized_keys
     # Run    chown testconnssh: ~testconnssh/.ssh/authorized_keys
     # Run    chmod 600 ~testconnssh/.ssh/authorized_keys
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Broker    module    ${1}
     Ctn Config Engine    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_level_commands    trace
@@ -93,7 +93,7 @@ Test6Hosts
     ...    ssh_linux_snmp
     ...    $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"
     ...    SSH Connector
-    ${run_env}    Run Env
+    ${run_env}    Ctn Run Env
     Ctn Set Value In Engine Hosts Conf    ${0}    host_1    _USER    testconnssh
     Ctn Replace Value In Engine Hosts Conf    ${0}    host_1    check_command    ssh_linux_snmp
     Ctn Set Value In Engine Hosts Conf    ${0}    host_1    _IDENTITYFILE    /home/testconnssh/.ssh/id_rsa
@@ -149,7 +149,7 @@ TestWhiteList
     Run    cat ~testconnssh/.ssh/id_rsa.pub ~root/.ssh/id_rsa.pub > ~testconnssh/.ssh/authorized_keys
     # Run    chown testconnssh: ~testconnssh/.ssh/authorized_keys
     # Run    chmod 600 ~testconnssh/.ssh/authorized_keys
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Broker    module    ${1}
     Ctn Config Engine    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_level_commands    trace
@@ -158,7 +158,7 @@ TestWhiteList
     ...    ssh_linux_snmp
     ...    $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"
     ...    SSH Connector
-    ${run_env}    Run Env
+    ${run_env}    Ctn Run Env
     Ctn Set Value In Engine Hosts Conf    ${0}    host_1    _USER    testconnssh
     Ctn Replace Value In Engine Hosts Conf    ${0}    host_1    check_command    ssh_linux_snmp
     Ctn Set Value In Engine Hosts Conf    ${0}    host_1    _IDENTITYFILE    /home/testconnssh/.ssh/id_rsa

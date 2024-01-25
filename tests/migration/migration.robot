@@ -21,7 +21,7 @@ MIGRATION
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    rrd    rrd    trace
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine

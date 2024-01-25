@@ -713,7 +713,7 @@ Config Notifications
     Ctn Broker Config Log    central    sql    error
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker Remove Rrd Output    central
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Engine Add Cfg File    ${0}    contacts.cfg
     Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg
     Ctn Config Engine Add Cfg File    ${0}    escalations.cfg

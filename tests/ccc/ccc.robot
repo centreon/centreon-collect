@@ -16,7 +16,7 @@ BECCC1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
@@ -46,7 +46,7 @@ BECCC2
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
@@ -79,7 +79,7 @@ BECCC3
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
@@ -111,7 +111,7 @@ BECCC4
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
@@ -142,7 +142,7 @@ BECCC5
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
@@ -173,7 +173,7 @@ BECCC6
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
@@ -218,7 +218,7 @@ BECCC7
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
@@ -251,7 +251,7 @@ BECCC8
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker

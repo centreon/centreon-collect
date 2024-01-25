@@ -14,7 +14,7 @@ BABOO
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
     [Tags]    broker    engine    bam    boolean_expression
     Clear Commands Status
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -86,7 +86,7 @@ BABOOOR
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
     [Tags]    broker    engine    bam    boolean_expression
     Clear Commands Status
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -133,7 +133,7 @@ BABOOAND
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if both of its two services are ok is created. When one condition is false, the and operator returns false as a result even if the other child is unknown.
     [Tags]    broker    engine    bam    boolean_expression
     Clear Commands Status
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -180,7 +180,7 @@ BABOOORREL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if one of its two services is ok is created. One of the two underlying services must change of state to change the ba state. For this purpose, we change the service state and reload cbd. So the rule is something like "False OR True" which is equal to True. And to pass from True to False, we change the second service.
     [Tags]    broker    engine    bam    boolean_expression
     Clear Commands Status
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -275,7 +275,7 @@ BABOOCOMPL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
     [Tags]    broker    engine    bam    boolean_expression
     Clear Commands Status
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd

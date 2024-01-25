@@ -21,7 +21,7 @@ BETAG1
     Ctn Config Broker    module
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
@@ -47,7 +47,7 @@ BETAG2
     Ctn Config Broker    module
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     Sleep    1s
     ${start}    Get Current Date
     Ctn Start Engine
@@ -76,7 +76,7 @@ BEUTAG1
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
@@ -108,7 +108,7 @@ BEUTAG2
     Ctn Broker Config Output Set    central    central-broker-unified-sql    retry_interval    5
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    error
-    Clear Retention
+    Ctn Clear All Retention Files
     Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
@@ -147,7 +147,7 @@ BEUTAG3
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     Sleep    1s
     ${start}    Get Current Date
     Ctn Start Engine
@@ -179,7 +179,7 @@ BEUTAG4
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Sleep    1s
@@ -215,7 +215,7 @@ BEUTAG5
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     Sleep    1s
     ${start}    Get Current Date
     Ctn Start Engine
@@ -253,7 +253,7 @@ BEUTAG6
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     Sleep    1s
     ${start}    Get Current Date
     Ctn Start Engine
@@ -295,7 +295,7 @@ BEUTAG7
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
     Ctn Broker Config Log    central    sql    trace
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -366,7 +366,7 @@ BEUTAG8
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
     Ctn Broker Config Log    central    sql    trace
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -418,7 +418,7 @@ BEUTAG9
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
     Ctn Broker Config Log    central    sql    trace
-    Clear Retention
+    Ctn Clear All Retention Files
     Sleep    1s
     ${start}    Get Current Date
     Ctn Start Engine
@@ -476,7 +476,7 @@ BEUTAG10
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
     Ctn Broker Config Log    central    sql    trace
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -542,7 +542,7 @@ BEUTAG11
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
     Ctn Broker Config Log    central    sql    trace
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -602,7 +602,7 @@ BEUTAG12
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear All Retention Files
     Sleep    1s
     ${start}    Get Current Date
     Ctn Start Engine
@@ -657,7 +657,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    trace
-    Clear Retention
+    Ctn Clear All Retention Files
     Sleep    1s
     ${start}    Get Current Date
     Ctn Start Engine

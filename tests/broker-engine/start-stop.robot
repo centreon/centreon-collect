@@ -376,7 +376,7 @@ BESS_ENGINE_DELETE_HOST
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Clear Retention
+    Ctn Clear All Retention Files
     ${start}    Get Current Date
     Ctn Start Broker    True
     Ctn Start Engine
@@ -407,7 +407,7 @@ BESSBQ1
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    core    debug
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear All Retention Files
     Create Bad Queue    central-broker-master.queue.central-broker-master-sql
     ${start}    Get Current Date
     Ctn Start Broker
