@@ -233,7 +233,7 @@ Save SSH Logs If Failed
     Run Keyword If Test Failed    Save SSH Logs
 
 Save SSH Logs
-    Save Logs
+    Ctn Save Logs
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Copy File    ${ENGINE_LOG}/config0/connector_ssh.log    ${failDir}
 

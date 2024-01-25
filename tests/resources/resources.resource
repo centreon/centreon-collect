@@ -89,7 +89,7 @@ Ctn Kindly Stop Broker
     # In case of process not stopping
     IF    "${result}" == "${None}"
         Ctn Save Logs
-        Dump Process    b1    /usr/sbin/cbd    broker-central
+        Ctn Dump Process    b1    /usr/sbin/cbd    broker-central
         Send Signal To Process    SIGKILL    b1
         Fail    Central Broker not correctly stopped (coredump generated)
     ELSE
@@ -106,7 +106,7 @@ Ctn Kindly Stop Broker
         # In case of process not stopping
         IF    "${result}" == "${None}"
             Ctn Save Logs
-            Dump Process    b2    /usr/sbin/cbd    broker-rrd
+            Ctn Dump Process    b2    /usr/sbin/cbd    broker-rrd
             Send Signal To Process    SIGKILL    b2
             Fail    RRD Broker not correctly stopped (coredump generated)
         ELSE
@@ -176,7 +176,7 @@ Ctn Stop Engine
         ${result}    Wait For Process    ${alias}    timeout=60s
         IF    "${result}" == "${None}"
             ${name}    Catenate    SEPARATOR=    centengine    ${idx}
-            Dump Process    ${alias}    /usr/sbin/centengine    ${name}
+            Ctn Dump Process    ${alias}    /usr/sbin/centengine    ${name}
             Send Signal To Process    SIGKILL    ${alias}
             Fail    ${name} not correctly stopped (coredump generated)
         ELSE
@@ -256,7 +256,7 @@ Ctn Save Logs
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
     Move Files    /tmp/lua*.log    ${failDir}
 
-Dump Process
+Ctn Dump Process
     [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${pid}    Get Process Id    ${process_name}
     IF    ${pid} is not ${None}
@@ -295,7 +295,7 @@ Ctn Coredump Info
     ...    stdout=${output}
     ...    stderr=${output}
 
-Copy Coredump In Failed Dir
+Ctn Copy Coredump In Failed Dir
     [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${docker_env}    Get Environment Variable    RUN_ENV    ${None}
     IF    "${docker_env}" == ""
@@ -305,31 +305,31 @@ Copy Coredump In Failed Dir
         Copy File    /tmp/core.${pid}    ${failDir}
     END
 
-Wait Or Dump And Kill Process
+Ctn Wait Or Dump And Kill Process
     [Arguments]    ${process_name}    ${binary_path}    ${timeout}
     ${result}    Wait For Process    ${process_name}    timeout=${timeout}    on_timeout=continu
     ${test_none}    Set Variable If    $result is None    "not killed"    "killed"
     IF    ${test_none} == "not killed"
         ${pid}    Get Process Id    ${process_name}
-        Dump Process    ${process_name}    ${binary_path}    ${process_name}
+        Ctn Dump Process    ${process_name}    ${binary_path}    ${process_name}
         ${result}    Wait For Process    ${process_name}    timeout=1s    on_timeout=kill
     END
     RETURN    ${result}
 
-Clear Metrics
+Ctn Clear Metrics
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM metrics
     Execute SQL String    DELETE FROM index_data
     Execute SQL String    DELETE FROM data_bin
 
-Dump Ba On Error
+Ctn Dump Ba On Error
     [Arguments]    ${result}    ${ba_id}
     IF    not ${result}
         Ctn Save Logs
         Dump Ba    51001    ${ba_id}    failed/${Test Name}/ba_${ba_id}.dot
     END
 
-Process Service Result Hard
+Ctn Process Service Result Hard
     [Arguments]    ${host}    ${svc}    ${state}    ${output}
     Repeat Keyword
     ...    3 times
