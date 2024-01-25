@@ -108,7 +108,7 @@ BAWORST2
     BAM Init
 
     ${id_ba__sid}    Ctn Create Ba    test    worst    100    100
-    Add Boolean Kpi
+    Ctn Add Boolean Kpi
     ...    ${id_ba__sid[0]}
     ...    {host_16 service_302} {IS} {OK}
     ...    False
@@ -624,7 +624,7 @@ BA_BOOL_KPI
     BAM Init
 
     ${id_ba__sid}    Ctn Create Ba    test    worst    100    100
-    Add Boolean Kpi
+    Ctn Add Boolean Kpi
     ...    ${id_ba__sid[0]}
     ...    {host_16 service_302} {IS} {OK} {OR} ( {host_16 service_303} {IS} {OK} {AND} {host_16 service_314} {NOT} {UNKNOWN} )
     ...    False
@@ -804,7 +804,7 @@ BEPB_DIMENSION_KPI_EVENT
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     ${baid_svcid}    Ctn Create Ba With Services    test    worst    ${svc}
 
-    Add Boolean Kpi    ${baid_svcid[0]}    {host_16 service_302} {IS} {OK}    False    100
+    Ctn Add Boolean Kpi    ${baid_svcid[0]}    {host_16 service_302} {IS} {OK}    False    100
 
     Ctn Start Broker    True
     Ctn Start Engine

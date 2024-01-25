@@ -37,7 +37,7 @@ BABOO
     Add Service KPI    host_16    service_303    ${id_ba_worst__sid[0]}    40    30    20
 
     ${id_boolean_ba__sid}    Ctn Create Ba    boolean-ba    impact    70    80
-    Add Boolean Kpi
+    Ctn Add Boolean Kpi
     ...    ${id_boolean_ba__sid[0]}
     ...    {host_16 service_302} {IS} {CRITICAL} {OR} {host_16 service_303} {IS} {CRITICAL}
     ...    True
@@ -105,7 +105,7 @@ BABOOOR
     Set Services Passive    ${0}    service_303
 
     ${id_ba__sid}    Ctn Create Ba    boolean-ba    impact    70    80
-    Add Boolean Kpi
+    Ctn Add Boolean Kpi
     ...    ${id_ba__sid[0]}
     ...    {host_16 service_302} {IS} {CRITICAL} {OR} {host_16 service_303} {IS} {CRITICAL}
     ...    True
@@ -152,7 +152,7 @@ BABOOAND
     Set Services Passive    ${0}    service_303
 
     ${id_ba__sid}    Ctn Create Ba    boolean-ba    impact    70    80
-    Add Boolean Kpi
+    Ctn Add Boolean Kpi
     ...    ${id_ba__sid[0]}
     ...    {host_16 service_302} {IS} {OK} {AND} {host_16 service_303} {IS} {OK}
     ...    False
@@ -200,7 +200,7 @@ BABOOORREL
     Set Services Passive    ${0}    service_304
 
     ${id_ba__sid}    Ctn Create Ba    boolean-ba    impact    70    80
-    ${id_bool}    Add Boolean Kpi
+    ${id_bool}    Ctn Add Boolean Kpi
     ...    ${id_ba__sid[0]}
     ...    {host_16 service_302} {IS} {OK} {OR} {host_16 service_303} {IS} {OK}
     ...    False
@@ -296,7 +296,7 @@ BABOOCOMPL
     END
 
     ${id_ba__sid}    Ctn Create Ba    boolean-ba    impact    70    80
-    ${id_bool}    Add Boolean Kpi
+    ${id_bool}    Ctn Add Boolean Kpi
     ...    ${id_ba__sid[0]}
     ...    ({host_1 service_1} {IS} {OK} {OR} {host_1 service_2} {IS} {OK}) {AND} ({host_1 service_3} {IS} {OK} {OR} {host_1 service_4} {IS} {OK}) {AND} ({host_1 service_5} {IS} {OK} {OR} {host_1 service_6} {IS} {OK}) {AND} ({host_1 service_7} {IS} {OK} {OR} {host_1 service_8} {IS} {OK}) {AND} ({host_1 service_9} {IS} {OK} {OR} {host_1 service_10} {IS} {OK}) {AND} ({host_1 service_11} {IS} {OK} {OR} {host_1 service_12} {IS} {OK}) {AND} ({host_1 service_13} {IS} {OK} {OR} {host_1 service_14} {IS} {OK}) {AND} ({host_1 service_15} {IS} {OK} {OR} {host_1 service_16} {IS} {OK}) {AND} ({host_1 service_17} {IS} {OK} {OR} {host_1 service_18} {IS} {OK}) {AND} ({host_1 service_19} {IS} {OK} {OR} {host_1 service_20} {IS} {OK})
     ...    False
