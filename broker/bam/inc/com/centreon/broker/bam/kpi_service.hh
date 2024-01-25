@@ -104,10 +104,10 @@ class kpi_service : public service_listener, public kpi {
   bool ok_state() const override;
   void update_from(computable* child, io::stream* visitor) override;
   std::string object_info() const override;
-  void dump(std::ofstream& output) const;
+  void dump(std::ofstream& output) const override;
 };
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_KPI_SERVICE_HH
