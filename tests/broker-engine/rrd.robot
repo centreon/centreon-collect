@@ -27,7 +27,7 @@ BRRDDM1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     # We choose 3 metrics to remove.
@@ -71,7 +71,7 @@ BRRDWM1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     ${content}    Create List    RRD: new pb data for metric
@@ -95,7 +95,7 @@ BRRDDID1
     Sleep    1s
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     ${indexes}    Get Indexes To Delete    2
@@ -142,7 +142,7 @@ BRRDDMID1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     ${indexes}    Get Not Existing Indexes    2
@@ -174,7 +174,7 @@ BRRDDMU1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     # We choose 3 metrics to remove.
@@ -218,7 +218,7 @@ BRRDDIDU1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     ${indexes}    Get Indexes To Delete    2
@@ -264,7 +264,7 @@ BRRDDMIDU1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     ${indexes}    Get Not Existing Indexes    2
@@ -295,7 +295,7 @@ BRRDRM1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
@@ -354,7 +354,7 @@ BRRDRMU1
     ${start}    Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
@@ -412,7 +412,7 @@ RRD1
 
     ${start}    Get Round Current Date
     Run Keywords    Ctn Start Broker    AND    Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild

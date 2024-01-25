@@ -19,7 +19,7 @@ BESS1
     Config Broker    rrd
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -33,7 +33,7 @@ BESS2
     Config Broker    rrd
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}
     ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
@@ -51,7 +51,7 @@ BESS3
     Config Broker    rrd
     Ctn Start Engine
     Ctn Start Broker
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}
     ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
@@ -69,7 +69,7 @@ BESS4
     Config Broker    rrd
     Ctn Start Engine
     Ctn Start Broker
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}
     ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
@@ -86,7 +86,7 @@ BESS5
     Ctn Set Value In Engine Conf    ${0}    debug_level    ${-1}
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Broker and Engine seem not connected
     [Teardown]    Ctn Stop Engine Broker And Save Logs
 
@@ -103,7 +103,7 @@ BESS_GRPC1
     Change Broker Tcp Input To Grpc    rrd
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -121,7 +121,7 @@ BESS_GRPC2
     Change Broker Tcp Input To Grpc    rrd
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}
     ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
@@ -143,7 +143,7 @@ BESS_GRPC3
     Change Broker Tcp Input To Grpc    rrd
     Ctn Start Engine
     Ctn Start Broker
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}
     ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
@@ -165,7 +165,7 @@ BESS_GRPC4
     Change Broker Tcp Input To Grpc    rrd
     Ctn Start Engine
     Ctn Start Broker
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -184,7 +184,7 @@ BESS_GRPC5
     Change Broker Tcp Input To Grpc    rrd
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}
     ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
@@ -208,7 +208,7 @@ BESS_GRPC_COMPRESS1
     Change Broker Compression Input    central    centreon-broker-master-input    yes
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}
     ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
@@ -238,7 +238,7 @@ BESS_CRYPTED_GRPC1
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
-        ${result}    Check Connections
+        ${result}    Ctn Check Connections
         Should Be True    ${result}
         ${result}    Check Poller Enabled In Database    1    10
         Should Be True    ${result}
@@ -315,7 +315,7 @@ BESS_CRYPTED_REVERSED_GRPC1
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
-        ${result}    Check Connections
+        ${result}    Ctn Check Connections
         Should Be True    ${result}
         Sleep    2s
         Ctn Kindly Stop Broker
@@ -442,7 +442,7 @@ Start_Stop_Engine_Broker_${id}
     ${content}    Create List    create feeder central-broker-master-input
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    create feeder not found
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    no connection between engine and cbd
     Sleep    5s
     ${start_stop}    Get Current Date
@@ -479,7 +479,7 @@ Start_Stop_Broker_Engine_${id}
     ${content}    Create List    create feeder central-broker-master-input
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    create feeder not found
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    no connection between engine and cbd
     Sleep    5s
     ${stop_broker}    Get Current Date
