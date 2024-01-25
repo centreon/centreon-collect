@@ -1229,7 +1229,7 @@ def ctn_change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval
         f.close()
 
 
-def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_attempts: int):
+def ctn_change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_attempts: int):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1244,7 +1244,7 @@ def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_a
         f.close()
 
 
-def change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: int):
+def ctn_change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: int):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1259,7 +1259,7 @@ def change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: 
         f.close()
 
 
-def change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str):
+def ctn_change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1274,7 +1274,7 @@ def change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str)
         f.close()
 
 
-def change_host_notification_timeperiod(use_grpc: int, hst: str, notification_timeperiod: str):
+def ctn_change_host_notification_timeperiod(use_grpc: int, hst: str, notification_timeperiod: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1289,7 +1289,7 @@ def change_host_notification_timeperiod(use_grpc: int, hst: str, notification_ti
         f.close()
 
 
-def change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeperiod: str):
+def ctn_change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeperiod: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1304,7 +1304,7 @@ def change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeper
         f.close()
 
 
-def change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notification_timeperiod: str):
+def ctn_change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notification_timeperiod: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)

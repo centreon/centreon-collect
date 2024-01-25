@@ -182,7 +182,7 @@ BEEXTCMD5
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Ctn Change Retryl Svc Check Interval    ${use_grpc}    host_1    service_1    15
+        Ctn Change Retry Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -219,7 +219,7 @@ BEEXTCMD6
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Ctn Change Retryl Svc Check Interval    ${use_grpc}    host_1    service_1    10
+        Ctn Change Retry Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -260,7 +260,7 @@ BEEXTCMD7
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Ctn Change Retryl Host Check Interval    ${use_grpc}    host_1    15
+        Ctn Change Retry Host Check Interval    ${use_grpc}    host_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -296,7 +296,7 @@ BEEXTCMD8
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Ctn Change Retryl Host Check Interval    ${use_grpc}    host_1    10
+        Ctn Change Retry Host Check Interval    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -333,7 +333,7 @@ BEEXTCMD9
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Max Svc Check Attempts    ${use_grpc}    host_1    service_1    15
+        Ctn Change Max Svc Check Attempts    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -380,7 +380,7 @@ BEEXTCMD10
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Max Svc Check Attempts    ${use_grpc}    host_1    service_1    10
+        Ctn Change Max Svc Check Attempts    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -421,7 +421,7 @@ BEEXTCMD11
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Max Host Check Attempts    ${use_grpc}    host_1    15
+        Ctn Change Max Host Check Attempts    ${use_grpc}    host_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -466,7 +466,7 @@ BEEXTCMD12
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Max Host Check Attempts    ${use_grpc}    host_1    10
+        Ctn Change Max Host Check Attempts    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -506,7 +506,7 @@ BEEXTCMD13
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Host Check Timeperiod    ${use_grpc}    host_1    24x6
+        Ctn Change Host Check Timeperiod    ${use_grpc}    host_1    24x6
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -543,7 +543,7 @@ BEEXTCMD14
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Host Check Timeperiod    ${use_grpc}    host_1    24x6
+        Ctn Change Host Check Timeperiod    ${use_grpc}    host_1    24x6
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -583,7 +583,7 @@ BEEXTCMD15
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Host Notification Timeperiod    ${use_grpc}    host_1    24x7
+        Ctn Change Host Notification Timeperiod    ${use_grpc}    host_1    24x7
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -620,7 +620,7 @@ BEEXTCMD16
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Host Notification Timeperiod    ${use_grpc}    host_1    24x6
+        Ctn Change Host Notification Timeperiod    ${use_grpc}    host_1    24x6
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -660,7 +660,7 @@ BEEXTCMD17
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Svc Check Timeperiod    ${use_grpc}    host_1    service_1    24x6
+        Ctn Change Svc Check Timeperiod    ${use_grpc}    host_1    service_1    24x6
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -699,7 +699,7 @@ BEEXTCMD18
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Svc Check Timeperiod    ${use_grpc}    host_1    service_1    24x7
+        Ctn Change Svc Check Timeperiod    ${use_grpc}    host_1    service_1    24x7
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -741,7 +741,7 @@ BEEXTCMD19
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Svc Notification Timeperiod    ${use_grpc}    host_1    service_1    24x7
+        Ctn Change Svc Notification Timeperiod    ${use_grpc}    host_1    service_1    24x7
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -780,7 +780,7 @@ BEEXTCMD20
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Svc Notification Timeperiod    ${use_grpc}    host_1    service_1    24x6
+        Ctn Change Svc Notification Timeperiod    ${use_grpc}    host_1    service_1    24x6
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
