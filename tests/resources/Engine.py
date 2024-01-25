@@ -1040,7 +1040,7 @@ def ctn_rename_service(index: int, hst: str, svc: str, new_svc: str):
     f.close()
 
 
-def add_service_group(index: int, id_service_group: int, members: list):
+def ctn_add_service_group(index: int, id_service_group: int, members: list):
     f = open(
         ETC_ROOT + "/centreon-engine/config{}/servicegroups.cfg".format(index), "a+")
     logger.console(members)

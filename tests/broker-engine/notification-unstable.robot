@@ -616,7 +616,7 @@ not13
     Ctn Config Engine    ${1}    ${2}    ${1}
     Ctn Set Value In Engine Conf    0    interval_length    10    True
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
-    Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
+    Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
     Config Notifications
     Config Escalations
 

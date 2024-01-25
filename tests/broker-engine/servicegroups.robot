@@ -26,7 +26,7 @@ EBNSG1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
+    Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Sleep    3s
 
@@ -57,7 +57,7 @@ EBNSGU1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
+    Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Sleep    3s
 
@@ -89,10 +89,10 @@ EBNSGU2
     Clear Retention
     Ctn Start Broker
     Ctn Start Engine
-    Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
-    Add Service Group    ${1}    ${1}    ["host_14","service_261", "host_14","service_262","host_14", "service_263"]
-    Add Service Group    ${2}    ${1}    ["host_27","service_521", "host_27","service_522","host_27", "service_523"]
-    Add Service Group    ${3}    ${1}    ["host_40","service_781", "host_40","service_782","host_40", "service_783"]
+    Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
+    Ctn Add Service Group    ${1}    ${1}    ["host_14","service_261", "host_14","service_262","host_14", "service_263"]
+    Ctn Add Service Group    ${2}    ${1}    ["host_27","service_521", "host_27","service_522","host_27", "service_523"]
+    Ctn Add Service Group    ${3}    ${1}    ["host_40","service_781", "host_40","service_782","host_40", "service_783"]
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Ctn Config Engine Add Cfg File    ${1}    servicegroups.cfg
     Ctn Config Engine Add Cfg File    ${2}    servicegroups.cfg
@@ -138,9 +138,9 @@ EBNSGU3_${test_label}
     Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
-    Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
-    Add Service Group    ${1}    ${1}    ["host_18","service_341", "host_19","service_362","host_19", "service_363"]
-    Add Service Group    ${2}    ${1}    ["host_35","service_681", "host_35","service_682","host_36", "service_706"]
+    Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
+    Ctn Add Service Group    ${1}    ${1}    ["host_18","service_341", "host_19","service_362","host_19", "service_363"]
+    Ctn Add Service Group    ${2}    ${1}    ["host_35","service_681", "host_35","service_682","host_36", "service_706"]
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Ctn Config Engine Add Cfg File    ${1}    servicegroups.cfg
     Ctn Config Engine Add Cfg File    ${2}    servicegroups.cfg
