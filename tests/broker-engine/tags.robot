@@ -14,7 +14,7 @@ BETAG1
     [Documentation]    Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Broker is started before.
     [Tags]    broker    engine    protobuf    bbdo    tags
     Ctn Config Engine    ${1}
-    Create Tags File    ${0}    ${20}
+    Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Config Broker    central
     Config Broker    rrd
@@ -40,7 +40,7 @@ BETAG2
     [Documentation]    Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
     [Tags]    broker    engine    protobuf    bbdo    tags
     Ctn Config Engine    ${1}
-    Create Tags File    ${0}    ${20}
+    Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Config Broker    central
     Config Broker    rrd
@@ -67,7 +67,7 @@ BEUTAG1
     [Documentation]    Engine is configured with some tags. When broker receives them through unified_sql stream, it stores them in the centreon_storage.tags table. Broker is started before.
     [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql
     Ctn Config Engine    ${1}
-    Create Tags File    ${0}    ${20}
+    Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Config Broker    central
     Config Broker    rrd
@@ -95,7 +95,7 @@ BEUTAG2
     [Documentation]    Engine is configured with some tags. A new service is added with a tag. Broker should make the relations.
     [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql
     Ctn Config Engine    ${1}
-    Create Tags File    ${0}    ${20}
+    Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Config Broker    central
     Config Broker    rrd
@@ -138,7 +138,7 @@ BEUTAG3
     [Documentation]    Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
     [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql
     Ctn Config Engine    ${1}
-    Create Tags File    ${0}    ${20}
+    Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Config Broker    central
     Config Broker    rrd
@@ -168,7 +168,7 @@ BEUTAG4
     [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql
     # Clear Db    tags
     Ctn Config Engine    ${1}
-    Create Tags File    ${0}    ${20}
+    Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Add Tags To Services    ${0}    group_tags    4,5    [1, 3]
     Add Tags To Services    ${0}    category_tags    2,4    [3, 5, 6]
@@ -204,7 +204,7 @@ BEUTAG5
     [Tags]    broker    engine    protobuf    bbdo    tags
     # Clear Db    tags
     Ctn Config Engine    ${1}
-    Create Tags File    ${0}    ${20}
+    Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Add Tags To Hosts    ${0}    group_tags    2,3    [1, 2]
     Add Tags To Hosts    ${0}    category_tags    2,3    [2, 3, 4]
@@ -240,7 +240,7 @@ BEUTAG6
     [Tags]    broker    engine    protobuf    bbdo    tags
     # Clear Db    tags
     Ctn Config Engine    ${1}
-    Create Tags File    ${0}    ${20}
+    Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Add Tags To Hosts    ${0}    group_tags    2,4    [1, 2, 3, 4]
     Add Tags To Hosts    ${0}    category_tags    1,5    [1, 2, 3, 4]
@@ -277,8 +277,8 @@ BEUTAG7
     [Documentation]    Some services are configured with tags on two pollers. Then tags configuration is modified.
     [Tags]    broker    engine    protobuf    bbdo    tags    unstable
     Ctn Config Engine    ${2}
-    Create Tags File    ${0}    ${20}
-    Create Tags File    ${1}    ${20}
+    Ctn Create Tags File    ${0}    ${20}
+    Ctn Create Tags File    ${1}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Ctn Config Engine Add Cfg File    ${1}    tags.cfg
     Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
@@ -318,8 +318,8 @@ BEUTAG7
     Remove Tags From Services    ${0}    category_tags
     Remove Tags From Services    ${1}    group_tags
     Remove Tags From Services    ${1}    category_tags
-    Create Tags File    ${0}    ${18}
-    Create Tags File    ${1}    ${18}
+    Ctn Create Tags File    ${0}    ${18}
+    Ctn Create Tags File    ${1}    ${18}
     Add Tags To Services    ${1}    group_tags    3,5    [505, 506, 507, 508]
     ${start}    Get Round Current Date
     Ctn Reload Engine
@@ -339,10 +339,10 @@ BEUTAG8
     [Documentation]    Services have tags provided by templates.
     [Tags]    broker    engine    protobuf    bbdo    tags
     Ctn Config Engine    ${2}
-    Create Tags File    ${0}    ${40}
-    Create Tags File    ${1}    ${40}
-    Create Template File    ${0}    service    group_tags    [1, 9]
-    Create Template File    ${1}    service    group_tags    [5, 7]
+    Ctn Create Tags File    ${0}    ${40}
+    Ctn Create Tags File    ${1}    ${40}
+    Ctn Create Template File    ${0}    service    group_tags    [1, 9]
+    Ctn Create Template File    ${1}    service    group_tags    [5, 7]
 
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Ctn Config Engine Add Cfg File    ${1}    tags.cfg
@@ -395,10 +395,10 @@ BEUTAG9
     [Documentation]    hosts have tags provided by templates.
     [Tags]    broker    engine    protobuf    bbdo    tags
     Ctn Config Engine    ${2}
-    Create Tags File    ${0}    ${40}
-    Create Tags File    ${1}    ${40}
-    Create Template File    ${0}    host    group_tags    [2, 6]
-    Create Template File    ${1}    host    group_tags    [8, 9]
+    Ctn Create Tags File    ${0}    ${40}
+    Ctn Create Tags File    ${1}    ${40}
+    Ctn Create Template File    ${0}    host    group_tags    [2, 6]
+    Ctn Create Template File    ${1}    host    group_tags    [8, 9]
 
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Ctn Config Engine Add Cfg File    ${1}    tags.cfg
@@ -458,8 +458,8 @@ BEUTAG10
     [Documentation]    some services are configured with tags on two pollers. Then tags are removed from some of them and in centreon_storage, we can observe resources_tags table updated.
     [Tags]    broker    engine    protobuf    bbdo    tags
     Ctn Config Engine    ${2}
-    Create Tags File    ${0}    ${20}
-    Create Tags File    ${1}    ${20}
+    Ctn Create Tags File    ${0}    ${20}
+    Ctn Create Tags File    ${1}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Ctn Config Engine Add Cfg File    ${1}    tags.cfg
     Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
@@ -500,8 +500,8 @@ BEUTAG10
     Remove Tags From Services    ${0}    category_tags
     Remove Tags From Services    ${1}    group_tags
     Remove Tags From Services    ${1}    category_tags
-    Create Tags File    ${0}    ${20}
-    Create Tags File    ${1}    ${20}
+    Ctn Create Tags File    ${0}    ${20}
+    Ctn Create Tags File    ${1}    ${20}
     Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3]
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 4]
     Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503]
@@ -524,8 +524,8 @@ BEUTAG11
     [Documentation]    some services are configured with tags on two pollers. Then several tags are removed, and we can observe resources_tags table updated.
     [Tags]    broker    engine    protobuf    bbdo    tags
     Ctn Config Engine    ${2}
-    Create Tags File    ${0}    ${20}
-    Create Tags File    ${1}    ${20}
+    Ctn Create Tags File    ${0}    ${20}
+    Ctn Create Tags File    ${1}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Ctn Config Engine Add Cfg File    ${1}    tags.cfg
     Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
@@ -566,8 +566,8 @@ BEUTAG11
     Remove Tags From Services    ${0}    category_tags
     Remove Tags From Services    ${1}    group_tags
     Remove Tags From Services    ${1}    category_tags
-    Create Tags File    ${0}    ${18}
-    Create Tags File    ${1}    ${18}
+    Ctn Create Tags File    ${0}    ${18}
+    Ctn Create Tags File    ${1}    ${18}
     Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
     Add Tags To Services    ${0}    category_tags    3    [1, 2, 3, 4]
     Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503]
@@ -591,7 +591,7 @@ BEUTAG12
     [Tags]    broker    engine    protobuf    bbdo    tags
     # Clear Db    tags
     Ctn Config Engine    ${1}
-    Create Tags File    ${0}    ${20}
+    Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Add Tags To Hosts    ${0}    group_tags    2,3    [1, 2]
     Add Tags To Hosts    ${0}    category_tags    2,3    [2, 3, 4]
@@ -624,7 +624,7 @@ BEUTAG12
 
     Remove Tags From Hosts    ${0}    group_tags
     Remove Tags From Hosts    ${0}    category_tags
-    Create Tags File    ${0}    ${5}
+    Ctn Create Tags File    ${0}    ${5}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
 
     Ctn Reload Engine
@@ -646,7 +646,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     [Tags]    broker    engine    tags
     Clear Db    tags
     Ctn Config Engine    ${1}
-    Create Tags File    ${0}    ${3}    ${0}    hostgroup
+    Ctn Create Tags File    ${0}    ${3}    ${0}    hostgroup
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Add Tags To Hosts    ${0}    group_tags    2    1
     Add Tags To Hosts    ${0}    group_tags    1    4
@@ -691,7 +691,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
 
     Sleep    5
 
-    Create Tags File    ${0}    ${3}    ${0}    hostgroup
+    Ctn Create Tags File    ${0}    ${3}    ${0}    hostgroup
     Add Tags To Hosts    ${0}    group_tags    2    [2,3]
     Ctn Reload Engine
 

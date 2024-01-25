@@ -624,8 +624,8 @@ not13
     Ctn Add Contact Group    ${0}    ${2}    ["U2","U3"]
     Ctn Add Contact Group    ${0}    ${3}    ["U4"]
 
-    Create Escalations File    0    1    servicegroup_1    contactgroup_2
-    Create Escalations File    0    2    servicegroup_1    contactgroup_3
+    Ctn Create Escalations File    0    1    servicegroup_1    contactgroup_2
+    Ctn Create Escalations File    0    2    servicegroup_1    contactgroup_3
 
     Ctn Set Value In Engine Conf In Escalations    0    esc1    first_notification    2
     Ctn Set Value In Engine Conf In Escalations    0    esc1    last_notification    2

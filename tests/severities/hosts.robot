@@ -14,7 +14,7 @@ BEUHSEV1
     [Tags]    broker    engine    protobuf    bbdo    severities
     # Clear Db    severities
     Ctn Config Engine    ${1}
-    Create Severities File    ${0}    ${20}
+    Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Add Severity To Hosts    0    10    [1, 2, 3, 4]
     Config Broker    central
@@ -50,8 +50,8 @@ BEUHSEV2
     [Documentation]    Seven hosts are configured with a severity on two pollers. Then we remove severities from the first and second hosts of the first poller but only the severity from the first host of the second poller.
     [Tags]    broker    engine    protobuf    bbdo    severities
     Ctn Config Engine    ${2}
-    Create Severities File    ${0}    ${20}
-    Create Severities File    ${1}    ${20}
+    Ctn Create Severities File    ${0}    ${20}
+    Ctn Create Severities File    ${1}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Ctn Config Engine Add Cfg File    ${1}    severities.cfg
     Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
@@ -96,8 +96,8 @@ BEUHSEV2
     Should Be True    ${result}    First step: Host 28 should have severity_id=16
 
     Remove Severities From Hosts    ${0}
-    Create Severities File    ${0}    ${18}
-    Create Severities File    ${1}    ${18}
+    Ctn Create Severities File    ${0}    ${18}
+    Ctn Create Severities File    ${1}    ${18}
     Add Severity To Hosts    1    17    [28]
     Ctn Reload Engine
     Ctn Reload Broker
@@ -121,10 +121,10 @@ BETUHSEV1
     [Documentation]    Hosts have severities provided by templates.
     [Tags]    broker    engine    protobuf    bbdo    severities
     Ctn Config Engine    ${2}
-    Create Severities File    ${0}    ${20}
-    Create Severities File    ${1}    ${20}
-    Create Template File    ${0}    host    severity    [2, 4]
-    Create Template File    ${1}    host    severity    [6, 10]
+    Ctn Create Severities File    ${0}    ${20}
+    Ctn Create Severities File    ${1}    ${20}
+    Ctn Create Template File    ${0}    host    severity    [2, 4]
+    Ctn Create Template File    ${1}    host    severity    [6, 10]
 
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Ctn Config Engine Add Cfg File    ${1}    severities.cfg

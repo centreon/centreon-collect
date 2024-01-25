@@ -1666,19 +1666,19 @@ def ctn_schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centr
         f.write(cmd)
 
 
-def create_severities_file(poller: int, nb: int, offset: int = 1):
+def ctn_create_severities_file(poller: int, nb: int, offset: int = 1):
     engine.create_severities(poller, nb, offset)
 
 
-def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
     engine.create_escalations(poller, name, SG, contactgroup)
 
 
-def create_template_file(poller: int, typ: str, what: str, ids: list):
+def ctn_create_template_file(poller: int, typ: str, what: str, ids: list):
     engine.create_template(poller, typ, what, ids)
 
 
-def create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
+def ctn_create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
     engine.create_tags(poller, nb, offset, tag_type)
 
 

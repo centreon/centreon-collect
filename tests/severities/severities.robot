@@ -15,7 +15,7 @@ BESEV1
     [Tags]    broker    engine    protobuf    bbdo    severities
     # Clear Db    severities
     Ctn Config Engine    ${1}
-    Create Severities File    ${0}    ${20}
+    Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Config Broker    central
     Config Broker    rrd
@@ -38,7 +38,7 @@ BESEV2
     [Tags]    broker    engine    protobuf    bbdo    severities
     # Clear Db    severities
     Ctn Config Engine    ${1}
-    Create Severities File    ${0}    ${20}
+    Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Config Broker    central
     Config Broker    rrd
@@ -62,7 +62,7 @@ BEUSEV1
     [Tags]    broker    engine    protobuf    bbdo    severities
     # Clear Db    severities
     Ctn Config Engine    ${1}
-    Create Severities File    ${0}    ${20}
+    Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Config Broker    central
     Config Broker    rrd
@@ -87,7 +87,7 @@ BEUSEV2
     [Tags]    broker    engine    protobuf    bbdo    severities
     # Clear Db    severities
     Ctn Config Engine    ${1}
-    Create Severities File    ${0}    ${20}
+    Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Config Broker    central
     Config Broker    rrd
@@ -113,7 +113,7 @@ BEUSEV3
     [Tags]    broker    engine    protobuf    bbdo    severities
     # Clear Db    severities
     Ctn Config Engine    ${1}
-    Create Severities File    ${0}    ${20}
+    Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Add Severity To Services    0    11    [1, 2, 3, 4]
     Config Broker    central
@@ -149,8 +149,8 @@ BEUSEV4
     [Documentation]    Seven services are configured with a severity on two pollers. Then we remove severities from the first and second services of the first poller but only the severity from the first service of the second poller. Then only severities no more used should be removed from the database.
     [Tags]    broker    engine    protobuf    bbdo    severities
     Ctn Config Engine    ${2}
-    Create Severities File    ${0}    ${20}
-    Create Severities File    ${1}    ${20}
+    Ctn Create Severities File    ${0}    ${20}
+    Ctn Create Severities File    ${1}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Ctn Config Engine Add Cfg File    ${1}    severities.cfg
     Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
@@ -194,8 +194,8 @@ BEUSEV4
     Should Be True    ${result}    First step: Service (26, 503) should have severity_id=17
 
     Remove Severities From Services    ${0}
-    Create Severities File    ${0}    ${18}
-    Create Severities File    ${1}    ${18}
+    Ctn Create Severities File    ${0}    ${18}
+    Ctn Create Severities File    ${1}    ${18}
     Add Severity To Services    1    17    [503]
     Ctn Reload Engine
     Ctn Reload Broker
@@ -219,10 +219,10 @@ BETUSEV1
     [Documentation]    Services have severities provided by templates.
     [Tags]    broker    engine    protobuf    bbdo    severities
     Ctn Config Engine    ${2}
-    Create Severities File    ${0}    ${20}
-    Create Severities File    ${1}    ${20}
-    Create Template File    ${0}    service    severity    [1, 3]
-    Create Template File    ${1}    service    severity    [3, 5]
+    Ctn Create Severities File    ${0}    ${20}
+    Ctn Create Severities File    ${1}    ${20}
+    Ctn Create Template File    ${0}    service    severity    [1, 3]
+    Ctn Create Template File    ${1}    service    severity    [3, 5]
 
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Ctn Config Engine Add Cfg File    ${1}    severities.cfg
