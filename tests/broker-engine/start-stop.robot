@@ -97,10 +97,10 @@ BESS_GRPC1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Change Broker Tcp Output To Grpc    central
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
-    Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -115,10 +115,10 @@ BESS_GRPC2
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Change Broker Tcp Output To Grpc    central
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
-    Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -137,10 +137,10 @@ BESS_GRPC3
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Change Broker Tcp Output To Grpc    central
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
-    Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
@@ -159,10 +159,10 @@ BESS_GRPC4
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Change Broker Tcp Output To Grpc    central
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
-    Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
@@ -178,10 +178,10 @@ BESS_GRPC5
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Set Value In Engine Conf    ${0}    debug_level    ${-1}
-    Change Broker Tcp Output To Grpc    central
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
-    Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -200,12 +200,12 @@ BESS_GRPC_COMPRESS1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Change Broker Tcp Output To Grpc    central
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
-    Change Broker Tcp Input To Grpc    rrd
-    Change Broker Compression Output    module0    central-module-master-output    yes
-    Change Broker Compression Input    central    centreon-broker-master-input    yes
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Compression Output    module0    central-module-master-output    yes
+    Ctn Change Broker Compression Input    central    centreon-broker-master-input    yes
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -227,10 +227,10 @@ BESS_CRYPTED_GRPC1
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-    Change Broker Tcp Output To Grpc    central
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
-    Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
     Add Broker Tcp Output Grpc Crypto    module0    True    False
     Add Broker Tcp Input Grpc Crypto    central    True    False
     Remove Host From Broker Output    module0    central-module-master-output
@@ -258,10 +258,10 @@ BESS_CRYPTED_GRPC2
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-    Change Broker Tcp Output To Grpc    central
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
-    Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
     Add Broker Tcp Input Grpc Crypto    central    True    False
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
@@ -281,10 +281,10 @@ BESS_CRYPTED_GRPC3
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-    Change Broker Tcp Output To Grpc    central
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
-    Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
     Add Broker Tcp Output Grpc Crypto    module0    True    False
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
@@ -304,10 +304,10 @@ BESS_CRYPTED_REVERSED_GRPC1
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-    Change Broker Tcp Output To Grpc    central
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
-    Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
     Add Broker Tcp Output Grpc Crypto    module0    True    True
     Add Broker Tcp Input Grpc Crypto    central    True    True
     Add Host To Broker Input    central    central-broker-master-input    localhost
@@ -332,10 +332,10 @@ BESS_CRYPTED_REVERSED_GRPC2
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-    Change Broker Tcp Output To Grpc    central
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
-    Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
     Add Broker Tcp Output Grpc Crypto    module0    True    True
     Add Host To Broker Input    central    central-broker-master-input    localhost
     Remove Host From Broker Output    module0    central-module-master-output
@@ -355,10 +355,10 @@ BESS_CRYPTED_REVERSED_GRPC3
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
-    Change Broker Tcp Output To Grpc    central
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
-    Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
     Add Broker Tcp Input Grpc Crypto    central    True    True
     Add Host To Broker Input    central    central-broker-master-input    localhost
     Remove Host From Broker Output    module0    central-module-master-output
@@ -431,10 +431,10 @@ Start_Stop_Engine_Broker_${id}
     Broker Config Log    central    processing    info
     Ctn Config Broker Sql Output    central    unified_sql
     IF    ${grpc}
-        Change Broker Tcp Output To Grpc    central
-        Change Broker Tcp Output To Grpc    module0
-        Change Broker Tcp Input To Grpc    central
-        Change Broker Tcp Input To Grpc    rrd
+        Ctn Change Broker Tcp Output To Grpc    central
+        Ctn Change Broker Tcp Output To Grpc    module0
+        Ctn Change Broker Tcp Input To Grpc    central
+        Ctn Change Broker Tcp Input To Grpc    rrd
     END
     ${start}    Get Current Date
     Ctn Start Broker
@@ -466,10 +466,10 @@ Start_Stop_Broker_Engine_${id}
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    debug
     IF    ${grpc}
-        Change Broker Tcp Output To Grpc    central
-        Change Broker Tcp Output To Grpc    module0
-        Change Broker Tcp Input To Grpc    central
-        Change Broker Tcp Input To Grpc    rrd
+        Ctn Change Broker Tcp Output To Grpc    central
+        Ctn Change Broker Tcp Output To Grpc    module0
+        Ctn Change Broker Tcp Input To Grpc    central
+        Ctn Change Broker Tcp Input To Grpc    rrd
     END
     ${start}    Get Current Date
 
