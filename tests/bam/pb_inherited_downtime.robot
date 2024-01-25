@@ -22,7 +22,7 @@ BEBAMIDTU1
     Ctn Config Engine    ${1}
 
     Ctn Clone Engine Config To DB
-    Add Bam Config To Engine
+    Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     Create Ba With Services    test    worst    ${svc}
@@ -83,7 +83,7 @@ BEBAMIDTU2
     Ctn Config Engine    ${1}
 
     Ctn Clone Engine Config To DB
-    Add Bam Config To Engine
+    Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     Create Ba With Services    test    worst    ${svc}
@@ -176,7 +176,7 @@ BEBAMIGNDTU1
     Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
     Ctn Clone Engine Config To DB
-    Add Bam Config To Engine
+    Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
     Create Ba With Services    test    worst    ${svc}    ignore
@@ -281,7 +281,7 @@ BEBAMIGNDTU2
     Ctn Config Engine    ${1}
 
     Ctn Clone Engine Config To DB
-    Add Bam Config To Engine
+    Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
     Create Ba With Services    test    worst    ${svc}    ignore

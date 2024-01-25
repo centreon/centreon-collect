@@ -1128,5 +1128,5 @@ BAM Init
 
     Config Broker Sql Output    central    unified_sql
     Ctn Clone Engine Config To DB
-    Add Bam Config To Engine
+    Ctn Add Bam Config To Engine
     Add Bam Config To Broker    central

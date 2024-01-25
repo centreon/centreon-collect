@@ -123,7 +123,7 @@ BAM_STREAM_FILTER
     Ctn Config Engine    ${1}
 
     Ctn Clone Engine Config To DB
-    Add Bam Config To Engine
+    Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     Create Ba With Services    test    worst    ${svc}
