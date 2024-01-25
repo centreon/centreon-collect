@@ -1151,25 +1151,25 @@ def ctn_add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warnin
                       warning_impact, unknown_impact)
 
 
-def add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+def ctn_add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
     global dbconf
     dbconf.ctn_add_service_kpi(
         host, serv, id_ba, critical_impact, warning_impact, unknown_impact)
 
 
-def get_command_id(service: int):
+def ctn_get_command_id(service: int):
     global engine
     global dbconf
     cmd_name = engine.service_cmd[service]
     return dbconf.command[cmd_name]
 
 
-def get_command_service_param(service: int):
+def ctn_get_command_service_param(service: int):
     global engine
     return engine.service_cmd[service][8:]
 
 
-def change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
+def ctn_change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)

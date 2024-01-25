@@ -31,7 +31,7 @@ BEEXTCMD1
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
+        Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -68,7 +68,7 @@ BEEXTCMD2
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
+        Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
