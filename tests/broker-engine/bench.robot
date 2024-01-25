@@ -92,9 +92,9 @@ BENCH_${nb_check}STATUS_TRACES
         Broker Config Log    central    ${name}    trace
     END
 
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Add Item To Broker Conf    module0    bbdo_version    3.0.0
+    Ctn Add Item To Broker Conf    central    bbdo_version    3.0.0
+    Ctn Add Item To Broker Conf    rrd    bbdo_version    3.0.0
     Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker

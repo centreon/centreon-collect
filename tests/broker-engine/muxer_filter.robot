@@ -46,7 +46,7 @@ STORAGE_ON_LUA
     Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Add Lua Output    central    test-filter    ${SCRIPTS}test-log-all-event.lua
+    Ctn Add Lua Output To Broker Conf    central    test-filter    ${SCRIPTS}test-log-all-event.lua
     Broker Config Output Set Json    central    test-filter    filters    {"category": [ "storage"]}
 
     Ctn Start Broker    True
@@ -76,7 +76,7 @@ FILTER_ON_LUA_EVENT
     Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Add Lua Output
+    Ctn Add Lua Output To Broker Conf
     ...    central
     ...    test-filter
     ...    ${SCRIPTS}test-log-all-event.lua
@@ -454,11 +454,11 @@ SEVERAL_FILTERS_ON_LUA_EVENT
     Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Add Lua Output
+    Ctn Add Lua Output To Broker Conf
     ...    central
     ...    test-filter
     ...    ${SCRIPTS}test-log-all-event.lua
-    Broker Config Add Lua Output
+    Ctn Add Lua Output To Broker Conf
     ...    central
     ...    test-filter-bis
     ...    ${SCRIPTS}test-log-all-event-bis.lua

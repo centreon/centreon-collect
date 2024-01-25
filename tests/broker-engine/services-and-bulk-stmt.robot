@@ -291,7 +291,7 @@ RLCode
     # Create the initial LUA script file
     Create File    /tmp/toto.lua    ${INITIAL_SCRIPT_CONTENT}
 
-    Broker Config Add Lua Output    central    test-toto    /tmp/toto.lua
+    Ctn Add Lua Output To Broker Conf    central    test-toto    /tmp/toto.lua
 
     # Start the engine/broker
     ${start}    Get Current Date
@@ -341,8 +341,8 @@ metric_mapping
     Ctn Config Engine    ${1}    ${1}    ${10}
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Ctn Add Item To Broker Conf    central    bbdo_version    3.0.1
+    Ctn Add Item To Broker Conf    module0    bbdo_version    3.0.1
     Broker Config Log    central    lua    debug
     Broker Config Log    module0    neb    debug
     Ctn Config Broker Sql Output    central    unified_sql
@@ -362,7 +362,7 @@ metric_mapping
     # Create the initial LUA script file
     Create File    /tmp/test-metric.lua    ${new_content}
 
-    Broker Config Add Lua Output    central    test-metric    /tmp/test-metric.lua
+    Ctn Add Lua Output To Broker Conf    central    test-metric    /tmp/test-metric.lua
 
     ${start}    Get Current Date
 
@@ -393,8 +393,8 @@ Services_and_bulks_${id}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Ctn Add Item To Broker Conf    module0    bbdo_version    3.0.1
+    Ctn Add Item To Broker Conf    central    bbdo_version    3.0.1
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    debug

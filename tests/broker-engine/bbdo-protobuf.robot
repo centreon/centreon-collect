@@ -17,7 +17,7 @@ BEPBBEE1
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
-    Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Add Item To Broker Conf    module0    bbdo_version    3.0.0
     Broker Config Log    module0    bbdo    debug
     Broker Config Log    central    bbdo    debug
     Clear Retention
@@ -37,9 +37,9 @@ BEPBBEE2
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Add Item To Broker Conf    module0    bbdo_version    3.0.0
+    Ctn Add Item To Broker Conf    central    bbdo_version    3.0.0
+    Ctn Add Item To Broker Conf    rrd    bbdo_version    3.0.0
     Broker Config Log    central    sql    debug
     Broker Config Flush Log    central    0
     Clear Retention
@@ -63,7 +63,7 @@ BEPBBEE3
     Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservicestatus.lua
+    Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-pbservicestatus.lua
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -83,7 +83,7 @@ BEPBBEE4
     Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbhoststatus.lua
+    Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-pbhoststatus.lua
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -103,7 +103,7 @@ BEPBBEE5
     Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservice.lua
+    Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-pbservice.lua
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -125,7 +125,7 @@ BEPBRI1
     Broker Config Output Set    central    central-broker-unified-sql    read_timeout    2
     Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    2
 
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-responsiveinstance.lua
+    Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-responsiveinstance.lua
     Clear Retention
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM instances

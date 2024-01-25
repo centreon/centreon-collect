@@ -458,7 +458,7 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
             f.write(json.dumps(conf, indent=2))
             f.close()
             if default_bbdo_version is not None:
-                broker_config_add_item(
+                ctn_add_item_to_broker_conf(
                     f"{name}{i}", "bbdo_version", default_bbdo_version)
             if default_transport == "grpc":
                 ctn_config_broker_bbdo_output(
@@ -472,7 +472,7 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
         if default_bbdo_version is not None:
             if default_bbdo_version >= "3.0.0" and (name == "central" or name == "central_map"):
                 ctn_config_broker_sql_output(name, 'unified_sql')
-            broker_config_add_item(
+            ctn_add_item_to_broker_conf(
                 name, "bbdo_version", default_bbdo_version)
         if default_transport == "grpc":
             if name == "central" or name == "central_map":
@@ -543,7 +543,7 @@ def ctn_add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: b
     _apply_conf(name, crypto_modifier)
 
 
-def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
+def ctn_add_host_to_broker_output(name: str, output_name: str, host_ip: str):
     def modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(input_dict):
@@ -552,7 +552,7 @@ def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
     _apply_conf(name, modifier)
 
 
-def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
+def ctn_add_host_to_broker_input(name: str, input_name: str, host_ip: str):
     def modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
@@ -561,7 +561,7 @@ def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
     _apply_conf(name, modifier)
 
 
-def remove_host_from_broker_output(name: str, output_name: str):
+def ctn_remove_host_from_broker_output(name: str, output_name: str):
     def modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(input_dict):
@@ -570,7 +570,7 @@ def remove_host_from_broker_output(name: str, output_name: str):
     _apply_conf(name, modifier)
 
 
-def remove_host_from_broker_input(name: str, input_name: str):
+def ctn_remove_host_from_broker_input(name: str, input_name: str):
     def modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
@@ -774,7 +774,7 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
     f.close()
 
 
-def broker_config_clear_outputs_except(name, ex: list):
+def ctn_clear_outputs_except_from_broker_conf(name, ex: list):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -817,7 +817,7 @@ def ctn_config_broker_victoria_output():
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_add_item(name, key, value):
+def ctn_add_item_to_broker_conf(name, key, value):
     if name == 'central':
         filename = "central-broker.json"
     elif name == 'rrd':
@@ -835,7 +835,7 @@ def broker_config_add_item(name, key, value):
     f.close()
 
 
-def broker_config_remove_item(name, key):
+def ctn_remove_item_from_broker_conf(name, key):
     if name == 'central':
         filename = "central-broker.json"
     elif name == 'rrd':
@@ -853,7 +853,7 @@ def broker_config_remove_item(name, key):
     f.close()
 
 
-def broker_config_add_lua_output(name, output, luafile):
+def ctn_add_lua_output_to_broker_conf(name, output, luafile):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):

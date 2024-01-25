@@ -178,8 +178,8 @@ BE_NOTIF_OVERFLOW
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Broker Config Add Item    module0    bbdo_version    2.0.0
-    Broker Config Add Item    central    bbdo_version    2.0.0
+    Ctn Add Item To Broker Conf    module0    bbdo_version    2.0.0
+    Ctn Add Item To Broker Conf    central    bbdo_version    2.0.0
     Ctn Config Broker Sql Output    central    unified_sql
     Broker Config Log    central    sql    trace
     Broker Config Log    central    perfdata    trace

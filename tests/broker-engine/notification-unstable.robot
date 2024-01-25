@@ -704,9 +704,9 @@ Config Notifications
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Ctn Add Item To Broker Conf    module0    bbdo_version    3.0.1
+    Ctn Add Item To Broker Conf    rrd    bbdo_version    3.0.1
+    Ctn Add Item To Broker Conf    central    bbdo_version    3.0.1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error

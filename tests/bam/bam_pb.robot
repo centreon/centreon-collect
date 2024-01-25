@@ -673,7 +673,7 @@ BEPB_DIMENSION_BV_EVENT
 
     Remove File    /tmp/all_lua_event.log
 
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
+    Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM mod_bam_ba_groups
@@ -705,7 +705,7 @@ BEPB_DIMENSION_BA_EVENT
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     ${id_ba__sid}    Ctn Create Ba With Services    test    worst    ${svc}
 
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
+    Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    SET FOREIGN_KEY_CHECKS=0
@@ -739,7 +739,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
 
     ${id_ba__sid}    Ctn Create Ba With Services    test    worst    ${svc}
 
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
+    Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Delete All Rows From Table    mod_bam_bagroup_ba_relation
@@ -775,7 +775,7 @@ BEPB_DIMENSION_TIMEPERIOD
 
     Remove File    /tmp/all_lua_event.log
 
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
+    Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String
@@ -954,7 +954,7 @@ BEPB_DIMENSION_TRUNCATE_TABLE
     Remove File    /tmp/all_lua_event.log
     Broker Config Log    central    lua    trace
 
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
+    Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
     Ctn Start Broker    True
     Ctn Start Engine

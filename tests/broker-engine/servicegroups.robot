@@ -125,7 +125,7 @@ EBNSGU3_${test_label}
     Broker Config Source Log    module0    1
     Ctn Config Broker Sql Output    central    unified_sql    5
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
-    Broker Config Add Lua Output    central    test-cache    ${SCRIPTS}test-dump-groups.lua
+    Ctn Add Lua Output To Broker Conf    central    test-cache    ${SCRIPTS}test-dump-groups.lua
     Clear Retention
 
     Create File    /tmp/lua-engine.log
