@@ -182,7 +182,7 @@ BEEXTCMD5
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Retry Svc Check Interval    ${use_grpc}    host_1    service_1    15
+        Ctn Change Retryl Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -219,7 +219,7 @@ BEEXTCMD6
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Retry Svc Check Interval    ${use_grpc}    host_1    service_1    10
+        Ctn Change Retryl Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -260,7 +260,7 @@ BEEXTCMD7
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Retry Host Check Interval    ${use_grpc}    host_1    15
+        Ctn Change Retryl Host Check Interval    ${use_grpc}    host_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -296,7 +296,7 @@ BEEXTCMD8
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Retry Host Check Interval    ${use_grpc}    host_1    10
+        Ctn Change Retryl Host Check Interval    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 

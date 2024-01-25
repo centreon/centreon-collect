@@ -1199,7 +1199,7 @@ def ctn_change_normal_host_check_interval(use_grpc: int, hst: str, check_interva
         f.close()
 
 
-def change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_interval: int):
+def ctn_change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_interval: int):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1214,7 +1214,7 @@ def change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_int
         f.close()
 
 
-def change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: int):
+def ctn_change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: int):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
