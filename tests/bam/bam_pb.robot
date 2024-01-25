@@ -1127,6 +1127,6 @@ BAM Init
     Set Services Passive    ${0}    service_30.
 
     Config Broker Sql Output    central    unified_sql
-    Clone Engine Config To DB
+    Ctn Clone Engine Config To DB
     Add Bam Config To Engine
     Add Bam Config To Broker    central

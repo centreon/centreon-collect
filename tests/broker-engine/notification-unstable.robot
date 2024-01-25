@@ -620,9 +620,9 @@ not13
     Config Notifications
     Config Escalations
 
-    Add Contact Group    ${0}    ${1}    ["U1"]
-    Add Contact Group    ${0}    ${2}    ["U2","U3"]
-    Add Contact Group    ${0}    ${3}    ["U4"]
+    Ctn Add Contact Group    ${0}    ${1}    ["U1"]
+    Ctn Add Contact Group    ${0}    ${2}    ["U2","U3"]
+    Ctn Add Contact Group    ${0}    ${3}    ["U4"]
 
     Create Escalations File    0    1    servicegroup_1    contactgroup_2
     Create Escalations File    0    2    servicegroup_1    contactgroup_3

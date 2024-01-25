@@ -20,7 +20,7 @@ BEBAMIDT1
     Config Broker    rrd
     Ctn Config Engine    ${1}
 
-    Clone Engine Config To DB
+    Ctn Clone Engine Config To DB
     Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
@@ -80,7 +80,7 @@ BEBAMIDT2
     Config Broker    rrd
     Ctn Config Engine    ${1}
 
-    Clone Engine Config To DB
+    Ctn Clone Engine Config To DB
     Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
@@ -175,7 +175,7 @@ BEBAMIGNDT1
     Ctn Set Value In Engine Conf    ${0}    log_level_functions    trace
     Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
 
-    Clone Engine Config To DB
+    Ctn Clone Engine Config To DB
     Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
@@ -278,7 +278,7 @@ BEBAMIGNDT2
     Config Broker    rrd
     Ctn Config Engine    ${1}
 
-    Clone Engine Config To DB
+    Ctn Clone Engine Config To DB
     Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_313"), ("host_16", "service_314")] }}

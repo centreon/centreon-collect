@@ -122,7 +122,7 @@ BAM_STREAM_FILTER
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
 
-    Clone Engine Config To DB
+    Ctn Clone Engine Config To DB
     Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}

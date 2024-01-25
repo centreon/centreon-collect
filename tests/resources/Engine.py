@@ -1066,7 +1066,7 @@ def ctn_rename_service_group(index: int, old_servicegroup_name: str, new_service
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/servicegroups.cfg", "w") as f:
         f.writelines(ll)
 
-def add_contact_group(index: int, id_contact_group: int, members: list):
+def ctn_add_contact_group(index: int, id_contact_group: int, members: list):
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/contactgroups.cfg", "a+") as f:
         logger.console(members)
         f.write(engine.create_contact_group(id_contact_group, members))
