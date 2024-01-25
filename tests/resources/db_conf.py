@@ -192,7 +192,7 @@ class DbConf:
                         hid += 1
                     connection.commit()
 
-    def create_ba_with_services(self, name: str, typ: str, svc: [(str, str)], dt_policy):
+    def ctn_create_ba_with_services(self, name: str, typ: str, svc: [(str, str)], dt_policy):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
@@ -230,7 +230,7 @@ class DbConf:
                 connection.commit()
                 return (id_ba, sid)
 
-    def create_ba(self, name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy: str):
+    def ctn_create_ba(self, name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy: str):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
