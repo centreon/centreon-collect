@@ -270,7 +270,7 @@ class DbConf:
                 connection.commit()
                 return (id_ba, sid)
 
-    def add_service_kpi(self, host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+    def ctn_add_service_kpi(self, host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
@@ -285,7 +285,7 @@ class DbConf:
 
             connection.commit()
 
-    def add_boolean_kpi(self, id_ba: int, expression: str, impact_if: bool, critical_impact: int):
+    def ctn_add_boolean_kpi(self, id_ba: int, expression: str, impact_if: bool, critical_impact: int):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
@@ -304,7 +304,7 @@ class DbConf:
             connection.commit()
             return boolean_id
 
-    def update_boolean_rule(self, boolean_id: int, expression: str):
+    def ctn_update_boolean_rule(self, boolean_id: int, expression: str):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
@@ -319,7 +319,7 @@ class DbConf:
 
             connection.commit()
 
-    def add_ba_kpi(self, id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+    def ctn_add_ba_kpi(self, id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,

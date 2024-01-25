@@ -1184,7 +1184,7 @@ def ctn_change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, chec
         f.close()
 
 
-def change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: int):
+def ctn_change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: int):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)

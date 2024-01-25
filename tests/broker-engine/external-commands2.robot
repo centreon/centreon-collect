@@ -875,7 +875,7 @@ BEEXTCMD_GRPC3
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Host Check Interval    ${use_grpc}    host_1    10
+        Ctn Change Normal Host Check Interval   ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -913,7 +913,7 @@ BEEXTCMD_GRPC4
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Host Check Interval    ${use_grpc}    host_1    15
+        Ctn Change Normal Host Check Interval   ${use_grpc}    host_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1047,7 +1047,7 @@ BEEXTCMD_REVERSE_GRPC3
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Host Check Interval    ${use_grpc}    host_1    10
+        Ctn Change Normal Host Check Interval   ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1090,7 +1090,7 @@ BEEXTCMD_REVERSE_GRPC4
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Sleep    1s
-        Change Normal Host Check Interval    ${use_grpc}    host_1    15
+        Ctn Change Normal Host Check Interval   ${use_grpc}    host_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
