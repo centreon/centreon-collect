@@ -117,7 +117,7 @@ BAWORST2
     # ba kpi
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     ${id_ba__sid__child}    Ctn Create Ba With Services    test_child    worst    ${svc}
-    Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
+    Ctn Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
     ${start}    Get Current Date
@@ -308,8 +308,8 @@ BA_IMPACT_2KPI_SERVICES
     BAM Init
 
     ${id_ba__sid}    Ctn Create Ba    test    impact    20    35
-    Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_303    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_302    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_303    ${id_ba__sid[0]}    40    30    20
 
     Ctn Start Broker
     ${start}    Get Current Date
@@ -411,12 +411,12 @@ BA_RATIO_PERCENT_BA_SERVICE
     BAM Init
 
     ${id_ba__sid}    Ctn Create Ba    test    ratio_percent    67    49
-    Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_303    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_302    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_303    ${id_ba__sid[0]}    40    30    20
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     ${id_ba__sid__child}    Ctn Create Ba With Services    test_child    worst    ${svc}
-    Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
+    Ctn Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
     ${start}    Get Current Date
@@ -515,12 +515,12 @@ BA_RATIO_NUMBER_BA_SERVICE
     BAM Init
 
     ${id_ba__sid}    Ctn Create Ba    test    ratio_number    3    2
-    Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_303    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_302    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_303    ${id_ba__sid[0]}    40    30    20
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     ${id_ba__sid__child}    Ctn Create Ba With Services    test_child    worst    ${svc}
-    Add BA KPI    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
+    Ctn Add BA KPI    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
     ${start}    Get Current Date
@@ -981,10 +981,10 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     BAM Init
 
     ${id_ba__sid}    Ctn Create Ba    test    ratio_number    2    1
-    Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_303    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_304    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_304    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_302    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_303    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_304    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_304    ${id_ba__sid[0]}    40    30    20
 
     Ctn Start Broker
     ${start}    Get Current Date
@@ -1042,10 +1042,10 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     BAM Init
 
     ${id_ba__sid}    Ctn Create Ba    test    ratio_percent    50    25
-    Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_303    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_304    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_305    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_302    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_303    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_304    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_305    ${id_ba__sid[0]}    40    30    20
 
     Ctn Start Broker
     ${start}    Get Current Date

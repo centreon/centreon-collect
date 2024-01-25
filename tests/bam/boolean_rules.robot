@@ -33,8 +33,8 @@ BABOO
     Set Services Passive    ${0}    service_303
 
     ${id_ba_worst__sid}    Ctn Create Ba    ba-worst    worst    70    80
-    Add Service KPI    host_16    service_302    ${id_ba_worst__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_303    ${id_ba_worst__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_302    ${id_ba_worst__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_303    ${id_ba_worst__sid[0]}    40    30    20
 
     ${id_boolean_ba__sid}    Ctn Create Ba    boolean-ba    impact    70    80
     Ctn Add Boolean Kpi
