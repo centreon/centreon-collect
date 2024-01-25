@@ -14,9 +14,9 @@ ENRSCHE1
     [Documentation]    Verify that next check of a rescheduled host is made at last_check + interval_check
     [Tags]    broker    engine    scheduler
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_level_checks    debug

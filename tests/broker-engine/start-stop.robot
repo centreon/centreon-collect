@@ -14,9 +14,9 @@ BESS1
     [Documentation]    Start-Ctn Stop Broker/Engine - Broker started first - Broker stopped first
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -28,9 +28,9 @@ BESS2
     [Documentation]    Start-Ctn Stop Broker/Engine - Broker started first - Engine stopped first
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -46,9 +46,9 @@ BESS3
     [Documentation]    Start-Ctn Stop Broker/Engine - Engine started first - Engine stopped first
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
@@ -64,9 +64,9 @@ BESS4
     [Documentation]    Start-Ctn Stop Broker/Engine - Engine started first - Broker stopped first
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
@@ -80,9 +80,9 @@ BESS5
     [Documentation]    Start-Ctn Stop Broker/engine - Engine debug level is set to all, it should not hang
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Set Value In Engine Conf    ${0}    debug_level    ${-1}
     Ctn Start Broker
     Ctn Start Engine
@@ -94,9 +94,9 @@ BESS_GRPC1
     [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Change Broker Tcp Output To Grpc    central
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
@@ -112,9 +112,9 @@ BESS_GRPC2
     [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Engine stopped first
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Change Broker Tcp Output To Grpc    central
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
@@ -134,9 +134,9 @@ BESS_GRPC3
     [Documentation]    Start-Stop grpc version Broker/Engine - Engine started first - Engine stopped first
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Change Broker Tcp Output To Grpc    central
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
@@ -156,9 +156,9 @@ BESS_GRPC4
     [Documentation]    Start-Stop grpc version Broker/Engine - Engine started first - Broker stopped first
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Change Broker Tcp Output To Grpc    central
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
@@ -174,9 +174,9 @@ BESS_GRPC5
     [Documentation]    Start-Stop grpc version Broker/engine - Engine debug level is set to all, it should not hang
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Set Value In Engine Conf    ${0}    debug_level    ${-1}
     Change Broker Tcp Output To Grpc    central
     Change Broker Tcp Output To Grpc    module0
@@ -197,9 +197,9 @@ BESS_GRPC_COMPRESS1
     [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Change Broker Tcp Output To Grpc    central
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
@@ -221,9 +221,9 @@ BESS_CRYPTED_GRPC1
     [Documentation]    Start-Stop grpc version Broker/Engine - well configured
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
@@ -252,9 +252,9 @@ BESS_CRYPTED_GRPC2
     [Documentation]    Start-Stop grpc version Broker/Engine only server crypted
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
@@ -275,9 +275,9 @@ BESS_CRYPTED_GRPC3
     [Documentation]    Start-Stop grpc version Broker/Engine only engine crypted
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
@@ -298,9 +298,9 @@ BESS_CRYPTED_REVERSED_GRPC1
     [Documentation]    Start-Stop grpc version Broker/Engine - well configured
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
@@ -326,9 +326,9 @@ BESS_CRYPTED_REVERSED_GRPC2
     [Documentation]    Start-Stop grpc version Broker/Engine only engine server crypted
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
@@ -351,9 +351,9 @@ BESS_CRYPTED_REVERSED_GRPC3
     [Documentation]    Start-Stop grpc version Broker/Engine only engine crypted
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Change Broker Tcp Output To Grpc    central
     Change Broker Tcp Output To Grpc    module0
@@ -374,8 +374,8 @@ BESS_ENGINE_DELETE_HOST
     [Documentation]    once engine and cbd started, stop and restart cbd, delete an host and reload engine, cbd mustn't core
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker    True
@@ -398,15 +398,15 @@ BESSBQ1
     [Documentation]    A very bad queue file is written for broker. Broker and Engine are then started, Broker must read the file raising an error because of that file and then get data sent by Engine.
     [Tags]    broker    engine    start-stop    queue
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    bbdo    debug
     Broker Config Log    central    sql    trace
     Broker Config Log    central    core    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     Create Bad Queue    central-broker-master.queue.central-broker-master-sql
     ${start}    Get Current Date
@@ -423,13 +423,13 @@ Start_Stop_Engine_Broker_${id}
     [Documentation]    Start-Ctn Stop Broker/Engine - Broker started first - Broker stopped first
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}    ${1}    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    debug
     Broker Config Log    central    processing    info
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     IF    ${grpc}
         Change Broker Tcp Output To Grpc    central
         Change Broker Tcp Output To Grpc    module0
@@ -460,9 +460,9 @@ Start_Stop_Broker_Engine_${id}
     [Documentation]    Start-Ctn Stop Broker/Engine - Broker started first - Engine stopped first
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}    ${1}    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    debug
     IF    ${grpc}

@@ -14,11 +14,11 @@ BRRDCDDMDB1
     [Documentation]    RRD metrics deletion from metric ids with a query in centreon_storage and rrdcached.
     [Tags]    rrd    metric    deletion    unified_sql    mysql    rrdcached
     Ctn Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
     Broker Config Log    central    grpc    error
     Broker Config Log    central    sql    info
     Broker Config Log    central    core    error
@@ -54,11 +54,11 @@ BRRDCDDIDDB1
     [Documentation]    RRD metrics deletion from index ids with a query in centreon_storage with rrdcached.
     [Tags]    rrd    metric    deletion    unified_sql    rrdcached
     Ctn Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
     Broker Config Log    rrd    core    error
@@ -101,11 +101,11 @@ BRRDCDRBDB1
     [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql with rrdcached
     [Tags]    rrd    metric    rebuild    unified_sql    rrdcached
     Ctn Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
@@ -149,11 +149,11 @@ BRRDCDRBUDB1
     [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql with rrdcached
     [Tags]    rrd    metric    rebuild    unified_sql    grpc    rrdcached
     Ctn Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0

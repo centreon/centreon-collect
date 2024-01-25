@@ -14,9 +14,9 @@ BEACK1
     [Documentation]    Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to OK. And the acknowledgement in database is deleted from engine but still open on the database.
     [Tags]    broker    engine    services    extcmd
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
 
@@ -55,9 +55,9 @@ BEACK2
     [Documentation]    Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to OK. And the acknowledgement in database is deleted.
     [Tags]    broker    engine    services    extcmd
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
@@ -96,9 +96,9 @@ BEACK3
     [Documentation]    Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The acknowledgement is removed and the comment in the comments table has its deletion_time column updated.
     [Tags]    broker    engine    services    extcmd
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
 
@@ -134,9 +134,9 @@ BEACK4
     [Documentation]    Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The acknowledgement is removed and the comment in the comments table has its deletion_time column updated.
     [Tags]    broker    engine    services    extcmd
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
@@ -173,9 +173,9 @@ BEACK5
     [Documentation]    Engine has a critical service. An external command is sent to acknowledge it ; the acknowledgement is sticky. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to WARNING. And the acknowledgement in database is still there.
     [Tags]    broker    engine    services    extcmd
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Broker Config Log    module0    neb    trace
     Broker Config Log    central    sql    debug
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
@@ -223,9 +223,9 @@ BEACK6
     [Documentation]    Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it ; the acknowledgement is sticky. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to WARNING. And the acknowledgement in database is still there.
     [Tags]    broker    engine    services    extcmd
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug

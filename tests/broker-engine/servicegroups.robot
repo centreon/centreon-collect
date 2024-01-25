@@ -14,9 +14,9 @@ EBNSG1
     [Documentation]    New service group with several pollers and connections to DB
     [Tags]    broker    engine    servicegroup
     Ctn Config Engine    ${3}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
 
     Broker Config Log    central    sql    info
     Broker Config Output Set    central    central-broker-master-sql    connections_count    5
@@ -45,12 +45,12 @@ EBNSGU1
     [Documentation]    New service group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    servicegroup    unified_sql
     Ctn Config Engine    ${3}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
 
     Broker Config Log    central    sql    info
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
 
     Clear Retention
@@ -76,12 +76,12 @@ EBNSGU2
     [Documentation]    New service group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    servicegroup    unified_sql
     Ctn Config Engine    ${4}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${4}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${4}
 
     Broker Config Log    central    sql    info
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Config BBDO3    4
     Broker Config Log    central    sql    debug
@@ -115,15 +115,15 @@ EBNSGU3_${test_label}
     [Documentation]    New service group with several pollers and connections to DB with broker and rename this servicegroup
     [Tags]    broker    engine    servicegroup unified_sql
     Ctn Config Engine    ${3}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
 
     Broker Config Log    central    sql    trace
     Broker Config Log    central    lua    trace
     Broker Config Source Log    central    1
     Broker Config Source Log    module0    1
-    Config Broker Sql Output    central    unified_sql    5
+    Ctn Config Broker Sql Output    central    unified_sql    5
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Broker Config Add Lua Output    central    test-cache    ${SCRIPTS}test-dump-groups.lua
     Clear Retention

@@ -14,12 +14,12 @@ EBSNU1
     [Documentation]    New hosts with notes_url with more than 2000 characters
     [Tags]    broker    engine    hosts    protobuf
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     ${nu}    Evaluate    2000*"X"
     Ctn Set Value In Engine Hosts Conf    0    host_1    notes_url    ${nu}
     Clear Retention
@@ -46,12 +46,12 @@ EBSAU2
     [Documentation]    New hosts with action_url with more than 2000 characters
     [Tags]    broker    engine    hosts    protobuf
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     ${au}    Evaluate    2000*"Y"
     Ctn Set Value In Engine Hosts Conf    0    host_2    action_url    ${au}
     Clear Retention
@@ -78,12 +78,12 @@ EBSN3
     [Documentation]    New hosts with notes with more than 500 characters
     [Tags]    broker    engine    hosts    protobuf
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     ${n}    Evaluate    500*"Z"
     Ctn Set Value In Engine Hosts Conf    0    host_3    notes    ${n}
     Clear Retention

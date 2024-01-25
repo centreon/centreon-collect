@@ -17,9 +17,9 @@ BEDTMASS1
     Ctn Set Value In Engine Conf    ${0}    log_level_functions    trace
     Ctn Set Value In Engine Conf    ${1}    log_level_functions    trace
     Ctn Set Value In Engine Conf    ${2}    log_level_functions    trace
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
@@ -27,7 +27,7 @@ BEDTMASS1
 
     Ctn Config BBDO3    3
     Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -75,9 +75,9 @@ BEDTMASS2
     Ctn Set Value In Engine Conf    ${0}    log_level_functions    trace
     Ctn Set Value In Engine Conf    ${1}    log_level_functions    trace
     Ctn Set Value In Engine Conf    ${2}    log_level_functions    trace
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
@@ -129,9 +129,9 @@ BEDTSVCREN1
     [Tags]    broker    engine    services    downtime
     Ctn Config Engine    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_level_functions    trace
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    debug
 
@@ -172,9 +172,9 @@ BEDTSVCFIXED
     [Tags]    broker    engine    downtime
     Ctn Config Engine    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_level_functions    trace
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    debug
 
@@ -206,12 +206,12 @@ BEDTHOSTFIXED
     [Tags]    broker    engine    downtime
     Ctn Config Engine    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_level_functions    trace
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
 
     Clear Retention
     ${start}    Get Current Date

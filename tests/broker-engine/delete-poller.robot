@@ -14,9 +14,9 @@ EBDP1
     [Documentation]    Four new pollers are started and then we remove Poller3.
     [Tags]    broker    engine    grpc
     Ctn Config Engine    ${4}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${4}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${4}
     Ctn Config BBDO3    ${4}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
@@ -66,9 +66,9 @@ EBDP2
     [Documentation]    Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
     [Tags]    broker    engine    grpc
     Ctn Config Engine    ${3}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
     Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     Broker Config Log    central    processing    info
@@ -133,14 +133,14 @@ EBDP_GRPC2
     [Documentation]    Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
     [Tags]    broker    engine    grpc
     Ctn Config Engine    ${3}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
     Ctn Config BBDO3    ${3}
-    Config Broker BBDO Input    central    bbdo_server    5669    grpc
-    Config Broker BBDO Output    module0    bbdo_client    5669    grpc    localhost
-    Config Broker BBDO Output    module1    bbdo_client    5669    grpc    localhost
-    Config Broker BBDO Output    module2    bbdo_client    5669    grpc    localhost
+    Ctn Config Broker BBDO Input    central    bbdo_server    5669    grpc
+    Ctn Config Broker BBDO Output    module0    bbdo_client    5669    grpc    localhost
+    Ctn Config Broker BBDO Output    module1    bbdo_client    5669    grpc    localhost
+    Ctn Config Broker BBDO Output    module2    bbdo_client    5669    grpc    localhost
     Broker Config Log    central    sql    trace
     Broker Config Log    central    processing    info
     Broker Config Log    central    grpc    info
@@ -206,9 +206,9 @@ EBDP3
     [Documentation]    Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
     [Tags]    broker    engine    grpc
     Ctn Config Engine    ${3}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
     Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
@@ -266,9 +266,9 @@ EBDP4
     [Documentation]    Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by broker.
     [Tags]    broker    engine    grpc
     Ctn Config Engine    ${4}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${4}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${4}
     Ctn Config BBDO3    ${4}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    trace
@@ -355,9 +355,9 @@ EBDP5
     [Documentation]    Four new pollers are started and then we remove Poller3.
     [Tags]    broker    engine    grpc
     Ctn Config Engine    ${4}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${4}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${4}
     Ctn Config BBDO3    ${4}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
@@ -412,9 +412,9 @@ EBDP6
     [Documentation]    Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
     [Tags]    broker    engine    grpc
     Ctn Config Engine    ${3}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
     Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
@@ -480,9 +480,9 @@ EBDP7
     [Documentation]    Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
     [Tags]    broker    engine    grpc
     Ctn Config Engine    ${3}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
     Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
@@ -546,9 +546,9 @@ EBDP8
     [Documentation]    Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by broker.
     [Tags]    broker    engine    grpc
     Ctn Config Engine    ${4}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${4}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${4}
     Ctn Config BBDO3    ${4}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    trace

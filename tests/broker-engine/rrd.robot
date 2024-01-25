@@ -14,9 +14,9 @@ BRRDDM1
     [Documentation]    RRD metrics deletion from metric ids.
     [Tags]    rrd    metric    deletion
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
     Broker Config Log    rrd    core    error
@@ -58,9 +58,9 @@ BRRDWM1
     [Documentation]    We are working with BBDO3. This test checks protobuf metrics and status are sent to cbd RRD.
     [Tags]    rrd    metric    bbdo3    unified_sql
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
@@ -83,9 +83,9 @@ BRRDDID1
     [Documentation]    RRD metrics deletion from index ids.
     [Tags]    rrd    metric    deletion
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
     Broker Config Log    rrd    core    error
@@ -130,9 +130,9 @@ BRRDDMID1
     [Documentation]    RRD deletion of non existing metrics and indexes
     [Tags]    rrd    metric    deletion
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
     Broker Config Log    rrd    core    error
@@ -160,9 +160,9 @@ BRRDDMU1
     [Documentation]    RRD metric deletion on table metric with unified sql output
     [Tags]    rrd    metric    deletion unified_sql
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
@@ -204,9 +204,9 @@ BRRDDIDU1
     [Documentation]    RRD metrics deletion from index ids with unified sql output.
     [Tags]    rrd    metric    deletion    unified_sql
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
@@ -251,9 +251,9 @@ BRRDDMIDU1
     [Documentation]    RRD deletion of non existing metrics and indexes
     [Tags]    rrd    metric    deletion    unified_sql
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
@@ -282,9 +282,9 @@ BRRDRM1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output.
     [Tags]    rrd    metric    rebuild    grpc
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    trace
     Broker Config Log    rrd    perfdata    trace
@@ -339,9 +339,9 @@ BRRDRMU1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output.
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    trace
@@ -398,9 +398,9 @@ RRD1
     [Documentation]    RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    trace

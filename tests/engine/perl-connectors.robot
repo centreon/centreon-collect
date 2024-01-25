@@ -13,7 +13,7 @@ EPC1
     [Documentation]    Check with perl connector
     [Tags]    engine    start-stop
     Ctn Config Engine    ${1}
-    Config Broker    module
+    Ctn Config Broker    module
     Ctn Set Value In Engine Conf    ${0}    log_level_commands    trace
     ${start}    Get Current Date
 

@@ -13,9 +13,9 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs    only_central=True
 DEDICATED_DB_CONNECTION_${nb_conn}_${store_in_data_bin}
     [Documentation]    count database connection
     [Tags]    broker    database
-    Config Broker    central
+    Ctn Config Broker    central
     Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
 
     Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}

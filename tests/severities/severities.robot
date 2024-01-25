@@ -17,9 +17,9 @@ BESEV1
     Ctn Config Engine    ${1}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -40,9 +40,9 @@ BESEV2
     Ctn Config Engine    ${1}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -64,10 +64,10 @@ BEUSEV1
     Ctn Config Engine    ${1}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
@@ -89,10 +89,10 @@ BEUSEV2
     Ctn Config Engine    ${1}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
@@ -116,10 +116,10 @@ BEUSEV3
     Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Ctn Add Severity To Services    0    11    [1, 2, 3, 4]
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
@@ -159,10 +159,10 @@ BEUSEV4
     Ctn Add Severity To Services    0    17    [3, 5]
     Ctn Add Severity To Services    1    19    [501, 502]
     Ctn Add Severity To Services    1    17    [503]
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    2
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    2
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
@@ -234,10 +234,10 @@ BETUSEV1
     Ctn Add Template To Services    0    service_template_2    [5, 6, 7, 8]
     Ctn Add Template To Services    1    service_template_1    [501, 502]
     Ctn Add Template To Services    1    service_template_2    [503, 504]
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace

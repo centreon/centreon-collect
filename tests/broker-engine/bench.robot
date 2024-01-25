@@ -20,14 +20,14 @@ BENCH_${nb_check}STATUS
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
     Broker Config Log    central    core    info
     Broker Config Log    central    processing    error
     Ctn Config BBDO3    1
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -85,9 +85,9 @@ BENCH_${nb_check}STATUS_TRACES
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
     FOR    ${name}    IN    @{CONFIG_NAME}
         Broker Config Log    central    ${name}    trace
     END
@@ -95,7 +95,7 @@ BENCH_${nb_check}STATUS_TRACES
     Broker Config Add Item    module0    bbdo_version    3.0.0
     Broker Config Add Item    central    bbdo_version    3.0.0
     Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -151,18 +151,18 @@ BENCH_1000STATUS_100${suffixe}
     [Documentation]    external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
     [Tags]    broker    engine    bench
     Ctn Config Engine    ${100}    ${100}    ${20}
-    Config Broker    module    ${100}
-    Config Broker    central
+    Ctn Config Broker    module    ${100}
+    Ctn Config Broker    central
     FOR    ${poller_index}    IN RANGE    100
         # We want all the services to be passive to avoid parasite checks during our test.
         Ctn Set Services Passive    ${poller_index}    service_.*
     END
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Broker Config Log    central    sql    trace
     Broker Config Log    central    core    info
     Broker Config Log    central    processing    error
     Ctn Config BBDO3    ${100}
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
     ${start}    Get Current Date
     Ctn Start Broker

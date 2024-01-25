@@ -20,12 +20,12 @@ BECT1
     [Documentation]    Broker/Engine communication with anonymous TLS between central and poller
     [Tags]    broker    engine    tls    tcp
     Ctn Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     FOR    ${comp1}    IN    @{choices}
         FOR    ${comp2}    IN    @{choices}
             Log To Console    TLS set to ${comp1} on central and to ${comp2} on module
-            Config Broker    central
-            Config Broker    module
+            Ctn Config Broker    central
+            Ctn Config Broker    module
             Broker Config Input Set    central    central-broker-master-input    tls    ${comp1}
             Broker Config Output Set    module0    central-module-master-output    tls    ${comp2}
             Broker Config Log    central    bbdo    info
@@ -61,9 +61,9 @@ BECT2
     [Documentation]    Broker/Engine communication with TLS between central and poller with key/cert
     [Tags]    broker    engine    tls    tcp
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
 
     ${hostname}    Get Hostname
     Create Key And Certificate
@@ -131,9 +131,9 @@ BECT3
     [Documentation]    Broker/Engine communication with anonymous TLS and ca certificate
     [Tags]    broker    engine    tls    tcp
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
 
     ${hostname}    Get Hostname
     Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/server.crt
@@ -178,9 +178,9 @@ BECT4
     [Documentation]    Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
     [Tags]    broker    engine    tls    tcp
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
 
     Set Local Variable    ${hostname}    centreon
     Create Key And Certificate
@@ -262,12 +262,12 @@ BECT_GRPC1
     [Documentation]    Broker/Engine communication with GRPC and with anonymous TLS between central and poller
     [Tags]    broker    engine    tls    tcp
     Ctn Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     FOR    ${comp1}    IN    @{choices}
         FOR    ${comp2}    IN    @{choices}
             Log To Console    TLS set to ${comp1} on central and to ${comp2} on module
-            Config Broker    central
-            Config Broker    module
+            Ctn Config Broker    central
+            Ctn Config Broker    module
             Broker Config Input Set    central    central-broker-master-input    tls    ${comp1}
             Broker Config Output Set    module0    central-module-master-output    tls    ${comp2}
             Broker Config Log    central    bbdo    info
@@ -307,9 +307,9 @@ BECT_GRPC2
     [Documentation]    Broker/Engine communication with TLS between central and poller with key/cert
     [Tags]    broker    engine    tls    tcp
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
 
     Create Key And Certificate
     ...    localhost
@@ -380,9 +380,9 @@ BECT_GRPC3
     [Documentation]    Broker/Engine communication with anonymous TLS and ca certificate
     [Tags]    broker    engine    tls    tcp
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
 
     ${hostname}    Get Hostname
     Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/server.crt
@@ -429,9 +429,9 @@ BECT_GRPC4
     [Documentation]    Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
     [Tags]    broker    engine    tls    tcp
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
 
     Set Local Variable    ${hostname}    centreon
     Create Key And Certificate

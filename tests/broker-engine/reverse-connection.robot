@@ -14,9 +14,9 @@ BRGC1
     [Documentation]    Broker good reverse connection
     [Tags]    broker    map    reverse connection
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central_map
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central_map
+    Ctn Config Broker    module
 
     Log To Console    Compression set to
     Broker Config Log    central    bbdo    info
@@ -47,9 +47,9 @@ BRCTS1
     [Documentation]    Broker reverse connection too slow
     [Tags]    broker    map    reverse connection
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central_map
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central_map
+    Ctn Config Broker    module
 
     Broker Config Log    central    bbdo    info
     Broker Config Log    module0    bbdo    info
@@ -79,9 +79,9 @@ BRCS1
     [Documentation]    Broker reverse connection stopped
     [Tags]    broker    map    reversed
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central_map
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central_map
+    Ctn Config Broker    module
 
     Broker Config Log    central    bbdo    info
     Broker Config Log    module0    bbdo    info
@@ -109,9 +109,9 @@ BRCTSMN
     [Documentation]    Broker connected to map with neb filter
     [Tags]    broker    map    reverse connection
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central_map
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central_map
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
 
     Broker Config Output Set Json    central    centreon-broker-master-map    filters    {"category": ["neb"]}
@@ -154,9 +154,9 @@ BRCTSMNS
     [Tags]    broker    map    reverse connection
     Ctn Clear Metrics
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central_map
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central_map
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
 
     Broker Config Output Set Json

@@ -14,9 +14,9 @@ BEPBBEE1
     [Documentation]    central-module configured with bbdo_version 3.0 but not others. Unable to establish connection.
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Broker Config Add Item    module0    bbdo_version    3.0.0
     Broker Config Log    module0    bbdo    debug
     Broker Config Log    central    bbdo    debug
@@ -34,9 +34,9 @@ BEPBBEE2
     [Documentation]    bbdo_version 3 not compatible with sql/storage
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Broker Config Add Item    module0    bbdo_version    3.0.0
     Broker Config Add Item    central    bbdo_version    3.0.0
     Broker Config Add Item    rrd    bbdo_version    3.0.0
@@ -57,12 +57,12 @@ BEPBBEE3
     [Tags]    broker    engine    protobuf    bbdo
     Remove File    /tmp/pbservicestatus.log
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservicestatus.lua
     Clear Retention
     ${start}    Get Current Date
@@ -77,12 +77,12 @@ BEPBBEE4
     [Tags]    broker    engine    protobuf    bbdo
     Remove File    /tmp/pbhoststatus.log
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbhoststatus.lua
     Clear Retention
     ${start}    Get Current Date
@@ -97,12 +97,12 @@ BEPBBEE5
     [Tags]    broker    engine    protobuf    bbdo
     Remove File    /tmp/pbservice.log
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservice.lua
     Clear Retention
     ${start}    Get Current Date
@@ -117,11 +117,11 @@ BEPBRI1
     [Tags]    broker    engine    protobuf    bbdo
     Remove File    /tmp/pbresponsiveinstance.log
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Config BBDO3    1
     Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    read_timeout    2
     Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    2
 
@@ -151,10 +151,10 @@ BEPBCVS
     [Documentation]    bbdo_version 3 communication of custom variables.
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
-    Config Broker    central
+    Ctn Config Broker    central
     Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker    True
@@ -181,11 +181,11 @@ BEPB_HOST_DEPENDENCY
     Ctn Config Engine    ${1}
     Ctn Config Engine Add Cfg File    0    dependencies.cfg
     Ctn Add Host Dependency    0    host_1    host_2
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker    True
@@ -222,11 +222,11 @@ BEPB_SERVICE_DEPENDENCY
     Ctn Config Engine    ${1}
     Ctn Config Engine Add Cfg File    0    dependencies.cfg
     Ctn Add Service Dependency    0    host_1    host_2    service_1    service_21
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker    True

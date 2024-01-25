@@ -14,12 +14,12 @@ BERES1
     [Documentation]    store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    1
     Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
@@ -46,12 +46,12 @@ BEHS1
     [Documentation]    store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    1
     Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    no
     Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    yes
     Clear Retention
@@ -91,11 +91,11 @@ BEINSTANCESTATUS
     Ctn Set Value In Engine Conf    0    accept_passive_host_checks    0    True
     Ctn Set Value In Engine Conf    0    accept_passive_service_checks    0    True
 
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -143,11 +143,11 @@ BEINSTANCE
     [Tags]    broker    engine
     Ctn Config Engine    ${1}    ${50}    ${20}
 
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM instances
 
@@ -176,11 +176,11 @@ BE_NOTIF_OVERFLOW
     [Documentation]    bbdo 2.0 notification number =40000. make an overflow => notification_number null in db
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Add Item    module0    bbdo_version    2.0.0
     Broker Config Add Item    central    bbdo_version    2.0.0
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Broker Config Log    central    sql    trace
     Broker Config Log    central    perfdata    trace
 
@@ -213,9 +213,9 @@ BE_TIME_NULL_SERVICE_RESOURCE
     [Documentation]    With BBDO 3, notification_interval time must be set to NULL on 0 in services, hosts and resources tables.
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -247,9 +247,9 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     [Documentation]    default notification_interval must be set to NULL in services, hosts and resources tables.
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}

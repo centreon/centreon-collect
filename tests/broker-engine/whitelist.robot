@@ -14,7 +14,7 @@ Whitelist_No_Whitelist_Directory
     [Documentation]    log if /etc/centreon-engine-whitelist doesn't exist
     [Tags]    whitelist    engine
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    module    ${1}
+    Ctn Config Broker    module    ${1}
     Remove Directory    /etc/centreon-engine-whitelist    recursive=${True}
     ${start}    Get Current Date
     Ctn Start Engine
@@ -27,7 +27,7 @@ Whitelist_Empty_Directory
     [Documentation]    log if /etc/centreon-engine-whitelist if empty
     [Tags]    whitelist    engine
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    module    ${1}
+    Ctn Config Broker    module    ${1}
     Empty Directory    /etc/centreon-engine-whitelist
     ${start}    Get Current Date
     Ctn Start Engine
@@ -40,7 +40,7 @@ Whitelist_Directory_Rights
     [Documentation]    log if /etc/centreon-engine-whitelist has not mandatory rights or owner
     [Tags]    whitelist    engine
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    module    ${1}
+    Ctn Config Broker    module    ${1}
     Run    chown root:root /etc/centreon-engine-whitelist
     ${start}    Get Current Date
     Ctn Start Engine
@@ -70,8 +70,8 @@ Whitelist_Host
     [Tags]    whitelist    engine
     Ctn Config Engine    ${1}    ${50}    ${20}
     Empty Directory    /etc/centreon-engine-whitelist
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Set Value In Engine Conf    0    log_level_checks    trace    True
     Ctn Set Value In Engine Conf    0    log_level_commands    trace    True
     Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/check.pl 0 $HOSTADDRESS$
@@ -126,8 +126,8 @@ Whitelist_Service
     [Tags]    whitelist    engine
     Ctn Config Engine    ${1}    ${50}    ${20}
     Empty Directory    /etc/centreon-engine-whitelist
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Set Value In Engine Conf    0    log_level_checks    trace    True
     Ctn Set Value In Engine Conf    0    log_level_commands    trace    True
     # service_1 uses command_1
@@ -183,8 +183,8 @@ Whitelist_Perl_Connector
     [Tags]    whitelist    engine    connector
     Ctn Config Engine    ${1}    ${50}    ${20}
     Empty Directory    /etc/centreon-engine-whitelist
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Set Value In Engine Conf    0    log_level_checks    trace    True
     Ctn Set Value In Engine Conf    0    log_level_commands    trace    True
     # service_1 uses command_14 (uses perl connector)

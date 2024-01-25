@@ -12,8 +12,8 @@ Test Setup          Ctn Stop Processes
 BFC1
     [Documentation]    Start broker with invalid filters but one filter ok
     [Tags]    broker    start-stop    log-v2
-    Config Broker    central
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Broker Config Log    central    config    info
     Broker Config Log    central    sql    error
     Broker Config Log    central    core    error
@@ -36,8 +36,8 @@ BFC1
 BFC2
     [Documentation]    Start broker with only invalid filters on an output
     [Tags]    broker    start-stop    log-v2
-    Config Broker    central
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Broker Config Log    central    config    info
     Broker Config Log    central    sql    error
     Broker Config Log    central    core    error

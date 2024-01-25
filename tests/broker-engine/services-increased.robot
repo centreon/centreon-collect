@@ -14,12 +14,12 @@ EBNSVC1
     [Documentation]    New services with several pollers
     [Tags]    broker    engine    services    protobuf
     Ctn Config Engine    ${3}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
     Ctn Config BBDO3    3
     Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -49,15 +49,15 @@ Service_increased_huge_check_interval
     [Documentation]    New services with high check interval at creation time.
     [Tags]    broker    engine    services    protobuf
     Ctn Config Engine    ${1}    ${10}    ${10}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Broker Config Source Log    central    1
     Ctn Config BBDO3    1
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    debug
     Broker Config Log    rrd    core    error
-    Config Broker Sql Output    central    unified_sql    10
+    Ctn Config Broker Sql Output    central    unified_sql    10
     Broker Config Flush Log    central    0
     Broker Config Flush Log    rrd    0
     Clear Retention

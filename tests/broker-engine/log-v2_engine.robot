@@ -14,9 +14,9 @@ LOGV2EB1
     [Documentation]    Checking broker sink when log-v2 is enabled and legacy logs are disabled.
     [Tags]    broker    engine    log-v2 sink broker
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Flush Log    module0    0
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
@@ -58,9 +58,9 @@ LOGV2EBU1
     [Documentation]    Checking broker sink when log-v2 is enabled and legacy logs are disabled with bbdo3.
     [Tags]    broker    engine    log-v2 sink broker    bbdo3    unified_sql
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Broker Config Flush Log    module0    0
     Broker Config Flush Log    central    0
@@ -105,9 +105,9 @@ LOGV2DB1
     [Documentation]    log-v2 disabled old log enabled check broker sink
     [Tags]    broker    engine    log-v2 sink broker
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Flush Log    module0    0
     Broker Config Log    central    sql    trace
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${1}
@@ -152,9 +152,9 @@ LOGV2DB2
     [Documentation]    log-v2 disabled old log disabled check broker sink
     [Tags]    broker    engine    log-v2 sink broker
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Flush Log    module0    0
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${0}
@@ -197,9 +197,9 @@ LOGV2EB2
     [Documentation]    log-v2 enabled old log enabled check broker sink
     [Tags]    broker    engine    log-v2    sinkbroker
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Flush Log    module0    0
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
@@ -244,9 +244,9 @@ LOGV2EBU2
     [Documentation]    Check Broker sink with log-v2 enabled and legacy log enabled with BBDO3.
     [Tags]    broker    engine    log-v2    sinkbroker    unified_sql    bbdo3
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Flush Log    module0    0
     Ctn Config BBDO3    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${1}
@@ -292,9 +292,9 @@ LOGV2EF1
     [Documentation]    log-v2 enabled    old log disabled check logfile sink
     [Tags]    broker    engine    log-v2
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Flush Log    module0    0
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
@@ -317,9 +317,9 @@ LOGV2DF1
     [Documentation]    log-v2 disabled old log enabled check logfile sink
     [Tags]    broker    engine    log-v2
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Flush Log    module0    0
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${0}
@@ -345,9 +345,9 @@ LOGV2DF2
     [Documentation]    log-v2 disabled old log disabled check logfile sink
     [Tags]    broker    engine    log-v2
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Flush Log    module0    0
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${0}
@@ -373,9 +373,9 @@ LOGV2EF2
     [Documentation]    log-v2 enabled old log enabled check logfile sink
     [Tags]    broker    engine    log-v2
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Flush Log    module0    0
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
@@ -401,9 +401,9 @@ LOGV2FE2
     [Documentation]    log-v2 enabled old log enabled check logfile sink
     [Tags]    broker    engine    log-v2
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Broker Config Flush Log    module0    0
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}

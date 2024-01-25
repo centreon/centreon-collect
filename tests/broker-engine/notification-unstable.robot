@@ -701,9 +701,9 @@ Config Notifications
     Ctn Set Value In Engine Conf    0    execute_service_checks    1    True
     Ctn Set Value In Engine Conf    0    log_notifications    1    True
     Ctn Set Value In Engine Conf    0    log_level_notifications    trace    True
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
     Broker Config Add Item    module0    bbdo_version    3.0.1
     Broker Config Add Item    rrd    bbdo_version    3.0.1
     Broker Config Add Item    central    bbdo_version    3.0.1
@@ -711,8 +711,8 @@ Config Notifications
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    error
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Remove Rrd Output    central
     Clear Retention
     Ctn Config Engine Add Cfg File    ${0}    contacts.cfg
     Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg

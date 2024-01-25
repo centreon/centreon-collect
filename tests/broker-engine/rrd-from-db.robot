@@ -14,10 +14,10 @@ BRRDDMDB1
     [Documentation]    RRD metrics deletion from metric ids with a query in centreon_storage.
     [Tags]    rrd    metric    deletion    unified_sql    mysql
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
     Broker Config Log    central    grpc    error
     Broker Config Log    central    sql    info
     Broker Config Log    central    core    error
@@ -53,10 +53,10 @@ BRRDDIDDB1
     [Documentation]    RRD metrics deletion from index ids with a query in centreon_storage.
     [Tags]    rrd    metric    deletion    unified_sql
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
     Broker Config Log    rrd    core    error
@@ -99,10 +99,10 @@ BRRDRBDB1
     [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql
     [Tags]    rrd    metric    rebuild    unified_sql
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
@@ -146,10 +146,10 @@ BRRDRBUDB1
     [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
@@ -193,10 +193,10 @@ BRRDUPLICATE
     [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql with duplicate rows in database
     [Tags]    rrd    metric    rebuild    unified_sql
     Ctn Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0

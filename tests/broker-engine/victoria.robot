@@ -14,16 +14,16 @@ VICT_ONE_CHECK_METRIC
     [Documentation]    victoria metrics metric output
     [Tags]    broker    engine    victoria_metrics
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Clear Retention
     Broker Config Log    central    victoria_metrics    trace
     Broker Config Log    central    perfdata    trace
     Broker Config Source Log    central    1
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Victoria Output
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Victoria Output
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -73,16 +73,16 @@ VICT_ONE_CHECK_STATUS
     [Documentation]    victoria metrics status output
     [Tags]    broker    engine    victoria_metrics
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Clear Retention
     Broker Config Log    central    victoria_metrics    trace
     Broker Config Log    central    perfdata    trace
     Broker Config Source Log    central    1
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Victoria Output
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Victoria Output
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -196,16 +196,16 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     [Documentation]    victoria metrics metric output after victoria shutdown
     [Tags]    broker    engine    victoria_metrics
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Clear Retention
     Broker Config Log    central    victoria_metrics    trace
     Broker Config Log    central    perfdata    trace
     Broker Config Source Log    central    1
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Victoria Output
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Victoria Output
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine

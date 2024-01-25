@@ -12,11 +12,11 @@ Test Setup          Ctn Stop Processes
 BSCSSK1
     [Documentation]    Start-Stop two instances of broker, server configured with grpc and client with tcp. No connectrion established and error raised on client side.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker BBDO Input    central    bbdo_server    5669    tcp
-    Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
-    Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker BBDO Input    central    bbdo_server    5669    tcp
+    Ctn Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
+    Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
     Broker Config Log    central    grpc    debug
     Broker Config Log    central    tcp    debug
     Broker Config Log    rrd    grpc    debug
@@ -37,11 +37,11 @@ BSCSSK1
 BSCSSK2
     [Documentation]    Start-Stop two instances of broker, server configured with tcp and client with grpc. No connection established and error raised on client side.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker BBDO Input    central    bbdo_server    5669    grpc
-    Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
-    Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker BBDO Input    central    bbdo_server    5669    grpc
+    Ctn Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
+    Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
     Broker Config Log    central    grpc    debug
     Broker Config Log    central    tcp    debug
     Broker Config Log    rrd    grpc    debug
