@@ -313,10 +313,10 @@ BERDUC3U2
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     # Let's wait for a first service status.
     ${content}    Create List    SQL: pb service .* status .* type .* check result output
-    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result[0]}    We did not get any pb service status for 60s
 
     ${result}    Ctn Check Connections
@@ -376,11 +376,11 @@ BERDUCA300
     Should Be True    ${result}    Broker should receive a pb stop message from engine.
 
     ${content}    Create List    send acknowledgement for [0-9]+ events
-    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result[0]}    Broker should send an ack for handled events.
 
     ${content}    Create List    BBDO: received acknowledgement for [0-9]+ events before finishing
-    ${result}    Find Regex In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find Regex In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result[0]}    Engine should receive an ack for handled events from broker.
 
     Ctn Kindly Stop Broker
@@ -429,11 +429,11 @@ BERDUCA301
     Should Be True    ${result}    Broker should receive a pb stop message from engine.
 
     ${content}    Create List    send pb acknowledgement for [0-9]+ events
-    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result[0]}    Broker should send an ack for handled events.
 
     ${content}    Create List    BBDO: received acknowledgement for [0-9]+ events before finishing
-    ${result}    Find Regex In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find Regex In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result[0]}    Engine should receive an ack for handled events from broker.
 
     Ctn Kindly Stop Broker

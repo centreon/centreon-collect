@@ -187,11 +187,11 @@ BSCSSTG2
     Ctn Broker Config Log    central    tls    debug
     Ctn Broker Config Log    rrd    grpc    trace
     Ctn Broker Config Log    central    grpc    trace
-    Create Key And Certificate
+    Ctn Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Create Key And Certificate
+    Ctn Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
@@ -236,11 +236,11 @@ BSCSSTG3
     Ctn Broker Config Log    central    tls    debug
     Ctn Broker Config Log    central    grpc    debug
     Ctn Broker Config Log    rrd    grpc    debug
-    Create Key And Certificate
+    Ctn Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Create Key And Certificate
+    Ctn Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
@@ -415,11 +415,11 @@ Start Stop Instance
 
 Prepare Suite
     Ctn Clean Before Suite
-    Create Key And Certificate
+    Ctn Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Create Key And Certificate
+    Ctn Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt

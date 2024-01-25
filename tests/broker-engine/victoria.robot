@@ -37,7 +37,7 @@ VICT_ONE_CHECK_METRIC
 
     Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     ${timeout}    Get Current Date    result_format=epoch    increment=00:01:00
     ${now}    Get Current Date    result_format=epoch
     WHILE    ${now} < ${timeout}
@@ -95,7 +95,7 @@ VICT_ONE_CHECK_STATUS
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     # service ok
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
 
     ${timeout}    Get Current Date    result_format=epoch    increment=00:01:00
@@ -124,7 +124,7 @@ VICT_ONE_CHECK_STATUS
     Should Be True    ${now} < ${timeout}
 
     # service warning
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Process Service Result Hard
     ...    host_16
     ...    service_314
@@ -158,7 +158,7 @@ VICT_ONE_CHECK_STATUS
 
     # service critical
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Process Service Result Hard
     ...    host_16
     ...    service_314
@@ -217,7 +217,7 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
 
     ${content}    Create List    [victoria_metrics]    name: "metric_taratata"
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60

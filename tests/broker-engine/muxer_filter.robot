@@ -301,7 +301,7 @@ CBD_RELOAD_AND_FILTERS
 
     # We check that output filters to rrd are set to "storage"
     ${content}    Create List    rrd event of type .* rejected by write filter
-    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    120
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    120
     Should Be True    ${result}    No event rejected by the rrd output whereas only storage category is enabled.
 
     Log To Console    Third configuration: all events are sent.
@@ -330,7 +330,7 @@ CBD_RELOAD_AND_FILTERS
 
     # We check that output filters to rrd doesn't filter anything
     ${content}    Create List    rrd event of type .* rejected by write filter
-    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    30
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    30
     Should Be Equal As Strings
     ...    ${result[0]}
     ...    False
@@ -404,7 +404,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     # We check that output filters to rrd are set to "storage"
     ${content}    Create List    rrd event of type .* rejected by write filter
-    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    120
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    120
     Should Be True    ${result}    No event rejected by the rrd output whereas only storage category is enabled.
 
     Log To Console    Third configuration: all events are sent.
@@ -432,7 +432,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     # We check that output filters to rrd doesn't filter anything
     ${content}    Create List    rrd event of type .* rejected by write filter
-    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    30
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    30
     Should Be Equal As Strings
     ...    ${result[0]}
     ...    False

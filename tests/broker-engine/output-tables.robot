@@ -152,7 +152,7 @@ BEINSTANCE
     Execute SQL String    DELETE FROM instances
 
     # as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     ${engine_pid}    Ctn Get Engine Pid    e0
@@ -167,7 +167,7 @@ BEINSTANCE
     ${result}    Check Field Db Value    SELECT end_time FROM instances WHERE instance_id=1    ${0}    3
     Should Be True    ${result}    no correct end_time in instances table.
     @{bdd_start_time}    Query    SELECT start_time FROM instances WHERE instance_id=1
-    ${now}    Get Round Current Date
+    ${now}    Ctn Get Round Current Date
     Should Be True
     ...    ${start} <= ${bdd_start_time[0][0]} and ${bdd_start_time[0][0]} <= ${now}
     ...    sg=no correct start_time in instances table.

@@ -39,7 +39,7 @@ BRRDDM1
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics .* erased from database
 
-    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result[0]}    No log message telling about some metrics deletion.
 
     # We should have one line, but stored in an array.
@@ -107,7 +107,7 @@ BRRDDID1
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes .* erased from database
 
-    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result[0]}    No log message telling about indexes ${indexes_str} deletion.
     # We should have one line, but stored in an array.
     FOR    ${l}    IN    @{result[1]}
@@ -186,7 +186,7 @@ BRRDDMU1
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics .* erased from database
 
-    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    50
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    50
     Should Be True    ${result[0]}    No log message telling about metrics ${metrics_str} deletion.
 
     # We should have one line, but stored in an array.
@@ -230,7 +230,7 @@ BRRDDIDU1
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes .* erased from database
 
-    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result[0]}    No log message telling about indexes ${indexes_str} deletion.
     # We should have one line, but stored in an array.
     FOR    ${l}    IN    @{result[1]}
@@ -351,7 +351,7 @@ BRRDRMU1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Create Metrics    3
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -410,7 +410,7 @@ RRD1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Create Metrics    3
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Run Keywords    Ctn Start Broker    AND    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected

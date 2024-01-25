@@ -262,7 +262,7 @@ BDBM1
         Ctn Config Broker    rrd
         Ctn Config Broker    module
         Ctn Config Engine    ${1}
-        ${start}    Get Round Current Date
+        ${start}    Ctn Get Round Current Date
         Stop Mysql
         Ctn Start Broker
         Ctn Start Engine
@@ -292,7 +292,7 @@ BDBU1
         ${start}    Get Current Date
         Ctn Start Broker
         ${content}    Create List    Table 'centreon\..*' doesn't exist
-        ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+        ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
         Should Be True    ${result}    A message about some missing tables in 'centreon' database should appear
         Ctn Kindly Stop Broker
     END
@@ -358,7 +358,7 @@ BDBU10
     ${start}    Get Current Date
     Ctn Start Broker
     ${content}    Create List    mysql_connection 0x[0-9a-f]* : commit
-    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result[0]}    Log concerning a commit (connection ok) is missing.
     Ctn Kindly Stop Broker
 

@@ -65,12 +65,12 @@ BECT2
     Ctn Config Broker    central
     Ctn Config Broker    module
 
-    ${hostname}    Get Hostname
-    Create Key And Certificate
+    ${hostname}    Ctn Get Hostname
+    Ctn Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Create Key And Certificate
+    Ctn Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
@@ -135,7 +135,7 @@ BECT3
     Ctn Config Broker    central
     Ctn Config Broker    module
 
-    ${hostname}    Get Hostname
+    ${hostname}    Ctn Get Hostname
     Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/server.crt
     Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/client.crt
 
@@ -183,11 +183,11 @@ BECT4
     Ctn Config Broker    module
 
     Set Local Variable    ${hostname}    centreon
-    Create Key And Certificate
+    Ctn Create Key And Certificate
     ...    ${hostname}
     ...    ${EtcRoot}/centreon-broker/server.key
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Create Key And Certificate
+    Ctn Create Key And Certificate
     ...    ${hostname}
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
@@ -311,11 +311,11 @@ BECT_GRPC2
     Ctn Config Broker    central
     Ctn Config Broker    module
 
-    Create Key And Certificate
+    Ctn Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Create Key And Certificate
+    Ctn Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
@@ -384,7 +384,7 @@ BECT_GRPC3
     Ctn Config Broker    central
     Ctn Config Broker    module
 
-    ${hostname}    Get Hostname
+    ${hostname}    Ctn Get Hostname
     Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/server.crt
     Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/client.crt
 
@@ -434,11 +434,11 @@ BECT_GRPC4
     Ctn Config Broker    module
 
     Set Local Variable    ${hostname}    centreon
-    Create Key And Certificate
+    Ctn Create Key And Certificate
     ...    ${hostname}
     ...    ${EtcRoot}/centreon-broker/server.key
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Create Key And Certificate
+    Ctn Create Key And Certificate
     ...    ${hostname}
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
