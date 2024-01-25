@@ -131,7 +131,7 @@ BAM_STREAM_FILTER
     # Command of service_314 is set to critical
     ${cmd_1}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
-    Set Command Status    ${cmd_1}    2
+    Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker    True
     ${start}    Get Current Date
     Ctn Start Engine

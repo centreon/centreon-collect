@@ -30,7 +30,7 @@ BEBAMIDTU1
     # Command of service_314 is set to critical
     ${cmd_1}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
-    Set Command Status    ${cmd_1}    2
+    Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
@@ -91,7 +91,7 @@ BEBAMIDTU2
     # Command of service_314 is set to critical
     ${cmd_1}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
-    Set Command Status    ${cmd_1}    2
+    Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
@@ -185,12 +185,12 @@ BEBAMIGNDTU1
     # Command of service_313 is set to ok
     ${cmd_1}    Ctn Get Command Id    313
     Log To Console    service_313 has command id ${cmd_1}
-    Set Command Status    ${cmd_1}    0
+    Ctn Set Command Status    ${cmd_1}    0
 
     # Command of service_314 is set to critical
     ${cmd_2}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_2}
-    Set Command Status    ${cmd_2}    2
+    Ctn Set Command Status    ${cmd_2}    2
 
     Ctn Start Broker
     ${start}    Get Current Date
@@ -289,10 +289,10 @@ BEBAMIGNDTU2
     # Command of service_314 is set to critical
     ${cmd_1}    Ctn Get Command Id    313
     Log To Console    service_314 has command id ${cmd_1}
-    Set Command Status    ${cmd_1}    0
+    Ctn Set Command Status    ${cmd_1}    0
     ${cmd_2}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_2}
-    Set Command Status    ${cmd_2}    2
+    Ctn Set Command Status    ${cmd_2}    2
     Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine

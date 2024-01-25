@@ -39,7 +39,7 @@ BERD1
     Sleep    5s
     Ctn Kindly Stop Broker
     Sleep    5s
-    Clear Cache
+    Ctn Clear Cache
     Ctn Start Broker
     Sleep    25s
     Ctn Stop Engine
@@ -120,7 +120,7 @@ BERDUC1
     Sleep    5s
     Ctn Kindly Stop Broker
     Sleep    5s
-    Clear Cache
+    Ctn Clear Cache
     Ctn Start Broker
     Sleep    25s
     Ctn Stop Engine
@@ -157,7 +157,7 @@ BERDUCU1
     Sleep    5s
     Ctn Kindly Stop Broker
     Sleep    5s
-    Clear Cache
+    Ctn Clear Cache
     Ctn Start Broker
     Sleep    25s
     Ctn Stop Engine
@@ -194,7 +194,7 @@ BERDUC2
     Sleep    5s
     Ctn Stop Engine
     Sleep    5s
-    Clear Cache
+    Ctn Clear Cache
     Ctn Start Engine
     Sleep    25s
     Ctn Stop Engine
@@ -233,7 +233,7 @@ BERDUCU2
     Sleep    5s
     Ctn Stop Engine
     Sleep    5s
-    Clear Cache
+    Ctn Clear Cache
     Ctn Start Engine
     Sleep    25s
     Ctn Stop Engine
@@ -271,7 +271,7 @@ BERDUC3U1
     Sleep    5s
     Ctn Kindly Stop Broker
     Sleep    5s
-    Clear Cache
+    Ctn Clear Cache
     Ctn Start Broker
     Sleep    25s
     Ctn Stop Engine
@@ -324,7 +324,7 @@ BERDUC3U2
     Sleep    5s
     Ctn Stop Engine
     Sleep    5s
-    Clear Cache
+    Ctn Clear Cache
     Ctn Start Engine
     Sleep    25s
     Ctn Stop Engine

@@ -34,12 +34,12 @@ ENRSCHE1
     # We check a retry check rescheduling
     Ctn Process Host Check Result    host_14    1    host_14 is down
 
-    ${result}    Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    True    240
+    ${result}    Ctn Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    True    240
     Should Be True    ${result}    The delta between last_check and next_check is not equal to 60 as expected for a retry check
 
     # We check a normal check rescheduling
     ${start}    Get Current Date
-    ${result}    Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    False    240
+    ${result}    Ctn Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    False    240
     Should Be True    ${result}    The delta between last_check and next_check is not equal to 300 as expected for a normal check
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs

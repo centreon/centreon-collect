@@ -151,11 +151,11 @@ def extract_date_from_log(line: str):
 
 #  When you use Get Current Date with exclude_millis=True
 #  it rounds result to nearest lower or upper second
-def get_round_current_date():
+def ctn_get_round_current_date():
     return int(time.time())
 
 
-def find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
+def ctn_find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
 
     limit = time.time() + timeout
     c = ""
@@ -218,7 +218,7 @@ def ctn_find_in_log(log: str, date, content, regex=False):
         f = open(log, "r", encoding="latin1")
         lines = f.readlines()
         f.close()
-        idx = find_line_from(lines, date)
+        idx = ctn_find_line_from(lines, date)
 
         for c in content:
             found = False
@@ -242,7 +242,7 @@ def ctn_find_in_log(log: str, date, content, regex=False):
         return False, content[0]
 
 
-def get_hostname():
+def ctn_get_hostname():
     """Return the fqdn host name of the computer.
 
     Returns:
@@ -253,7 +253,7 @@ def get_hostname():
     return retval
 
 
-def create_key_and_certificate(host: str, key: str, cert: str):
+def ctn_create_key_and_certificate(host: str, key: str, cert: str):
     if len(key) > 0:
         os.makedirs(os.path.dirname(key), mode=0o777, exist_ok=True)
     if len(cert) > 0:
@@ -268,16 +268,16 @@ def create_key_and_certificate(host: str, key: str, cert: str):
             "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -out {} -subj '/CN={}'".format(key, cert, host))
 
 
-def create_certificate(host: str, cert: str):
-    create_key_and_certificate(host, "", cert)
+def ctn_create_certificate(host: str, cert: str):
+    ctn_create_key_and_certificate(host, "", cert)
 
 
-def run_env():
+def ctn_run_env():
     return getoutput("echo $RUN_ENV | awk '{print $1}'")
 
 
-def start_mysql():
-    if not run_env():
+def ctn_start_mysql():
+    if not ctn_run_env():
         logger.console("Starting Mariadb with systemd")
         getoutput("systemctl start mysql")
         logger.console("Mariadb started with systemd")
@@ -299,8 +299,8 @@ def start_mysql():
             logger.console("Mariadb directly started")
 
 
-def stop_mysql():
-    if not run_env():
+def ctn_stop_mysql():
+    if not ctn_run_env():
         logger.console("Stopping Mariadb with systemd")
         getoutput("systemctl stop mysql")
         logger.console("Mariadb stopped with systemd")
@@ -349,24 +349,24 @@ def stop_mysql():
             logger.console("Mariadb directly stopped")
 
 
-def stop_rrdcached():
+def ctn_stop_rrdcached():
     getoutput(
         "kill -9 $(ps ax | grep '.usr.bin.rrdcached' | grep -v grep | awk '{print $1}')")
 
 
-def kill_broker():
+def ctn_kill_broker():
     getoutput(
         "kill -SIGKILL $(ps ax | grep '/usr/sbin/cbwd' | grep -v grep | awk '{print $1}')")
     getoutput(
         "kill -SIGKILL $(ps ax | grep '/usr/sbin/cbd' | grep -v grep | awk '{print $1}')")
 
 
-def kill_engine():
+def ctn_kill_engine():
     getoutput(
         "kill -SIGKILL $(ps ax | grep '/usr/sbin/centengine' | grep -v grep | awk '{print $1}')")
 
 
-def clear_retention():
+def ctn_clear_all_retention_files():
     getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
     getoutput("find /tmp -name 'lua*' -delete")
     getoutput(f"find {VAR_ROOT} -name '*.memory.*' -delete")
@@ -375,11 +375,11 @@ def clear_retention():
     getoutput(f"find {VAR_ROOT} -name 'retention.dat' -delete")
 
 
-def clear_cache():
+def ctn_clear_cache():
     getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
 
 
-def engine_log_table_duplicate(result: list):
+def ctn_engine_log_table_duplicate(result: list):
     dup = True
     for i in result:
         if (i[0] % 2) != 0:
@@ -387,12 +387,12 @@ def engine_log_table_duplicate(result: list):
     return dup
 
 
-def check_engine_logs_are_duplicated(log: str, date):
+def ctn_check_engine_logs_are_duplicated(log: str, date):
     try:
         with open(log, "r") as f:
             lines = f.readlines()
 
-        idx = find_line_from(lines, date)
+        idx = ctn_find_line_from(lines, date)
         count_true = 0
         count_false = 0
         logs_old = []
@@ -430,7 +430,7 @@ def check_engine_logs_are_duplicated(log: str, date):
         return False
 
 
-def find_line_from(lines, date):
+def ctn_find_line_from(lines, date):
     try:
         my_date = parser.parse(date)
     except:
@@ -461,12 +461,12 @@ def find_line_from(lines, date):
     return idx
 
 
-def check_reschedule(log: str, date, content: str, retry: bool):
+def ctn_check_reschedule(log: str, date, content: str, retry: bool):
     try:
         with open(log, "r") as f:
             lines = f.readlines()
 
-        idx = find_line_from(lines, date)
+        idx = ctn_find_line_from(lines, date)
 
         r = re.compile(r".* last check at (.*) and next check at (.*)$")
         target = 60 if retry else 300
@@ -490,23 +490,23 @@ def check_reschedule(log: str, date, content: str, retry: bool):
         return False
 
 
-def check_reschedule_with_timeout(log: str, date, content: str, retry: bool, timeout: int):
+def ctn_check_reschedule_with_timeout(log: str, date, content: str, retry: bool, timeout: int):
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        v = check_reschedule(log, date, content, retry)
+        v = ctn_check_reschedule(log, date, content, retry)
         if v:
             return True
         time.sleep(5)
     return False
 
 
-def clear_commands_status():
+def ctn_clear_commands_status():
     if os.path.exists("/tmp/states"):
         os.remove("/tmp/states")
 
 
-def set_command_status(cmd, status):
+def ctn_set_command_status(cmd, status):
     if os.path.exists("/tmp/states"):
         f = open("/tmp/states")
         lines = f.readlines()
@@ -529,7 +529,7 @@ def set_command_status(cmd, status):
     f.close()
 
 
-def truncate_resource_host_service():
+def ctn_truncate_resource_host_service():
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -841,40 +841,6 @@ def check_downtimes_with_timeout(nb: int, timeout: int):
                             f"We should have {nb} downtimes but we have {result[0]['count(*)']}")
         time.sleep(2)
     return False
-
-
-# def check_host_downtime_with_timeout(hostname: str, enabled, timeout: int):
-#    limit = time.time() + timeout
-#    while time.time() < limit:
-#        connection = pymysql.connect(host=DB_HOST,
-#                                     user=DB_USER,
-#                                     password=DB_PASS,
-#                                     database=DB_NAME_STORAGE,
-#                                     charset='utf8mb4',
-#                                     cursorclass=pymysql.cursors.DictCursor)
-#
-#        with connection:
-#            with connection.cursor() as cursor:
-#                if enabled != '0':
-#                    cursor.execute(
-#                        f"SELECT h.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id AND d.service_id=0 WHERE d.deletion_time is null AND h.name='{hostname}'")
-#                    result = cursor.fetchall()
-#                    if len(result) == int(enabled) and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
-#                        return True
-#                    if (len(result) > 0):
-#                        logger.console(
-#                            f"{len(result)} downtimes for host {hostname} scheduled_downtime_depth={result[0]['scheduled_downtime_depth']}")
-#                    else:
-#                        logger.console(
-#                            f"{len(result)} downtimes for host {hostname} scheduled_downtime_depth=None")
-#                else:
-#                    cursor.execute(
-#                        f"SELECT h.scheduled_downtime_depth, d.deletion_time, d.downtime_id FROM hosts h LEFT JOIN downtimes d ON h.host_id = d.host_id AND d.service_id=0 WHERE h.name='{hostname}'")
-#                    result = cursor.fetchall()
-#                    if len(result) > 0 and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is None or not result[0]['deletion_time'] is None):
-#                        return True
-#        time.sleep(1)
-#    return False
 
 
 def check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
