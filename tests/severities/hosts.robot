@@ -12,7 +12,7 @@ Test Setup          Ctn Stop Processes
 BEUHSEV1
     [Documentation]    Four hosts have a severity added. Then we remove the severity from host 1. Then we change severity 10 to severity8 for host 3.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    # Clear Db    severities
+    # Ctn Clear Db    severities
     Ctn Config Engine    ${1}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg

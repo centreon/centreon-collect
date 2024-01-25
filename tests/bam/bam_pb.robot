@@ -734,7 +734,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
 
     Remove File    /tmp/all_lua_event.log
 
-    Clear Db    mod_bam_reporting_relations_ba_bv
+    Ctn Clear Db    mod_bam_reporting_relations_ba_bv
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
 
     ${id_ba__sid}    Ctn Create Ba With Services    test    worst    ${svc}
@@ -1113,7 +1113,7 @@ BAM Setup
 BAM Init
     Clear Commands Status
     Ctn Clear All Retention Files
-    Clear Db Conf    mod_bam
+    Ctn Clear Db Conf    mod_bam
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd

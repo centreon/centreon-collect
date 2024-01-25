@@ -24,7 +24,7 @@ EFHC1
     Ctn Set Value In Engine Conf    ${0}    log_flush_period    0
 
     Ctn Clear All Retention Files
-    Clear Db    hosts
+    Ctn Clear Db    hosts
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -118,7 +118,7 @@ EFHCU1
     Ctn Config BBDO3    1
 
     Ctn Clear All Retention Files
-    Clear Db    resources
+    Ctn Clear Db    resources
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker

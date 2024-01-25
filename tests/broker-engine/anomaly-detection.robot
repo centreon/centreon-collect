@@ -21,7 +21,7 @@ ANO_NOFILE
     ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     Remove File    /tmp/anomaly_threshold.json
     Ctn Clear All Retention Files
-    Clear Db    services
+    Ctn Clear Db    services
     Ctn Start Broker    True
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
@@ -41,7 +41,7 @@ ANO_TOO_OLD_FILE
     ${predict_data}    Evaluate    [[0,0,2],[1648812678,0,3]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Ctn Clear All Retention Files
-    Clear Db    services
+    Ctn Clear Db    services
     Ctn Start Broker    True
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
@@ -61,7 +61,7 @@ ANO_OUT_LOWER_THAN_LIMIT
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Ctn Clear All Retention Files
-    Clear Db    services
+    Ctn Clear Db    services
     Ctn Start Broker    True
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
@@ -81,7 +81,7 @@ ANO_OUT_UPPER_THAN_LIMIT
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Ctn Clear All Retention Files
-    Clear Db    services
+    Ctn Clear Db    services
     Ctn Start Broker    True
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
@@ -167,7 +167,7 @@ AOUTLU1
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Ctn Clear All Retention Files
-    Clear Db    services
+    Ctn Clear Db    services
     Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
@@ -200,8 +200,8 @@ ANO_DT1
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Ctn Clear All Retention Files
-    Clear Db    services
-    Clear Db    downtimes
+    Ctn Clear Db    services
+    Ctn Clear Db    downtimes
     Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
@@ -235,8 +235,8 @@ ANO_DT2
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Ctn Clear All Retention Files
-    Clear Db    services
-    Clear Db    downtimes
+    Ctn Clear Db    services
+    Ctn Clear Db    downtimes
     Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
@@ -274,8 +274,8 @@ ANO_DT3
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Ctn Clear All Retention Files
-    Clear Db    services
-    Clear Db    downtimes
+    Ctn Clear Db    services
+    Ctn Clear Db    downtimes
     Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
@@ -314,8 +314,8 @@ ANO_DT4
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Ctn Clear All Retention Files
-    Clear Db    services
-    Clear Db    downtimes
+    Ctn Clear Db    services
+    Ctn Clear Db    downtimes
     Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine

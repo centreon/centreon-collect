@@ -927,7 +927,7 @@ def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line:
     return False
 
 
-def show_downtimes():
+def ctn_show_downtimes():
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -972,7 +972,7 @@ def ctn_delete_service_downtime(hst: str, svc: str):
     f.close()
 
 
-def number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
+def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,

@@ -61,9 +61,9 @@ Service_increased_huge_check_interval
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
     Ctn Clear All Retention Files
-    Clear Db    services
-    Clear Db    index_data
-    Clear Db    metrics
+    Ctn Clear Db    services
+    Ctn Clear Db    index_data
+    Ctn Clear Db    metrics
 
     Ctn Delete All Rrd Metrics
 

@@ -13,7 +13,7 @@ Test Teardown       Ctn Save Logs If Failed
 BESEV1
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    # Clear Db    severities
+    # Ctn Clear Db    severities
     Ctn Config Engine    ${1}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
@@ -36,7 +36,7 @@ BESEV1
 BESEV2
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    # Clear Db    severities
+    # Ctn Clear Db    severities
     Ctn Config Engine    ${1}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
@@ -60,7 +60,7 @@ BESEV2
 BEUSEV1
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    # Clear Db    severities
+    # Ctn Clear Db    severities
     Ctn Config Engine    ${1}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
@@ -85,7 +85,7 @@ BEUSEV1
 BEUSEV2
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    # Clear Db    severities
+    # Ctn Clear Db    severities
     Ctn Config Engine    ${1}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
@@ -111,7 +111,7 @@ BEUSEV2
 BEUSEV3
     [Documentation]    Four services have a severity added. Then we remove the severity from service 1. Then we change severity 11 to severity7 for service 3.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    # Clear Db    severities
+    # Ctn Clear Db    severities
     Ctn Config Engine    ${1}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg

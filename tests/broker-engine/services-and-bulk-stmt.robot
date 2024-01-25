@@ -403,7 +403,7 @@ Services_and_bulks_${id}
 
     Ctn Config Broker Remove Rrd Output    central
     Ctn Clear All Retention Files
-    Clear Db    metrics
+    Ctn Clear Db    metrics
 
     ${start}    Get Current Date
     Ctn Start Broker

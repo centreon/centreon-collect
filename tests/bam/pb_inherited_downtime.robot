@@ -138,7 +138,7 @@ BEBAMIDTU2
     END
 
     # There are still two downtimes: the one on the ba and the one on the kpi.
-    ${result}    Number Of Downtimes Is    2    60
+    ${result}    Ctn Number Of Downtimes Is    2    60
     Should Be True    ${result}    We should only have only two downtimes
 
     # The downtime is deleted
@@ -149,7 +149,7 @@ BEBAMIDTU2
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
     # We should have no more downtime
-    ${result}    Number Of Downtimes Is    0    60
+    ${result}    Ctn Number Of Downtimes Is    0    60
     Should Be True    ${result}    We should have no more downtime
 
     Log To Console    Broker is stopped (end of BEBAMIDT2)

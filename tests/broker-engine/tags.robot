@@ -166,7 +166,7 @@ BEUTAG3
 BEUTAG4
     [Documentation]    Engine is configured with some tags. Group tags tag9, tag13 are set to services 1 and 3. Category tags tag3 and tag11 are added to services 1, 3, 5 and 6. The centreon_storage.resources and resources_tags tables are well filled.
     [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql
-    # Clear Db    tags
+    # Ctn Clear Db    tags
     Ctn Config Engine    ${1}
     Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
@@ -202,7 +202,7 @@ BEUTAG4
 BEUTAG5
     [Documentation]    Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled.
     [Tags]    broker    engine    protobuf    bbdo    tags
-    # Clear Db    tags
+    # Ctn Clear Db    tags
     Ctn Config Engine    ${1}
     Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
@@ -238,7 +238,7 @@ BEUTAG5
 BEUTAG6
     [Documentation]    Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.resources_tags table. Engine is started before.
     [Tags]    broker    engine    protobuf    bbdo    tags
-    # Clear Db    tags
+    # Ctn Clear Db    tags
     Ctn Config Engine    ${1}
     Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
@@ -589,7 +589,7 @@ BEUTAG11
 BEUTAG12
     [Documentation]    Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled. The tag6 and tag8 are removed and resources_tags is also well updated.
     [Tags]    broker    engine    protobuf    bbdo    tags
-    # Clear Db    tags
+    # Ctn Clear Db    tags
     Ctn Config Engine    ${1}
     Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
@@ -644,7 +644,7 @@ BEUTAG12
 BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     [Documentation]    remove a host from hostgroup, reload, insert 2 host in the hostgroup must not make sql error
     [Tags]    broker    engine    tags
-    Clear Db    tags
+    Ctn Clear Db    tags
     Ctn Config Engine    ${1}
     Ctn Create Tags File    ${0}    ${3}    ${0}    hostgroup
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
