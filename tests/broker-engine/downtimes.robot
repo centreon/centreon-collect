@@ -49,7 +49,7 @@ BEDTMASS1
         Ctn Schedule Host Downtime    ${2}    ${host2}    ${3600}
     END
 
-    ${result}    Check Number Of Downtimes    ${1050}    ${start}    ${60}
+    ${result}    Ctn Check Number Of Downtimes    ${1050}    ${start}    ${60}
     Should Be True    ${result}    We should have 1050 downtimes enabled.
 
     # It's time to delete downtimes
@@ -62,7 +62,7 @@ BEDTMASS1
         Ctn Delete Host Downtimes    ${2}    ${host2}
     END
 
-    ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
+    ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
     Ctn Stop Engine
@@ -105,7 +105,7 @@ BEDTMASS2
         Ctn Schedule Host Downtime    ${2}    ${host2}    ${3600}
     END
 
-    ${result}    Check Number Of Downtimes    ${1050}    ${start}    ${60}
+    ${result}    Ctn Check Number Of Downtimes    ${1050}    ${start}    ${60}
     Should Be True    ${result}    We should have 1050 downtimes enabled.
 
     # It's time to delete downtimes
@@ -118,7 +118,7 @@ BEDTMASS2
         Ctn Delete Host Downtimes    ${2}    ${host2}
     END
 
-    ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
+    ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
     Ctn Stop Engine
@@ -147,7 +147,7 @@ BEDTSVCREN1
     # It's time to schedule a downtime
     Ctn Schedule Service Downtime    host_1    service_1    ${3600}
 
-    ${result}    Check Number Of Downtimes    ${1}    ${start}    ${60}
+    ${result}    Ctn Check Number Of Downtimes    ${1}    ${start}    ${60}
     Should Be True    ${result}    We should have 1 downtime enabled.
 
     # Let's rename the service service_1
@@ -161,7 +161,7 @@ BEDTSVCREN1
 
     Ctn Delete Service Downtime Full    ${0}    host_1    toto_1
 
-    ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
+    ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
     Ctn Stop Engine
@@ -190,12 +190,12 @@ BEDTSVCFIXED
     # It's time to schedule a downtime
     Ctn Schedule Service Downtime    host_1    service_1    ${3600}
 
-    ${result}    Check Number Of Downtimes    ${1}    ${start}    ${60}
+    ${result}    Ctn Check Number Of Downtimes    ${1}    ${start}    ${60}
     Should Be True    ${result}    We should have 1 downtime enabled.
 
     Ctn Delete Service Downtime Full    ${0}    host_1    service_1
 
-    ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
+    ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
     Ctn Stop Engine
@@ -225,13 +225,13 @@ BEDTHOSTFIXED
     # It's time to schedule downtimes
     Ctn Schedule Host Fixed Downtime    ${0}    host_1    ${3600}
 
-    ${result}    Check Number Of Downtimes    ${21}    ${start}    ${60}
+    ${result}    Ctn Check Number Of Downtimes    ${21}    ${start}    ${60}
     Should Be True    ${result}    We should have 21 downtimes (1 host + 20 services) enabled.
 
     # It's time to delete downtimes
     Ctn Delete Host Downtimes    ${0}    host_1
 
-    ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
+    ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
     Ctn Stop Engine

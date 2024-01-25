@@ -33,13 +33,13 @@ EBNSVC1
         Ctn Reload Broker
         ${nb_srv}    Evaluate    17 * (20 + 4 * $i)
         ${nb_res}    Evaluate    $nb_srv + 17
-        ${result}    Check Number Of Resources Monitored by Poller is    ${1}    ${nb_res}    30
+        ${result}    Ctn Check Number Of Resources Monitored by Poller is    ${1}    ${nb_res}    30
         Should Be True    ${result}    Poller 1 should monitor ${nb_srv} services and 17 hosts.
-        ${result}    Check Number Of Resources Monitored by Poller is    ${2}    ${nb_res}    30
+        ${result}    Ctn Check Number Of Resources Monitored by Poller is    ${2}    ${nb_res}    30
         Should Be True    ${result}    Poller 2 should monitor ${nb_srv} services and 17 hosts.
         ${nb_srv}    Evaluate    16 * (20 + 4 * $i)
         ${nb_res}    Evaluate    $nb_srv + 16
-        ${result}    Check Number Of Resources Monitored by Poller is    ${3}    ${nb_res}    30
+        ${result}    Ctn Check Number Of Resources Monitored by Poller is    ${3}    ${nb_res}    30
         Should Be True    ${result}    Poller 3 should monitor ${nb_srv} services and 16 hosts.
     END
     Ctn Stop Engine
@@ -71,7 +71,7 @@ Service_increased_huge_check_interval
     Ctn Start Broker
     Ctn Start Engine
     # Start Checkers
-    ${result}    Check Host Status    host_1    4    1    False
+    ${result}    Ctn Check Host Status    host_1    4    1    False
     Should Be True    ${result}    host_1 should be pending
 
     ${content}    Create List    INITIAL HOST STATE: host_1;

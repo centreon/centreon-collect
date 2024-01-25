@@ -902,7 +902,7 @@ def ctn_check_service_check_with_timeout(hostname: str, service_desc: str,  time
     return False
 
 
-def check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
+def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1047,7 +1047,7 @@ def ctn_check_service_severity_with_timeout(host_id: int, service_id: int, sever
     return False
 
 
-def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int = TIMEOUT):
+def ctn_check_host_severity_with_timeout(host_id: int, severity_id, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1127,7 +1127,7 @@ def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_id
     return False
 
 
-def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
+def ctn_check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1149,7 +1149,7 @@ def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
     return False
 
 
-def check_number_of_resources_monitored_by_poller_is(poller: int, value: int, timeout: int):
+def ctn_check_number_of_resources_monitored_by_poller_is(poller: int, value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1171,7 +1171,7 @@ def check_number_of_resources_monitored_by_poller_is(poller: int, value: int, ti
     return False
 
 
-def check_number_of_downtimes(expected: int, start, timeout: int):
+def ctn_check_number_of_downtimes(expected: int, start, timeout: int):
     limit = time.time() + timeout
     d = parser.parse(start).timestamp()
     while time.time() < limit:
@@ -1195,7 +1195,7 @@ def check_number_of_downtimes(expected: int, start, timeout: int):
     return False
 
 
-def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value: int, timeout: int):
+def ctn_check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1217,7 +1217,7 @@ def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value:
     return False
 
 
-def check_number_of_relations_between_servicegroup_and_services(servicegroup: int, value: int, timeout: int, service_group_name: str = None ):
+def ctn_check_number_of_relations_between_servicegroup_and_services(servicegroup: int, value: int, timeout: int, service_group_name: str = None ):
     limit = time.time() + timeout
     request = f"SELECT count(*) from servicegroups s join services_servicegroups sg on s.servicegroup_id = sg.servicegroup_id  WHERE s.servicegroup_id={servicegroup}"
 
@@ -1266,7 +1266,7 @@ def check_field_db_value(request: str, value, timeout: int):
     return False
 
 
-def check_host_status(host: str, value: int, t: int, in_resources: bool, timeout: int = TIMEOUT):
+def ctn_check_host_status(host: str, value: int, t: int, in_resources: bool, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
