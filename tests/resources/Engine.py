@@ -43,7 +43,7 @@ class EngineInstance:
         self.instances = count
         self.service_cmd = {}
         self.anomaly_detection_internal_id = 1
-        self.ctn_build_configs(hosts, srv_by_host)
+        self.build_configs(hosts, srv_by_host)
         makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
         makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
         makedirs(CONF_DIR, mode=0o777, exist_ok=True)
@@ -432,7 +432,7 @@ passive_checks_enabled 1
         ff.write(content)
         ff.close()
 
-    def ctn_build_configs(self, hosts: int, services_by_host: int, debug_level=0):
+    def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
         if exists(CONF_DIR):
             shutil.rmtree(CONF_DIR)
         r = 0
@@ -451,18 +451,18 @@ passive_checks_enabled 1
             config_dir = "{}/config{}".format(CONF_DIR, inst)
             makedirs(config_dir)
             f = open(config_dir + "/centengine.cfg", "w")
-            bb = self.ctn_create_centengine(inst, debug_level=debug_level)
+            bb = self.create_centengine(inst, debug_level=debug_level)
             f.write(bb)
             f.close()
 
             f = open(config_dir + "/hosts.cfg", "w")
             ff = open(config_dir + "/services.cfg", "w")
             for i in range(1, nb_hosts + 1):
-                h = self.ctn_create_host()
+                h = self.create_host()
                 f.write(h["config"])
                 self.hosts.append("host_{}".format(h["hid"]))
                 for j in range(1, services_by_host + 1):
-                    ff.write(self.ctn_create_service(h["hid"],
+                    ff.write(self.create_service(h["hid"],
                                                  (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
                     self.services.append("service_{}".format(h["hid"]))
             ff.close()
@@ -982,7 +982,7 @@ def add_host_group(index: int, id_host_group: int, members: list):
     mbs = [l for l in members if l in engine.hosts]
     f = open(ETC_ROOT + "/centreon-engine/config{}/hostgroups.cfg".format(index), "a+")
     logger.console(mbs)
-    f.write(engine.ctn_create_host_group(id_host_group, mbs))
+    f.write(engine.create_host_group(id_host_group, mbs))
     f.close()
 
 
@@ -1044,7 +1044,7 @@ def add_service_group(index: int, id_service_group: int, members: list):
     f = open(
         ETC_ROOT + "/centreon-engine/config{}/servicegroups.cfg".format(index), "a+")
     logger.console(members)
-    f.write(engine.ctn_create_service_group(id_service_group, members))
+    f.write(engine.create_service_group(id_service_group, members))
     f.close()
 
 
@@ -1074,7 +1074,7 @@ def add_contact_group(index: int, id_contact_group: int, members: list):
 
 def create_service(index: int, host_id: int, cmd_id: int):
     f = open(ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(index), "a+")
-    svc = engine.ctn_create_service(host_id, [1, cmd_id])
+    svc = engine.create_service(host_id, [1, cmd_id])
     lst = svc.split('\n')
     good = [l for l in lst if "_SERVICE_ID" in l][0]
     m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)
