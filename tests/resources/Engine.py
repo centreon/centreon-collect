@@ -432,7 +432,7 @@ passive_checks_enabled 1
         ff.write(content)
         ff.close()
 
-    def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
+    def ctn_build_configs(self, hosts: int, services_by_host: int, debug_level=0):
         if exists(CONF_DIR):
             shutil.rmtree(CONF_DIR)
         r = 0
