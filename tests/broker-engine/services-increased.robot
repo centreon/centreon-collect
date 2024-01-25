@@ -65,7 +65,7 @@ Service_increased_huge_check_interval
     Clear Db    index_data
     Clear Db    metrics
 
-    Delete All Rrd Metrics
+    Ctn Delete All Rrd Metrics
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -84,16 +84,16 @@ Service_increased_huge_check_interval
     ${content}    Create List    new pb data for metric
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
 
-    ${index}    Get Indexes To Rebuild    2
-    ${metrics}    Get Metrics Matching Indexes    ${index}
+    ${index}    Ctn Get Indexes To Rebuild    2
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics: ${metrics}
 
     FOR    ${m}    IN    @{metrics}
-        ${result}    Check RRD Info    ${m}    ds[value].minimal_heartbeat    3000
+        ${result}    Ctn Check RRD Info    ${m}    ds[value].minimal_heartbeat    3000
         Should Be True
         ...    ${result}
         ...    ds[value].minimal_heartbeat must be equal to 3000
-        ${result}    Check RRD Info    ${m}    rra[0].pdp_per_row    300
+        ${result}    Ctn Check RRD Info    ${m}    rra[0].pdp_per_row    300
         Should Be True
         ...    ${result}
         ...    rra[0].pdp_per_row must be equal to 300
@@ -124,7 +124,7 @@ Service_increased_huge_check_interval
 
     Ctn Process Service Check Result With Metrics    host_1    service_${new_service_id}    1    warning0    1
 
-    ${metrics}    Get Metrics For Service    ${new_service_id}
+    ${metrics}    Ctn Get Metrics For Service    ${new_service_id}
 
     Should Not Be Equal    ${metrics}    ${None}    no metric found for service ${new_service_id}
 
@@ -134,11 +134,11 @@ Service_increased_huge_check_interval
         ...    ${result}
         ...    ${VarRoot}/lib/centreon/metrics/${m}.rrd should have been modified since ${start}
 
-        ${result}    Check RRD Info    ${m}    ds[value].minimal_heartbeat    54000
+        ${result}    Ctn Check RRD Info    ${m}    ds[value].minimal_heartbeat    54000
         Should Be True
         ...    ${result}
         ...    ds[value].minimal_heartbeat must be equal to 54000 for metric ${m}
-        ${result}    Check RRD Info    ${m}    rra[0].pdp_per_row    5400
+        ${result}    Ctn Check RRD Info    ${m}    rra[0].pdp_per_row    5400
         Should Be True
         ...    ${result}
         ...    rra[0].pdp_per_row must be equal to 5400 for metric ${m}

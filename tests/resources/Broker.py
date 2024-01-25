@@ -1097,7 +1097,7 @@ def ctn_get_brokerstats_size(name, key, timeout=TIMEOUT):
 #
 # @return a list of index ids.
 #
-def get_not_existing_indexes(count: int):
+def ctn_get_not_existing_indexes(count: int):
     # Connect to the database
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
@@ -1135,7 +1135,7 @@ def get_not_existing_indexes(count: int):
 #
 # @return a list of index ids.
 #
-def get_indexes_to_delete(count: int):
+def ctn_get_indexes_to_delete(count: int):
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
@@ -1168,7 +1168,7 @@ def get_indexes_to_delete(count: int):
     return retval
 
 
-def delete_all_rrd_metrics():
+def ctn_delete_all_rrd_metrics():
     """! remove all rrd metrics files
     """
     with os.scandir(VAR_ROOT + "/lib/centreon/metrics/") as it:
@@ -1177,7 +1177,7 @@ def delete_all_rrd_metrics():
                 os.remove(entry.path)
 
 
-def check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
+def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
     """!  execute rrdtool info and check one value of the returned informations
     @param metric_id
     @param key key to search in the rrdtool info result
@@ -1200,7 +1200,7 @@ def check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
     return False
 
 
-def get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: int = 60):
+def ctn_get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: int = 60):
     """! scan data base every 5s to extract metric ids for a service
 
     @param service_id id of the service
@@ -1239,7 +1239,7 @@ def get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: in
 #
 # @return a list of metric ids.
 #
-def get_not_existing_metrics(count: int):
+def ctn_get_not_existing_metrics(count: int):
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
@@ -1277,7 +1277,7 @@ def get_not_existing_metrics(count: int):
 #
 # @return a list of metric ids.
 #
-def get_metrics_to_delete(count: int):
+def ctn_get_metrics_to_delete(count: int):
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
@@ -1307,7 +1307,7 @@ def get_metrics_to_delete(count: int):
 #
 # @param count:int The number of metrics to create.
 #
-def create_metrics(count: int):
+def ctn_create_metrics(count: int):
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
@@ -1350,25 +1350,25 @@ def create_metrics(count: int):
                 connection.commit()
 
 
-def run_reverse_bam(duration, interval):
+def ctn_run_reverse_bam(duration, interval):
     pro = subp.Popen("broker/map_client.py {:f}".format(interval),
                      shell=True, stdout=subp.PIPE, stdin=subp.PIPE, preexec_fn=setsid)
     time.sleep(duration)
     os.killpg(os.getpgid(pro.pid), signal.SIGKILL)
 
 
-def start_map():
+def ctn_start_map():
     global map_process
     map_process = subp.Popen("broker/map_client_types.py",
                              shell=True, stdout=subp.DEVNULL, stdin=subp.DEVNULL)
 
 
-def clear_map_logs():
+def ctn_clear_map_logs():
     with open('/tmp/map-output.log', 'w') as f:
         f.write("")
 
 
-def check_map_output(categories_str, expected_events, timeout: int = TIMEOUT):
+def ctn_check_map_output(categories_str, expected_events, timeout: int = TIMEOUT):
     retval = False
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1414,12 +1414,12 @@ def check_map_output(categories_str, expected_events, timeout: int = TIMEOUT):
     return retval
 
 
-def get_map_output():
+def ctn_get_map_output():
     global map_process
     return map_process.communicate()[0]
 
 
-def stop_map():
+def ctn_stop_map():
     for proc in psutil.process_iter():
         if 'map_client_type' in proc.name():
             logger.console(
@@ -1447,7 +1447,7 @@ def stop_map():
 # @param count is the number of indexes to get.
 #
 # @return a list of indexes
-def get_indexes_to_rebuild(count: int, nb_day=180):
+def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
@@ -1498,7 +1498,7 @@ def get_indexes_to_rebuild(count: int, nb_day=180):
 #
 #
 # @return a list of indexes of pair <time of oldest value>, <metric id>
-def add_duplicate_metrics():
+def ctn_add_duplicate_metrics():
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -1528,7 +1528,7 @@ def add_duplicate_metrics():
 # @param an array of pair <time of oldest value>, <metric id> returned by add_duplicate_metrics
 #
 # @return true or false
-def check_for_NaN_metric(add_duplicate_metrics_ret):
+def ctn_check_for_NaN_metric(add_duplicate_metrics_ret):
     for min_timestamp, metric_id in add_duplicate_metrics_ret:
         max_timestamp = min_timestamp + 86400
         res = getoutput(
@@ -1552,7 +1552,7 @@ def check_for_NaN_metric(add_duplicate_metrics_ret):
 # @param indexes a list of indexes from index_data
 #
 # @return a list of metric ids.
-def get_metrics_matching_indexes(indexes):
+def ctn_get_metrics_matching_indexes(indexes):
     # Connect to the database
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
@@ -1578,7 +1578,7 @@ def get_metrics_matching_indexes(indexes):
 # @param indexes a list of indexes
 # @param metrics a list of metrics
 #
-def remove_graphs(port, indexes, metrics, timeout=10):
+def ctn_remove_graphs(port, indexes, metrics, timeout=10):
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
@@ -1610,7 +1610,7 @@ def broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout=TIM
                 logger.console("gRPC server not ready")
 
 
-def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
+def ctn_broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
@@ -1644,7 +1644,7 @@ def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
 #
 
 
-def remove_graphs_from_db(indexes, metrics, timeout=10):
+def ctn_remove_graphs_from_db(indexes, metrics, timeout=10):
     logger.console("rem1")
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
@@ -2108,7 +2108,7 @@ def dump_ba(port, index: int, filename: str):
             logger.console("gRPC server not ready")
 
 
-def broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
+def ctn_broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
     """
     broker_get_ba calls the gRPC GetBa function.
 

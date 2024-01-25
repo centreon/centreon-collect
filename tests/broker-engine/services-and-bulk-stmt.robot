@@ -195,7 +195,7 @@ EBMSSM
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Broker Set Sql Manager Stats    51001    5    5
+    Ctn Broker Set Sql Manager Stats    51001    5    5
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -208,7 +208,7 @@ EBMSSM
         Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    100
     END
 
-    ${duration}    Broker Get Sql Manager Stats    51001    INSERT INTO data_bin    300
+    ${duration}    Ctn Broker Get Sql Manager Stats    51001    INSERT INTO data_bin    300
     Should Be True    ${duration} > 0
 
     # Let's wait for all force checks to be in the storage database.
@@ -408,7 +408,7 @@ Services_and_bulks_${id}
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Broker Set Sql Manager Stats    51001    5    5
+    Ctn Broker Set Sql Manager Stats    51001    5    5
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -431,7 +431,7 @@ Services_and_bulks_${id}
     ${result}    Find In Log With Timeout    ${log}    ${start_1}    ${content}    60
     Should Be True    ${result}    A message fail to handle a metric with ${metric_num_char} characters.
 
-    ${metrics}    Get Metrics For Service    1    ${random_string}0
+    ${metrics}    Ctn Get Metrics For Service    1    ${random_string}0
     Should Not Be Equal    ${metrics}    ${None}    no metric found for service
 
     Examples:    id    metric_num_char    --

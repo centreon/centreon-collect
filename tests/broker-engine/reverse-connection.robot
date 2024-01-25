@@ -28,7 +28,7 @@ BRGC1
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    Run Reverse Bam    ${50}    ${0.2}
+    Ctn Run Reverse Bam    ${50}    ${0.2}
 
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -60,7 +60,7 @@ BRCTS1
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    Run Reverse Bam    ${150}    ${10}
+    Ctn Run Reverse Bam    ${150}    ${10}
 
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -121,7 +121,7 @@ BRCTSMN
     Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Round Current Date
     Ctn Start Broker
-    Start Map
+    Ctn Start Map
     Sleep    5s
 
     Ctn Start Engine
@@ -132,9 +132,9 @@ BRCTSMN
     # pb_service pb_host pb_service_status pb_host_status
     ${expected_events}    Create List    65563    65566    65565    65568
     ${categories}    Create List    1
-    ${output}    Check Map Output    ${categories}    ${expected_events}    120
+    ${output}    Ctn Check Map Output    ${categories}    ${expected_events}    120
     Ctn Kindly Stop Broker
-    Stop Map
+    Ctn Stop Map
     Should Be True    ${output}    Filters badly applied in Broker
 
     # We should have exactly 1000 pb_service
@@ -170,7 +170,7 @@ BRCTSMNS
     Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Round Current Date
     Ctn Start Broker
-    Start Map
+    Ctn Start Map
     Sleep    5s
 
     Ctn Start Engine
@@ -181,7 +181,7 @@ BRCTSMNS
     # pb_service pb_host pb_service_status pb_host_status pb_metric pb_status pb_index_mapping
     ${expected_events}    Create List    65563    65566    65565    65568    196617    196618    196619
     ${categories}    Create List    1    3
-    ${output}    Check Map Output    ${categories}    ${expected_events}    120
+    ${output}    Ctn Check Map Output    ${categories}    ${expected_events}    120
     Should Be True    ${output}    Filters badly applied in Broker
 
     # We should have 1000 pb_service with maybe some BAs
@@ -206,9 +206,9 @@ BRCTSMNS
     # pb_service we changed services 50 added and others moved...
     ${expected_events}    Create List    65563
     ${categories}    Create List    1    3
-    ${output}    Check Map Output    ${categories}    ${expected_events}    120
+    ${output}    Ctn Check Map Output    ${categories}    ${expected_events}    120
     Should Be True    ${output}    Filters badly applied in Broker
 
     Ctn Kindly Stop Broker
-    Stop Map
+    Ctn Stop Map
     Ctn Stop Engine

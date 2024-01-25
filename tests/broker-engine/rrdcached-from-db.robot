@@ -26,7 +26,7 @@ BRRDCDDMDB1
     Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
     ${start}    Get Current Date    exclude_millis=True
     Ctn Start Broker
     Ctn Start Engine
@@ -34,11 +34,11 @@ BRRDCDDMDB1
     Should Be True    ${result}    Engine and Broker not connected
 
     # We choose 3 metrics to remove.
-    ${metrics}    Get Metrics To Delete    3
+    ${metrics}    Ctn Get Metrics To Delete    3
     Log To Console    Metrics to delete ${metrics}
 
     ${empty}    Create List
-    Remove Graphs From Db    ${empty}    ${metrics}
+    Ctn Remove Graphs From Db    ${empty}    ${metrics}
     Ctn Reload Broker
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics ${metrics_str} erased from database
@@ -64,7 +64,7 @@ BRRDCDDIDDB1
     Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date
     Sleep    1s
@@ -74,14 +74,14 @@ BRRDCDDIDDB1
     Should Be True    ${result}    Engine and Broker not connected
 
     Log To Console    STEP1
-    ${indexes}    Get Indexes To Delete    2
+    ${indexes}    Ctn Get Indexes To Delete    2
     Log To Console    STEP2
-    ${metrics}    Get Metrics Matching Indexes    ${indexes}
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${indexes}
     Log To Console    STEP3
     Log To Console    indexes ${indexes} to delete with their metrics
 
     ${empty}    Create List
-    Remove Graphs From Db    ${indexes}    ${empty}
+    Ctn Remove Graphs From Db    ${indexes}    ${empty}
     Ctn Reload Broker
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes ${indexes_str} erased from database
@@ -110,7 +110,7 @@ BRRDCDRBDB1
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -119,10 +119,10 @@ BRRDCDRBDB1
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
-    ${index}    Get Indexes To Rebuild    3
-    Rebuild Rrd Graphs From Db    ${index}
+    ${index}    Ctn Get Indexes To Rebuild    3
+    Ctn Rebuild Rrd Graphs From Db    ${index}
     Log To Console    Indexes to rebuild: ${index}
-    ${metrics}    Get Metrics Matching Indexes    ${index}
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
     Ctn Reload Broker
 
@@ -159,7 +159,7 @@ BRRDCDRBUDB1
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
     Ctn Config BBDO3    1
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date    exclude_millis=True
     Ctn Start Broker
@@ -168,11 +168,11 @@ BRRDCDRBUDB1
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
-    ${index}    Get Indexes To Rebuild    3
-    Rebuild Rrd Graphs From Db    ${index}
+    ${index}    Ctn Get Indexes To Rebuild    3
+    Ctn Rebuild Rrd Graphs From Db    ${index}
     Ctn Reload Broker
     Log To Console    Indexes to rebuild: ${index}
-    ${metrics}    Get Metrics Matching Indexes    ${index}
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30
