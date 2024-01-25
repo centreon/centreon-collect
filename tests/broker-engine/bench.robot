@@ -19,7 +19,7 @@ BENCH_${nb_check}STATUS
     [Tags]    broker    engine    bench
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services Passive    ${0}    service_.*
+    Ctn Set Services Passive    ${0}    service_.*
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -84,7 +84,7 @@ BENCH_${nb_check}STATUS_TRACES
     [Tags]    broker    engine    bench
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services Passive    ${0}    service_.*
+    Ctn Set Services Passive    ${0}    service_.*
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -155,7 +155,7 @@ BENCH_1000STATUS_100${suffixe}
     Config Broker    central
     FOR    ${poller_index}    IN RANGE    100
         # We want all the services to be passive to avoid parasite checks during our test.
-        Set Services Passive    ${poller_index}    service_.*
+        Ctn Set Services Passive    ${poller_index}    service_.*
     END
     Config Broker    rrd
     Broker Config Log    central    sql    trace

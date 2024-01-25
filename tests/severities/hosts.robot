@@ -16,7 +16,7 @@ BEUHSEV1
     Ctn Config Engine    ${1}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
-    Add Severity To Hosts    0    10    [1, 2, 3, 4]
+    Ctn Add Severity To Hosts    0    10    [1, 2, 3, 4]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
@@ -34,8 +34,8 @@ BEUHSEV1
     Should Be True    ${result}    Host 1 should have severity_id=10
 
     Remove Severities From Hosts    ${0}
-    Add Severity To Hosts    0    10    [2, 4]
-    Add Severity To Hosts    0    8    [3]
+    Ctn Add Severity To Hosts    0    10    [2, 4]
+    Ctn Add Severity To Hosts    0    8    [3]
     Ctn Reload Engine
     Ctn Reload Broker
     ${result}    Check Host Severity With Timeout    3    8    60
@@ -56,10 +56,10 @@ BEUHSEV2
     Ctn Config Engine Add Cfg File    ${1}    severities.cfg
     Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
     Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
-    Add Severity To Hosts    0    18    [2, 4]
-    Add Severity To Hosts    0    16    [3, 5]
-    Add Severity To Hosts    1    18    [26, 27]
-    Add Severity To Hosts    1    16    [28]
+    Ctn Add Severity To Hosts    0    18    [2, 4]
+    Ctn Add Severity To Hosts    0    16    [3, 5]
+    Ctn Add Severity To Hosts    1    18    [26, 27]
+    Ctn Add Severity To Hosts    1    16    [28]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${2}
@@ -98,7 +98,7 @@ BEUHSEV2
     Remove Severities From Hosts    ${0}
     Ctn Create Severities File    ${0}    ${18}
     Ctn Create Severities File    ${1}    ${18}
-    Add Severity To Hosts    1    17    [28]
+    Ctn Add Severity To Hosts    1    17    [28]
     Ctn Reload Engine
     Ctn Reload Broker
     Sleep    3s
@@ -132,10 +132,10 @@ BETUHSEV1
     Ctn Config Engine Add Cfg File    ${1}    hostTemplates.cfg
     Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
     Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
-    Add Template To Hosts    0    host_template_1    [1, 2, 3, 4]
-    Add Template To Hosts    0    host_template_2    [5, 6, 7, 8]
-    Add Template To Hosts    1    host_template_1    [31, 32]
-    Add Template To Hosts    1    host_template_2    [33, 34]
+    Ctn Add Template To Hosts    0    host_template_1    [1, 2, 3, 4]
+    Ctn Add Template To Hosts    0    host_template_2    [5, 6, 7, 8]
+    Ctn Add Template To Hosts    1    host_template_1    [31, 32]
+    Ctn Add Template To Hosts    1    host_template_2    [33, 34]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${2}

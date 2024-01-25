@@ -115,7 +115,7 @@ BEUSEV3
     Ctn Config Engine    ${1}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
-    Add Severity To Services    0    11    [1, 2, 3, 4]
+    Ctn Add Severity To Services    0    11    [1, 2, 3, 4]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
@@ -133,8 +133,8 @@ BEUSEV3
     Should Be True    ${result}    Service (1, 1) should have severity_id=11
 
     Remove Severities From Services    ${0}
-    Add Severity To Services    0    11    [2, 4]
-    Add Severity To Services    0    7    [3]
+    Ctn Add Severity To Services    0    11    [2, 4]
+    Ctn Add Severity To Services    0    7    [3]
     Ctn Reload Engine
     Ctn Reload Broker
     ${result}    Check Service Severity With Timeout    1    3    7    60
@@ -155,10 +155,10 @@ BEUSEV4
     Ctn Config Engine Add Cfg File    ${1}    severities.cfg
     Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
     Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
-    Add Severity To Services    0    19    [2, 4]
-    Add Severity To Services    0    17    [3, 5]
-    Add Severity To Services    1    19    [501, 502]
-    Add Severity To Services    1    17    [503]
+    Ctn Add Severity To Services    0    19    [2, 4]
+    Ctn Add Severity To Services    0    17    [3, 5]
+    Ctn Add Severity To Services    1    19    [501, 502]
+    Ctn Add Severity To Services    1    17    [503]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    2
@@ -196,7 +196,7 @@ BEUSEV4
     Remove Severities From Services    ${0}
     Ctn Create Severities File    ${0}    ${18}
     Ctn Create Severities File    ${1}    ${18}
-    Add Severity To Services    1    17    [503]
+    Ctn Add Severity To Services    1    17    [503]
     Ctn Reload Engine
     Ctn Reload Broker
     Sleep    3s
@@ -230,10 +230,10 @@ BETUSEV1
     Ctn Config Engine Add Cfg File    ${1}    serviceTemplates.cfg
     Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
     Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
-    Add Template To Services    0    service_template_1    [1, 2, 3, 4]
-    Add Template To Services    0    service_template_2    [5, 6, 7, 8]
-    Add Template To Services    1    service_template_1    [501, 502]
-    Add Template To Services    1    service_template_2    [503, 504]
+    Ctn Add Template To Services    0    service_template_1    [1, 2, 3, 4]
+    Ctn Add Template To Services    0    service_template_2    [5, 6, 7, 8]
+    Ctn Add Template To Services    1    service_template_1    [501, 502]
+    Ctn Add Template To Services    1    service_template_2    [503, 504]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module

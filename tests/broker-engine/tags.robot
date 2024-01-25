@@ -119,7 +119,7 @@ BEUTAG2
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${svc}    Create Service    ${0}    1    1
-    Add Tags To Services    ${0}    group_tags    4    [${svc}]
+    Ctn Add Tags To Services    ${0}    group_tags    4    [${svc}]
 
     Ctn Stop Engine
     ${start}    Get Current Date
@@ -170,8 +170,8 @@ BEUTAG4
     Ctn Config Engine    ${1}
     Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
-    Add Tags To Services    ${0}    group_tags    4,5    [1, 3]
-    Add Tags To Services    ${0}    category_tags    2,4    [3, 5, 6]
+    Ctn Add Tags To Services    ${0}    group_tags    4,5    [1, 3]
+    Ctn Add Tags To Services    ${0}    category_tags    2,4    [3, 5, 6]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
@@ -206,8 +206,8 @@ BEUTAG5
     Ctn Config Engine    ${1}
     Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
-    Add Tags To Hosts    ${0}    group_tags    2,3    [1, 2]
-    Add Tags To Hosts    ${0}    category_tags    2,3    [2, 3, 4]
+    Ctn Add Tags To Hosts    ${0}    group_tags    2,3    [1, 2]
+    Ctn Add Tags To Hosts    ${0}    category_tags    2,3    [2, 3, 4]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
@@ -242,10 +242,10 @@ BEUTAG6
     Ctn Config Engine    ${1}
     Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
-    Add Tags To Hosts    ${0}    group_tags    2,4    [1, 2, 3, 4]
-    Add Tags To Hosts    ${0}    category_tags    1,5    [1, 2, 3, 4]
-    Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
-    Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
+    Ctn Add Tags To Hosts    ${0}    group_tags    2,4    [1, 2, 3, 4]
+    Ctn Add Tags To Hosts    ${0}    category_tags    1,5    [1, 2, 3, 4]
+    Ctn Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
+    Ctn Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -283,10 +283,10 @@ BEUTAG7
     Ctn Config Engine Add Cfg File    ${1}    tags.cfg
     Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
     Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
-    Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
-    Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
-    Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]
-    Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 503, 504]
+    Ctn Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
+    Ctn Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
+    Ctn Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]
+    Ctn Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 503, 504]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${2}
@@ -320,7 +320,7 @@ BEUTAG7
     Remove Tags From Services    ${1}    category_tags
     Ctn Create Tags File    ${0}    ${18}
     Ctn Create Tags File    ${1}    ${18}
-    Add Tags To Services    ${1}    group_tags    3,5    [505, 506, 507, 508]
+    Ctn Add Tags To Services    ${1}    group_tags    3,5    [505, 506, 507, 508]
     ${start}    Get Round Current Date
     Ctn Reload Engine
     Ctn Reload Broker
@@ -350,13 +350,13 @@ BEUTAG8
     Ctn Config Engine Add Cfg File    ${1}    serviceTemplates.cfg
     Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
     Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
-    Add Template To Services    0    service_template_1    [2, 4]
-    Add Template To Services    0    service_template_2    [5, 7]
-    Add Template To Services    1    service_template_1    [501, 502]
-    Add Template To Services    1    service_template_2    [503, 504]
+    Ctn Add Template To Services    0    service_template_1    [2, 4]
+    Ctn Add Template To Services    0    service_template_2    [5, 7]
+    Ctn Add Template To Services    1    service_template_1    [501, 502]
+    Ctn Add Template To Services    1    service_template_2    [503, 504]
 
-    Add Tags To Services    ${0}    category_tags    3,5    [1, 2]
-    Add Tags To Services    ${1}    group_tags    1,4    [501, 502]
+    Ctn Add Tags To Services    ${0}    category_tags    3,5    [1, 2]
+    Ctn Add Tags To Services    ${1}    group_tags    1,4    [501, 502]
 
     Config Broker    central
     Config Broker    rrd
@@ -406,10 +406,10 @@ BEUTAG9
     Ctn Config Engine Add Cfg File    ${1}    hostTemplates.cfg
     Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
     Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
-    Add Template To Hosts    0    host_template_1    [9, 10]
-    Add Template To Hosts    0    host_template_2    [11, 12]
-    Add Template To Hosts    1    host_template_1    [30, 31]
-    Add Template To Hosts    1    host_template_2    [32, 33]
+    Ctn Add Template To Hosts    0    host_template_1    [9, 10]
+    Ctn Add Template To Hosts    0    host_template_2    [11, 12]
+    Ctn Add Template To Hosts    1    host_template_1    [30, 31]
+    Ctn Add Template To Hosts    1    host_template_2    [32, 33]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${2}
@@ -464,10 +464,10 @@ BEUTAG10
     Ctn Config Engine Add Cfg File    ${1}    tags.cfg
     Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
     Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
-    Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
-    Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
-    Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]
-    Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 503, 504]
+    Ctn Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
+    Ctn Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
+    Ctn Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]
+    Ctn Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 503, 504]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${2}
@@ -502,10 +502,10 @@ BEUTAG10
     Remove Tags From Services    ${1}    category_tags
     Ctn Create Tags File    ${0}    ${20}
     Ctn Create Tags File    ${1}    ${20}
-    Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3]
-    Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 4]
-    Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503]
-    Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 504]
+    Ctn Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3]
+    Ctn Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 4]
+    Ctn Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503]
+    Ctn Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 504]
     Ctn Reload Engine
     Ctn Reload Broker
     ${result}    Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60    False
@@ -530,10 +530,10 @@ BEUTAG11
     Ctn Config Engine Add Cfg File    ${1}    tags.cfg
     Ctn Set Value In Engine Conf    ${0}    log_level_config    debug
     Ctn Set Value In Engine Conf    ${1}    log_level_config    debug
-    Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
-    Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
-    Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]
-    Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 503, 504]
+    Ctn Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
+    Ctn Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
+    Ctn Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]
+    Ctn Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 503, 504]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${2}
@@ -568,10 +568,10 @@ BEUTAG11
     Remove Tags From Services    ${1}    category_tags
     Ctn Create Tags File    ${0}    ${18}
     Ctn Create Tags File    ${1}    ${18}
-    Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
-    Add Tags To Services    ${0}    category_tags    3    [1, 2, 3, 4]
-    Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503]
-    Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 504]
+    Ctn Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
+    Ctn Add Tags To Services    ${0}    category_tags    3    [1, 2, 3, 4]
+    Ctn Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503]
+    Ctn Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 504]
     Ctn Reload Engine
     Ctn Reload Broker
     ${result}    Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
@@ -593,8 +593,8 @@ BEUTAG12
     Ctn Config Engine    ${1}
     Ctn Create Tags File    ${0}    ${20}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
-    Add Tags To Hosts    ${0}    group_tags    2,3    [1, 2]
-    Add Tags To Hosts    ${0}    category_tags    2,3    [2, 3, 4]
+    Ctn Add Tags To Hosts    ${0}    group_tags    2,3    [1, 2]
+    Ctn Add Tags To Hosts    ${0}    category_tags    2,3    [2, 3, 4]
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
@@ -648,8 +648,8 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Ctn Config Engine    ${1}
     Ctn Create Tags File    ${0}    ${3}    ${0}    hostgroup
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
-    Add Tags To Hosts    ${0}    group_tags    2    1
-    Add Tags To Hosts    ${0}    group_tags    1    4
+    Ctn Add Tags To Hosts    ${0}    group_tags    2    1
+    Ctn Add Tags To Hosts    ${0}    group_tags    1    4
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
@@ -677,7 +677,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
 
     Ctn Remove Service Host From Engine Conf    ${0}    host_1
     Ctn Remove Host From Engine Conf    0    host_1
-    Engine Config Remove Tag    0    2
+    Ctn Remove Tag From Engine Conf    0    2
     Ctn Reload Engine
 
     ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    False
@@ -692,7 +692,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Sleep    5
 
     Ctn Create Tags File    ${0}    ${3}    ${0}    hostgroup
-    Add Tags To Hosts    ${0}    group_tags    2    [2,3]
+    Ctn Add Tags To Hosts    ${0}    group_tags    2    [2,3]
     Ctn Reload Engine
 
     ${result}    Check Resources Tags With Timeout    0    2    hostgroup    [2]    60    True

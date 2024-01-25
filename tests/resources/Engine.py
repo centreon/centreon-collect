@@ -1682,7 +1682,7 @@ def ctn_create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = 
     engine.create_tags(poller, nb, offset, tag_type)
 
 
-def engine_config_remove_tag(poller: int, tag_id: int):
+def ctn_remove_tag_from_engine_conf(poller: int, tag_id: int):
     """! remove tags from tags.cfg where tag id = tag_id
     @param poller  poller index
     @param tag_id  id of the tag to remove
@@ -1730,7 +1730,7 @@ def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
     ff.close()
 
 
-def add_severity_to_services(poller: int, severity_id: int, svc_lst):
+def ctn_add_severity_to_services(poller: int, severity_id: int, svc_lst):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1746,7 +1746,7 @@ def add_severity_to_services(poller: int, severity_id: int, svc_lst):
     ff.close()
 
 
-def set_services_passive(poller: int, srv_regex):
+def ctn_set_services_passive(poller: int, srv_regex):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1775,7 +1775,7 @@ def set_services_passive(poller: int, srv_regex):
     ff.close()
 
 
-def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
+def ctn_add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1791,7 +1791,7 @@ def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     ff.close()
 
 
-def add_template_to_services(poller: int, tmpl: str, svc_lst):
+def ctn_add_template_to_services(poller: int, tmpl: str, svc_lst):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1807,7 +1807,7 @@ def add_template_to_services(poller: int, tmpl: str, svc_lst):
     ff.close()
 
 
-def add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
+def ctn_add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1884,7 +1884,7 @@ def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
         return f"check_search doesn't find '{str_to_search}'"
 
 
-def add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
+def ctn_add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1922,23 +1922,7 @@ def remove_tags_from_hosts(poller: int, type: str):
     ff.close()
 
 
-def add_template_to_services(poller: int, tmpl: str, svc_lst):
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
-    r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
-    for i in range(len(lines)):
-        m = r.match(lines[i])
-        if m is not None and m.group(1) in svc_lst:
-            lines.insert(
-                i + 1, "    use                     {}\n".format(tmpl))
-
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(lines)
-    ff.close()
-
-
-def add_template_to_hosts(poller: int, tmpl: str, hst_lst):
+def ctn_add_template_to_hosts(poller: int, tmpl: str, hst_lst):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()

@@ -29,8 +29,8 @@ BABOO
     Ctn Clone Engine Config To DB
     Ctn Add Bam Config To Engine
     Add Bam Config To Broker    central
-    Set Services Passive    ${0}    service_302
-    Set Services Passive    ${0}    service_303
+    Ctn Set Services Passive    ${0}    service_302
+    Ctn Set Services Passive    ${0}    service_303
 
     ${id_ba_worst__sid}    Ctn Create Ba    ba-worst    worst    70    80
     Ctn Add Service Kpi    host_16    service_302    ${id_ba_worst__sid[0]}    40    30    20
@@ -101,8 +101,8 @@ BABOOOR
     Ctn Clone Engine Config To DB
     Ctn Add Bam Config To Engine
     Add Bam Config To Broker    central
-    Set Services Passive    ${0}    service_302
-    Set Services Passive    ${0}    service_303
+    Ctn Set Services Passive    ${0}    service_302
+    Ctn Set Services Passive    ${0}    service_303
 
     ${id_ba__sid}    Ctn Create Ba    boolean-ba    impact    70    80
     Ctn Add Boolean Kpi
@@ -148,8 +148,8 @@ BABOOAND
     Ctn Clone Engine Config To DB
     Ctn Add Bam Config To Engine
     Add Bam Config To Broker    central
-    Set Services Passive    ${0}    service_302
-    Set Services Passive    ${0}    service_303
+    Ctn Set Services Passive    ${0}    service_302
+    Ctn Set Services Passive    ${0}    service_303
 
     ${id_ba__sid}    Ctn Create Ba    boolean-ba    impact    70    80
     Ctn Add Boolean Kpi
@@ -195,9 +195,9 @@ BABOOORREL
     Ctn Clone Engine Config To DB
     Ctn Add Bam Config To Engine
     Add Bam Config To Broker    central
-    Set Services Passive    ${0}    service_302
-    Set Services Passive    ${0}    service_303
-    Set Services Passive    ${0}    service_304
+    Ctn Set Services Passive    ${0}    service_302
+    Ctn Set Services Passive    ${0}    service_303
+    Ctn Set Services Passive    ${0}    service_304
 
     ${id_ba__sid}    Ctn Create Ba    boolean-ba    impact    70    80
     ${id_bool}    Ctn Add Boolean Kpi
@@ -292,7 +292,7 @@ BABOOCOMPL
     Add Bam Config To Broker    central
     # Services 1 to 21 are passive now.
     FOR    ${i}    IN RANGE    ${1}    ${21}
-        Set Services Passive    ${0}    service_${i}
+        Ctn Set Services Passive    ${0}    service_${i}
     END
 
     ${id_ba__sid}    Ctn Create Ba    boolean-ba    impact    70    80

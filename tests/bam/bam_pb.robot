@@ -1124,7 +1124,7 @@ BAM Init
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
     # This is to avoid parasite status.
-    Set Services Passive    ${0}    service_30.
+    Ctn Set Services Passive    ${0}    service_30.
 
     Config Broker Sql Output    central    unified_sql
     Ctn Clone Engine Config To DB

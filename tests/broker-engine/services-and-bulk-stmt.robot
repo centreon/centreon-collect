@@ -15,7 +15,7 @@ EBBPS1
     [Tags]    broker    engine    services    unified_sql
     Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services Passive    ${0}    service_.*
+    Ctn Set Services Passive    ${0}    service_.*
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -98,7 +98,7 @@ EBBPS2
     [Tags]    broker    engine    services    unified_sql
     Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services Passive    ${0}    service_.*
+    Ctn Set Services Passive    ${0}    service_.*
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -181,7 +181,7 @@ EBMSSM
     Ctn Clear Metrics
     Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services Passive    ${0}    service_.*
+    Ctn Set Services Passive    ${0}    service_.*
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -227,7 +227,7 @@ EBPS2
     Ctn Clear Metrics
     Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services Passive    ${0}    service_.*
+    Ctn Set Services Passive    ${0}    service_.*
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
