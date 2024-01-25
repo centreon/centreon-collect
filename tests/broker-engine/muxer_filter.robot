@@ -127,7 +127,7 @@ BAM_STREAM_FILTER
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     Ctn Create Ba With Services    test    worst    ${svc}
-    Add Bam Config To Broker    central
+    Ctn Add Bam Config To Broker    central
     # Command of service_314 is set to critical
     ${cmd_1}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}

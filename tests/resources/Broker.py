@@ -1787,7 +1787,7 @@ def ctn_compare_rrd_average_value_with_grpc(metric, key, value: float):
         return False
 
 
-def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
+def ctn_check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
     """!Call the GetSqlManagerStats function by gRPC and checks there are count active connections.
     @param port grpc port
     @param count number of expected connections
@@ -1823,7 +1823,7 @@ def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
 # @param count The expected number of active connections.
 #
 # @return A boolean.
-def check_all_sql_connections_down_with_grpc(port, timeout=TIMEOUT):
+def ctn_check_all_sql_connections_down_with_grpc(port, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
@@ -1845,7 +1845,7 @@ def check_all_sql_connections_down_with_grpc(port, timeout=TIMEOUT):
 #
 # @param name The broker name to consider.
 #
-def add_bam_config_to_broker(name):
+def ctn_add_bam_config_to_broker(name):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -1902,7 +1902,7 @@ def add_bam_config_to_broker(name):
 #
 
 
-def remove_poller(port, name, timeout=TIMEOUT):
+def ctn_remove_poller(port, name, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         logger.console(f"Try to call removePoller by name on port {port}")
@@ -1925,7 +1925,7 @@ def remove_poller(port, name, timeout=TIMEOUT):
 #
 
 
-def remove_poller_by_id(port, idx, timeout=TIMEOUT):
+def ctn_remove_poller_by_id(port, idx, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         logger.console(
@@ -1942,7 +1942,7 @@ def remove_poller_by_id(port, idx, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-def check_poller_disabled_in_database(poller_id: int, timeout: int):
+def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1963,7 +1963,7 @@ def check_poller_disabled_in_database(poller_id: int, timeout: int):
     return False
 
 
-def check_poller_enabled_in_database(poller_id: int, timeout: int):
+def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -2002,7 +2002,7 @@ def ctn_get_brokerlog_level(port, name, log, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
+def ctn_set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         logger.console("Try to call SetLogLevel")

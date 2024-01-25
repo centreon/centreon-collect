@@ -49,7 +49,7 @@ EBDP1
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Remove Poller    51001    Poller3
+    Ctn Remove Poller    51001    Poller3
     Sleep    6s
 
     Ctn Stop Engine
@@ -116,7 +116,7 @@ EBDP2
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Remove Poller    51001    Poller2
+    Ctn Remove Poller    51001    Poller2
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -189,7 +189,7 @@ EBDP_GRPC2
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Remove Poller    51001    Poller2
+    Ctn Remove Poller    51001    Poller2
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -249,7 +249,7 @@ EBDP3
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Remove Poller    51001    Poller2
+    Ctn Remove Poller    51001    Poller2
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -330,7 +330,7 @@ EBDP4
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Remove Poller    51001    Poller3
+    Ctn Remove Poller    51001    Poller3
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
@@ -391,7 +391,7 @@ EBDP5
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
-    Remove Poller By Id    51001    ${4}
+    Ctn Remove Poller By Id    51001    ${4}
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
@@ -458,7 +458,7 @@ EBDP6
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
-    Remove Poller By Id    51001    ${3}
+    Ctn Remove Poller By Id    51001    ${3}
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
@@ -524,7 +524,7 @@ EBDP7
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
-    Remove Poller By Id    51001    ${3}
+    Ctn Remove Poller By Id    51001    ${3}
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
@@ -604,7 +604,7 @@ EBDP8
 
     # Restart Broker
     Ctn Start Broker
-    Remove Poller By Id    51001    ${4}
+    Ctn Remove Poller By Id    51001    ${4}
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s

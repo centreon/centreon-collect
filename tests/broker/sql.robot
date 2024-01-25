@@ -205,20 +205,20 @@ BEDB3
     Ctn Start Broker
     Ctn Start Engine
     FOR    ${t}    IN RANGE    60
-        ${result}    Check Sql Connections Count With Grpc    51001    ${3}
+        ${result}    Ctn Check Sql Connections Count With Grpc    51001    ${3}
         IF    ${result}    BREAK
     END
     Should Be True    ${result}    gRPC does not return 3 connections as expected
     Stop Mysql
     FOR    ${t}    IN RANGE    60
-        ${result}    Check All Sql connections Down With Grpc    51001
+        ${result}    Ctn Check All Sql connections Down With Grpc    51001
         IF    ${result}    BREAK
     END
     Should Be True    ${result}    Connections are not all down.
 
     Start Mysql
     FOR    ${t}    IN RANGE    60
-        ${result}    Check Sql Connections Count With Grpc    51001    ${3}
+        ${result}    Ctn Check Sql Connections Count With Grpc    51001    ${3}
         IF    ${result}    BREAK
     END
     Should Be True    ${result}    gRPC does not return 3 connections as expected
@@ -237,14 +237,14 @@ BEDB4
     Ctn Start Broker
     Ctn Start Engine
     FOR    ${t}    IN RANGE    60
-        ${result}    Check All Sql connections Down With Grpc    51001
+        ${result}    Ctn Check All Sql connections Down With Grpc    51001
         IF    ${result}    BREAK
     END
     Should Be True    ${result}    Connections are not all down.
 
     Start Mysql
     FOR    ${t}    IN RANGE    60
-        ${result}    Check Sql Connections Count With Grpc    51001    ${3}
+        ${result}    Ctn Check Sql Connections Count With Grpc    51001    ${3}
         IF    ${result}    BREAK
     END
     Should Be True    ${result}    gRPC does not return 3 connections as expected

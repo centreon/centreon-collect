@@ -28,7 +28,7 @@ BABOO
 
     Ctn Clone Engine Config To DB
     Ctn Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    Ctn Add Bam Config To Broker    central
     Ctn Set Services Passive    ${0}    service_302
     Ctn Set Services Passive    ${0}    service_303
 
@@ -100,7 +100,7 @@ BABOOOR
 
     Ctn Clone Engine Config To DB
     Ctn Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    Ctn Add Bam Config To Broker    central
     Ctn Set Services Passive    ${0}    service_302
     Ctn Set Services Passive    ${0}    service_303
 
@@ -147,7 +147,7 @@ BABOOAND
 
     Ctn Clone Engine Config To DB
     Ctn Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    Ctn Add Bam Config To Broker    central
     Ctn Set Services Passive    ${0}    service_302
     Ctn Set Services Passive    ${0}    service_303
 
@@ -194,7 +194,7 @@ BABOOORREL
 
     Ctn Clone Engine Config To DB
     Ctn Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    Ctn Add Bam Config To Broker    central
     Ctn Set Services Passive    ${0}    service_302
     Ctn Set Services Passive    ${0}    service_303
     Ctn Set Services Passive    ${0}    service_304
@@ -289,7 +289,7 @@ BABOOCOMPL
 
     Ctn Clone Engine Config To DB
     Ctn Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    Ctn Add Bam Config To Broker    central
     # Services 1 to 21 are passive now.
     FOR    ${i}    IN RANGE    ${1}    ${21}
         Ctn Set Services Passive    ${0}    service_${i}
