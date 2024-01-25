@@ -326,7 +326,7 @@ Ctn Dump Ba On Error
     [Arguments]    ${result}    ${ba_id}
     IF    not ${result}
         Ctn Save Logs
-        Dump Ba    51001    ${ba_id}    failed/${Test Name}/ba_${ba_id}.dot
+        Ctn Dump Ba    51001    ${ba_id}    failed/${Test Name}/ba_${ba_id}.dot
     END
 
 Ctn Process Service Result Hard

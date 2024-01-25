@@ -2053,7 +2053,7 @@ def ctn_get_brokerprocess_stat(port, timeout=10):
     return None
 
 
-def parse_victoria_body(request_body: str):
+def ctn_parse_victoria_body(request_body: str):
     victoria_payload = {}
     for field_val in request_body.split(','):
         if field_val == "status" or field_val == "metric":
@@ -2071,9 +2071,9 @@ def parse_victoria_body(request_body: str):
     return victoria_payload
 
 
-def check_victoria_data(request_body: str, data_type: str, min_timestamp: int,  **to_check):
+def ctn_check_victoria_data(request_body: str, data_type: str, min_timestamp: int,  **to_check):
     for line in request_body.splitlines():
-        datas = parse_victoria_body(line)
+        datas = ctn_parse_victoria_body(line)
         if datas["type"] != data_type:
             continue
         if min_timestamp > datas["time_stamp"]:
@@ -2087,15 +2087,15 @@ def check_victoria_data(request_body: str, data_type: str, min_timestamp: int,  
     return False
 
 
-def check_victoria_metric(request_body: str, min_timestamp: int,  **to_check):
-    return check_victoria_data(request_body, "metric", min_timestamp, **to_check)
+def ctn_check_victoria_metric(request_body: str, min_timestamp: int,  **to_check):
+    return ctn_check_victoria_data(request_body, "metric", min_timestamp, **to_check)
 
 
-def check_victoria_status(request_body: str, min_timestamp: int,  **to_check):
-    return check_victoria_data(request_body, "status", min_timestamp, **to_check)
+def ctn_check_victoria_status(request_body: str, min_timestamp: int,  **to_check):
+    return ctn_check_victoria_data(request_body, "status", min_timestamp, **to_check)
 
 
-def dump_ba(port, index: int, filename: str):
+def ctn_dump_ba(port, index: int, filename: str):
     with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
         stub = broker_pb2_grpc.BrokerStub(channel)
         info = broker_pb2.BaInfo()
