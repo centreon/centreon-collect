@@ -388,7 +388,7 @@ BESS_ENGINE_DELETE_HOST
     Ctn Kindly Stop Broker    True
     Ctn Start Broker    True
     Ctn Remove Service Host From Engine Conf    ${0}    host_16
-    Engine Config Remove Host    ${0}    host_16
+    Ctn Remove Host From Engine Conf    ${0}    host_16
     Ctn Reload Engine
     Sleep    2s
     Ctn Kindly Stop Broker    True

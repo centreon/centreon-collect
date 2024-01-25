@@ -676,7 +676,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Should Be True    ${result}    A message unified_sql:_check_queues should be available.
 
     Ctn Remove Service Host From Engine Conf    ${0}    host_1
-    Engine Config Remove Host    0    host_1
+    Ctn Remove Host From Engine Conf    0    host_1
     Engine Config Remove Tag    0    2
     Ctn Reload Engine
 
