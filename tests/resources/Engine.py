@@ -1533,7 +1533,7 @@ def ctn_enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
         f.write(cmd)
         f.close()
 
-def start_obsessing_over_host(use_grpc: int, hst: str):
+def ctn_start_obsessing_over_host(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] START_OBSESSING_OVER_HOST;{}\n".format(
@@ -1543,7 +1543,7 @@ def start_obsessing_over_host(use_grpc: int, hst: str):
         f.close()
 
 
-def stop_obsessing_over_host(use_grpc: int, hst: str):
+def ctn_stop_obsessing_over_host(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] STOP_OBSESSING_OVER_HOST;{}\n".format(
@@ -1553,7 +1553,7 @@ def stop_obsessing_over_host(use_grpc: int, hst: str):
         f.close()
 
 
-def start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
+def ctn_start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] START_OBSESSING_OVER_SVC;{};{}\n".format(
@@ -1563,7 +1563,7 @@ def start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
         f.close()
 
 
-def stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
+def ctn_stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] STOP_OBSESSING_OVER_SVC;{};{}\n".format(

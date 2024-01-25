@@ -590,7 +590,7 @@ BEEXTCMD39
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Stop Obsessing Over Host    ${use_grpc}    host_1
+        Ctn Stop Obsessing Over Host    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -603,7 +603,7 @@ BEEXTCMD39
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Start Obsessing Over Host    ${use_grpc}    host_1
+        Ctn Start Obsessing Over Host    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT obsess_over_host FROM hosts WHERE name='host_1'
@@ -637,7 +637,7 @@ BEEXTCMD40
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Stop Obsessing Over Host    ${use_grpc}    host_1
+        Ctn Stop Obsessing Over Host    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -650,7 +650,7 @@ BEEXTCMD40
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Start Obsessing Over Host    ${use_grpc}    host_1
+        Ctn Start Obsessing Over Host    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT obsess_over_host FROM hosts WHERE name='host_1'
@@ -687,7 +687,7 @@ BEEXTCMD41
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
+        Ctn Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -702,7 +702,7 @@ BEEXTCMD41
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Start Obsessing Over Svc    ${use_grpc}    host_1    service_1
+        Ctn Start Obsessing Over Svc    ${use_grpc}    host_1    service_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console
@@ -738,7 +738,7 @@ BEEXTCMD42
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
+        Ctn Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -753,7 +753,7 @@ BEEXTCMD42
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Start Obsessing Over Svc    ${use_grpc}    host_1    service_1
+        Ctn Start Obsessing Over Svc    ${use_grpc}    host_1    service_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console
