@@ -31,24 +31,24 @@ BEACK1
 
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    SOFT
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
     Repeat Keyword    2 times    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
     Ctn Acknowledge Service Problem    host_1    service_1
-    ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
+    ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
     # Service_1 is set back to OK.
     Ctn Process Service Result Hard    host_1    service_1    0    (1;1) is OK
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
     Should Be True    ${result}    Service (1;1) should be OK HARD
 
     # Acknowledgement is deleted but to see this we have to check in the comments table
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30
+    ${result}    Ctn Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
 BEACK2
@@ -72,24 +72,24 @@ BEACK2
 
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
-    ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    SOFT
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
     Repeat Keyword    2 times    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
 
-    ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
     Ctn Acknowledge Service Problem    host_1    service_1
-    ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    600    HARD
+    ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    600    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
     # Service_1 is set back to OK.
     Ctn Process Service Result Hard    host_1    service_1    0    (1;1) is OK
-    ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${0}    60    HARD
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${0}    60    HARD
     Should Be True    ${result}    Service (1;1) should be OK HARD
 
     # Acknowledgement is deleted but to see this we have to check in the comments table
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30
+    ${result}    Ctn Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
 BEACK3
@@ -113,21 +113,21 @@ BEACK3
 
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    SOFT
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
     Repeat Keyword    2 times    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
     Ctn Acknowledge Service Problem    host_1    service_1
-    ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
+    ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
     Ctn Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
+    ${result}    Ctn Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
 BEACK4
@@ -152,21 +152,21 @@ BEACK4
 
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
-    ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    SOFT
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
     Repeat Keyword    2 times    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
 
-    ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
     Ctn Acknowledge Service Problem    host_1    service_1
-    ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    600    HARD
+    ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    600    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
     Ctn Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
+    ${result}    Ctn Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
 BEACK5
@@ -193,30 +193,30 @@ BEACK5
 
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    SOFT
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
     Repeat Keyword    2 times    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
     Ctn Acknowledge Service Problem    host_1    service_1    STICKY
-    ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
+    ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
     # Service_1 is set to WARNING.
     Ctn Process Service Result Hard    host_1    service_1    1    (1;1) is WARNING
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${1}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${1}    60    HARD
     Should Be True    ${result}    Service (1;1) should be WARNING HARD
 
     # Acknowledgement is not deleted.
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    10
+    ${result}    Ctn Check Acknowledgement Is Deleted With Timeout    ${ack_id}    10
     Should Be True    ${result}==${False}    Acknowledgement ${ack_id} should not be deleted.
 
     Ctn Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
+    ${result}    Ctn Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
 BEACK6
@@ -241,28 +241,28 @@ BEACK6
 
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
-    ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    SOFT
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
     Repeat Keyword    2 times    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
 
-    ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
     Ctn Acknowledge Service Problem    host_1    service_1    STICKY
-    ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    600    HARD
+    ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    600    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
     # Service_1 is set to WARNING.
     Ctn Process Service Result Hard    host_1    service_1    1    (1;1) is WARNING
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${1}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${1}    60    HARD
     Should Be True    ${result}    Service (1;1) should be WARNING HARD
 
     # Acknowledgement is not deleted.
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    10
+    ${result}    Ctn Check Acknowledgement Is Deleted With Timeout    ${ack_id}    10
     Should Be True    ${result}==${False}    Acknowledgement ${ack_id} should not be deleted.
 
     Ctn Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
+    ${result}    Ctn Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.

@@ -31,9 +31,9 @@ BETAG1
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    Check Tag With Timeout    tag20    3    30
+    ${result}    Ctn Check Tag With Timeout    tag20    3    30
     Should Be True    ${result}    tag20 should be of type 3
-    ${result}    Check Tag With Timeout    tag1    0    30
+    ${result}    Ctn Check Tag With Timeout    tag1    0    30
     Should Be True    ${result}    tag1 should be of type 0
 
 BETAG2
@@ -58,9 +58,9 @@ BETAG2
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    Check Tag With Timeout    tag20    3    30
+    ${result}    Ctn Check Tag With Timeout    tag20    3    30
     Should Be True    ${result}    tag20 should be of type 3
-    ${result}    Check Tag With Timeout    tag1    0    30
+    ${result}    Ctn Check Tag With Timeout    tag1    0    30
     Should Be True    ${result}    tag1 should be of type 0
 
 BEUTAG1
@@ -86,9 +86,9 @@ BEUTAG1
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    Check Tag With Timeout    tag20    3    30
+    ${result}    Ctn Check Tag With Timeout    tag20    3    30
     Should Be True    ${result}    tag20 should be of type 3
-    ${result}    Check Tag With Timeout    tag1    0    30
+    ${result}    Ctn Check Tag With Timeout    tag1    0    30
     Should Be True    ${result}    tag1 should be of type 0
 
 BEUTAG2
@@ -158,9 +158,9 @@ BEUTAG3
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    Check Tag With Timeout    tag20    3    30
+    ${result}    Ctn Check Tag With Timeout    tag20    3    30
     Should Be True    ${result}    tag20 should be of type 3
-    ${result}    Check Tag With Timeout    tag1    0    30
+    ${result}    Ctn Check Tag With Timeout    tag1    0    30
     Should Be True    ${result}    tag1 should be of type 0
 
 BEUTAG4

@@ -59,23 +59,23 @@ BABOO
         # 302 is set to critical => the two ba become critical
         Ctn Process Service Result Hard    host_16    service_302    2    output critical for service_302
 
-        ${result}    Check Service Resource Status With Timeout    host_16    service_302    2    30    HARD
+        ${result}    Ctn Check Service Resource Status With Timeout    host_16    service_302    2    30    HARD
         Should Be True    ${result}    The service (host_16:service_302) should be CRITICAL.
-        ${result}    Check Ba Status With Timeout    ba-worst    2    30
+        ${result}    Ctn Check Ba Status With Timeout    ba-worst    2    30
         Ctn Dump Ba On Error    ${result}    ${id_ba_worst__sid[0]}
         Should Be True    ${result}    The 'ba-worst' BA is not CRITICAL as expected
-        ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+        ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
         Ctn Dump Ba On Error    ${result}    ${id_boolean_ba__sid[0]}
         Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
         Ctn Process Service Check Result    host_16    service_302    0    output ok for service_302
-        ${result}    Check Ba Status With Timeout    ba-worst    0    30
+        ${result}    Ctn Check Ba Status With Timeout    ba-worst    0    30
         Ctn Dump Ba On Error    ${result}    ${id_ba_worst__sid[0]}
         Should Be True    ${result}    The 'ba-worst' BA is not OK as expected
-        ${result}    Check Service Resource Status With Timeout    host_16    service_302    0    30    HARD
+        ${result}    Ctn Check Service Resource Status With Timeout    host_16    service_302    0    30    HARD
         Should Be True    ${result}    The service (host_16:service_302) should be OK.
 
-        ${result}    Check Ba Status With Timeout    boolean-ba    0    30
+        ${result}    Ctn Check Ba Status With Timeout    boolean-ba    0    30
         Ctn Dump Ba On Error    ${result}    ${id_boolean_ba__sid[0]}
         Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
     END
@@ -123,7 +123,7 @@ BABOOOR
     # 302 is set to critical => the two ba become critical
     Ctn Process Service Result Hard    host_16    service_302    2    output critical for service_302
 
-    ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+    ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
@@ -170,7 +170,7 @@ BABOOAND
     # 302 is set to critical => the two ba become critical
     Ctn Process Service Result Hard    host_16    service_302    2    output critical for service_302
 
-    ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+    ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
@@ -215,20 +215,20 @@ BABOOORREL
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     # 302 is set to critical => {host_16 service_302} {IS} {OK} is then False
     Ctn Process Service Result Hard    host_16    service_302    2    output critical for service_302
-    ${result}    Check Service Status With Timeout    host_16    service_302    2    30    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_302    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL/HARD as expected
 
     # 303 is set to critical => {host_16 service_303} {IS} {OK} is then False
     Ctn Process Service Result Hard    host_16    service_303    2    output critical for service_303
-    ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_303    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL/HARD as expected
 
     # 304 is set to ok => {host_16 service_304} {IS} {OK} is then True
     Ctn Process Service Result Hard    host_16    service_304    0    output ok for service_304
-    ${result}    Check Service Status With Timeout    host_16    service_304    0    30    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_304    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_304) is not OK/HARD as expected
 
-    ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+    ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
@@ -247,7 +247,7 @@ BABOOORREL
     Ctn Process Service Result Hard    host_16    service_302    2    output ok for service_302
     Ctn Process Service Result Hard    host_16    service_304    0    output ok for service_304
 
-    ${result}    Check Ba Status With Timeout    boolean-ba    0    30
+    ${result}    Ctn Check Ba Status With Timeout    boolean-ba    0    30
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
@@ -265,7 +265,7 @@ BABOOORREL
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+    ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
@@ -314,13 +314,13 @@ BABOOCOMPL
     END
 
     FOR    ${i}    IN RANGE    ${1}    ${21}    ${2}
-        ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+        ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
         Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
         Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
         Ctn Process Service Result Hard    host_1    service_${i}    0    output ok for service_${i}
     END
 
-    ${result}    Check Ba Status With Timeout    boolean-ba    0    30
+    ${result}    Ctn Check Ba Status With Timeout    boolean-ba    0    30
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 

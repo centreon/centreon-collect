@@ -546,7 +546,7 @@ def ctn_truncate_resource_host_service():
             cursor.execute("DELETE FROM services")
 
 
-def check_service_resource_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
+def ctn_check_service_resource_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -575,7 +575,7 @@ def check_service_resource_status_with_timeout(hostname: str, service_desc: str,
     return False
 
 
-def check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_time: int, status: int, timeout: int, state_type: str = "SOFT"):
+def ctn_check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_time: int, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -602,7 +602,7 @@ def check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_t
     return 0
 
 
-def check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int, which='COMMENTS'):
+def ctn_check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int, which='COMMENTS'):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -631,7 +631,7 @@ def check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int, whi
     return False
 
 
-def check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
+def ctn_check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -658,7 +658,7 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
     return False
 
 
-def check_service_status_enabled(hostname: str, service_desc: str, timeout: int):
+def ctn_check_service_status_enabled(hostname: str, service_desc: str, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -685,7 +685,7 @@ def check_service_status_enabled(hostname: str, service_desc: str, timeout: int)
     return False
 
 
-def check_severity_with_timeout(name: str, level, icon_id, timeout: int):
+def ctn_check_severity_with_timeout(name: str, level, icon_id, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -707,7 +707,7 @@ def check_severity_with_timeout(name: str, level, icon_id, timeout: int):
     return False
 
 
-def check_tag_with_timeout(name: str, typ, timeout: int):
+def ctn_check_tag_with_timeout(name: str, typ, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -729,7 +729,7 @@ def check_tag_with_timeout(name: str, typ, timeout: int):
     return False
 
 
-def check_severities_count(value: int, timeout: int):
+def ctn_check_severities_count(value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -750,7 +750,7 @@ def check_severities_count(value: int, timeout: int):
     return False
 
 
-def check_tags_count(value: int, timeout: int):
+def ctn_check_tags_count(value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -771,7 +771,7 @@ def check_tags_count(value: int, timeout: int):
     return False
 
 
-def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
+def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -792,7 +792,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
     return False
 
 
-def check_ba_output_with_timeout(ba_name: str, expected_output: str, timeout: int):
+def ctn_check_ba_output_with_timeout(ba_name: str, expected_output: str, timeout: int):
     """ check if the expected is written in mod_bam.comment column
     @param ba_name   name of the ba
     @param expected_output  output that we should find in comment column
@@ -818,7 +818,7 @@ def check_ba_output_with_timeout(ba_name: str, expected_output: str, timeout: in
     return False
 
 
-def check_downtimes_with_timeout(nb: int, timeout: int):
+def ctn_check_downtimes_with_timeout(nb: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -843,7 +843,7 @@ def check_downtimes_with_timeout(nb: int, timeout: int):
     return False
 
 
-def check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
+def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -877,7 +877,7 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
     return False
 
 
-def check_service_check_with_timeout(hostname: str, service_desc: str,  timeout: int, command_line: str):
+def ctn_check_service_check_with_timeout(hostname: str, service_desc: str,  timeout: int, command_line: str):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1022,7 +1022,7 @@ def clear_db_conf(table: str):
         connection.commit()
 
 
-def check_service_severity_with_timeout(host_id: int, service_id: int, severity_id, timeout: int):
+def ctn_check_service_severity_with_timeout(host_id: int, service_id: int, severity_id, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,

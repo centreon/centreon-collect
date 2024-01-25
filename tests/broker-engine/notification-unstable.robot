@@ -40,7 +40,7 @@ not1
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
@@ -81,7 +81,7 @@ not2
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
@@ -95,7 +95,7 @@ not2
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
@@ -186,7 +186,7 @@ not4
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     # Acknowledge the service with critical status
@@ -199,7 +199,7 @@ not4
 
     Ctn Process Service Check Result    host_1    service_1    0    ok
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
@@ -251,10 +251,10 @@ not5
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
-    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    70    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_2    service_2    ${2}    70    HARD
     Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
@@ -298,7 +298,7 @@ not6
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
@@ -591,7 +591,7 @@ not12
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;1;critical
@@ -756,7 +756,7 @@ Service Check
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     FOR   ${i}    IN RANGE    ${4}
@@ -764,5 +764,5 @@ Service Check
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
     Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD

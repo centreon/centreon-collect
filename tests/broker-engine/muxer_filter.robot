@@ -143,11 +143,11 @@ BAM_STREAM_FILTER
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
 
-    ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
-    ${result}    Check Ba Status With Timeout    test    2    60
+    ${result}    Ctn Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
 
     # monitoring
@@ -226,7 +226,7 @@ UNIFIED_SQL_FILTER
     # one service set to critical in order to have some events
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
 
-    ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # de_pb_service de_pb_service_status de_pb_host de_pb_custom_variable de_pb_log_entry de_pb_host_check
