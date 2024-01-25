@@ -31,7 +31,7 @@ BEEXTCMD30
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Notifications    ${use_grpc}    host_1
+        Ctn Disable Host Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -44,7 +44,7 @@ BEEXTCMD30
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Notifications    ${use_grpc}    host_1
+        Ctn Enable Host Notifications    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
@@ -81,7 +81,7 @@ BEEXTCMD31
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Svc Checks    ${use_grpc}    host_1
+        Ctn Disable Host Svc Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -116,7 +116,7 @@ BEEXTCMD31
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Svc Checks    ${use_grpc}    host_1
+        Ctn Enable Host Svc Checks    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console
@@ -171,7 +171,7 @@ BEEXTCMD32
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Svc Checks    ${use_grpc}    host_1
+        Ctn Disable Host Svc Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -197,7 +197,7 @@ BEEXTCMD32
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Svc Checks    ${use_grpc}    host_1
+        Ctn Enable Host Svc Checks    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console
@@ -247,7 +247,7 @@ BEEXTCMD33
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Svc Notifications    ${use_grpc}    host_1
+        Ctn Disable Host Svc Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -262,7 +262,7 @@ BEEXTCMD33
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Svc Notifications    ${use_grpc}    host_1
+        Ctn Enable Host Svc Notifications    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console
@@ -298,7 +298,7 @@ BEEXTCMD34
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Svc Notifications    ${use_grpc}    host_1
+        Ctn Disable Host Svc Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -313,7 +313,7 @@ BEEXTCMD34
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Svc Notifications    ${use_grpc}    host_1
+        Ctn Enable Host Svc Notifications    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console

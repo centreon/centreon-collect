@@ -823,7 +823,7 @@ BEEXTCMD21
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host And Child Notifications    ${use_grpc}    host_1
+        Ctn Disable Host And Child Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -845,7 +845,7 @@ BEEXTCMD21
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host And Child Notifications    ${use_grpc}    host_1
+        Ctn Enable Host And Child Notifications    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
@@ -890,7 +890,7 @@ BEEXTCMD22
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host And Child Notifications    ${use_grpc}    host_1
+        Ctn Disable Host And Child Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -903,7 +903,7 @@ BEEXTCMD22
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host And Child Notifications    ${use_grpc}    host_1
+        Ctn Enable Host And Child Notifications    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
@@ -940,7 +940,7 @@ BEEXTCMD23
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Check    ${use_grpc}    host_1
+        Ctn Disable Host Check    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -971,7 +971,7 @@ BEEXTCMD23
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Check    ${use_grpc}    host_1
+        Ctn Enable Host Check    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT active_checks FROM hosts WHERE name='host_1'
@@ -1022,7 +1022,7 @@ BEEXTCMD24
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Check    ${use_grpc}    host_1
+        Ctn Disable Host Check    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1044,7 +1044,7 @@ BEEXTCMD24
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Check    ${use_grpc}    host_1
+        Ctn Enable Host Check    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT active_checks FROM hosts WHERE name='host_1'
@@ -1090,7 +1090,7 @@ BEEXTCMD25
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Event Handler    ${use_grpc}    host_1
+        Ctn Disable Host Event Handler    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1103,7 +1103,7 @@ BEEXTCMD25
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Event Handler    ${use_grpc}    host_1
+        Ctn Enable Host Event Handler    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT event_handler_enabled FROM hosts WHERE name='host_1'
@@ -1137,7 +1137,7 @@ BEEXTCMD26
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Event Handler    ${use_grpc}    host_1
+        Ctn Disable Host Event Handler    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1150,7 +1150,7 @@ BEEXTCMD26
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Event Handler    ${use_grpc}    host_1
+        Ctn Enable Host Event Handler    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT event_handler_enabled FROM hosts WHERE name='host_1'
@@ -1187,7 +1187,7 @@ BEEXTCMD27
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Flap Detection    ${use_grpc}    host_1
+        Ctn Disable Host Flap Detection    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1200,7 +1200,7 @@ BEEXTCMD27
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Flap Detection    ${use_grpc}    host_1
+        Ctn Enable Host Flap Detection    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT flap_detection FROM hosts WHERE name='host_1'
@@ -1234,7 +1234,7 @@ BEEXTCMD28
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Flap Detection    ${use_grpc}    host_1
+        Ctn Disable Host Flap Detection    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1247,7 +1247,7 @@ BEEXTCMD28
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Flap Detection    ${use_grpc}    host_1
+        Ctn Enable Host Flap Detection    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT flap_detection FROM hosts WHERE name='host_1'
@@ -1286,7 +1286,7 @@ BEEXTCMD29
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Notifications    ${use_grpc}    host_1
+        Ctn Disable Host Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1308,7 +1308,7 @@ BEEXTCMD29
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Notifications    ${use_grpc}    host_1
+        Ctn Enable Host Notifications    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'

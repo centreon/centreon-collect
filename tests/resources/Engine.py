@@ -1319,7 +1319,7 @@ def ctn_change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, no
         f.close()
 
 
-def disable_host_and_child_notifications(use_grpc: int, hst: str):
+def ctn_disable_host_and_child_notifications(use_grpc: int, hst: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1334,7 +1334,7 @@ def disable_host_and_child_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_and_child_notifications(use_grpc: int, hst: str):
+def ctn_enable_host_and_child_notifications(use_grpc: int, hst: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1349,7 +1349,7 @@ def enable_host_and_child_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_check(use_grpc: int, hst: str):
+def ctn_disable_host_check(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_CHECK;{}\n".format(
@@ -1359,7 +1359,7 @@ def disable_host_check(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_check(use_grpc: int, hst: str):
+def ctn_enable_host_check(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_CHECK;{}\n".format(
@@ -1369,7 +1369,7 @@ def enable_host_check(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_event_handler(use_grpc: int, hst: str):
+def ctn_disable_host_event_handler(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_EVENT_HANDLER;{}\n".format(
@@ -1379,7 +1379,7 @@ def disable_host_event_handler(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_event_handler(use_grpc: int, hst: str):
+def ctn_enable_host_event_handler(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_EVENT_HANDLER;{}\n".format(
@@ -1389,7 +1389,7 @@ def enable_host_event_handler(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_flap_detection(use_grpc: int, hst: str):
+def ctn_disable_host_flap_detection(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_FLAP_DETECTION;{}\n".format(
@@ -1399,7 +1399,7 @@ def disable_host_flap_detection(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_flap_detection(use_grpc: int, hst: str):
+def ctn_enable_host_flap_detection(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_FLAP_DETECTION;{}\n".format(
@@ -1409,7 +1409,7 @@ def enable_host_flap_detection(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_notifications(use_grpc: int, hst: str):
+def ctn_disable_host_notifications(use_grpc: int, hst: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1424,7 +1424,7 @@ def disable_host_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_notifications(use_grpc: int, hst: str):
+def ctn_enable_host_notifications(use_grpc: int, hst: str):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1454,7 +1454,7 @@ def update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: floa
         f.close()
 
 
-def disable_host_svc_checks(use_grpc: int, hst: str):
+def ctn_disable_host_svc_checks(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_SVC_CHECKS;{}\n".format(
@@ -1464,7 +1464,7 @@ def disable_host_svc_checks(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_svc_checks(use_grpc: int, hst: str):
+def ctn_enable_host_svc_checks(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_SVC_CHECKS;{}\n".format(
@@ -1474,7 +1474,7 @@ def enable_host_svc_checks(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_svc_notifications(use_grpc: int, hst: str):
+def ctn_disable_host_svc_notifications(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
@@ -1484,7 +1484,7 @@ def disable_host_svc_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_svc_notifications(use_grpc: int, hst: str):
+def ctn_enable_host_svc_notifications(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
