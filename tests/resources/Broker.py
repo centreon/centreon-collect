@@ -412,7 +412,7 @@ def _apply_conf(name, callback):
     f.close()
 
 
-def config_broker(name: str, poller_inst: int = 1):
+def ctn_config_broker(name: str, poller_inst: int = 1):
     makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
     makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
     makedirs(ETC_ROOT + "/centreon-broker", mode=0o777, exist_ok=True)
@@ -461,7 +461,7 @@ def config_broker(name: str, poller_inst: int = 1):
                 broker_config_add_item(
                     f"{name}{i}", "bbdo_version", default_bbdo_version)
             if default_transport == "grpc":
-                config_broker_bbdo_output(
+                ctn_config_broker_bbdo_output(
                     f"{name}{i}", "bbdo_client", "5669", "grpc", "localhost")
 
     else:
@@ -471,21 +471,21 @@ def config_broker(name: str, poller_inst: int = 1):
         f.close()
         if default_bbdo_version is not None:
             if default_bbdo_version >= "3.0.0" and (name == "central" or name == "central_map"):
-                config_broker_sql_output(name, 'unified_sql')
+                ctn_config_broker_sql_output(name, 'unified_sql')
             broker_config_add_item(
                 name, "bbdo_version", default_bbdo_version)
         if default_transport == "grpc":
             if name == "central" or name == "central_map":
-                config_broker_bbdo_input(
+                ctn_config_broker_bbdo_input(
                     name, "bbdo_server", "5669", "grpc")
-                config_broker_bbdo_output(
+                ctn_config_broker_bbdo_output(
                     name, "bbdo_client", "5670", "grpc", "localhost")
             else:
-                config_broker_bbdo_input(
+                ctn_config_broker_bbdo_input(
                     name, "bbdo_server", "5670", "grpc")
 
 
-def change_broker_tcp_output_to_grpc(name: str):
+def ctn_change_broker_tcp_output_to_grpc(name: str):
     def output_to_grpc(conf):
         output_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(output_dict):
@@ -496,7 +496,7 @@ def change_broker_tcp_output_to_grpc(name: str):
     _apply_conf(name, output_to_grpc)
 
 
-def add_path_to_rrd_output(name: str, path: str):
+def ctn_add_path_to_rrd_output(name: str, path: str):
     def rrd_output(conf):
         output_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(output_dict):
@@ -505,7 +505,7 @@ def add_path_to_rrd_output(name: str, path: str):
     _apply_conf(name, rrd_output)
 
 
-def change_broker_tcp_input_to_grpc(name: str):
+def ctn_change_broker_tcp_input_to_grpc(name: str):
     def input_to_grpc(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
@@ -516,7 +516,7 @@ def change_broker_tcp_input_to_grpc(name: str):
     _apply_conf(name, input_to_grpc)
 
 
-def add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
+def ctn_add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
     json_dict["encryption"] = "yes"
     if (add_cert):
         json_dict["ca_certificate"] = "/tmp/ca_1234.crt"
@@ -525,21 +525,21 @@ def add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
             json_dict["private_key"] = "/tmp/server_1234.key"
 
 
-def add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
+def ctn_add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
     def crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
             if v["type"] == "grpc":
-                add_broker_crypto(v, add_cert, reversed)
+                ctn_add_broker_crypto(v, add_cert, reversed)
     _apply_conf(name, crypto_modifier)
 
 
-def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool):
+def ctn_add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool):
     def crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(input_dict):
             if v["type"] == "grpc":
-                add_broker_crypto(v, add_cert, not reversed)
+                ctn_add_broker_crypto(v, add_cert, not reversed)
     _apply_conf(name, crypto_modifier)
 
 
@@ -579,7 +579,7 @@ def remove_host_from_broker_input(name: str, input_name: str):
     _apply_conf(name, modifier)
 
 
-def change_broker_compression_output(config_name: str, output_name: str, compression_value: str):
+def ctn_change_broker_compression_output(config_name: str, output_name: str, compression_value: str):
     def compression_modifier(conf):
         output_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(output_dict):
@@ -588,7 +588,7 @@ def change_broker_compression_output(config_name: str, output_name: str, compres
     _apply_conf(config_name, compression_modifier)
 
 
-def change_broker_compression_input(config_name: str, input_name: str, compression_value: str):
+def ctn_change_broker_compression_input(config_name: str, input_name: str, compression_value: str):
     def compression_modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
@@ -597,7 +597,7 @@ def change_broker_compression_input(config_name: str, input_name: str, compressi
     _apply_conf(config_name, compression_modifier)
 
 
-def config_broker_remove_rrd_output(name):
+def ctn_config_broker_remove_rrd_output(name):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -618,7 +618,7 @@ def config_broker_remove_rrd_output(name):
         f.write(json.dumps(conf, indent=2))
 
 
-def config_broker_bbdo_input(name, stream, port, proto, host=None):
+def ctn_config_broker_bbdo_input(name, stream, port, proto, host=None):
     if stream != "bbdo_server" and stream != "bbdo_client":
         raise Exception(
             "config_broker_bbdo_input_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
@@ -656,7 +656,7 @@ def config_broker_bbdo_input(name, stream, port, proto, host=None):
     f.close()
 
 
-def config_broker_bbdo_output(name, stream, port, proto, host=None):
+def ctn_config_broker_bbdo_output(name, stream, port, proto, host=None):
     if stream != "bbdo_server" and stream != "bbdo_client":
         raise Exception(
             "config_broker_bbdo_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
@@ -695,7 +695,7 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
     f.close()
 
 
-def config_broker_sql_output(name, output, queries_per_transaction: int = 20000):
+def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20000):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -794,7 +794,7 @@ def broker_config_clear_outputs_except(name, ex: list):
         f.write(json.dumps(conf, indent=2))
 
 
-def config_broker_victoria_output():
+def ctn_config_broker_victoria_output():
     filename = "central-broker.json"
 
     with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r") as f:
