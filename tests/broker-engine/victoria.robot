@@ -46,7 +46,7 @@ VICT_ONE_CHECK_METRIC
         Set Test Variable    ${metric_found}    False
         IF    ${body != None}
             ${body}    Decode Bytes To String    ${body}    UTF-8
-            ${metric_found}    Check Victoria Metric
+            ${metric_found}    Ctn Check Victoria Metric
             ...    ${body}
             ...    ${start}
             ...    unit=%
@@ -106,7 +106,7 @@ VICT_ONE_CHECK_STATUS
         Set Test Variable    ${status_found}    False
         IF    ${body != None}
             ${body}    Decode Bytes To String    ${body}    UTF-8
-            ${status_found}    Check Victoria Status
+            ${status_found}    Ctn Check Victoria Status
             ...    ${body}
             ...    ${start}
             ...    host_id=16
@@ -139,7 +139,7 @@ VICT_ONE_CHECK_STATUS
         Set Test Variable    ${status_found}    False
         IF    ${body != None}
             ${body}    Decode Bytes To String    ${body}    UTF-8
-            ${status_found}    Check Victoria Status
+            ${status_found}    Ctn Check Victoria Status
             ...    ${body}
             ...    ${start}
             ...    host_id=16
@@ -173,7 +173,7 @@ VICT_ONE_CHECK_STATUS
         Set Test Variable    ${status_found}    False
         IF    ${body != None}
             ${body}    Decode Bytes To String    ${body}    UTF-8
-            ${status_found}    Check Victoria Status
+            ${status_found}    Ctn Check Victoria Status
             ...    ${body}
             ...    ${start}
             ...    host_id=16
@@ -232,7 +232,7 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
         Set Test Variable    ${metric_found}    False
         IF    ${body != None}
             ${body}    Decode Bytes To String    ${body}    UTF-8
-            ${metric_found}    Check Victoria Metric
+            ${metric_found}    Ctn Check Victoria Metric
             ...    ${body}
             ...    ${start}
             ...    unit=%

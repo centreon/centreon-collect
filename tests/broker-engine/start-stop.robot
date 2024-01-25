@@ -35,10 +35,10 @@ BESS2
     Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}
-    ${result}    Check Poller Enabled In Database    1    10
+    ${result}    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Ctn Stop Engine
-    ${result}    Check Poller Disabled In Database    1    10
+    ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -53,10 +53,10 @@ BESS3
     Ctn Start Broker
     ${result}    Ctn Check Connections
     Should Be True    ${result}
-    ${result}    Check Poller Enabled In Database    1    10
+    ${result}    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Ctn Stop Engine
-    ${result}    Check Poller Disabled In Database    1    10
+    ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -71,7 +71,7 @@ BESS4
     Ctn Start Broker
     ${result}    Ctn Check Connections
     Should Be True    ${result}
-    ${result}    Check Poller Enabled In Database    1    10
+    ${result}    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -123,10 +123,10 @@ BESS_GRPC2
     Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}
-    ${result}    Check Poller Enabled In Database    1    10
+    ${result}    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Ctn Stop Engine
-    ${result}    Check Poller Disabled In Database    1    10
+    ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -145,10 +145,10 @@ BESS_GRPC3
     Ctn Start Broker
     ${result}    Ctn Check Connections
     Should Be True    ${result}
-    ${result}    Check Poller Enabled In Database    1    10
+    ${result}    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Ctn Stop Engine
-    ${result}    Check Poller Disabled In Database    1    10
+    ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -186,10 +186,10 @@ BESS_GRPC5
     Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}
-    ${result}    Check Poller Enabled In Database    1    10
+    ${result}    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Ctn Stop Engine
-    ${result}    Check Poller Disabled In Database    1    10
+    ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -210,10 +210,10 @@ BESS_GRPC_COMPRESS1
     Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}
-    ${result}    Check Poller Enabled In Database    1    10
+    ${result}    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Ctn Stop Engine
-    ${result}    Check Poller Disabled In Database    1    10
+    ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -240,10 +240,10 @@ BESS_CRYPTED_GRPC1
         Ctn Start Engine
         ${result}    Ctn Check Connections
         Should Be True    ${result}
-        ${result}    Check Poller Enabled In Database    1    10
+        ${result}    Ctn Check Poller Enabled In Database    1    10
         Should Be True    ${result}
         Ctn Stop Engine
-        ${result}    Check Poller Disabled In Database    1    10
+        ${result}    Ctn Check Poller Disabled In Database    1    10
         Should Be True    ${result}
         Ctn Kindly Stop Broker
     END
