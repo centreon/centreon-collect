@@ -1105,7 +1105,7 @@ def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id:
         m = 0
     f.write(to_append)
     f.close()
-    engine.ctn_centengine_conf_add_anomaly()
+    engine.centengine_conf_add_anomaly()
     return retval
 
 
@@ -1130,12 +1130,12 @@ def add_bam_config_to_engine():
 
 def create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inherit"):
     global dbconf
-    return dbconf.cnt_create_ba_with_services(name, typ, svc, dt_policy)
+    return dbconf.create_ba_with_services(name, typ, svc, dt_policy)
 
 
 def create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit"):
     global dbconf
-    return dbconf.ctn_create_ba(name, typ, critical_impact, warning_impact, dt_policy)
+    return dbconf.create_ba(name, typ, critical_impact, warning_impact, dt_policy)
 
 
 def add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):
@@ -1716,7 +1716,7 @@ def engine_config_remove_tag(poller: int, tag_id: int):
 
 
 
-def config_engine_add_cfg_file(poller: int, cfg: str):
+def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1955,7 +1955,7 @@ def add_template_to_hosts(poller: int, tmpl: str, hst_lst):
     ff.close()
 
 
-def config_engine_remove_cfg_file(poller: int, fic: str):
+def ctn_config_engine_remove_cfg_file(poller: int, fic: str):
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
