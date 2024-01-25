@@ -352,7 +352,7 @@ BEEXTCMD35
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Passive Host Checks    ${use_grpc}    host_1
+        Ctn Disable Passive Host Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -374,7 +374,7 @@ BEEXTCMD35
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Passive Host Checks    ${use_grpc}    host_1
+        Ctn Enable Passive Host Checks    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks FROM hosts WHERE name='host_1'
@@ -417,7 +417,7 @@ BEEXTCMD36
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Passive Host Checks    ${use_grpc}    host_1
+        Ctn Disable Passive Host Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -430,7 +430,7 @@ BEEXTCMD36
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Passive Host Checks    ${use_grpc}    host_1
+        Ctn Enable Passive Host Checks    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks FROM hosts WHERE name='host_1'
@@ -467,7 +467,7 @@ BEEXTCMD37
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
+        Ctn Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -491,7 +491,7 @@ BEEXTCMD37
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Passive Svc Checks    ${use_grpc}    host_1    service_1
+        Ctn Enable Passive Svc Checks    ${use_grpc}    host_1    service_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console
@@ -536,7 +536,7 @@ BEEXTCMD38
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
+        Ctn Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -551,7 +551,7 @@ BEEXTCMD38
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Passive Svc Checks    ${use_grpc}    host_1    service_1
+        Ctn Enable Passive Svc Checks    ${use_grpc}    host_1    service_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console

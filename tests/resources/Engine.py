@@ -1494,7 +1494,7 @@ def ctn_enable_host_svc_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_passive_host_checks(use_grpc: int, hst: str):
+def ctn_disable_passive_host_checks(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_PASSIVE_HOST_CHECKS;{}\n".format(
@@ -1504,7 +1504,7 @@ def disable_passive_host_checks(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_passive_host_checks(use_grpc: int, hst: str):
+def ctn_enable_passive_host_checks(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_PASSIVE_HOST_CHECKS;{}\n".format(
@@ -1514,7 +1514,7 @@ def enable_passive_host_checks(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
+def ctn_disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
@@ -1524,7 +1524,7 @@ def disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
         f.close()
 
 
-def enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
+def ctn_enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
