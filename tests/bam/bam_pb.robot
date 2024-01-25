@@ -952,7 +952,7 @@ BEPB_DIMENSION_TRUNCATE_TABLE
     Ctn Create Ba With Services    test    worst    ${svc}
 
     Remove File    /tmp/all_lua_event.log
-    Broker Config Log    central    lua    trace
+    Ctn Broker Config Log    central    lua    trace
 
     Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
@@ -1117,10 +1117,10 @@ BAM Init
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    config    trace
-    Broker Config Source Log    central    1
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    config    trace
+    Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
     # This is to avoid parasite status.

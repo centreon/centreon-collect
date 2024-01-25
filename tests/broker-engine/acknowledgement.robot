@@ -17,8 +17,8 @@ BEACK1
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -59,8 +59,8 @@ BEACK2
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -99,8 +99,8 @@ BEACK3
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -138,8 +138,8 @@ BEACK4
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -176,8 +176,8 @@ BEACK5
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    module0    neb    trace
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    sql    debug
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_level_external_command    trace
     Ctn Set Value In Engine Conf    ${0}    log_flush_period    0    True
@@ -227,8 +227,8 @@ BEACK6
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date
     Ctn Start Broker

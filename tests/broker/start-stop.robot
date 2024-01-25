@@ -38,8 +38,8 @@ BSS5
     [Documentation]    Start-Stop with reversed connection on TCP acceptor with only one instance and no deadlock
     [Tags]    broker    start-stop
     Ctn Config Broker    central
-    Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
-    Broker Config Output Remove    central    centreon-broker-master-rrd    host
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
+    Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Repeat Keyword    5 times    Start Stop Instance    1s
 
 BSSU1
@@ -76,8 +76,8 @@ BSSU5
     [Tags]    broker    start-stop    unified_sql
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
-    Broker Config Output Remove    central    centreon-broker-master-rrd    host
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
+    Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Repeat Keyword    5 times    Start Stop Instance    1s
 
 START_STOP_CBD

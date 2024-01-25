@@ -23,9 +23,9 @@ BENCH_${nb_check}STATUS
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    core    info
-    Broker Config Log    central    processing    error
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    processing    error
     Ctn Config BBDO3    1
     Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
@@ -89,7 +89,7 @@ BENCH_${nb_check}STATUS_TRACES
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     FOR    ${name}    IN    @{CONFIG_NAME}
-        Broker Config Log    central    ${name}    trace
+        Ctn Broker Config Log    central    ${name}    trace
     END
 
     Ctn Add Item To Broker Conf    module0    bbdo_version    3.0.0
@@ -158,12 +158,12 @@ BENCH_1000STATUS_100${suffixe}
         Ctn Set Services Passive    ${poller_index}    service_.*
     END
     Ctn Config Broker    rrd
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    core    info
-    Broker Config Log    central    processing    error
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    processing    error
     Ctn Config BBDO3    ${100}
     Ctn Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine

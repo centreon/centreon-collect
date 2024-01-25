@@ -19,8 +19,8 @@ BRGC1
     Ctn Config Broker    module
 
     Log To Console    Compression set to
-    Broker Config Log    central    bbdo    info
-    Broker Config Log    module0    bbdo    info
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -51,8 +51,8 @@ BRCTS1
     Ctn Config Broker    central_map
     Ctn Config Broker    module
 
-    Broker Config Log    central    bbdo    info
-    Broker Config Log    module0    bbdo    info
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -83,8 +83,8 @@ BRCS1
     Ctn Config Broker    central_map
     Ctn Config Broker    module
 
-    Broker Config Log    central    bbdo    info
-    Broker Config Log    module0    bbdo    info
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -114,11 +114,11 @@ BRCTSMN
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
 
-    Broker Config Output Set Json    central    centreon-broker-master-map    filters    {"category": ["neb"]}
-    Broker Config Log    central    bbdo    trace
-    Broker Config Log    central    core    trace
-    Broker Config Log    central    processing    trace
-    Broker Config Log    module0    bbdo    info
+    Ctn Broker Config Output Set Json    central    centreon-broker-master-map    filters    {"category": ["neb"]}
+    Ctn Broker Config Log    central    bbdo    trace
+    Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    central    processing    trace
+    Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Round Current Date
     Ctn Start Broker
     Start Map
@@ -159,15 +159,15 @@ BRCTSMNS
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
 
-    Broker Config Output Set Json
+    Ctn Broker Config Output Set Json
     ...    central
     ...    centreon-broker-master-map
     ...    filters
     ...    {"category": ["neb", "storage"]}
-    Broker Config Log    central    bbdo    trace
-    Broker Config Log    central    core    trace
-    Broker Config Log    central    processing    trace
-    Broker Config Log    module0    bbdo    info
+    Ctn Broker Config Log    central    bbdo    trace
+    Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    central    processing    trace
+    Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Round Current Date
     Ctn Start Broker
     Start Map

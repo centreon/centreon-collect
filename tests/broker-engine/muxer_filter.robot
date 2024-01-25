@@ -17,10 +17,10 @@ STUPID_FILTER
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    rrd
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Output Set Json    central    central-broker-unified-sql    filters    {"category": ["bbdo"]}
+    Ctn Broker Config Output Set Json    central    central-broker-unified-sql    filters    {"category": ["bbdo"]}
 
     ${start}    Get Current Date
     Ctn Start Broker    True
@@ -43,11 +43,11 @@ STORAGE_ON_LUA
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    rrd
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Add Lua Output To Broker Conf    central    test-filter    ${SCRIPTS}test-log-all-event.lua
-    Broker Config Output Set Json    central    test-filter    filters    {"category": [ "storage"]}
+    Ctn Broker Config Output Set Json    central    test-filter    filters    {"category": [ "storage"]}
 
     Ctn Start Broker    True
     Ctn Start Engine
@@ -73,7 +73,7 @@ FILTER_ON_LUA_EVENT
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    rrd
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Add Lua Output To Broker Conf
@@ -82,7 +82,7 @@ FILTER_ON_LUA_EVENT
     ...    ${SCRIPTS}test-log-all-event.lua
 
     # We use the possibility of broker to allow to filter by type and not only by category
-    Broker Config Output Set Json
+    Ctn Broker Config Output Set Json
     ...    central
     ...    test-filter
     ...    filters
@@ -117,8 +117,8 @@ BAM_STREAM_FILTER
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
-    Broker Config Log    central    core    trace
-    Broker Config Log    central    config    trace
+    Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    central    config    trace
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
 
@@ -210,7 +210,7 @@ UNIFIED_SQL_FILTER
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
-    Broker Config Log    central    core    trace
+    Ctn Broker Config Log    central    core    trace
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
 
@@ -247,8 +247,8 @@ CBD_RELOAD_AND_FILTERS
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
-    Broker Config Log    central    config    trace
-    Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    central    config    trace
+    Ctn Broker Config Log    rrd    rrd    debug
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
 
@@ -274,7 +274,7 @@ CBD_RELOAD_AND_FILTERS
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # New configuration
-    Broker Config Output Set Json    central    centreon-broker-master-rrd    filters    {"category": [ "storage"]}
+    Ctn Broker Config Output Set Json    central    centreon-broker-master-rrd    filters    {"category": [ "storage"]}
 
     Log To Console    Second configuration: only storage events are sent.
     ${start}    Get Current Date
@@ -306,7 +306,7 @@ CBD_RELOAD_AND_FILTERS
 
     Log To Console    Third configuration: all events are sent.
     # New configuration
-    Broker Config Output Remove    central    centreon-broker-master-rrd    filters
+    Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    filters
     ${start}    Get Current Date
     Ctn Restart Engine
     Ctn Reload Broker
@@ -347,11 +347,11 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
-    Broker Config Output Remove    central    centreon-broker-master-rrd    host
-    Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
-    Broker Config Input Set    rrd    central-rrd-master-input    host    localhost
-    Broker Config Log    central    config    trace
-    Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    host    localhost
+    Ctn Broker Config Log    central    config    trace
+    Ctn Broker Config Log    rrd    rrd    debug
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
 
@@ -377,7 +377,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # New configuration
-    Broker Config Output Set Json    central    centreon-broker-master-rrd    filters    {"category": [ "storage"]}
+    Ctn Broker Config Output Set Json    central    centreon-broker-master-rrd    filters    {"category": [ "storage"]}
 
     Log To Console    Second configuration: only storage events are sent.
     ${start}    Get Current Date
@@ -409,7 +409,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     Log To Console    Third configuration: all events are sent.
     # New configuration
-    Broker Config Output Remove    central    centreon-broker-master-rrd    filters
+    Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    filters
     ${start}    Get Current Date
     Ctn Restart Engine
     Ctn Reload Broker
@@ -451,7 +451,7 @@ SEVERAL_FILTERS_ON_LUA_EVENT
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    rrd
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Add Lua Output To Broker Conf
@@ -464,13 +464,13 @@ SEVERAL_FILTERS_ON_LUA_EVENT
     ...    ${SCRIPTS}test-log-all-event-bis.lua
 
     # We use the possibility of broker to allow to filter by type and not only by category
-    Broker Config Output Set Json
+    Ctn Broker Config Output Set Json
     ...    central
     ...    test-filter
     ...    filters
     ...    {"category": [ "storage:pb_metric_mapping"]}
 
-    Broker Config Output Set Json
+    Ctn Broker Config Output Set Json
     ...    central
     ...    test-filter-bis
     ...    filters

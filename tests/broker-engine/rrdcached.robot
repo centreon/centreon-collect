@@ -18,11 +18,11 @@ BRRDCDDM1
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Create Metrics    3
     ${start}    Get Current Date
     Ctn Start Broker
@@ -54,9 +54,9 @@ BRRDCDDID1
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    rrd    core    error
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    rrd    core    error
     Create Metrics    3
 
     ${start}    Get Current Date
@@ -94,11 +94,11 @@ BRRDCDDMID1
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -126,11 +126,11 @@ BRRDCDDMU1
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker    module
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Create Metrics    3
 
     ${start}    Get Current Date
@@ -163,11 +163,11 @@ BRRDCDDIDU1
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker    module
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Create Metrics    3
 
     ${start}    Get Current Date
@@ -203,11 +203,11 @@ BRRDCDDMIDU1
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker    module
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -234,10 +234,10 @@ BRRDCDRB1
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Create Metrics    3
 
     ${start}    Get Current Date
@@ -292,12 +292,12 @@ BRRDCDRBU1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker Sql Output    central    unified_sql
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Create Metrics    3
 
     ${start}    Get Current Date

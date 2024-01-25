@@ -20,8 +20,8 @@ BESEV1
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -43,8 +43,8 @@ BESEV2
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
@@ -69,8 +69,8 @@ BEUSEV1
     Ctn Config Broker    module
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -94,8 +94,8 @@ BEUSEV2
     Ctn Config Broker    module
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
@@ -121,8 +121,8 @@ BEUSEV3
     Ctn Config Broker    module
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
@@ -164,8 +164,8 @@ BEUSEV4
     Ctn Config Broker    module    2
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
@@ -239,8 +239,8 @@ BETUSEV1
     Ctn Config Broker    module
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine

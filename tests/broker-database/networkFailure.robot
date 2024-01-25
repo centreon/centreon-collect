@@ -39,11 +39,11 @@ NetworkDBFail6
     [Tags]    broker    database    network    unstable
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
-    Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
-    Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
-    Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
+    Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    module
     ${start}    Get Current Date
@@ -69,9 +69,9 @@ NetworkDBFailU6
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
-    Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
+    Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    module
     ${start}    Get Current Date
@@ -98,11 +98,11 @@ NetworkDBFail7
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Reset Eth Connection
-    Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
-    Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
-    Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
+    Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    module
     ${start}    Get Current Date
@@ -132,9 +132,9 @@ NetworkDBFailU7
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
-    Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
+    Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    module
     ${start}    Get Current Date
@@ -172,12 +172,12 @@ Network Failure
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config Broker    central
-    Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
-    Broker Config Output Set    central    central-broker-master-sql    connections_count    10
-    Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
-    Broker Config Output Set    central    central-broker-master-perfdata    connections_count    10
-    Broker Config Log    central    sql    trace
-    Broker Config Source Log    central    true
+    Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    10
+    Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    10
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Source Log    central    true
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine

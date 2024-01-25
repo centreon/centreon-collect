@@ -707,10 +707,10 @@ Config Notifications
     Ctn Add Item To Broker Conf    module0    bbdo_version    3.0.1
     Ctn Add Item To Broker Conf    rrd    bbdo_version    3.0.1
     Ctn Add Item To Broker Conf    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    error
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker Remove Rrd Output    central
     Clear Retention

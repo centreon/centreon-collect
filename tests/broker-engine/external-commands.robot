@@ -18,7 +18,7 @@ BEEXTCMD1
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
@@ -56,7 +56,7 @@ BEEXTCMD2
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
@@ -94,9 +94,9 @@ BEEXTCMD3
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
@@ -132,8 +132,8 @@ BEEXTCMD4
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
@@ -169,7 +169,7 @@ BEEXTCMD5
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
@@ -207,7 +207,7 @@ BEEXTCMD6
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
@@ -245,9 +245,9 @@ BEEXTCMD7
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
@@ -283,8 +283,8 @@ BEEXTCMD8
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
@@ -320,7 +320,7 @@ BEEXTCMD9
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo3.0 use_grpc=${use_grpc}
@@ -368,7 +368,7 @@ BEEXTCMD10
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
@@ -406,9 +406,9 @@ BEEXTCMD11
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo3.0 use_grpc=${use_grpc}
@@ -453,8 +453,8 @@ BEEXTCMD12
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
@@ -491,9 +491,9 @@ BEEXTCMD13
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo3.0 use_grpc=${use_grpc}
@@ -530,8 +530,8 @@ BEEXTCMD14
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
@@ -568,9 +568,9 @@ BEEXTCMD15
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo3.0 use_grpc=${use_grpc}
@@ -607,8 +607,8 @@ BEEXTCMD16
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
@@ -645,9 +645,9 @@ BEEXTCMD17
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo3.0 use_grpc=${use_grpc}
@@ -686,8 +686,8 @@ BEEXTCMD18
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
@@ -726,9 +726,9 @@ BEEXTCMD19
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo3.0 use_grpc=${use_grpc}
@@ -767,8 +767,8 @@ BEEXTCMD20
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
@@ -807,9 +807,9 @@ BEEXTCMD21
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    2
@@ -876,8 +876,8 @@ BEEXTCMD22
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console
@@ -926,9 +926,9 @@ BEEXTCMD23
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
@@ -1010,8 +1010,8 @@ BEEXTCMD24
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
@@ -1076,9 +1076,9 @@ BEEXTCMD25
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    1
         Clear Retention
@@ -1125,8 +1125,8 @@ BEEXTCMD26
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
@@ -1173,9 +1173,9 @@ BEEXTCMD27
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
@@ -1222,8 +1222,8 @@ BEEXTCMD28
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
@@ -1270,9 +1270,9 @@ BEEXTCMD29
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console

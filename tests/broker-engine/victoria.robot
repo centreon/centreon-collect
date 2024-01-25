@@ -19,9 +19,9 @@ VICT_ONE_CHECK_METRIC
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Clear Retention
-    Broker Config Log    central    victoria_metrics    trace
-    Broker Config Log    central    perfdata    trace
-    Broker Config Source Log    central    1
+    Ctn Broker Config Log    central    victoria_metrics    trace
+    Ctn Broker Config Log    central    perfdata    trace
+    Ctn Broker Config Source Log    central    1
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker Victoria Output
     ${start}    Get Current Date
@@ -78,9 +78,9 @@ VICT_ONE_CHECK_STATUS
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Clear Retention
-    Broker Config Log    central    victoria_metrics    trace
-    Broker Config Log    central    perfdata    trace
-    Broker Config Source Log    central    1
+    Ctn Broker Config Log    central    victoria_metrics    trace
+    Ctn Broker Config Log    central    perfdata    trace
+    Ctn Broker Config Source Log    central    1
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker Victoria Output
     ${start}    Get Current Date
@@ -201,9 +201,9 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Clear Retention
-    Broker Config Log    central    victoria_metrics    trace
-    Broker Config Log    central    perfdata    trace
-    Broker Config Source Log    central    1
+    Ctn Broker Config Log    central    victoria_metrics    trace
+    Ctn Broker Config Log    central    perfdata    trace
+    Ctn Broker Config Source Log    central    1
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker Victoria Output
     ${start}    Get Current Date

@@ -20,10 +20,10 @@ EBBPS1
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    info
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    perfdata    trace
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    perfdata    trace
     Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
@@ -103,10 +103,10 @@ EBBPS2
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    info
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    perfdata    trace
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    perfdata    trace
     Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
@@ -186,9 +186,9 @@ EBMSSM
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker Remove Rrd Output    central
     Clear Retention
@@ -232,11 +232,11 @@ EBPS2
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    perfdata    debug
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    perfdata    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker Remove Rrd Output    central
     Clear Retention
@@ -273,9 +273,9 @@ RLCode
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Broker Config Log    central    lua    debug
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Log    central    lua    debug
     Ctn Config Broker Sql Output    central    unified_sql
 
     ${INITIAL_SCRIPT_CONTENT}    Catenate
@@ -343,8 +343,8 @@ metric_mapping
     Ctn Config Broker    module
     Ctn Add Item To Broker Conf    central    bbdo_version    3.0.1
     Ctn Add Item To Broker Conf    module0    bbdo_version    3.0.1
-    Broker Config Log    central    lua    debug
-    Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    lua    debug
+    Ctn Broker Config Log    module0    neb    debug
     Ctn Config Broker Sql Output    central    unified_sql
 
     ${new_content}    Catenate
@@ -395,11 +395,11 @@ Services_and_bulks_${id}
     Ctn Config Broker    module    ${1}
     Ctn Add Item To Broker Conf    module0    bbdo_version    3.0.1
     Ctn Add Item To Broker Conf    central    bbdo_version    3.0.1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
-    Broker Config Source Log    central    1
+    Ctn Broker Config Source Log    central    1
 
     Ctn Config Broker Remove Rrd Output    central
     Clear Retention

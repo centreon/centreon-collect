@@ -18,8 +18,8 @@ SDER
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker

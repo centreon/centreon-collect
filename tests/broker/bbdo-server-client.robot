@@ -17,7 +17,7 @@ BSCSS1
     Ctn Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Ctn Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
-    Broker Config Log    central    config    info
+    Ctn Broker Config Log    central    config    info
     Repeat Keyword    5 times    Start Stop Service    0
 
 BSCSSP1
@@ -28,7 +28,7 @@ BSCSSP1
     Ctn Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Ctn Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    tcp    localhost
-    Broker Config Log    central    config    info
+    Ctn Broker Config Log    central    config    info
     Repeat Keyword    5 times    Start Stop Service    0
 
 BSCSS2
@@ -63,7 +63,7 @@ BSCSSG1
     Ctn Config Broker BBDO Input    central    bbdo_server    5669    gRPC    localhost
     Ctn Config Broker BBDO Output    central    bbdo_client    5670    gRPC    localhost
     Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    gRPC
-    Broker Config Log    central    config    info
+    Ctn Broker Config Log    central    config    info
     Repeat Keyword    5 times    Start Stop Service    0
 
 BSCSSG2
@@ -98,11 +98,11 @@ BSCSST1
     Ctn Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Ctn Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
-    Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
-    Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
-    Broker Config Log    central    config    off
-    Broker Config Log    central    core    off
-    Broker Config Log    central    tls    debug
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
+    Ctn Broker Config Log    central    config    off
+    Ctn Broker Config Log    central    core    off
+    Ctn Broker Config Log    central    tls    debug
     ${start}    Get Current Date
     Repeat Keyword    5 times    Start Stop Service    0
     ${content}    Create List    TLS: successful handshake
@@ -117,28 +117,28 @@ BSCSST2
     Ctn Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Ctn Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
-    Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
-    Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
-    Broker Config Log    central    config    off
-    Broker Config Log    central    core    off
-    Broker Config Log    central    tls    debug
-    Broker Config Output Set
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
+    Ctn Broker Config Log    central    config    off
+    Ctn Broker Config Log    central    core    off
+    Ctn Broker Config Log    central    tls    debug
+    Ctn Broker Config Output Set
     ...    central
     ...    centreon-broker-master-rrd
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    central
     ...    centreon-broker-master-rrd
     ...    certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    central
     ...    centreon-broker-master-rrd
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Input Set    rrd    central-rrd-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
-    Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
     ${start}    Get Current Date
     Repeat Keyword    5 times    Start Stop Service    0
     ${content}    Create List    TLS: successful handshake
@@ -153,18 +153,18 @@ BSCSSTG1
     Ctn Config Broker BBDO Input    central    bbdo_server    5669    gRPC
     Ctn Config Broker BBDO Output    central    bbdo_client    5670    gRPC    localhost
     Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    gRPC
-    Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
-    Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
-    Broker Config Log    central    config    off
-    Broker Config Log    central    core    off
-    Broker Config Log    rrd    core    off
-    Broker Config Log    central    tls    debug
-    Broker Config Log    central    grpc    debug
-    Broker Config Log    rrd    grpc    debug
-    Broker Config Flush Log    central    0
-    Broker Config Source Log    central    1
-    Broker Config Flush Log    rrd    0
-    Broker Config Source Log    rrd    1
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
+    Ctn Broker Config Log    central    config    off
+    Ctn Broker Config Log    central    core    off
+    Ctn Broker Config Log    rrd    core    off
+    Ctn Broker Config Log    central    tls    debug
+    Ctn Broker Config Log    central    grpc    debug
+    Ctn Broker Config Log    rrd    grpc    debug
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Source Log    central    1
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Broker Config Source Log    rrd    1
     ${start}    Get Current Date
     Ctn Start Broker
     ${content}    Create List    Handshake failed
@@ -179,14 +179,14 @@ BSCSSTG2
     Ctn Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Ctn Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
-    Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
-    Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
-    Broker Config Log    central    config    off
-    Broker Config Log    central    core    off
-    Broker Config Log    rrd    core    off
-    Broker Config Log    central    tls    debug
-    Broker Config Log    rrd    grpc    trace
-    Broker Config Log    central    grpc    trace
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
+    Ctn Broker Config Log    central    config    off
+    Ctn Broker Config Log    central    core    off
+    Ctn Broker Config Log    rrd    core    off
+    Ctn Broker Config Log    central    tls    debug
+    Ctn Broker Config Log    rrd    grpc    trace
+    Ctn Broker Config Log    central    grpc    trace
     Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key
@@ -196,23 +196,23 @@ BSCSSTG2
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
 
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    central
     ...    centreon-broker-master-rrd
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    central
     ...    centreon-broker-master-rrd
     ...    certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    central
     ...    centreon-broker-master-rrd
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Input Set    rrd    central-rrd-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
-    Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
     ${start}    Get Current Date
     Ctn Start Broker
     ${content}    Create List    encrypted connection    write: buff:    write done: buff:
@@ -228,14 +228,14 @@ BSCSSTG3
     Ctn Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Ctn Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
-    Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
-    Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
-    Broker Config Log    central    config    off
-    Broker Config Log    central    core    off
-    Broker Config Log    rrd    core    off
-    Broker Config Log    central    tls    debug
-    Broker Config Log    central    grpc    debug
-    Broker Config Log    rrd    grpc    debug
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
+    Ctn Broker Config Log    central    config    off
+    Ctn Broker Config Log    central    core    off
+    Ctn Broker Config Log    rrd    core    off
+    Ctn Broker Config Log    central    tls    debug
+    Ctn Broker Config Log    central    grpc    debug
+    Ctn Broker Config Log    rrd    grpc    debug
     Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key
@@ -245,27 +245,27 @@ BSCSSTG3
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
 
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    central
     ...    centreon-broker-master-rrd
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    central
     ...    centreon-broker-master-rrd
     ...    certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    central
     ...    centreon-broker-master-rrd
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    rrd
     ...    central-rrd-master-input
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/missing-client.key
-    Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
     ${start}    Get Current Date
     Ctn Start Broker
     ${content}    Create List
@@ -281,11 +281,11 @@ BSCSSC1
     Ctn Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Ctn Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
-    Broker Config Output Set    central    centreon-broker-master-rrd    compression    yes
-    Broker Config Log    central    config    off
-    Broker Config Log    central    core    trace
-    Broker Config Log    rrd    core    trace
-    Broker Config Flush Log    central    0
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    compression    yes
+    Ctn Broker Config Log    central    config    off
+    Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    rrd    core    trace
+    Ctn Broker Config Flush Log    central    0
     ${start}    Get Current Date
     Ctn Start Broker
     ${content}    Create List    compression: writing
@@ -301,12 +301,12 @@ BSCSSC2
     Ctn Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Ctn Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
-    Broker Config Output Set    central    centreon-broker-master-rrd    compression    no
-    Broker Config Log    central    config    off
-    Broker Config Log    central    core    off
-    Broker Config Log    rrd    core    trace
-    Broker Config Log    central    bbdo    trace
-    Broker Config Flush Log    central    0
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    compression    no
+    Ctn Broker Config Log    central    config    off
+    Ctn Broker Config Log    central    core    off
+    Ctn Broker Config Log    rrd    core    trace
+    Ctn Broker Config Log    central    bbdo    trace
+    Ctn Broker Config Flush Log    central    0
     ${start}    Get Current Date
     Ctn Start Broker
     ${content}    Create List    BBDO: we have extensions '' and peer has 'COMPRESSION'
@@ -322,14 +322,14 @@ BSCSSCG1
     Ctn Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Ctn Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
-    Broker Config Output Set    central    centreon-broker-master-rrd    compression    yes
-    Broker Config Log    central    config    off
-    Broker Config Log    central    core    trace
-    Broker Config Log    rrd    core    off
-    Broker Config Log    central    tls    debug
-    Broker Config Log    rrd    grpc    debug
-    Broker Config Log    central    grpc    debug
-    Broker Config Flush Log    central    0
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    compression    yes
+    Ctn Broker Config Log    central    config    off
+    Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    rrd    core    off
+    Ctn Broker Config Log    central    tls    debug
+    Ctn Broker Config Log    rrd    grpc    debug
+    Ctn Broker Config Log    central    grpc    debug
+    Ctn Broker Config Flush Log    central    0
     ${start}    Get Current Date
     Ctn Start Broker
     ${content}    Create List    activate compression deflate
@@ -345,14 +345,14 @@ BSCSSGA1
     Ctn Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Ctn Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
-    Broker Config Input Set    rrd    central-rrd-master-input    authorization    titus
-    Broker Config Log    central    config    off
-    Broker Config Log    central    core    off
-    Broker Config Log    rrd    core    off
-    Broker Config Log    rrd    tls    debug
-    Broker Config Log    rrd    grpc    trace
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    authorization    titus
+    Ctn Broker Config Log    central    config    off
+    Ctn Broker Config Log    central    core    off
+    Ctn Broker Config Log    rrd    core    off
+    Ctn Broker Config Log    rrd    tls    debug
+    Ctn Broker Config Log    rrd    grpc    trace
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     ${start}    Get Current Date
     Ctn Start Broker
     ${content}    Create List    Wrong client authorization token
@@ -368,17 +368,17 @@ BSCSSGA2
     Ctn Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Ctn Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Ctn Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
-    Broker Config Input Set    rrd    central-rrd-master-input    authorization    titus
-    Broker Config Output Set    central    centreon-broker-master-rrd    authorization    titus
-    Broker Config Log    central    config    trace
-    Broker Config Log    central    core    trace
-    Broker Config Log    rrd    core    off
-    Broker Config Log    rrd    tls    debug
-    Broker Config Log    rrd    grpc    debug
-    Broker Config Log    central    grpc    debug
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
-    Broker Config Source Log    rrd    1
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    authorization    titus
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    authorization    titus
+    Ctn Broker Config Log    central    config    trace
+    Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    rrd    core    off
+    Ctn Broker Config Log    rrd    tls    debug
+    Ctn Broker Config Log    rrd    grpc    debug
+    Ctn Broker Config Log    central    grpc    debug
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Broker Config Source Log    rrd    1
     ${start}    Get Current Date
     Ctn Start Broker
     ${content}    Create List    receive: buff

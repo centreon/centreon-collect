@@ -20,13 +20,13 @@ BEDTMASS1
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    module1    neb    debug
-    Broker Config Log    module2    neb    debug
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module1    neb    debug
+    Ctn Broker Config Log    module2    neb    debug
 
     Ctn Config BBDO3    3
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
@@ -78,12 +78,12 @@ BEDTMASS2
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    module1    neb    debug
-    Broker Config Log    module2    neb    debug
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module1    neb    debug
+    Ctn Broker Config Log    module2    neb    debug
 
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -132,8 +132,8 @@ BEDTSVCREN1
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
 
     Clear Retention
     ${start}    Get Current Date
@@ -175,8 +175,8 @@ BEDTSVCFIXED
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
 
     Clear Retention
     ${start}    Get Current Date
@@ -209,8 +209,8 @@ BEDTHOSTFIXED
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
     Ctn Config Broker Sql Output    central    unified_sql
 
     Clear Retention

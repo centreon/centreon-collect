@@ -14,10 +14,10 @@ BFC1
     [Tags]    broker    start-stop    log-v2
     Ctn Config Broker    central
     Ctn Config Broker    rrd
-    Broker Config Log    central    config    info
-    Broker Config Log    central    sql    error
-    Broker Config Log    central    core    error
-    Broker Config Output Set Json
+    Ctn Broker Config Log    central    config    info
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Output Set Json
     ...    central
     ...    central-broker-master-sql
     ...    filters
@@ -38,10 +38,10 @@ BFC2
     [Tags]    broker    start-stop    log-v2
     Ctn Config Broker    central
     Ctn Config Broker    rrd
-    Broker Config Log    central    config    info
-    Broker Config Log    central    sql    error
-    Broker Config Log    central    core    error
-    Broker Config Output Set Json
+    Ctn Broker Config Log    central    config    info
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Output Set Json
     ...    central
     ...    central-broker-master-sql
     ...    filters

@@ -17,11 +17,11 @@ BRRDDM1
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    debug
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Create Metrics    3
 
     ${start}    Get Current Date
@@ -62,11 +62,11 @@ BRRDWM1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    debug
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -86,9 +86,9 @@ BRRDDID1
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    debug
-    Broker Config Log    rrd    core    error
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    rrd    core    error
     Create Metrics    3
 
     ${start}    Get Current Date
@@ -133,11 +133,11 @@ BRRDDMID1
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    debug
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -164,11 +164,11 @@ BRRDDMU1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    debug
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Create Metrics    3
 
     ${start}    Get Current Date
@@ -208,11 +208,11 @@ BRRDDIDU1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    debug
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Create Metrics    3
 
     ${start}    Get Current Date
@@ -255,11 +255,11 @@ BRRDDMIDU1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    debug
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -285,11 +285,11 @@ BRRDRM1
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Log    rrd    perfdata    trace
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    rrd    perfdata    trace
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Create Metrics    3
 
     ${start}    Get Current Date
@@ -343,12 +343,12 @@ BRRDRMU1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Create Metrics    3
 
     ${start}    Get Round Current Date
@@ -402,12 +402,12 @@ RRD1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Create Metrics    3
 
     ${start}    Get Round Current Date

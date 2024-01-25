@@ -18,8 +18,8 @@ BEPBBEE1
     Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Add Item To Broker Conf    module0    bbdo_version    3.0.0
-    Broker Config Log    module0    bbdo    debug
-    Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    module0    bbdo    debug
+    Ctn Broker Config Log    central    bbdo    debug
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -40,8 +40,8 @@ BEPBBEE2
     Ctn Add Item To Broker Conf    module0    bbdo_version    3.0.0
     Ctn Add Item To Broker Conf    central    bbdo_version    3.0.0
     Ctn Add Item To Broker Conf    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    sql    debug
-    Broker Config Flush Log    central    0
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Flush Log    central    0
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -61,7 +61,7 @@ BEPBBEE3
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-pbservicestatus.lua
     Clear Retention
@@ -81,7 +81,7 @@ BEPBBEE4
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-pbhoststatus.lua
     Clear Retention
@@ -101,7 +101,7 @@ BEPBBEE5
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-pbservice.lua
     Clear Retention
@@ -120,10 +120,10 @@ BEPBRI1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    read_timeout    2
-    Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    2
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    read_timeout    2
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    2
 
     Ctn Add Lua Output To Broker Conf    central    test-protobuf    ${SCRIPTS}test-responsiveinstance.lua
     Clear Retention
@@ -153,7 +153,7 @@ BEPBCVS
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config BBDO3    ${1}
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
@@ -184,7 +184,7 @@ BEPB_HOST_DEPENDENCY
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
@@ -225,7 +225,7 @@ BEPB_SERVICE_DEPENDENCY
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date

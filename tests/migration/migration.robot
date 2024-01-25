@@ -18,9 +18,9 @@ MIGRATION
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
-    Broker Config Log    central    sql    debug
-    Broker Config Log    central    core    error
-    Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    rrd    rrd    trace
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker

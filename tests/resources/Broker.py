@@ -876,7 +876,7 @@ def ctn_add_lua_output_to_broker_conf(name, output, luafile):
     f.close()
 
 
-def broker_config_output_set(name, output, key, value):
+def ctn_broker_config_output_set(name, output, key, value):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -895,7 +895,7 @@ def broker_config_output_set(name, output, key, value):
     f.close()
 
 
-def broker_config_output_set_json(name, output, key, value):
+def ctn_broker_config_output_set_json(name, output, key, value):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -915,7 +915,7 @@ def broker_config_output_set_json(name, output, key, value):
     f.close()
 
 
-def broker_config_output_remove(name, output, key):
+def ctn_broker_config_output_remove(name, output, key):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -936,7 +936,7 @@ def broker_config_output_remove(name, output, key):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_input_set(name, inp, key, value):
+def ctn_broker_config_input_set(name, inp, key, value):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -956,7 +956,7 @@ def broker_config_input_set(name, inp, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_input_remove(name, inp, key):
+def ctn_broker_config_input_remove(name, inp, key):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -976,7 +976,7 @@ def broker_config_input_remove(name, inp, key):
     f.close()
 
 
-def broker_config_log(name, key, value):
+def ctn_broker_config_log(name, key, value):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -994,7 +994,7 @@ def broker_config_log(name, key, value):
     f.close()
 
 
-def broker_config_flush_log(name, value):
+def ctn_broker_config_flush_log(name, value):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -1012,7 +1012,7 @@ def broker_config_flush_log(name, value):
     f.close()
 
 
-def broker_config_source_log(name, value):
+def ctn_ctn_broker_config_source_log(name, value):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):

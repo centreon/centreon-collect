@@ -18,8 +18,8 @@ EBSNU1
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    debug
-    Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    bbdo    debug
     Ctn Config Broker Sql Output    central    unified_sql
     ${nu}    Evaluate    2000*"X"
     Ctn Set Value In Engine Services Conf    0    service_1    notes_url    ${nu}
@@ -51,8 +51,8 @@ EBSAU2
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    debug
-    Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    bbdo    debug
     Ctn Config Broker Sql Output    central    unified_sql
     ${au}    Evaluate    2000*"Y"
     Ctn Set Value In Engine Services Conf    0    service_2    action_url    ${au}
@@ -84,8 +84,8 @@ EBSN3
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    debug
-    Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    bbdo    debug
     Ctn Config Broker Sql Output    central    unified_sql
     ${n}    Evaluate    500*"Z"
     Ctn Set Value In Engine Services Conf    0    service_3    notes    ${n}

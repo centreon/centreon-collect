@@ -45,8 +45,8 @@ BGRPCSS5
     [Tags]    broker    start-stop    grpc
     Ctn Config Broker    central
     Ctn Change Broker Tcp Output To Grpc    central
-    Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
-    Broker Config Output Remove    central    centreon-broker-master-rrd    host
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
+    Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Repeat Keyword    5 times    Start Stop Instance    1s
 
 BGRPCSSU1
@@ -88,8 +88,8 @@ BGRPCSSU5
     [Tags]    broker    start-stop    unified_sql    grpc
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
-    Broker Config Output Remove    central    centreon-broker-master-rrd    host
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
+    Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Ctn Change Broker Tcp Output To Grpc    central
     Repeat Keyword    5 times    Start Stop Instance    1s
 

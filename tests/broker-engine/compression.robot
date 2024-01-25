@@ -25,10 +25,10 @@ BECC1
             Log To Console    Compression set to ${comp1} on central and to ${comp2} on module
             Ctn Config Broker    central
             Ctn Config Broker    module
-            Broker Config Input Set    central    central-broker-master-input    compression    ${comp1}
-            Broker Config Output Set    module0    central-module-master-output    compression    ${comp2}
-            Broker Config Log    central    bbdo    info
-            Broker Config Log    module0    bbdo    info
+            Ctn Broker Config Input Set    central    central-broker-master-input    compression    ${comp1}
+            Ctn Broker Config Output Set    module0    central-module-master-output    compression    ${comp2}
+            Ctn Broker Config Log    central    bbdo    info
+            Ctn Broker Config Log    module0    bbdo    info
             ${start}    Get Current Date
             Ctn Start Broker
             Ctn Start Engine
