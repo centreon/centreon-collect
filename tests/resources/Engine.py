@@ -374,7 +374,7 @@ define command {
         ff.close()
 
     @staticmethod
-    def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+    def create_escalations(poller: int, name: int, SG: str, contactgroup: str):
         config_file = f"{CONF_DIR}/config{poller}/escalations.cfg"
         with open(config_file, "a+") as ff:
             content = """define serviceescalation {{
@@ -388,7 +388,7 @@ define command {
             ff.write(content)
 
     @staticmethod
-    def create_template_file(poller: int, typ: str, what: str, ids):
+    def create_template(poller: int, typ: str, what: str, ids):
         config_file = "{}/config{}/{}Templates.cfg".format(
             CONF_DIR, poller, typ)
         ff = open(config_file, "w+")
@@ -916,7 +916,7 @@ def ctn_set_value_in_engine_escalations_conf(idx: int, desc: str, key: str, valu
         ff.writelines(lines)
 
 
-def engine_config_remove_service_host(idx: int, host: str):
+def ctn_engine_config_remove_service_host(idx: int, host: str):
     filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
     f = open(filename, "r")
     lines = f.readlines()
@@ -1671,15 +1671,15 @@ def create_severities_file(poller: int, nb: int, offset: int = 1):
 
 
 def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
-    engine.ctn_create_escalations_file(poller, name, SG, contactgroup)
+    engine.create_escalations(poller, name, SG, contactgroup)
 
 
 def create_template_file(poller: int, typ: str, what: str, ids: list):
-    engine.ctn_create_template_file(poller, typ, what, ids)
+    engine.create_template(poller, typ, what, ids)
 
 
 def create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
-    engine.ctn_create_tags(poller, nb, offset, tag_type)
+    engine.create_tags(poller, nb, offset, tag_type)
 
 
 def engine_config_remove_tag(poller: int, tag_id: int):
