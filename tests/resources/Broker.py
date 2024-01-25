@@ -1594,7 +1594,7 @@ def ctn_remove_graphs(port, indexes, metrics, timeout=10):
                 logger.console("gRPC server not ready")
 
 
-def broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout=TIMEOUT):
+def ctn_broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
@@ -1677,7 +1677,7 @@ def ctn_remove_graphs_from_db(indexes, metrics, timeout=10):
 # @param port The port to use with gRPC.
 # @param indexes The list of indexes corresponding to metrics to rebuild.
 #
-def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
+def ctn_rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
     logger.console("start gRPC server")
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1700,7 +1700,7 @@ def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
 #
 # @param indexes The list of indexes corresponding to metrics to rebuild.
 #
-def rebuild_rrd_graphs_from_db(indexes):
+def ctn_rebuild_rrd_graphs_from_db(indexes):
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -1727,7 +1727,7 @@ def rebuild_rrd_graphs_from_db(indexes):
 # @param float The value to compare with.
 #
 # @return A boolean.
-def compare_rrd_average_value(metric, value: float):
+def ctn_compare_rrd_average_value(metric, value: float):
     res = getoutput("rrdtool graph dummy --start=end-180d --end=now"
                     " DEF:x=" + VAR_ROOT +
                     "/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
@@ -1745,7 +1745,7 @@ def compare_rrd_average_value(metric, value: float):
         return True
 
 
-def compare_rrd_status_average_value(index_id, value: int):
+def ctn_compare_rrd_status_average_value(index_id, value: int):
     """Compare the average value for an RRD metric on the last 30 days with a value.
     index_id is the index of the status
     average value expected is 100 if value=0, 75 if value=1, 0 if value=2
@@ -1764,7 +1764,7 @@ def compare_rrd_status_average_value(index_id, value: int):
         return True
 
 
-def compare_rrd_average_value_with_grpc(metric, key, value: float):
+def ctn_compare_rrd_average_value_with_grpc(metric, key, value: float):
     """! Compare the average value for an RRD metric.
     @param metric The metric id
     @param key The key to search in the rrd info

@@ -136,7 +136,7 @@ BRRDRBDB1
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
     FOR    ${m}    IN    @{metrics}
         ${value}    Evaluate    ${m} / 2
-        ${result}    Compare RRD Average Value    ${m}    ${value}
+        ${result}    Ctn Compare RRD Average Value    ${m}    ${value}
         Should Be True
         ...    ${result}
         ...    Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
@@ -183,7 +183,7 @@ BRRDRBUDB1
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
     FOR    ${m}    IN    @{metrics}
         ${value}    Evaluate    ${m} / 2
-        ${result}    Compare RRD Average Value    ${m}    ${value}
+        ${result}    Ctn Compare RRD Average Value    ${m}    ${value}
         Should Be True
         ...    ${result}
         ...    Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.

@@ -321,7 +321,7 @@ BRRDRM1
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
     FOR    ${m}    IN    @{metrics}
         ${value}    Evaluate    ${m} / 2
-        ${result}    Compare RRD Average Value    ${m}    ${value}
+        ${result}    Ctn Compare RRD Average Value    ${m}    ${value}
         Should Be True
         ...    ${result}
         ...    Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
@@ -329,7 +329,7 @@ BRRDRM1
 
     FOR    ${index_id}    IN    @{index}
         ${value}    Evaluate    ${index_id} %3
-        ${result}    Compare RRD Status Average Value    ${index_id}    ${value}
+        ${result}    Ctn Compare RRD Status Average Value    ${index_id}    ${value}
         Should Be True
         ...    ${result}
         ...    index_id=${index_id} Data before RRD rebuild contain index_id % 3. The expected average is 100 if modulo==0, 75 if modulo==1, 0 if modulo==2 .
@@ -380,7 +380,7 @@ BRRDRMU1
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
     FOR    ${m}    IN    @{metrics}
         ${value}    Evaluate    ${m} / 2
-        ${result}    Compare RRD Average Value    ${m}    ${value}
+        ${result}    Ctn Compare RRD Average Value    ${m}    ${value}
         Should Be True
         ...    ${result}
         ...    Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
@@ -388,7 +388,7 @@ BRRDRMU1
 
     FOR    ${index_id}    IN    @{index}
         ${value}    Evaluate    ${index_id} %3
-        ${result}    Compare RRD Status Average Value    ${index_id}    ${value}
+        ${result}    Ctn Compare RRD Status Average Value    ${index_id}    ${value}
         Should Be True
         ...    ${result}
         ...    Data before RRD rebuild contain index_id % 3. The expected average is 100 if modulo==0, 75 if modulo==1, 0 if modulo==2 .
