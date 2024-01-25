@@ -38,7 +38,7 @@ BEACK1
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
-    Acknowledge Service Problem    host_1    service_1
+    Ctn Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
@@ -79,7 +79,7 @@ BEACK2
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
-    Acknowledge Service Problem    host_1    service_1
+    Ctn Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    600    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
@@ -120,11 +120,11 @@ BEACK3
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
-    Acknowledge Service Problem    host_1    service_1
+    Ctn Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
-    Remove Service Acknowledgement    host_1    service_1
+    Ctn Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
     ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
@@ -159,11 +159,11 @@ BEACK4
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
-    Acknowledge Service Problem    host_1    service_1
+    Ctn Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    600    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
-    Remove Service Acknowledgement    host_1    service_1
+    Ctn Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
     ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
@@ -200,7 +200,7 @@ BEACK5
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
-    Acknowledge Service Problem    host_1    service_1    STICKY
+    Ctn Acknowledge Service Problem    host_1    service_1    STICKY
     ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
@@ -213,7 +213,7 @@ BEACK5
     ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    10
     Should Be True    ${result}==${False}    Acknowledgement ${ack_id} should not be deleted.
 
-    Remove Service Acknowledgement    host_1    service_1
+    Ctn Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
     ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
@@ -248,7 +248,7 @@ BEACK6
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
-    Acknowledge Service Problem    host_1    service_1    STICKY
+    Ctn Acknowledge Service Problem    host_1    service_1    STICKY
     ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    600    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
@@ -261,7 +261,7 @@ BEACK6
     ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    10
     Should Be True    ${result}==${False}    Acknowledgement ${ack_id} should not be deleted.
 
-    Remove Service Acknowledgement    host_1    service_1
+    Ctn Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
     ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH

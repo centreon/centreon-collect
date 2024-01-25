@@ -32,13 +32,13 @@ SDER
 
     Ctn Stop Engine
 
-    Modify Retention Dat    0    host_1    service_1    current_attempt    280
+    Ctn Modify Retention Dat    0    host_1    service_1    current_attempt    280
     # modified attributes is a bit field. We must set the bit corresponding to MAX_ATTEMPTS to be allowed to change max_attempts. Otherwise it will be set to 3.
-    Modify Retention Dat    0    host_1    service_1    modified_attributes    65535
-    Modify Retention Dat    0    host_1    service_1    max_attempts    280
+    Ctn Modify Retention Dat    0    host_1    service_1    modified_attributes    65535
+    Ctn Modify Retention Dat    0    host_1    service_1    max_attempts    280
 
-    Modify Retention Dat    0    host_1    service_1    current_state    2
-    Modify Retention Dat    0    host_1    service_1    state_type    1
+    Ctn Modify Retention Dat    0    host_1    service_1    current_state    2
+    Ctn Modify Retention Dat    0    host_1    service_1    state_type    1
     Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}

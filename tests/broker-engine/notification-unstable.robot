@@ -190,7 +190,7 @@ not4
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     # Acknowledge the service with critical status
-    Acknowledge Service Problem    host_1    service_1    STICKY
+    Ctn Acknowledge Service Problem    host_1    service_1    STICKY
 
     # Let's wait for the external command check start
     ${content}    Create List    ACKNOWLEDGE_SVC_PROBLEM;host_1;service_1;2;0;0;admin;Service (host_1,service_1) acknowledged

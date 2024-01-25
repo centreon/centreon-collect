@@ -196,7 +196,7 @@ BE_NOTIF_OVERFLOW
     ...    ${result}
     ...    An Initial host state on host_16 should be raised before we can start our external commands.
 
-    Set Svc Notification Number    host_16    service_314    40000
+    Ctn Set Svc Notification Number    host_16    service_314    40000
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
     ${result}    Check Service Status With Timeout    host_16    service_314    2    30
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected

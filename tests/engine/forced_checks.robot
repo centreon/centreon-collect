@@ -14,7 +14,7 @@ EFHC1
     [Tags]    engine    external_cmd    log-v2
     Ctn Config Engine    ${1}
     # We force the check command of host_1 to return 2 as status.
-    Config Host Command Status    ${0}    checkh1    2
+    Ctn Config Host Command Status    ${0}    checkh1    2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -63,7 +63,7 @@ EFHC2
     Ctn Config Engine    ${1}
 
     # We force the check command of host_1 to return 2 as status.
-    Config Host Command Status    ${0}    checkh1    2
+    Ctn Config Host Command Status    ${0}    checkh1    2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -106,7 +106,7 @@ EFHCU1
     Ctn Config Engine    ${1}
 
     # We force the check command of host_1 to return 2 as status.
-    Config Host Command Status    ${0}    checkh1    2
+    Ctn Config Host Command Status    ${0}    checkh1    2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -156,7 +156,7 @@ EFHCU2
     Ctn Config Engine    ${1}
 
     # We force the check command of host_1 to return 2 as status.
-    Config Host Command Status    ${0}    checkh1    2
+    Ctn Config Host Command Status    ${0}    checkh1    2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}

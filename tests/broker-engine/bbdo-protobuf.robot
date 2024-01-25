@@ -180,7 +180,7 @@ BEPB_HOST_DEPENDENCY
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Ctn Config Engine Add Cfg File    0    dependencies.cfg
-    Add Host Dependency    0    host_1    host_2
+    Ctn Add Host Dependency    0    host_1    host_2
     Config Broker    central
     Config Broker    module
     Ctn Config BBDO3    ${1}
@@ -221,7 +221,7 @@ BEPB_SERVICE_DEPENDENCY
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Ctn Config Engine Add Cfg File    0    dependencies.cfg
-    Add Service Dependency    0    host_1    host_2    service_1    service_21
+    Ctn Add Service Dependency    0    host_1    host_2    service_1    service_21
     Config Broker    central
     Config Broker    module
     Ctn Config BBDO3    ${1}

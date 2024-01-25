@@ -1979,7 +1979,7 @@ def ctn_process_service_check_result(hst: str, svc: str, state: int, output: str
 
 
 @external_command
-def acknowledge_service_problem(hst, service, typ='NORMAL'):
+def ctn_acknowledge_service_problem(hst, service, typ='NORMAL'):
     if typ == 'NORMAL':
         logger.console('acknowledgement is normal')
         sticky = 1
@@ -1994,61 +1994,61 @@ def acknowledge_service_problem(hst, service, typ='NORMAL'):
 
 
 @external_command
-def remove_service_acknowledgement(hst, service):
+def ctn_remove_service_acknowledgement(hst, service):
     return f"REMOVE_SVC_ACKNOWLEDGEMENT;{hst};{service}\n"
 
 
 @external_command
-def send_custom_host_notification(hst, notification_option, author, comment):
+def ctn_send_custom_host_notification(hst, notification_option, author, comment):
     return f"SEND_CUSTOM_HOST_NOTIFICATION;{hst};{notification_option};{author};{comment}\n"
 
 
 @external_command
-def add_svc_comment(host_name, svc_description, persistent, user_name, comment):
+def ctn_add_svc_comment(host_name, svc_description, persistent, user_name, comment):
     return f"ADD_SVC_COMMENT;{host_name};{svc_description};{persistent};{user_name};{comment}\n"
 
 
 @external_command
-def add_host_comment(host_name, persistent, user_name, comment):
+def ctn_add_host_comment(host_name, persistent, user_name, comment):
     return f"ADD_HOST_COMMENT;{host_name};{persistent};{user_name};{comment}\n"
 
 
 @external_command
-def del_host_comment(comment_id):
+def ctn_del_host_comment(comment_id):
     return f"DEL_HOST_COMMENT;{comment_id}\n"
 
 
 @external_command
-def change_host_check_command(hst: str, Check_Command: str):
+def ctn_change_host_check_command(hst: str, Check_Command: str):
     return f"CHANGE_HOST_CHECK_COMMAND;{hst};{Check_Command}\n"
 
 
 @external_command
-def change_custom_host_var_command(hst: str, var_name: str, var_value):
+def ctn_change_custom_host_var_command(hst: str, var_name: str, var_value):
     return "CHANGE_CUSTOM_HOST_VAR;{};{};{}\n".format(hst, var_name, var_value)
 
 
 @external_command
-def change_custom_svc_var_command(hst: str, svc: str, var_name: str, var_value):
+def ctn_change_custom_svc_var_command(hst: str, svc: str, var_name: str, var_value):
     return "CHANGE_CUSTOM_SVC_VAR;{};{};{};{}\n".format(hst, svc, var_name, var_value)
 
 
 @external_command
-def change_global_host_event_handler(var_value: str):
+def ctn_change_global_host_event_handler(var_value: str):
     return "CHANGE_GLOBAL_HOST_EVENT_HANDLER;{}\n".format(var_value)
 
 
 @external_command
-def change_global_svc_event_handler(var_value: str):
+def ctn_change_global_svc_event_handler(var_value: str):
     return "CHANGE_GLOBAL_SVC_EVENT_HANDLER;{}\n".format(var_value)
 
 
 @external_command
-def set_svc_notification_number(host_name: string, svc_description: string, value):
+def ctn_set_svc_notification_number(host_name: string, svc_description: string, value):
     return "SET_SVC_NOTIFICATION_NUMBER;{};{};{}\n".format(host_name, svc_description, value)
 
 
-def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
+def ctn_create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
     f = open(path, "w")
     f.write("""[
     {{
@@ -2075,7 +2075,7 @@ def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, m
     f.close()
 
 
-def create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int, metric_name: string, sensitivity: float, values: array):
+def ctn_create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int, metric_name: string, sensitivity: float, values: array):
     f = open(path, "w")
     f.write("""[
     {{
@@ -2104,11 +2104,11 @@ def create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int
     f.close()
 
 
-def grep_retention(poller: int, pattern: str):
+def ctn_grep_retention(poller: int, pattern: str):
     return Common.grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
 
 
-def modify_retention_dat(poller, host, service, key, value):
+def ctn_modify_retention_dat(poller, host, service, key, value):
     if host != "" and host != "":
         # We want a service
         ff = open(
@@ -2153,7 +2153,7 @@ def modify_retention_dat(poller, host, service, key, value):
         ff.close()
 
 
-def modify_retention_dat_host(poller, host, key, value):
+def ctn_modify_retention_dat_host(poller, host, key, value):
     if host != "" and host != "":
         # We want a host
         ff = open(
@@ -2198,7 +2198,7 @@ def modify_retention_dat_host(poller, host, key, value):
 #
 # @return process__stat__pb2.pb_process_stat
 #
-def get_engine_process_stat(port, timeout=10):
+def ctn_get_engine_process_stat(port, timeout=10):
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
@@ -2220,7 +2220,7 @@ def get_engine_process_stat(port, timeout=10):
 # @param id field of the protobuf Bench message
 # @param port of the grpc server
 #
-def send_bench(id: int, port: int):
+def ctn_send_bench(id: int, port: int):
     ts = Timestamp()
     ts.GetCurrentTime()
     with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
@@ -2228,7 +2228,7 @@ def send_bench(id: int, port: int):
         stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))
 
 
-def config_host_command_status(idx: int, cmd_name: str, status: int):
+def ctn_config_host_command_status(idx: int, cmd_name: str, status: int):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()

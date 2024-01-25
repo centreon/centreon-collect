@@ -1164,7 +1164,7 @@ BEATOI11
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-    SEND CUSTOM HOST NOTIFICATION    host_1    1    admin    foobar
+    Ctn Send Custom Host Notification    host_1    1    admin    foobar
     ${content}    Create List    EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;foobar
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
@@ -1186,7 +1186,7 @@ BEATOI12
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-    SEND CUSTOM HOST NOTIFICATION    host_1    8    admin    foobar
+    Ctn Send Custom Host Notification    host_1    8    admin    foobar
     ${content}    Create List
     ...    Error: could not send custom host notification: '8' must be an integer between 0 and 7
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1232,13 +1232,13 @@ BEATOI21
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-    ADD HOST COMMENT    host_1    1    user    comment
+    Ctn Add Host Comment    host_1    1    user    comment
     ${content}    Create List    ADD_HOST_COMMENT
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    the comment with id:1 was not added.
     ${com_id}    Find Internal Id    ${start}    True    30
     Should Be True    ${com_id}>0    Comment id should be a positive integer.
-    DEL HOST COMMENT    ${com_id}
+    Ctn Del Host Comment    ${com_id}
     ${result}    Find Internal Id    ${start}    False    30
     Should Be True    ${result}    the comment with id:${com_id} was not deleted.
     Ctn Stop Engine
@@ -1260,12 +1260,12 @@ BEATOI22
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-    ADD HOST COMMENT    host_1    1    user    comment
+    Ctn Add Host Comment    host_1    1    user    comment
     ${content}    Create List    ADD_HOST_COMMENT
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    the comment with id:1 was not added.
     ${com_id}    Find Internal Id    ${start}    True    30
-    DEL HOST COMMENT    -1
+    Ctn Del Host Comment    -1
     ${content}    Create List    Error: could not delete comment : comment_id
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    comment_id must be an unsigned integer.
@@ -1313,7 +1313,7 @@ BECUSTOMHOSTVAR
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}    Get Current Date    result_format=epoch
-    CHANGE CUSTOM HOST VAR COMMAND    host_1    SNMPVERSION    789456
+    Ctn Change Custom Host Var Command    host_1    SNMPVERSION    789456
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1347,7 +1347,7 @@ BECUSTOMSVCVAR
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}    Get Current Date    result_format=epoch
-    CHANGE CUSTOM SVC VAR COMMAND    host_1    service_1    CRITICAL    456123
+    Ctn Change Custom Svc Var Command    host_1    service_1    CRITICAL    456123
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
