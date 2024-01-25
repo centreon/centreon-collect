@@ -1236,10 +1236,10 @@ BEATOI21
     ${content}    Create List    ADD_HOST_COMMENT
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    the comment with id:1 was not added.
-    ${com_id}    Find Internal Id    ${start}    True    30
+    ${com_id}    Ctn Find Internal Id    ${start}    True    30
     Should Be True    ${com_id}>0    Comment id should be a positive integer.
     Ctn Del Host Comment    ${com_id}
-    ${result}    Find Internal Id    ${start}    False    30
+    ${result}    Ctn Find Internal Id    ${start}    False    30
     Should Be True    ${result}    the comment with id:${com_id} was not deleted.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -1264,12 +1264,12 @@ BEATOI22
     ${content}    Create List    ADD_HOST_COMMENT
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    the comment with id:1 was not added.
-    ${com_id}    Find Internal Id    ${start}    True    30
+    ${com_id}    Ctn Find Internal Id    ${start}    True    30
     Ctn Del Host Comment    -1
     ${content}    Create List    Error: could not delete comment : comment_id
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    comment_id must be an unsigned integer.
-    ${result}    Find Internal Id    ${start}    True    30
+    ${result}    Ctn Find Internal Id    ${start}    True    30
     Should Be True    ${result}    comment with id:-1 was deleted.
     Ctn Stop Engine
     Ctn Kindly Stop Broker

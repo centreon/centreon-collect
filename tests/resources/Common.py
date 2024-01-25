@@ -1301,7 +1301,7 @@ def ctn_check_host_status(host: str, value: int, t: int, in_resources: bool, tim
     return False
 
 
-def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
+def ctn_find_internal_id(date, exists=True, timeout: int = TIMEOUT):
     my_date = datetime.timestamp(parser.parse(date))
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1330,7 +1330,7 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
     return False
 
 
-def create_bad_queue(filename: str):
+def ctn_create_bad_queue(filename: str):
     f = open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", 'wb')
     buffer = bytearray(10000)
     buffer[0] = 0
@@ -1351,7 +1351,7 @@ def create_bad_queue(filename: str):
     f.close()
 
 
-def check_types_in_resources(lst: list):
+def ctn_check_types_in_resources(lst: list):
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -1389,7 +1389,7 @@ def grep(file_path: str, pattern: str):
     return ""
 
 
-def get_collect_version():
+def ctn_get_collect_version():
     f = open("../CMakeLists.txt", "r")
     lines = f.readlines()
     f.close()
@@ -1411,7 +1411,7 @@ def get_collect_version():
     return f"{maj}.{mini}.{patch}"
 
 
-def wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
+def ctn_wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
     """! wait until file is modified
     @param path  path of the file
     @param date  minimal of modified time
@@ -1436,7 +1436,7 @@ def wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
     return False
 
 
-def set_user_id_from_name(user_name: str):
+def ctn_set_user_id_from_name(user_name: str):
     """! modify user id
     @param user_name  user name as centreon-engine
     """
@@ -1444,9 +1444,9 @@ def set_user_id_from_name(user_name: str):
     os.setuid(user_id)
 
 
-def get_uid():
+def ctn_get_uid():
     return os.getuid()
 
 
-def set_uid(user_id: int):
+def ctn_set_uid(user_id: int):
     os.setuid(user_id)

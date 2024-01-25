@@ -408,7 +408,7 @@ BESSBQ1
     Ctn Broker Config Log    central    core    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear All Retention Files
-    Create Bad Queue    central-broker-master.queue.central-broker-master-sql
+    Ctn Create Bad Queue    central-broker-master.queue.central-broker-master-sql
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
