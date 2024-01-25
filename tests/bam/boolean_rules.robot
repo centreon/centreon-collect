@@ -52,7 +52,7 @@ BABOO
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # 393 is set to ok.
-    Process Service Check Result    host_16    service_303    0    output ok for service_303
+    Ctn Process Service Check Result    host_16    service_303    0    output ok for service_303
 
     FOR    ${i}    IN RANGE    10
         Log To Console    @@@@@@@@@@@@@@ Step ${i} @@@@@@@@@@@@@@
@@ -68,7 +68,7 @@ BABOO
         Ctn Dump Ba On Error    ${result}    ${id_boolean_ba__sid[0]}
         Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-        Process Service Check Result    host_16    service_302    0    output ok for service_302
+        Ctn Process Service Check Result    host_16    service_302    0    output ok for service_302
         ${result}    Check Ba Status With Timeout    ba-worst    0    30
         Ctn Dump Ba On Error    ${result}    ${id_ba_worst__sid[0]}
         Should Be True    ${result}    The 'ba-worst' BA is not OK as expected

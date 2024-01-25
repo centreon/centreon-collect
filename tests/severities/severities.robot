@@ -132,7 +132,7 @@ BEUSEV3
     ${result}    Check Service Severity With Timeout    1    1    11    60
     Should Be True    ${result}    Service (1, 1) should have severity_id=11
 
-    Remove Severities From Services    ${0}
+    Ctn Remove Severities From Services    ${0}
     Ctn Add Severity To Services    0    11    [2, 4]
     Ctn Add Severity To Services    0    7    [3]
     Ctn Reload Engine
@@ -193,7 +193,7 @@ BEUSEV4
     ${result}    Check Service Severity With Timeout    26    503    17    60
     Should Be True    ${result}    First step: Service (26, 503) should have severity_id=17
 
-    Remove Severities From Services    ${0}
+    Ctn Remove Severities From Services    ${0}
     Ctn Create Severities File    ${0}    ${18}
     Ctn Create Severities File    ${1}    ${18}
     Ctn Add Severity To Services    1    17    [503]

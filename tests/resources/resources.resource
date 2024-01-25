@@ -333,7 +333,7 @@ Ctn Process Service Result Hard
     [Arguments]    ${host}    ${svc}    ${state}    ${output}
     Repeat Keyword
     ...    3 times
-    ...    Process Service Check Result
+    ...    Ctn Process Service Check Result
     ...    ${host}
     ...    ${svc}
     ...    ${state}

@@ -36,7 +36,7 @@ not1
 
     ## Time to set the service to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
 
@@ -77,7 +77,7 @@ not2
     ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
 
@@ -91,7 +91,7 @@ not2
     ## Time to set the service to UP  hard
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    0    ok
+        Ctn Process Service Check Result    host_1    service_1    0    ok
         Sleep    1s
     END
 
@@ -138,7 +138,7 @@ not3
      ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    10s
     END
 
@@ -147,7 +147,7 @@ not3
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The downtime has not finished .
 
-    Process Service Check Result    host_1    service_1    2    critical
+    Ctn Process Service Check Result    host_1    service_1    2    critical
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -182,7 +182,7 @@ not4
 
     # Time to set the service to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
 
@@ -197,7 +197,7 @@ not4
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands() should be available.
 
-    Process Service Check Result    host_1    service_1    0    ok
+    Ctn Process Service Check Result    host_1    service_1    0    ok
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
@@ -245,9 +245,9 @@ not5
     ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
-        Process Service Check Result    host_2    service_2    2    critical
+        Ctn Process Service Check Result    host_2    service_2    2    critical
         Sleep    1s
     END
 
@@ -294,7 +294,7 @@ not6
 
     ## Time to set the service to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
 
@@ -315,7 +315,7 @@ not6
     ## Time to set the service to UP  hard
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    0    ok
+        Ctn Process Service Check Result    host_1    service_1    0    ok
         Sleep    1s
     END
 
@@ -587,7 +587,7 @@ not12
     ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
 
@@ -752,7 +752,7 @@ Config Escalations
 
 Service Check
     FOR   ${i}    IN RANGE    ${4}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
 
@@ -760,7 +760,7 @@ Service Check
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     FOR   ${i}    IN RANGE    ${4}
-        Process Service Check Result    host_2    service_2    2    critical
+        Ctn Process Service Check Result    host_2    service_2    2    critical
         Sleep    1s
     END
 

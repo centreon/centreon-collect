@@ -37,7 +37,7 @@ BENCH_${nb_check}STATUS
 
     ${broker_stat_before}    Get Broker Process Stat    51001
     ${engine_stat_before}    Get Engine Process Stat    50001
-    Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
+    Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
     Send Bench    1    50001
     ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
     ${broker_stat_after}    Get Broker Process Stat    51001
@@ -105,7 +105,7 @@ BENCH_${nb_check}STATUS_TRACES
 
     ${broker_stat_before}    Get Broker Process Stat    51001
     ${engine_stat_before}    Get Engine Process Stat    50001
-    Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
+    Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
     Send Bench    1    50001
     ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
     ${broker_stat_after}    Get Broker Process Stat    51001
@@ -183,7 +183,7 @@ BENCH_1000STATUS_100${suffixe}
         ${host_id}    Evaluate    ${poller_index} + 1
         FOR    ${serv_index}    IN RANGE    20
             ${serv_id}    Evaluate    1 + ${serv_index} + ${poller_index} * 20
-            Process Service Check Result
+            Ctn Process Service Check Result
             ...    host_${host_id}
             ...    service_${serv_id}
             ...    1

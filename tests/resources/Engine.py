@@ -1822,7 +1822,7 @@ def ctn_add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
     ff.close()
 
 
-def remove_severities_from_services(poller: int):
+def ctn_remove_severities_from_services(poller: int):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1833,7 +1833,7 @@ def remove_severities_from_services(poller: int):
     ff.close()
 
 
-def remove_severities_from_hosts(poller: int):
+def ctn_remove_severities_from_hosts(poller: int):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1853,7 +1853,7 @@ def remove_severities_from_hosts(poller: int):
 #
 
 
-def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
+def ctn_check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         cmd_executed = False
@@ -1900,7 +1900,7 @@ def ctn_add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
     ff.close()
 
 
-def remove_tags_from_services(poller: int, type: str):
+def ctn_remove_tags_from_services(poller: int, type: str):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1911,7 +1911,7 @@ def remove_tags_from_services(poller: int, type: str):
     ff.close()
 
 
-def remove_tags_from_hosts(poller: int, type: str):
+def ctn_remove_tags_from_hosts(poller: int, type: str):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1950,7 +1950,7 @@ def ctn_config_engine_remove_cfg_file(poller: int, fic: str):
     ff.close()
 
 
-def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
+def ctn_process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
     now = int(time.time())
     pd = [output + " | "]
     for m in range(metrics):
@@ -1958,9 +1958,9 @@ def process_service_check_result_with_metrics(hst: str, svc: str, state: int, ou
         pd.append(f"{metric_name}{m}={v}")
         logger.trace(f"{metric_name}{m}={v}")
     full_output = " ".join(pd)
-    process_service_check_result(hst, svc, state, full_output, config)
+    ctn_process_service_check_result(hst, svc, state, full_output, config)
 
-def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
+def ctn_process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
     if use_grpc > 0:
         port = 50001 + int(config[6:])
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:

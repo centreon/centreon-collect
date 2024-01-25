@@ -314,10 +314,10 @@ BEUTAG7
     ${result}    Check Resources Tags With Timeout    26    502    servicegroup    [3,5]    60
     Should Be True    ${result}    First step: Service (26, 502) should have servicegroup tags 3 and 5.
 
-    Remove Tags From Services    ${0}    group_tags
-    Remove Tags From Services    ${0}    category_tags
-    Remove Tags From Services    ${1}    group_tags
-    Remove Tags From Services    ${1}    category_tags
+    Ctn Remove Tags From Services    ${0}    group_tags
+    Ctn Remove Tags From Services    ${0}    category_tags
+    Ctn Remove Tags From Services    ${1}    group_tags
+    Ctn Remove Tags From Services    ${1}    category_tags
     Ctn Create Tags File    ${0}    ${18}
     Ctn Create Tags File    ${1}    ${18}
     Ctn Add Tags To Services    ${1}    group_tags    3,5    [505, 506, 507, 508]
@@ -496,10 +496,10 @@ BEUTAG10
     ${result}    Check Resources Tags With Timeout    26    503    servicecategory    [2,4]    60
     Should Be True    ${result}    First step: Service (26, 503) should have servicecategory tags 2 and 4.
 
-    Remove Tags From Services    ${0}    group_tags
-    Remove Tags From Services    ${0}    category_tags
-    Remove Tags From Services    ${1}    group_tags
-    Remove Tags From Services    ${1}    category_tags
+    Ctn Remove Tags From Services    ${0}    group_tags
+    Ctn Remove Tags From Services    ${0}    category_tags
+    Ctn Remove Tags From Services    ${1}    group_tags
+    Ctn Remove Tags From Services    ${1}    category_tags
     Ctn Create Tags File    ${0}    ${20}
     Ctn Create Tags File    ${1}    ${20}
     Ctn Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3]
@@ -562,10 +562,10 @@ BEUTAG11
     ${result}    Check Resources Tags With Timeout    26    503    servicecategory    [2,4]    60
     Should Be True    ${result}    First step: Service (26, 503) should have servicecategory tags 2 and 4.
 
-    Remove Tags From Services    ${0}    group_tags
-    Remove Tags From Services    ${0}    category_tags
-    Remove Tags From Services    ${1}    group_tags
-    Remove Tags From Services    ${1}    category_tags
+    Ctn Remove Tags From Services    ${0}    group_tags
+    Ctn Remove Tags From Services    ${0}    category_tags
+    Ctn Remove Tags From Services    ${1}    group_tags
+    Ctn Remove Tags From Services    ${1}    category_tags
     Ctn Create Tags File    ${0}    ${18}
     Ctn Create Tags File    ${1}    ${18}
     Ctn Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
@@ -622,8 +622,8 @@ BEUTAG12
     ${result}    Check Resources Tags With Timeout    0    3    hostcategory    [2, 3]    60
     Should Be True    ${result}    Host 3 should have hostcategory tags 2 and 3
 
-    Remove Tags From Hosts    ${0}    group_tags
-    Remove Tags From Hosts    ${0}    category_tags
+    Ctn Remove Tags From Hosts    ${0}    group_tags
+    Ctn Remove Tags From Hosts    ${0}    category_tags
     Ctn Create Tags File    ${0}    ${5}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
 

@@ -24,7 +24,7 @@ ANO_NOFILE
     Clear Db    services
     Ctn Start Broker    True
     Ctn Start Engine
-    Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
+    Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Ctn Stop Broker    True
     Ctn Stop Engine
@@ -44,7 +44,7 @@ ANO_TOO_OLD_FILE
     Clear Db    services
     Ctn Start Broker    True
     Ctn Start Engine
-    Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
+    Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Ctn Stop Broker    True
     Ctn Stop Engine
@@ -64,7 +64,7 @@ ANO_OUT_LOWER_THAN_LIMIT
     Clear Db    services
     Ctn Start Broker    True
     Ctn Start Engine
-    Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
+    Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Ctn Stop Broker    True
     Ctn Stop Engine
@@ -84,7 +84,7 @@ ANO_OUT_UPPER_THAN_LIMIT
     Clear Db    services
     Ctn Start Broker    True
     Ctn Start Engine
-    Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
+    Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Ctn Stop Broker    True
     Ctn Stop Engine
@@ -176,7 +176,7 @@ AOUTLU1
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
+    Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Ctn Stop Engine
     Ctn Kindly Stop Broker

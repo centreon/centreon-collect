@@ -268,7 +268,7 @@ EMACROS_NOTIF
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     FOR    ${i}    IN RANGE    3
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
     END
 
     Wait Until Created    /tmp/notif_toto.txt    30s

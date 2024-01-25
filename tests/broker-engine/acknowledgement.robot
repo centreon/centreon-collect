@@ -30,10 +30,10 @@ BEACK1
     ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
 
     # Time to set the service to CRITICAL HARD.
-    Process Service Check Result    host_1    service_1    2    (1;1) is critical
+    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
-    Repeat Keyword    2 times    Process Service Check Result    host_1    service_1    2    (1;1) is critical
+    Repeat Keyword    2 times    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
@@ -71,10 +71,10 @@ BEACK2
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # Time to set the service to CRITICAL HARD.
-    Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
+    Ctn Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
-    Repeat Keyword    2 times    Process Service Check Result    host_1    service_1    2    (1;1) is critical
+    Repeat Keyword    2 times    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
 
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
@@ -112,10 +112,10 @@ BEACK3
     ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
 
     # Time to set the service to CRITICAL HARD.
-    Process Service Check Result    host_1    service_1    2    (1;1) is critical
+    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
-    Repeat Keyword    2 times    Process Service Check Result    host_1    service_1    2    (1;1) is critical
+    Repeat Keyword    2 times    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
@@ -151,10 +151,10 @@ BEACK4
     ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
 
     # Time to set the service to CRITICAL HARD.
-    Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
+    Ctn Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
-    Repeat Keyword    2 times    Process Service Check Result    host_1    service_1    2    (1;1) is critical
+    Repeat Keyword    2 times    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
 
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
@@ -192,10 +192,10 @@ BEACK5
     ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
 
     # Time to set the service to CRITICAL HARD.
-    Process Service Check Result    host_1    service_1    2    (1;1) is critical
+    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
-    Repeat Keyword    2 times    Process Service Check Result    host_1    service_1    2    (1;1) is critical
+    Repeat Keyword    2 times    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
@@ -240,10 +240,10 @@ BEACK6
     ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
 
     # Time to set the service to CRITICAL HARD.
-    Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
+    Ctn Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
-    Repeat Keyword    2 times    Process Service Check Result    host_1    service_1    2    (1;1) is critical
+    Repeat Keyword    2 times    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
 
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD

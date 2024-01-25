@@ -79,7 +79,7 @@ Service_increased_huge_check_interval
     Should Be True    ${result}    "host_1 init not found in log"
     # End Checkers
 
-    Process Service Check Result With Metrics    host_1    service_1    1    warning0    1
+    Ctn Process Service Check Result With Metrics    host_1    service_1    1    warning0    1
 
     ${content}    Create List    new pb data for metric
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
@@ -122,7 +122,7 @@ Service_increased_huge_check_interval
 
     Sleep    5
 
-    Process Service Check Result With Metrics    host_1    service_${new_service_id}    1    warning0    1
+    Ctn Process Service Check Result With Metrics    host_1    service_${new_service_id}    1    warning0    1
 
     ${metrics}    Get Metrics For Service    ${new_service_id}
 

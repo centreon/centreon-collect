@@ -290,7 +290,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to OK
-    Process Service Check Result    host_16    service_314    0    output ok for 314
+    Ctn Process Service Check Result    host_16    service_314    0    output ok for 314
 
     ${result}    Check Service Status With Timeout    host_16    service_314    0    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not OK as expected
@@ -367,7 +367,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test has not the expected output
 
     # service_302 ok => ba ok
-    Process Service Check Result    host_16    service_302    0    output ok for service_302
+    Ctn Process Service Check Result    host_16    service_302    0    output ok for service_302
     ${result}    Check Service Status With Timeout    host_16    service_302    0    60    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    60
@@ -649,7 +649,7 @@ BA_BOOL_KPI
     ...    service_303
     ...    2
     ...    output critical for service_303
-    Process Service Check Result    host_16    service_314    0    output OK for service_314
+    Ctn Process Service Check Result    host_16    service_314    0    output OK for service_314
     ${result}    Check Service Status With Timeout    host_16    service_302    1    30    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not WARNING as expected
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
@@ -890,7 +890,7 @@ BEPB_BA_DURATION_EVENT
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
     Sleep    2s
-    Process Service Check Result    host_16    service_314    0    output ok for 314
+    Ctn Process Service Check Result    host_16    service_314    0    output ok for 314
     ${result}    Check Service Status With Timeout    host_16    service_314    0    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not OK as expected
     ${end_event}    Get Current Date    result_format=epoch
@@ -1024,10 +1024,10 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     # all serv ok => ba ok
-    Process Service Check Result    host_16    service_302    0    output ok for service_302
+    Ctn Process Service Check Result    host_16    service_302    0    output ok for service_302
     ${result}    Check Service Status With Timeout    host_16    service_302    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not OK as expected
-    Process Service Check Result    host_16    service_303    0    output ok for service_303
+    Ctn Process Service Check Result    host_16    service_303    0    output ok for service_303
     ${result}    Check Service Status With Timeout    host_16    service_303    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    30
@@ -1085,10 +1085,10 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     # all serv ok => ba ok
-    Process Service Check Result    host_16    service_302    0    output ok for service_302
+    Ctn Process Service Check Result    host_16    service_302    0    output ok for service_302
     ${result}    Check Service Status With Timeout    host_16    service_302    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not OK as expected
-    Process Service Check Result    host_16    service_303    0    output ok for service_303
+    Ctn Process Service Check Result    host_16    service_303    0    output ok for service_303
     ${result}    Check Service Status With Timeout    host_16    service_303    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    30

@@ -33,7 +33,7 @@ BEUHSEV1
     ${result}    Check Host Severity With Timeout    1    10    60
     Should Be True    ${result}    Host 1 should have severity_id=10
 
-    Remove Severities From Hosts    ${0}
+    Ctn Remove Severities From Hosts    ${0}
     Ctn Add Severity To Hosts    0    10    [2, 4]
     Ctn Add Severity To Hosts    0    8    [3]
     Ctn Reload Engine
@@ -95,7 +95,7 @@ BEUHSEV2
     ${result}    Check Host Severity With Timeout    28    16    60
     Should Be True    ${result}    First step: Host 28 should have severity_id=16
 
-    Remove Severities From Hosts    ${0}
+    Ctn Remove Severities From Hosts    ${0}
     Ctn Create Severities File    ${0}    ${18}
     Ctn Create Severities File    ${1}    ${18}
     Ctn Add Severity To Hosts    1    17    [28]
