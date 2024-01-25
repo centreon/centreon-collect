@@ -979,7 +979,7 @@ def show_downtimes():
         logger.console(f" >> {r}")
 
 
-def delete_service_downtime(hst: str, svc: str):
+def ctn_delete_service_downtime(hst: str, svc: str):
     now = int(time.time())
     while time.time() < now + TIMEOUT:
         connection = pymysql.connect(host=DB_HOST,
