@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2020-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +23,8 @@
 #include "broker.grpc.pb.h"
 #include "broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 /**
  * Here is a declaration of pb_rebuild_graphs which is a bbdo event we use
@@ -124,6 +123,6 @@ class broker_impl final : public Broker::Service {
  public:
   void set_broker_name(const std::string& s);
 };
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // CENTREON_BROKER_CORE_SRC_BROKERIMPL_HH_

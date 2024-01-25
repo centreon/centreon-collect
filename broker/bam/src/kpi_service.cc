@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2014-2015, 2021-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,8 +42,9 @@ static bool time_is_undefined(uint64_t t) {
 kpi_service::kpi_service(uint32_t kpi_id,
                          uint32_t ba_id,
                          uint32_t host_id,
-                         uint32_t service_id)
-    : kpi(kpi_id, ba_id),
+                         uint32_t service_id,
+                         const std::string& host_serv)
+    : kpi(kpi_id, ba_id, host_serv),
       _host_id(host_id),
       _service_id(service_id),
       _acknowledged(false),
@@ -718,8 +719,9 @@ void kpi_service::update_from(computable* child [[maybe_unused]],
  * @return A multiline strings with various informations.
  */
 std::string kpi_service::object_info() const {
-  return fmt::format("KPI {} with service ({}, {})\nstate: {}", get_id(),
-                     get_host_id(), get_service_id(), get_state_hard());
+  return fmt::format("KPI {} with service ({}, {})\nstate: {}\ndowntime: {}",
+                     get_id(), get_host_id(), get_service_id(),
+                     get_state_hard(), _downtimed);
 }
 
 /**

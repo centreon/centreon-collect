@@ -19,9 +19,8 @@
 #ifndef CCB_NEB_CALLBACKS_HH
 #define CCB_NEB_CALLBACKS_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 extern unsigned gl_mod_flags;
@@ -34,12 +33,15 @@ int callback_pb_comment(int callback_type, void* data);
 int callback_custom_variable(int callback_type, void* data);
 int callback_pb_custom_variable(int callback_type, void* data);
 int callback_dependency(int callback_type, void* data);
+int callback_pb_dependency(int callback_type, void* data);
 int callback_downtime(int callback_type, void* data);
 int callback_pb_downtime(int callback_type, void* data);
 int callback_external_command(int callback_type, void* data);
 int callback_pb_external_command(int callback_type, void* data);
 int callback_group(int callback_type, void* data);
 int callback_group_member(int callback_type, void* data);
+int callback_pb_group(int callback_type, void* data);
+int callback_pb_group_member(int callback_type, void* data);
 int callback_host(int callback_type, void* data);
 int callback_host_check(int callback_type, void* data);
 int callback_pb_host_check(int callback_type, void* data);
@@ -68,6 +70,6 @@ int callback_pb_bench(int callback_type, void* data);
 void unregister_callbacks();
 }  // namespace neb
 
-CCB_END()
+}
 
 #endif  // !CCB_NEB_CALLBACKS_HH

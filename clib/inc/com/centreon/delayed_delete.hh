@@ -20,9 +20,8 @@
 #define CC_DELAYED_DELETE_HH
 
 #include <cstddef>
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 /**
  *  @class delayed_delete delayed_delete.hh "com/centreon/delayed_delete.hh"
@@ -76,6 +75,6 @@ class delayed_delete : public task {
   }
 };
 
-CC_END()
+}
 
 #endif  // !CC_DELAYED_DELETE_HH

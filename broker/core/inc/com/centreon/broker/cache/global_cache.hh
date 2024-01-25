@@ -20,9 +20,8 @@
 #define CCB_GLOBAL_CACHE_HH
 
 #include "bbdo/tag.pb.h"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace cache {
 
@@ -48,11 +47,11 @@ using string =
 
 using host_serv_pair = std::pair<uint64_t /*host_id*/, uint64_t /*serv_id*/>;
 
-inline bool operator==(const string& left, const absl::string_view& right) {
+inline bool operator==(const string& left, const std::string_view& right) {
   return left.compare(0, right.length(), right.data()) == 0;
 }
 
-inline bool operator!=(const string& left, const absl::string_view& right) {
+inline bool operator!=(const string& left, const std::string_view& right) {
   return left.compare(0, right.length(), right.data()) != 0;
 }
 
@@ -80,7 +79,7 @@ struct metric_info {
 struct resource_info {
   resource_info(const char_allocator& char_alloc) : name(char_alloc) {}
 
-  resource_info(const absl::string_view& nam,
+  resource_info(const std::string_view& nam,
                 uint64_t res_id,
                 uint64_t sev_id,
 
@@ -114,7 +113,7 @@ struct resource_info {
  * When you insert data, you must catch interprocess::bad_allo and call
  * allocation_exception_handler to grow file outside any lock
  * @code {.c++}
- * void global_cache_data::add_service_group(uint64_t group,
+ * void global_cache_data::add_service_to_group(uint64_t group,
  *                                         uint64_t host,
  *                                         uint64_t service) {
  * try {
@@ -123,7 +122,7 @@ struct resource_info {
  * } catch (const interprocess::bad_alloc& e) {
  *   SPDLOG_LOGGER_DEBUG(log_v2::core(), "file full => grow");
  *   allocation_exception_handler();
- *   add_service_group(group, host, service);
+ *   add_service_to_group(group, host, service);
  * }
  *}
  * @endcode
@@ -150,7 +149,7 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   void allocation_exception_handler();
 
-  virtual void managed_map(bool create) {}
+  virtual void managed_map(bool create [[maybe_unused]]) {}
 
  public:
   using pointer = std::shared_ptr<global_cache>;
@@ -182,13 +181,13 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   virtual void set_metric_info(uint64_t metric_id,
                                uint64_t index_id,
-                               const absl::string_view& name,
-                               const absl::string_view& unit,
+                               const std::string_view& name,
+                               const std::string_view& unit,
                                double min,
                                double max) = 0;
 
   virtual void store_instance(uint64_t instance_id,
-                              const absl::string_view& instance_name) = 0;
+                              const std::string_view& instance_name) = 0;
 
   /**
    * @brief As we don't have access to the repeated TagInfo type, we fill
@@ -197,13 +196,13 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
    */
 
   virtual void store_host(uint64_t host_id,
-                          const absl::string_view& host_name,
+                          const std::string_view& host_name,
                           uint64_t resource_id,
                           uint64_t severity_id) = 0;
 
   virtual void store_service(uint64_t host_id,
                              uint64_t service_id,
-                             const absl::string_view& service_description,
+                             const std::string_view& service_description,
                              uint64_t resource_id,
                              uint64_t severity_id) = 0;
 
@@ -225,17 +224,22 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   virtual const string* get_instance_name(uint64_t instance_id) const = 0;
 
-  virtual void add_host_group(uint64_t group, uint64_t host) = 0;
-  virtual void remove_host_from_group(uint64_t group, uint64_t host) = 0;
-  virtual void remove_host_group(uint64_t group) = 0;
-
-  virtual void add_service_group(uint64_t group,
+  virtual void add_host_to_group(uint64_t group,
                                  uint64_t host,
-                                 uint64_t service) = 0;
+                                 uint64_t poller_id) = 0;
+  virtual void remove_host_from_group(uint64_t group, uint64_t host) = 0;
+  virtual void remove_host_group_members(uint64_t group,
+                                         uint64_t poller_id) = 0;
+
+  virtual void add_service_to_group(uint64_t group,
+                                    uint64_t host,
+                                    uint64_t service,
+                                    uint64_t poller_id) = 0;
   virtual void remove_service_from_group(uint64_t group,
                                          uint64_t host,
                                          uint64_t service) = 0;
-  virtual void remove_service_group(uint64_t group) = 0;
+  virtual void remove_service_group_members(uint64_t group,
+                                            uint64_t poller_id) = 0;
 
   virtual void append_service_group(uint64_t host,
                                     uint64_t service,
@@ -243,7 +247,7 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
   virtual void append_host_group(uint64_t host, std::ostream& request_body) = 0;
 
   virtual void add_tag(uint64_t tag_id,
-                       const absl::string_view& tag_name,
+                       const std::string_view& tag_name,
                        TagType tag_type,
                        uint64_t poller_id) = 0;
 
@@ -273,6 +277,6 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
 };  // namespace cache
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif

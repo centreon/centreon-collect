@@ -1,14 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine are configured in bbdo2 with sql/storage outputs. Then we change these outputs to unified_sql. The we change bbdo2 to bbdo3. And we make all the way in reverse order.
 
-Resource            ../resources/resources.robot
-Library             Process
-Library             OperatingSystem
-Library             DateTime
-Library             Collections
-Library             ../resources/Engine.py
-Library             ../resources/Broker.py
-Library             ../resources/Common.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
@@ -57,11 +50,7 @@ MIGRATION
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    30
     Should Be True    ${result}    No metric sent to rrd cbd by unified_sql for 30s
 
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    module1    bbdo_version    3.0.0
-    Broker Config Add Item    module2    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    3
     ${start}    Get Current Date
 
     Log To Console    Move to BBDO 3.0.0 with unified_sql

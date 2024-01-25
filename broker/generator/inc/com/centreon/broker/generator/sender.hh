@@ -20,9 +20,8 @@
 #define CCB_GENERATOR_SENDER_HH
 
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace generator {
 /**
@@ -46,6 +45,6 @@ class sender : public io::stream {
 };
 }  // namespace generator
 
-CCB_END()
+}
 
 #endif  // !CCB_GENERATOR_SENDER_HH

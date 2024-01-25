@@ -3,7 +3,7 @@
 
 #include "engine.grpc.pb.h"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class engine_impl final : public Engine::Service {
   grpc::Status GetVersion(grpc::ServerContext* context,
                           const ::google::protobuf::Empty* /*request*/,
@@ -262,5 +262,5 @@ class engine_impl final : public Engine::Service {
                          google::protobuf::Empty* response) override;
 };
 
-CCE_END()
+}
 #endif /* !CCE_ENGINERPC_ENGINE_IMPL_HH */

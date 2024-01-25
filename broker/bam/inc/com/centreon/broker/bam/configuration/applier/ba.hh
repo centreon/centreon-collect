@@ -24,10 +24,9 @@
 #include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/bam/service_book.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declarations.
 namespace neb {
@@ -80,6 +79,6 @@ class ba {
 }  // namespace configuration
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_CONFIGURATION_APPLIER_BA_HH

@@ -19,9 +19,7 @@
 #ifndef CCB_CEOF_CEOF_TOKEN_HH
 #define CCB_CEOF_CEOF_TOKEN_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace ceof {
 /**
@@ -56,6 +54,6 @@ class ceof_token {
 };
 }  // namespace ceof
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_CEOF_CEOF_TOKEN_HH

@@ -1,17 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker Mariadb access
 
-Resource            ../resources/resources.robot
-Library             Process
-Library             OperatingSystem
-Library             DateTime
-Library             ../resources/Broker.py
-Library             ../resources/Engine.py
-Library             ../resources/Common.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
+Test Teardown       Save Logs If failed
 
 
 *** Test Cases ***

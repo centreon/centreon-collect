@@ -1,15 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker RRD metric deletion from the legacy query made by the php with rrdcached.
 
-Resource            ../resources/resources.robot
-Library             DatabaseLibrary
-Library             Process
-Library             OperatingSystem
-Library             DateTime
-Library             Collections
-Library             ../resources/Engine.py
-Library             ../resources/Broker.py
-Library             ../resources/Common.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite With rrdcached
 Suite Teardown      Clean After Suite With rrdcached
@@ -166,9 +158,7 @@ BRRDCDRBUDB1
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
     Broker Config Flush Log    rrd    0
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     Create Metrics    3
 
     ${start}    Get Current Date    exclude_millis=True

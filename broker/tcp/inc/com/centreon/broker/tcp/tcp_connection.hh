@@ -18,9 +18,8 @@
 #ifndef CENTREON_BROKER_TCP_CONNECTION_HH
 #define CENTREON_BROKER_TCP_CONNECTION_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace tcp {
 
@@ -86,6 +85,6 @@ class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
 
 }  // namespace tcp
 
-CCB_END()
+}
 
 #endif /* !CENTREON_BROKER_TCP_CONNECTION_HH */

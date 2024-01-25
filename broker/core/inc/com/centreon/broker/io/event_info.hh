@@ -1,29 +1,27 @@
-/*
-** Copyright 2015 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2015 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_IO_EVENT_INFO_HH
 #define CCB_IO_EVENT_INFO_HH
 
 #include <cstddef>
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declaration.
 namespace mapping {
@@ -65,10 +63,8 @@ class event_info {
    *  @param[in] entries   Event property mapping.
    *  @param[in] table_v2  SQL table of event in version 2.x (if any).
    */
-  event_info(std::string const& name,
-             event_operations const* ops,
-             mapping::entry const* entries,
-             std::string const& table_v2)
+  event_info(std::string const& name, event_operations const* ops,
+             mapping::entry const* entries, std::string const& table_v2)
       : _mapping(entries), _name(name), _ops(ops), _table_v2(table_v2) {}
   /**
    *  Copy constructor.
@@ -89,6 +85,6 @@ class event_info {
 };
 }  // namespace io
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_IO_EVENT_INFO_HH

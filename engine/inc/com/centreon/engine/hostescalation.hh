@@ -22,17 +22,17 @@
 #include "com/centreon/engine/escalation.hh"
 
 /* Forward declaration. */
-CCE_BEGIN()
+namespace com::centreon::engine {
 class host;
 class hostescalation;
-CCE_END()
+}
 
 typedef std::unordered_multimap<
     std::string,
     std::shared_ptr<com::centreon::engine::hostescalation>>
     hostescalation_mmap;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class hostescalation : public escalation {
  public:
   hostescalation(std::string const& host_name,
@@ -54,6 +54,6 @@ class hostescalation : public escalation {
   std::string _hostname;
 };
 
-CCE_END()
+}
 
 #endif  // !CCE_HOSTESCALATION_HH

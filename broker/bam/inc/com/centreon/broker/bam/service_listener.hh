@@ -20,10 +20,9 @@
 #define CCB_BAM_SERVICE_LISTENER_HH
 
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/internal.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declarations.
 namespace neb {
@@ -67,6 +66,6 @@ class service_listener {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_SERVICE_LISTENER_HH

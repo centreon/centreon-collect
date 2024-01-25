@@ -19,10 +19,9 @@
 #ifndef CCB_BAM_TIMEPERIOD_MAP_HH
 #define CCB_BAM_TIMEPERIOD_MAP_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -53,6 +52,6 @@ class timeperiod_map {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_TIMEPERIOD_MAP_HH

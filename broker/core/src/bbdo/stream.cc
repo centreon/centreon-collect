@@ -1,19 +1,19 @@
-/*
-** Copyright 2013,2015,2017, 2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+* Copyright 2013,2015,2017, 2021 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
 */
 
 #include "com/centreon/broker/bbdo/stream.hh"
@@ -598,9 +598,14 @@ static io::raw* serialize(const io::data& e) {
 }
 
 /**
- *  Default constructor.
+ * @brief Construct a new stream::stream object
+ *
+ * @param is_input true if we receive bbdo events such as broker input
+ * @param grpc_serialized true if serialization is done by grpc stream only
+ * @param extensions
  */
 stream::stream(bool is_input,
+               bool grpc_serialized,
                const std::list<std::shared_ptr<io::extension>>& extensions)
     : io::stream("BBDO"),
       _skipped(0),
@@ -614,7 +619,8 @@ stream::stream(bool is_input,
       _events_received_since_last_ack(0),
       _last_sent_ack(time(nullptr)),
       _extensions{extensions},
-      _bbdo_version(config::applier::state::instance().get_bbdo_version()) {
+      _bbdo_version(config::applier::state::instance().get_bbdo_version()),
+      _grpc_serialized(grpc_serialized) {
   SPDLOG_LOGGER_DEBUG(log_v2::core(), "create bbdo stream {:p}",
                       static_cast<const void*>(this));
 }
@@ -650,13 +656,13 @@ int32_t stream::stop() {
     }
   }
 
-  _substream->stop();
-
   /* We acknowledge peer about received events. */
   log_v2::core()->info("bbdo stream stopped with {} events acknowledged",
                        _events_received_since_last_ack);
   if (_events_received_since_last_ack)
     send_event_acknowledgement();
+
+  _substream->stop();
 
   /* We return the number of events handled by our stream. */
   int32_t retval = _acknowledged_events;
@@ -928,7 +934,7 @@ void stream::negotiate(stream::negotiation_type neg) {
       log_v2::bbdo(), "BBDO: we have extensions '{}' and peer has '{}'",
       extensions,
       fmt::string_view(peer_extensions.data(), peer_extensions.size()));
-  std::list<absl::string_view> peer_ext{absl::StrSplit(peer_extensions, ' ')};
+  std::list<std::string_view> peer_ext{absl::StrSplit(peer_extensions, ' ')};
   for (auto& ext : _extensions) {
     // Find matching extension in peer extension list.
     auto peer_it{std::find(peer_ext.begin(), peer_ext.end(), ext->name())};
@@ -1152,6 +1158,12 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
     for (;;) {
       /* Maybe we have to complete the header. */
       _read_packet(BBDO_HEADER_SIZE, deadline);
+      if (!_grpc_serialized_queue.empty()) {
+        d = _grpc_serialized_queue.front();
+        SPDLOG_LOGGER_TRACE(log_v2::bbdo(), "read event: {}", *d);
+        _grpc_serialized_queue.pop_front();
+        return true;
+      }
 
       // Packet size is now at least BBDO_HEADER_SIZE and maybe contains
       // already a full BBDO packet.
@@ -1195,6 +1207,7 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
       // It is time to finish to read the packet.
 
       _read_packet(BBDO_HEADER_SIZE + packet_size, deadline);
+
       // Now, _packet contains at least BBDO_HEADER_SIZE + packet_size bytes.
 
       std::vector<char> content;
@@ -1324,6 +1337,8 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
  * just not finished, and so no data are lost. Received packets are BBDO packets
  * or maybe pieces of BBDO packets, so we keep vectors as is because usually a
  * vector should just represent a packet.
+ * In case of event serialized only by grpc stream, we store it in
+ * _grpc_serialized_queue
  *
  * @param size The wanted final size
  * @param deadline A time_t.
@@ -1334,14 +1349,20 @@ void stream::_read_packet(size_t size, time_t deadline) {
     std::shared_ptr<io::data> d;
     bool timeout = !_substream->read(d, deadline);
 
-    if (d && d->type() == io::raw::static_type()) {
-      std::vector<char>& new_v = std::static_pointer_cast<io::raw>(d)->_buffer;
-      if (!new_v.empty()) {
-        if (_packet.size() == 0) {
-          _packet = std::move(new_v);
-          new_v.clear();
-        } else
-          _packet.insert(_packet.end(), new_v.begin(), new_v.end());
+    if (d) {
+      if (d->type() == io::raw::static_type()) {
+        std::vector<char>& new_v =
+            std::static_pointer_cast<io::raw>(d)->_buffer;
+        if (!new_v.empty()) {
+          if (_packet.size() == 0) {
+            _packet = std::move(new_v);
+            new_v.clear();
+          } else
+            _packet.insert(_packet.end(), new_v.begin(), new_v.end());
+        }
+      } else {
+        _grpc_serialized_queue.push_back(d);
+        return;
       }
     }
     if (timeout) {
@@ -1407,14 +1428,17 @@ void stream::statistics(nlohmann::json& tree) const {
 void stream::_write(const std::shared_ptr<io::data>& d) {
   assert(d);
 
-  // Check if data exists.
-  std::shared_ptr<io::raw> serialized(serialize(*d));
-  if (serialized) {
-    SPDLOG_LOGGER_TRACE(log_v2::bbdo(),
-                        "BBDO: serialized event of type {} to {} bytes",
-                        d->type(), serialized->size());
-    _substream->write(serialized);
-  }
+  if (!_grpc_serialized || !std::dynamic_pointer_cast<io::protobuf_base>(d)) {
+    // Check if data exists.
+    std::shared_ptr<io::raw> serialized(serialize(*d));
+    if (serialized) {
+      SPDLOG_LOGGER_TRACE(log_v2::bbdo(),
+                          "BBDO: serialized event of type {} to {} bytes",
+                          d->type(), serialized->size());
+      _substream->write(serialized);
+    }
+  } else
+    _substream->write(d);
 }
 
 /**

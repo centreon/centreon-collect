@@ -2,17 +2,18 @@ from robot.api import logger
 from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
+from pwd import getpwnam
 import time
+import json
 import psutil
 from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
 from robot.libraries.BuiltIn import BuiltIn
 
-
 TIMEOUT = 30
 
-BuiltIn().import_resource('db_variables.robot')
+BuiltIn().import_resource('db_variables.resource')
 DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
 DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
 DB_USER = BuiltIn().get_variable_value("${DBUser}")
@@ -20,6 +21,24 @@ DB_PASS = BuiltIn().get_variable_value("${DBPass}")
 DB_HOST = BuiltIn().get_variable_value("${DBHost}")
 DB_PORT = BuiltIn().get_variable_value("${DBPort}")
 VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
+ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
+
+
+def parse_tests_params():
+    params = os.environ.get("TESTS_PARAMS")
+    if params is not None and len(params) > 4:
+        return json.loads(params)
+    else:
+        return {}
+
+
+TESTS_PARAMS = parse_tests_params()
+
+
+def is_using_direct_grpc():
+    default_bbdo_version = TESTS_PARAMS.get("default_bbdo_version")
+    default_transport = TESTS_PARAMS.get("default_transport")
+    return default_bbdo_version is not None and default_transport == "grpc" and default_bbdo_version >= "3.1.0"
 
 
 def check_connection(port: int, pid1: int, pid2: int):
@@ -1232,8 +1251,13 @@ def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value:
     return False
 
 
-def check_number_of_relations_between_servicegroup_and_services(servicegroup: int, value: int, timeout: int):
+def check_number_of_relations_between_servicegroup_and_services(servicegroup: int, value: int, timeout: int, service_group_name: str = None ):
     limit = time.time() + timeout
+    request = f"SELECT count(*) from servicegroups s join services_servicegroups sg on s.servicegroup_id = sg.servicegroup_id  WHERE s.servicegroup_id={servicegroup}"
+
+    if service_group_name is not None:
+        request += f" AND name='{service_group_name}'"
+
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -1244,8 +1268,7 @@ def check_number_of_relations_between_servicegroup_and_services(servicegroup: in
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT count(*) FROM services_servicegroups WHERE servicegroup_id={}".format(servicegroup))
+                cursor.execute(request)
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if int(result[0]['count(*)']) == value:
@@ -1400,7 +1423,7 @@ def grep(file_path: str, pattern: str):
     return ""
 
 
-def get_version():
+def get_collect_version():
     f = open("../CMakeLists.txt", "r")
     lines = f.readlines()
     f.close()
@@ -1445,3 +1468,19 @@ def wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
 
     logger.console(f"{path} not modified since {date}")
     return False
+
+
+def set_user_id_from_name(user_name: str):
+    """! modify user id
+    @param user_name  user name as centreon-engine
+    """
+    user_id = getpwnam(user_name).pw_uid
+    os.setuid(user_id)
+
+
+def get_uid():
+    return os.getuid()
+
+
+def set_uid(user_id: int):
+    os.setuid(user_id)

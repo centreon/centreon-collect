@@ -28,7 +28,7 @@ extern "C" {
 #include "lualib.h"
 }
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace lua {
 /**
@@ -125,6 +125,6 @@ void push_event_as_table(lua_State* L, io::data const& d);
 
 }  // namespace lua
 
-CCB_END()
+}
 
 #endif  // !CCB_LUA_LUA_HH

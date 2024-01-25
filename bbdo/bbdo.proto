@@ -20,12 +20,14 @@ syntax = "proto3";
 
 package com.centreon.broker;
 
+
 message Bbdo {
   uint32 major = 1;
   uint32 minor = 2;
   uint32 patch = 3;
 }
 
+/*io::bbdo, bbdo::de_welcome*/
 message Welcome {
   Bbdo version = 1;
   string extensions = 2;
@@ -33,10 +35,11 @@ message Welcome {
   string poller_name = 4;
 }
 
-
+/*io::bbdo, bbdo::de_pb_ack*/
 message Ack {
   uint32 acknowledged_events = 1;
 }
 
+/*io::bbdo, bbdo::de_pb_stop*/
 message Stop {
 }

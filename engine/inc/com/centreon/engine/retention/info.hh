@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/retention/object.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace retention {
 class info : public object {
@@ -53,6 +53,6 @@ class info : public object {
 typedef std::shared_ptr<info> info_ptr;
 }  // namespace retention
 
-CCE_END()
+}
 
 #endif  // !CCE_RETENTION_INFO_HH

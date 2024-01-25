@@ -21,9 +21,8 @@
 
 #include <openssl/ssl.h>
 #include <sys/types.h>
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace tls2 {
 // Data.
@@ -34,6 +33,6 @@ void destroy();
 void initialize();
 }  // namespace tls2
 
-CCB_END()
+}
 
 #endif  // !CCB_TLS_INTERNAL_HH

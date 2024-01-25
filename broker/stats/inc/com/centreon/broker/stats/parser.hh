@@ -20,9 +20,8 @@
 #ifndef CCB_STATS_PARSER_HH
 #define CCB_STATS_PARSER_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace stats {
 // Forward declaration.
@@ -46,6 +45,6 @@ class parser {
 };
 }  // namespace stats
 
-CCB_END()
+}
 
 #endif  // !CCB_STATS_PARSER_HH

@@ -25,7 +25,7 @@
 typedef std::list<std::string> list_string;
 typedef std::set<std::string> set_string;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class object {
@@ -109,7 +109,7 @@ typedef std::list<object_ptr> list_object;
 typedef std::unordered_map<std::string, object_ptr> map_object;
 }  // namespace configuration
 
-CCE_END()
+}
 
 #define MRG_TAB(prop)                                       \
   do {                                                      \

@@ -19,13 +19,13 @@
 #ifndef CCB_GENERATOR_INTERNAL_HH
 #define CCB_GENERATOR_INTERNAL_HH
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace generator {
 // Data elements.
 enum data_element { de_dummy = 1 };
 }  // namespace generator
 
-CCB_END()
+}
 
 #endif  // !CCB_GENERATOR_INTERNAL_HH

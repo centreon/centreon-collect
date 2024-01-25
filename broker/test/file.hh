@@ -19,9 +19,8 @@
 #ifndef CCB_TEST_FILE_HH
 #define CCB_TEST_FILE_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace test {
 /**
@@ -47,6 +46,6 @@ class file {
 };
 }  // namespace test
 
-CCB_END()
+}
 
 #endif  // !CCB_TEST_FILE_HH

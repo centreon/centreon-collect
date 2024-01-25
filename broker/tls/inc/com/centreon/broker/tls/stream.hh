@@ -22,9 +22,8 @@
 #include <gnutls/gnutls.h>
 
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace tls {
 /**
@@ -54,6 +53,6 @@ class stream : public io::stream {
 };
 }  // namespace tls
 
-CCB_END()
+}
 
 #endif  // !CCB_TLS_STREAM_HH

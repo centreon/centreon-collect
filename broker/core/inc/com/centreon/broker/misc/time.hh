@@ -19,14 +19,13 @@
 #ifndef CCB_MISC_TIME_HH
 #define CCB_MISC_TIME_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace misc {
 std::time_t start_of_day(time_t when);
 }
 
-CCB_END()
+}
 
 #endif /* !CCB_MISC_TIME_HH */

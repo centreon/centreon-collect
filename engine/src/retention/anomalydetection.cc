@@ -1,20 +1,20 @@
-/*
-** Copyright 2022 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
+/**
+* Copyright 2022 Centreon
+*
+* This file is part of Centreon Engine.
+*
+* Centreon Engine is free software: you can redistribute it and/or
+* modify it under the terms of the GNU General Public License version 2
+* as published by the Free Software Foundation.
+*
+* Centreon Engine is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+* General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Centreon Engine. If not, see
+* <http://www.gnu.org/licenses/>.
 */
 
 #include "com/centreon/engine/retention/anomalydetection.hh"
@@ -46,7 +46,7 @@ bool anomalydetection::operator!=(anomalydetection const& right) const throw() {
   return !operator==(right);
 }
 
-static constexpr absl::string_view _sensitivity_key("sensitivity");
+static constexpr std::string_view _sensitivity_key("sensitivity");
 bool anomalydetection::set(char const* key, char const* value) {
   if (_sensitivity_key == key) {
     double sensitivity;

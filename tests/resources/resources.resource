@@ -1,5 +1,5 @@
 *** Settings ***
-Resource    ./db_variables.robot
+Resource    ./db_variables.resource
 Library     Process
 Library     OperatingSystem
 Library     Common.py
@@ -95,7 +95,7 @@ Kindly Stop Broker
     ELSE
         IF    ${result.rc} != 0
             Save Logs
-            Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
+            # Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Coredump Info    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
         END
@@ -112,7 +112,7 @@ Kindly Stop Broker
         ELSE
             IF    ${result.rc} != 0
                 Save Logs
-                Copy Coredump In Failed Dir    b2    /usr/sbin/cbd    broker_rrd
+                # Copy Coredump In Failed Dir    b2    /usr/sbin/cbd    broker_rrd
                 Coredump Info    b2    /usr/sbin/cbd    broker_rrd
                 Should Be Equal As Integers    ${result.rc}    0    RRD Broker not correctly stopped
             END
@@ -181,7 +181,7 @@ Stop Engine
             Fail    ${name} not correctly stopped (coredump generated)
         ELSE
             IF    ${result.rc} != 0 and ${result.rc} != -15
-                Copy Coredump In Failed Dir    ${alias}    /usr/sbin/centengine    ${alias}
+                # Copy Coredump In Failed Dir    ${alias}    /usr/sbin/centengine    ${alias}
                 Coredump Info    ${alias}    /usr/sbin/centengine    ${alias}
             END
             Should Be True
@@ -259,22 +259,24 @@ Save Logs
 Dump Process
     [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${pid}    Get Process Id    ${process_name}
-    ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
-    Create Directory    ${failDir}
-    ${output}    Catenate    SEPARATOR=    /tmp/core-    ${name}
-    ${gdb_output}    Catenate    SEPARATOR=    ${failDir}    /core-    ${name}    .txt
-    Log To Console    Creation of core ${output}.${pid} to debug
-    Run Process    gcore    -o    ${output}    ${pid}
-    Run Process
-    ...    gdb
-    ...    -batch
-    ...    -ex
-    ...    thread apply all bt 30
-    ...    ${binary_path}
-    ...    ${output}.${pid}
-    ...    stdout=${gdb_output}
-    ...    stderr=${gdb_output}
-    Log To Console    Done...
+    IF    ${pid} is not ${None}
+        ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
+        Create Directory    ${failDir}
+        ${output}    Catenate    SEPARATOR=    /tmp/core-    ${name}
+        ${gdb_output}    Catenate    SEPARATOR=    ${failDir}    /core-    ${name}    .txt
+        # Log To Console    Creation of core ${output}.${pid} to debug
+        # Run Process    gcore    -o    ${output}    ${pid}
+        Run Process
+        ...    gdb
+        ...    -batch
+        ...    -ex
+        ...    thread apply all bt 30
+        ...    ${binary_path}
+        ...    ${output}.${pid}
+        ...    stdout=${gdb_output}
+        ...    stderr=${gdb_output}
+        Log To Console    Done...
+    END
 
 Coredump Info
     [Arguments]    ${process_name}    ${binary_path}    ${name}
@@ -296,7 +298,7 @@ Coredump Info
 Copy Coredump In Failed Dir
     [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${docker_env}    Get Environment Variable    RUN_ENV    ${None}
-    IF    ${docker_env} == ""
+    IF    "${docker_env}" == ""
         ${pid}    Get Process Id    ${process_name}
         ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
         Create Directory    ${failDir}
@@ -304,12 +306,12 @@ Copy Coredump In Failed Dir
     END
 
 Wait Or Dump And Kill Process
-    [Arguments]    ${process_name}    ${timeout}
+    [Arguments]    ${process_name}    ${binary_path}    ${timeout}
     ${result}    Wait For Process    ${process_name}    timeout=${timeout}    on_timeout=continu
     ${test_none}    Set Variable If    $result is None    "not killed"    "killed"
     IF    ${test_none} == "not killed"
         ${pid}    Get Process Id    ${process_name}
-        Run Process    gcore    -o    ${ENGINE_LOG}/config0/gcore_${process_name}    ${pid}
+        Dump Process    ${process_name}    ${binary_path}    ${process_name}
         ${result}    Wait For Process    ${process_name}    timeout=1s    on_timeout=kill
     END
     RETURN    ${result}

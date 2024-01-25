@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/retention/downtime.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace retention {
 namespace applier {
@@ -37,6 +37,6 @@ class downtime {
 }  // namespace applier
 }  // namespace retention
 
-CCE_END()
+}
 
 #endif  // !CCE_RETENTION_APPLIER_DOWNTIME_HH

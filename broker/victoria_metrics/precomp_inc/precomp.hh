@@ -52,6 +52,5 @@ using duration = system_clock::duration;
 
 namespace asio = boost::asio;
 
-#include "com/centreon/broker/namespace.hh"
 
 #endif  // CC_VICTORIA_METRICS_PRECOMP_HH

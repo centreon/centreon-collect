@@ -19,10 +19,9 @@
 #ifndef CCB_PROCESSING_ENDPOINT_HH
 #define CCB_PROCESSING_ENDPOINT_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/processing/stat_visitable.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace processing {
 class endpoint : public stat_visitable {
@@ -41,6 +40,6 @@ class endpoint : public stat_visitable {
 };
 }  // namespace processing
 
-CCB_END()
+}
 
 #endif /* CCB_PROCESSING_ENDPOINT_HH */

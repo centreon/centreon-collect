@@ -22,7 +22,6 @@
 #include <QSqlDatabase>
 #include <memory>
 #include <string>
-#include "com/centreon/broker/namespace.hh"
 #include "test/table_content.hh"
 
 #define RTMONITORING_TABLES_V2                                             \
@@ -53,7 +52,7 @@
       "mod_bam_reporting_ba_events_durations",                             \
       "mod_bam_reporting_ba_availabilities"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace test {
 /**
@@ -83,6 +82,6 @@ class db {
 };
 }  // namespace test
 
-CCB_END()
+}
 
 #endif  // !CCB_TEST_DB_HH

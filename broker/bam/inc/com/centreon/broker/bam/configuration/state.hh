@@ -24,9 +24,8 @@
 #include "com/centreon/broker/bam/configuration/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/kpi.hh"
 #include "com/centreon/broker/bam/hst_svc_mapping.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 namespace configuration {
@@ -73,6 +72,6 @@ class state {
 }  // namespace configuration
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // ! CCB_BAM_CONFIGURATION_STATE_HH

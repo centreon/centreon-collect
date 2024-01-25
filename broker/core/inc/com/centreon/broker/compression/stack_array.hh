@@ -19,9 +19,7 @@
 #ifndef CCB_COMPRESSION_STACK_ARRAY_HH
 #define CCB_COMPRESSION_STACK_ARRAY_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace compression {
 /**
@@ -49,6 +47,6 @@ class stack_array {
 };
 }  // namespace compression
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_COMPRESSION_STACK_ARRAY_HH

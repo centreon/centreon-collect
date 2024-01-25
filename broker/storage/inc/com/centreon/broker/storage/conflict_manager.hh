@@ -27,7 +27,7 @@
 #include "com/centreon/broker/storage/rebuilder.hh"
 #include "com/centreon/broker/storage/stored_timestamp.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 /* Forward declarations */
 namespace neb {
 class service_status;
@@ -382,6 +382,6 @@ class conflict_manager {
   void remove_graphs(const std::shared_ptr<io::data>& d);
 };
 }  // namespace storage
-CCB_END()
+}
 
 #endif /* !CCB_SQL_CONFLICT_MANAGER_HH */

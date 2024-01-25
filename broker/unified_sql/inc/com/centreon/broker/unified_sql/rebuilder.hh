@@ -25,7 +25,7 @@
 #include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace unified_sql {
 class stream;
@@ -75,6 +75,6 @@ class rebuilder {
 };
 }  // namespace unified_sql
 
-CCB_END()
+}
 
 #endif  // !CCB_UNIFIED_SQL_REBUILDER_HH

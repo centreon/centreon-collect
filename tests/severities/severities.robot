@@ -1,14 +1,7 @@
 *** Settings ***
 Documentation       Engine/Broker tests on severities.
 
-Resource            ../resources/resources.robot
-Library             Process
-Library             DateTime
-Library             OperatingSystem
-Library             ../resources/Engine.py
-Library             ../resources/Broker.py
-Library             ../resources/Common.py
-Library             ../resources/specific-duplication.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
@@ -75,9 +68,7 @@ BEUSEV1
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -102,9 +93,7 @@ BEUSEV2
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -131,9 +120,7 @@ BEUSEV3
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention
@@ -176,10 +163,7 @@ BEUSEV4
     Config Broker    rrd
     Config Broker    module    2
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    module1    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention
@@ -254,10 +238,7 @@ BETUSEV1
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    module1    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention

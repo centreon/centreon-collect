@@ -1,19 +1,19 @@
-/*
-** Copyright 2018-2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+* Copyright 2018-2021 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
 */
 
 #include "com/centreon/broker/lua/broker_utils.hh"
@@ -629,10 +629,10 @@ static int l_broker_parse_perfdata(lua_State* L) {
   for (auto const& pd : pds) {
     lua_pushlstring(L, pd.name().c_str(), pd.name().size());
     if (full) {
-      absl::string_view name{pd.name()};
-      absl::string_view metric;
-      absl::string_view fullinstance;
-      std::list<absl::string_view> subinstance;
+      std::string_view name{pd.name()};
+      std::string_view metric;
+      std::string_view fullinstance;
+      std::list<std::string_view> subinstance;
       lua_createtable(L, 0, 15);
       int find_sharp = name.find("#");
       int find_tilde = name.find("~");
@@ -643,7 +643,7 @@ static int l_broker_parse_perfdata(lua_State* L) {
         fullinstance = name.substr(0, find_sharp);
         subinstance = absl::StrSplit(fullinstance, '~');
       }
-      std::list<absl::string_view> metric_fields{absl::StrSplit(metric, '.')};
+      std::list<std::string_view> metric_fields{absl::StrSplit(metric, '.')};
 
       lua_pushnumber(L, pd.value());
       lua_setfield(L, -2, "value");
@@ -677,7 +677,7 @@ static int l_broker_parse_perfdata(lua_State* L) {
       lua_pushlstring(L, "subinstance", sizeof("subinstance") - 1);
       lua_createtable(L, 0, 1);
       i = 0;
-      for (std::list<absl::string_view>::const_iterator
+      for (std::list<std::string_view>::const_iterator
                it(std::next(subinstance.begin())),
            end(subinstance.end());
            it != end; ++it) {

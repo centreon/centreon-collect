@@ -1,6 +1,6 @@
 #!/bin/bash
 
-sed -i -r 's/(\$\{DBUserRoot\}\s*)root_centreon/\1root/g' resources/db_variables.robot
+sed -i -r 's/(\$\{DBUserRoot\}\s*)root_centreon/\1root/g' resources/db_variables.resource
 ulimit -c unlimited
 sysctl -w kernel.core_pattern=/tmp/core-%e.%p.%h.%t
 

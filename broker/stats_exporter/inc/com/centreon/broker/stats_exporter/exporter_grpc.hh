@@ -21,7 +21,7 @@
 
 #include "com/centreon/broker/stats_exporter/exporter.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace stats_exporter {
 /**
@@ -40,6 +40,6 @@ class exporter_grpc : public exporter {
 
 }  // namespace stats_exporter
 
-CCB_END()
+}
 
 #endif /* !CCB_STATS_EXPORTER_EXPORTER_GRPC_HH */

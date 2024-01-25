@@ -11,9 +11,6 @@ on:
       minor_version:
         required: true
         type: string
-      stability:
-        required: true
-        type: string
       img_version:
         required: true
         type: string
@@ -33,7 +30,6 @@ jobs:
   build:
     name: Binary preparation
     runs-on: [self-hosted, collect]
-    if: github.event_name != 'pull_request' && (inputs.stability == 'stable' || inputs.stability == 'unstable')
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
       credentials:
@@ -41,7 +37,7 @@ jobs:
         password: ${{ secrets.docker_registry_passwd }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Compiling Cpp sources
         run: |
@@ -49,12 +45,13 @@ jobs:
           mkdir build
           cd build
 
-          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
-          sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+          sudo pip3 install conan==1.61.0 --prefix=/usr --upgrade
+          sudo conan install .. -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
 
           sudo cmake \
             -G "Ninja" \
             -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
+            -DDEBUG_ROBOT=OFF \
             -DWITH_TESTING=OFF \
             -DWITH_BENCH=OFF \
             -DWITH_MODULE_SIMU=OFF \
@@ -69,14 +66,23 @@ jobs:
             -DWITH_DAEMONS=ON \
             -DWITH_CREATE_FILES=OFF \
             -DWITH_CONFIG_FILES=ON \
+            -DNG=ON \
             ..
 
           sudo ninja
 
+          echo "[DEBUG] - Find compiled files"
+          find ./ -name "*.so"
+          echo "[DEBUG] - Build size"
+          du -sh ./lib/*.so | sort -rh
+
       - name: Binary preparation
         run: |
           echo "[INFO] - Keeping only compiled files"
-          find ./build -type f -not \( -name "*.so" -o -name "*.h" -o -name "*.cc" -o -name "*.hpp" \) -delete
+          # preserve binaries from cleaning
+          mv ./build/bin ./
+          find ./build -type f -not \( -name "*.so" \) -delete
+          mv ./bin ./build
 
           echo "[INFO] - Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then
@@ -90,18 +96,21 @@ jobs:
               elif [[ -z "$LINE" ]]; then
                 echo "[INFO] - empty directive. Skipping this line"
               else
-                echo "[WARN] - target to exclude not found. Skipping: '$LINE'"
+                echo "::warning::Target to exclude from analysis not found. Skipping: '$LINE'"
               fi
             done
           else
-            echo "[WARN] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
+            echo "::warning::No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
+          echo "[INFO] - Keeping only build's non empty folders"
+          find ./build -empty -type d -delete
+          ls -la ./build
 
           echo "[INFO] - Generating the tarball"
           tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
 
       - name: Cache
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
           path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
@@ -113,15 +122,13 @@ jobs:
 
     steps:
       - name: Promote latest scan
-        # Only last develop should be promoted to policy scan
         if: github.ref_name == 'develop'
-
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
           VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
 
         # Action forked as API calls hardcoded '.com' route
-        uses: sc979/veracode-sandboxes-helper@v0.2
+        uses: sc979/veracode-sandboxes-helper@cf67241c27cbe6405ad8705111121ece9a48c4ff # v0.2
         # Promote should not fail if sandbox was not found.
         continue-on-error: true
         with:
@@ -131,7 +138,7 @@ jobs:
           delete-on-promote: false
 
       - name: Get build binary
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
           path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
@@ -148,8 +155,6 @@ jobs:
           createprofile: true
           createsandbox: true
           sandboxname: "${{ github.ref_name }}"
-          #scantimeout: 120
           includenewmodules: true
           scanallnonfataltoplevelmodules: true
           deleteincompletescan: 2
-          scanpollinginterval: 120 # time between two checks in seconds / [30 to 120]

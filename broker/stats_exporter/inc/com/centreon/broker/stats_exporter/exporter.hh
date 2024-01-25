@@ -27,12 +27,11 @@
 
 #include "broker.pb.h"
 #include "com/centreon/broker/config/state.hh"
-#include "com/centreon/broker/namespace.hh"
 
 namespace metric_sdk = opentelemetry::sdk::metrics;
 namespace metrics_api = opentelemetry::metrics;
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace stats_exporter {
 /**
@@ -178,6 +177,6 @@ class exporter {
 
 }  // namespace stats_exporter
 
-CCB_END()
+}
 
 #endif /* !CCB_STATS_EXPORTER_EXPORTER_HH */

@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/exceptions/error.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class file_info {
@@ -59,6 +59,6 @@ class file_info {
 };
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_FILE_INFO_HH

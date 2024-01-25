@@ -1,16 +1,7 @@
 *** Settings ***
 Documentation       Engine/Broker tests on bbdo_version 3.0.0 and protobuf bbdo embedded events.
 
-Resource            ../resources/resources.robot
-Library             Process
-Library             DateTime
-Library             DatabaseLibrary
-Library             OperatingSystem
-Library             String
-Library             ../resources/Engine.py
-Library             ../resources/Broker.py
-Library             ../resources/Common.py
-Library             ../resources/specific-duplication.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
@@ -36,8 +27,8 @@ BEPBBEE1
     ${content}    Create List    BBDO: peer is using protocol version 3.0.0 whereas we're using protocol version 2.0.0
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Message about not matching bbdo versions not available
-    Stop Engine
-    Kindly Stop Broker
+
+    [Teardown]    Stop Engine Broker And Save Logs
 
 BEPBBEE2
     [Documentation]    bbdo_version 3 not compatible with sql/storage
@@ -69,9 +60,7 @@ BEPBBEE3
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservicestatus.lua
@@ -80,8 +69,8 @@ BEPBBEE3
     Start Broker
     Start Engine
     Wait Until Created    /tmp/pbservicestatus.log    1m
-    Stop Engine
-    Kindly Stop Broker
+
+    [Teardown]    Stop Engine Broker And Save Logs
 
 BEPBBEE4
     [Documentation]    bbdo_version 3 generates new bbdo protobuf host status messages.
@@ -91,9 +80,7 @@ BEPBBEE4
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbhoststatus.lua
@@ -102,8 +89,8 @@ BEPBBEE4
     Start Broker
     Start Engine
     Wait Until Created    /tmp/pbhoststatus.log    1m
-    Stop Engine
-    Kindly Stop Broker
+
+    [Teardown]    Stop Engine Broker And Save Logs
 
 BEPBBEE5
     [Documentation]    bbdo_version 3 generates new bbdo protobuf service messages.
@@ -113,9 +100,7 @@ BEPBBEE5
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservice.lua
@@ -124,8 +109,8 @@ BEPBBEE5
     Start Broker
     Start Engine
     Wait Until Created    /tmp/pbservice.log    1m
-    Stop Engine
-    Kindly Stop Broker
+
+    [Teardown]    Stop Engine Broker And Save Logs
 
 BEPBRI1
     [Documentation]    bbdo_version 3 use pb_resource new bbdo protobuf ResponsiveInstance message.
@@ -134,8 +119,7 @@ BEPBRI1
     Config Engine    ${1}
     Config Broker    central
     Config Broker    module
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    read_timeout    2
@@ -157,7 +141,7 @@ BEPBRI1
         Sleep    1s
         ${grep_res}    Grep File    /tmp/pbresponsiveinstance.log    "_type":65582, "category":1, "element":46,
         ${grep_res}    Get Lines Containing String    ${grep_res}    "poller_id":1, "responsive":false
-        IF    len('${grep_res}') > 0            BREAK
+        IF    len('${grep_res}') > 0    BREAK
     END
 
     Should Not Be Empty    ${grep_res}    "responsive":false not found
@@ -185,9 +169,94 @@ BEPBCVS
         ...    SELECT c.value FROM customvariables c LEFT JOIN hosts h ON c.host_id=h.host_id WHERE h.name='host_1' && c.name in ('KEY1','KEY_SERV1_1') ORDER BY service_id
         Log To Console    ${output}
         Sleep    1s
-        IF    "${output}" == "(('VAL1',), ('VAL_SERV1',))"            BREAK
+        IF    "${output}" == "(('VAL1',), ('VAL_SERV1',))"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('VAL1',), ('VAL_SERV1',))
 
-    Stop Engine
-    Kindly Stop Broker    True
+    [Teardown]    Stop Engine Broker And Save Logs    True
+
+BEPB_HOST_DEPENDENCY
+    [Documentation]    bbdo_version 3 communication of host dependencies.
+    [Tags]    broker    engine    protobuf    bbdo
+    Config Engine    ${1}
+    Config Engine Add Cfg File    0    dependencies.cfg
+    Add Host Dependency    0    host_1    host_2
+    Config Broker    central
+    Config Broker    module
+    Config BBDO3    ${1}
+    Broker Config Log    central    sql    trace
+    Config Broker Sql Output    central    unified_sql
+    Clear Retention
+    ${start}    Get Current Date
+    Start Broker    True
+    Start Engine
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
+    FOR    ${index}    IN RANGE    30
+        ${output}    Query
+        ...    SELECT dependent_host_id, host_id, dependency_period, inherits_parent, notification_failure_options FROM hosts_hosts_dependencies
+        Log To Console    ${output}
+        Sleep    1s
+        IF    "${output}" == "((2, 1, '24x7', 1, 'ou'),)"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    ((2, 1, '24x7', 1, 'ou'),)    host dependency not found in database
+
+    Config Engine    ${1}
+    Reload Engine
+
+    FOR    ${index}    IN RANGE    30
+        ${output}    Query
+        ...    SELECT dependent_host_id, host_id, dependency_period, inherits_parent, notification_failure_options FROM hosts_hosts_dependencies
+        Log To Console    ${output}
+        Sleep    1s
+        IF    "${output}" == "()"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    ()    host dependency not deleted from database
+
+    [Teardown]    Stop Engine Broker And Save Logs    True
+
+BEPB_SERVICE_DEPENDENCY
+    [Documentation]    bbdo_version 3 communication of host dependencies.
+    [Tags]    broker    engine    protobuf    bbdo
+    Config Engine    ${1}
+    Config Engine Add Cfg File    0    dependencies.cfg
+    Add Service Dependency    0    host_1    host_2    service_1    service_21
+    Config Broker    central
+    Config Broker    module
+    Config BBDO3    ${1}
+    Broker Config Log    central    sql    trace
+    Config Broker Sql Output    central    unified_sql
+    Clear Retention
+    ${start}    Get Current Date
+    Start Broker    True
+    Start Engine
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
+    FOR    ${index}    IN RANGE    30
+        ${output}    Query
+        ...    SELECT dependent_host_id, dependent_service_id, host_id, service_id, dependency_period, inherits_parent, notification_failure_options FROM services_services_dependencies;
+
+        Log To Console    ${output}
+        Sleep    1s
+        IF    "${output}" == "((2, 21, 1, 1, '24x7', 1, 'c'),)"    BREAK
+    END
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    ((2, 21, 1, 1, '24x7', 1, 'c'),)
+    ...    host dependency not found in database
+
+    Config Engine    ${1}
+    Reload Engine
+
+    FOR    ${index}    IN RANGE    30
+        ${output}    Query
+        ...    SELECT dependent_host_id, host_id, dependency_period, inherits_parent, notification_failure_options FROM hosts_hosts_dependencies
+        Log To Console    ${output}
+        Sleep    1s
+        IF    "${output}" == "()"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    ()    host dependency not deleted from database
+
+    [Teardown]    Stop Engine Broker And Save Logs    True

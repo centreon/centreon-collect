@@ -26,7 +26,7 @@
 
 typedef std::set<std::pair<std::string, std::string> > set_pair_string;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class servicegroup : public object {
@@ -83,6 +83,6 @@ typedef std::shared_ptr<servicegroup> servicegroup_ptr;
 typedef std::set<servicegroup> set_servicegroup;
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_SERVICEGROUP_HH

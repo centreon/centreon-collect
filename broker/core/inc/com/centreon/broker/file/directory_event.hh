@@ -19,9 +19,8 @@
 #ifndef CCB_FILE_DIRECTORY_EVENT_HH
 #define CCB_FILE_DIRECTORY_EVENT_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace file {
 /**
@@ -53,6 +52,6 @@ class directory_event {
 };
 }  // namespace file
 
-CCB_END()
+}
 
 #endif  // !CCB_FILE_DIRECTORY_EVENT_HH

@@ -22,13 +22,12 @@
 #include "com/centreon/broker/bam/availability_builder.hh"
 #include "com/centreon/broker/bam/timeperiod_map.hh"
 #include "com/centreon/broker/io/data.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 class database_query;
 
@@ -91,6 +90,6 @@ class availability_thread final {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_AVAILABILITY_THREAD_HH

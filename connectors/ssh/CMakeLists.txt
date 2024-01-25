@@ -48,7 +48,6 @@ add_executable(
   ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/reporter.hh
   ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/result.hh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/checks/check.hh
-  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/namespace.hh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/options.hh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/orders/options.hh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/policy.hh

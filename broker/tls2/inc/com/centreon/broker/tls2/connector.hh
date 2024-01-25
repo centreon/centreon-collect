@@ -21,7 +21,7 @@
 
 #include "com/centreon/broker/io/endpoint.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace tls2 {
 /**
@@ -49,6 +49,6 @@ class connector : public io::endpoint {
 };
 }  // namespace tls2
 
-CCB_END()
+}
 
 #endif  // !CCB_TLS_CONNECTOR_HH

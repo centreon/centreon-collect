@@ -20,10 +20,9 @@
 #define CCB_BAM_CONFIGURATION_READER_V2_HH
 
 #include "com/centreon/broker/bam/configuration/state.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declaration.
 class mysql;
@@ -61,6 +60,6 @@ class reader_v2 {
 }  // namespace configuration
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_CONFIGURATION_READER_V2_HH

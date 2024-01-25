@@ -20,9 +20,8 @@
 #define CCB_GENERATOR_FACTORY_HH
 
 #include "com/centreon/broker/io/factory.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace generator {
 /**
@@ -45,6 +44,6 @@ class factory : public io::factory {
 };
 }  // namespace generator
 
-CCB_END()
+}
 
 #endif  // !CCB_GENERATOR_FACTORY_HH

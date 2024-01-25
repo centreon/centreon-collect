@@ -4,6 +4,9 @@ on:
       img_version:
         description: "docker image version (conan checksum)"
         value: ${{ jobs.get-version.outputs.img_version }}
+      test_img_version:
+        description: "test docker image version (checksum of database sql, script and dockerfiles)"
+        value: ${{ jobs.get-version.outputs.test_img_version }}
       version:
         description: "major version"
         value: ${{ jobs.get-version.outputs.version }}
@@ -25,6 +28,7 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       img_version: ${{ steps.get_version.outputs.img_version }}
+      test_img_version: ${{ steps.get_version.outputs.test_img_version }}
       version: ${{ steps.get_version.outputs.version }}
       patch: ${{ steps.get_version.outputs.patch }}
       release: ${{ steps.get_version.outputs.release }}
@@ -32,14 +36,31 @@ jobs:
       environment: ${{ steps.get_version.outputs.env }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: install gh cli on self-hosted runner
+        run: |
+          if ! command -v gh &> /dev/null; then
+            echo "Installing GH CLI."
+            type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update
+            sudo apt install gh -y
+          else
+            echo "GH CLI is already installed."
+          fi
+        shell: bash
 
       - id: get_version
         run: |
-          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
+          IMG_VERSION=$( cat `ls .github/docker/Dockerfile.centreon-collect-* | grep -v test` conanfile.txt | md5sum | awk '{print substr($1, 0, 8)}')
+          TEST_IMG_VERSION=$(cat .github/docker/Dockerfile.centreon-collect-*-test .github/scripts/collect-prepare-test-robot.sh resources/*.sql | md5sum | cut -c1-8)
           VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
           PATCH=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
           echo "img_version=$IMG_VERSION" >> $GITHUB_OUTPUT
+          echo "test_img_version=$TEST_IMG_VERSION" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "patch=$PATCH" >> $GITHUB_OUTPUT
 
@@ -50,8 +71,21 @@ jobs:
           fi
 
           case "$BRANCHNAME" in
-            master | [2-9][0-9].[0-9][0-9].x | release* | hotfix*)
+            master | [2-9][0-9].[0-9][0-9].x)
               echo "release=1" >> $GITHUB_OUTPUT
+              ;;
+            release* | hotfix*)
+              # Handle workflow_dispatch run triggers
+              GITHUB_RELEASE_BRANCH_BASE_REF_NAME="$(gh pr view $BRANCHNAME -q .baseRefName --json headRefName,baseRefName,state)"
+              echo "GITHUB_RELEASE_BRANCH_BASE_REF_NAME is: $GITHUB_RELEASE_BRANCH_BASE_REF_NAME"
+              GITHUB_RELEASE_BRANCH_PR_STATE="$(gh pr view $BRANCHNAME -q .state --json headRefName,baseRefName,state)"
+              echo "GITHUB_RELEASE_BRANCH_PR_STATE is: $GITHUB_RELEASE_BRANCH_PR_STATE"
+              if [[ "$GITHUB_RELEASE_BRANCH_BASE_REF_NAME" == "master" ]] && [[ "$GITHUB_RELEASE_BRANCH_PR_STATE" == "OPEN" ]]; then
+                # This case is specific to cloud release
+                echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
+              else
+                echo "release=1" >> $GITHUB_OUTPUT
+              fi
               ;;
             *)
               echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
@@ -79,3 +113,5 @@ jobs:
           echo "env=$VERSION-$ENV" >> $GITHUB_OUTPUT
           echo "GH_ENV: $VERSION-$ENV"
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}

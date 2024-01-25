@@ -19,10 +19,9 @@
 #ifndef CC_EXCEPTIONS_CONFIG_HH
 #define CC_EXCEPTIONS_CONFIG_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace exceptions {
 /**
@@ -42,6 +41,6 @@ class config : public com::centreon::exceptions::msg_fmt {
 };
 }  // namespace exceptions
 
-CCB_END()
+}
 
 #endif  // !CC_EXCEPTIONS_CONFIG_HH

@@ -22,7 +22,7 @@
 #include "com/centreon/broker/http_tsdb/http_tsdb_config.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace victoria_metrics {
 
@@ -45,6 +45,6 @@ class connector : public io::endpoint {
 };
 }  // namespace victoria_metrics
 
-CCB_END()
+}
 
 #endif  // !CCB_VICTORIA_METRICS_CONNECTOR_HH

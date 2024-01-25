@@ -21,7 +21,6 @@
 
 #include <unistd.h>
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/timestamp.hh"
 #include "com/centreon/broker/watchdog/instance_configuration.hh"
 

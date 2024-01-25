@@ -20,9 +20,8 @@
 #define CCB_BAM_CONFIGURATION_KPI_HH
 
 #include "com/centreon/broker/bam/internal.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 namespace configuration {
@@ -52,6 +51,7 @@ class kpi {
   double _impact_critical;
   double _impact_unknown;
   KpiEvent _event;
+  std::string _name;
 
  public:
   kpi(uint32_t id = 0,
@@ -69,10 +69,9 @@ class kpi {
       bool ignoreacknowledgement = false,
       double warning = 0,
       double critical = 0,
-      double unknown = 0);
-  kpi(kpi const& other);
-  ~kpi();
-  kpi& operator=(kpi const& other);
+      double unknown = 0,
+      const std::string& name = "");
+
   bool operator==(kpi const& other) const;
   bool operator!=(kpi const& other) const;
 
@@ -97,6 +96,7 @@ class kpi {
   double get_impact_critical() const;
   double get_impact_unknown() const;
   const KpiEvent& get_opened_event() const;
+  const std::string get_name() const { return _name; }
 
   void set_id(uint32_t id);
   void set_state_type(short state_type);
@@ -119,6 +119,6 @@ class kpi {
 }  // namespace configuration
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // CCB_BAM_CONFIGURATION_KPI_HH

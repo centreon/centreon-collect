@@ -26,10 +26,9 @@
 #include "bbdo/tag.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/callback.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 // Forward declaration.
@@ -78,10 +77,10 @@ using pb_custom_variable_status =
                  make_type(io::neb, neb::de_pb_custom_variable_status)>;
 
 using pb_host_check =
-    io::protobuf<Check, make_type(io::neb, neb::de_pb_host_check)>;
+    io::protobuf<HostCheck, make_type(io::neb, neb::de_pb_host_check)>;
 
 using pb_service_check =
-    io::protobuf<Check, make_type(io::neb, neb::de_pb_service_check)>;
+    io::protobuf<ServiceCheck, make_type(io::neb, neb::de_pb_service_check)>;
 
 using pb_log_entry =
     io::protobuf<LogEntry, make_type(io::neb, neb::de_pb_log_entry)>;
@@ -101,8 +100,30 @@ using pb_acknowledgement =
     io::protobuf<Acknowledgement,
                  make_type(io::neb, neb::de_pb_acknowledgement)>;
 
+using pb_host_dependency =
+    io::protobuf<HostDependency,
+                 make_type(io::neb, neb::de_pb_host_dependency)>;
+
+using pb_service_dependency =
+    io::protobuf<ServiceDependency,
+                 make_type(io::neb, neb::de_pb_service_dependency)>;
+
+using pb_host_group =
+    io::protobuf<HostGroup, make_type(io::neb, neb::de_pb_host_group)>;
+
+using pb_service_group =
+    io::protobuf<ServiceGroup, make_type(io::neb, neb::de_pb_service_group)>;
+
+using pb_host_group_member =
+    io::protobuf<HostGroupMember,
+                 make_type(io::neb, neb::de_pb_host_group_member)>;
+
+using pb_service_group_member =
+    io::protobuf<ServiceGroupMember,
+                 make_type(io::neb, neb::de_pb_service_group_member)>;
+
 }  // namespace neb
 
-CCB_END()
+}
 
 #endif  // !CCB_NEB_INTERNAL_HH

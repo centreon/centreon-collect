@@ -22,7 +22,7 @@
 #include "column.hh"
 #include "com/centreon/broker/http_client/http_config.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace http_tsdb {
 class http_tsdb_config : public http_client::http_config {
@@ -71,6 +71,6 @@ class http_tsdb_config : public http_client::http_config {
 };
 }  // namespace http_tsdb
 
-CCB_END()
+}
 
 #endif

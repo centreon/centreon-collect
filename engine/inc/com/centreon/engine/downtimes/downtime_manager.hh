@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/downtimes/downtime.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace downtimes {
 
@@ -98,6 +98,6 @@ class downtime_manager {
 };
 }  // namespace downtimes
 
-CCE_END()
+}
 
 #endif  // !CCE_DOWNTIMES_DOWNTIME_MANAGER_HH

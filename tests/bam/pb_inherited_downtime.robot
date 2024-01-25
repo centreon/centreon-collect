@@ -1,13 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and BAM with bbdo version 3.0.1
 
-Resource            ../resources/resources.robot
-Library             Process
-Library             DatabaseLibrary
-Library             DateTime
-Library             OperatingSystem
-Library             ../resources/Broker.py
-Library             ../resources/Engine.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
@@ -85,9 +79,7 @@ BEBAMIDTU2
     Config Broker    rrd
     Broker Config Log    central    bam    trace
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -176,9 +168,7 @@ BEBAMIGNDTU1
     Broker Config Log    module0    neb    trace
     Config Broker    rrd
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
@@ -287,9 +277,7 @@ BEBAMIGNDTU2
     Broker Config Log    central    bam    trace
     Config Broker    rrd
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     Config Engine    ${1}
 
     Clone Engine Config To DB

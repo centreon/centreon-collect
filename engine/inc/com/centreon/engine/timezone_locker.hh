@@ -20,7 +20,7 @@
 #ifndef CCE_TIMEZONE_LOCKER_HH
 #define CCE_TIMEZONE_LOCKER_HH
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 /**
  *  @class timezone_locker timezone_locker.hh
@@ -38,6 +38,6 @@ class timezone_locker {
   timezone_locker& operator=(timezone_locker const& other) = delete;
 };
 
-CCE_END()
+}
 
 #endif  // !CCE_TIMEZONE_LOCKER_HH

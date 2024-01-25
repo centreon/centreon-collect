@@ -24,7 +24,7 @@
 #include "com/centreon/engine/opt.hh"
 #include "com/centreon/engine/retention/object.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace retention {
 class contact : public object {
@@ -84,6 +84,6 @@ typedef std::shared_ptr<contact> contact_ptr;
 typedef std::list<contact_ptr> list_contact;
 }  // namespace retention
 
-CCE_END()
+}
 
 #endif  // !CCE_RETENTION_CONTACT_HH

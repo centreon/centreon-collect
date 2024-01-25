@@ -1,20 +1,20 @@
-/*
-** Copyright 2011-2013,2015,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
+/**
+* Copyright 2011-2013,2015,2017 Centreon
+*
+* This file is part of Centreon Engine.
+*
+* Centreon Engine is free software: you can redistribute it and/or
+* modify it under the terms of the GNU General Public License version 2
+* as published by the Free Software Foundation.
+*
+* Centreon Engine is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+* General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Centreon Engine. If not, see
+* <http://www.gnu.org/licenses/>.
 */
 
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
@@ -71,14 +71,14 @@ void applier::hostgroup::add_object(configuration::hostgroup const& obj) {
   // Add new items to the configuration state.
   engine::hostgroup::hostgroups.insert({hg->get_group_name(), hg});
 
-  // Notify event broker.
-  broker_group(NEBTYPE_HOSTGROUP_ADD, hg.get());
-
   // Apply resolved hosts on hostgroup.
   for (set_string::const_iterator it(obj.members().begin()),
        end(obj.members().end());
        it != end; ++it)
     hg->members.insert({*it, nullptr});
+
+  // Notify event broker.
+  broker_group(NEBTYPE_HOSTGROUP_ADD, hg.get());
 }
 
 /**

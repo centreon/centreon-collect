@@ -20,11 +20,10 @@
 #define CCB_CONFIG_APPLIER_MODULES_HH
 
 #include "com/centreon/broker/modules/handle.hh"
-#include "com/centreon/broker/namespace.hh"
 
 using handle = com::centreon::broker::modules::handle;
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace config {
 namespace applier {
@@ -61,6 +60,6 @@ class modules {
 }  // namespace applier
 }  // namespace config
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_CONFIG_APPLIER_MODULES_HH

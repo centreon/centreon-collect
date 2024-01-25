@@ -26,7 +26,7 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/buffer.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace tls2 {
 /**
@@ -65,6 +65,6 @@ class stream : public io::stream {
 };
 }  // namespace tls2
 
-CCB_END()
+}
 
 #endif  // !CCB_TLS_STREAM_HH

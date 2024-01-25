@@ -22,9 +22,8 @@
 #include <cstdint>
 #include <ctime>
 #include <ostream>
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 /**
  *  @class timestamp timestamp.hh "com/centreon/timestamp.hh"
@@ -71,6 +70,6 @@ class timestamp {
 
 std::ostream& operator<<(std::ostream& s, const timestamp& to_dump);
 
-CC_END()
+}
 
 #endif  // !CC_TIMESTAMP_HH

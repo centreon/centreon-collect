@@ -1,5 +1,5 @@
-/*
- * Copyright 2009-2012,2015,2019-2021 Centreon
+/**
+ * Copyright 2009-2012,2015,2019-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +19,10 @@
 #ifndef CCB_MULTIPLEXING_ENGINE_HH
 #define CCB_MULTIPLEXING_ENGINE_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 #include "com/centreon/broker/stats/center.hh"
 
-CCB_BEGIN()
-
-namespace multiplexing {
+namespace com::centreon::broker::multiplexing {
 // Forward declaration.
 class muxer;
 namespace detail {
@@ -113,8 +110,6 @@ class engine {
   void subscribe(const std::shared_ptr<muxer>& subscriber);
   void unsubscribe_muxer(const muxer* subscriber);
 };
-}  // namespace multiplexing
-
-CCB_END()
+}  // namespace com::centreon::broker::multiplexing
 
 #endif  // !CCB_MULTIPLEXING_ENGINE_HH

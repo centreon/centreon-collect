@@ -1,19 +1,19 @@
-/*
-** Copyright 2014, 2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+* Copyright 2014, 2021 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
 */
 
 #include "com/centreon/broker/bam/kpi_service.hh"
@@ -73,7 +73,7 @@ TEST_F(BamBA, KpiServiceRecompute) {
   test_ba->set_level_warning(25);
 
   std::shared_ptr<bam::kpi_service> kpi{
-      std::make_shared<bam::kpi_service>(1, 1, 1, 1)};
+      std::make_shared<bam::kpi_service>(1, 1, 1, 1, "host_1/serv_1")};
 
   kpi->set_impact_critical(100.0);
   kpi->set_state_hard(bam::state_ok);
@@ -97,7 +97,7 @@ TEST_F(BamBA, KpiServiceRecompute) {
       /* Here is an occasion to checkout output from ba when it is critical */
       ASSERT_EQ(test_ba->get_output(),
                 "Status is CRITICAL - Level = 0 - 1 KPI out of 1 impacts the "
-                "BA for 100 points - KPI1 (impact: 100)");
+                "BA for 100 points - KPI host_1/serv_1 (impact: 100)");
       ASSERT_EQ(test_ba->get_perfdata(), "BA_Level=0;25;0;0;100");
     }
   }
@@ -128,7 +128,8 @@ TEST_F(BamBA, KpiServiceImpactState) {
   std::vector<short> results{0, 0, 1, 1, 1, 2};
 
   for (int i = 0; i < 3; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(
+        i + 1, 1, i + 1, 1, fmt::format("host_{}/serv_1", i + 1));
     s->set_impact_warning(10);
     s->set_impact_critical(20);
     s->set_state_hard(bam::state_ok);
@@ -165,14 +166,14 @@ TEST_F(BamBA, KpiServiceImpactState) {
            * totally */
           ASSERT_EQ(test_ba->get_output(),
                     "Status is OK - Level = 90 (warn: 70 - crit: 40) - 1 KPI "
-                    "out of 3 impacts the BA: KPI1 (impact: 10)");
+                    "out of 3 impacts the BA: KPI host_1/serv_1 (impact: 10)");
           ASSERT_EQ(test_ba->get_perfdata(), "BA_Level=90;70;40;0;100");
         } else if (j == 2) {
           /* Here is an occasion to test get_output for a status WARNING */
           std::regex re(
               "Status is WARNING - Level = 70 - 3 KPIs out of 3 impact "
-              "the BA for 30 points - KPI. \\(impact: 10\\), KPI. \\(impact: "
-              "10\\), KPI. \\(impact: 10\\)");
+              "the BA for 30 points - KPI.+ \\(impact: 10\\), KPI.+ \\(impact: "
+              "10\\), KPI.+ \\(impact: 10\\)");
           ASSERT_TRUE(std::regex_search(test_ba->get_output(), re));
           ASSERT_EQ(test_ba->get_perfdata(), "BA_Level=70;70;40;0;100");
         }
@@ -248,7 +249,8 @@ TEST_F(BamBA, KpiServiceBestState) {
   std::vector<short> results{0, 0, 1, 1, 1, 2};
 
   for (size_t i = 0; i < 3; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_ok);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -305,7 +307,8 @@ TEST_F(BamBA, KpiServiceWorstState) {
   std::vector<short> results{1, 1, 1, 2, 2, 2};
 
   for (int i = 0; i < 3; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_impact_warning(10);
     s->set_impact_critical(20);
     s->set_state_hard(bam::state_ok);
@@ -403,7 +406,8 @@ TEST_F(BamBA, KpiServiceRatioNum) {
   std::stack<short> results{{2, 1, 1, 0}};
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_ok);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -459,7 +463,8 @@ TEST_F(BamBA, KpiServiceRatioPercent) {
   std::stack<short> results({2, 1, 0, 0});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_ok);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -500,7 +505,8 @@ TEST_F(BamBA, KpiServiceDtInheritAllCritical) {
   std::stack<bool> results({true, false, false, false});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -531,7 +537,7 @@ TEST_F(BamBA, KpiServiceDtInheritAllCritical) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     results.pop();
   }
 }
@@ -547,7 +553,8 @@ TEST_F(BamBA, KpiServiceDtInheritAllCriticalPb) {
   std::stack<bool> results({true, false, false, false});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -580,7 +587,7 @@ TEST_F(BamBA, KpiServiceDtInheritAllCriticalPb) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     results.pop();
   }
 }
@@ -596,7 +603,8 @@ TEST_F(BamBA, KpiServiceDtInheritOneOK) {
   std::stack<bool> results({false, false, false, false});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     if (i == 0)
       s->set_state_hard(bam::state_ok);
     else
@@ -631,7 +639,7 @@ TEST_F(BamBA, KpiServiceDtInheritOneOK) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     results.pop();
   }
 
@@ -651,7 +659,8 @@ TEST_F(BamBA, KpiServiceDtInheritOneOKPb) {
   std::stack<bool> results({false, false, false, false});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     if (i == 0)
       s->set_state_hard(bam::state_ok);
     else
@@ -688,7 +697,7 @@ TEST_F(BamBA, KpiServiceDtInheritOneOKPb) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     results.pop();
   }
 
@@ -708,7 +717,8 @@ TEST_F(BamBA, KpiServiceIgnoreDt) {
   std::stack<bool> results({false, false, false, false});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -739,7 +749,7 @@ TEST_F(BamBA, KpiServiceIgnoreDt) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     results.pop();
   }
 }
@@ -755,7 +765,8 @@ TEST_F(BamBA, KpiServiceIgnoreDtPb) {
   std::stack<bool> results({false, false, false, false});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -789,7 +800,7 @@ TEST_F(BamBA, KpiServiceIgnoreDtPb) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     results.pop();
   }
 }
@@ -805,7 +816,8 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpi) {
   std::stack<bool> results({false, false, false, false});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -836,7 +848,7 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpi) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     results.pop();
   }
 }
@@ -852,7 +864,8 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiPb) {
   std::stack<bool> results({false, false, false, false});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -886,7 +899,7 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiPb) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     results.pop();
   }
 }
@@ -907,7 +920,8 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiImpact) {
   results.push(2);
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     if (i == 3)
       s->set_state_hard(bam::state_ok);
     else
@@ -961,7 +975,8 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiImpactPb) {
   std::stack<short> results({0, 0, 1, 2});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     if (i == 3)
       s->set_state_hard(bam::state_ok);
     else
@@ -1016,7 +1031,8 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiBest) {
   std::stack<short> results({0, 2, 1, 0});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     switch (i) {
       case 0:
       case 1:
@@ -1072,7 +1088,8 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiBestPb) {
   std::stack<short> results({0, 2, 1, 0});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     switch (i) {
       case 0:
       case 1:
@@ -1132,7 +1149,8 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiWorst) {
   std::stack<short> results({0, 0, 1, 2});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     switch (i) {
       case 0:
       case 1:
@@ -1188,7 +1206,8 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiWorstPb) {
   std::stack<short> results({0, 0, 1, 2});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     switch (i) {
       case 0:
       case 1:
@@ -1249,7 +1268,8 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiRatio) {
   std::stack<short> results({0, 1, 2, 2});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -1296,7 +1316,8 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiRatioPb) {
   std::stack<short> results({0, 1, 2, 2});
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -1347,7 +1368,8 @@ TEST_F(BamBA, KpiServiceDt) {
   std::vector<bool> results{false, false, false, true};
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -1379,7 +1401,7 @@ TEST_F(BamBA, KpiServiceDt) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = *it;
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     ++it;
   }
 
@@ -1493,7 +1515,7 @@ TEST_F(BamBA, KpiServiceDt) {
       ++it;
     } while (it->typ != test_visitor::test_event::kpi);
   }
-  ASSERT_FALSE(test_ba->get_in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
 }
 
 TEST_F(BamBA, KpiServiceDtPb) {
@@ -1507,7 +1529,8 @@ TEST_F(BamBA, KpiServiceDtPb) {
   std::vector<bool> results{false, false, false, true};
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -1542,7 +1565,7 @@ TEST_F(BamBA, KpiServiceDtPb) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = *it;
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     ++it;
   }
 
@@ -1656,7 +1679,7 @@ TEST_F(BamBA, KpiServiceDtPb) {
       ++it;
     } while (it->typ != test_visitor::test_event::kpi);
   }
-  ASSERT_FALSE(test_ba->get_in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
 }
 
 TEST_F(BamBA, KpiServiceDtInherited_set) {
@@ -1670,7 +1693,8 @@ TEST_F(BamBA, KpiServiceDtInherited_set) {
   std::vector<bool> results{false, false, false, true};
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -1702,7 +1726,7 @@ TEST_F(BamBA, KpiServiceDtInherited_set) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = *it;
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     ++it;
   }
 
@@ -1714,7 +1738,7 @@ TEST_F(BamBA, KpiServiceDtInherited_set) {
     dt->was_started = true;
     kpis[0]->service_update(dt, _visitor.get());
   }
-  ASSERT_TRUE(test_ba->get_in_downtime());
+  ASSERT_TRUE(test_ba->in_downtime());
 }
 
 TEST_F(BamBA, KpiServiceDtInherited_setPb) {
@@ -1728,7 +1752,8 @@ TEST_F(BamBA, KpiServiceDtInherited_setPb) {
   std::vector<bool> results{false, false, false, true};
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -1763,7 +1788,7 @@ TEST_F(BamBA, KpiServiceDtInherited_setPb) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = *it;
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     ++it;
   }
 
@@ -1775,7 +1800,7 @@ TEST_F(BamBA, KpiServiceDtInherited_setPb) {
     dt_obj.set_started(true);
     kpis[0]->service_update(dt, _visitor.get());
   }
-  ASSERT_TRUE(test_ba->get_in_downtime());
+  ASSERT_TRUE(test_ba->in_downtime());
 }
 
 TEST_F(BamBA, KpiServiceDtInherited_unset) {
@@ -1788,7 +1813,8 @@ TEST_F(BamBA, KpiServiceDtInherited_unset) {
   std::vector<std::shared_ptr<bam::kpi_service>> kpis;
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -1820,7 +1846,7 @@ TEST_F(BamBA, KpiServiceDtInherited_unset) {
     kpis[j]->service_update(dt, _visitor.get());
   }
 
-  ASSERT_FALSE(test_ba->get_in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
 }
 
 TEST_F(BamBA, KpiServiceDtInherited_unsetPb) {
@@ -1833,7 +1859,8 @@ TEST_F(BamBA, KpiServiceDtInherited_unsetPb) {
   std::vector<std::shared_ptr<bam::kpi_service>> kpis;
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -1866,7 +1893,7 @@ TEST_F(BamBA, KpiServiceDtInherited_unsetPb) {
     kpis[j]->service_update(dt, _visitor.get());
   }
 
-  ASSERT_FALSE(test_ba->get_in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
 }
 
 TEST_F(BamBA, KpiServiceAcknowledgement) {
@@ -1879,7 +1906,8 @@ TEST_F(BamBA, KpiServiceAcknowledgement) {
   std::vector<std::shared_ptr<bam::kpi_service>> kpis;
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
@@ -1926,7 +1954,8 @@ TEST_F(BamBA, KpiServiceAcknowledgementPb) {
   std::vector<std::shared_ptr<bam::kpi_service>> kpis;
 
   for (int i = 0; i < 4; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
+    auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1,
+                                                fmt::format("service {}", i));
     s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);

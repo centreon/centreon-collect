@@ -18,7 +18,6 @@ on:
 
 jobs:
   package:
-
     strategy:
       fail-fast: false
       matrix:
@@ -46,6 +45,13 @@ jobs:
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
 
+    env:
+      SCCACHE_PATH: "/usr/bin/sccache"
+      SCCACHE_BUCKET: "centreon-github-sccache"
+      SCCACHE_REGION: "eu-west-1"
+      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
       credentials:
@@ -56,7 +62,26 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Install sccache
+        run: |
+          if [ "${{ matrix.package_extension }}" = "deb" ]; then
+            apt-get update
+            apt-get install -y wget
+          elif [ "${{ matrix.package_extension }}" = "rpm" ]; then
+            dnf install -y wget
+          fi
+          if [ "${{ matrix.arch }}" = "amd64" ]; then
+            wget https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
+            mv sccache-v0.7.4-x86_64-unknown-linux-musl/sccache /usr/bin/
+          elif [ "${{ matrix.arch }}" = "arm64" ]; then
+            wget https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-aarch64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.7.4-aarch64-unknown-linux-musl.tar.gz
+            mv sccache-v0.7.4-aarch64-unknown-linux-musl/sccache /usr/bin/
+          fi
+          ${SCCACHE_PATH} --start-server
 
       - name: Generate selinux binaries
         if: ${{ matrix.package_extension == 'rpm' }}
@@ -77,9 +102,9 @@ jobs:
 
       - name: Compile sources
         run: |
-          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
+          sudo pip3 install conan==1.61.0 --prefix=/usr --upgrade
 
-          sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+          sudo conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
 
           CMAKE="cmake3"
           if [ "${{ matrix.package_extension }}" = "deb" ]; then
@@ -104,9 +129,20 @@ jobs:
                   -DWITH_CREATE_FILES=OFF \
                   -DWITH_CONFIG_FILES=ON \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                  -DNG=ON \
+                  -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
+                  -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   .
 
           sudo ninja
+        shell: bash
+
+      - name: Cache statistics
+        run: ${SCCACHE_PATH} --show-stats
+        shell: bash
+
+      - name: Stop sccache server
+        run: ${SCCACHE_PATH} --stop-server
         shell: bash
 
       - name: Generate debug files
@@ -139,7 +175,7 @@ jobs:
       # set condition to true if artifacts are needed
       - if: ${{ false }}
         name: Upload package artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
           name: packages-${{ matrix.distrib }}-${{ matrix.arch }}
           path: ./*.${{ matrix.package_extension}}

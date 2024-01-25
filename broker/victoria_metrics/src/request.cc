@@ -1,19 +1,19 @@
-/*
-** Copyright 2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+* Copyright 2022 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
 */
 
 #include "com/centreon/broker/victoria_metrics/request.hh"
@@ -66,15 +66,15 @@ request::request(boost::beast::http::verb method,
   set(boost::beast::http::field::authorization, authorization);
 }
 
-static constexpr absl::string_view _sz_metric = "metric,id=";
-static constexpr absl::string_view _sz_status = "status,id=";
-static constexpr absl::string_view _sz_space = " ";
-static constexpr absl::string_view _sz_name = ",name=";
-static constexpr absl::string_view _sz_unit = ",unit=";
-static constexpr absl::string_view _sz_host_id = ",host_id=";
-static constexpr absl::string_view _sz_serv_id = ",serv_id=";
-static constexpr absl::string_view _sz_severity_id = ",severity_id=";
-static constexpr absl::string_view _sz_val = " val=";
+static constexpr std::string_view _sz_metric = "metric,id=";
+static constexpr std::string_view _sz_status = "status,id=";
+static constexpr std::string_view _sz_space = " ";
+static constexpr std::string_view _sz_name = ",name=";
+static constexpr std::string_view _sz_unit = ",unit=";
+static constexpr std::string_view _sz_host_id = ",host_id=";
+static constexpr std::string_view _sz_serv_id = ",serv_id=";
+static constexpr std::string_view _sz_severity_id = ",severity_id=";
+static constexpr std::string_view _sz_val = " val=";
 
 void request::add_metric(const storage::pb_metric& metric) {
   absl::StrAppend(&body(), _sz_metric, metric.obj().metric_id());

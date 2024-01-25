@@ -19,9 +19,8 @@
 #ifndef CCB_HTTP_TSDB_COLUMN_HH
 #define CCB_HTTP_TSDB_COLUMN_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace http_tsdb {
 /**
@@ -52,6 +51,6 @@ class column {
 };
 }  // namespace http_tsdb
 
-CCB_END()
+}
 
 #endif  // !CCB_HTTP_TSDB_COLUMN_HH

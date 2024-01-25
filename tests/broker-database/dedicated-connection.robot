@@ -1,11 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker data_bin and logs dedicated connections
 
-Resource            ../resources/resources.robot
-Library             DateTime
-Library             Examples
-Library             ../resources/Broker.py
-Library             ../resources/Common.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite

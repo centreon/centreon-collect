@@ -24,7 +24,7 @@
 #include "com/centreon/connector/ssh/orders/options.hh"
 #include "com/centreon/connector/ssh/sessions/credentials.hh"
 
-CCCS_BEGIN()
+namespace com::centreon::connector::ssh {
 
 // Forward declarations.
 
@@ -93,6 +93,6 @@ class policy : public com::centreon::connector::policy_interface {
   void on_version() override;
 };
 
-CCCS_END()
+}  // namespace com::centreon::connector::ssh
 
 #endif  // !CCCS_POLICY_HH

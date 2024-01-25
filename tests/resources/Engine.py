@@ -408,7 +408,7 @@ passive_checks_enabled 1
         ff.close()
 
     @staticmethod
-    def create_tags(poller: int, nb: int, offset: int):
+    def create_tags(poller: int, nb: int, offset: int, tag_type: str):
         tt = ["servicegroup", "hostgroup", "servicecategory", "hostcategory"]
 
         config_file = "{}/config{}/tags.cfg".format(CONF_DIR, poller)
@@ -416,9 +416,13 @@ passive_checks_enabled 1
         content = ""
         tid = 0
         for i in range(nb):
-            if i % 4 == 0:
+            if len(tag_type) > 0:
+                typ = tag_type
                 tid += 1
-            typ = tt[i % 4]
+            else:
+                if i % 4 == 0:
+                    tid += 1
+                typ = tt[i % 4]
             content += """define tag {{
     id                     {0}
     name                   tag{2}
@@ -950,10 +954,9 @@ def engine_config_remove_service_host(idx: int, host: str):
 
 
 def engine_config_remove_host(idx: int, host: str):
-    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
 
     host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
     host_begin = re.compile(r"^define host {$")
@@ -1050,6 +1053,24 @@ def add_service_group(index: int, id_service_group: int, members: list):
     f.write(engine.create_service_group(id_service_group, members))
     f.close()
 
+
+def rename_service_group(index: int, old_servicegroup_name: str, new_service_group_name: str):
+    """!
+        rename a service group
+        @param index index of the poller
+        @param old_servicegroup_name  service group name to look for and to replace
+        @param new_service_group_name
+    """
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/servicegroups.cfg", "r") as f:
+        ll = f.readlines()
+    group_name_search = re.compile(fr"^\s+servicegroup_name\s+{old_servicegroup_name}$")
+    for i in range(len(ll)):
+        l = ll[i]
+        if group_name_search.match(l):
+            ll[i] = f"    servicegroup_name                  {new_service_group_name}\n"
+            break
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/servicegroups.cfg", "w") as f:
+        f.writelines(ll)
 
 def add_contact_group(index: int, id_contact_group: int, members: list):
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/contactgroups.cfg", "a+") as f:
@@ -1664,8 +1685,42 @@ def create_template_file(poller: int, typ: str, what: str, ids: list):
     engine.create_template_file(poller, typ, what, ids)
 
 
-def create_tags_file(poller: int, nb: int, offset: int = 1):
-    engine.create_tags(poller, nb, offset)
+def create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
+    engine.create_tags(poller, nb, offset, tag_type)
+
+
+def engine_config_remove_tag(poller: int, tag_id: int):
+    """! remove tags from tags.cfg where tag id = tag_id
+    @param poller  poller index
+    @param tag_id  id of the tag to remove
+    """
+    filename = f"{CONF_DIR}/config{poller}/tags.cfg"
+    with open(filename, "r") as ff:
+        lines = ff.readlines()
+
+    tag_name = re.compile(f"^\s*id\s+{tag_id}\s*$")
+    tag_begin = re.compile(r"^define tag {$")
+    tag_end = re.compile(r"^}$")
+    tag_begin_idx = 0
+    while tag_begin_idx < len(lines):
+        if (tag_begin.match(lines[tag_begin_idx])):
+            for tag_line_idx in range(tag_begin_idx, len(lines)):
+                if (tag_name.match(lines[tag_line_idx])):
+                    for end_tag_line in range(tag_line_idx, len(lines)):
+                        if tag_end.match(lines[end_tag_line]):
+                            del lines[tag_begin_idx:end_tag_line + 1]
+                            break
+                    break
+                elif tag_end.match(lines[tag_line_idx]):
+                    tag_begin_idx = tag_line_idx
+                    break
+        else:
+            tag_begin_idx = tag_begin_idx + 1
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
+
 
 
 def config_engine_add_cfg_file(poller: int, cfg: str):
@@ -1919,15 +1974,15 @@ def config_engine_remove_cfg_file(poller: int, fic: str):
     ff.close()
 
 
-def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0'):
+def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
     now = int(time.time())
     pd = [output + " | "]
     for m in range(metrics):
         v = math.sin((now + m) / 1000) * 5
-        pd.append(f"metric{m}={v}")
+        pd.append(f"{metric_name}{m}={v}")
+        logger.trace(f"{metric_name}{m}={v}")
     full_output = " ".join(pd)
     process_service_check_result(hst, svc, state, full_output, config)
-
 
 def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
     if use_grpc > 0:
@@ -2211,3 +2266,50 @@ def config_host_command_status(idx: int, cmd_name: str, status: int):
 
     with open(filename, "w") as f:
         f.writelines(lines)
+
+
+def add_host_dependency(idx: int, host_name:str, dependent_host_name:str):
+    """!
+    add a host dependency in dependencies.cfg file
+    @param idx index ofthe poller usually 0
+    @host_name  host whose dependent_host_name is dependent
+    @dependent_host_name
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg"
+    with open(filename, "a+") as f:
+        f.write(f"""
+define hostdependency {{
+    execution_failure_criteria     d,p 
+    notification_failure_criteria  o,u
+    dependency_period              24x7
+    inherits_parent                1 
+    dependent_host_name            {dependent_host_name} 
+    host_name                      {host_name} 
+}}
+""")
+        
+def add_service_dependency(idx: int, host_name:str, dependent_host_name:str, service:str, dependent_service:str):
+    """!
+    add a host dependency in dependencies.cfg file
+    @param idx index ofthe poller usually 0
+    @host_name  host whose denendent_host_name is dependent
+    @dependent_host_name
+    @service  service whose dependent_service is dependent
+    @dependent_service
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg"
+    with open(filename, "a+") as f:
+        f.write(f"""
+define servicedependency {{
+    execution_failure_criteria     c 
+    notification_failure_criteria  c 
+    inherits_parent                1 
+    dependency_period              24x7
+    dependent_host_name            {dependent_host_name} 
+    host_name                      {host_name}
+    dependent_service_description  {dependent_service} 
+    service_description            {service} 
+}}
+""")
+
+

@@ -34,7 +34,7 @@
  *  and wait to be executed.
  */
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class command_manager {
   std::mutex _queue_m;
   std::deque<std::packaged_task<int()> > _queue;
@@ -69,6 +69,6 @@ class command_manager {
                                               unsigned long duration);
 };
 
-CCE_END()
+}
 
 #endif /* !CCE_STATISTICS_HH */
