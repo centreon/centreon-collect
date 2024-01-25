@@ -26,12 +26,12 @@ ${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
 *** Keywords ***
 Ctn Config BBDO3
     [Arguments]    ${nbEngine}    ${version}=3.0.1
-    Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    rrd    bbdo_version    ${version}
-    Broker Config Add Item    central    bbdo_version    ${version}
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Add Item To Broker Conf    rrd    bbdo_version    ${version}
+    Ctn Add Item To Broker Conf    central    bbdo_version    ${version}
     FOR    ${i}    IN RANGE    ${nbEngine}
         ${mod}    Catenate    SEPARATOR=    module    ${i}
-        Broker Config Add Item    ${mod}    bbdo_version    ${version}
+        Ctn Add Item To Broker Conf    ${mod}    bbdo_version    ${version}
     END
 
 Ctn Clean Before Suite
