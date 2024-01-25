@@ -130,7 +130,7 @@ not3
     Should Be True    ${result}    check_for_external_commands() should be available.
 
     # It's time to schedule a downtime
-    Schedule Service Downtime    host_1    service_1    ${60}
+    Ctn Schedule Service Downtime    host_1    service_1    ${60}
 
     ${result}    Check Number Of Downtimes    ${1}    ${start}    ${60}
     Should Be True    ${result}    We should have 1 downtime enabled.
@@ -351,12 +351,12 @@ not7
     ## Time to set the host to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Host Check Result    host_1    1    host_1 DOWN
+        Ctn Process Host Check Result    host_1    1    host_1 DOWN
         Sleep    1s
     END
 
     FOR    ${i}    IN RANGE    ${4}
-        Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
 
@@ -392,12 +392,12 @@ not8
     ## Time to set the host to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Host Check Result    host_1    1    host_1 DOWN
+        Ctn Process Host Check Result    host_1    1    host_1 DOWN
         Sleep    1s
     END
 
     FOR    ${i}    IN RANGE    ${4}
-        Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
 
@@ -433,12 +433,12 @@ not9
     ## Time to set the host to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Host Check Result    host_1    1    host_1 DOWN
+        Ctn Process Host Check Result    host_1    1    host_1 DOWN
         Sleep    1s
     END
 
     FOR    ${i}    IN RANGE    ${4}
-        Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
 
@@ -474,26 +474,26 @@ not10
     ## Time to set the host to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Host Check Result    host_1    0    host_1 UP
+        Ctn Process Host Check Result    host_1    0    host_1 UP
         Sleep    1s
     END
 
     FOR    ${i}    IN RANGE    ${4}
-        Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
 
 
-    Schedule Host Downtime    ${0}    host_1    ${3600}
+    Ctn Schedule Host Downtime    ${0}    host_1    ${3600}
 
     Sleep    10s
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Host Check Result    host_1    1    host_1 DOWN
+        Ctn Process Host Check Result    host_1    1    host_1 DOWN
         Sleep    1s
     END
 
-    Delete Host Downtimes    ${0}    host_1
+    Ctn Delete Host Downtimes    ${0}    host_1
 
     ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;host_1 DOWN;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -527,30 +527,30 @@ not11
     ## Time to set the host to UP HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Host Check Result    host_1    1    host_1 DOWN
+        Ctn Process Host Check Result    host_1    1    host_1 DOWN
         Sleep    1s
     END
 
     FOR    ${i}    IN RANGE    ${4}
-        Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
 
 
-    Schedule Host Downtime    ${0}    host_1    ${3600}
+    Ctn Schedule Host Downtime    ${0}    host_1    ${3600}
 
     Sleep    10s
     ## Time to set the host to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
-        Process Host Check Result    host_1    0    host_1 UP
+        Ctn Process Host Check Result    host_1    0    host_1 UP
         Sleep    1s
     END
 
     FOR    ${i}    IN RANGE    ${4}
-        Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
-    Delete Host Downtimes    ${0}    host_1
+    Ctn Delete Host Downtimes    ${0}    host_1
 
     ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;RECOVERY (UP);command_notif;Host
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

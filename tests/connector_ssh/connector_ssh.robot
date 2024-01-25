@@ -37,7 +37,7 @@ TestBadUser
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     ${start}    Get Current Date
-    Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+    Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
     ${content}    Create List    fail to connect to toto@127.0.0.10
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -70,7 +70,7 @@ TestBadPwd
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     ${start}    Get Current Date
-    Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+    Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
     ${content}    Create List    fail to connect to testconnssh@127.0.0.11
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -121,7 +121,7 @@ Test6Hosts
 
     ${start}    Get Current Date
     FOR    ${idx}    IN RANGE    1    7
-        Schedule Forced Host Check    host_${idx}    /tmp/var/lib/centreon-engine/config0/rw/centengine.cmd
+        Ctn Schedule Forced Host Check    host_${idx}    /tmp/var/lib/centreon-engine/config0/rw/centengine.cmd
     END
 
     IF    "${run_env}" == "docker"
@@ -184,7 +184,7 @@ TestWhiteList
 
     # ssh_linux_snmp forbidden
     ${start}    Get Current Date
-    Schedule Forced Host Check    host_1
+    Ctn Schedule Forced Host Check    host_1
 
     ${content}    Create List
     ...    host_1: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
@@ -197,7 +197,7 @@ TestWhiteList
     Create File    /etc/centreon-engine-whitelist/test2    ${whitelist_content}
     Ctn Reload Engine
     ${start}    Get Current Date
-    Schedule Forced Host Check    host_1
+    Ctn Schedule Forced Host Check    host_1
 
     ${content}    Create List    'toto=127.0.0.1'
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

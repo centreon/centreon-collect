@@ -657,7 +657,7 @@ BA_BOOL_KPI
     ${result}    Check Service Status With Timeout    host_16    service_314    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not OK as expected
 
-#    Schedule Forced Svc Check    _Module_BAM_1    ba_1
+#    Ctn Schedule Forced Svc Check    _Module_BAM_1    ba_1
     ${result}    Check Ba Status With Timeout    test    2    30
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected

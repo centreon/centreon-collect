@@ -86,7 +86,7 @@ Whitelist_Host
 
     # no file => no restriction
     ${start}    Get Current Date
-    Schedule Forced Host Check    host_1
+    Ctn Schedule Forced Host Check    host_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0'
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check result found for host_1
@@ -97,7 +97,7 @@ Whitelist_Host
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
     Ctn Reload Engine
     ${start}    Get Current Date
-    Schedule Forced Host Check    host_1
+    Ctn Schedule Forced Host Check    host_1
     ${content}    Create List
     ...    host_1: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -107,7 +107,7 @@ Whitelist_Host
     Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
     Ctn Reload Engine
     ${start}    Get Current Date
-    Schedule Forced Host Check    host_1
+    Ctn Schedule Forced Host Check    host_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 not run
@@ -116,7 +116,7 @@ Whitelist_Host
     Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/totozea 1 $HOSTADDRESS$
     Ctn Reload Engine
     ${start}    Get Current Date
-    Schedule Forced Host Check    host_1
+    Ctn Schedule Forced Host Check    host_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    totozea not found
@@ -143,7 +143,7 @@ Whitelist_Service
 
     # no file => no restriction
     ${start}    Get Current Date
-    Schedule Forced Svc Check    host_1    service_1
+    Ctn Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0'
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check result found for service_1
@@ -154,7 +154,7 @@ Whitelist_Service
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
     Ctn Reload Engine
     ${start}    Get Current Date
-    Schedule Forced Svc Check    host_1    service_1
+    Ctn Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List
     ...    service_1: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -164,7 +164,7 @@ Whitelist_Service
     Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
     Ctn Reload Engine
     ${start}    Get Current Date
-    Schedule Forced Svc Check    host_1    service_1
+    Ctn Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 not run
@@ -173,7 +173,7 @@ Whitelist_Service
     Ctn Change Command In Engine Conf    0    1    /tmp/var/lib/centreon-engine/totozea 1 $HOSTADDRESS$
     Ctn Reload Engine
     ${start}    Get Current Date
-    Schedule Forced Svc Check    host_1    service_1
+    Ctn Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    totozea not found
@@ -204,7 +204,7 @@ Whitelist_Perl_Connector
 
     # command not allowed because of 0 in first argument
     ${start}    Get Current Date
-    Schedule Forced Svc Check    host_1    service_1
+    Ctn Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List
     ...    service_1: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -214,7 +214,7 @@ Whitelist_Perl_Connector
     Ctn Change Command In Engine Conf    0    14    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
     Ctn Reload Engine
     ${start}    Get Current Date
-    Schedule Forced Svc Check    host_1    service_1
+    Ctn Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List
     ...    connector::run: connector='Perl Connector', cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

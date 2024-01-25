@@ -1195,7 +1195,7 @@ BEATOI12
     Ctn Kindly Stop Broker
 
 BEATOI13
-    [Documentation]    external command Schedule Service Downtime with duration<0 should fail
+    [Documentation]    external command Ctn Schedule Service Downtime with duration<0 should fail
     [Tags]    broker    engine    host    extcmd    atoi
     Ctn Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
@@ -1210,7 +1210,7 @@ BEATOI13
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}    Get Current Date    result_format=epoch
-    Schedule Service Downtime    host_1    service_1    -1
+    Ctn Schedule Service Downtime    host_1    service_1    -1
     ${content}    Create List    Error: could not schedule downtime : duration
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument duration must be an integer >= 0.
@@ -1382,7 +1382,7 @@ BESERVCHECK
     Should Be True    ${result}    No check for external commands executed for 1mn.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    UPDATE services set command_line='toto', next_check=0 where service_id=1 and host_id=1
-    Schedule Forced Svc Check    host_1    service_1
+    Ctn Schedule Forced Svc Check    host_1    service_1
     ${command_param}    Ctn Get Command Service Param    1
     ${result}    Check Service Check With Timeout
     ...    host_1
@@ -1409,6 +1409,6 @@ BEHOSTCHECK
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    UPDATE hosts SET command_line='toto' WHERE name='host_1'
-    Schedule Forced Host Check    host_1
+    Ctn Schedule Forced Host Check    host_1
     ${result}    Check Host Check With Timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl 0
     Should Be True    ${result}    hosts table not updated

@@ -1589,23 +1589,23 @@ def service_ext_commands(hst: str, svc: str, state: int, output: str):
 
 
 @external_command
-def process_host_check_result(hst: str, state: int, output: str):
+def ctn_process_host_check_result(hst: str, state: int, output: str):
     return f"PROCESS_HOST_CHECK_RESULT;{hst};{state};{output}\n"
 
 
 @external_command
-def schedule_service_downtime(hst: str, svc: str, duration: int):
+def ctn_schedule_service_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
     return f"SCHEDULE_SVC_DOWNTIME;{hst};{svc};{now};{now+int(duration)};0;0;{duration};admin;Downtime set by admin\n"
 
 
 @external_command
-def schedule_service_fixed_downtime(hst: str, svc: str, duration: int):
+def ctn_schedule_service_fixed_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
     return f"SCHEDULE_SVC_DOWNTIME;{hst};{svc};{now};{now+int(duration)};1;0;{duration};admin;Downtime set by admin\n"
 
 
-def schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
+def ctn_schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
     now = int(time.time())
     cmd1 = "[{1}] SCHEDULE_HOST_DOWNTIME;{0};{1};{2};1;0;;admin;Downtime set by admin\n".format(
         hst, now, now + duration)
@@ -1618,7 +1618,7 @@ def schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
     f.close()
 
 
-def schedule_host_downtime(poller: int, hst: str, duration: int):
+def ctn_schedule_host_downtime(poller: int, hst: str, duration: int):
     now = int(time.time())
     cmd1 = "[{1}] SCHEDULE_HOST_DOWNTIME;{0};{1};{2};1;0;{3};admin;Downtime set by admin\n".format(
         hst, now, now + duration, duration)
@@ -1631,7 +1631,7 @@ def schedule_host_downtime(poller: int, hst: str, duration: int):
     f.close()
 
 
-def delete_host_downtimes(poller: int, hst: str):
+def ctn_delete_host_downtimes(poller: int, hst: str):
     now = int(time.time())
     cmd = "[{}] DEL_HOST_DOWNTIME_FULL;{};;;;;;;;\n".format(now, hst)
     f = open(
@@ -1640,7 +1640,7 @@ def delete_host_downtimes(poller: int, hst: str):
     f.close()
 
 
-def delete_service_downtime_full(poller: int, hst: str, svc: str):
+def ctn_delete_service_downtime_full(poller: int, hst: str, svc: str):
     now = int(time.time())
     cmd = f"[{now}] DEL_SVC_DOWNTIME_FULL;{hst};{svc};;;;;;;\n"
     f = open(
@@ -1649,7 +1649,7 @@ def delete_service_downtime_full(poller: int, hst: str, svc: str):
     f.close()
 
 
-def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd"):
+def ctn_schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd"):
     now = int(time.time())
     f = open(pipe, "w")
     cmd = "[{2}] SCHEDULE_FORCED_SVC_CHECK;{0};{1};{2}\n".format(
@@ -1659,7 +1659,7 @@ def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/
     time.sleep(0.05)
 
 
-def schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
+def ctn_schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
     now = int(time.time())
     cmd = f"[{now}] SCHEDULE_FORCED_HOST_CHECK;{host};{now}\n"
     with open(pipe, "w") as f:
@@ -1713,7 +1713,6 @@ def engine_config_remove_tag(poller: int, tag_id: int):
     f = open(filename, "w")
     f.writelines(lines)
     f.close()
-
 
 
 def ctn_config_engine_add_cfg_file(poller: int, cfg: str):

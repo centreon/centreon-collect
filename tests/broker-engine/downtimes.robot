@@ -44,9 +44,9 @@ BEDTMASS1
         ${host0}    Catenate    SEPARATOR=    host_    ${i + 1}
         ${host1}    Catenate    SEPARATOR=    host_    ${i + 18}
         ${host2}    Catenate    SEPARATOR=    host_    ${i + 35}
-        Schedule Host Downtime    ${0}    ${host0}    ${3600}
-        Schedule Host Downtime    ${1}    ${host1}    ${3600}
-        Schedule Host Downtime    ${2}    ${host2}    ${3600}
+        Ctn Schedule Host Downtime    ${0}    ${host0}    ${3600}
+        Ctn Schedule Host Downtime    ${1}    ${host1}    ${3600}
+        Ctn Schedule Host Downtime    ${2}    ${host2}    ${3600}
     END
 
     ${result}    Check Number Of Downtimes    ${1050}    ${start}    ${60}
@@ -57,9 +57,9 @@ BEDTMASS1
         ${host0}    Catenate    SEPARATOR=    host_    ${i + 1}
         ${host1}    Catenate    SEPARATOR=    host_    ${i + 18}
         ${host2}    Catenate    SEPARATOR=    host_    ${i + 35}
-        Delete Host Downtimes    ${0}    ${host0}
-        Delete Host Downtimes    ${1}    ${host1}
-        Delete Host Downtimes    ${2}    ${host2}
+        Ctn Delete Host Downtimes    ${0}    ${host0}
+        Ctn Delete Host Downtimes    ${1}    ${host1}
+        Ctn Delete Host Downtimes    ${2}    ${host2}
     END
 
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
@@ -100,9 +100,9 @@ BEDTMASS2
         ${host0}    Catenate    SEPARATOR=    host_    ${i + 1}
         ${host1}    Catenate    SEPARATOR=    host_    ${i + 18}
         ${host2}    Catenate    SEPARATOR=    host_    ${i + 35}
-        Schedule Host Downtime    ${0}    ${host0}    ${3600}
-        Schedule Host Downtime    ${1}    ${host1}    ${3600}
-        Schedule Host Downtime    ${2}    ${host2}    ${3600}
+        Ctn Schedule Host Downtime    ${0}    ${host0}    ${3600}
+        Ctn Schedule Host Downtime    ${1}    ${host1}    ${3600}
+        Ctn Schedule Host Downtime    ${2}    ${host2}    ${3600}
     END
 
     ${result}    Check Number Of Downtimes    ${1050}    ${start}    ${60}
@@ -113,9 +113,9 @@ BEDTMASS2
         ${host0}    Catenate    SEPARATOR=    host_    ${i + 1}
         ${host1}    Catenate    SEPARATOR=    host_    ${i + 18}
         ${host2}    Catenate    SEPARATOR=    host_    ${i + 35}
-        Delete Host Downtimes    ${0}    ${host0}
-        Delete Host Downtimes    ${1}    ${host1}
-        Delete Host Downtimes    ${2}    ${host2}
+        Ctn Delete Host Downtimes    ${0}    ${host0}
+        Ctn Delete Host Downtimes    ${1}    ${host1}
+        Ctn Delete Host Downtimes    ${2}    ${host2}
     END
 
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
@@ -145,7 +145,7 @@ BEDTSVCREN1
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # It's time to schedule a downtime
-    Schedule Service Downtime    host_1    service_1    ${3600}
+    Ctn Schedule Service Downtime    host_1    service_1    ${3600}
 
     ${result}    Check Number Of Downtimes    ${1}    ${start}    ${60}
     Should Be True    ${result}    We should have 1 downtime enabled.
@@ -159,7 +159,7 @@ BEDTSVCREN1
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    Delete Service Downtime Full    ${0}    host_1    toto_1
+    Ctn Delete Service Downtime Full    ${0}    host_1    toto_1
 
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
@@ -188,12 +188,12 @@ BEDTSVCFIXED
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # It's time to schedule a downtime
-    Schedule Service Downtime    host_1    service_1    ${3600}
+    Ctn Schedule Service Downtime    host_1    service_1    ${3600}
 
     ${result}    Check Number Of Downtimes    ${1}    ${start}    ${60}
     Should Be True    ${result}    We should have 1 downtime enabled.
 
-    Delete Service Downtime Full    ${0}    host_1    service_1
+    Ctn Delete Service Downtime Full    ${0}    host_1    service_1
 
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
@@ -223,13 +223,13 @@ BEDTHOSTFIXED
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # It's time to schedule downtimes
-    Schedule Host Fixed Downtime    ${0}    host_1    ${3600}
+    Ctn Schedule Host Fixed Downtime    ${0}    host_1    ${3600}
 
     ${result}    Check Number Of Downtimes    ${21}    ${start}    ${60}
     Should Be True    ${result}    We should have 21 downtimes (1 host + 20 services) enabled.
 
     # It's time to delete downtimes
-    Delete Host Downtimes    ${0}    host_1
+    Ctn Delete Host Downtimes    ${0}    host_1
 
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.

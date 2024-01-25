@@ -32,7 +32,7 @@ ENRSCHE1
     ${content}    Set Variable    Rescheduling next check of host: host_14
 
     # We check a retry check rescheduling
-    Process Host Check Result    host_14    1    host_14 is down
+    Ctn Process Host Check Result    host_14    1    host_14 is down
 
     ${result}    Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    True    240
     Should Be True    ${result}    The delta between last_check and next_check is not equal to 60 as expected for a retry check

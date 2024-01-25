@@ -211,7 +211,7 @@ ANO_DT1
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # create dependent service downtime
-    Schedule Service Fixed Downtime    host_1    service_1    3600
+    Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
 
     ${result}    Check Service Downtime With Timeout    host_1    service_1    1    60
     Should Be True    ${result}    dependent service must be in downtime
@@ -246,7 +246,7 @@ ANO_DT2
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # create dependent service downtime
-    Schedule Service Fixed Downtime    host_1    service_1    3600
+    Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
 
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in downtime
@@ -285,7 +285,7 @@ ANO_DT3
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # create dependent service downtime
-    Schedule Service Fixed Downtime    host_1    service_1    3600
+    Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
 
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in downtime
@@ -325,8 +325,8 @@ ANO_DT4
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # create dependent service downtime
-    Schedule Service Fixed Downtime    host_1    service_1    3600
-    Schedule Service Fixed Downtime    host_1    anomaly_${serv_id}    3600
+    Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
+    Ctn Schedule Service Fixed Downtime    host_1    anomaly_${serv_id}    3600
 
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    2    60
     Should Be True    ${result}    anomaly service must be in double downtime
