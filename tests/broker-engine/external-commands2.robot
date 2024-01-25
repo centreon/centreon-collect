@@ -1290,7 +1290,7 @@ BEATOI23
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}    Get Current Date    result_format=epoch
-    ADD SVC COMMENT    host_1    service_1    0    user    comment
+    Ctn Add Svc Comment    host_1    service_1    0    user    comment
     ${content}    Create List    ADD_SVC_COMMENT
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument persistent_flag must be 0 or 1.

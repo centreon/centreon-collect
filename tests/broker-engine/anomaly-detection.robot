@@ -251,7 +251,7 @@ ANO_DT2
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in downtime
 
-    DELETE SERVICE DOWNTIME    host_1    service_1
+    Ctn Delete Service Downtime    host_1    service_1
     ${result}    Check Service Downtime With Timeout    host_1    service_1    0    60
     Should Be True    ${result}    dependent service must be in downtime
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0    60
@@ -290,7 +290,7 @@ ANO_DT3
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in downtime
 
-    DELETE SERVICE DOWNTIME    host_1    anomaly_${serv_id}
+    Ctn Delete Service Downtime    host_1    anomaly_${serv_id}
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0    60
     Should Be True    ${result}    anomaly service must be in downtime
 
@@ -331,7 +331,7 @@ ANO_DT4
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    2    60
     Should Be True    ${result}    anomaly service must be in double downtime
 
-    DELETE SERVICE DOWNTIME    host_1    service_1
+    Ctn Delete Service Downtime    host_1    service_1
     ${result}    Check Service Downtime With Timeout    host_1    service_1    0    60
     Should Be True    ${result}    dependent service mustn t be in downtime
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60

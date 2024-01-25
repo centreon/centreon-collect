@@ -2244,7 +2244,7 @@ def ctn_config_host_command_status(idx: int, cmd_name: str, status: int):
         f.writelines(lines)
 
 
-def add_host_dependency(idx: int, host_name:str, dependent_host_name:str):
+def ctn_add_host_dependency(idx: int, host_name:str, dependent_host_name:str):
     """!
     add a host dependency in dependencies.cfg file
     @param idx index ofthe poller usually 0
@@ -2264,7 +2264,7 @@ define hostdependency {{
 }}
 """)
         
-def add_service_dependency(idx: int, host_name:str, dependent_host_name:str, service:str, dependent_service:str):
+def ctn_add_service_dependency(idx: int, host_name:str, dependent_host_name:str, service:str, dependent_service:str):
     """!
     add a host dependency in dependencies.cfg file
     @param idx index ofthe poller usually 0

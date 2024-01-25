@@ -389,7 +389,7 @@ Services_and_bulks_${id}
     Ctn Config Engine    ${1}    ${1}    ${1}
     # We want all the services to be passive to avoid parasite checks during our test.
     ${random_string}    Generate Random String    ${metric_num_char}    [LOWER]
-    Set Services passive    ${0}    service_.*
+    Ctn Set Services Passive    ${0}    service_.*
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
