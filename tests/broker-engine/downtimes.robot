@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Clean Downtimes Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
-Test Teardown       Save Logs If Failed
+Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***

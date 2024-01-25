@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
-Test Teardown       Save Logs If Failed
+Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -125,7 +125,7 @@ VICT_ONE_CHECK_STATUS
 
     # service warning
     ${start}    Get Round Current Date
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    1
@@ -159,7 +159,7 @@ VICT_ONE_CHECK_STATUS
     # service critical
 
     ${start}    Get Round Current Date
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    2

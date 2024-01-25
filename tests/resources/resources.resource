@@ -88,15 +88,15 @@ Ctn Kindly Stop Broker
     ${result}    Wait For Process    b1    timeout=60s
     # In case of process not stopping
     IF    "${result}" == "${None}"
-        Save Logs
+        Ctn Save Logs
         Dump Process    b1    /usr/sbin/cbd    broker-central
         Send Signal To Process    SIGKILL    b1
         Fail    Central Broker not correctly stopped (coredump generated)
     ELSE
         IF    ${result.rc} != 0
-            Save Logs
+            Ctn Save Logs
             # Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
-            Coredump Info    b1    /usr/sbin/cbd    broker_central
+            Ctn Coredump Info    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
         END
     END
@@ -105,15 +105,15 @@ Ctn Kindly Stop Broker
         ${result}    Wait For Process    b2    timeout=60s    on_timeout=kill
         # In case of process not stopping
         IF    "${result}" == "${None}"
-            Save Logs
+            Ctn Save Logs
             Dump Process    b2    /usr/sbin/cbd    broker-rrd
             Send Signal To Process    SIGKILL    b2
             Fail    RRD Broker not correctly stopped (coredump generated)
         ELSE
             IF    ${result.rc} != 0
-                Save Logs
+                Ctn Save Logs
                 # Copy Coredump In Failed Dir    b2    /usr/sbin/cbd    broker_rrd
-                Coredump Info    b2    /usr/sbin/cbd    broker_rrd
+                Ctn Coredump Info    b2    /usr/sbin/cbd    broker_rrd
                 Should Be Equal As Integers    ${result.rc}    0    RRD Broker not correctly stopped
             END
         END
@@ -182,7 +182,7 @@ Ctn Stop Engine
         ELSE
             IF    ${result.rc} != 0 and ${result.rc} != -15
                 # Copy Coredump In Failed Dir    ${alias}    /usr/sbin/centengine    ${alias}
-                Coredump Info    ${alias}    /usr/sbin/centengine    ${alias}
+                Ctn Coredump Info    ${alias}    /usr/sbin/centengine    ${alias}
             END
             Should Be True
             ...    ${result.rc} == -15 or ${result.rc} == 0
@@ -202,7 +202,7 @@ Ctn Stop Engine Broker And Save Logs
     EXCEPT
         Log    Can't kindly stop Broker
     END
-    Save Logs If Failed
+    Ctn Save Logs If Failed
 
 Ctn Get Engine Pid
     [Arguments]    ${process_alias}
@@ -231,20 +231,20 @@ Ctn Check Connections
     ${retval}    Check Connection    5670    ${pid1}    ${pid2}
     RETURN    ${retval}
 
-Disable Eth Connection On Port
+Ctn Disable Eth Connection On Port
     [Arguments]    ${port}
     RUN    iptables -A INPUT -p tcp --dport ${port} -j DROP
     RUN    iptables -A OUTPUT -p tcp --dport ${port} -j DROP
     RUN    iptables -A FORWARD -p tcp --dport ${port} -j DROP
 
-Reset Eth Connection
+Ctn Reset Eth Connection
     Run    iptables -F
     Run    iptables -X
 
-Save Logs If Failed
-    Run Keyword If Test Failed    Save Logs
+Ctn Save Logs If Failed
+    Run Keyword If Test Failed    Ctn Save Logs
 
-Save Logs
+Ctn Save Logs
     Create Directory    failed
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}
@@ -278,7 +278,7 @@ Dump Process
         Log To Console    Done...
     END
 
-Coredump Info
+Ctn Coredump Info
     [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${pid}    Get Process Id    ${process_name}
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
@@ -325,7 +325,7 @@ Clear Metrics
 Dump Ba On Error
     [Arguments]    ${result}    ${ba_id}
     IF    not ${result}
-        Save Logs
+        Ctn Save Logs
         Dump Ba    51001    ${ba_id}    failed/${Test Name}/ba_${ba_id}.dot
     END
 

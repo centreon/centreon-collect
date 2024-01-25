@@ -54,9 +54,9 @@ NetworkDBFail6
     ${content}    Create List    run query: SELECT
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    No SELECT done by broker in the DB
-    Disable Eth Connection On Port    port=3306
+    Ctn Disable Eth Connection On Port    port=3306
     Sleep    1m
-    Reset Eth Connection
+    Ctn Reset Eth Connection
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Ctn Stop Engine
@@ -65,7 +65,7 @@ NetworkDBFail6
 NetworkDBFailU6
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
     [Tags]    broker    database    network    unified_sql    unstable
-    Reset Eth Connection
+    Ctn Reset Eth Connection
     Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
@@ -82,11 +82,11 @@ NetworkDBFailU6
     ${content}    Create List    run query: SELECT
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    No SELECT done by broker in the DB
-    Disable Eth Connection On Port    port=3306
+    Ctn Disable Eth Connection On Port    port=3306
     Log To Console    Waiting for 1m while the connection to the DB is cut.
     Sleep    1m
     Log To Console    Reestablishing the connection and test last steps.
-    Reset Eth Connection
+    Ctn Reset Eth Connection
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Ctn Stop Engine
@@ -97,7 +97,7 @@ NetworkDBFail7
     [Tags]    broker    database    network
     Ctn Config Engine    ${1}
     Config Broker    central
-    Reset Eth Connection
+    Ctn Reset Eth Connection
     Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
     Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
@@ -114,9 +114,9 @@ NetworkDBFail7
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    No SELECT done by broker in the DB
     FOR    ${i}    IN    0    5
-        Disable Eth Connection On Port    port=3306
+        Ctn Disable Eth Connection On Port    port=3306
         Sleep    10s
-        Reset Eth Connection
+        Ctn Reset Eth Connection
         Sleep    10s
     END
     ${content}    Create List    0 events acknowledged
@@ -128,7 +128,7 @@ NetworkDBFail7
 NetworkDBFailU7
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
     [Tags]    broker    database    network    unified_sql
-    Reset Eth Connection
+    Ctn Reset Eth Connection
     Ctn Config Engine    ${1}
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
@@ -146,9 +146,9 @@ NetworkDBFailU7
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    No SELECT done by broker in the DB
     FOR    ${i}    IN    0    5
-        Disable Eth Connection On Port    port=3306
+        Ctn Disable Eth Connection On Port    port=3306
         Sleep    10s
-        Reset Eth Connection
+        Ctn Reset Eth Connection
         Sleep    10s
     END
     ${content}    Create List    0 events acknowledged
@@ -161,13 +161,13 @@ NetworkDBFailU7
 *** Keywords ***
 Disable Sleep Enable
     [Arguments]    ${interval}
-    Disable Eth Connection On Port    port=3306
+    Ctn Disable Eth Connection On Port    port=3306
     Sleep    ${interval}
-    Reset Eth Connection
+    Ctn Reset Eth Connection
 
 Network Failure
     [Arguments]    ${interval}
-    Reset Eth Connection
+    Ctn Reset Eth Connection
     Ctn Config Engine    ${1}
     Config Broker    module
     Config Broker    rrd

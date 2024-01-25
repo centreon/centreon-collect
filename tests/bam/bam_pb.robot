@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          BAM Setup
-Test Teardown       Save Logs If Failed
+Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -27,7 +27,7 @@ BAWORST
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
-    Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     ${result}    Check Ba Output With Timeout
@@ -37,14 +37,14 @@ BAWORST
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to unknown
-    Process Service Result Hard    host_16    service_303    3    output unknown for 303
+    Ctn Process Service Result Hard    host_16    service_303    3    output unknown for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    3    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not UNKNOWN as expected
 
     # The BA should become unknown
     ${result}    Check Ba Status With Timeout    test    3    60
-    Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not UNKNOWN as expected
 
     ${result}    Check Ba Output With Timeout
@@ -54,14 +54,14 @@ BAWORST
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to warning
-    Process Service Result Hard    host_16    service_303    1    output warning for 303
+    Ctn Process Service Result Hard    host_16    service_303    1    output warning for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
 
     # The BA should become warning
     ${result}    Check Ba Status With Timeout    test    1    60
-    Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
 
     ${result}    Check Ba Output With Timeout
@@ -71,14 +71,14 @@ BAWORST
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to critical
-    Process Service Result Hard    host_16    service_314    2    output critical for 314
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
 
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
     ${result}    Check Ba Status With Timeout    test    2    60
-    Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -128,7 +128,7 @@ BAWORST2
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -137,7 +137,7 @@ BAWORST2
     Should Be True    ${result}    The BA test has not the expected output
 
     # boolean critical => ba test critical
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
@@ -146,7 +146,7 @@ BAWORST2
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
     Sleep    2s
     ${result}    Check Ba Status With Timeout    test    2    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -155,7 +155,7 @@ BAWORST2
     Should Be True    ${result}    The BA test has not the expected output
 
     # child ba critical
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    2
@@ -164,10 +164,10 @@ BAWORST2
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
     Sleep    2s
     ${result}    Check Ba Status With Timeout    test_child    2    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test_child is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -176,7 +176,7 @@ BAWORST2
     Should Be True    ${result}    The BA test has not the expected output
 
     # boolean rule ok stay in critical
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    0
@@ -185,7 +185,7 @@ BAWORST2
     Should Be True    ${result}    The service (host_16,service_302) is not OK as expected
     Sleep    2s
     ${result}    Check Ba Status With Timeout    test    2    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -215,7 +215,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
-    Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     ${result}    Check Ba Output With Timeout
@@ -225,7 +225,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to critical
-    Process Service Result Hard    host_16    service_314    2    output critical for 314
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
 
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
@@ -233,7 +233,7 @@ BABEST_SERVICE_CRITICAL
     # The BA should remain OK
     Sleep    2s
     ${result}    Check Ba Status With Timeout    test    0    60
-    Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -242,14 +242,14 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to unknown
-    Process Service Result Hard    host_16    service_303    3    output unknown for 303
+    Ctn Process Service Result Hard    host_16    service_303    3    output unknown for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    3    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not UNKNOWN as expected
 
     # The BA should become warning
     ${result}    Check Ba Status With Timeout    test    3    60
-    Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not UNKNOWN as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -258,14 +258,14 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to warning
-    Process Service Result Hard    host_16    service_303    1    output warning for 303
+    Ctn Process Service Result Hard    host_16    service_303    1    output warning for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
 
     # The BA should become warning
     ${result}    Check Ba Status With Timeout    test    1    60
-    Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -274,14 +274,14 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to critical
-    Process Service Result Hard    host_16    service_303    2    output critical for 303
+    Ctn Process Service Result Hard    host_16    service_303    2    output critical for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
 
     # The BA should become critical
     ${result}    Check Ba Status With Timeout    test    2    60
-    Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -297,7 +297,7 @@ BABEST_SERVICE_CRITICAL
 
     # The BA should become OK
     ${result}    Check Ba Status With Timeout    test    0    60
-    Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
@@ -320,11 +320,11 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # service_302 critical service_303 warning => ba warning 30%
-    Process Service Result Hard    host_16    service_302    2    output critical for service_302
+    Ctn Process Service Result Hard    host_16    service_302    2    output critical for service_302
     ${result}    Check Service Status With Timeout    host_16    service_302    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    0    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -332,11 +332,11 @@ BA_IMPACT_2KPI_SERVICES
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
-    Process Service Result Hard    host_16    service_303    1    output warning for service_303
+    Ctn Process Service Result Hard    host_16    service_303    1    output warning for service_303
     ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
     ${result}    Check Ba Status With Timeout    test    1    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA ba_1 is not WARNING as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -345,12 +345,12 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test has not the expected output
 
     # service_302 critical service_303 critical => ba critical 80%
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -358,7 +358,7 @@ BA_IMPACT_2KPI_SERVICES
     ${result}    Check Service Status With Timeout    host_16    service_303    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -371,7 +371,7 @@ BA_IMPACT_2KPI_SERVICES
     ${result}    Check Service Status With Timeout    host_16    service_302    0    60    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA ba_1 is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -380,12 +380,12 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test has not the expected output
 
     # both warning => ba ok
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    1
     ...    output warning for service_302
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    1
@@ -395,7 +395,7 @@ BA_IMPACT_2KPI_SERVICES
     ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
     ${result}    Check Ba Status With Timeout    test    0    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -427,7 +427,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -436,7 +436,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # one serv critical => ba ok
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
@@ -445,7 +445,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
     Sleep    2s
     ${result}    Check Ba Status With Timeout    test    0    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -454,12 +454,12 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # two serv critical => ba warning
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -469,7 +469,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    1    30
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -478,17 +478,17 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # two serv critical and child ba critical => mother ba critical
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
     ...    output critical for service_303
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    2
@@ -496,10 +496,10 @@ BA_RATIO_PERCENT_BA_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_314    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test_child    2    30
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test_child is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    30
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -531,7 +531,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -540,7 +540,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # One service CRITICAL => The BA is still OK
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
@@ -549,7 +549,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
 
     ${result}    Check Ba Status With Timeout    test    0    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     ${result}    Check Ba Output With Timeout
@@ -559,12 +559,12 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # Two services CRITICAL => The BA passes to WARNING
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -574,7 +574,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    1    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The test BA is not in WARNING as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -583,17 +583,17 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # Two services CRITICAL and also the child BA => The mother BA passes to CRITICAL
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
     ...    output critical for service_303
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    2
@@ -605,10 +605,10 @@ BA_RATIO_NUMBER_BA_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_314    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test_child    2    30
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test_child is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -639,12 +639,12 @@ BA_BOOL_KPI
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # 302 warning and 303 critical    => ba critical
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    1
     ...    output warning for service_302
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -659,7 +659,7 @@ BA_BOOL_KPI
 
 #    Schedule Forced Svc Check    _Module_BAM_1    ba_1
     ${result}    Check Ba Status With Timeout    test    2    30
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
@@ -843,7 +843,7 @@ BEPB_KPI_STATUS
     ${start}    Get Current Date    result_format=epoch
 
     # KPI set to critical
-    Process Service Result Hard    host_16    service_314    2    output critical for 314
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
@@ -886,7 +886,7 @@ BEPB_BA_DURATION_EVENT
     # KPI set to critical
     # as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
     ${start_event}    Get Round Current Date
-    Process Service Result Hard    host_16    service_314    2    output critical for 314
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
     Sleep    2s
@@ -996,11 +996,11 @@ BA_RATIO_NUMBER_BA_4_SERVICE
 
     # all serv ok => ba ok
     ${result}    Check Ba Status With Timeout    test    0    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     # one serv critical => ba warning
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
@@ -1008,11 +1008,11 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_302    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    1    30
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
 
     # two services critical => ba ok
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -1020,7 +1020,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    30
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     # all serv ok => ba ok
@@ -1031,7 +1031,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    30
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
@@ -1057,11 +1057,11 @@ BA_RATIO_PERCENT_BA_4_SERVICE
 
     # all serv ok => ba ok
     ${result}    Check Ba Status With Timeout    test    0    60
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     # one serv critical => ba warning
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
@@ -1069,11 +1069,11 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_302    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    1    30
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
 
     # two services critical => ba ok
-    Process Service Result Hard
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -1081,7 +1081,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    30
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     # all serv ok => ba ok
@@ -1092,7 +1092,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    30
-    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker

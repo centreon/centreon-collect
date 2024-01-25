@@ -178,7 +178,7 @@ EBBPS2
 EBMSSM
     [Documentation]    1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. GetSqlManagerStats is called to measure writes into data_bin.
     [Tags]    broker    engine    services    unified_sql    benchmark
-    Clear Metrics
+    Ctn Clear Metrics
     Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
@@ -224,7 +224,7 @@ EBMSSM
 EBPS2
     [Documentation]    1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
     [Tags]    broker    engine    services    unified_sql    benchmark
-    Clear Metrics
+    Ctn Clear Metrics
     Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
@@ -385,7 +385,7 @@ metric_mapping
 Services_and_bulks_${id}
     [Documentation]    One service is configured with one metric with a name of 150 to 1021 characters.
     [Tags]    broker    engine    services    unified_sql    benchmark
-    Clear Metrics
+    Ctn Clear Metrics
     Ctn Config Engine    ${1}    ${1}    ${1}
     # We want all the services to be passive to avoid parasite checks during our test.
     ${random_string}    Generate Random String    ${metric_num_char}    [LOWER]
@@ -443,4 +443,4 @@ Services_and_bulks_${id}
 Test Clean
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-    Save Logs If Failed
+    Ctn Save Logs If Failed

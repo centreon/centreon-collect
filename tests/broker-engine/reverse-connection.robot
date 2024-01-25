@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
-Test Teardown       Save Logs If Failed
+Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -152,7 +152,7 @@ BRCTSMN
 BRCTSMNS
     [Documentation]    Broker connected to map with neb and storage filters
     [Tags]    broker    map    reverse connection
-    Clear Metrics
+    Ctn Clear Metrics
     Ctn Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central_map
