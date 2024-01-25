@@ -24,7 +24,7 @@ EBNHG1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
     Ctn Reload Broker
@@ -52,7 +52,7 @@ EBNHGU1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
     Ctn Reload Broker
@@ -81,7 +81,7 @@ EBNHGU2
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
     Ctn Reload Broker
@@ -111,10 +111,10 @@ EBNHGU3
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
-    Add Host Group    ${1}    ${1}    ["host_21", "host_22", "host_23"]
-    Add Host Group    ${2}    ${1}    ["host_31", "host_32", "host_33"]
-    Add Host Group    ${3}    ${1}    ["host_41", "host_42", "host_43"]
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
+    Ctn Add Host Group    ${1}    ${1}    ["host_21", "host_22", "host_23"]
+    Ctn Add Host Group    ${2}    ${1}    ["host_31", "host_32", "host_33"]
+    Ctn Add Host Group    ${3}    ${1}    ["host_41", "host_42", "host_43"]
 
     Sleep    3s
     Ctn Reload Broker
@@ -146,7 +146,7 @@ EBNHG4
     Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
-    Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Ctn Reload Broker
     Ctn Reload Engine
@@ -204,7 +204,7 @@ EBNHGU4_${test_label}
     Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
-    Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Ctn Reload Broker
     Ctn Reload Engine

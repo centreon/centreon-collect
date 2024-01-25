@@ -916,7 +916,7 @@ def ctn_set_value_in_engine_escalations_conf(idx: int, desc: str, key: str, valu
         ff.writelines(lines)
 
 
-def ctn_engine_config_remove_service_host(idx: int, host: str):
+def ctn_remove_service_host_from_engine_conf(idx: int, host: str):
     filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
     f = open(filename, "r")
     lines = f.readlines()
@@ -947,7 +947,7 @@ def ctn_engine_config_remove_service_host(idx: int, host: str):
     f.close()
 
 
-def engine_config_remove_host(idx: int, host: str):
+def ctn_remove_host_from_engine_conf(idx: int, host: str):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
@@ -978,7 +978,7 @@ def engine_config_remove_host(idx: int, host: str):
     f.close()
 
 
-def add_host_group(index: int, id_host_group: int, members: list):
+def ctn_add_host_group(index: int, id_host_group: int, members: list):
     mbs = [l for l in members if l in engine.hosts]
     f = open(ETC_ROOT + "/centreon-engine/config{}/hostgroups.cfg".format(index), "a+")
     logger.console(mbs)
