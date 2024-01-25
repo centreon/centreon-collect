@@ -28,7 +28,7 @@ BEBAMIDTU1
     Ctn Create Ba With Services    test    worst    ${svc}
     Add Bam Config To Broker    central
     # Command of service_314 is set to critical
-    ${cmd_1}    Get Command Id    314
+    ${cmd_1}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    2
     Ctn Start Broker
@@ -89,7 +89,7 @@ BEBAMIDTU2
     Ctn Create Ba With Services    test    worst    ${svc}
     Add Bam Config To Broker    central
     # Command of service_314 is set to critical
-    ${cmd_1}    Get Command Id    314
+    ${cmd_1}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    2
     Ctn Start Broker
@@ -183,12 +183,12 @@ BEBAMIGNDTU1
     Add Bam Config To Broker    central
 
     # Command of service_313 is set to ok
-    ${cmd_1}    Get Command Id    313
+    ${cmd_1}    Ctn Get Command Id    313
     Log To Console    service_313 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    0
 
     # Command of service_314 is set to critical
-    ${cmd_2}    Get Command Id    314
+    ${cmd_2}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_2}
     Set Command Status    ${cmd_2}    2
 
@@ -287,10 +287,10 @@ BEBAMIGNDTU2
     Ctn Create Ba With Services    test    worst    ${svc}    ignore
     Add Bam Config To Broker    central
     # Command of service_314 is set to critical
-    ${cmd_1}    Get Command Id    313
+    ${cmd_1}    Ctn Get Command Id    313
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    0
-    ${cmd_2}    Get Command Id    314
+    ${cmd_2}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_2}
     Set Command Status    ${cmd_2}    2
     Ctn Start Broker

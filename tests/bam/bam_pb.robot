@@ -203,7 +203,7 @@ BABEST_SERVICE_CRITICAL
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
     ${ba__svc}    Ctn Create Ba With Services    test    best    ${svc}
     # Command of service_314 is set to critical
-    ${cmd_1}    Get Command Id    314
+    ${cmd_1}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    2
     Ctn Start Broker
