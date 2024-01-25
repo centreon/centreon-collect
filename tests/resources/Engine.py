@@ -1142,7 +1142,7 @@ def ctn_add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_i
     return dbconf.ctn_add_boolean_kpi(id_ba, expression, impact_if, critical_impact)
 
 
-def update_boolean_rule(boolean_id: int, expression: str):
+def ctn_update_boolean_rule(boolean_id: int, expression: str):
     dbconf.ctn_update_boolean_rule(boolean_id, expression)
 
 

@@ -232,7 +232,7 @@ BABOOORREL
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    Update Boolean Rule
+    Ctn Update Boolean Rule
     ...    ${id_bool}
     ...    {host_16 service_302} {IS} {OK} {OR} {host_16 service_304} {IS} {OK}
 
@@ -251,7 +251,7 @@ BABOOORREL
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
-    Update Boolean Rule
+    Ctn Update Boolean Rule
     ...    ${id_bool}
     ...    {host_16 service_302} {IS} {OK} {OR} {host_16 service_303} {IS} {OK}
 
