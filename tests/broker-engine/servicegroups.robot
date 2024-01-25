@@ -159,9 +159,9 @@ EBNSGU3_${test_label}
 
     Should Be True    len("""${grep_result}""") > 10    servicegroup_1 not found in /tmp/lua-engine.log
 
-    Rename Service Group    ${0}    servicegroup_1    servicegroup_test
-    Rename Service Group    ${1}    servicegroup_1    servicegroup_test
-    Rename Service Group    ${2}    servicegroup_1    servicegroup_test
+    Ctn Rename Service Group    ${0}    servicegroup_1    servicegroup_test
+    Ctn Rename Service Group    ${1}    servicegroup_1    servicegroup_test
+    Ctn Rename Service Group    ${2}    servicegroup_1    servicegroup_test
 
     Ctn Reload Engine
     Ctn Reload Broker

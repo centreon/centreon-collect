@@ -986,7 +986,7 @@ def ctn_add_host_group(index: int, id_host_group: int, members: list):
     f.close()
 
 
-def rename_host_group(index: int, id_host_group: int, name: str, members: list):
+def ctn_rename_host_group(index: int, id_host_group: int, name: str, members: list):
     mbs = [l for l in members if l in engine.hosts]
     f = open(ETC_ROOT + "/centreon-engine/config{}/hostgroups.cfg".format(index), "w")
     logger.console(mbs)
@@ -1000,7 +1000,7 @@ def rename_host_group(index: int, id_host_group: int, name: str, members: list):
     f.close()
 
 
-def rename_service(index: int, hst: str, svc: str, new_svc: str):
+def ctn_rename_service(index: int, hst: str, svc: str, new_svc: str):
     f = open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "r")
     ll = f.readlines()
     f.close()
@@ -1048,7 +1048,7 @@ def add_service_group(index: int, id_service_group: int, members: list):
     f.close()
 
 
-def rename_service_group(index: int, old_servicegroup_name: str, new_service_group_name: str):
+def ctn_rename_service_group(index: int, old_servicegroup_name: str, new_service_group_name: str):
     """!
         rename a service group
         @param index index of the poller

@@ -151,7 +151,7 @@ BEDTSVCREN1
     Should Be True    ${result}    We should have 1 downtime enabled.
 
     # Let's rename the service service_1
-    Rename Service    ${0}    host_1    service_1    toto_1
+    Ctn Rename Service    ${0}    host_1    service_1    toto_1
 
     Ctn Reload Engine
     # Let's wait for the check of external commands

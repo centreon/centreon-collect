@@ -158,7 +158,7 @@ EBNHG4
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
 
-    Rename Host Group    ${0}    ${1}    test    ["host_1", "host_2", "host_3"]
+    Ctn Rename Host Group    ${0}    ${1}    test    ["host_1", "host_2", "host_3"]
 
     Sleep    10s
     ${start}    Get Current Date
@@ -240,7 +240,7 @@ EBNHGU4_${test_label}
 
     Should Be True    len("""${grep_result}""") > 10    hostgroup_1 not found in /tmp/lua-engine.log
 
-    Rename Host Group    ${0}    ${1}    test    ["host_1", "host_2", "host_3"]
+    Ctn Rename Host Group    ${0}    ${1}    test    ["host_1", "host_2", "host_3"]
 
     Sleep    10s
     Ctn Reload Engine
