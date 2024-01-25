@@ -25,7 +25,7 @@ BEBAMIDTU1
     Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}
+    Ctn Create Ba With Services    test    worst    ${svc}
     Add Bam Config To Broker    central
     # Command of service_314 is set to critical
     ${cmd_1}    Get Command Id    314
@@ -86,7 +86,7 @@ BEBAMIDTU2
     Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}
+    Ctn Create Ba With Services    test    worst    ${svc}
     Add Bam Config To Broker    central
     # Command of service_314 is set to critical
     ${cmd_1}    Get Command Id    314
@@ -179,7 +179,7 @@ BEBAMIGNDTU1
     Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}    ignore
+    Ctn Create Ba With Services    test    worst    ${svc}    ignore
     Add Bam Config To Broker    central
 
     # Command of service_313 is set to ok
@@ -284,7 +284,7 @@ BEBAMIGNDTU2
     Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}    ignore
+    Ctn Create Ba With Services    test    worst    ${svc}    ignore
     Add Bam Config To Broker    central
     # Command of service_314 is set to critical
     ${cmd_1}    Get Command Id    313

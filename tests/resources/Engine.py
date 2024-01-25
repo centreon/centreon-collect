@@ -1117,25 +1117,25 @@ def engine_log_duplicate(result: list):
     return dup
 
 
-def clone_engine_config_to_db():
+def ctn_clone_engine_config_to_db():
     global dbconf
     dbconf = db_conf.DbConf(engine)
     dbconf.create_conf_db()
 
 
-def add_bam_config_to_engine():
+def ctn_add_bam_config_to_engine():
     global dbconf
     dbconf.init_bam()
 
 
-def create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inherit"):
+def ctn_create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inherit"):
     global dbconf
-    return dbconf.create_ba_with_services(name, typ, svc, dt_policy)
+    return dbconf.ctn_create_ba_with_services(name, typ, svc, dt_policy)
 
 
-def create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit"):
+def ctn_create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit"):
     global dbconf
-    return dbconf.create_ba(name, typ, critical_impact, warning_impact, dt_policy)
+    return dbconf.ctn_create_ba(name, typ, critical_impact, warning_impact, dt_policy)
 
 
 def add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):

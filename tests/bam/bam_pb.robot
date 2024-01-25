@@ -16,7 +16,7 @@ BAWORST
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
-    ${ba__svc}    Create Ba With Services    test    worst    ${svc}
+    ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
     Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
@@ -107,7 +107,7 @@ BAWORST2
     [Tags]    broker    engine    bam
     BAM Init
 
-    ${id_ba__sid}    Create Ba    test    worst    100    100
+    ${id_ba__sid}    Ctn Create Ba    test    worst    100    100
     Add Boolean Kpi
     ...    ${id_ba__sid[0]}
     ...    {host_16 service_302} {IS} {OK}
@@ -116,7 +116,7 @@ BAWORST2
 
     # ba kpi
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    ${id_ba__sid__child}    Create Ba With Services    test_child    worst    ${svc}
+    ${id_ba__sid__child}    Ctn Create Ba With Services    test_child    worst    ${svc}
     Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
@@ -201,7 +201,7 @@ BABEST_SERVICE_CRITICAL
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
-    ${ba__svc}    Create Ba With Services    test    best    ${svc}
+    ${ba__svc}    Ctn Create Ba With Services    test    best    ${svc}
     # Command of service_314 is set to critical
     ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
@@ -307,7 +307,7 @@ BA_IMPACT_2KPI_SERVICES
     [Tags]    broker    engine    bam
     BAM Init
 
-    ${id_ba__sid}    Create Ba    test    impact    20    35
+    ${id_ba__sid}    Ctn Create Ba    test    impact    20    35
     Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
     Add Service KPI    host_16    service_303    ${id_ba__sid[0]}    40    30    20
 
@@ -410,12 +410,12 @@ BA_RATIO_PERCENT_BA_SERVICE
     [Tags]    broker    engine    bam
     BAM Init
 
-    ${id_ba__sid}    Create Ba    test    ratio_percent    67    49
+    ${id_ba__sid}    Ctn Create Ba    test    ratio_percent    67    49
     Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
     Add Service KPI    host_16    service_303    ${id_ba__sid[0]}    40    30    20
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    ${id_ba__sid__child}    Create Ba With Services    test_child    worst    ${svc}
+    ${id_ba__sid__child}    Ctn Create Ba With Services    test_child    worst    ${svc}
     Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
@@ -514,12 +514,12 @@ BA_RATIO_NUMBER_BA_SERVICE
     [Tags]    broker    engine    bam
     BAM Init
 
-    ${id_ba__sid}    Create Ba    test    ratio_number    3    2
+    ${id_ba__sid}    Ctn Create Ba    test    ratio_number    3    2
     Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
     Add Service KPI    host_16    service_303    ${id_ba__sid[0]}    40    30    20
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    ${id_ba__sid__child}    Create Ba With Services    test_child    worst    ${svc}
+    ${id_ba__sid__child}    Ctn Create Ba With Services    test_child    worst    ${svc}
     Add BA KPI    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
@@ -623,7 +623,7 @@ BA_BOOL_KPI
     [Tags]    broker    engine    bam
     BAM Init
 
-    ${id_ba__sid}    Create Ba    test    worst    100    100
+    ${id_ba__sid}    Ctn Create Ba    test    worst    100    100
     Add Boolean Kpi
     ...    ${id_ba__sid[0]}
     ...    {host_16 service_302} {IS} {OK} {OR} ( {host_16 service_303} {IS} {OK} {AND} {host_16 service_314} {NOT} {UNKNOWN} )
@@ -669,7 +669,7 @@ BEPB_DIMENSION_BV_EVENT
     [Tags]    broker    engine    protobuf    bam    bbdo
     BAM Init
 
-    ${id_ba__sid}    Create Ba    test    worst    100    100
+    ${id_ba__sid}    Ctn Create Ba    test    worst    100    100
 
     Remove File    /tmp/all_lua_event.log
 
@@ -703,7 +703,7 @@ BEPB_DIMENSION_BA_EVENT
     Remove File    /tmp/all_lua_event.log
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    ${id_ba__sid}    Create Ba With Services    test    worst    ${svc}
+    ${id_ba__sid}    Ctn Create Ba With Services    test    worst    ${svc}
 
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
@@ -737,7 +737,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     Clear Db    mod_bam_reporting_relations_ba_bv
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
 
-    ${id_ba__sid}    Create Ba With Services    test    worst    ${svc}
+    ${id_ba__sid}    Ctn Create Ba With Services    test    worst    ${svc}
 
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
@@ -771,7 +771,7 @@ BEPB_DIMENSION_TIMEPERIOD
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    ${id_ba__sid}    Create Ba With Services    test    worst    ${svc}
+    ${id_ba__sid}    Ctn Create Ba With Services    test    worst    ${svc}
 
     Remove File    /tmp/all_lua_event.log
 
@@ -802,7 +802,7 @@ BEPB_DIMENSION_KPI_EVENT
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    ${baid_svcid}    Create Ba With Services    test    worst    ${svc}
+    ${baid_svcid}    Ctn Create Ba With Services    test    worst    ${svc}
 
     Add Boolean Kpi    ${baid_svcid[0]}    {host_16 service_302} {IS} {OK}    False    100
 
@@ -835,7 +835,7 @@ BEPB_KPI_STATUS
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}
+    Ctn Create Ba With Services    test    worst    ${svc}
 
     Ctn Start Broker    True
     Ctn Start Engine
@@ -870,7 +870,7 @@ BEPB_BA_DURATION_EVENT
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}
+    Ctn Create Ba With Services    test    worst    ${svc}
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String
@@ -918,7 +918,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}
+    Ctn Create Ba With Services    test    worst    ${svc}
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String
@@ -949,7 +949,7 @@ BEPB_DIMENSION_TRUNCATE_TABLE
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}
+    Ctn Create Ba With Services    test    worst    ${svc}
 
     Remove File    /tmp/all_lua_event.log
     Broker Config Log    central    lua    trace
@@ -980,7 +980,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     [Tags]    broker    engine    bam
     BAM Init
 
-    ${id_ba__sid}    Create Ba    test    ratio_number    2    1
+    ${id_ba__sid}    Ctn Create Ba    test    ratio_number    2    1
     Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
     Add Service KPI    host_16    service_303    ${id_ba__sid[0]}    40    30    20
     Add Service KPI    host_16    service_304    ${id_ba__sid[0]}    40    30    20
@@ -1041,7 +1041,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     [Tags]    broker    engine    bam
     BAM Init
 
-    ${id_ba__sid}    Create Ba    test    ratio_percent    50    25
+    ${id_ba__sid}    Ctn Create Ba    test    ratio_percent    50    25
     Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
     Add Service KPI    host_16    service_303    ${id_ba__sid[0]}    40    30    20
     Add Service KPI    host_16    service_304    ${id_ba__sid[0]}    40    30    20
