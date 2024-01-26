@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <filesystem>
 
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -45,7 +46,8 @@ using namespace com::centreon::broker::rrd;
  */
 creator::creator(std::string const& tmpl_path, uint32_t cache_size)
     : _cache_size(cache_size), _tmpl_path(tmpl_path) {
-  log_v2::rrd()->debug(
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::rrd(),
       "RRD: file creator will maintain at most {} templates in '{}'",
       _cache_size, _tmpl_path);
 }
@@ -108,48 +110,51 @@ void creator::create(std::string const& filename,
     // Is in the cache, just duplicate file.
     if (it != _fds.end())
       _duplicate(filename, it->second);
-    // Not in the cache, but we have enough space in the cache.
-    // Create new entry.
-    else if (_fds.size() < _cache_size) {
-      std::string tmpl_filename(fmt::format("{}/tmpl_{}_{}_{}.rrd", _tmpl_path,
-                                            length, step, value_type));
+    SPDLOG_LOGGER_DEBUG(log_v2::rrd(), "reuse {} for {}", it->second.path,
+                        filename);
+  }
+  // Not in the cache, but we have enough space in the cache.
+  // Create new entry.
+  else if (_fds.size() < _cache_size) {
+    std::string tmpl_filename(fmt::format("{}/tmpl_{}_{}_{}.rrd", _tmpl_path,
+                                          length, step, value_type));
 
-      // Create new template.
-      _open(tmpl_filename, length, from, step, value_type);
+    // Create new template.
+    _open(tmpl_filename, length, from, step, value_type);
 
-      // Get template file size.
-      struct stat s;
-      if (stat(tmpl_filename.c_str(), &s) < 0) {
-        char const* msg(strerror(errno));
-        throw exceptions::open(
-            "RRD: could not create template file '{}"
-            "': {}",
-            tmpl_filename, msg);
-      }
-
-      // Get template file fd.
-      int in_fd(open(tmpl_filename.c_str(), O_RDONLY));
-      if (in_fd < 0) {
-        char const* msg(strerror(errno));
-        throw exceptions::open(
-            "RRD: could not open template file '{}"
-            "': {}",
-            tmpl_filename, msg);
-      }
-
-      // Store fd informations into the cache.
-      fd_info fdinfo;
-      fdinfo.fd = in_fd;
-      fdinfo.size = s.st_size;
-      _fds[info] = fdinfo;
-
-      _duplicate(filename, fdinfo);
+    // Get template file size.
+    struct stat s;
+    if (stat(tmpl_filename.c_str(), &s) < 0) {
+      char const* msg(strerror(errno));
+      throw exceptions::open(
+          "RRD: could not create template file '{}"
+          "': {}",
+          tmpl_filename, msg);
     }
-    // No more space in the cache, just create rrd file.
-    else
-      _open(filename, length, from - 1, step, value_type);
-  } else
+
+    // Get template file fd.
+    int in_fd(open(tmpl_filename.c_str(), O_RDONLY));
+    if (in_fd < 0) {
+      char const* msg(strerror(errno));
+      throw exceptions::open(
+          "RRD: could not open template file '{}"
+          "': {}",
+          tmpl_filename, msg);
+    }
+
+    // Store fd informations into the cache.
+    fd_info fdinfo;
+    fdinfo.fd = in_fd;
+    fdinfo.size = s.st_size;
+    _fds[info] = fdinfo;
+
+    _duplicate(filename, fdinfo);
+  }
+  // No more space in the cache, just create rrd file.
+  else
     _open(filename, length, from - 1, step, value_type);
+}
+else _open(filename, length, from - 1, step, value_type);
 }
 
 /**
@@ -261,15 +266,28 @@ void creator::_open(std::string const& filename,
 
   // Debug message.
   argv[argc] = nullptr;
-  log_v2::rrd()->debug("RRD: opening file '{}' ({}, {}, {}, step 1, from  {})",
-                       filename, argv[0], argv[1],
-                       (argv[2] ? argv[2] : "(null)"), from);
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::rrd(), "RRD: create file '{}' ({}, {}, {}, step 1, from  {})",
+      filename, argv[0], argv[1], (argv[2] ? argv[2] : "(null)"), from);
 
   // Create RRD file.
   rrd_clear_error();
   if (rrd_create_r(filename.c_str(), 1, from, argc, argv))
     throw exceptions::open("RRD: could not create file '{}: {}", filename,
                            rrd_get_error());
+
+  // by default rrd_create_r create rw-r----- files  group write is mandatory
+  // for rrdcached
+  std::error_code err;
+  std::filesystem::permissions(
+      filename,
+      std::filesystem::perms::group_read | std::filesystem::perms::group_write,
+      std::filesystem::perm_options::add, err);
+  if (err) {
+    SPDLOG_LOGGER_ERROR(log_v2::rrd(),
+                        "RRD: fail to add access rights (660) to {}: {}",
+                        filename, err.message());
+  }
 }
 
 /**

@@ -523,7 +523,8 @@ target_link_libraries(
   ${CONAN_LIBS_PROTOBUF}
   "-Wl,--no-whole-archive"
   CONAN_PKG::spdlog
-  CONAN_PKG::grpc)
+  CONAN_PKG::grpc
+  stdc++fs)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)
