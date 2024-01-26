@@ -35,10 +35,10 @@ Ctn Config BBDO3
     END
 
 Ctn Clean Before Suite
-    Clear Db    resources
-    Clear Db    hosts
-    Clear Db    services
-    Clear Db    tags
+    Ctn Clear Db    resources
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    tags
     Ctn Stop Processes
     Ctn Clear Engine Logs
     Ctn Clear Broker Logs
