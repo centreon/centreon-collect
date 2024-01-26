@@ -1,6 +1,6 @@
 ARG REGISTRY_URL
 
-FROM ${REGISTRY_URL}/debian:bullseye
+FROM ${REGISTRY_URL}/debian:bookworm
 
 RUN <<EOF
 
@@ -25,7 +25,6 @@ apt-get -y install cmake \
     libperl-dev \
     libgcrypt20-dev \
     aptitude \
-    git-buildpackage \
     fakeroot \
     strace \
     locales \
@@ -44,7 +43,7 @@ localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 python3 get-pip.py
-pip3 install conan==1.61.0
+pip3 install --break-system-packages conan==1.61.0
 ln -s /usr/local/bin/conan /usr/bin/conan
 rm -rf ~/.conan/profiles/default
 

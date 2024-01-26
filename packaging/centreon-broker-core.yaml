@@ -54,10 +54,10 @@ overrides:
       - centreon-broker-core-devel
   deb:
     depends:
-      - lua5.3
+      - ${LUA_VERSION}
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-broker (= ${VERSION}-${RELEASE}${DIST})
-      - libgnutls30
+      - ${LIB_GNU_TLS_VERSION}
     conflicts:
       - centreon-broker-storage
       - centreon-broker-core-dev
