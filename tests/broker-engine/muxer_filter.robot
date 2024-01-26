@@ -113,7 +113,7 @@ FILTER_ON_LUA_EVENT
 BAM_STREAM_FILTER
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. we watch its events
     [Tags]    broker    engine    bam    filter
-    Clear Commands Status
+    Ctn Clear Commands Status
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd

@@ -264,7 +264,7 @@ EBPS2
 RLCode
     [Documentation]    Test if reloading LUA code in a stream connector applies the changes
     [Tags]    lua    stream connector
-    Clear Commands Status
+    Ctn Clear Commands Status
     Ctn Clear All Retention Files
 
     Remove File    /tmp/toto.lua
@@ -334,7 +334,7 @@ RLCode
 metric_mapping
     [Documentation]    Check if metric name exists using a stream connector
     [Tags]    broker    engine    bbdo    unified_sql    metric
-    Clear Commands Status
+    Ctn Clear Commands Status
     Ctn Clear All Retention Files
 
     Remove File    /tmp/test.log

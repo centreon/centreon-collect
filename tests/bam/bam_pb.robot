@@ -1111,7 +1111,7 @@ BAM Setup
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
 
 BAM Init
-    Clear Commands Status
+    Ctn Clear Commands Status
     Ctn Clear All Retention Files
     Ctn Clear Db Conf    mod_bam
     Ctn Config Broker    module
