@@ -62,7 +62,7 @@ BEBAMIDTU1
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    0    60
     Should Be True    ${result}    The service (host_16, service_314) is in downtime and should not.
 
-    ${result}    Ctn Check Downtimest With Timeout    0    60
+    ${result}    Ctn Check Downtimes With Timeout    0    60
     Should Be True    ${result}    No downtime should still be running.
     ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
@@ -247,7 +247,7 @@ BEBAMIGNDTU1
     Should Be True    ${result}    The BA is not OK whereas the service_314 is still in downtime.
     Log To Console    The BA is still OK
 
-    ${result}    Ctn Check Downtimest With Timeout    1    60
+    ${result}    Ctn Check Downtimes With Timeout    1    60
     Should Be True    ${result}    We should have one running downtime
 
     # The second downtime is deleted
@@ -257,7 +257,7 @@ BEBAMIGNDTU1
     Should Be True    ${result}    The service (host_16, service_314) does not contain 0 downtime as it should
     Log To Console    No more downtime applied to service_314.
 
-    ${result}    Ctn Check Downtimest With Timeout    0    60
+    ${result}    Ctn Check Downtimes With Timeout    0    60
     Should Be True    ${result}    We should have no more running downtimes
 
     ${result}    Ctn Check Ba Status With Timeout    test    2    60
