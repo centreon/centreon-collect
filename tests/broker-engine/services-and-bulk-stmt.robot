@@ -257,7 +257,7 @@ EBPS2
     ${content}    Create List    Check if some statements are ready,    sscr_bind connections
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that statements are available should be displayed
-    Stop mysql
+    Ctn Stop mysql
     Ctn Stop Engine
     Start mysql
 
