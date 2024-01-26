@@ -188,3 +188,4 @@ jobs:
           minor_version: ${{ needs.get-version.outputs.patch }}
           stability: ${{ needs.get-version.outputs.stability }}
           repository_name: standard
+          github_base_ref: ${{ github.base_ref }}
