@@ -392,6 +392,9 @@ BRRDRMU1
         Should Be True
         ...    ${result}
         ...    Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
+        # 48 = 60(octal)
+        ${result}    Has File Permissions    ${VarRoot}/lib/centreon/metrics/${m}.rrd    48
+        Should Be True    ${result}    ${VarRoot}/lib/centreon/metrics/${m}.rrd has not RW group permission
     END
 
     FOR    ${index_id}    IN    @{index}
@@ -436,6 +439,7 @@ RRD1
     ${content1}    Create List    mysql_connection: You have an error in your SQL syntax
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Not Be True    ${result}    Database did not receive command to rebuild metrics
+
 
 *** Keywords ***
 Test Clean
