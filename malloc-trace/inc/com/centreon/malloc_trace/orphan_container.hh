@@ -25,7 +25,7 @@
 
 namespace com::centreon::malloc_trace {
 
-constexpr size_t max_backtrace_size = 10;
+constexpr size_t max_backtrace_size = 15;
 
 /**
  * @brief information of free or malloc with stacktrace

@@ -57,7 +57,7 @@ class params {
   params(params const& p) = delete;
   params& operator=(params const& p) = delete;
   virtual ~params();
-  void apply(gnutls_session_t session);
+  void apply(gnutls_session_t session) const;
   void load();
   void reset();
   void set_cert(std::string const& cert, std::string const& key);

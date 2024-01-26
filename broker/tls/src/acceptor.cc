@@ -96,26 +96,8 @@ std::shared_ptr<io::stream> acceptor::open(
     p.set_tls_hostname(_tls_hostname);
     p.load();
 
-    std::unique_ptr<gnutls_session_t> session =
-        std::make_unique<gnutls_session_t>();
-    // Initialize the TLS session
-    SPDLOG_LOGGER_DEBUG(log_v2::tls(),"TLS: initializing session");
-    // GNUTLS_NONBLOCK was introduced in gnutls 2.99.3.
-#ifdef GNUTLS_NONBLOCK
-    ret = gnutls_init(session.get(), GNUTLS_SERVER | GNUTLS_NONBLOCK);
-#else
-    ret = gnutls_init(session, GNUTLS_SERVER);
-#endif  // GNUTLS_NONBLOCK
-    if (ret != GNUTLS_E_SUCCESS) {
-      SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS: cannot initialize session: {}",
-                           gnutls_strerror(ret));
-      throw msg_fmt("TLS: cannot initialize session: {}", gnutls_strerror(ret));
-    }
-    // Apply TLS parameters.
-    p.apply(*session);
-
     // Create stream object.
-    u = std::make_shared<stream>(std::move(session));
+    u = std::make_shared<stream>(GNUTLS_SERVER | GNUTLS_NONBLOCK);
     u->set_substream(lower);
     u->init(p);
   }

@@ -50,7 +50,7 @@ params::~params() {
  *
  *  @param[out] session Object on which parameters will be applied.
  */
-void params::apply(gnutls_session_t session) {
+void params::apply(gnutls_session_t session)const  {
   // Set the encryption method (normal ciphers with anonymous
   // Diffie-Hellman and optionnally compression).
   int ret;
