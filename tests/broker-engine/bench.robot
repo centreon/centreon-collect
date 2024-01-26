@@ -39,7 +39,7 @@ BENCH_${nb_check}STATUS
     ${engine_stat_before}    Ctn Get Engine Process Stat    50001
     Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
     Ctn Send Bench    1    50001
-    ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
     ${broker_stat_after}    Ctn Get Broker Process Stat    51001
     ${engine_stat_after}    Ctn Get Engine Process Stat    50001
     ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
@@ -107,7 +107,7 @@ BENCH_${nb_check}STATUS_TRACES
     ${engine_stat_before}    Ctn Get Engine Process Stat    50001
     Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
     Ctn Send Bench    1    50001
-    ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
     ${broker_stat_after}    Ctn Get Broker Process Stat    51001
     ${engine_stat_after}    Ctn Get Engine Process Stat    50001
     ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
@@ -195,7 +195,7 @@ BENCH_1000STATUS_100${suffixe}
         END
     END
 
-    ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
     ${broker_stat_after}    Ctn Get Broker Process Stat    51001
     ${engine_stat_after}    Ctn Get Engine Process Stat    50001
     ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}

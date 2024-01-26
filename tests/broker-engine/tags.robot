@@ -705,4 +705,4 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
 *** Keywords ***
 Init Test
     Ctn Stop Processes
-    Truncate Resource Host Service
+    Ctn Truncate Resource Host Service

@@ -181,7 +181,7 @@ AOUTLU1
     Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${lst}    Create List    1    0    4
-    ${result}    Check Types In Resources    ${lst}
+    ${result}    Ctn Check Types In Resources    ${lst}
     Should Be True
     ...    ${result}
     ...    The table 'resources' should contain rows of types SERVICE, HOST and ANOMALY_DETECTION.

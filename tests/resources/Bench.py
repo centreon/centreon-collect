@@ -59,7 +59,7 @@ def add_value_to_delta_process_stat(delta, key, value):
     setattr(delta, key, value)
 
 
-def get_last_bench_result(log: str, id: int, name_to_find: str):
+def ctn_get_last_bench_result(log: str, id: int, name_to_find: str):
     """! extract last bench trace in broker log file
     @log  path of the log file
     @param id id field of the bench event
@@ -87,7 +87,7 @@ def get_last_bench_result(log: str, id: int, name_to_find: str):
         return None
 
 
-def get_last_bench_result_with_timeout(log: str, id: int, name_to_find: str, timeout: int):
+def ctn_get_last_bench_result_with_timeout(log: str, id: int, name_to_find: str, timeout: int):
     """! extract last bench trace in broker log file
     @log  path of the log file
     @param id id field of the bench event
@@ -97,7 +97,7 @@ def get_last_bench_result_with_timeout(log: str, id: int, name_to_find: str, tim
     """
     limit = time.time() + timeout
     while time.time() < limit:
-        json_obj = get_last_bench_result(log, id, name_to_find)
+        json_obj = ctn_get_last_bench_result(log, id, name_to_find)
         if json_obj is not None:
             return json_obj
         time.sleep(5)

@@ -17,7 +17,7 @@ BERD1
     Ctn Set Value In Engine Conf    ${0}    log_legacy_enabled    ${0}
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Ctn Config Broker    central
-    Ctn Clear Otputs Except From Broker Conf    central    ["ipv4"]
+    Ctn Clear Outputs Except From Broker Conf    central    ["ipv4"]
     Ctn Add Lua Output To Broker Conf    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
     Ctn Broker Config Flush Log    central    0
@@ -57,7 +57,7 @@ BERD2
     Ctn Set Value In Engine Conf    ${0}    log_v2_enabled    ${1}
     Ctn Set Value In Engine Conf    ${0}    log_level_runtime    info
     Ctn Config Broker    central
-    Ctn Clear Otputs Except From Broker Conf    central    ["ipv4"]
+    Ctn Clear Outputs Except From Broker Conf    central    ["ipv4"]
     Ctn Add Lua Output To Broker Conf    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
     Ctn Broker Config Flush Log    central    0

@@ -60,7 +60,7 @@ Ctn Clean After Suite
 Ctn Clean After Suite With rrdcached
     Ctn Clean After Suite
     Log To Console    Stopping RRDCached
-    Stop rrdcached
+    Ctn Stop Rrdcached
 
 Ctn Clear Engine Logs
     Remove Directory    ${ENGINE_LOG}    Recursive=True
