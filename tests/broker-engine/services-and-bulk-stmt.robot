@@ -259,7 +259,7 @@ EBPS2
     Should Be True    ${result}    A message telling that statements are available should be displayed
     Ctn Stop mysql
     Ctn Stop Engine
-    Start mysql
+    Ctn Start mysql
 
 RLCode
     [Documentation]    Test if reloading LUA code in a stream connector applies the changes
