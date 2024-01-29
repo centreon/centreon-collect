@@ -21,10 +21,8 @@
 
 #include <gnutls/gnutls.h>
 
+namespace com::centreon::broker::tls {
 
-namespace com::centreon::broker {
-
-namespace tls {
 /**
  *  @class params params.hh "com/centreon/broker/tls/params.hh"
  *  @brief Configure parameters of a TLS connection (either incoming
@@ -59,17 +57,16 @@ class params {
   params(params const& p) = delete;
   params& operator=(params const& p) = delete;
   virtual ~params();
-  void apply(gnutls_session_t session);
+  void apply(gnutls_session_t session) const;
   void load();
   void reset();
   void set_cert(std::string const& cert, std::string const& key);
   void set_compression(bool compress = false);
   void set_trusted_ca(std::string const& ca_cert);
   void set_tls_hostname(std::string const& tls_hostname);
-  void validate_cert(gnutls_session_t session);
+  void validate_cert(gnutls_session_t session) const;
 };
-}  // namespace tls
 
-}
+}  // namespace com::centreon::broker::tls
 
 #endif  // !CCB_TLS_PARAMS_HH
