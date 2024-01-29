@@ -70,6 +70,8 @@ class grpc_config {
   const std::string& get_ca_name() const { return _ca_name; }
   constexpr bool is_compressed() const { return _compress; }
 
+  bool operator==(const grpc_config& right) const;
+
   int get_second_keepalive_interval() const {
     return _second_keepalive_interval;
   }

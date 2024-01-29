@@ -142,6 +142,7 @@ if(WITH_TESTING)
   add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
 
   add_executable(ut_engine ${ut_sources})
+  target_include_directories(ut_engine PRIVATE ${MODULE_DIR_OTL}/src )
   target_precompile_headers(ut_engine REUSE_FROM cce_core)
 
   set_target_properties(
@@ -174,9 +175,6 @@ if(WITH_TESTING)
     cce_core
     otl_server
     enginelog
-    -L${CONAN_LIB_DIRS_OPENTELEMETRY-CPP}
-    opentelemetry_proto
-    opentelemetry_proto_grpc
     pthread
     ${GCOV}
     CONAN_PKG::gtest
