@@ -23,10 +23,17 @@
 
 namespace com::centreon::engine::modules::otl_server {
 class otl_config {
-  grpc_config::pointer _conf;
+  grpc_config::pointer _grpc_conf;
+
+  int _max_length_grpc_log = -1;
 
  public:
   otl_config(const std::string_view& file_path);
+
+  grpc_config::pointer get_grpc_config() const { return _grpc_conf; }
+  int get_max_length_grpc_log() const { return _max_length_grpc_log; }
+
+  bool operator==(const otl_config& right) const;
 };
 
 }  // namespace com::centreon::engine::modules::otl_server

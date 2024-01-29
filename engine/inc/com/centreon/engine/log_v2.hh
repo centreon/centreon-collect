@@ -23,7 +23,7 @@
 
 namespace com::centreon::engine {
 class log_v2 : public log_v2_base {
-  std::array<std::shared_ptr<spdlog::logger>, 13> _log;
+  std::array<std::shared_ptr<spdlog::logger>, 14> _log;
   std::atomic_bool _running;
   asio::system_timer _flush_timer;
   std::mutex _flush_timer_m;
@@ -46,6 +46,7 @@ class log_v2 : public log_v2_base {
     log_macros,
     log_process,
     log_runtime,
+    log_otl
   };
 
   log_v2(const std::shared_ptr<asio::io_context>& io_context);
@@ -116,7 +117,11 @@ class log_v2 : public log_v2_base {
   static inline std::shared_ptr<spdlog::logger> runtime() {
     return _instance->get_logger(log_v2::log_runtime, "runtime");
   }
+
+  static inline std::shared_ptr<spdlog::logger> otl() {
+    return _instance->get_logger(log_v2::log_otl, "otl");
+  }
 };
-}
+}  // namespace com::centreon::engine
 
 #endif /* !CCE_LOG_V2_HH */

@@ -20,8 +20,9 @@
 #include <grpcpp/impl/codegen/server_callback.h>
 
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.h"
-#include "opentelemetry/proto/metrics/v1/metrics.grpc.pb.h"
+#include "opentelemetry/proto/metrics/v1/metrics.pb.h"
 
+#include "otl_fmt.hh"
 #include "otl_server.hh"
 
 namespace otl_col_metrics = ::opentelemetry::proto::collector::metrics::v1;
@@ -151,31 +152,100 @@ void request_response_holder::Release() {
 
 /**
  * @brief grpc metric service
- *
+ *  we make a custom WithCallbackMethod_Export in order to use a shared ptr
+ * instead a raw pointer
  */
 class metric_service : public opentelemetry::proto::collector::metrics::v1::
-                           MetricsService::CallbackService {
+                           MetricsService::Service,
+                       public std::enable_shared_from_this<metric_service> {
   std::shared_ptr<request_response_allocator> _allocator;
   metric_handler _request_handler;
+
+  void init();
+
+  void SetMessageAllocatorFor_Export(
+      ::grpc::MessageAllocator<::opentelemetry::proto::collector::metrics::v1::
+                                   ExportMetricsServiceRequest,
+                               ::opentelemetry::proto::collector::metrics::v1::
+                                   ExportMetricsServiceResponse>* allocator) {
+    ::grpc::internal::MethodHandler* const handler =
+        ::grpc::Service::GetHandler(0);
+    static_cast<::grpc::internal::CallbackUnaryHandler<
+        ::opentelemetry::proto::collector::metrics::v1::
+            ExportMetricsServiceRequest,
+        ::opentelemetry::proto::collector::metrics::v1::
+            ExportMetricsServiceResponse>*>(handler)
+        ->SetMessageAllocator(allocator);
+  }
 
  public:
   metric_service(const metric_handler& request_handler);
 
+  static std::shared_ptr<metric_service> create(
+      const metric_handler& request_handler);
+
+  // disable synchronous version of this method
+  ::grpc::Status Export(
+      ::grpc::ServerContext* /*context*/,
+      const ::opentelemetry::proto::collector::metrics::v1::
+          ExportMetricsServiceRequest* /*request*/,
+      ::opentelemetry::proto::collector::metrics::v1::
+          ExportMetricsServiceResponse* /*response*/) override {
+    abort();
+    return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+  }
   virtual ::grpc::ServerUnaryReactor* Export(
-      ::grpc::CallbackServerContext* context,
-      const otl_col_metrics::ExportMetricsServiceRequest* request,
-      otl_col_metrics::ExportMetricsServiceResponse* response) override;
+      ::grpc::CallbackServerContext* /*context*/,
+      const ::opentelemetry::proto::collector::metrics::v1::
+          ExportMetricsServiceRequest* /*request*/,
+      ::opentelemetry::proto::collector::metrics::v1::
+          ExportMetricsServiceResponse* /*response*/);
 };
 
 /**
  * @brief Construct a new metric service::metric service object
+ * this constructor must not be called by other objects, use create instead
  *
- * @param request_handler handler that will be called on incoming request
+ * @param request_handler
  */
 metric_service::metric_service(const metric_handler& request_handler)
     : _allocator(std::make_shared<request_response_allocator>()),
-      _request_handler(request_handler) {
+      _request_handler(request_handler) {}
+
+/**
+ * @brief initialize service (set allocator and push callback)
+ *
+ */
+void metric_service::init() {
+  ::grpc::Service::MarkMethodCallback(
+      0, new ::grpc::internal::CallbackUnaryHandler<
+             ::opentelemetry::proto::collector::metrics::v1::
+                 ExportMetricsServiceRequest,
+             ::opentelemetry::proto::collector::metrics::v1::
+                 ExportMetricsServiceResponse>(
+             [me = shared_from_this()](
+                 ::grpc::CallbackServerContext* context,
+                 const ::opentelemetry::proto::collector::metrics::v1::
+                     ExportMetricsServiceRequest* request,
+                 ::opentelemetry::proto::collector::metrics::v1::
+                     ExportMetricsServiceResponse* response) {
+               return me->Export(context, request, response);
+             }));
   SetMessageAllocatorFor_Export(_allocator.get());
+}
+
+/**
+ * @brief the method to use to create a metric_service
+ *
+ * @param request_handler
+ * @return std::shared_ptr<metric_service>
+ */
+std::shared_ptr<metric_service> metric_service::create(
+    const metric_handler& request_handler) {
+  std::shared_ptr<metric_service> ret =
+      std::make_shared<metric_service>(request_handler);
+  ret->init();
+  return ret;
 }
 
 /**
@@ -192,10 +262,11 @@ metric_service::metric_service(const metric_handler& request_handler)
     otl_col_metrics::ExportMetricsServiceResponse* response) {
   metric_ptr shared_request = _allocator->get_metric_ptr_from_raw(request);
 
+  SPDLOG_LOGGER_TRACE(log_v2::otl(), "receive:{}", *request);
   if (shared_request) {
     _request_handler(shared_request);
   } else {
-    SPDLOG_LOGGER_ERROR(log_v2::events(), " unknown raw pointer {:p}",
+    SPDLOG_LOGGER_ERROR(log_v2::otl(), " unknown raw pointer {:p}",
                         static_cast<const void*>(request));
   }
 
@@ -214,8 +285,7 @@ metric_service::metric_service(const metric_handler& request_handler)
  */
 otl_server::otl_server(const grpc_config::pointer& conf,
                        const metric_handler& handler)
-    : _conf(conf),
-      _service(std::make_unique<detail::metric_service>(handler)) {}
+    : _conf(conf), _service(detail::metric_service::create(handler)) {}
 
 /**
  * @brief Destroy the otl server::otl server object
@@ -253,12 +323,13 @@ void otl_server::start() {
     ::grpc::SslServerCredentialsOptions::PemKeyCertPair pkcp = {
         _conf->get_key(), _conf->get_cert()};
 
-    SPDLOG_LOGGER_INFO(log_v2::events(),
-                       "encrypted server listening on {} cert: {}..., key: "
-                       "{}..., ca: {}....",
-                       _conf->get_hostport(), _conf->get_cert().substr(0, 10),
-                       _conf->get_key().substr(0, 10),
-                       _conf->get_ca().substr(0, 10));
+    SPDLOG_LOGGER_INFO(
+        log_v2::otl(),
+        "{:p} encrypted server listening on {} cert: {}..., key: "
+        "{}..., ca: {}....",
+        static_cast<const void*>(this), _conf->get_hostport(),
+        _conf->get_cert().substr(0, 10), _conf->get_key().substr(0, 10),
+        _conf->get_ca().substr(0, 10));
 
     ::grpc::SslServerCredentialsOptions ssl_opts;
     ssl_opts.pem_root_certs = _conf->get_ca();
@@ -266,8 +337,8 @@ void otl_server::start() {
 
     server_creds = ::grpc::SslServerCredentials(ssl_opts);
   } else {
-    SPDLOG_LOGGER_INFO(log_v2::events(), "unencrypted server listening on {}",
-                       _conf->get_hostport());
+    SPDLOG_LOGGER_INFO(log_v2::otl(), "{:p} unencrypted server listening on {}",
+                       static_cast<const void*>(this), _conf->get_hostport());
     server_creds = ::grpc::InsecureServerCredentials();
   }
   builder.AddListeningPort(_conf->get_hostport(), server_creds);
@@ -287,11 +358,10 @@ void otl_server::start() {
         GRPC_COMPRESS_LEVEL_HIGH, detail::calc_accept_all_compression_mask());
     const char* algo_name;
     if (grpc_compression_algorithm_name(algo, &algo_name))
-      SPDLOG_LOGGER_DEBUG(log_v2::events(), "server default compression {}",
+      SPDLOG_LOGGER_DEBUG(log_v2::otl(), "server default compression {}",
                           algo_name);
     else
-      SPDLOG_LOGGER_DEBUG(log_v2::events(),
-                          "server default compression unknown");
+      SPDLOG_LOGGER_DEBUG(log_v2::otl(), "server default compression unknown");
 
     builder.SetDefaultCompressionAlgorithm(algo);
     builder.SetDefaultCompressionLevel(GRPC_COMPRESS_LEVEL_HIGH);
@@ -305,6 +375,8 @@ void otl_server::start() {
  * @param timeout after this timeout, grpc server will be stopped
  */
 void otl_server::shutdown(const std::chrono::system_clock::duration& timeout) {
+  SPDLOG_LOGGER_INFO(log_v2::otl(), "{:p} shutdown {}",
+                     static_cast<const void*>(this), _conf->get_hostport());
   std::unique_ptr<::grpc::Server> to_shutdown;
   {
     absl::MutexLock l(&_protect);

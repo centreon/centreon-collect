@@ -24,7 +24,7 @@
 #include <rapidjson/document.h>
 
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.h"
-#include "opentelemetry/proto/metrics/v1/metrics.grpc.pb.h"
+#include "opentelemetry/proto/metrics/v1/metrics.pb.h"
 
 #include "com/centreon/engine/modules/otl_server/otl_server.hh"
 

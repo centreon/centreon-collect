@@ -45,7 +45,7 @@ using metric_handler = std::function<void(const metric_ptr&)>;
 class otl_server {
   grpc_config::pointer _conf;
   std::unique_ptr<::grpc::Server> _server;
-  std::unique_ptr<detail::metric_service> _service;
+  std::shared_ptr<detail::metric_service> _service;
   absl::Mutex _protect;
 
   otl_server(const grpc_config::pointer& conf, const metric_handler& handler);

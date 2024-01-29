@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2013,2015-2017, 2021-2022 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2015-2017, 2021-2022 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/state.hh"
 
@@ -254,6 +254,7 @@ std::unordered_map<std::string, state::setter_func> const state::_setters{
     {"log_level_macros", SETTER(std::string const&, log_level_macros)},
     {"log_level_process", SETTER(std::string const&, log_level_process)},
     {"log_level_runtime", SETTER(std::string const&, log_level_runtime)},
+    {"log_level_otl", SETTER(std::string const&, log_level_otl)},
     {"use_timezone", SETTER(std::string const&, use_timezone)},
     {"use_true_regexp_matching", SETTER(bool, use_true_regexp_matching)},
     {"xcddefault_comment_file", SETTER(std::string const&, _set_comment_file)},
@@ -390,10 +391,10 @@ static std::string const default_log_level_comments("error");
 static std::string const default_log_level_macros("error");
 static std::string const default_log_level_process("info");
 static std::string const default_log_level_runtime("error");
+static std::string const default_log_level_otl("error");
 static std::string const default_use_timezone("");
 static bool const default_use_true_regexp_matching(false);
 static const std::string default_rpc_listen_address("localhost");
-
 
 /**
  *  Default constructor.
@@ -532,6 +533,7 @@ state::state()
       _log_level_macros(default_log_level_macros),
       _log_level_process(default_log_level_process),
       _log_level_runtime(default_log_level_runtime),
+      _log_level_otl(default_log_level_otl),
       _use_timezone(default_use_timezone),
       _use_true_regexp_matching(default_use_true_regexp_matching) {}
 
@@ -711,6 +713,7 @@ state& state::operator=(state const& right) {
     _log_level_macros = right._log_level_macros;
     _log_level_process = right._log_level_process;
     _log_level_runtime = right._log_level_runtime;
+    _log_level_otl = right._log_level_otl;
     _use_timezone = right._use_timezone;
     _use_true_regexp_matching = right._use_true_regexp_matching;
   }
@@ -876,6 +879,7 @@ bool state::operator==(state const& right) const noexcept {
       _log_level_macros == right._log_level_macros &&
       _log_level_process == right._log_level_process &&
       _log_level_runtime == right._log_level_runtime &&
+      _log_level_otl == right._log_level_otl &&
       _use_timezone == right._use_timezone &&
       _use_true_regexp_matching == right._use_true_regexp_matching);
 }
@@ -4163,6 +4167,27 @@ void state::log_level_runtime(std::string const& value) {
     _log_level_runtime = value;
   else
     throw engine_error() << "error wrong level setted for log_level_runtime";
+}
+
+/**
+ *  Get log_level_otl value.
+ *
+ *  @return The log_level_otl value.
+ */
+std::string const& state::log_level_otl() const noexcept {
+  return _log_level_otl;
+}
+
+/**
+ *  Set log_level_otl value.
+ *
+ *  @param[in] value The new log_level_otl value.
+ */
+void state::log_level_otl(std::string const& value) {
+  if (log_v2::contains_level(value))
+    _log_level_otl = value;
+  else
+    throw engine_error() << "error wrong level setted for log_level_otl";
 }
 
 /**

@@ -113,6 +113,13 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
     _second_keepalive_interval = 30;
 }
 
+/**
+ * @brief read a file as certificate
+ *
+ * @param json_config
+ * @param key json key that contains file path
+ * @param file_content out: file content
+ */
 void grpc_config::read_file(const rapidjson::Value& json_config,
                             const std::string_view& key,
                             std::string& file_content) {
@@ -137,4 +144,12 @@ void grpc_config::read_file(const rapidjson::Value& json_config,
                         e.what());
     throw;
   }
+}
+
+bool grpc_config::operator==(const grpc_config& right) const {
+  return _hostport == right._hostport && _crypted == right._crypted &&
+         _certificate == right._certificate && _cert_key == right._cert_key &&
+         _ca_cert == right._ca_cert && _ca_name == right._ca_name &&
+         _compress == right._compress &&
+         _second_keepalive_interval == right._second_keepalive_interval;
 }

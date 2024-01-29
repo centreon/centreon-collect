@@ -1,20 +1,20 @@
 /**
-* Copyright 2021-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2021-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/engine/log_v2.hh"
 #include <spdlog/sinks/basic_file_sink.h>
@@ -68,6 +68,7 @@ log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
   _log[log_v2::log_macros] = create_logger("macros", level::err);
   _log[log_v2::log_process] = create_logger("process", level::info);
   _log[log_v2::log_runtime] = create_logger("runtime", level::err);
+  _log[log_v2::log_otl] = create_logger("otl", level::err);
 
   _log[log_v2::log_process]->info("{} : log started", _log_name);
 
@@ -162,6 +163,8 @@ void log_v2::apply(const configuration::state& config) {
       create_logger("process", level::from_str(config.log_level_process()));
   _log[log_runtime] =
       create_logger("runtime", level::from_str(config.log_level_runtime()));
+  _log[log_otl] =
+      create_logger("otl", level::from_str(config.log_level_otl()));
 
   _flush_interval = std::chrono::seconds(
       config.log_flush_period() > 0 ? config.log_flush_period() : 2);
