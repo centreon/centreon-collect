@@ -20,7 +20,7 @@
 #define CCB_DATABASE_MYSQL_COLUMN_HH
 
 #include <fmt/format.h>
-#include <mysql.h>
+#include <mysql/mysql.h>
 #include <cmath>
 
 namespace com::centreon::broker {
@@ -237,6 +237,6 @@ class mysql_column {
 
 }  // namespace database
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // CCB_DATABASE_MYSQL_COLUMN_HH

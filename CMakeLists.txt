@@ -24,6 +24,12 @@
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 cmake_minimum_required(VERSION 3.16)
+
+set(CMAKE_CXX_STANDARD 17)
+
+set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+  CACHE STRING "Vcpkg toolchain file")
+
 project("Centreon Collect" C CXX)
 
 option(WITH_ASAN
@@ -43,14 +49,7 @@ option(WITH_MALLOC_TRACE "compile centreon-malloc-trace library." OFF)
 # set(CMAKE_CXX_COMPILER "clang++")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 
-option(NG "C++17 build." OFF)
 option(DEBUG_ROBOT OFF)
-
-if(NG)
-  set(CMAKE_CXX_STANDARD 17)
-else()
-  set(CMAKE_CXX_STANDARD 14)
-endif()
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -139,16 +138,25 @@ endif()
 set(USER_BROKER centreon-broker)
 set(USER_ENGINE centreon-engine)
 
-# ##############################################################################
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup(TARGETS)
+find_package(fmt CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
+find_package(Protobuf CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(opentelemetry-cpp REQUIRED)
+find_package(GTest CONFIG REQUIRED)
+find_package(CURL REQUIRED)
+find_package(Boost REQUIRED)
+find_package(ryml CONFIG REQUIRED)
 
-set(CMAKE_PROGRAM_PATH ${CONAN_BIN_DIRS_PROTOBUF};${CMAKE_PROGRAM_PATH})
+include(FindPkgConfig)
+pkg_check_modules(MARIADB REQUIRED libmariadb)
+pkg_check_modules(LIBSSH2 REQUIRED libssh2)
 
-find_package(Protobuf REQUIRED)
-
-message(NOTICE "-- use protoc compiler: ${Protobuf_PROTOC_EXECUTABLE}")
-
+set(GRPC_TOOLS_DIR ${gRPC_DIR}/../../tools/grpc)
+set(PROTOBUF_LIB_DIR ${Protobuf_DIR}/../../lib)
+set(OTLP_LIB_DIR ${opentelemetry-cpp_DIR}/../../lib)
+set(VCPKG_INCLUDE_DIR ${Protobuf_INCLUDE_DIR})
 include(GNUInstallDirs)
 
 # var directories.
@@ -179,15 +187,14 @@ endif()
 
 set(protobuf_MODULE_COMPATIBLE True)
 
-add_definitions(${CONAN_DEFINES_SPDLOG})
+include_directories(${CMAKE_SOURCE_DIR}
+  ${VCPKG_INCLUDE_DIR}
+  ${CMAKE_SOURCE_DIR}/clib/inc)
 
-include_directories(${CMAKE_SOURCE_DIR} ${CONAN_INCLUDE_DIRS}
-                    ${CMAKE_SOURCE_DIR}/clib/inc)
-
-add_subdirectory(bbdo)
+add_subdirectory(clib)
 add_subdirectory(common)
 add_subdirectory(broker)
-add_subdirectory(clib)
+add_subdirectory(bbdo)
 add_subdirectory(engine)
 add_subdirectory(connectors)
 add_subdirectory(ccc)

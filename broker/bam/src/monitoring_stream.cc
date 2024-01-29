@@ -329,14 +329,16 @@ struct kpi_binder {
       if (status.last_state_change() <= 0) {
         return fmt::format("({},{},{},{},1+1,NULL,{},{},{},{})",
                            status.level_acknowledgement_hard(),
-                           status.state_hard(), status.level_downtime_hard(),
+                           static_cast<uint32_t>(status.state_hard()),
+                           status.level_downtime_hard(),
                            status.level_nominal_hard(), status.last_impact(),
                            int(status.valid()), int(status.in_downtime()),
                            status.kpi_id());
       } else {
         return fmt::format(
             "({},{},{},{},1+1,{},{},{},{},{})",
-            status.level_acknowledgement_hard(), status.state_hard(),
+            status.level_acknowledgement_hard(),
+            static_cast<uint32_t>(status.state_hard()),
             status.level_downtime_hard(), status.level_nominal_hard(),
             status.last_state_change(), status.last_impact(),
             int(status.valid()), int(status.in_downtime()), status.kpi_id());

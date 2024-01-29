@@ -68,7 +68,8 @@ struct timestamp {
    *  @return This object.
    */
   timestamp& operator=(const timestamp& right) {
-    if (this != &right) _sec = right._sec;
+    if (this != &right)
+      _sec = right._sec;
     return *this;
   }
 
@@ -160,6 +161,10 @@ inline std::istream& operator>>(std::istream& stream, timestamp& ts) {
   stream >> s;
   ts = timestamp(s);
   return stream;
+}
+
+inline time_t format_as(const timestamp& o) {
+  return o.get_time_t();
 }
 
 }  // namespace com::centreon::broker

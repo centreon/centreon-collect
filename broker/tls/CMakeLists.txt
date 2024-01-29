@@ -62,7 +62,7 @@ add_library("${TLS}" SHARED
   "${INC_DIR}/stream.hh"
 )
 
-target_link_libraries("${TLS}" ${GNUTLS_LIBRARIES} CONAN_PKG::spdlog)
+target_link_libraries("${TLS}" ${GNUTLS_LIBRARIES} spdlog::spdlog)
 target_precompile_headers(${TLS} PRIVATE precomp_inc/precomp.hpp)
 
 set_target_properties("${TLS}" PROPERTIES PREFIX "")

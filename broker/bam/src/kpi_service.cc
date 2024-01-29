@@ -216,13 +216,13 @@ void kpi_service::service_update(
         _last_check = status->last_update;
         log_v2::bam()->trace(
             "service kpi {} last check updated with status last update {}", _id,
-            status->last_update);
+            static_cast<time_t>(status->last_update));
       }
     } else {
       _last_check = status->last_check;
       log_v2::bam()->trace(
           "service kpi {} last check updated with status last check {}", _id,
-          status->last_check);
+          static_cast<time_t>(status->last_check));
     }
     bool changed = _state_hard != static_cast<state>(status->last_hard_state) ||
                    _state_soft != static_cast<state>(status->current_state) ||
@@ -258,7 +258,7 @@ void kpi_service::service_update(const std::shared_ptr<neb::pb_service>& status,
     log_v2::bam()->debug(
         "BAM: KPI {} is getting notified of service ({}, {}) update (state: "
         "{})",
-        _id, _host_id, _service_id, o.state());
+        _id, _host_id, _service_id, static_cast<uint32_t>(o.state()));
 
     // Update information.
     if (o.last_check() == 0 || o.last_check() == -1) {
@@ -266,7 +266,7 @@ void kpi_service::service_update(const std::shared_ptr<neb::pb_service>& status,
         _last_check = std::time(nullptr);
         log_v2::bam()->trace(
             "service kpi {} last check updated with status last update {}", _id,
-            _last_check);
+            static_cast<time_t>(_last_check));
       }
     } else {
       _last_check = o.last_check();
@@ -307,7 +307,8 @@ void kpi_service::service_update(
     log_v2::bam()->debug(
         "BAM: KPI {} is getting notified of service ({}, {}) update (state: "
         "{} hard state: {})",
-        _id, _host_id, _service_id, o.state(), o.state_type());
+        _id, _host_id, _service_id, static_cast<uint32_t>(o.state()),
+        static_cast<uint32_t>(o.state_type()));
 
     // Update information.
     if (o.last_check() == 0 || o.last_check() == -1) {
@@ -315,7 +316,7 @@ void kpi_service::service_update(
         _last_check = std::time(nullptr);
         log_v2::bam()->trace(
             "service kpi {} last check updated with status last update {}", _id,
-            _last_check);
+            static_cast<time_t>(_last_check));
       }
     } else {
       _last_check = o.last_check();
@@ -385,7 +386,8 @@ void kpi_service::service_update(
   log_v2::bam()->debug(
       "BAM: KPI {} is getting an acknowledgement event for service ({}, {}) "
       "entry_time {} ; deletion_time {}",
-      _id, _host_id, _service_id, ack->entry_time, ack->deletion_time);
+      _id, _host_id, _service_id, ack->entry_time.get_time_t(),
+      ack->deletion_time.get_time_t());
 
   bool changed = false;
   // Update information.
@@ -445,14 +447,15 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
   if (!_event || _event->in_downtime() != _downtimed) {
     _last_check = _downtimed ? dt->actual_start_time : dt->actual_end_time;
     log_v2::bam()->trace("kpi service {} update, last check set to {}", _id,
-                         _last_check);
+                         _last_check.get_time_t());
   }
 
   // Log message.
   log_v2::bam()->debug(
       "BAM: KPI {} is getting notified of a downtime ({}) on its service ({}, "
       "{}), in downtime: {} at {}",
-      _id, dt->internal_id, _host_id, _service_id, _downtimed, _last_check);
+      _id, dt->internal_id, _host_id, _service_id, _downtimed,
+      _last_check.get_time_t());
 
   // Generate status event.
   visit(visitor);
@@ -505,14 +508,15 @@ void kpi_service::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
     _last_check =
         _downtimed ? downtime.actual_start_time() : downtime.actual_end_time();
     log_v2::bam()->trace("kpi service {} update, last check set to {}", _id,
-                         _last_check);
+                         _last_check.get_time_t());
   }
 
   // Log message.
   log_v2::bam()->debug(
       "BAM: KPI {} is getting notified of a downtime ({}) on its service ({}, "
       "{}), in downtime: {} at {}",
-      _id, downtime.id(), _host_id, _service_id, _downtimed, _last_check);
+      _id, downtime.id(), _host_id, _service_id, _downtimed,
+      _last_check.get_time_t());
 
   // Generate status event.
   visit(visitor);
@@ -656,7 +660,8 @@ void kpi_service::visit(io::stream* visitor) {
       log_v2::bam()->trace(
           "Writing kpi status {}: in downtime: {} ; last state changed: {} ; "
           "state: {}",
-          _id, ev.in_downtime(), ev.last_state_change(), ev.state_hard());
+          _id, ev.in_downtime(), static_cast<time_t>(ev.last_state_change()),
+          static_cast<uint32_t>(ev.state_hard()));
       visitor->write(status);
     }
   }
@@ -670,7 +675,8 @@ void kpi_service::visit(io::stream* visitor) {
  */
 void kpi_service::_fill_impact(impact_values& impact, state state) {
   if (state < 0 || static_cast<size_t>(state) >= _impacts.size())
-    throw msg_fmt("BAM: could not get impact introduced by state {}", state);
+    throw msg_fmt("BAM: could not get impact introduced by state {}",
+                  static_cast<uint32_t>(state));
   double nominal{_impacts[state]};
   impact.set_nominal(nominal);
   impact.set_acknowledgement(_acknowledged ? nominal : 0.0);
@@ -748,9 +754,9 @@ void kpi_service::update_from(computable* child [[maybe_unused]],
  * @return A multiline strings with various informations.
  */
 std::string kpi_service::object_info() const {
-  return fmt::format("KPI {} with service ({}, {})\nstate: {}\ndowntime: {}",
-                     get_id(), get_host_id(), get_service_id(),
-                     get_state_hard(), _downtimed);
+  return fmt::format("KPI {} with service ({}, {})\nstate: {}\ndowntime: {}", get_id(),
+                     get_host_id(), get_service_id(),
+                     static_cast<uint32_t>(get_state_hard()), _downtimed);
 }
 
 /**

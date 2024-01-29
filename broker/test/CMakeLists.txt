@@ -74,9 +74,10 @@ target_link_libraries(
   rpc_client
   berpc
   centreon_common
-  CONAN_PKG::grpc
-  CONAN_PKG::openssl
-  CONAN_PKG::zlib
+  -L${PROTOBUF_LIB_DIR}
+  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+  crypto ssl
+  z
   dl
   pthread)
 
@@ -129,7 +130,7 @@ add_executable(
   ${TESTS_SOURCES})
 
 target_link_libraries(
-  ut_broker
+  ut_broker PRIVATE
   test_util
   roker
   rokerbase
@@ -138,14 +139,14 @@ target_link_libraries(
   ${TESTS_LIBRARIES}
   conflictmgr
   centreon_common
-  CONAN_PKG::nlohmann_json
-  CONAN_PKG::fmt
-  CONAN_PKG::spdlog
-  CONAN_PKG::gtest
-  CONAN_PKG::mariadb-connector-c
-  CONAN_PKG::openssl
-  CONAN_PKG::grpc
-  stdc++fs)
+  stdc++fs
+  nlohmann_json::nlohmann_json
+  fmt::fmt
+  spdlog::spdlog
+    GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
+  mariadb
+  crypto ssl
+  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts)
 
 add_dependencies(
   ut_broker

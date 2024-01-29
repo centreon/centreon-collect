@@ -334,8 +334,9 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
         "UPDATE hosts AS h LEFT JOIN services AS s ON h.host_id=s.host_id "
         "SET h.real_state=h.state,s.real_state=s.state,h.state={},s.state={} "
         "WHERE h.instance_id={}",
-        com::centreon::engine::host::state_unreachable,
-        com::centreon::engine::service::state_unknown, id);
+        static_cast<uint32_t>(com::centreon::engine::host::state_unreachable),
+        static_cast<uint32_t>(com::centreon::engine::service::state_unknown),
+        id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::hosts);
   }

@@ -21,8 +21,10 @@ add_executable(ut_common process_stat_test.cc hex_dump_test.cc
 
 # target_include_directories(ut_common ${CONAN_INCLUDE_DIRS_GTEST})
 
-target_link_libraries(ut_common centreon_common CONAN_PKG::gtest
-                      CONAN_PKG::abseil CONAN_PKG::fmt pthread)
+target_link_libraries(ut_common PRIVATE centreon_common
+    GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
+    absl::any absl::log absl::base absl::bits
+                      fmt::fmt pthread)
 
 add_dependencies(ut_common centreon_common)
 
