@@ -19,8 +19,6 @@
 #ifndef CCE_COMMANDS_RESULT_HH
 #define CCE_COMMANDS_RESULT_HH
 
-#include <string>
-
 #include "com/centreon/engine/namespace.hh"
 #include "com/centreon/process.hh"
 #include "com/centreon/timestamp.hh"

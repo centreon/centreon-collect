@@ -79,7 +79,7 @@ jobs:
         run: |
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
 
-          sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+          sudo conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
 
           CMAKE="cmake3"
           if [ "${{ matrix.package_extension }}" = "deb" ]; then
@@ -104,6 +104,7 @@ jobs:
                   -DWITH_CREATE_FILES=OFF \
                   -DWITH_CONFIG_FILES=ON \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                  -DNG=ON \
                   .
 
           sudo ninja

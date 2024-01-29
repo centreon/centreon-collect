@@ -21,15 +21,18 @@
 #include <cassert>
 
 #include <fmt/chrono.h>
+
+#include "com/centreon/engine/log_v2.hh"
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
@@ -1799,44 +1802,60 @@ int host::run_async_check(int check_options,
                      start_time.tv_sec);
   update_check_stats(PARALLEL_HOST_CHECK_STATS, start_time.tv_sec);
 
-  // Run command.
-  bool retry;
-  check_result::pointer check_result_info;
-  do {
-    // Init check result info.
-    check_result_info = std::make_shared<check_result>(
-        host_check, this, checkable::check_active, check_options,
-        reschedule_check, latency, start_time, start_time, false, true,
-        service::state_ok, "");
+  // Init check result info.
+  check_result::pointer check_result_info = std::make_shared<check_result>(
+      host_check, this, checkable::check_active, check_options,
+      reschedule_check, latency, start_time, start_time, false, true,
+      service::state_ok, "");
 
-    retry = false;
-    try {
-      // Run command.
-      uint64_t id = cmd->run(processed_cmd, *macros,
-                             config->host_check_timeout(), check_result_info);
-    } catch (com::centreon::exceptions::interruption const& e) {
-      retry = true;
-    } catch (std::exception const& e) {
-      // Update check result.
-      timeval tv;
-      gettimeofday(&tv, nullptr);
-      check_result_info->set_finish_time(tv);
-      check_result_info->set_early_timeout(false);
-      check_result_info->set_return_code(service::state_unknown);
-      check_result_info->set_exited_ok(true);
-      check_result_info->set_output("(Execute command failed)");
+  auto run_failure = [&](const std::string& reason) {
+    // Update check result.
+    timeval tv;
+    gettimeofday(&tv, nullptr);
+    check_result_info->set_finish_time(tv);
+    check_result_info->set_early_timeout(false);
+    check_result_info->set_return_code(service::state_unknown);
+    check_result_info->set_exited_ok(true);
+    check_result_info->set_output(reason);
 
-      // Queue check result.
-      checks::checker::instance().add_check_result_to_reap(check_result_info);
+    // Queue check result.
+    checks::checker::instance().add_check_result_to_reap(check_result_info);
+  };
 
-      engine_logger(log_runtime_warning, basic)
-          << "Error: Host check command execution failed: " << e.what();
-      SPDLOG_LOGGER_WARN(log_v2::runtime(),
-                         "Error: Host check command execution failed: {}",
-                         e.what());
-    }
-  } while (retry);
+  // allowed by whitelist?
+  if (!is_whitelist_allowed(processed_cmd)) {
+    SPDLOG_LOGGER_ERROR(log_v2::commands(),
+                        "host {}: this command cannot be executed because of "
+                        "security restrictions on the poller. A whitelist has "
+                        "been defined, and it does not include this command.",
+                        name());
+    SPDLOG_LOGGER_DEBUG(log_v2::commands(),
+                        "host {}: command not allowed by whitelist {}", name(),
+                        processed_cmd);
+    run_failure(configuration::command_blacklist_output);
+  } else {
+    // Run command.
+    bool retry;
+    do {
+      retry = false;
+      try {
+        // Run command.
+        uint64_t id = cmd->run(processed_cmd, *macros,
+                               config->host_check_timeout(), check_result_info);
+      } catch (com::centreon::exceptions::interruption const& e) {
+        retry = true;
+      } catch (std::exception const& e) {
+        // Update check result.
+        run_failure("(Execute command failed)");
 
+        engine_logger(log_runtime_warning, basic)
+            << "Error: Host check command execution failed: " << e.what();
+        SPDLOG_LOGGER_WARN(log_v2::runtime(),
+                           "Error: Host check command execution failed: {}",
+                           e.what());
+      }
+    } while (retry);
+  }
   // Cleanup.
   clear_volatile_macros_r(macros);
   return OK;
@@ -3832,10 +3851,9 @@ void host::check_for_orphaned() {
 
     /* determine the time at which the check results should have come in (allow
      * 10 minutes slack time) */
-    expected_time =
-        (time_t)(it->second->get_next_check() + it->second->get_latency() +
-                 config->host_check_timeout() +
-                 config->check_reaper_interval() + 600);
+    expected_time = (time_t)(
+        it->second->get_next_check() + it->second->get_latency() +
+        config->host_check_timeout() + config->check_reaper_interval() + 600);
 
     /* this host was supposed to have executed a while ago, but for some reason
      * the results haven't come back in... */
