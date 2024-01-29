@@ -11,6 +11,7 @@ nlohmann_json/3.11.2
 rapidjson/cci.20230929
 openssl/1.1.1t
 opentelemetry-proto/1.1.0
+opentelemetry-cpp/1.9.1
 rapidyaml/0.5.0
 protobuf/3.21.9
 spdlog/1.12.0
