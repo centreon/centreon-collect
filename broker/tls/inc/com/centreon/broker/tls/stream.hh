@@ -22,10 +22,10 @@
 #include <gnutls/gnutls.h>
 
 #include "com/centreon/broker/io/stream.hh"
+#include "com/centreon/broker/tls/params.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::tls {
 
-namespace tls {
 /**
  *  @class stream stream.hh "com/centreon/broker/tls/stream.hh"
  *  @brief TLS wrapper of an underlying stream.
@@ -38,11 +38,14 @@ namespace tls {
 class stream : public io::stream {
   std::vector<char> _buffer;
   time_t _deadline;
-  gnutls_session_t* _session;
+  gnutls_session_t _session;
 
  public:
-  stream(gnutls_session_t* session);
+  stream(unsigned int session_flags);
   ~stream();
+
+  void init(const params& param);
+
   stream(const stream&) = delete;
   stream& operator=(const stream&) = delete;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
@@ -51,8 +54,7 @@ class stream : public io::stream {
   int32_t stop() override { return 0; }
   long long write_encrypted(void const* buffer, long long size);
 };
-}  // namespace tls
 
-}
+}  // namespace com::centreon::broker::tls
 
 #endif  // !CCB_TLS_STREAM_HH
