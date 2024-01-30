@@ -78,12 +78,6 @@ do
   esac
 done
 
-if [ ! -d vcpkg ] ; then
-  echo "No vcpkg directory. Cloning the repo"
-  git clone https://github.com/Microsoft/vcpkg.git
-  ./vcpkg/bootstrap-vcpkg.sh
-fi
-
 # Am I root?
 my_id=$(id -u)
 
@@ -209,6 +203,7 @@ elif [ -r /etc/issue ] ; then
       libssl-dev
       libssh2-1-dev
       zlib1g-dev
+      zip
     )
     for i in "${pkgs[@]}"; do
       if ! $dpkg -l $i | grep "^ii" ; then
@@ -249,6 +244,12 @@ elif [ -r /etc/issue ] ; then
       fi
     done
   fi
+fi
+
+if [ ! -d vcpkg ] ; then
+  echo "No vcpkg directory. Cloning the repo"
+  git clone -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
+  ./vcpkg/bootstrap-vcpkg.sh
 fi
 
 if [ "$force" = "1" ] ; then
