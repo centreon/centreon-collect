@@ -45,6 +45,7 @@ set(SOURCES ${SRC_DIR}/process_stat.cc ${SRC_DIR}/process_stat.pb.cc
 
 # Include directories.
 include_directories("${INCLUDE_DIR}"
+	${VCPKG_INCLUDE_DIR}
   )
 
 add_library(centreon_common STATIC ${SOURCES})

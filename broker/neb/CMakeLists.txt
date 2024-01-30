@@ -91,7 +91,14 @@ set(NEB_SOURCES
 
 # Static library.
 add_library(nebbase STATIC ${NEB_SOURCES})
-add_dependencies(nebbase table_max_size target_neb target_severity target_tag)
+add_dependencies(nebbase
+	table_max_size
+	target_neb
+	target_severity
+	target_tag
+	pb_neb_lib
+	pb_header_lib
+)
 
 target_link_libraries(nebbase
 		      -L${PROTOBUF_LIB_DIR}

@@ -39,6 +39,12 @@ add_library(
 set(CONFLICTMGR
     conflictmgr
     PARENT_SCOPE)
+add_dependencies(conflictmgr
+	pb_neb_lib
+	pb_header_lib
+	pb_storage_lib
+	)
+
 set_target_properties(conflictmgr PROPERTIES COMPILE_FLAGS "-fPIC")
 target_link_libraries(conflictmgr spdlog::spdlog)
 target_precompile_headers(conflictmgr PRIVATE precomp_inc/precomp.hpp)
