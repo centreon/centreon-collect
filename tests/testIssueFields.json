@@ -4,6 +4,6 @@
         "id": "11100"
       },
       "labels": ["Server", "Robot"],
-      "testType": { "name": "API" }
+      "testType": "API"
     }
-  }
+}
