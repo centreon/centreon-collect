@@ -27,9 +27,7 @@ echo "export PATH=\$VCPKG_ROOT:\$PATH"
 COMPILER=gcc
 CC=gcc
 CXX=g++
-LIBCXX=libstdc++11
 WITH_CLANG=OFF
-EE=
 DR=
 SC=0
 
@@ -59,7 +57,6 @@ do
     -clang)
       COMPILER=clang
       WITH_CLANG=ON
-      EE="-e CXX=/usr/bin/clang++ -e CC=/usr/bin/clang -e:b CXX=/usr/bin/clang++ -e:b CC=/usr/bin/clang"
       CC=clang
       CXX=clang++
       shift
