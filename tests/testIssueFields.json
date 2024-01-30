@@ -3,6 +3,7 @@
         "project": {
             "id": "11100"
         },
-        "labels" : ["Server","Robot"]
+        "labels" : ["Server","Robot"],
+       "testType": "Automated (Robot)"
     }
 }
