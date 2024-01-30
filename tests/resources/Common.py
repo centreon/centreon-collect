@@ -1335,22 +1335,6 @@ def wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
     return False
 
 
-def set_user_id_from_name(user_name: str):
-    """! modify user id
-    @param user_name  user name as centreon-engine
-    """
-    user_id = getpwnam(user_name).pw_uid
-    os.setuid(user_id)
-
-
-def get_uid():
-    return os.getuid()
-
-
-def set_uid(user_id: int):
-    os.setuid(user_id)
-
-    
 def has_file_permissions(path: str, permission: int):
     """! test if file has permission passed in parameter
     it does a AND with permission parameter

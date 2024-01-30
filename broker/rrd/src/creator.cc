@@ -110,51 +110,48 @@ void creator::create(std::string const& filename,
     // Is in the cache, just duplicate file.
     if (it != _fds.end())
       _duplicate(filename, it->second);
-    SPDLOG_LOGGER_DEBUG(log_v2::rrd(), "reuse {} for {}", it->second.path,
-                        filename);
-  }
-  // Not in the cache, but we have enough space in the cache.
-  // Create new entry.
-  else if (_fds.size() < _cache_size) {
-    std::string tmpl_filename(fmt::format("{}/tmpl_{}_{}_{}.rrd", _tmpl_path,
-                                          length, step, value_type));
+    // Not in the cache, but we have enough space in the cache.
+    // Create new entry.
+    else if (_fds.size() < _cache_size) {
+      std::string tmpl_filename(fmt::format("{}/tmpl_{}_{}_{}.rrd", _tmpl_path,
+                                            length, step, value_type));
 
-    // Create new template.
-    _open(tmpl_filename, length, from, step, value_type);
+      // Create new template.
+      _open(tmpl_filename, length, from, step, value_type);
 
-    // Get template file size.
-    struct stat s;
-    if (stat(tmpl_filename.c_str(), &s) < 0) {
-      char const* msg(strerror(errno));
-      throw exceptions::open(
-          "RRD: could not create template file '{}"
-          "': {}",
-          tmpl_filename, msg);
+      // Get template file size.
+      struct stat s;
+      if (stat(tmpl_filename.c_str(), &s) < 0) {
+        char const* msg(strerror(errno));
+        throw exceptions::open(
+            "RRD: could not create template file '{}"
+            "': {}",
+            tmpl_filename, msg);
+      }
+
+      // Get template file fd.
+      int in_fd(open(tmpl_filename.c_str(), O_RDONLY));
+      if (in_fd < 0) {
+        char const* msg(strerror(errno));
+        throw exceptions::open(
+            "RRD: could not open template file '{}"
+            "': {}",
+            tmpl_filename, msg);
+      }
+
+      // Store fd informations into the cache.
+      fd_info fdinfo;
+      fdinfo.fd = in_fd;
+      fdinfo.size = s.st_size;
+      _fds[info] = fdinfo;
+
+      _duplicate(filename, fdinfo);
     }
-
-    // Get template file fd.
-    int in_fd(open(tmpl_filename.c_str(), O_RDONLY));
-    if (in_fd < 0) {
-      char const* msg(strerror(errno));
-      throw exceptions::open(
-          "RRD: could not open template file '{}"
-          "': {}",
-          tmpl_filename, msg);
-    }
-
-    // Store fd informations into the cache.
-    fd_info fdinfo;
-    fdinfo.fd = in_fd;
-    fdinfo.size = s.st_size;
-    _fds[info] = fdinfo;
-
-    _duplicate(filename, fdinfo);
-  }
-  // No more space in the cache, just create rrd file.
-  else
+    // No more space in the cache, just create rrd file.
+    else
+      _open(filename, length, from - 1, step, value_type);
+  } else
     _open(filename, length, from - 1, step, value_type);
-}
-else _open(filename, length, from - 1, step, value_type);
 }
 
 /**

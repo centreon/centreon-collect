@@ -425,8 +425,3 @@ Rrd_1
     Should Not Be True    ${result}    Database did not receive command to rebuild metrics
 
 
-*** Keywords ***
-Test Clean
-    Stop Engine
-    Kindly Stop Broker
-    Save Logs If Failed
