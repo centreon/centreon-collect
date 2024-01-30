@@ -1,9 +1,9 @@
 {
     "fields": {
-        "project": {
-            "id": "11100"
-        },
-        "labels" : ["Server","Robot"],
-       "testType": "Automated (Robot)"
+      "project": {
+        "id": "11100"
+      },
+      "labels": ["Server", "Robot"],
+      "testType": { "name": "Automated (Robot)" }
     }
-}
+  }
