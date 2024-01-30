@@ -11,7 +11,7 @@
         },
         "components" : [
             {
-            "name":"Centreon-collect"
+            "name":"centreon-collect"
             }
         ]
     },
