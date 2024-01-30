@@ -540,8 +540,10 @@ fi
 %{_exec_prefix}/lib/systemd/system/centengine.service
 %{_localstatedir}/log/centreon-engine/centengine.debug
 %{_localstatedir}/log/centreon-engine/centengine.log
-%{_localstatedir}/log/centreon-engine/retention.dat
 %{_localstatedir}/log/centreon-engine/status.dat
+
+%ghost
+%{_localstatedir}/log/centreon-engine/retention.dat
 
 %files -n centreon-engine-selinux
 %defattr(-,root,root,-)
