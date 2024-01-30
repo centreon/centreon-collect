@@ -6,8 +6,8 @@
         },
         "summary": "Brand new Test execution",
         "issuetype": {
-            "id": "10270",
-            "name": "Test Plan",
+            "id": "10271",
+            "name": "Test Execution",
             "subtask": "false"
         },
         "components" : [
