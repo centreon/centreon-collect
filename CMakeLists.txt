@@ -80,8 +80,6 @@ set(ALLOW_DUPLICATE_EXECUTABLE TRUE)
 
 set(BUILD_ARGS "-w" "dupbuild=warn")
 
-include_directories("inc")
-
 #
 # Get distributions name
 #
@@ -148,6 +146,7 @@ find_package(GTest CONFIG REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Boost REQUIRED)
 find_package(ryml CONFIG REQUIRED)
+add_definitions("-DSPDLOG_FMT_EXTERNAL")
 
 include(FindPkgConfig)
 pkg_check_modules(MARIADB REQUIRED libmariadb)
@@ -189,6 +188,8 @@ set(protobuf_MODULE_COMPATIBLE True)
 
 include_directories(${CMAKE_SOURCE_DIR}
   ${VCPKG_INCLUDE_DIR}
+  fmt::fmt
+  spdlog::spdlog
   ${CMAKE_SOURCE_DIR}/clib/inc)
 
 add_subdirectory(clib)
