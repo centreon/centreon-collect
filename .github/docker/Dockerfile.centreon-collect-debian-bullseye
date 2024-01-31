@@ -1,4 +1,5 @@
 ARG REGISTRY_URL
+ARG TRIPLET
 
 FROM ${REGISTRY_URL}/debian:bullseye
 
