@@ -59,7 +59,7 @@ mkdir /src
 EOF
 
 COPY vcpkg.json /src
-COPY overlays .
+COPY overlays /overlays
 
 RUN bash -e <<EOF
 
