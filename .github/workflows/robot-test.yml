@@ -198,7 +198,7 @@ jobs:
           artifact_pattern="reports-${{inputs.test_group_name}}-"
           TOKEN=${{ secrets.GITHUB_TOKEN }}
           artifact_exist=true
-          while [ "$artifact_exist" = true ] ;do
+          while [ "$artifact_exist" = true ]; do
             artifact_exist=false
             artifacts_response=$(curl -L \
                           -H "Accept: application/vnd.github+json" \
