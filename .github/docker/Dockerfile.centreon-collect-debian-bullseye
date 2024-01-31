@@ -1,5 +1,4 @@
 ARG REGISTRY_URL
-ARG TRIPLET
 
 FROM ${REGISTRY_URL}/debian:bullseye
 
@@ -56,6 +55,7 @@ EOF
 COPY vcpkg.json /src
 COPY overlays /overlays
 
+ARG TRIPLET
 RUN bash -e <<EOF
 
 vcpkg/vcpkg install --triplet ${TRIPLET} --vcpkg-root vcpkg --x-wait-for-lock --x-manifest-root=/src --x-install-root=build/vcpkg_installed --overlay-ports=overlays
