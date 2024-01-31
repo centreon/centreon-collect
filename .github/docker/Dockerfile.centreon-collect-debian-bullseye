@@ -57,7 +57,7 @@ COPY overlays /overlays
 
 RUN bash -e <<EOF
 
-vcpkg/vcpkg install --triplet x64-linux --vcpkg-root vcpkg --x-wait-for-lock --x-manifest-root=/src --x-install-root=build/vcpkg_installed --overlay-ports=overlays
+vcpkg/vcpkg install --triplet $TRIPLET --vcpkg-root vcpkg --x-wait-for-lock --x-manifest-root=/src --x-install-root=build/vcpkg_installed --overlay-ports=overlays
 
 EOF
 
