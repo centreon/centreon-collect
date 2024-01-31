@@ -54,10 +54,10 @@ dnf --best install -y cmake \
 
 git clone -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
 ./vcpkg/bootstrap-vcpkg.sh
+mkdir /src
 
 EOF
 
-mkdir /src
 COPY vcpkg.json /src
 COPY overlays .
 
