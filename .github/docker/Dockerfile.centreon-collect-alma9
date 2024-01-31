@@ -46,21 +46,23 @@ dnf --best install -y cmake \
     procps-ng \
     zstd \
     nfpm \
+    openssl-devel \
+    libssh2-devel \
+    libcurl-devel \
+    zlib-devel \
     sudo
 
-dnf clean all
-
-pip3 install conan==1.61.0 --prefix=/usr --upgrade
-rm -rf ~/.conan/profiles/default
+git clone -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
+./vcpkg/bootstrap-vcpkg.sh
 
 EOF
 
-COPY conanfile.txt .
+COPY vcpkg.json .
+COPY overlays .
 
 RUN bash -e <<EOF
 
-cat conanfile.txt
-conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
+vcpkg/vcpkg install --triplet x64-linux --vcpkg-root vcpkg --x-wait-for-lock --x-manifest-root=/src --x-install-root=build/vcpkg_installed --overlay-ports=overlays
 
 EOF
 

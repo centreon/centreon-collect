@@ -115,17 +115,18 @@ jobs:
 
       - name: Compile sources
         run: |
-          sudo pip3 install conan==1.61.0 --prefix=/usr --upgrade
-
-          sudo conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
-
           CMAKE="cmake3"
           if [ "${{ matrix.package_extension }}" = "deb" ]; then
             CMAKE="cmake"
           fi
 
+          export VCPKG_ROOT=/vcpkg
+          export PATH=$VCPKG_ROOT:$PATH
           sudo $CMAKE \
-                  -G "Ninja" \
+                  -B build
+                  -DVCPKG_OVERLAY_PORTS=overlays
+                  -S .
+                  -GNinja \
                   -DDEBUG_ROBOT=OFF \
                   -DWITH_TESTING=OFF \
                   -DWITH_BENCH=ON \
@@ -142,12 +143,10 @@ jobs:
                   -DWITH_CREATE_FILES=OFF \
                   -DWITH_CONFIG_FILES=ON \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                  -DNG=ON \
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  .
+                  -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH}
 
-          sudo ninja
+          sudo ninja -Cbuild
         shell: bash
 
       - name: Cache statistics
@@ -160,7 +159,7 @@ jobs:
 
       - name: Generate debug files
         run: |
-          for file in $(find ./{lib/*.so,bin} -type f); do
+          for file in $(find ./{broker,engine,clib,connectors} -name '*.so' -type f); do
             objcopy --only-keep-debug $file $file.debug
             objcopy --strip-debug $file
             objcopy --add-gnu-debuglink $file.debug $file

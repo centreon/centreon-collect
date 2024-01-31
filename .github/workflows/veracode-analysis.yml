@@ -66,14 +66,12 @@ jobs:
       - name: Compiling Cpp sources
         run: |
           rm -rf build
-          mkdir build
-          cd build
-
-          sudo pip3 install conan==1.61.0 --prefix=/usr --upgrade
-          sudo conan install .. -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
 
           sudo cmake \
-            -G "Ninja" \
+            -B build
+            -DVCPKG_OVERLAY_PORTS=overlays
+            -S .
+            -GNinja \
             -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
             -DDEBUG_ROBOT=OFF \
             -DWITH_TESTING=OFF \
@@ -93,20 +91,18 @@ jobs:
             -DNG=ON \
             ..
 
-          sudo ninja
+          sudo ninja -Cbuild
 
           echo "[DEBUG] - Find compiled files"
-          find ./ -name "*.so"
+          find ./build/{broker,engine,clib,connectors,common} -name "*.so"
           echo "[DEBUG] - Build size"
-          du -sh ./lib/*.so | sort -rh
+          du -sh $(find ./build/{broker,engine,clib,connectors,common} -name "*.so") | sort -rh
 
       - name: Binary preparation
         run: |
           echo "[INFO] - Keeping only compiled files"
           # preserve binaries from cleaning
-          mv ./build/bin ./
-          find ./build -type f -not \( -name "*.so" \) -delete
-          mv ./bin ./build
+          find ./build -type f -not \( -name "*.so" -or -name "cbd" -or -name "centengine" -or -name "cbwd" -or -name "centreon_connector_*" \) -delete
 
           echo "[INFO] - Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then

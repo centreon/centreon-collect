@@ -18,7 +18,8 @@ on:
       - packaging/**
       - cmake.sh
       - CMakeLists.txt
-      - conanfile.txt
+      - vcpkg.json
+      - overlays/**
       - selinux/**
       - "!.veracode-exclusions"
   push:
@@ -38,7 +39,8 @@ on:
       - packaging/**
       - cmake.sh
       - CMakeLists.txt
-      - conanfile.txt
+      - vcpkg.json
+      - overlays/**
       - selinux/**
       - "!.veracode-exclusions"
 
