@@ -50,7 +50,7 @@ git clone -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
 
 EOF
 
-COPY vcpkg.json .
+COPY vcpkg.json /src
 COPY overlays .
 
 RUN bash -e <<EOF
