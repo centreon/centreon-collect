@@ -186,21 +186,23 @@ elif [ -r /etc/issue ] ; then
 
   if [[ "$maj" == "Debian" ]] || [[ "$maj" == "Ubuntu" ]]; then
     pkgs=(
-      gcc
+      cmake
       g++
-      pkg-config
-      librrd-dev
+      gcc
+      libcurl4-openssl-dev
+      libgcrypt20-dev
       libgnutls28-dev
-      ninja-build
       liblua5.3-dev
+      libperl-dev
+      librrd-dev
+      libssh2-1-dev
+      libssl-dev
+      ninja-build
+      pkg-config
       python3
       python3-pip
-      libperl-dev
-      libgcrypt20-dev
-      libssl-dev
-      libssh2-1-dev
-      zlib1g-dev
       zip
+      zlib1g-dev
     )
     for i in "${pkgs[@]}"; do
       if ! $dpkg -l $i | grep "^ii" ; then
