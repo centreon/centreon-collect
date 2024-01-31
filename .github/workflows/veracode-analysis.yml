@@ -66,11 +66,12 @@ jobs:
       - name: Compiling Cpp sources
         run: |
           rm -rf build
-
+          export VCPKG_ROOT=/vcpkg
+          export PATH=$VCPKG_ROOT:$PATH
           sudo cmake \
-            -B build
-            -DVCPKG_OVERLAY_PORTS=overlays
-            -S .
+            -B build \
+            -DVCPKG_OVERLAY_PORTS=/overlays \
+            -S . \
             -GNinja \
             -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
             -DDEBUG_ROBOT=OFF \

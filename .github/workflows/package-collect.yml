@@ -123,9 +123,9 @@ jobs:
           export VCPKG_ROOT=/vcpkg
           export PATH=$VCPKG_ROOT:$PATH
           sudo $CMAKE \
-                  -B build
-                  -DVCPKG_OVERLAY_PORTS=overlays
-                  -S .
+                  -B build \
+                  -DVCPKG_OVERLAY_PORTS=/overlays \
+                  -S . \
                   -GNinja \
                   -DDEBUG_ROBOT=OFF \
                   -DWITH_TESTING=OFF \
