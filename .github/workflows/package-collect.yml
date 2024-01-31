@@ -18,7 +18,6 @@ on:
 
 jobs:
   package:
-
     strategy:
       fail-fast: false
       matrix:
