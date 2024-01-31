@@ -120,12 +120,11 @@ jobs:
             CMAKE="cmake"
           fi
 
-          export VCPKG_ROOT=/vcpkg
-          export PATH=$VCPKG_ROOT:$PATH
-          sudo $CMAKE \
+          export VCPKG_ROOT="/vcpkg"
+          export PATH="$VCPKG_ROOT:$PATH"
+          $CMAKE \
                   -B build \
                   -DVCPKG_OVERLAY_PORTS=/overlays \
-                  -S . \
                   -GNinja \
                   -DDEBUG_ROBOT=OFF \
                   -DWITH_TESTING=OFF \
@@ -144,9 +143,10 @@ jobs:
                   -DWITH_CONFIG_FILES=ON \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH}
+                  -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
+                  -S .
 
-          sudo ninja -Cbuild
+          ninja -Cbuild
         shell: bash
 
       - name: Cache statistics
