@@ -17,7 +17,7 @@
 #
 
 # Global options.
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.18)
 project("Centreon Clib" C CXX)
 
 # Set directories.
