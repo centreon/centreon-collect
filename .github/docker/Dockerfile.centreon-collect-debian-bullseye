@@ -61,6 +61,9 @@ COPY overlays /overlays
 ARG TRIPLET
 RUN bash -e <<EOF
 
+export VCPKG_ROOT=/vcpkg
+export PATH=$VCPKG_ROOT:$PATH
+
 if [ "${TRIPLET}" = "arm64-linux" ] ; then
   export VCPKG_FORCE_SYSTEM_BINARIES=1
 fi
