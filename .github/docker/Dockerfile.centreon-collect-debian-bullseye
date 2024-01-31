@@ -58,6 +58,9 @@ COPY overlays /overlays
 ARG TRIPLET
 RUN bash -e <<EOF
 
+if [ "${TRIPLET}" = "arm64-linux" ] ; then
+  export VCPKG_FORCE_SYSTEM_BINARIES=1
+fi
 vcpkg/vcpkg install --triplet ${TRIPLET} --vcpkg-root vcpkg --x-wait-for-lock --x-manifest-root=/src --x-install-root=build/vcpkg_installed --overlay-ports=overlays
 
 EOF
