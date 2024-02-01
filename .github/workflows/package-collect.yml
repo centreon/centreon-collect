@@ -124,6 +124,11 @@ jobs:
             export VCPKG_FORCE_SYSTEM_BINARIES=1
           fi
 
+          echo "####################### 1 ##############################"
+          pwd
+          echo "####################### 2 ##############################"
+          ls -l
+          echo "####################### 3 ##############################"
           export VCPKG_ROOT="/vcpkg"
           export PATH="$VCPKG_ROOT:$PATH"
           $CMAKE \
