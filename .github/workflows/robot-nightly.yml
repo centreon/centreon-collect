@@ -157,7 +157,6 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Publish DEB packages
-        if: ${{ (!contains('bookworm', matrix.distrib) && !contains('jammy', matrix.distrib)) || (!startsWith('22.', needs.get-version.outputs.version) && !startsWith('23.', needs.get-version.outputs.version)) }}
         uses: ./.github/actions/delivery
         with:
           module_name: collect

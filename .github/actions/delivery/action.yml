@@ -31,7 +31,7 @@ runs:
 
     - name: Build name for DEB
       shell: bash
-      if: ${{ inputs.distrib == 'bullseye' || inputs.distrib == 'bookworm' || inputs.distrib == 'jammy' }}
+      if: ${{ contains(fromJSON('["bullseye", "bookworm", "jammy"]' , inputs.distrib) }}
       run: |
         echo "extfile=deb" >> $GITHUB_ENV
 
@@ -46,7 +46,7 @@ runs:
         JF_URL: https://centreon.jfrog.io
         JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
 
-    - if: ${{ startsWith(inputs.distrib, 'el') }}
+    - if: ${{ env.extfile == 'rpm' }}
       name: Publish RPMs
       run: |
         FILES="*.${{ env.extfile }}"
@@ -89,7 +89,7 @@ runs:
         done
       shell: bash
 
-    - if: ${{ inputs.distrib == 'bullseye' || inputs.distrib == 'bookworm' || inputs.distrib == 'jammy' }}
+    - if: ${{ env.extfile == 'deb' }}
       name: Publish DEBs
       run: |
         FILES="*.${{ env.extfile }}"
@@ -113,6 +113,12 @@ runs:
 
           echo "[DEBUG] - Version: $VERSION"
 
-          jf rt upload "$FILE" "apt-standard-${{ inputs.version }}-${{ inputs.stability }}/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
+          if [[ "${{ inputs.distrib }}" == "jammy" ]]; then
+            REPO_PREFIX="ubuntu"
+          else
+            REPO_PREFIX="apt"
+          fi
+
+          jf rt upload "$FILE" "${REPO_PREFIX}-standard-${{ inputs.version }}-${{ inputs.stability }}/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
         done
       shell: bash
