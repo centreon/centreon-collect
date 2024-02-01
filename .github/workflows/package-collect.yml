@@ -175,13 +175,19 @@ jobs:
 
       - name: Generate debug files
         run: |
-          for file in $(find ./{broker,engine,clib,connectors} -name '*.so' -type f); do
+          for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
             echo "Making a debug file of $file"
             objcopy --only-keep-debug $file $file.debug
             objcopy --strip-debug $file
             objcopy --add-gnu-debuglink $file.debug $file
           done
-          for file in broker/cbd broker/watchdog/cbwd engine/centengine engine/centenginestats connectors/perl/centreon_connector_perl connectors/ssh/centreon_connector_ssh ccc/ccc ; do
+          exe=("build/broker/cbd"
+               "build/engine/centengine"
+               "build/engine/centenginestats"
+               "build/connectors/perl/centreon_connector_perl"
+               "build/connectors/ssh/centreon_connector_ssh"
+               "build/ccc/ccc")
+          for file in ${exe[@]}; do
             echo "Making a debug file of $file"
             objcopy --only-keep-debug $file $file.debug
             objcopy --strip-debug $file
