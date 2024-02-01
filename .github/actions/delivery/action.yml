@@ -31,7 +31,7 @@ runs:
 
     - name: Build name for DEB
       shell: bash
-      if: ${{ inputs.distrib == 'bullseye' || inputs.distrib == 'bookworm' }}
+      if: ${{ inputs.distrib == 'bullseye' || inputs.distrib == 'bookworm' || inputs.distrib == 'jammy' }}
       run: |
         echo "extfile=deb" >> $GITHUB_ENV
 
@@ -89,7 +89,7 @@ runs:
         done
       shell: bash
 
-    - if: ${{ inputs.distrib == 'bullseye' || inputs.distrib == 'bookworm' }}
+    - if: ${{ inputs.distrib == 'bullseye' || inputs.distrib == 'bookworm' || inputs.distrib == 'jammy' }}
       name: Publish DEBs
       run: |
         FILES="*.${{ env.extfile }}"

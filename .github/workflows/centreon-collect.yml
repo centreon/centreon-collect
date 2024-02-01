@@ -54,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [alma8, alma9, debian-bullseye, debian-bookworm]
+        image: [alma8, alma9, debian-bullseye, debian-bookworm, ubuntu-jammy]
     name: unit test ${{ matrix.image }}
 
     steps:
@@ -152,6 +152,8 @@ jobs:
             arch: arm64
           - distrib: bookworm
             arch: amd64
+          - distrib: jammy
+            arch: amd64
 
     name: deliver ${{ matrix.distrib }}
 
@@ -160,7 +162,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Publish DEB packages
-        if: ${{ !contains('bookworm', matrix.distrib) || !startsWith('22.', needs.get-version.outputs.version) || !startsWith('23.', needs.get-version.outputs.version) }}
+        if: ${{ (!contains('bookworm', matrix.distrib) && !contains('jammy', matrix.distrib)) || (!startsWith('22.', needs.get-version.outputs.version) && !startsWith('23.', needs.get-version.outputs.version)) }}
         uses: ./.github/actions/delivery
         with:
           module_name: collect
@@ -176,7 +178,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm]
+        distrib: [el8, el9, bullseye, bookworm, jammy]
 
     steps:
       - name: Checkout sources
