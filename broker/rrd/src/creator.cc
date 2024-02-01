@@ -270,6 +270,23 @@ void creator::_open(std::string const& filename,
   if (rrd_create_r(filename.c_str(), 1, from, argc, argv))
     throw exceptions::open("RRD: could not create file '{}: {}", filename,
                            rrd_get_error());
+
+  // by default rrd_create_r create rw-r----- files  group write is mandatory
+  // for rrdcached
+  struct stat rrd_file_stat;
+  if (stat(filename.c_str(), &rrd_file_stat)) {
+    SPDLOG_LOGGER_ERROR(log_v2::rrd(), "RRD: fail to access rights of {}",
+                        filename);
+    return;
+  }
+
+  if ((rrd_file_stat.st_mode & (S_IWGRP | S_IRGRP)) !=
+      (S_IWGRP | S_IRGRP)) {  // add group rw right
+    if (!chmod(filename.c_str(), rrd_file_stat.st_mode | S_IWGRP | S_IRGRP)) {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::rrd(), "RRD: fail to add group rights (660) of {}", filename);
+    }
+  }
 }
 
 /**

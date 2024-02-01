@@ -1137,3 +1137,17 @@ def wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
 
     logger.console(f"{path} not modified since {date}")
     return False
+
+def has_file_permissions(path: str, permission: int):
+    """! test if file has permission passed in parameter
+    it does a AND with permission parameter
+    @param path path of the file
+    @permission mask to test file permission
+    @return True if the file has the requested permissions
+    """
+    stat_res= os.stat(path)
+    if stat_res is None:
+        logger.console(f"fail to get permission of {path}")
+        return False
+    masked = stat_res.st_mode & permission
+    return masked == permission

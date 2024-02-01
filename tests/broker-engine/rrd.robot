@@ -358,7 +358,10 @@ BRRDRMU1
         ${result}    Compare RRD Average Value    ${m}    ${value}
         Should Be True
         ...    ${result}
-        ...    msg=Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
+        ...    Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
+        # 48 = 60(octal)
+        ${result}    Has File Permissions    ${VarRoot}/lib/centreon/metrics/${m}.rrd    48
+        Should Be True    ${result}    ${VarRoot}/lib/centreon/metrics/${m}.rrd has not RW group permission
     END
 
 Rrd_1
