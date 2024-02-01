@@ -9,6 +9,6 @@ updates:
       - 'dependencies'
       - 'gha'
     ignore:
-      - dependency-name: actions/setup-python
+      - dependency-name: "actions/setup-python"
         versions:
         - 4.7.1
