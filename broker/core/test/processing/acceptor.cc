@@ -83,17 +83,17 @@ TEST_F(ProcessingTest, StartStop3) {
   ASSERT_NO_THROW(acc->exit());
 }
 
-//TEST_F(ProcessingTest, StartWithFilterStop) {
-//  multiplexing::muxer_filter filters({});
-//  filters.insert(io::raw::static_type());
-//  multiplexing::muxer_filter f{};
-//  auto acc =
-//      std::make_unique<acceptor>(_endpoint, "temporary_endpoint", filters, f);
-//  time_t now{time(nullptr)};
-//  acc->set_retry_interval(2);
-//  acc->start();
-//  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-//  ASSERT_NO_THROW(acc->exit());
-//  time_t now1{time(nullptr)};
-//  ASSERT_TRUE(now1 <= now + 3);
-//}
+TEST_F(ProcessingTest, StartWithFilterStop) {
+  multiplexing::muxer_filter filters({});
+  filters.insert(io::raw::static_type());
+  multiplexing::muxer_filter f{};
+  auto acc =
+      std::make_unique<acceptor>(_endpoint, "temporary_endpoint", filters, f);
+  time_t now{time(nullptr)};
+  acc->set_retry_interval(2);
+  acc->start();
+  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+  ASSERT_NO_THROW(acc->exit());
+  time_t now1{time(nullptr)};
+  ASSERT_TRUE(now1 <= now + 3);
+}
