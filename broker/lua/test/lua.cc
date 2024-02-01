@@ -1196,7 +1196,7 @@ TEST_F(LuaTest, MetricMappingCacheTestV1) {
 
 TEST_F(LuaTest, MetricMappingCacheTestV2) {
   config::applier::modules modules;
-  modules.load_file("./broker/neb/20-unified_sql.so");
+  modules.load_file("./broker/unified_sql/20-unified_sql.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto mm{std::make_shared<storage::metric_mapping>()};
@@ -1671,7 +1671,7 @@ TEST_F(LuaTest, BamCacheTestBaV1) {
 
 TEST_F(LuaTest, BamCacheTestBaV2) {
   config::applier::modules modules;
-  modules.load_file("./broker/neb/20-bam.so");
+  modules.load_file("./broker/bam/20-bam.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   std::shared_ptr<bam::pb_dimension_ba_event> ba(
@@ -1770,7 +1770,7 @@ TEST_F(LuaTest, BamCacheTestBvV1) {
 
 TEST_F(LuaTest, BamCacheTestBvV2) {
   config::applier::modules modules;
-  modules.load_file("./broker/neb/20-bam.so");
+  modules.load_file("./broker/bam/20-bam.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   std::shared_ptr<bam::pb_dimension_bv_event> bv(
@@ -2182,7 +2182,7 @@ TEST_F(LuaTest, CheckPath) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("/tmp/?.lua"), std::string::npos);
-  ASSERT_NE(lst.find("/tmp/broker/neb/?.so"), std::string::npos);
+  ASSERT_NE(lst.find("/tmp/lib/?.so"), std::string::npos);
 
   RemoveFile(filename);
   RemoveFile("/tmp/log");
@@ -4632,7 +4632,7 @@ using pb_remove_graph_message =
 
 TEST_F(LuaTest, PbRemoveGraphMessage) {
   config::applier::modules modules;
-  modules.load_file("./broker/neb/20-unified_sql.so");
+  modules.load_file("./broker/unified_sql/20-unified_sql.so");
 
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/test_remove_graph.lua");
@@ -4665,7 +4665,7 @@ TEST_F(LuaTest, PbRemoveGraphMessage) {
 
 TEST_F(LuaTest, PbRemoveGraphMessageV2) {
   config::applier::modules modules;
-  modules.load_file("./broker/neb/20-unified_sql.so");
+  modules.load_file("./broker/unified_sql/20-unified_sql.so");
 
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/test_remove_graph.lua");
@@ -4698,7 +4698,7 @@ TEST_F(LuaTest, PbRemoveGraphMessageV2) {
 
 TEST_F(LuaTest, BrokerApi2PbRemoveGraphMessageWithNext) {
   config::applier::modules modules;
-  modules.load_file("./broker/neb/20-unified_sql.so");
+  modules.load_file("./broker/unified_sql/20-unified_sql.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/test_remove_graph_with_next.lua");
   auto rm{std::make_shared<pb_remove_graph_message>()};
