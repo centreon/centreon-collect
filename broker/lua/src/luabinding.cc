@@ -61,7 +61,9 @@ luabinding::luabinding(std::string const& lua_script,
       _flush{false},
       _cache(cache),
       _total{0},
-      _broker_api_version{1} {
+      _broker_api_version{1},
+      _gc_broker_event_cpt(0),
+      _gc_last_full_gc(time(nullptr)) {
   size_t pos(lua_script.find_last_of('/'));
   std::string path(lua_script.substr(0, pos));
   _L = _load_interpreter();
@@ -397,6 +399,19 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
     } break;
     case 2:
       broker_event::create(_L, data);
+      /*In V2, lua stores only a userdata that contains a shared_ptr of event
+       * (16 bytes). So garbage collector don't see amount of memory used by
+       * events.
+       * So we need to call garbage collector ourselves to reduce memory
+       * consumption */
+      time_t now = time(nullptr);
+      if ((++_gc_broker_event_cpt > 1000 && _gc_last_full_gc + 5 < now) ||
+          (_gc_last_full_gc + 30 < now)) {
+        _gc_broker_event_cpt = 0;
+        _gc_last_full_gc = now;
+        lua_gc(_L, LUA_GCCOLLECT, 0);
+      }
+
       break;
   }
 

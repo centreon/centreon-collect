@@ -106,6 +106,9 @@ class luabinding {
   void _init_script(std::map<std::string, misc::variant> const& conf_params);
   void _update_lua_path(std::string const& path);
 
+  unsigned _gc_broker_event_cpt;
+  time_t _gc_last_full_gc;
+
  public:
   luabinding(std::string const& lua_script,
              std::map<std::string, misc::variant> const& conf_params,
