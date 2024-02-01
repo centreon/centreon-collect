@@ -77,7 +77,6 @@ runs:
         echo "CURRENT_STABLE_BRANCH_MAJOR_VERSION=$CURRENT_STABLE_BRANCH_MAJOR_VERSION" >> "$GITHUB_ENV"
         echo "SCOPE_VERSION=$SCOPE_VERSION" >> "$GITHUB_ENV"
       shell: bash
-
     - name: Add new release tags to stable branch
       run: |
         # Add new stable tags to stable branch
