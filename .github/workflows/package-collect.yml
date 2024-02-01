@@ -120,6 +120,10 @@ jobs:
             CMAKE="cmake"
           fi
 
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            export VCPKG_FORCE_SYSTEM_BINARIES=1
+          fi
+
           export VCPKG_ROOT="/vcpkg"
           export PATH="$VCPKG_ROOT:$PATH"
           $CMAKE \
