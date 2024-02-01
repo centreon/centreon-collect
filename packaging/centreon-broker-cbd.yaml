@@ -16,7 +16,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../broker/config/central-broker.json"
+  - src: "../../broker/config/central-broker.json"
     dst: "/etc/centreon-broker/central-broker.json"
     type: config|noreplace
     file_info:
@@ -24,7 +24,7 @@ contents:
       owner: centreon-broker
       group: centreon-broker
 
-  - src: "../broker/config/central-rrd.json"
+  - src: "../../broker/config/central-rrd.json"
     dst: "/etc/centreon-broker/central-rrd.json"
     type: config|noreplace
     file_info:
@@ -32,7 +32,7 @@ contents:
       owner: centreon-broker
       group: centreon-broker
 
-  - src: "../broker/script/watchdog.json"
+  - src: "../../broker/script/watchdog.json"
     dst: "/etc/centreon-broker/watchdog.json"
     type: config|noreplace
     file_info:
@@ -40,19 +40,19 @@ contents:
       owner: centreon-broker
       group: centreon-broker
 
-  - src: "../broker/cbd"
+  - src: "../../build/broker/cbd"
     dst: "/usr/sbin/cbd"
 
-  - src: "../broker/watchdog/cbwd"
+  - src: "../../build/broker/watchdog/cbwd"
     dst: "/usr/sbin/cbwd"
 
-  - src: "../broker/script/cbd.service"
+  - src: "../../broker/script/cbd.service"
     dst: "/usr/lib/systemd/system/cbd.service"
     file_info:
       mode: 644
     packager: rpm
 
-  - src: "../broker/script/cbd.service"
+  - src: "../../broker/script/cbd.service"
     dst: "/lib/systemd/system/cbd.service"
     file_info:
       mode: 644

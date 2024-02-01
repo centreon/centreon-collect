@@ -16,7 +16,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../engine/conf/centengine.cfg"
+  - src: "../../engine/conf/centengine.cfg"
     dst: "/etc/centreon-engine/centengine.cfg"
     type: config|noreplace
     file_info:
@@ -24,7 +24,7 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - src: "../engine/conf/resource.cfg"
+  - src: "../../engine/conf/resource.cfg"
     dst: "/etc/centreon-engine/resource.cfg"
     type: config|noreplace
     file_info:
@@ -32,7 +32,7 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - src: "../engine/conf/commands.cfg"
+  - src: "../../engine/conf/commands.cfg"
     dst: "/etc/centreon-engine/commands.cfg"
     type: config|noreplace
     file_info:
@@ -40,7 +40,7 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - src: "../engine/conf/timeperiods.cfg"
+  - src: "../../engine/conf/timeperiods.cfg"
     dst: "/etc/centreon-engine/timeperiods.cfg"
     type: config|noreplace
     file_info:
@@ -48,29 +48,29 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - src: "../engine/scripts/logrotate.conf"
+  - src: "../../engine/scripts/logrotate.conf"
     dst: "/etc/logrotate.d/centengine"
     type: config|noreplace
 
-  - src: "../engine/scripts/centengine.service"
+  - src: "../../engine/scripts/centengine.service"
     dst: "/usr/lib/systemd/system/centengine.service"
     file_info:
       mode: 644
     packager: rpm
 
-  - src: "../engine/scripts/centengine.service"
+  - src: "../../engine/scripts/centengine.service"
     dst: "/lib/systemd/system/centengine.service"
     file_info:
       mode: 644
     packager: deb
 
-  - src: "../engine/centengine"
+  - src: "../../build/engine/centengine"
     dst: "/usr/sbin/centengine"
 
-  - src: "../engine/centenginestats"
+  - src: "../../build/engine/centenginestats"
     dst: "/usr/sbin/centenginestats"
 
-  - src: "../engine/modules/external_commands/externalcmd.so"
+  - src: "../../build/engine/modules/external_commands/externalcmd.so"
     dst: "/usr/lib64/centreon-engine/externalcmd.so"
 
   - dst: "/etc/centreon-engine"

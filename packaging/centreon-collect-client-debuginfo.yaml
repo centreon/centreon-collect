@@ -15,7 +15,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../broker/ccc/ccc.debug"
+  - src: "../../build/broker/ccc/ccc.debug"
     dst: "/usr/lib/debug/usr/bin/ccc.debug"
     file_info:
       mode: 0644

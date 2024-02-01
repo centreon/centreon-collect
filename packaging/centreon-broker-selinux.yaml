@@ -24,7 +24,7 @@ provides:
   - centreon-broker-selinux-debuginfo
 
 contents:
-  - src: "../selinux/centreon-broker/centreon-broker.pp"
+  - src: "../../selinux/centreon-broker/centreon-broker.pp"
     dst: "/usr/share/selinux/packages/centreon/centreon-broker.pp"
     file_info:
       mode: 0655
