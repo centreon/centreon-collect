@@ -2,7 +2,7 @@ ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/ubuntu:jammy
 
-RUN <<EOF
+RUN bash -e <<EOF
 
 apt-get update
 
@@ -51,7 +51,7 @@ EOF
 
 COPY conanfile.txt .
 
-RUN <<EOF
+RUN bash -e <<EOF
 
 cat conanfile.txt
 conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build='missing'
