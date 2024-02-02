@@ -31,7 +31,7 @@ runs:
 
     - name: Build name for DEB
       shell: bash
-      if: ${{ contains(fromJSON('["bullseye", "bookworm", "jammy"]' , inputs.distrib) }}
+      if: ${{ contains(fromJSON('["bullseye", "bookworm", "jammy"]'), inputs.distrib) }}
       run: |
         echo "extfile=deb" >> $GITHUB_ENV
 
