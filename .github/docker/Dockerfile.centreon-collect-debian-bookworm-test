@@ -17,7 +17,7 @@ apt-get -y install curl \
     openssh-server \
     libmariadb3 \
     librrd8 \
-    libgnutlsxx28 \
+    libgnutlsxx30 \
     liblua5.3 \
     python3 \
     python3-dev \
