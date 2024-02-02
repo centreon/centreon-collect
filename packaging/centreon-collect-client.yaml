@@ -16,7 +16,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../../build/ccc/ccc"
+  - src: "../build/ccc/ccc"
     dst: "/usr/bin/ccc"
 
 overrides:

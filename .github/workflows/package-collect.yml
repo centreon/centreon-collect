@@ -171,6 +171,7 @@ jobs:
             objcopy --add-gnu-debuglink $file.debug $file
           done
           exe=("build/broker/cbd"
+               "build/broker/watchdog/cbwd"
                "build/engine/centengine"
                "build/engine/centenginestats"
                "build/connectors/perl/centreon_connector_perl"
