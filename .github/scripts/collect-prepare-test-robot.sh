@@ -72,6 +72,3 @@ else
   apt-get install -y build-essential
   apt-get install -y python3-dev
 fi
-
-cd ..
-rm -rf *
