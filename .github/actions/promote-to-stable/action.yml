@@ -78,7 +78,7 @@ runs:
       shell: bash
 
     - name: Promote DEB packages to stable
-      if: ${{ contains(fromJSON('["bullseye", "bookworm"]' , inputs.distrib) }}
+      if: ${{ contains(fromJSON('["bullseye", "bookworm"]'), inputs.distrib) }}
       run: |
         echo "[DEBUG] - Major version: ${{ inputs.major_version }}"
         echo "[DEBUG] - Minor version: ${{ inputs.minor_version }}"
