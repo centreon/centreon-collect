@@ -2,7 +2,7 @@ ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/almalinux:9
 
-RUN base -e <<EOF
+RUN <<EOF
 
 # Base dnf configuration.
 echo 'http_caching=none' >> /etc/yum.conf
@@ -55,7 +55,7 @@ EOF
 
 COPY conanfile.txt .
 
-RUN base -e <<EOF
+RUN <<EOF
 
 cat conanfile.txt
 conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
