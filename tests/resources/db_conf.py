@@ -299,7 +299,7 @@ class DbConf:
                     f"INSERT INTO mod_bam_boolean (name, expression, bool_state, activate) VALUES('bool test','{expression}', {int(impact_if)}, 1)")
                 boolean_id = cursor.lastrowid
                 cursor.execute(
-                    f"INSERT INTO mod_bam_kpi (boolean_id,id_ba,drop_warning,drop_critical,drop_unknown,config_type) VALUES ({boolean_id},{id_ba},50,{critical_impact},75,'1')")
+                    f"INSERT INTO mod_bam_kpi (boolean_id,id_ba,drop_warning,drop_critical,drop_unknown,config_type, kpi_type) VALUES ({boolean_id},{id_ba},50,{critical_impact},75,'1', '3')")
 
             connection.commit()
             return boolean_id
@@ -329,7 +329,7 @@ class DbConf:
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("INSERT INTO mod_bam_kpi (id_indicator_ba,id_ba,drop_warning,drop_critical,drop_unknown,config_type) VALUES ({},{},{},{},{},'1')".format(
+                cursor.execute("INSERT INTO mod_bam_kpi (id_indicator_ba,kpi_type,id_ba,drop_warning,drop_critical,drop_unknown,config_type) VALUES ({},'2',{},{},{},{},'1')".format(
                     id_ba_src, id_ba_dest, warning_impact, critical_impact, unknown_impact))
 
             connection.commit()

@@ -1097,6 +1097,189 @@ BA_RATIO_PERCENT_BA_4_SERVICE
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
+BAWWW
+    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. It is set as the daughter of another 'worst' ba with four boolean rules. And this last ba is also set as the daughter of another 'worst' ba with four others boolean rules. Boolean rules are configured as True. When one of the services is critical, all the ba are critical. When the service goes back to OK, all the ba are OK.
+    [Tags]    broker    downtime    engine    bam
+    BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${first_ba__svc}    Create Ba With Services    first_BA    worst    ${svc}
+
+    ${second_ba__svc}    Create Ba    second_BA    worst    100    100
+    Add Ba Kpi    ${first_ba__svc[0]}    ${second_ba__svc[0]}    1    2    3
+    Add Boolean Kpi
+    ...    ${second_ba__svc[0]}
+    ...    {host_16 service_302} {IS} {OK}
+    ...    False
+    ...    100
+    Add Boolean Kpi
+    ...    ${second_ba__svc[0]}
+    ...    {host_16 service_302} {IS} {OK}
+    ...    False
+    ...    100
+    Add Boolean Kpi
+    ...    ${second_ba__svc[0]}
+    ...    {host_16 service_302} {IS} {OK}
+    ...    False
+    ...    100
+    Add Boolean Kpi
+    ...    ${second_ba__svc[0]}
+    ...    {host_16 service_302} {IS} {OK}
+    ...    False
+    ...    100
+
+    ${third_ba__svc}    Create Ba    third_ba    worst    100    100
+    Add Ba Kpi    ${second_ba__svc[0]}    ${third_ba__svc[0]}    1    2    3
+    Add Boolean Kpi
+    ...    ${third_ba__svc[0]}
+    ...    {host_16 service_302} {IS} {OK}
+    ...    False
+    ...    100
+    Add Boolean Kpi
+    ...    ${third_ba__svc[0]}
+    ...    {host_16 service_302} {IS} {OK}
+    ...    False
+    ...    100
+    Add Boolean Kpi
+    ...    ${third_ba__svc[0]}
+    ...    {host_16 service_302} {IS} {OK}
+    ...    False
+    ...    100
+    Add Boolean Kpi
+    ...    ${third_ba__svc[0]}
+    ...    {host_16 service_302} {IS} {OK}
+    ...    False
+    ...    100
+    Start Broker
+    ${start}    Get Current Date
+    Start Engine
+
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    Dump Ba    51001    1    /tmp/ba_1.dot
+    Dump Ba    51001    2    /tmp/ba_2.dot
+    Dump Ba    51001    3    /tmp/ba_3.dot
+    ${result}    Check Ba Status With Timeout    second_ba    0    60
+    Dump Ba On Error    ${result}    ${second_ba__svc[0]}
+    Should Be True    ${result}    The second BA is not OK as expected
+
+    ${result}    Check Ba Status With Timeout    third_ba    0    60
+    Dump Ba On Error    ${result}    ${third_ba__svc[0]}
+    Should Be True    ${result}    The third BA is not OK as expected
+
+    ${result}    Check Ba Output With Timeout
+    ...    first_ba
+    ...    Status is OK - All KPIs are in an OK state
+    ...    60
+    Should Be True    ${result}    The BA test has not the expected output
+
+    # KPI set to unknown
+    Process Service Result Hard    host_16    service_303    3    output unknown for 303
+
+    ${result}    Check Service Status With Timeout    host_16    service_303    3    60    HARD
+    Should Be True    ${result}    The service (host_16,service_303) is not UNKNOWN as expected
+
+    # The first BA should become unknown
+    ${result}    Check Ba Status With Timeout    first_ba    3    60
+    Dump Ba On Error    ${result}    ${first_ba__svc[0]}
+    Should Be True    ${result}    The first BA is not UNKNOWN as expected
+
+    # The second BA should become unknown
+    ${result}    Check Ba Status With Timeout    second_ba    3    60
+    Dump Ba On Error    ${result}    ${second_ba__svc[0]}
+    Should Be True    ${result}    The second BA is not UNKNOWN as expected
+
+    # The third BA should become unknown
+    ${result}    Check Ba Status With Timeout    third_ba    3    60
+    Dump Ba On Error    ${result}    ${third_ba__svc[0]}
+    Should Be True    ${result}    The third BA is not UNKNOWN as expected
+
+    # KPI set to warning
+    Process Service Result Hard    host_16    service_303    1    output warning for 303
+
+    ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
+    Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
+
+    # The BA should become warning
+    ${result}    Check Ba Status With Timeout    first_ba    1    60
+    Dump Ba On Error    ${result}    ${first_ba__svc[0]}
+    Should Be True    ${result}    The first BA is not WARNING as expected
+
+    ${result}    Check Ba Status With Timeout    second_ba    1    60
+    Dump Ba On Error    ${result}    ${second_ba__svc[0]}
+    Should Be True    ${result}    The second BA is not WARNING as expected
+
+    ${result}    Check Ba Status With Timeout    third_ba    1    60
+    Dump Ba On Error    ${result}    ${third_ba__svc[0]}
+    Should Be True    ${result}    The third BA is not WARNING as expected
+
+    # KPI set to critical
+    Process Service Result Hard    host_16    service_303    2    output critical for 303
+
+    ${result}    Check Service Status With Timeout    host_16    service_303    2    60    HARD
+    Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
+
+    # The BA should become critical
+    ${result}    Check Ba Status With Timeout    third_ba    2    60
+    Dump Ba On Error    ${result}    ${third_ba__svc[0]}
+    Should Be True    ${result}    The third BA is not CRITICAL as expected
+
+    # KPI set to warning
+    Process Service Result Hard    host_16    service_303    1    output warning for 303
+
+    ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
+    Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
+
+    # The BA should become warning
+    ${result}    Check Ba Status With Timeout    first_ba    1    60
+    Dump Ba On Error    ${result}    ${first_ba__svc[0]}
+    Should Be True    ${result}    The first BA is not WARNING as expected
+
+    ${result}    Check Ba Status With Timeout    second_ba    1    60
+    Dump Ba On Error    ${result}    ${second_ba__svc[0]}
+    Should Be True    ${result}    The second BA is not WARNING as expected
+
+    ${result}    Check Ba Status With Timeout    third_ba    1    60
+    Dump Ba On Error    ${result}    ${third_ba__svc[0]}
+    Should Be True    ${result}    The third BA is not WARNING as expected
+
+    # KPI set to OK
+    Process Service Check Result    host_16    service_303    0    output ok for 303
+
+    ${result}    Check Service Status With Timeout    host_16    service_303    0    60    HARD
+    Should Be True    ${result}    The service (host_16,service_303) is not OK as expected
+
+    # The BA should become ok
+    ${result}    Check Ba Status With Timeout    third_ba    0    60
+    Dump Ba On Error    ${result}    ${third_ba__svc[0]}
+    Should Be True    ${result}    The third BA is not OK as expected
+
+    # KPI set to CRITICAL
+    Process Service Result Hard    host_16    service_303    2    output critical for 303
+
+    ${result}    Check Service Status With Timeout    host_16    service_303    2    60    HARD
+    Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
+
+    # The BA should become CRITICAL
+    ${result}    Check Ba Status With Timeout    third_ba    2    60
+    Dump Ba On Error    ${result}    ${third_ba__svc[0]}
+    Should Be True    ${result}    The third BA is not CRITICAL as expected
+
+    # KPI set to OK
+    Process Service Check Result    host_16    service_303    0    output ok for 303
+
+    ${result}    Check Service Status With Timeout    host_16    service_303    0    60    HARD
+    Should Be True    ${result}    The service (host_16,service_303) is not OK as expected
+
+    # The BA should become ok
+    ${result}    Check Ba Status With Timeout    third_ba    0    60
+    Dump Ba On Error    ${result}    ${third_ba__svc[0]}
+    Should Be True    ${result}    The third BA is not OK as expected
+
+    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
 *** Keywords ***
 BAM Setup
@@ -1118,8 +1301,8 @@ BAM Init
     Config Broker    central
     Config Broker    rrd
     Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    config    trace
+    Broker Config Log    central    sql    error
+    Broker Config Log    central    config    error
     Broker Config Source Log    central    1
     Config BBDO3    ${1}
     Config Engine    ${1}

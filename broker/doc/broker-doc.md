@@ -9,7 +9,7 @@ There are five types of BA.
 * ratio number BA
 * ratio percent BA
 
-Before describing these BA, let's try to explain how they lives and how they are computed.
+Before describing these BA, let's try to explain how they live and how they are computed.
 
 All the BA classes derived from an abstract `ba` class.
 They have to implement the following methods:

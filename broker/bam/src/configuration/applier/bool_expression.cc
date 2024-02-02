@@ -1,20 +1,20 @@
 /**
-* Copyright 2014-2016 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2014-2016 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/ba.hh"
@@ -55,10 +55,10 @@ void applier::bool_expression::apply(
   bam::configuration::state::bool_exps to_create(my_bools);
 
   // Iterate through configuration.
-  for (bam::configuration::state::bool_exps::iterator it(to_create.begin()),
-       end(to_create.end());
+  for (bam::configuration::state::bool_exps::iterator it = to_create.begin(),
+                                                      end = to_create.end();
        it != end;) {
-    std::map<uint32_t, applied>::iterator cfg_it(to_delete.find(it->first));
+    std::map<uint32_t, applied>::iterator cfg_it = to_delete.find(it->first);
     // Found = modify (or not).
     if (cfg_it != to_delete.end()) {
       // Configuration mismatch, modify object
@@ -82,14 +82,14 @@ void applier::bool_expression::apply(
   //
 
   // Delete objects.
-  for (std::map<uint32_t, applied>::iterator it(to_delete.begin()),
-       end(to_delete.end());
+  for (std::map<uint32_t, applied>::iterator it = to_delete.begin(),
+                                             end = to_delete.end();
        it != end; ++it) {
     log_v2::bam()->info("BAM: removing boolean expression {}",
                         it->second.cfg.get_id());
     for (std::list<bool_service::ptr>::const_iterator
-             it2(it->second.svc.begin()),
-         end2(it->second.svc.end());
+             it2 = it->second.svc.begin(),
+             end2 = it->second.svc.end();
          it2 != end2; ++it2)
       book.unlisten((*it2)->get_host_id(), (*it2)->get_service_id(),
                     it2->get());

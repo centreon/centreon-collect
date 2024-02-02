@@ -201,6 +201,14 @@ void kpi_service::service_update(
                    _state_soft != static_cast<state>(status->current_state) ||
                    _state_type != status->state_type;
 
+    log_v2::bam()->trace(
+        "legacy service kpi {} changed: {} {} {} {}", _id,
+        changed ? "yes" : "no",
+        _state_hard != static_cast<state>(status->last_hard_state) ? "state"
+                                                                   : "",
+        _state_soft != static_cast<state>(status->current_state) ? "soft state"
+                                                                 : "",
+        _state_type != status->state_type ? "state type" : "");
     _output = status->output;
     _perfdata = status->perf_data;
     _state_hard = static_cast<state>(status->last_hard_state);
@@ -280,7 +288,8 @@ void kpi_service::service_update(
     log_v2::bam()->debug(
         "BAM: KPI {} is getting notified of service ({}, {}) update (state: "
         "{} hard state: {})",
-        _id, _host_id, _service_id, o.state(), o.state_type());
+        _id, _host_id, _service_id, o.state(),
+        o.state_type() ? "false" : "true");
 
     // Update information.
     if (o.last_check() == 0 || o.last_check() == -1) {
@@ -301,6 +310,11 @@ void kpi_service::service_update(
                    _state_soft != static_cast<state>(o.state()) ||
                    _state_type != o.state_type();
 
+    log_v2::bam()->trace(
+        "service kpi {} changed: {} {} {} {}", _id, changed ? "yes" : "no",
+        _state_hard != static_cast<state>(o.last_hard_state()) ? "state. " : "",
+        _state_soft != static_cast<state>(o.state()) ? "soft state. " : "",
+        _state_type != o.state_type() ? "state type. " : "");
     _output = o.output();
     _perfdata = o.perfdata();
     _state_hard = static_cast<state>(o.last_hard_state());

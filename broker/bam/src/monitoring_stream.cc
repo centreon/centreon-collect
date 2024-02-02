@@ -395,8 +395,9 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       SPDLOG_LOGGER_TRACE(
           log_v2::bam(),
           "BAM: processing pb service status (host: {}, service: {}, hard "
-          "state {}, current state {})",
-          o.host_id(), o.service_id(), o.last_hard_state(), o.state());
+          "state {}, current state {}), state hard? {}",
+          o.host_id(), o.service_id(), o.last_hard_state(), o.state(),
+          o.state_type());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
       _applier.book_service().update(ss, &ev_cache);

@@ -1,20 +1,20 @@
 /**
-* Copyright 2014-2015, 2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2014-2015, 2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/configuration/applier/kpi.hh"
 #include "com/centreon/broker/bam/bool_expression.hh"
@@ -326,9 +326,11 @@ void applier::kpi::_resolve_kpi(configuration::kpi const& cfg,
     std::shared_ptr<bam::kpi_ba> obj(
         std::static_pointer_cast<bam::kpi_ba>(kpi));
     std::shared_ptr<bam::ba> target(_bas->find_ba(cfg.get_indicator_ba_id()));
-    if (!target)
-      throw exceptions::config("could not find source BA {}",
-                               cfg.get_indicator_ba_id());
+    if (!target) {
+      log_v2::bam()->error("could not find source BA {}",
+                           cfg.get_indicator_ba_id());
+      return;
+    }
     obj->link_ba(target);
     target->add_parent(obj);
     log_v2::bam()->info("BAM: Resolve KPI {} connections to its BA",
@@ -338,9 +340,11 @@ void applier::kpi::_resolve_kpi(configuration::kpi const& cfg,
         std::static_pointer_cast<bam::kpi_boolexp>(kpi));
     std::shared_ptr<bam::bool_expression> target(
         _boolexps->find_boolexp(cfg.get_boolexp_id()));
-    if (!target)
-      throw exceptions::config("could not find source boolean expression {}",
-                               cfg.get_boolexp_id());
+    if (!target) {
+      log_v2::bam()->error("could not find source boolean expression {}",
+                           cfg.get_boolexp_id());
+      return;
+    }
     obj->link_boolexp(target);
     target->add_parent(obj);
     log_v2::bam()->info(
