@@ -135,7 +135,7 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-version.outputs.version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-version.outputs.stability }}
 
   deliver-deb:
@@ -152,6 +152,8 @@ jobs:
             arch: arm64
           - distrib: bookworm
             arch: amd64
+          - distrib: jammy
+            arch: amd64
 
     name: deliver ${{ matrix.distrib }}
 
@@ -160,14 +162,13 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Publish DEB packages
-        if: ${{ !contains('bookworm', matrix.distrib) || !startsWith('22.', needs.get-version.outputs.version) || !startsWith('23.', needs.get-version.outputs.version) }}
         uses: ./.github/actions/delivery
         with:
           module_name: collect
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-version.outputs.version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-version.outputs.stability }}
 
   promote:
@@ -176,7 +177,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm]
+        distrib: [el8, el9, bullseye, bookworm, jammy]
 
     steps:
       - name: Checkout sources
