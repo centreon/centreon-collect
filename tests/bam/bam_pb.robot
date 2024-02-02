@@ -1109,22 +1109,22 @@ BAWWW
     Add Ba Kpi    ${first_ba__svc[0]}    ${second_ba__svc[0]}    1    2    3
     Add Boolean Kpi
     ...    ${second_ba__svc[0]}
-    ...    {host_16 service_302} {IS} {OK}
+    ...    {host_16 unknown_service} {IS} {OK}
     ...    False
     ...    100
     Add Boolean Kpi
     ...    ${second_ba__svc[0]}
-    ...    {host_16 service_302} {IS} {OK}
+    ...    {host_16 unknown_service} {IS} {OK}
     ...    False
     ...    100
     Add Boolean Kpi
     ...    ${second_ba__svc[0]}
-    ...    {host_16 service_302} {IS} {OK}
+    ...    {host_16 unknown_service} {IS} {OK}
     ...    False
     ...    100
     Add Boolean Kpi
     ...    ${second_ba__svc[0]}
-    ...    {host_16 service_302} {IS} {OK}
+    ...    {host_16 unknown_service} {IS} {OK}
     ...    False
     ...    100
 
@@ -1132,22 +1132,22 @@ BAWWW
     Add Ba Kpi    ${second_ba__svc[0]}    ${third_ba__svc[0]}    1    2    3
     Add Boolean Kpi
     ...    ${third_ba__svc[0]}
-    ...    {host_16 service_302} {IS} {OK}
+    ...    {host_16 unknown_service} {IS} {OK}
     ...    False
     ...    100
     Add Boolean Kpi
     ...    ${third_ba__svc[0]}
-    ...    {host_16 service_302} {IS} {OK}
+    ...    {host_16 unknown_service} {IS} {OK}
     ...    False
     ...    100
     Add Boolean Kpi
     ...    ${third_ba__svc[0]}
-    ...    {host_16 service_302} {IS} {OK}
+    ...    {host_16 unknown_service} {IS} {OK}
     ...    False
     ...    100
     Add Boolean Kpi
     ...    ${third_ba__svc[0]}
-    ...    {host_16 service_302} {IS} {OK}
+    ...    {host_16 unknown_service} {IS} {OK}
     ...    False
     ...    100
     Start Broker

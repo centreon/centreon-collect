@@ -213,7 +213,7 @@ class DbConf:
                 else:
                     inherit_dt = 0
 
-                cursor.execute("INSERT INTO mod_bam (name, state_source, activate,id_reporting_period,level_w,level_c,id_notification_period,notifications_enabled,event_handler_enabled, inherit_kpi_downtimes) VALUES ('{}',{},'1',1, 80, 70, 1,'0', '0','{}')".format(name, t, inherit_dt))
+                cursor.execute(f"INSERT INTO mod_bam (name, state_source, activate,id_reporting_period,level_w,level_c,id_notification_period,notifications_enabled,event_handler_enabled, inherit_kpi_downtimes, current_level) VALUES ('{name}',{t},'1',1, 80, 70, 1,'0', '0','{inherit_dt}', 100)")
                 id_ba = cursor.lastrowid
                 sid = self.engine.create_bam_service("ba_{}".format(
                     id_ba), name, "_Module_BAM_1", "centreon-bam-check!{}".format(id_ba))
