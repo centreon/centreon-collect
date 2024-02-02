@@ -59,6 +59,14 @@ jobs:
             dockerfile: centreon-collect-debian-bookworm
             image: centreon-collect-debian-bookworm
             tag: ${{ needs.get-version.outputs.img_version }}
+          - runner: collect
+            dockerfile: centreon-collect-debian-bookworm-test
+            image: centreon-collect-debian-bookworm-test
+            tag: ${{ needs.get-version.outputs.test_img_version }}
+          - runner: collect
+            dockerfile: centreon-collect-ubuntu-jammy
+            image: centreon-collect-ubuntu-jammy
+            tag: ${{ needs.get-version.outputs.img_version }}
           - runner: collect-arm64
             dockerfile: centreon-collect-debian-bullseye
             image: centreon-collect-debian-bullseye-arm64
