@@ -65,10 +65,11 @@ jobs:
 
       - name: Compiling Cpp sources
         run: |
-          rm -rf build
+          mv /root/.cache /github/home
           export VCPKG_ROOT=/vcpkg
           export PATH=$VCPKG_ROOT:$PATH
-          sudo cmake \
+          rm -rf build
+          cmake \
             -B build \
             -DVCPKG_OVERLAY_PORTS=/overlays \
             -S . \
@@ -89,15 +90,14 @@ jobs:
             -DWITH_DAEMONS=ON \
             -DWITH_CREATE_FILES=OFF \
             -DWITH_CONFIG_FILES=ON \
-            -DNG=ON \
-            ..
+            -DNG=ON
 
-          sudo ninja -Cbuild
+          ninja -Cbuild
 
           echo "[DEBUG] - Find compiled files"
-          find ./build/{broker,engine,clib,connectors,common} -name "*.so"
+          find ./build/{broker,engine,clib,connectors,common} -name "*.so" -type f
           echo "[DEBUG] - Build size"
-          du -sh $(find ./build/{broker,engine,clib,connectors,common} -name "*.so") | sort -rh
+          du -sh $(find ./build/{broker,engine,clib,connectors,common} -name "*.so" -type f) | sort -rh
 
       - name: Binary preparation
         run: |
