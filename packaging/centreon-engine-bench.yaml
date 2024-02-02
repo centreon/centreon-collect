@@ -15,7 +15,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../build/engine/centengine_bench_passive"
+  - src: "../build/engine/modules/bench/centengine_bench_passive"
     dst: "/usr/sbin/centengine_bench_passive"
 
   - src: "../build/engine/modules/bench/bench_passive_module.so"
