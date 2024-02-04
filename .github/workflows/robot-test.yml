@@ -158,7 +158,7 @@ jobs:
           echo "xray_token=$xray_token" >> $GITHUB_OUTPUT
         shell: bash
 
-        - name: Install Python
+      - name: Install Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.8' # or the version compatible with Robot Framework
