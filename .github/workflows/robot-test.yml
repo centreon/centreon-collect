@@ -160,8 +160,8 @@ jobs:
 
       - name: Send report to xrays
         run: |
-          echo "xray_token=$xray_token"
-          curl -H "Content-Type:text/xml" --data @"/test_collect/tests/output.xml" -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" "https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON"
+          echo "xray_token=${{ steps.generate-xray-token.outputs.xray_token }}"
+          curl -H "Content-Type: application/json" --data @"tests/output.xml" -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" "https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON"
         working-directory: tests
         
       - name: Move reports
