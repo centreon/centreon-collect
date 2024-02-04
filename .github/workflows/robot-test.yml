@@ -158,6 +158,15 @@ jobs:
           echo "xray_token=$xray_token" >> $GITHUB_OUTPUT
         shell: bash
 
+        - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8' # or the version compatible with Robot Framework
+
+      - name: Install Robot Framework
+        run: |
+          pip install robotframework
+
       - name: Generate JSON report
         run: |
           rebot --outputdir results --reportformat json results/*.xml
