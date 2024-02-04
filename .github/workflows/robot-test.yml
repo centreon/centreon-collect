@@ -160,9 +160,7 @@ jobs:
 
       - name: Send report to xrays
         run: |
-          echo "xray_token=${{ steps.generate-xray-token.outputs.xray_token }}"
-          curl -H "Content-Type: application/json" \ --data @<(python -c "import xmltodict, json; with open('/test_collect/tests/output.xml', 'r') as xml_file: data_dict = xmltodict.parse(xml_file.read()); json_data = json.dumps(data_dict); print(json_data.replace('\'', '\\\'').replace('\"', '\\\"'))" \ -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" \ "https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON"
-          echo "Generated JSON: $(python -c "import xmltodict, json; with open('/test_collect/tests/output.xml', 'r') as xml_file: data_dict = xmltodict.parse(xml_file.read()); json_data = json.dumps(data_dict); print(json_data.replace('\'', '\\\'').replace('\"', '\\\"'))"
+          curl -H "Content-Type: application/json" \ --data @<(python -c "import xmltodict, json; with open('/test_collect/tests/output.xml', 'r') as xml_file: data_dict = xmltodict.parse(xml_file.read()); json_data = json.dumps(data_dict); print(json_data.replace('\'', '\\\'').replace('\"', '\\\"'))") \ -H "Authorization: ***" \ "https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON"
         working-directory: tests
         
       - name: Move reports
