@@ -158,13 +158,15 @@ jobs:
           echo "xray_token=$xray_token" >> $GITHUB_OUTPUT
         shell: bash
 
+      - name: Generate JSON report
+        run: |
+          rebot --outputdir results --reportformat json results/*.xml
+        shell: bash
+
       - name: Send report to xrays
         run: |
-          python -c 'import xmltodict, json; with open("tests/output.xml", "r") as xml_file: data_dict = xmltodict.parse(xml_file.read()); json_data = json.dumps(data_dict); print(json_data.replace("\"", "\\\""))' > temp.json \
-          curl -H "Content-Type: multipart/form-data" -X POST -H "Authorization: ***" -F info=@"tests/issueFields.json" -F "results=@temp.json" -F testInfo=@"tests/testIssueFields.json" https://xray.cloud.getxray.app/api/v2/import/execution/robot/multipart -v \
-          rm temp.json
-        working-directory: tests
-        
+          curl -H "Content-Type: multipart/form-data" -X POST -F info=@"tests/issueFields.json" -F results=@"tests/output.xml" -F testInfo=@"tests/testIssueFields.json" -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" "https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON&testPlanKey=MON-34670"
+
       - name: Move reports
         if: ${{ failure() }}
         run: |
