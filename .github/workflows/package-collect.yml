@@ -127,7 +127,7 @@ jobs:
           fi
 
           sudo $CMAKE \
-                  -B/usr/local/bin/mold \
+                  -B/usr/libexec/mold \
                   -G "Ninja" \
                   -DDEBUG_ROBOT=OFF \
                   -DWITH_TESTING=OFF \
