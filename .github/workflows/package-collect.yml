@@ -129,7 +129,6 @@ jobs:
           echo $PREFIX
 
           sudo $CMAKE \
-                  -B/usr/local/libexec/mold \
                   -G "Ninja" \
                   -DDEBUG_ROBOT=OFF \
                   -DWITH_TESTING=OFF \
@@ -148,6 +147,7 @@ jobs:
                   -DWITH_CONFIG_FILES=ON \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   -DNG=ON \
+                  -DCMAKE_LINKER_TYPE=mold \
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   .
