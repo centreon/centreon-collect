@@ -169,7 +169,7 @@ jobs:
 
       - name: Generate JSON report
         run: |
-          rebot --outputdir results --reportformat json results/*.xml
+          robot --outputdir results --reportformat json --log NONE --output results/output.json results/*.xml
         shell: bash
 
       - name: Send report to xrays
