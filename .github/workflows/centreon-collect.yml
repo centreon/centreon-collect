@@ -7,20 +7,20 @@ concurrency:
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - bbdo/**
-      - broker/**
-      - ccc/**
-      - clib/**
-      - connectors/**
-      - engine/**
-      - grpc/**
-      - packaging/**
-      - cmake.sh
-      - CMakeLists.txt
-      - conanfile.txt
-      - selinux/**
-      - "!.veracode-exclusions"
+    # paths:
+    #   - bbdo/**
+    #   - broker/**
+    #   - ccc/**
+    #   - clib/**
+    #   - connectors/**
+    #   - engine/**
+    #   - grpc/**
+    #   - packaging/**
+    #   - cmake.sh
+    #   - CMakeLists.txt
+    #   - conanfile.txt
+    #   - selinux/**
+    #   - "!.veracode-exclusions"
   push:
     branches:
       - develop
