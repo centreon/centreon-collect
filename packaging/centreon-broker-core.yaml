@@ -58,7 +58,7 @@ overrides:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-broker (= ${VERSION}-${RELEASE}${DIST})
       - libgnutls30
-      - libssl3
+      - libssl1.1 | libssl3
       - zlib1g
     conflicts:
       - centreon-broker-storage
