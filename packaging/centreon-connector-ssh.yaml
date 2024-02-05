@@ -25,8 +25,10 @@ overrides:
     depends:
       - libgcrypt
       - libssh2
+      - centreon-clib = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
+      - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - libgcrypt20
       - libssh2-1
 
