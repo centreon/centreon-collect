@@ -77,6 +77,8 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
+      - uses: rui314/setup-mold@v1
+
       - name: Install sccache
         run: |
           if [ "${{ matrix.package_extension }}" = "deb" ]; then
@@ -125,6 +127,7 @@ jobs:
           fi
 
           sudo $CMAKE \
+                  -B/usr/local/bin/mold \
                   -G "Ninja" \
                   -DDEBUG_ROBOT=OFF \
                   -DWITH_TESTING=OFF \

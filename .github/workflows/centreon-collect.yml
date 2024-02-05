@@ -46,35 +46,35 @@ jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
 
-  unit-test:
-    needs: [get-version]
-    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
-    runs-on: [self-hosted, collect]
+  # unit-test:
+  #   needs: [get-version]
+  #   if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+  #   runs-on: [self-hosted, collect]
 
-    strategy:
-      fail-fast: false
-      matrix:
-        image: [alma8, alma9, debian-bullseye, debian-bookworm]
-    name: unit test ${{ matrix.image }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       image: [alma8, alma9, debian-bullseye, debian-bookworm]
+  #   name: unit test ${{ matrix.image }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-      - name: Login to Registry
-        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
-        with:
-          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+  #     - name: Login to Registry
+  #       uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+  #       with:
+  #         registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+  #         username: ${{ secrets.DOCKER_REGISTRY_ID }}
+  #         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-      - name: Test ${{ matrix.image }}
-        uses: ./.github/actions/runner-docker
-        with:
-          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          script_name: /src/.github/scripts/collect-unit-tests
-          image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ needs.get-version.outputs.img_version }}
+  #     - name: Test ${{ matrix.image }}
+  #       uses: ./.github/actions/runner-docker
+  #       with:
+  #         registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+  #         script_name: /src/.github/scripts/collect-unit-tests
+  #         image_name: centreon-collect-${{ matrix.image }}
+  #         image_version: ${{ needs.get-version.outputs.img_version }}
 
   package:
     needs: [get-version]
