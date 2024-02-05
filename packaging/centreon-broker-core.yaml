@@ -57,7 +57,9 @@ overrides:
       - ${LUA_VERSION}
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-broker (= ${VERSION}-${RELEASE}${DIST})
-      - ${LIB_GNU_TLS_VERSION}
+      - libgnutls30
+      - libssl3
+      - zlib1g
     conflicts:
       - centreon-broker-storage
       - centreon-broker-core-dev

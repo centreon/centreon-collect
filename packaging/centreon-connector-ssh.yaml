@@ -27,6 +27,7 @@ overrides:
   deb:
     depends:
       - libgcrypt20
+      - libssh2-1
 
 rpm:
   summary: Centreon Connector SSH provide persistante connection between checks.
