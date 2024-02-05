@@ -126,8 +126,10 @@ jobs:
             CMAKE="cmake"
           fi
 
+          echo $PREFIX
+
           sudo $CMAKE \
-                  -B/usr/libexec/mold \
+                  -B/usr/local/libexec/mold \
                   -G "Ninja" \
                   -DDEBUG_ROBOT=OFF \
                   -DWITH_TESTING=OFF \
