@@ -24,6 +24,7 @@ overrides:
   rpm:
     depends:
       - libgcrypt
+      - libssh2
   deb:
     depends:
       - libgcrypt20
