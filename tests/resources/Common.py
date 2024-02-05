@@ -729,6 +729,20 @@ def clear_db(table: str):
         connection.commit()
 
 
+def clear_db_conf(table: str):
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_CONF,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(f"DELETE FROM {table}")
+        connection.commit()
+
+
 def check_service_severity_with_timeout(host_id: int, service_id: int, severity_id, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1138,6 +1152,7 @@ def wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
     logger.console(f"{path} not modified since {date}")
     return False
 
+
 def has_file_permissions(path: str, permission: int):
     """! test if file has permission passed in parameter
     it does a AND with permission parameter
@@ -1145,7 +1160,7 @@ def has_file_permissions(path: str, permission: int):
     @permission mask to test file permission
     @return True if the file has the requested permissions
     """
-    stat_res= os.stat(path)
+    stat_res = os.stat(path)
     if stat_res is None:
         logger.console(f"fail to get permission of {path}")
         return False
