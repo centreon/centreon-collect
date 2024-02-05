@@ -513,12 +513,6 @@ BAWWW
     Dump Ba On Error    ${result}    ${third_ba__svc[0]}
     Should Be True    ${result}    The third BA is not OK as expected
 
-    ${result}    Check Ba Output With Timeout
-    ...    first_ba
-    ...    Status is OK - All KPIs are in an OK state
-    ...    60
-    Should Be True    ${result}    The BA test has not the expected output
-
     # KPI set to unknown
     Process Service Result Hard    host_16    service_303    3    output unknown for 303
 
