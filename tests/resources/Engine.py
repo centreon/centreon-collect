@@ -52,7 +52,16 @@ class EngineInstance:
         makedirs(f"{VAR_ROOT}/log/centreon-engine/", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-broker/", mode=0o777, exist_ok=True)
 
-    def create_centengine(self, id: int, debug_level=0):
+    def _create_centengine(self, id: int, debug_level=0):
+        """
+        _create_centengine
+
+        Create the centengine.cfg file for the instance id
+
+        Args:
+            id (int): id
+            debug_level (int, optional): Defaults to 0.
+        """        
         grpc_port = id + 50001
         return ("cfg_file={2}/config{0}/hosts.cfg\n"
                 "cfg_file={2}/config{0}/services.cfg\n"
@@ -151,7 +160,7 @@ class EngineInstance:
                 "check_service_freshness=1\n"
                 "enable_flap_detection=0\n").format(id, debug_level, CONF_DIR, VAR_ROOT, ETC_ROOT, grpc_port)
 
-    def create_host(self):
+    def _create_host(self):
         self.last_host_id += 1
         hid = self.last_host_id
         a = hid % 255
@@ -172,7 +181,7 @@ class EngineInstance:
             "hid": hid}
         return retval
 
-    def create_service(self, host_id: int, cmd_ids: int):
+    def _create_service(self, host_id: int, cmd_ids: int):
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
@@ -197,6 +206,11 @@ class EngineInstance:
         return retval
 
     def create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
+        """
+            Create an anomaly detection service.
+            Example:
+            | `Create Anomaly Detection` | 1 | 2 | cpu | 0.0 |
+        """
         self.last_service_id += 1
         service_id = self.last_service_id
         retval = """define anomalydetection {{
@@ -215,6 +229,12 @@ class EngineInstance:
         return retval
 
     def create_bam_timeperiod(self):
+        """create_bam_timeperiod 
+
+        Create the timeperiod for the BAM module
+
+        Create Bam Timeperiod
+        """
         retval = """define timeperiod {
   timeperiod_name                centreon-bam-timeperiod
   alias                          centreon-bam-timeperiod
@@ -233,6 +253,12 @@ class EngineInstance:
         ff.close()
 
     def create_bam_command(self):
+        """create_bam_command _summary_
+
+        Create the command for the BAM module
+
+        Create Bam Command
+        """
         retval = """define command {
   command_name                   centreon-bam-check
   command_line                   $CENTREONPLUGINS$/check_centreon_bam -i $ARG1$
@@ -275,6 +301,16 @@ define command {
         return host_id
 
     def create_bam_service(self, name: str, display_name: str, host_name: str, check_command: str):
+        """create_bam_service _Create Bam Service_
+
+        Create a service for the BAM module
+
+        Args:
+            name (str): service_name
+            display_name (str): display_name
+            host_name (str): host_name
+            check_command (str): check_command
+        """
         self.last_service_id += 1
         service_id = self.last_service_id
         retval = """define service {{
@@ -450,18 +486,18 @@ passive_checks_enabled 1
             config_dir = "{}/config{}".format(CONF_DIR, inst)
             makedirs(config_dir)
             f = open(f"{config_dir}/centengine.cfg", "w")
-            bb = self.create_centengine(inst, debug_level=debug_level)
+            bb = self._create_centengine(inst, debug_level=debug_level)
             f.write(bb)
             f.close()
 
             f = open(f"{config_dir}/hosts.cfg", "w")
             ff = open(f"{config_dir}/services.cfg", "w")
             for i in range(1, nb_hosts + 1):
-                h = self.create_host()
+                h = self._create_host()
                 f.write(h["config"])
                 self.hosts.append("host_{}".format(h["hid"]))
                 for j in range(1, services_by_host + 1):
-                    ff.write(self.create_service(h["hid"],
+                    ff.write(self._create_service(h["hid"],
                                                  (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
                     self.services.append("service_{}".format(h["hid"]))
             ff.close()
@@ -639,6 +675,11 @@ define contact {
                 makedirs(ENGINE_HOME + "/config{}/rw".format(inst))
 
     def centengine_conf_add_bam(self):
+        """
+        centengine_conf_add_bam _entengine Conf Add Bam_
+
+        Add the bam configuration to the centengine.cfg file
+        """
         config_dir = "{}/config0".format(CONF_DIR)
         f = open(f"{config_dir}/centengine.cfg", "r")
         lines = f.readlines()
@@ -664,36 +705,47 @@ define contact {
 
 engine = None
 
-##
-# @brief Configure all the necessary files for num instances of centengine.
-#
-# @param num: How many engine configurations to start
-#
 
 
 def config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
+    """
+    config_engine 
+
+    Configure all the necessary files for num instances of centengine.
+
+    Args:
+        num (int): How many engine configurations to start
+        hosts (int, optional): Defaults to 50.
+        srv_by_host (int, optional): Defaults to 20.
+    """    
     global engine
     engine = EngineInstance(num, hosts, srv_by_host)
 
-
-##
-# @brief Accessor to the number of centengine configurations
-#
 def get_engines_count():
+    """get_engines_count _summary_
+
+    Return the number of centengine configurations.
+
+    Returns:
+        ${count}: Get Engines Count
+    """
     if engine is None:
         return 0
     else:
         return engine.instances
 
-
-##
-# @brief Function to change a value in the centengine.cfg for the config idx.
-#
-# @param idx index of the configuration (from 0)
-# @param key the key to change the value.
-# @param value the new value to set to the key variable.
-#
 def engine_config_set_value(idx: int, key: str, value: str, force: bool = False):
+    """
+    engine_config_set_value 
+    
+    Run a command to set a value in the centengine.cfg for the config idx
+
+    Args:
+        idx (int): idx index of the configuration (from 0)
+        key (str): the key to change the value.
+        value (str): the new value to set to the key variable.
+        force (bool, optional): Defaults to False.
+    """    
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
     f = open(filename, "r")
     lines = f.readlines()
@@ -712,31 +764,37 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
     f.writelines(lines)
     f.close()
 
-##
-# @brief Function to add a value in the centengine.cfg for the config idx.
-#
-# @param idx index of the configuration (from 0)
-# @param key the key to change the value.
-# @param value the new value to set to the key variable.
-#
-
-
 def engine_config_add_value(idx: int, key: str, value: str):
+    """
+    engine_config_add_value _Engine Config Add Value_
+
+    Run a command to add a value in the centengine.cfg for the config idx.
+
+    Args:
+        idx (int): idx index of the configuration (from 0)
+        key (str): the key to change the value.
+        value (str): the new value to set to the key variable.
+    """ 
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
     f = open(filename, "a")
     f.write(f"{key}={value}")
     f.close()
 
-
-##
-# @brief Function to change a value in the services.cfg for the config idx.
-#
-# @param idx index of the configuration (from 0)
-# @param desc service description of the service to modify.
-# @param key the key to change the value.
-# @param value the new value to set to the key variable.
-#
 def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: str):
+    """
+    engine_config_set_value_in_services _Engine Config Set Value In Services_
+
+    Run a command to set a value in the services.cfg for the config idx
+
+    Args:
+        idx (int): idx index of the configuration (from 0)
+        desc (str): ervice description of the service to modify.
+        key (str): the key to change the value.
+        value (str): the new value to set to the key variable.
+
+    Returns: N/A
+
+    """
     filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
     f = open(filename, "r")
     lines = f.readlines()
@@ -753,13 +811,18 @@ def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: st
 
 
 def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
-    """! Function to update a value in the services.cfg for the config idx.
-    @param idx index of the configuration (from 0)
-    @param desc service description of the service to modify.
-    @param key the key to change the value.
-    @param value the new value to set to the key variable.
     """
+    engine_config_replace_value_in_services 
 
+    Function to update a value in the services.cfg for the config idx
+    Args:
+        idx (int): idx index of the configuration (from 0)
+        desc (str): desc service description of the service to modify.
+        key (str): key the key to change the value.
+        value (str): value the new value to set to the key variable.
+
+    Returns: N/A
+    """    
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
@@ -776,17 +839,20 @@ def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value
     with open(filename, "w") as f:
         f.writelines(lines)
 
-##
-# @brief Function to change a value in the hosts.cfg for the config idx.
-#
-# @param idx index of the configuration (from 0)
-# @param desc host name of the host to modify.
-# @param key the key to change the value.
-# @param value the new value to set to the key variable.
-#
-
-
 def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
+    """
+    engine_config_set_value_in_hosts 
+
+    Function to set a value in the hosts.cfg for the config idx.
+
+    Args:
+        idx (int): index of the configuration (from 0)
+        desc (str): host name of the host to modify.
+        key (str): the key to change the value.
+        value (str): the value to set to the key variable.
+
+    Returns: N/A
+    """
     filename = ETC_ROOT + "/centreon-engine/config{}/hosts.cfg".format(idx)
     f = open(filename, "r")
     lines = f.readlines()
@@ -801,16 +867,20 @@ def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
     f.writelines(lines)
     f.close()
 
-
-##
-# @brief Function to change a value in the hosts.cfg for the config idx.
-#
-# @param idx index of the configuration (from 0)
-# @param desc host name of the host to modify.
-# @param key the key to change the value.
-# @param value the new value to set to the key variable.
-#
 def engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: str):
+    """
+    engine_config_replace_value_in_hosts 
+
+    Function to change a value in the hosts.cfg for the config idx.
+
+    Args:
+        idx (int): index of the configuration (from 0)
+        desc (str): host name of the host to modify.
+        key (str): the key to change the value.
+        value (str): the new value to set to the key variable.
+
+    Returns: N/A
+    """    
     filename = ETC_ROOT + "/centreon-engine/config{}/hosts.cfg".format(idx)
     f = open(filename, "r")
     lines = f.readlines()
@@ -830,15 +900,17 @@ def engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: s
     f.writelines(lines)
     f.close()
 
-
-##
-# @brief Function to change a value in the commands.cfg for the config idx.
-#
-# @param idx index of the configuration (from 0)
-# @param command_index  index of the command (may be a regex)
-# @param new_command
-#
 def engine_config_change_command(idx: int, command_index: str, new_command: str):
+    """
+    engine_config_change_command 
+
+    Function to change a value in the commands.cfg for the config idx.
+
+    Args:
+        idx (int): index of the configuration (from 0)
+        command_index (str): ndex of the command (may be a regex)
+        new_command (str): new_command
+    """    
     f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "r")
     lines = f.readlines()
     f.close
@@ -858,15 +930,21 @@ def engine_config_change_command(idx: int, command_index: str, new_command: str)
     f.writelines(new_lines)
     f.close
 
-
-##
-# @brief Function to add a new command in the commands.cfg for the config idx
-#
-# @param idx index of the configuration (from 0)
-# @param command_name
-# @param new_command
-#
 def engine_config_add_command(idx: int, command_name: str, new_command: str, connector: str = None):
+    """
+    engine_config_add_command 
+
+    Function to add a new command in the commands.cfg for the config idx
+
+    Args:
+        idx (int): index of the configuration (from 0)
+        command_name (str): command_name
+        new_command (str): new_command
+        connector (str, optional): Defaults to None.
+
+    Returns: N/A
+
+    """    
     f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "a")
     if connector is None:
         f.write("""define command {{
@@ -883,14 +961,21 @@ def engine_config_add_command(idx: int, command_name: str, new_command: str, con
     """.format(command_name, new_command, connector))
     f.close()
 
-
-#
-# @param idx index of the configuration (from 0)
-# @param desc contact_name
-# @param key the key to change the value.
-# @param value the new value to set to the key variable.
-#
 def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str):
+    """
+    engine_config_set_value_in_contacts _Engine Config Set Value In Contacts_
+
+    Replace a value in the contacts.cfg for the config idx
+
+    Args:
+        idx (int): index of the configuration (from 0)
+        desc (str): contact_name
+        key (str): the key to change the value.
+        value (str): the new value to set to the key variable.
+
+    Returns: N/A
+
+    """
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/contacts.cfg"
     f = open(filename, "r")
     lines = f.readlines()
@@ -906,8 +991,18 @@ def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: st
     f.writelines(lines)
     f.close()
 
-
 def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
+    """
+    engine_config_set_value_in_escalations _Engine Config Set Value In Escalations_
+
+    Replace a value in the escalations.cfg for the config idx
+
+    Args:
+        idx (int): index of the configuration (from 0)
+        desc (str): escalations_name
+        key (str): the key to change the value.
+        value (str): the new value to set to the key variable.
+    """    
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
@@ -920,6 +1015,18 @@ def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value:
 
 
 def engine_config_remove_service_host(idx: int, host: str):
+    """
+    engine_config_remove_service_host _Engine Config Remove Service Host_
+
+    Remove a host from the configuration idx
+
+    Args:
+        idx (int): index of the configuration (from 0)
+        host (str): host_name
+
+    Returns: N/A
+
+    """
     filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
     f = open(filename, "r")
     lines = f.readlines()
@@ -949,8 +1056,19 @@ def engine_config_remove_service_host(idx: int, host: str):
     f.writelines(lines)
     f.close()
 
-
 def engine_config_remove_host(idx: int, host: str):
+    """
+    engine_config_remove_host _Engine Config Remove Host_
+
+    Remove a host from the configuration idx
+
+    Args:
+        idx (int): index of the configuration (from 0)
+        host (str): name of the host wanted to be removed
+
+    Returns: N/A
+
+    """
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
@@ -980,16 +1098,41 @@ def engine_config_remove_host(idx: int, host: str):
     f.writelines(lines)
     f.close()
 
-
 def add_host_group(index: int, id_host_group: int, members: list):
+    """
+    add_host_group _Add Host Group_
+
+    Run the command to add a host group on the engine instance index
+
+    Args:
+        index (int): index of the configuration (from 0)
+        id_host_group (int): 
+        members (list): 
+
+    Returns: N/A
+
+    """
     mbs = [l for l in members if l in engine.hosts]
     f = open(ETC_ROOT + "/centreon-engine/config{}/hostgroups.cfg".format(index), "a+")
     logger.console(mbs)
     f.write(engine.create_host_group(id_host_group, mbs))
     f.close()
 
-
 def rename_host_group(index: int, id_host_group: int, name: str, members: list):
+    """
+    rename_host_group _Rename Host Group_
+
+    Run the command to rename a host group on the engine instance index
+
+    Args:
+        index (int): index of the configuration (from 0)
+        id_host_group (int): 
+        name (str): host_group_name
+        members (list): _description_
+
+    Returns: N/A
+
+    """
     mbs = [l for l in members if l in engine.hosts]
     f = open(ETC_ROOT + "/centreon-engine/config{}/hostgroups.cfg".format(index), "w")
     logger.console(mbs)
@@ -1002,8 +1145,21 @@ def rename_host_group(index: int, id_host_group: int, name: str, members: list):
 """.format(id_host_group, name, ",".join(mbs)))
     f.close()
 
-
 def rename_service(index: int, hst: str, svc: str, new_svc: str):
+    """
+    rename_service _Rename Service_
+
+    Rename a service on the engine instance index, on the host hst, with the service svc
+
+    Args:
+        index (int): 0
+        hst (str): host_
+        svc (str): service_
+        new_svc (str): new_service_
+
+    Returns: N/A
+
+    """
     f = open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "r")
     ll = f.readlines()
     f.close()
@@ -1042,8 +1198,20 @@ def rename_service(index: int, hst: str, svc: str, new_svc: str):
     f.writelines(ll)
     f.close()
 
-
 def add_service_group(index: int, id_service_group: int, members: list):
+    """
+    add_service_group _Add Service Group_
+
+    Run the command to add a service group on the engine instance index
+
+    Args:
+        index (int): index of the configuration (from 0)
+        id_service_group (int): 
+        members (list): 
+
+    Returns: N/A
+
+    """    
     f = open(
         ETC_ROOT + "/centreon-engine/config{}/servicegroups.cfg".format(index), "a+")
     logger.console(members)
@@ -1070,12 +1238,42 @@ def rename_service_group(index: int, old_servicegroup_name: str, new_service_gro
         f.writelines(ll)
 
 def add_contact_group(index: int, id_contact_group: int, members: list):
+    """
+    add_contact_group _Add Contact Group_
+
+    _Add a contact group on the engine instance index_
+
+    Args:
+        index (int): 0
+        id_contact_group (int): 1
+        members (list): [U1, U2]
+
+    Returns: N/A
+
+    """ 
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/contactgroups.cfg", "a+") as f:
         logger.console(members)
         f.write(engine.create_contact_group(id_contact_group, members))
 
 
 def create_service(index: int, host_id: int, cmd_id: int):
+    """
+    create_service _Create Service_
+
+    Create a service on the engine instance index, on the host host_id, with the command cmd_id
+
+    Args:
+        index (int): 0
+        host_id (int): 1
+        cmd_id (int): 1
+
+    Example:
+    | ${svc_id} | `Create Service` | 0 | 1 | 1 |
+    |Add Tags To Services | ${0} | group_tags | 4 | [${svc_id}] |
+
+    Returns: N/A
+
+    """
     f = open(ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(index), "a+")
     svc = engine.create_service(host_id, [1, cmd_id])
     lst = svc.split('\n')
@@ -1091,8 +1289,22 @@ def create_service(index: int, host_id: int, cmd_id: int):
     f.close()
     return retval
 
-
 def create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
+    """
+    create_anomaly_detection _Create Anomaly Detection_
+
+    Create an anomaly detection on the engine instance index
+
+    Args:
+        index (int): index of the configuration (from 0)
+        host_id (int): id of the chosen host
+        dependent_service_id (int): id of the debendent service linked to the host chosen
+        metric_name (string): metric name
+        sensitivity (float, optional): Defaults to 0.0.
+
+    Returns: N/A
+
+    """
     f = open(
         ETC_ROOT + "/centreon-engine/config{}/anomaly_detection.cfg".format(index), "a+")
     to_append = engine.create_anomaly_detection(
@@ -1111,68 +1323,203 @@ def create_anomaly_detection(index: int, host_id: int, dependent_service_id: int
     engine.centengine_conf_add_anomaly()
     return retval
 
-
 def engine_log_duplicate(result: list):
+    """
+    engine_log_duplicate _Engine Log Duplicate_
+
+    Duplicate the log file for each engine instance
+
+    Args:
+        result (list): log wanted to be duplicated
+
+    Returns: N/A
+
+    """    
     dup = True
     for i in result:
         if (i[0] % 2) != 0:
             dup = False
     return dup
 
-
 def clone_engine_config_to_db():
+    """
+    clone_engine_config_to_db 
+
+    Clone the engine configuration to the database
+
+    Returns: N/A
+
+    """    
     global dbconf
     dbconf = db_conf.DbConf(engine)
     dbconf.create_conf_db()
 
-
 def add_bam_config_to_engine():
+    """
+    add_bam_config_to_engine 
+
+    Add the bam configuration to the engine
+
+    Returns:
+
+    """    
     global dbconf
     dbconf.init_bam()
 
-
 def create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inherit"):
+    """
+    create_ba_with_services 
+
+    Create a BA with the given services
+
+    Args:
+        name (str): name of the ba
+        typ (str): type of the ba
+        svc (list): services name chosen to create the ba
+        dt_policy (str, optional): Defaults to "inherit".
+
+    Returns: N/A
+        
+    """
     global dbconf
     return dbconf.create_ba_with_services(name, typ, svc, dt_policy)
 
-
 def create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit"):
+    """
+    create_ba 
+
+    Args:
+        name (str): ba name
+        typ (str): type of the ba (worst,best,impact..)
+        critical_impact (int): Impact weight in the event of a Critical condition, in real-time monitoring
+        warning_impact (int): Impact weight in the event of a Warning condition, in real-time monitoring. Ignored if indicator is a boolean rule
+        dt_policy (str, optional): Defaults to "inherit".
+
+    Returns: N/A
+   
+    """    
     global dbconf
     return dbconf.create_ba(name, typ, critical_impact, warning_impact, dt_policy)
 
-
 def add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):
+    """
+    add_boolean_kpi 
+
+    Add a boolean KPI to a BA
+
+    Args:
+        id_ba (int): 
+        expression (str): 
+        impact_if (bool): (true/false)
+        critical_impact (int): Impact weight in the event of a Critical condition, in real-time monitoring
+
+    Returns: N/A
+      
+    """    
     return dbconf.add_boolean_kpi(id_ba, expression, impact_if, critical_impact)
 
-
 def update_boolean_rule(boolean_id: int, expression: str):
+    """
+    update_boolean_rule 
+
+    Udpate a boolean rule
+
+    Args:
+        boolean_id (int): 
+        expression (str): 
+
+    Returns:
+        _type_: _description_
+    """    
     dbconf.update_boolean_rule(boolean_id, expression)
 
-
 def add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+    """
+    add_ba_kpi 
+
+    Add a BA KPI
+
+    Args:
+        id_ba_src (int): 
+        id_ba_dest (int): 
+        critical_impact (int): Impact weight in the event of a Critical condition, in real-time monitoring
+        warning_impact (int): Impact weight in the event of a Warning condition, in real-time monitoring. Ignored if indicator is a boolean rule
+        unknown_impact (int): _Impact weight in the event of an Unknown condition, in real-time monitoring. Ignored if indicator is a boolean rule
+
+    Returns: N/A
+ 
+    """    
     dbconf.add_ba_kpi(id_ba_src, id_ba_dest, critical_impact,
                       warning_impact, unknown_impact)
 
-
 def add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+    """
+    add_service_kpi 
+
+    Add a service KPI
+
+    Args:
+        host (str): 
+        serv (str): 
+        id_ba (int): 
+        critical_impact (int): Impact weight in the event of a Critical condition, in real-time monitoring
+        warning_impact (int): Impact weight in the event of a Warning condition, in real-time monitoring. Ignored if indicator is a boolean rule
+        unknown_impact (int): _Impact weight in the event of an Unknown condition, in real-time monitoring. Ignored if indicator is a boolean rule
+
+    Returns: N/A
+        
+    """    
     global dbconf
     dbconf.add_service_kpi(
         host, serv, id_ba, critical_impact, warning_impact, unknown_impact)
 
-
 def get_command_id(service: int):
+    """
+    get_command_id _summary_
+
+    Return the command id for the service
+
+    Args:
+        service (int): id of the service linked to the command
+
+    Returns: N/A
+        
+    """    
     global engine
     global dbconf
     cmd_name = engine.service_cmd[service]
     return dbconf.command[cmd_name]
 
-
 def get_command_service_param(service: int):
+    """
+    get_command_service_param _summary_
+
+   Return the command service param for the service
+
+    Args:
+        service (int): id of the service linked to the command
+
+    Returns: N/A
+      
+    """    
     global engine
     return engine.service_cmd[service][8:]
 
-
 def change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
+    """
+    change_normal_svc_check_interval 
+
+    Update the normal check interval for a service
+
+    Args:
+        use_grpc (int): 
+        hst (str): 
+        svc (str): 
+        check_interval (int): 
+
+    Returns: N/A
+ 
+    """    
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1186,8 +1533,19 @@ def change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_in
         f.write(cmd)
         f.close()
 
-
 def change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: int):
+    """change_normal_host_check_interval _summary_
+
+    Update the normal check interval for a host
+
+    Args:
+        use_grpc (int): 
+        hst (str): 
+        check_interval (int): 
+
+    Returns: N/A
+        
+    """  
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1200,8 +1558,21 @@ def change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: i
         f.write(cmd)
         f.close()
 
-
 def change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_interval: int):
+    """
+    change_retry_svc_check_interval 
+
+    Update the retry check interval for a service
+
+    Args:
+        use_grpc (int): 
+        hst (str): 
+        svc (str): 
+        retry_interval (int): 
+
+    Returns: N/A
+        
+    """    
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1214,8 +1585,20 @@ def change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_int
         f.write(cmd)
         f.close()
 
-
 def change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: int):
+    """
+    change_retry_host_check_interval _summary_
+
+    Update the retry check interval for a host
+
+    Args:
+        use_grpc (int):  
+        hst (str):  
+        retry_interval (int):  
+
+    Returns: N/A
+        
+    """    
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1227,8 +1610,21 @@ def change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: in
         with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
             f.write(cmd)
 
-
 def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_attempts: int):
+    """
+    change_max_svc_check_attempts 
+
+    Update the max check attempts for a service
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+        svc (str): service name
+        max_check_attempts (int): number of max check attempts wanted
+
+    Returns: N/A
+        
+    """    
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1240,8 +1636,20 @@ def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_a
         with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
             f.write(cmd)
 
-
 def change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: int):
+    """
+    change_max_host_check_attempts 
+
+    Update the max check attempts for a host
+
+    Args:
+        use_grpc (int): 
+        hst (str): service name
+        max_check_attempts (int): number of max check attempts wanted
+
+    Returns: N/A
+
+    """    
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1255,8 +1663,20 @@ def change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: 
         f.write(cmd)
         f.close()
 
-
 def change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str):
+    """
+    change_host_check_timeperiod 
+
+    Update the check timeperiod for a host
+
+    Args:
+        use_grpc (int):  
+        hst (str): host name
+        check_timeperiod (str): chek period (24x7, 24x6, workhours..)
+
+    Returns: N/A
+         
+    """    
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1270,8 +1690,20 @@ def change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str)
         f.write(cmd)
         f.close()
 
-
 def change_host_notification_timeperiod(use_grpc: int, hst: str, notification_timeperiod: str):
+    """
+    change_host_notification_timeperiod 
+
+    Update the notification timeperiod for a host
+
+    Args:
+        use_grpc (int): 
+        hst (str):  host nema
+        notification_timeperiod (str): notification chek period (24x7, 24x6, workhours..)
+
+    Returns: N/A
+        
+    """    
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1285,8 +1717,21 @@ def change_host_notification_timeperiod(use_grpc: int, hst: str, notification_ti
         f.write(cmd)
         f.close()
 
-
 def change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeperiod: str):
+    """
+    change_svc_check_timeperiod  
+
+    Update the check timeperiod for a service
+
+    Args:
+        use_grpc (int):  
+        hst (str): host name
+        svc (str): service name
+        check_timeperiod (str): chek period (24x7, 24x6, workhours..)
+
+    Returns: N/A
+        
+    """    
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1300,8 +1745,21 @@ def change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeper
         f.write(cmd)
         f.close()
 
-
 def change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notification_timeperiod: str):
+    """
+    change_svc_notification_timeperiod 
+
+    Update the notification timeperiod for a service
+
+    Args:
+        use_grpc (int):
+        hst (str):host name
+        svc (str):service name
+        notification_timeperiod (str): notification chek period (24x7, 24x6, workhours..)
+
+    Returns: N/A
+        
+    """    
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1315,8 +1773,19 @@ def change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notifi
         f.write(cmd)
         f.close()
 
-
 def disable_host_and_child_notifications(use_grpc: int, hst: str):
+    """
+    disable_host_and_child_notifications 
+
+    Run the command to disable host and child notifications
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1330,8 +1799,19 @@ def disable_host_and_child_notifications(use_grpc: int, hst: str):
         f.write(cmd)
         f.close()
 
-
 def enable_host_and_child_notifications(use_grpc: int, hst: str):
+    """
+    enable_host_and_child_notifications 
+
+    Run the command to enable host and child notifications
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1345,8 +1825,19 @@ def enable_host_and_child_notifications(use_grpc: int, hst: str):
         f.write(cmd)
         f.close()
 
-
 def disable_host_check(use_grpc: int, hst: str):
+    """
+    disable_host_check 
+
+    Run the command to disable host check
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_CHECK;{}\n".format(
@@ -1357,6 +1848,18 @@ def disable_host_check(use_grpc: int, hst: str):
 
 
 def enable_host_check(use_grpc: int, hst: str):
+    """
+    enable_host_check 
+
+    Run the command to enable host check
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_CHECK;{}\n".format(
@@ -1365,8 +1868,19 @@ def enable_host_check(use_grpc: int, hst: str):
         f.write(cmd)
         f.close()
 
-
 def disable_host_event_handler(use_grpc: int, hst: str):
+    """
+    disable_host_event_handler 
+
+    Run the command to disable host event handler
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_EVENT_HANDLER;{}\n".format(
@@ -1375,8 +1889,19 @@ def disable_host_event_handler(use_grpc: int, hst: str):
         f.write(cmd)
         f.close()
 
-
 def enable_host_event_handler(use_grpc: int, hst: str):
+    """
+    enable_host_event_handler 
+
+    Run the command to enable host event handler
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_EVENT_HANDLER;{}\n".format(
@@ -1385,8 +1910,19 @@ def enable_host_event_handler(use_grpc: int, hst: str):
         f.write(cmd)
         f.close()
 
-
 def disable_host_flap_detection(use_grpc: int, hst: str):
+    """
+    disable_host_flap_detection 
+
+    Run the command to disable host flap detection
+
+    Args:
+        use_grpc (int):
+        hst (str): host name
+
+    Returns: N/A
+         
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_FLAP_DETECTION;{}\n".format(
@@ -1397,6 +1933,18 @@ def disable_host_flap_detection(use_grpc: int, hst: str):
 
 
 def enable_host_flap_detection(use_grpc: int, hst: str):
+    """
+    enable_host_flap_detection  
+
+    Run the command to enable host flap detection
+
+    Args:
+        use_grpc (int):  
+        hst (str): host name
+
+    Returns: N/A
+         
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_FLAP_DETECTION;{}\n".format(
@@ -1407,6 +1955,18 @@ def enable_host_flap_detection(use_grpc: int, hst: str):
 
 
 def disable_host_notifications(use_grpc: int, hst: str):
+    """
+    disable_host_notifications
+
+    Run the command to disable host notifications
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1422,6 +1982,18 @@ def disable_host_notifications(use_grpc: int, hst: str):
 
 
 def enable_host_notifications(use_grpc: int, hst: str):
+    """
+    enable_host_notifications 
+
+    Run the command to enable host notifications
+
+    Args:
+        use_grpc (int):  
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1437,6 +2009,20 @@ def enable_host_notifications(use_grpc: int, hst: str):
 
 
 def update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: float):
+    """
+    update_ano_sensitivity 
+
+    Update the anomaly detection sensitivity 
+
+    Args:
+        use_grpc (int): 
+        hst (str):  host name
+        serv (str): service name
+        sensitivity (float): 
+
+    Returns: N/A
+        
+    """    
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
@@ -1452,6 +2038,18 @@ def update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: floa
 
 
 def disable_host_svc_checks(use_grpc: int, hst: str):
+    """
+    disable_host_svc_checks 
+
+    Run the command to disable host service checks
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_SVC_CHECKS;{}\n".format(
@@ -1462,6 +2060,18 @@ def disable_host_svc_checks(use_grpc: int, hst: str):
 
 
 def enable_host_svc_checks(use_grpc: int, hst: str):
+    """
+    enable_host_svc_checks _summary_
+
+    Run the command to enable host service checks
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_SVC_CHECKS;{}\n".format(
@@ -1472,6 +2082,18 @@ def enable_host_svc_checks(use_grpc: int, hst: str):
 
 
 def disable_host_svc_notifications(use_grpc: int, hst: str):
+    """
+    disable_host_svc_notifications 
+
+    Run the command to disable host service notifications
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
@@ -1482,6 +2104,18 @@ def disable_host_svc_notifications(use_grpc: int, hst: str):
 
 
 def enable_host_svc_notifications(use_grpc: int, hst: str):
+    """
+    enable_host_svc_notifications 
+
+    Run the command to enable host service notifications
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
@@ -1492,6 +2126,18 @@ def enable_host_svc_notifications(use_grpc: int, hst: str):
 
 
 def disable_passive_host_checks(use_grpc: int, hst: str):
+    """
+    disable_passive_host_checks 
+
+    Run the command to disable passive host checks
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_PASSIVE_HOST_CHECKS;{}\n".format(
@@ -1502,6 +2148,18 @@ def disable_passive_host_checks(use_grpc: int, hst: str):
 
 
 def enable_passive_host_checks(use_grpc: int, hst: str):
+    """
+    enable_passive_host_checks 
+
+    Run the command to enable passive host checks
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_PASSIVE_HOST_CHECKS;{}\n".format(
@@ -1512,6 +2170,19 @@ def enable_passive_host_checks(use_grpc: int, hst: str):
 
 
 def disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
+    """
+    disable_passive_svc_checks 
+
+    Run the command to disable passive service checks
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+        svc (str): service name
+
+    Returns: N/A
+        
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
@@ -1522,6 +2193,19 @@ def disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
 
 
 def enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
+    """
+    enable_passive_svc_checks 
+
+    Run the command to enable passive service checks
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+        svc (str): service name
+
+    Returns: N/A
+        
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] ENABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
@@ -1530,8 +2214,19 @@ def enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
         f.write(cmd)
         f.close()
 
-
 def start_obsessing_over_host(use_grpc: int, hst: str):
+    """
+    start_obsessing_over_host _summary_
+
+    Run the command to start obsessing over a host
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] START_OBSESSING_OVER_HOST;{}\n".format(
@@ -1540,8 +2235,19 @@ def start_obsessing_over_host(use_grpc: int, hst: str):
         f.write(cmd)
         f.close()
 
-
 def stop_obsessing_over_host(use_grpc: int, hst: str):
+    """
+    stop_obsessing_over_host 
+
+    Run the command to stop obsessing over a host
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+
+    Returns: N/A
+        
+    """ 
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] STOP_OBSESSING_OVER_HOST;{}\n".format(
@@ -1550,8 +2256,20 @@ def stop_obsessing_over_host(use_grpc: int, hst: str):
         f.write(cmd)
         f.close()
 
-
 def start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
+    """
+    start_obsessing_over_svc 
+
+    Run the command to start obsessing over a service
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+        svc (str): service name
+
+    Returns: N/A
+        
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] START_OBSESSING_OVER_SVC;{};{}\n".format(
@@ -1560,8 +2278,20 @@ def start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
         f.write(cmd)
         f.close()
 
-
 def stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
+    """
+    stop_obsessing_over_svc 
+
+    Run the command to stop obsessing over a service
+
+    Args:
+        use_grpc (int): 
+        hst (str): host name
+        svc (str): service name
+
+    Returns: N/A
+       
+    """    
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] STOP_OBSESSING_OVER_SVC;{};{}\n".format(
@@ -1583,8 +2313,21 @@ def external_command(func):
 
 @external_command
 def service_ext_commands(hst: str, svc: str, state: int, output: str):
-    return f"PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
+    """
+    service_ext_commands 
 
+    Run the command to process a service check result
+
+    Args:
+        hst (str): host name
+        svc (str): service name
+        state (int): state of the service wanted (0:ok, 1:WARNING, 2:CRITICAL....)
+        output (str): output wanted to be logged in console (service is OK)
+
+    Returns:
+        str: output
+    """
+    return f"PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
 
 @external_command
 def process_host_check_result(hst: str, state: int, output: str):
@@ -1593,6 +2336,19 @@ def process_host_check_result(hst: str, state: int, output: str):
 
 @external_command
 def schedule_service_downtime(hst: str, svc: str, duration: int):
+    """
+    schedule_service_downtime 
+
+    Run the command to schedule a service downtime
+
+    Args:
+        hst (str): host namr
+        svc (str): service name
+        duration (int): duration of the downtime in seconds
+
+    Returns: N/A
+        
+    """    
     now = int(time.time())
     return f"SCHEDULE_SVC_DOWNTIME;{hst};{svc};{now};{now+int(duration)};0;0;{duration};admin;Downtime set by admin\n"
 
@@ -1604,6 +2360,17 @@ def schedule_service_fixed_downtime(hst: str, svc: str, duration: int):
 
 
 def schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
+    """
+    schedule_host_fixed_downtime  
+
+    Run the command to schedule a host downtime
+
+    Args:
+        poller (int): 
+        hst (str): host name
+        duration (int): duration of the downtime
+
+    """    
     now = int(time.time())
     cmd1 = "[{1}] SCHEDULE_HOST_DOWNTIME;{0};{1};{2};1;0;;admin;Downtime set by admin\n".format(
         hst, now, now + duration)
@@ -1615,8 +2382,20 @@ def schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
     f.write(cmd2)
     f.close()
 
-
 def schedule_host_downtime(poller: int, hst: str, duration: int):
+    """
+    schedule_host_downtime 
+
+    Run the command to schedule a host downtime
+
+    Args:
+        poller (int): poller id
+        hst (str): host name
+        duration (int): period of the downtime wanted in second
+
+    Returns: N/A
+        
+    """    
     now = int(time.time())
     cmd1 = "[{1}] SCHEDULE_HOST_DOWNTIME;{0};{1};{2};1;0;{3};admin;Downtime set by admin\n".format(
         hst, now, now + duration, duration)
@@ -1628,8 +2407,20 @@ def schedule_host_downtime(poller: int, hst: str, duration: int):
     f.write(cmd2)
     f.close()
 
-
 def delete_host_downtimes(poller: int, hst: str):
+    """
+    
+    delete_host_downtimes 
+
+    Run the command to delete a host downtime
+
+    Args:
+        poller (int): POLLER ID
+        hst (str): host name
+
+    Returns: N/A
+        
+    """    
     now = int(time.time())
     cmd = "[{}] DEL_HOST_DOWNTIME_FULL;{};;;;;;;;\n".format(now, hst)
     f = open(
@@ -1637,8 +2428,21 @@ def delete_host_downtimes(poller: int, hst: str):
     f.write(cmd)
     f.close()
 
-
 def delete_service_downtime_full(poller: int, hst: str, svc: str):
+    """
+    
+    delete_service_downtime_full 
+
+    Run the command to delete a service downtime
+
+    Args:
+        poller (int):  poller id 
+        hst (str): host name
+        svc (str):  service name
+
+    Returns: N/A
+        
+    """    
     now = int(time.time())
     cmd = f"[{now}] DEL_SVC_DOWNTIME_FULL;{hst};{svc};;;;;;;\n"
     f = open(
@@ -1648,6 +2452,19 @@ def delete_service_downtime_full(poller: int, hst: str, svc: str):
 
 
 def schedule_forced_svc_check(host: str, svc: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
+    """
+    schedule_forced_svc_check 
+
+    Run the command to schedule a forced service check
+
+    Args:
+        host (str): host name
+        svc (str): service name
+        pipe (str, optional): Defaults to VAR_ROOT+"/lib/centreon-engine/config0/rw/centengine.cmd".
+
+    Returns: N/A
+    
+    """    
     now = int(time.time())
     f = open(pipe, "w")
     cmd = "[{2}] SCHEDULE_FORCED_SVC_CHECK;{0};{1};{2}\n".format(
@@ -1658,6 +2475,19 @@ def schedule_forced_svc_check(host: str, svc: str, pipe: str = f"{VAR_ROOT}/lib/
 
 
 def schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
+    """
+    
+    schedule_forced_host_check 
+
+    Run the command to schedule a forced host check
+
+    Args:
+        host (str): host name
+        pipe (str, optional): Defaults to VAR_ROOT+"/lib/centreon-engine/config0/rw/centengine.cmd".
+
+    Returns: N/A
+       
+    """ 
     now = int(time.time())
     cmd = f"[{now}] SCHEDULE_FORCED_HOST_CHECK;{host};{now}\n"
     with open(pipe, "w") as f:
@@ -1665,18 +2495,73 @@ def schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-
 
 
 def create_severities_file(poller: int, nb: int, offset: int = 1):
+    """
+    create_severities_file 
+
+    Run the command to create severities file
+
+    Args:
+        poller (int): _description_
+        nb (int): number of severites
+        offset (int, optional): Defaults to 1.
+
+    Returns: N/A
+        
+    """    
     engine.create_severities(poller, nb, offset)
 
-
 def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+    """
+    
+    create_escalations_file 
+
+    Create escalations file
+
+    Args:
+        poller (int): poller id
+        name (int): name of escalations
+        SG (str): name of service group
+        contactgroup (str): name of contact group
+
+    Returns: N/A
+        
+    """    
     engine.create_escalations_file(poller, name, SG, contactgroup)
 
-
 def create_template_file(poller: int, typ: str, what: str, ids: list):
+    """
+    
+    create_template_file 
+
+    Run the command to create template file
+
+    Args:
+        poller (int): poller id
+        typ (str): 
+        what (str): 
+        ids (list): 
+
+    Returns: N/A
+        
+    """    
     engine.create_template_file(poller, typ, what, ids)
 
 
 def create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
+    """
+    
+    create_tags_file 
+
+    Run the command to create tags file
+
+    Args:
+        poller (int): poller id
+        nb (int): number of tags
+        offset (int, optional): Defaults to 1.
+
+    Returns: N/A
+        
+    """    
     engine.create_tags(poller, nb, offset, tag_type)
 
 
@@ -1713,8 +2598,20 @@ def engine_config_remove_tag(poller: int, tag_id: int):
     f.close()
 
 
-
 def config_engine_add_cfg_file(poller: int, cfg: str):
+    """
+    
+    config_engine_add_cfg_file 
+
+    Run the command to add a cfg file to the engine
+
+    Args:
+        poller (int): poller id
+        cfg (str): configuration file name
+
+    Returns: N/A
+        
+    """    
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1728,8 +2625,22 @@ def config_engine_add_cfg_file(poller: int, cfg: str):
     ff.writelines(lines)
     ff.close()
 
-
 def add_severity_to_services(poller: int, severity_id: int, svc_lst):
+    """
+    
+    add_severity_to_services 
+
+    Add severity to services
+
+    Args:
+        poller (int): 
+        severity_id (int): 
+        svc_lst (list): 
+
+    Returns: N/A
+        
+    """    
+
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1744,8 +2655,21 @@ def add_severity_to_services(poller: int, severity_id: int, svc_lst):
     ff.writelines(lines)
     ff.close()
 
-
 def set_services_passive(poller: int, srv_regex):
+    """
+    
+    set_services_passive 
+
+    "Run the command to set services passive
+
+    Args:
+        poller (int): 
+        srv_regex (str): service name
+
+    Returns: N/A
+        
+    """    
+
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1773,8 +2697,21 @@ def set_services_passive(poller: int, srv_regex):
     ff.writelines(lines)
     ff.close()
 
-
 def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
+    """
+    
+    add_severity_to_hosts _summary_
+
+    Run the command to add severity to hosts
+
+    Args:
+        poller (int): 
+        severity_id (int): 
+        svc_lst (_type_): 
+
+    Returns: n:a
+        
+    """    
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1789,8 +2726,22 @@ def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     ff.writelines(lines)
     ff.close()
 
-
 def add_template_to_services(poller: int, tmpl: str, svc_lst):
+    """
+    
+    add_template_to_services 
+
+    Run the command to add template to services
+
+    Args:
+        poller (int): 
+        tmpl (str): 
+        svc_lst (_type_): 
+
+    Returns: N/A
+   
+    """    
+
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1805,8 +2756,23 @@ def add_template_to_services(poller: int, tmpl: str, svc_lst):
     ff.writelines(lines)
     ff.close()
 
-
 def add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
+    """
+    
+    add_tags_to_services 
+
+    Run the command to add tags to services
+
+    Args:
+        poller (int): 
+        type (str): 
+        tag_id (str): 
+        svc_lst (_type_): 
+
+    Returns: N/A
+        
+    """    
+
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1820,8 +2786,20 @@ def add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
     ff.writelines(lines)
     ff.close()
 
-
 def remove_severities_from_services(poller: int):
+    """
+    
+    remove_severities_from_services 
+
+    Remove severities from services
+
+    Args:
+        poller (int): 
+
+    Returns: N/A
+        
+    """    
+
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1831,8 +2809,19 @@ def remove_severities_from_services(poller: int):
     ff.writelines(out)
     ff.close()
 
-
 def remove_severities_from_hosts(poller: int):
+    """
+    
+    remove_severities_from_hosts 
+
+    Remove severities from hosts
+
+    Args:
+        poller (int):
+
+    Returns:
+        
+    """    
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1842,17 +2831,25 @@ def remove_severities_from_hosts(poller: int):
     ff.writelines(out)
     ff.close()
 
-##
-# @brief Function that search a check, retrieve command index and return check result
-# then it searchs the string "connector::run: id=1090", and then search "connector::_recv_query_execute: id=1090,"
-# and return this line
-#
-# @param debug_file_path path of the debug log file
-# @param str_to_search string after which we will start connector::run search
-#
-
-
 def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
+    """
+    
+    check_search 
+
+    Function that search a check, retrieve command index and return check resultBthen it searchs the string "connector::run: id=1090", and then search "connector::_recv_query_execute: id=1090," and return this line
+
+    Args:
+        debug_file_path (str): path of the debug log file
+        str_to_search (_type_): string after which we will start connector::run search
+        timeout (_type_, optional): Defaults to TIMEOUT.
+        
+    Example:
+    | ${search_result} | `Check Search` | /var/log/centreon-engine/centengine.debug | "connector::run: id=1090" |
+    | Should Contain | ${search_result} | "connector::_recv_query_execute: id=1090," |
+
+    Returns: N/A
+        
+    """    
     limit = time.time() + timeout
     r_query_execute = "none"
     while time.time() < limit:
@@ -1882,8 +2879,20 @@ def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
     else:
         return f"check_search doesn't find <<{str_to_search}>>"
 
-
 def add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
+    """
+    
+    add_tags_to_hosts 
+
+    Args:
+        poller (int): 
+        type (str): 
+        tag_id (str): 
+        hst_lst (_type_): 
+
+    Returns: N/A
+        
+    """    
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1898,8 +2907,19 @@ def add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
     ff.writelines(lines)
     ff.close()
 
-
 def remove_tags_from_services(poller: int, type: str):
+    """
+    
+    remove_tags_from_services  
+
+    Remove tags from services
+
+    Args:
+        poller (int):  
+        type (str):  
+     
+    """    
+
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1909,8 +2929,19 @@ def remove_tags_from_services(poller: int, type: str):
     ff.writelines(lines)
     ff.close()
 
-
 def remove_tags_from_hosts(poller: int, type: str):
+    """
+    
+    remove_tags_from_hosts 
+
+    Remove tags from hosts
+
+    Args:
+        poller (int): 
+        type (str):  
+
+    """    
+
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1922,6 +2953,16 @@ def remove_tags_from_hosts(poller: int, type: str):
 
 
 def add_template_to_services(poller: int, tmpl: str, svc_lst):
+    """
+    add_template_to_services
+
+    Run the command to add template to services
+
+    Args:
+        poller (int): 
+        tmpl (str): template used by the service
+        svc_lst (list): list of services wanted
+    """    
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1938,6 +2979,17 @@ def add_template_to_services(poller: int, tmpl: str, svc_lst):
 
 
 def add_template_to_hosts(poller: int, tmpl: str, hst_lst):
+    """
+    add_template_to_hosts
+
+    Run the command to add template to hosts
+
+    Args:
+        poller (int):
+        tmpl (str): template used by the host
+        hst_lst (list): list of hosts wanted
+
+    """
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1952,8 +3004,18 @@ def add_template_to_hosts(poller: int, tmpl: str, hst_lst):
     ff.writelines(lines)
     ff.close()
 
-
 def config_engine_remove_cfg_file(poller: int, fic: str):
+    """
+    
+    config_engine_remove_cfg_file  
+
+    Run the command to remove cfg file
+
+    Args:
+        poller (int):  
+        fic (str): 
+
+    """    
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -1964,8 +3026,24 @@ def config_engine_remove_cfg_file(poller: int, fic: str):
     ff.writelines(linesearch)
     ff.close()
 
-
 def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
+    """
+    
+    process_service_check_result_with_metrics  
+
+    Run the command to process service check result with metrics
+
+    Args:
+        hst (str): host name
+        svc (str): service name
+        state (int): state of the service
+        output (str): message representing the state of the service in when loging to console
+        metrics (int): metric name
+        config (str, optional): Defaults to 'config0'.
+
+    Returns:
+        str: output
+    """
     now = int(time.time())
     pd = [output + " | "]
     for m in range(metrics):
@@ -1976,6 +3054,24 @@ def process_service_check_result_with_metrics(hst: str, svc: str, state: int, ou
     process_service_check_result(hst, svc, state, full_output, config)
 
 def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
+    """
+    
+    process_service_check_result  
+
+    Run the command to process service check result
+
+    Args:
+        hst (str): host name
+        svc (str): service name
+        state (int): state of the service
+        output (str): message representing the state of the service in when loging to console
+        config (str, optional): Defaults to 'config0'.
+        use_grpc (int, optional): Defaults to 0.
+        nb_check (int, optional): Defaults to 1.
+
+    Returns:
+        str: output
+    """    
     if use_grpc > 0:
         port = 50001 + int(config[6:])
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
@@ -2000,9 +3096,22 @@ def process_service_check_result(hst: str, svc: str, state: int, output: str, co
                     cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}_{i}\n"
                     f.write(cmd)
 
-
 @external_command
 def acknowledge_service_problem(hst, service, typ='NORMAL'):
+    """
+    
+    acknowledge_service_problem _summary_
+
+    Run the command to acknowledge service problem
+
+    Args:
+        hst (str): host name
+        service (str): service name
+        typ (str, optional): . Defaults to 'NORMAL'.
+
+    Returns: N/A
+
+    """    
     if typ == 'NORMAL':
         logger.console('acknowledgement is normal')
         sticky = 1
@@ -2018,60 +3127,228 @@ def acknowledge_service_problem(hst, service, typ='NORMAL'):
 
 @external_command
 def remove_service_acknowledgement(hst, service):
+    """
+    
+    remove_service_acknowledgement  
+
+   Remove service acknowledgement
+
+    Args:
+        hst (str): host name
+        service (str): service name
+
+    Returns: N/A
+        
+    """    
     return f"REMOVE_SVC_ACKNOWLEDGEMENT;{hst};{service}\n"
 
 
 @external_command
 def send_custom_host_notification(hst, notification_option, author, comment):
+    """
+    
+    send_custom_host_notification 
+
+    Run the command to send custom host notification
+
+    Args:
+        hst (str): 
+        notification_option (int): 
+        author (str): 
+        comment (str): 
+
+    Returns: N/A
+        
+    """    
     return f"SEND_CUSTOM_HOST_NOTIFICATION;{hst};{notification_option};{author};{comment}\n"
 
 
 @external_command
 def add_svc_comment(host_name, svc_description, persistent, user_name, comment):
+    """
+    
+    add_svc_comment 
+
+    Run the command to add a service comment
+
+    Args:
+        host_name (str): 
+        svc_description (str): 
+        persistent (int): 
+        user_name (str): 
+        comment (str): 
+
+    Returns: N/A
+        
+    """    
     return f"ADD_SVC_COMMENT;{host_name};{svc_description};{persistent};{user_name};{comment}\n"
 
 
 @external_command
 def add_host_comment(host_name, persistent, user_name, comment):
+    """
+    
+    add_host_comment 
+
+    Args:
+        host_name (str:  
+        persistent (int): 
+        user_name (str): 
+        comment (str): 
+
+    Returns: N/A
+        
+    """    
     return f"ADD_HOST_COMMENT;{host_name};{persistent};{user_name};{comment}\n"
 
 
 @external_command
 def del_host_comment(comment_id):
+    """
+    
+    del_host_comment  
+
+    Delete a host comment
+
+    Args:
+        comment_id (int):
+
+    Returns:
+        
+    """    
+
     return f"DEL_HOST_COMMENT;{comment_id}\n"
 
 
 @external_command
 def change_host_check_command(hst: str, Check_Command: str):
+    """
+    
+    change_host_check_command 
+
+    Update the check command of a host
+
+    Args:
+        hst (str): host_name
+        Check_Command (str): check command name
+
+    Returns: N/A
+         
+    """    
     return f"CHANGE_HOST_CHECK_COMMAND;{hst};{Check_Command}\n"
 
 
 @external_command
 def change_custom_host_var_command(hst: str, var_name: str, var_value):
+    """
+    
+    change_custom_host_var_command  
+
+    Run the command to change a custom host variable
+
+    Args:
+        hst (str):  
+        var_name (str):  
+        var_value (_type_):  
+
+    Returns: N/A
+     
+    """    
     return "CHANGE_CUSTOM_HOST_VAR;{};{};{}\n".format(hst, var_name, var_value)
 
 
 @external_command
 def change_custom_svc_var_command(hst: str, svc: str, var_name: str, var_value):
+    """
+    
+    change_custom_svc_var_command 
+
+    Run the command to change a custom service variable
+
+    Args:
+        hst (str): host name
+        svc (str): service name
+        var_name (str): 
+        var_value (_type_): 
+
+    Returns: N/A
+        
+    """    
     return "CHANGE_CUSTOM_SVC_VAR;{};{};{};{}\n".format(hst, svc, var_name, var_value)
 
 
 @external_command
 def change_global_host_event_handler(var_value: str):
+    """
+    
+    change_global_host_event_handler _summary_
+
+    Run the command to change the global host event handler
+
+    Args:
+        var_value (str): 
+
+    Returns: N/A
+        
+    """    
     return "CHANGE_GLOBAL_HOST_EVENT_HANDLER;{}\n".format(var_value)
 
 
 @external_command
 def change_global_svc_event_handler(var_value: str):
+    """
+    
+    change_global_svc_event_handler _Change Global Svc Event Handler_
+
+    Run the command to change the global service event handler
+
+    Args:
+        var_value (str): 
+
+    Returns: N/A
+
+    """    
     return "CHANGE_GLOBAL_SVC_EVENT_HANDLER;{}\n".format(var_value)
 
 
 @external_command
 def set_svc_notification_number(host_name: string, svc_description: string, value):
+    """
+    
+    set_svc_notification_number _Set Svc Notification Number_
+
+    Run the command to set the number of notifications for a service
+
+    Args:
+        host_name (string): host_name
+        svc_description (string): service_name
+        value (int): notification number wanted
+
+    Returns: N/A
+        
+    """    
     return "SET_SVC_NOTIFICATION_NUMBER;{};{};{}\n".format(host_name, svc_description, value)
 
-
 def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
+    """
+    
+    create_anomaly_threshold_file _Create Anomaly Threshold File_
+
+    Run the command to create an anomaly threshold file
+
+    Args:
+        path (string): 
+        host_id (int): 
+        service_id (int): 
+        metric_name (string): 
+        values (array): 
+
+    Example:
+    | `Create Anomaly Threshold File` | /tmp/anomaly_threshold.json | 1 | 1 | metric_1 | ${values} |
+
+    Returns: N/A
+     
+    """    
     f = open(path, "w")
     f.write("""[
     {{
@@ -2097,8 +3374,27 @@ def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, m
 """)
     f.close()
 
-
 def create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int, metric_name: string, sensitivity: float, values: array):
+    """
+    
+    create_anomaly_threshold_file_V2 _Create Anomaly Threshold File V2_
+
+    Run the command to create an anomaly threshold file
+
+    Args:
+        path (string): 
+        host_id (int): 
+        service_id (int): 
+        metric_name (string): 
+        sensitivity (float): 
+        values (array): 
+
+    Example:
+    | `Create Anomaly Threshold File V2` | /tmp/anomaly_threshold.json | 1 | 1 | metric_1 | 0.5 | ${values} |
+
+    Returns: N/A
+ 
+    """    
     f = open(path, "w")
     f.write("""[
     {{
@@ -2126,12 +3422,39 @@ def create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int
 """)
     f.close()
 
-
 def grep_retention(poller: int, pattern: str):
+    """
+    
+    grep_retention _Grep Retention_
+
+    Run the command to grep retention.dat
+
+    Args:
+        poller (int): id of poller chosen
+        pattern (str): pattern
+
+    Returns: N/A
+ 
+    """    
     return Common.grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
 
-
 def modify_retention_dat(poller, host, service, key, value):
+    """
+    
+    modify_retention_dat _Modify Retention Dat_
+
+    Run the command to modify a key in retention.dat
+
+    Args:
+        poller (int): 
+        host (str): 
+        service (str): 
+        key (str): 
+        value (str): 
+
+    Returns: N/A
+
+    """
     if host != "" and host != "":
         # We want a service
         ff = open(
@@ -2175,8 +3498,22 @@ def modify_retention_dat(poller, host, service, key, value):
         ff.writelines(lines)
         ff.close()
 
-
 def modify_retention_dat_host(poller, host, key, value):
+    """
+    
+    modify_retention_dat_host _Modify Retention Dat Host_
+
+    Run the command to modify a key in retention.dat
+
+    Args:
+        poller (int): id of the chosen poller
+        host (str): host_name
+        key (str): 
+        value (str): 
+
+    Returns: N/A
+
+    """ 
     if host != "" and host != "":
         # We want a host
         ff = open(
@@ -2212,16 +3549,21 @@ def modify_retention_dat_host(poller, host, key, value):
         ff.writelines(lines)
         ff.close()
 
-
-##
-# @brief Call the GetGenericStats function by gRPC
-# it works with both engine and broker
-#
-# @param port of the grpc server
-#
-# @return process__stat__pb2.pb_process_stat
-#
 def get_engine_process_stat(port, timeout=10):
+    """
+    
+    get_engine_process_stat _summary_
+
+    Call the GetGenericStats function by gRPC it works with both engine and broker
+
+    Args:
+        port (int): port of the grpc server
+        timeout (int, optional): _description_. Defaults to 10.
+
+    Returns:
+        _type_: process__stat__pb2.pb_process_stat
+        
+    """    
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
@@ -2236,20 +3578,23 @@ def get_engine_process_stat(port, timeout=10):
     logger.console("unable to get process stats")
     return None
 
-
-##
-# @brief make engine to send a bench event
-#
-# @param id field of the protobuf Bench message
-# @param port of the grpc server
-#
 def send_bench(id: int, port: int):
+    """
+    
+    send_bench
+
+    Run the command to send a bench event
+
+    Args:
+        id (int): field of the protobuf Bench message
+        port (int): port of the grpc server
+
+    """    
     ts = Timestamp()
     ts.GetCurrentTime()
     with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
         stub = engine_pb2_grpc.EngineStub(channel)
         stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))
-
 
 def config_host_command_status(idx: int, cmd_name: str, status: int):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg"
