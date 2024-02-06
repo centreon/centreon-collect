@@ -20,7 +20,6 @@
 #define CCB_CONNECTOR_BASIC_EXCEPTION
 
 #include <exception>
-#include "com/centreon/benchmark/connector/namespace.hh"
 
 CCB_CONNECTOR_BEGIN()
 

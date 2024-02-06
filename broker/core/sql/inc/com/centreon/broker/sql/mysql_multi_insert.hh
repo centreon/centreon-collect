@@ -24,7 +24,7 @@
 #include "com/centreon/broker/sql/mysql_bulk_stmt.hh"
 #include "com/centreon/broker/sql/mysql_stmt.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace database {
 
@@ -212,6 +212,6 @@ class bulk_or_multi {
 
 }  // namespace database
 
-CCB_END()
+}
 
 #endif  // CCB_MYSQL_MULTI_INSERT_HH

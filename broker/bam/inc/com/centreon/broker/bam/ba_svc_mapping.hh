@@ -19,9 +19,8 @@
 #ifndef CCB_BAM_BA_SVC_MAPPING_HH
 #define CCB_BAM_BA_SVC_MAPPING_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -45,6 +44,6 @@ class ba_svc_mapping {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_BA_SVC_MAPPING_HH

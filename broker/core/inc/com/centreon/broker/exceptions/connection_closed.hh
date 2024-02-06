@@ -19,10 +19,9 @@
 #ifndef CCB_EXCEPTIONS_CONNECTION_CLOSED_HH
 #define CCB_EXCEPTIONS_CONNECTION_CLOSED_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace exceptions {
 /**
@@ -44,6 +43,6 @@ class connection_closed : public com::centreon::exceptions::msg_fmt {
 };
 }  // namespace exceptions
 
-CCB_END()
+}
 
 #endif  // !CCB_EXCEPTIONS_CONNECTION_CLOSED_HH

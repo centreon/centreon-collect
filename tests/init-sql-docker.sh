@@ -5,8 +5,8 @@ database_type=$1
 DBUserRoot="root"
 DBPassRoot="centreon"
 
-DBStorage=$(awk '($1=="${DBName}") {print $2}' /scripts/tests/resources/db_variables.robot)
-DBConf=$(awk '($1=="${DBNameConf}") {print $2}' /scripts/tests/resources/db_variables.robot)
+DBStorage=$(awk '($1=="${DBName}") {print $2}' /scripts/tests/resources/db_variables.resource)
+DBConf=$(awk '($1=="${DBNameConf}") {print $2}' /scripts/tests/resources/db_variables.resource)
 
 cd /scripts
 

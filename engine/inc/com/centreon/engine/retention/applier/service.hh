@@ -24,7 +24,7 @@
 
 // Forward declaration.
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class service;
 
 // Forward declaration.
@@ -48,6 +48,6 @@ class service {
 }  // namespace applier
 }  // namespace retention
 
-CCE_END()
+}
 
 #endif  // !CCE_RETENTION_APPLIER_SERVICE_HH

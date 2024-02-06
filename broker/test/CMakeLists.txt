@@ -24,6 +24,7 @@ set(BAM_TESTS_DIR ${PROJECT_SOURCE_DIR}/bam/test)
 set(WDOG_TESTS_DIR ${PROJECT_SOURCE_DIR}/watchdog/test)
 
 # Include directories.
+include_directories(${CMAKE_SOURCE_DIR}/bbdo)
 include_directories(${PROJECT_SOURCE_DIR}/bam/inc)
 include_directories(${PROJECT_SOURCE_DIR}/bam/test)
 include_directories(${PROJECT_SOURCE_DIR}/storage/src)
@@ -143,7 +144,8 @@ target_link_libraries(
   CONAN_PKG::gtest
   CONAN_PKG::mariadb-connector-c
   CONAN_PKG::openssl
-  CONAN_PKG::grpc)
+  CONAN_PKG::grpc
+  stdc++fs)
 
 add_dependencies(
   ut_broker

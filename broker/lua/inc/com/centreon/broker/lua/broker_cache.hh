@@ -20,7 +20,6 @@
 #define CCB_LUA_BROKER_CACHE_HH
 
 #include "com/centreon/broker/lua/macro_cache.hh"
-#include "com/centreon/broker/namespace.hh"
 
 extern "C" {
 #include "lauxlib.h"
@@ -28,7 +27,7 @@ extern "C" {
 #include "lualib.h"
 }
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace lua {
 /**
@@ -46,6 +45,6 @@ class broker_cache {
 };
 }  // namespace lua
 
-CCB_END()
+}
 
 #endif  // !CCB_LUA_BROKER_CACHE_HH

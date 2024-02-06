@@ -45,7 +45,6 @@
 #include <boost/container/flat_set.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
-#include "com/centreon/broker/namespace.hh"
 // with this define boost::interprocess doesn't need Boost.DataTime
 #define BOOST_DATE_TIME_NO_LIB 1
 #include <boost/interprocess/containers/string.hpp>

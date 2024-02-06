@@ -1,20 +1,20 @@
-/*
-** Copyright 2011-2013,2015,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
+/**
+* Copyright 2011-2013,2015,2017 Centreon
+*
+* This file is part of Centreon Engine.
+*
+* Centreon Engine is free software: you can redistribute it and/or
+* modify it under the terms of the GNU General Public License version 2
+* as published by the Free Software Foundation.
+*
+* Centreon Engine is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+* General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Centreon Engine. If not, see
+* <http://www.gnu.org/licenses/>.
 */
 
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
@@ -87,14 +87,14 @@ void applier::servicegroup::add_object(configuration::servicegroup const& obj) {
   // Add servicegroup id to the other props.
   sg->set_id(obj.servicegroup_id());
 
-  // Notify event broker.
-  broker_group(NEBTYPE_SERVICEGROUP_ADD, sg.get());
-
   // Apply resolved services on servicegroup.
   for (set_pair_string::const_iterator it(obj.members().begin()),
        end(obj.members().end());
        it != end; ++it)
     sg->members[{it->first, it->second}] = nullptr;
+
+  // Notify event broker.
+  broker_group(NEBTYPE_SERVICEGROUP_ADD, sg.get());
 }
 
 /**

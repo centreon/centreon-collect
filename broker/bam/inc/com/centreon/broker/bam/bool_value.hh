@@ -20,9 +20,8 @@
 #define CCB_BAM_BOOL_VALUE_HH
 
 #include "com/centreon/broker/bam/computable.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -46,6 +45,6 @@ class bool_value : public computable {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_BOOL_VALUE_HH

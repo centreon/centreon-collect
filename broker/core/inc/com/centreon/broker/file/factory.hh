@@ -22,7 +22,7 @@
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/factory.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace file {
 /**
@@ -47,6 +47,6 @@ class factory : public io::factory {
 };
 }  // namespace file
 
-CCB_END()
+}
 
 #endif  // !CCB_FILE_FACTORY_HH

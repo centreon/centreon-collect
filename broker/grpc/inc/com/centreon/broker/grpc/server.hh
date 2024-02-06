@@ -25,7 +25,7 @@ namespace grpc {
 class Server;
 }
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace grpc {
 
@@ -52,7 +52,7 @@ class accepted_service
 
   void start();
   void start_read(event_ptr&, bool first_read) override;
-  void start_write(const event_ptr&) override;
+  void start_write(const event_with_data::pointer&) override;
   int stop() override;
   void shutdown() override;
 
@@ -101,6 +101,6 @@ class server : public centreon_stream::centreon_bbdo::Service,
 
 }  // namespace grpc
 
-CCB_END()
+}
 
 #endif  // !CCB_GRPC_STREAM_HH

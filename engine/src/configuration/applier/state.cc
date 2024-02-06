@@ -1,23 +1,25 @@
-/*
-** Copyright 2011-2020 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
+/**
+* Copyright 2011-2020 Centreon
+*
+* This file is part of Centreon Engine.
+*
+* Centreon Engine is free software: you can redistribute it and/or
+* modify it under the terms of the GNU General Public License version 2
+* as published by the Free Software Foundation.
+*
+* Centreon Engine is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+* General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Centreon Engine. If not, see
+* <http://www.gnu.org/licenses/>.
 */
 
 #include "com/centreon/engine/configuration/applier/state.hh"
+
+#include "com/centreon/engine/log_v2.hh"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/connector.hh"
@@ -43,9 +45,9 @@
 #include "com/centreon/engine/configuration/applier/tag.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/command.hh"
+#include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/objects.hh"
@@ -1460,9 +1462,10 @@ void applier::state::_processing(configuration::state& new_cfg,
                                            diff_anomalydetections);
 
     // Apply new global on the current state.
-    if (!verify_config)
+    if (!verify_config) {
       _apply(new_cfg);
-    else {
+      whitelist::reload();
+    } else {
       try {
         _apply(new_cfg);
       } catch (std::exception const& e) {
@@ -1540,6 +1543,7 @@ void applier::state::_processing(configuration::state& new_cfg,
           << runtimes[4] << " sec  * = " << runtimes[3] << " sec ("
           << (runtimes[3] * 100.0 / runtimes[4]) << "%) estimated savings\n";
     }
+
   } catch (...) {
     _processing_state = state_error;
     throw;

@@ -20,10 +20,9 @@
 #define CCB_TCP_ACCEPTOR_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/tcp/tcp_config.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace tcp {
 /**
@@ -55,6 +54,6 @@ class acceptor : public io::endpoint {
 };
 }  // namespace tcp
 
-CCB_END()
+}
 
 #endif  // !CCB_TCP_ACCEPTOR_HH

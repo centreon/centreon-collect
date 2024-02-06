@@ -19,10 +19,9 @@
 #ifndef CCB_EXCEPTIONS_DEPRECATED_HH
 #define CCB_EXCEPTIONS_DEPRECATED_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace exceptions {
 /**
@@ -44,6 +43,6 @@ class deprecated : public com::centreon::exceptions::msg_fmt {
 };
 }  // namespace exceptions
 
-CCB_END()
+}
 
 #endif  // !CCB_EXCEPTIONS_DEPRECATED_HH

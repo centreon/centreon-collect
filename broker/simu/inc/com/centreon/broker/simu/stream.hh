@@ -22,7 +22,7 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/variant.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace simu {
 
@@ -51,6 +51,6 @@ class stream : public io::stream {
 };
 }  // namespace simu
 
-CCB_END()
+}
 
 #endif  // !CCB_SIMU_STREAM_HH

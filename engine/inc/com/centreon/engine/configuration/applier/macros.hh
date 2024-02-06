@@ -25,7 +25,7 @@
 // Forward declaration.
 class nagios_macros;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 namespace applier {
@@ -54,6 +54,6 @@ class macros {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_APPLIER_MACROS_HH

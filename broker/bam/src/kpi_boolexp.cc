@@ -28,8 +28,10 @@ using namespace com::centreon::broker::bam;
 /**
  *  Default constructor.
  */
-kpi_boolexp::kpi_boolexp(uint32_t kpi_id, uint32_t ba_id)
-    : kpi(kpi_id, ba_id) {}
+kpi_boolexp::kpi_boolexp(uint32_t kpi_id,
+                         uint32_t ba_id,
+                         const std::string& bool_name)
+    : kpi(kpi_id, ba_id, bool_name) {}
 
 /**
  *  Return true if in downtime.

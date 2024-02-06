@@ -1,23 +1,24 @@
-/*
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013 Merethis
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/daterange.hh"
+
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timeperiod.hh"
@@ -42,18 +43,9 @@ using namespace com::centreon::engine;
  *  @param[in] ewday_offset
  *  @param[in] skip_interval
  */
-daterange::daterange(type_range type,
-                     int syear,
-                     int smon,
-                     int smday,
-                     int swday,
-                     int swday_offset,
-                     int eyear,
-                     int emon,
-                     int emday,
-                     int ewday,
-                     int ewday_offset,
-                     int skip_interval)
+daterange::daterange(type_range type, int syear, int smon, int smday, int swday,
+                     int swday_offset, int eyear, int emon, int emday,
+                     int ewday, int ewday_offset, int skip_interval)
     : _type{type},
       _syear{syear},
       _smon{smon},
@@ -175,8 +167,7 @@ static std::ostream& _dump_calendar_date(std::ostream& os,
     os << " - " << std::setfill('0') << std::setw(2) << obj.get_eyear() << "-"
        << std::setfill('0') << std::setw(2) << obj.get_emon() + 1 << "-"
        << std::setfill('0') << std::setw(2) << obj.get_emday();
-  if (obj.get_skip_interval())
-    os << " / " << obj.get_skip_interval();
+  if (obj.get_skip_interval()) os << " / " << obj.get_skip_interval();
   return (os);
 }
 
@@ -196,8 +187,7 @@ static std::ostream& _dump_month_date(std::ostream& os, daterange const& obj) {
     os << " - " << emon << " " << obj.get_emday();
   else if (obj.get_smday() != obj.get_emday())
     os << " - " << obj.get_emday();
-  if (obj.get_skip_interval())
-    os << " / " << obj.get_skip_interval();
+  if (obj.get_skip_interval()) os << " / " << obj.get_skip_interval();
   return (os);
 }
 
@@ -211,10 +201,8 @@ static std::ostream& _dump_month_date(std::ostream& os, daterange const& obj) {
  */
 static std::ostream& _dump_month_day(std::ostream& os, daterange const& obj) {
   os << "day " << obj.get_smday();
-  if (obj.get_smday() != obj.get_emday())
-    os << " - " << obj.get_emday();
-  if (obj.get_skip_interval())
-    os << " / " << obj.get_skip_interval();
+  if (obj.get_smday() != obj.get_emday()) os << " - " << obj.get_emday();
+  if (obj.get_skip_interval()) os << " / " << obj.get_skip_interval();
   return (os);
 }
 
@@ -238,8 +226,7 @@ static std::ostream& _dump_month_week_day(std::ostream& os,
     os << " - " << daterange::get_weekday_name(obj.get_ewday()) << " "
        << obj.get_ewday_offset() << " "
        << daterange::get_month_name(obj.get_emon());
-  if (obj.get_skip_interval())
-    os << " / " << obj.get_skip_interval();
+  if (obj.get_skip_interval()) os << " / " << obj.get_skip_interval();
   return (os);
 }
 
@@ -258,12 +245,11 @@ static std::ostream& _dump_week_day(std::ostream& os, daterange const& obj) {
       obj.get_swday_offset() != obj.get_ewday_offset())
     os << " - " << daterange::get_weekday_name(obj.get_ewday()) << " "
        << obj.get_ewday_offset();
-  if (obj.get_skip_interval())
-    os << " / " << obj.get_skip_interval();
+  if (obj.get_skip_interval()) os << " / " << obj.get_skip_interval();
   return (os);
 }
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 /**
  *  Dump daterange content into the stream.
  *
@@ -318,7 +304,7 @@ std::ostream& operator<<(std::ostream& os, exception_array const& obj) {
   return os;
 }
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 /**
  *  Get the month name.
@@ -332,8 +318,7 @@ std::string const& daterange::get_month_name(unsigned int index) {
   static std::string const month[] = {
       "january", "february", "march",     "april",   "may",      "june",
       "july",    "august",   "september", "october", "november", "december"};
-  if (index >= sizeof(month) / sizeof(*month))
-    return (unknown);
+  if (index >= sizeof(month) / sizeof(*month)) return (unknown);
   return (month[index]);
 }
 
@@ -349,7 +334,6 @@ std::string const& daterange::get_weekday_name(unsigned int index) {
   static std::string const days[] = {"sunday",    "monday",   "tuesday",
                                      "wednesday", "thursday", "friday",
                                      "saturday"};
-  if (index >= sizeof(days) / sizeof(*days))
-    return (unknown);
+  if (index >= sizeof(days) / sizeof(*days)) return (unknown);
   return (days[index]);
 }

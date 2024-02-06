@@ -35,6 +35,7 @@ package com.centreon.broker;
  * relations between resources of our poller and this severity. And only if the
  * severity is no more used at all, we can remove it.
  */
+/*io::neb, neb::de_pb_severity*/
 message Severity {
   uint64 id = 1;
   enum Action {

@@ -21,9 +21,8 @@
 
 #include <absl/container/flat_hash_map.h>
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -59,6 +58,6 @@ class hst_svc_mapping {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_HST_SVC_MAPPING_HH

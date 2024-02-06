@@ -23,9 +23,8 @@
 #include "com/centreon/broker/bam/bool_service.hh"
 #include "com/centreon/broker/bam/exp_parser.hh"
 #include "com/centreon/broker/bam/hst_svc_mapping.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -65,6 +64,6 @@ class exp_builder {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_EXP_BUILDER_HH

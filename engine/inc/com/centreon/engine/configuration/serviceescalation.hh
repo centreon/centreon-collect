@@ -25,7 +25,7 @@
 #include "com/centreon/engine/opt.hh"
 #include "com/centreon/engine/shared.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class serviceescalation : public object {
@@ -109,6 +109,6 @@ typedef std::shared_ptr<serviceescalation> serviceescalation_ptr;
 typedef std::set<serviceescalation> set_serviceescalation;
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_SERVICEESCALATION_HH

@@ -22,10 +22,9 @@
 #include <climits>
 
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/processing/stat_visitable.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declaration.
 namespace io {
@@ -58,6 +57,7 @@ class feeder : public stat_visitable,
 
  protected:
   feeder(const std::string& name,
+         const std::shared_ptr<multiplexing::engine>& parent,
          std::shared_ptr<io::stream>& client,
          const multiplexing::muxer_filter& read_filters,
          const multiplexing::muxer_filter& write_filters);
@@ -84,6 +84,7 @@ class feeder : public stat_visitable,
  public:
   static std::shared_ptr<feeder> create(
       const std::string& name,
+      const std::shared_ptr<multiplexing::engine>& parent,
       std::shared_ptr<io::stream>& client,
       const multiplexing::muxer_filter& read_filters,
       const multiplexing::muxer_filter& write_filters);
@@ -100,6 +101,6 @@ class feeder : public stat_visitable,
 };
 }  // namespace processing
 
-CCB_END()
+}
 
 #endif  // !CCB_PROCESSING_FEEDER_HH

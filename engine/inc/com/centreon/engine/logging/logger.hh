@@ -22,7 +22,7 @@
 
 #include "com/centreon/logging/temp_logger.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace logging {
 /**
@@ -84,7 +84,7 @@ enum type_value {
 enum verbosity_level { basic = 0u, more = 1u, most = 2u };
 }  // namespace logging
 
-CCE_END()
+}
 
 #define engine_logger(type, verbose)                                     \
   for (unsigned int __com_centreon_engine_logging_define_ui(0);          \

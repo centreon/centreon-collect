@@ -1,19 +1,19 @@
-/*
-** Copyright 2019-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+* Copyright 2019-2022 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
 */
 
 #include <absl/strings/str_split.h>
@@ -89,7 +89,7 @@ TEST(WatchdogTest, SimpleConfig) {
   com::centreon::broker::misc::exec_process(arg, false);
   std::string r;
   int32_t time = 0;
-  std::list<absl::string_view> lst1;
+  std::list<std::string_view> lst1;
   while (time < 5) {
     r = misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
     lst1 = absl::StrSplit(r, '\n');
@@ -102,7 +102,7 @@ TEST(WatchdogTest, SimpleConfig) {
   ASSERT_EQ(lst1.size(), 3u);
   ASSERT_TRUE(lst1.back().empty());
 
-  std::list<absl::string_view> lst = absl::StrSplit(r, '\n');
+  std::list<std::string_view> lst = absl::StrSplit(r, '\n');
   // There are 3 elements, but the last one is empty
   ASSERT_EQ(lst.size(), 3u);
   ASSERT_TRUE(lst.back().empty());
@@ -202,7 +202,7 @@ TEST(WatchdogTest, SimpleConfigUpdated) {
   char const* arg[]{"bin/cbwd", "/tmp/simple-conf.json", nullptr};
 
   com::centreon::broker::misc::exec_process(arg, false);
-  std::list<absl::string_view> lst;
+  std::list<std::string_view> lst;
   int32_t time = 0;
   std::string r;
   while (lst.size() != 3 && time < 5) {

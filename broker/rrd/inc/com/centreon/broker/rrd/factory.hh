@@ -22,7 +22,7 @@
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/factory.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace rrd {
 /**
@@ -45,6 +45,6 @@ class factory : public io::factory {
 };
 }  // namespace rrd
 
-CCB_END()
+}
 
 #endif  // !CCB_RRD_FACTORY_HH

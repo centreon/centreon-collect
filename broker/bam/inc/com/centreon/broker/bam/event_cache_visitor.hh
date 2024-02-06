@@ -20,9 +20,8 @@
 #define CCB_BAM_EVENT_CACHE_VISITOR_HH
 
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -50,6 +49,6 @@ class event_cache_visitor : public io::stream {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_EVENT_CACHE_VISITOR_HH

@@ -19,9 +19,7 @@
 #ifndef _COM_CENTREON_DEFER_HH_
 #define _COM_CENTREON_DEFER_HH_
 
-#include "namespace.hh"
-
-CCCM_BEGIN()
+namespace com::centreon::common {
 
 /**
  * @brief this function executes the handler action in delay
@@ -46,6 +44,6 @@ void defer(const std::shared_ptr<asio::io_context>& io_context,
   });
 };
 
-CCCM_END()
+}  // namespace com::centreon::common
 
 #endif

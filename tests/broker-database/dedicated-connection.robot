@@ -1,11 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker data_bin and logs dedicated connections
 
-Resource            ../resources/resources.robot
-Library             DateTime
-Library             Examples
-Library             ../resources/Broker.py
-Library             ../resources/Common.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
@@ -28,13 +24,13 @@ DEDICATED_DB_CONNECTION_${nb_conn}_${store_in_data_bin}
     ${start}    Get Current Date
     Start Broker    only_central=${True}
     ${content}    Create List    unified sql: stream class instanciation
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No unified sql instanciation
 
     IF    ${nb_conn} > 1
         ${nb_dedicated}    Evaluate    ${nb_conn_expected} - 1
         ${content}    Create List    use of ${nb_dedicated} dedicated connection for logs and data_bin tables
-        ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    5
+        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    5
         Should Be True    ${result}    No dedicated message
     END
 

@@ -22,13 +22,12 @@
 #include <absl/hash/hash.h>
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/sql/mysql_stmt.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace extcmd {
 using pb_ba_info =
@@ -123,6 +122,6 @@ class monitoring_stream : public io::stream {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_MONITORING_STREAM_HH

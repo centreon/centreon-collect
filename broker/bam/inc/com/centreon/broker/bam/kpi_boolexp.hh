@@ -22,10 +22,9 @@
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "impact_values.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 // Forward declaration.
@@ -49,7 +48,7 @@ class kpi_boolexp : public kpi {
   void _open_new_event(io::stream* visitor, int impact, state state);
 
  public:
-  kpi_boolexp(uint32_t kpi_id, uint32_t ba_id);
+  kpi_boolexp(uint32_t kpi_id, uint32_t ba_id, const std::string& bool_name);
   ~kpi_boolexp() noexcept = default;
   kpi_boolexp(const kpi_boolexp&) = delete;
   kpi_boolexp& operator=(const kpi_boolexp&) = delete;
@@ -68,6 +67,6 @@ class kpi_boolexp : public kpi {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_KPI_BOOLEXP_HH

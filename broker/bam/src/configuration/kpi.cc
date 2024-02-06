@@ -1,19 +1,19 @@
-/*
-** Copyright 2014 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+* Copyright 2014 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
 */
 
 #include "com/centreon/broker/bam/configuration/kpi.hh"
@@ -41,7 +41,8 @@ kpi::kpi(uint32_t id,
          bool ignore_acknowledgement,
          double warning,
          double critical,
-         double unknown)
+         double unknown,
+         const std::string& name)
     : _id(id),
       _state_type(state_type),
       _host_id(host_id),
@@ -57,69 +58,11 @@ kpi::kpi(uint32_t id,
       _ignore_acknowledgement(ignore_acknowledgement),
       _impact_warning(warning),
       _impact_critical(critical),
-      _impact_unknown(unknown) {
+      _impact_unknown(unknown),
+      _name(name) {
   _event.set_kpi_id(_id);
   _event.set_ba_id(_ba_id);
   _event.set_start_time(::time(nullptr));
-}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] other The copy.
- */
-kpi::kpi(kpi const& other)
-    : _id(other._id),
-      _state_type(other._state_type),
-      _host_id(other._host_id),
-      _service_id(other._service_id),
-      _ba_id(other._ba_id),
-      _indicator_ba_id(other._indicator_ba_id),
-      _meta_id(other._meta_id),
-      _boolexp_id(other._boolexp_id),
-      _status(other._status),
-      _downtimed(other._downtimed),
-      _acknowledged(other._acknowledged),
-      _ignore_downtime(other._ignore_downtime),
-      _ignore_acknowledgement(other._ignore_acknowledgement),
-      _impact_warning(other._impact_warning),
-      _impact_critical(other._impact_critical),
-      _impact_unknown(other._impact_unknown),
-      _event(other._event) {}
-
-/**
- *  Destructor.
- */
-kpi::~kpi() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] other The copy.
- *
- *  @return This object.
- */
-kpi& kpi::operator=(kpi const& other) {
-  if (&other != this) {
-    _id = other._id;
-    _state_type = other._state_type;
-    _host_id = other._host_id;
-    _service_id = other._service_id;
-    _ba_id = other._ba_id;
-    _indicator_ba_id = other._indicator_ba_id;
-    _meta_id = other._meta_id;
-    _boolexp_id = other._boolexp_id;
-    _status = other._status;
-    _downtimed = other._downtimed;
-    _acknowledged = other._acknowledged;
-    _ignore_downtime = other._ignore_downtime;
-    _ignore_acknowledgement = other._ignore_acknowledgement;
-    _impact_warning = other._impact_warning;
-    _impact_critical = other._impact_critical;
-    _impact_unknown = other._impact_unknown;
-    _event = other._event;
-  }
-  return *this;
 }
 
 /**

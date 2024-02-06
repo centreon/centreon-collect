@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,6 @@
 
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/stats_exporter/exporter_grpc.hh"
 #include "com/centreon/broker/stats_exporter/exporter_http.hh"
 

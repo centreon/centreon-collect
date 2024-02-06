@@ -22,7 +22,7 @@
 
 #include "service.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace retention {
 class anomalydetection : public service {
@@ -46,6 +46,6 @@ typedef std::list<anomalydetection::pointer> list_anomalydetection;
 
 }  // namespace retention
 
-CCE_END()
+}
 
 #endif

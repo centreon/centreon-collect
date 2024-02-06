@@ -1,19 +1,19 @@
-/*
-** Copyright 2023 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+* Copyright 2023 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
 */
 
 #include <fmt/format.h>
@@ -44,10 +44,10 @@ static auto read_file = [](const std::string& file_path) -> std::string {
   }
 };
 
-static auto extract_io_value = [](const absl::string_view& label_value,
+static auto extract_io_value = [](const std::string_view& label_value,
                                   const std::string& file_path) -> uint64_t {
   size_t value_index = label_value.find_first_of(" :");
-  if (value_index == absl::string_view::npos) {
+  if (value_index == std::string_view::npos) {
     BOOST_THROW_EXCEPTION(process_stat::exception()
                           << process_stat::errinfo_bad_info_format(
                                  std::string(label_value.data()))
@@ -104,13 +104,13 @@ process_stat::process_stat(pid_t process_id)
     if (first_char == 'r') {
       if (second_char == 'c') {  // rchar
         _query_read_bytes = extract_io_value(line, file_path);
-      } else if (second_char = 'e') {  // read_bytes
+      } else if (second_char == 'e') {  // read_bytes
         _real_read_bytes = extract_io_value(line, file_path);
       }
     } else if (first_char == 'w') {
       if (second_char == 'c') {  // wchar
         _query_write_bytes = extract_io_value(line, file_path);
-      } else if (second_char = 'e') {  // write_bytes
+      } else if (second_char == 'r') {  // write_bytes
         _real_write_bytes = extract_io_value(line, file_path);
       }
     }

@@ -1,14 +1,7 @@
 *** Settings ***
 Documentation       ccc tests with engine and broker
 
-Resource            ../resources/resources.robot
-Library             Process
-Library             DateTime
-Library             OperatingSystem
-Library             String
-Library             ../resources/Engine.py
-Library             ../resources/Broker.py
-Library             ../resources/Common.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
@@ -24,7 +17,7 @@ BECCC1
     Config Broker    module
     Config Broker    rrd
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Sleep    1s
     Start Broker
     Start Engine
@@ -32,11 +25,11 @@ BECCC1
     Start Process    /usr/bin/ccc    stderr=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
         Wait Until Created    /tmp/output.txt
-        ${content}=    Get File    /tmp/output.txt
+        ${content}    Get File    /tmp/output.txt
         IF    len("${content.strip()}") > 0    BREAK
         Sleep    1s
     END
-    should be equal as strings    ${content.strip()}    You must specify a port for the connection to the gRPC server
+    Should Be Equal As Strings    ${content.strip()}    You must specify a port for the connection to the gRPC server
     Stop Engine
     Kindly Stop Broker
     Remove File    /tmp/output.txt
@@ -48,15 +41,13 @@ BECCC2
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Sleep    1s
     Start Broker
     Start Engine
@@ -64,13 +55,13 @@ BECCC2
     Start Process    /usr/bin/ccc    -p 51001    stderr=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
         Wait Until Created    /tmp/output.txt
-        ${content}=    Get File    /tmp/output.txt
+        ${content}    Get File    /tmp/output.txt
         IF    len("${content.strip()}") > 0    BREAK
         Sleep    1s
     END
 
-    ${version}=    Get Version
-    ${expected}=    Catenate    Connected to a Centreon Broker    ${version}    gRPC server
+    ${version}    Common.Get Collect Version
+    ${expected}    Catenate    Connected to a Centreon Broker    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
     Stop Engine
     Kindly Stop Broker
@@ -83,15 +74,13 @@ BECCC3
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Sleep    1s
     Start Broker
     Start Engine
@@ -99,12 +88,12 @@ BECCC3
     Start Process    /usr/bin/ccc    -p 50001    stderr=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
         Wait Until Created    /tmp/output.txt
-        ${content}=    Get File    /tmp/output.txt
+        ${content}    Get File    /tmp/output.txt
         IF    len("${content.strip()}") > 0    BREAK
         Sleep    1s
     END
-    ${version}=    Get Version
-    ${expected}=    Catenate    Connected to a Centreon Engine    ${version}    gRPC server
+    ${version}    Common.Get Collect Version
+    ${expected}    Catenate    Connected to a Centreon Engine    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
     Stop Engine
     Kindly Stop Broker
@@ -117,15 +106,13 @@ BECCC4
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Sleep    1s
     Start Broker
     Start Engine
@@ -133,12 +120,12 @@ BECCC4
     Start Process    /usr/bin/ccc    -p 51001    -l    stdout=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
         Wait Until Created    /tmp/output.txt
-        ${content}=    Get File    /tmp/output.txt
+        ${content}    Get File    /tmp/output.txt
         IF    len("""${content.strip()}""") > 0    BREAK
         Sleep    1s
     END
-    ${contains}=    Evaluate    "GetVersion" in """${content}""" and "RemovePoller" in """${content}"""
-    Should Be True    ${contains}    msg=The list of methods should contain GetVersion(Empty)
+    ${contains}    Evaluate    "GetVersion" in """${content}""" and "RemovePoller" in """${content}"""
+    Should Be True    ${contains}    The list of methods should contain GetVersion(Empty)
     Stop Engine
     Kindly Stop Broker
     Remove File    /tmp/output.txt
@@ -150,15 +137,13 @@ BECCC5
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Sleep    1s
     Start Broker
     Start Engine
@@ -166,12 +151,12 @@ BECCC5
     Start Process    /usr/bin/ccc    -p 51001    -l    GetVersion    stderr=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
         Wait Until Created    /tmp/output.txt
-        ${content}=    Get File    /tmp/output.txt
+        ${content}    Get File    /tmp/output.txt
         IF    len("""${content.strip()}""") > 0    BREAK
         Sleep    1s
     END
-    ${contains}=    Evaluate    "The list argument expects no command" in """${content}"""
-    Should Be True    ${contains}    msg=When -l option is applied, we can't call a command.
+    ${contains}    Evaluate    "The list argument expects no command" in """${content}"""
+    Should Be True    ${contains}    When -l option is applied, we can't call a command.
     Stop Engine
     Kindly Stop Broker
     Remove File    /tmp/output.txt
@@ -183,15 +168,13 @@ BECCC6
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Sleep    1s
     Start Broker
     Start Engine
@@ -199,25 +182,25 @@ BECCC6
     Start Process    /usr/bin/ccc    -p 51001    GetVersion{}    stdout=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
         Wait Until Created    /tmp/output.txt
-        ${content}=    Get File    /tmp/output.txt
+        ${content}    Get File    /tmp/output.txt
         IF    len("""${content.strip().split()}""") > 50    BREAK
         Sleep    1s
     END
-    ${version}=    Get Version
-    ${vers}=    Split String    ${version}    .
-    ${mm}=    Evaluate    """${vers}[0]""".lstrip("0")
-    ${m}=    Evaluate    """${vers}[1]""".lstrip("0")
-    ${p}=    Evaluate    """${vers}[2]""".lstrip("0")
+    ${version}    Common.Get Collect Version
+    ${vers}    Split String    ${version}    .
+    ${mm}    Evaluate    """${vers}[0]""".lstrip("0")
+    ${m}    Evaluate    """${vers}[1]""".lstrip("0")
+    ${p}    Evaluate    """${vers}[2]""".lstrip("0")
     IF    "${p}" == 0 or "${p}" == ""
         Should Contain
         ...    ${content}
         ...    {\n \"major\": ${mm},\n \"minor\": ${m}\n}
-        ...    msg=A version as json string should be returned
+        ...    A version as json string should be returned
     ELSE
         Should Contain
         ...    ${content}
         ...    {\n \"major\": ${mm},\n \"minor\": ${m},\n \"patch\": ${p}\n}
-        ...    msg=A version as json string should be returned
+        ...    A version as json string should be returned
     END
     Stop Engine
     Kindly Stop Broker
@@ -230,15 +213,13 @@ BECCC7
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Sleep    1s
     Start Broker
     Start Engine
@@ -246,14 +227,14 @@ BECCC7
     Start Process    /usr/bin/ccc    -p 51001    GetVersion{"idx":1}    stderr=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
         Wait Until Created    /tmp/output.txt
-        ${content}=    Get File    /tmp/output.txt
+        ${content}    Get File    /tmp/output.txt
         IF    len("""${content.strip().split()}""") > 10    BREAK
         Sleep    1s
     END
     Should Contain
     ...    ${content}
     ...    Error during the execution of '/com.centreon.broker.Broker/GetVersion' method:
-    ...    msg=GetVersion{"idx":1} should return an error because the input message is incompatible with the expected one.
+    ...    GetVersion{"idx":1} should return an error because the input message is incompatible with the expected one.
     Stop Engine
     Kindly Stop Broker
     Remove File    /tmp/output.txt
@@ -265,15 +246,13 @@ BECCC8
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Sleep    1s
     Start Broker
     Start Engine
@@ -285,7 +264,7 @@ BECCC8
     ...    stdout=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
         Wait Until Created    /tmp/output.txt
-        ${content}=    Get File    /tmp/output.txt
+        ${content}    Get File    /tmp/output.txt
         IF    len("""${content.strip().split()}""") > 2    BREAK
         Sleep    1s
     END

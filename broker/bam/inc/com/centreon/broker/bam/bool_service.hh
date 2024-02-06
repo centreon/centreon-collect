@@ -22,10 +22,9 @@
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/bam/service_listener.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/internal.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -68,6 +67,6 @@ class bool_service : public bool_value, public service_listener {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_BOOL_SERVICE_HH

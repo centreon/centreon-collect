@@ -15,10 +15,12 @@ on:
       commit_hash:
         required: true
         type: string
+      stability:
+        required: true
+        type: string
 
 jobs:
   package:
-
     strategy:
       fail-fast: false
       matrix:
@@ -38,6 +40,16 @@ jobs:
             package_extension: deb
             runner: collect
             arch: amd64
+          - image: centreon-collect-debian-bookworm
+            distrib: bookworm
+            package_extension: deb
+            runner: collect
+            arch: amd64
+          - image: centreon-collect-ubuntu-jammy
+            distrib: jammy
+            package_extension: deb
+            runner: collect
+            arch: amd64
           - image: centreon-collect-debian-bullseye-arm64
             distrib: bullseye
             package_extension: deb
@@ -45,6 +57,13 @@ jobs:
             arch: arm64
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
+
+    env:
+      SCCACHE_PATH: "/usr/bin/sccache"
+      SCCACHE_BUCKET: "centreon-github-sccache"
+      SCCACHE_REGION: "eu-west-1"
+      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
@@ -56,7 +75,26 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Install sccache
+        run: |
+          if [ "${{ matrix.package_extension }}" = "deb" ]; then
+            apt-get update
+            apt-get install -y wget
+          elif [ "${{ matrix.package_extension }}" = "rpm" ]; then
+            dnf install -y wget
+          fi
+          if [ "${{ matrix.arch }}" = "amd64" ]; then
+            wget https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
+            mv sccache-v0.7.4-x86_64-unknown-linux-musl/sccache /usr/bin/
+          elif [ "${{ matrix.arch }}" = "arm64" ]; then
+            wget https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-aarch64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.7.4-aarch64-unknown-linux-musl.tar.gz
+            mv sccache-v0.7.4-aarch64-unknown-linux-musl/sccache /usr/bin/
+          fi
+          ${SCCACHE_PATH} --start-server
 
       - name: Generate selinux binaries
         if: ${{ matrix.package_extension == 'rpm' }}
@@ -77,9 +115,9 @@ jobs:
 
       - name: Compile sources
         run: |
-          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
+          sudo pip3 install conan==1.61.0 --prefix=/usr --upgrade
 
-          sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+          sudo conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
 
           CMAKE="cmake3"
           if [ "${{ matrix.package_extension }}" = "deb" ]; then
@@ -88,6 +126,7 @@ jobs:
 
           sudo $CMAKE \
                   -G "Ninja" \
+                  -DDEBUG_ROBOT=OFF \
                   -DWITH_TESTING=OFF \
                   -DWITH_BENCH=ON \
                   -DWITH_MODULE_SIMU=OFF \
@@ -103,9 +142,20 @@ jobs:
                   -DWITH_CREATE_FILES=OFF \
                   -DWITH_CONFIG_FILES=ON \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                  -DNG=ON \
+                  -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
+                  -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   .
 
           sudo ninja
+        shell: bash
+
+      - name: Cache statistics
+        run: ${SCCACHE_PATH} --show-stats
+        shell: bash
+
+      - name: Stop sccache server
+        run: ${SCCACHE_PATH} --stop-server
         shell: bash
 
       - name: Generate debug files
@@ -126,10 +176,11 @@ jobs:
           release: ${{ inputs.release }}
           arch: ${{ matrix.arch }}
           commit_hash: ${{ inputs.commit_hash }}
-          cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
           rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
           rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
+          stability: ${{ inputs.stability }}
 
       - name: Cleaning not needed packages
         shell: bash
@@ -138,7 +189,7 @@ jobs:
       # set condition to true if artifacts are needed
       - if: ${{ false }}
         name: Upload package artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
         with:
           name: packages-${{ matrix.distrib }}-${{ matrix.arch }}
           path: ./*.${{ matrix.package_extension}}

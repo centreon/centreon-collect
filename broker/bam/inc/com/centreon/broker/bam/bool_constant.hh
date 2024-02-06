@@ -20,9 +20,8 @@
 #define CCB_BAM_BOOL_CONSTANT_HH
 
 #include "com/centreon/broker/bam/bool_value.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -51,6 +50,6 @@ class bool_constant : public bool_value {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_BOOL_CONSTANT_HH

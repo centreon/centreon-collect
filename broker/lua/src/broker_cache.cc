@@ -1,19 +1,19 @@
-/*
-** Copyright 2018 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+* Copyright 2018 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
 */
 
 #include "com/centreon/broker/lua/broker_cache.hh"
@@ -453,12 +453,27 @@ static int l_broker_cache_get_servicegroups(lua_State* L) {
     int i{1};
     for (auto it(first), end(second); it != end; ++it) {
       lua_createtable(L, 0, 2);
-      lua_pushinteger(L, it->second->group_id);
-      lua_setfield(L, -2, "group_id");
+      if (it->second->type() == neb::service_group_member::static_type()) {
+        const neb::service_group_member& sgm =
+            *std::static_pointer_cast<neb::service_group_member>(it->second);
 
-      lua_pushstring(L, it->second->group_name.c_str());
-      lua_setfield(L, -2, "group_name");
+        lua_pushinteger(L, sgm.group_id);
+        lua_setfield(L, -2, "group_id");
 
+        lua_pushstring(L, sgm.group_name.c_str());
+        lua_setfield(L, -2, "group_name");
+
+      } else {
+        const ServiceGroupMember& sgm =
+            std::static_pointer_cast<neb::pb_service_group_member>(it->second)
+                ->obj();
+
+        lua_pushinteger(L, sgm.servicegroup_id());
+        lua_setfield(L, -2, "group_id");
+
+        lua_pushstring(L, sgm.name().c_str());
+        lua_setfield(L, -2, "group_name");
+      }
       lua_rawseti(L, -2, i);
       ++i;
     }
@@ -489,12 +504,25 @@ static int l_broker_cache_get_hostgroups(lua_State* L) {
     int i = 1;
     for (auto it(first); it != second; ++it) {
       lua_createtable(L, 0, 2);
-      lua_pushinteger(L, it->second->group_id);
-      lua_setfield(L, -2, "group_id");
+      std::shared_ptr<io::data> evt = it->second;
+      if (it->second->type() == neb::host_group_member::static_type()) {
+        const neb::host_group_member& hgm =
+            *std::static_pointer_cast<neb::host_group_member>(it->second);
+        lua_pushinteger(L, hgm.group_id);
+        lua_setfield(L, -2, "group_id");
 
-      lua_pushstring(L, it->second->group_name.c_str());
-      lua_setfield(L, -2, "group_name");
+        lua_pushstring(L, hgm.group_name.c_str());
+        lua_setfield(L, -2, "group_name");
+      } else {
+        const HostGroupMember& hgm =
+            std::static_pointer_cast<neb::pb_host_group_member>(it->second)
+                ->obj();
+        lua_pushinteger(L, hgm.hostgroup_id());
+        lua_setfield(L, -2, "group_id");
 
+        lua_pushstring(L, hgm.name().c_str());
+        lua_setfield(L, -2, "group_name");
+      }
       lua_rawseti(L, -2, i);
       ++i;
     }
@@ -625,7 +653,7 @@ static int32_t l_broker_cache_get_check_command(lua_State* L) {
     service_id = luaL_checkinteger(L, 3);
 
   try {
-    absl::string_view check_command =
+    std::string_view check_command =
         cache->get_check_command(host_id, service_id);
     lua_pushlstring(L, check_command.data(), check_command.size());
   } catch (std::exception const& e) {

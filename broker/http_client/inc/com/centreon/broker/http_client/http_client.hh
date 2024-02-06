@@ -23,7 +23,7 @@
 
 class client_test;
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace http_client {
 /**
@@ -149,6 +149,6 @@ void client::visit_queue(visitor_type& visitor) const {
 
 }  // namespace http_client
 
-CCB_END()
+}
 
 #endif  // CCB_HTTP_CLIENT_CLIENT_HH__

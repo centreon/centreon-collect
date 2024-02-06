@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,17 +37,22 @@ using channel_trash_type = com::centreon::broker::misc::trash<channel>;
 
 static channel_trash_type* _trash(new channel_trash_type);
 
-namespace com {
-namespace centreon {
-namespace broker {
+namespace com::centreon::broker {
 namespace stream {
 std::ostream& operator<<(std::ostream& st,
-                         const centreon_stream::centreon_event& to_dump) {
+                         const centreon_stream::CentreonEvent& to_dump) {
   if (to_dump.IsInitialized()) {
     if (to_dump.has_buffer()) {
       st << "buff: "
          << com::centreon::broker::misc::string::debug_buf(
                 to_dump.buffer().data(), to_dump.buffer().length(), 20);
+    } else {
+      std::string dump{to_dump.ShortDebugString()};
+      if (dump.size() > 200) {
+        dump.resize(200);
+        st << fmt::format(" content:'{}...'", dump);
+      } else
+        st << " content:'" << dump << '\'';
     }
   }
   return st;
@@ -62,14 +67,14 @@ std::ostream& operator<<(std::ostream& st,
          << com::centreon::broker::misc::string::debug_buf(
                 to_dump.to_dump.buffer().data(),
                 to_dump.to_dump.buffer().length(), 100);
+    } else {
+      st << " content:'" << to_dump.to_dump.ShortDebugString() << '\'';
     }
   }
   return st;
 }
 }  // namespace grpc
-}  // namespace broker
-}  // namespace centreon
-}  // namespace com
+}  // namespace com::centreon::broker
 
 channel::channel(const std::string& class_name,
                  const grpc_config::pointer& conf)
@@ -175,7 +180,7 @@ void channel::on_read_done(bool ok) {
 /***************************************************************
  *    write section
  ***************************************************************/
-int channel::write(const event_ptr& to_send) {
+int channel::write(const event_with_data::pointer& to_send) {
   if (is_down()) {
     throw(exceptions::connection_closed("{} connection is down",
                                         __PRETTY_FUNCTION__));
@@ -189,7 +194,7 @@ int channel::write(const event_ptr& to_send) {
 }
 
 void channel::start_write() {
-  event_ptr write_current;
+  event_with_data::pointer write_current;
   {
     lock_guard l(_protect);
     if (_write_pending) {
@@ -201,7 +206,12 @@ void channel::start_write() {
     _write_pending = true;
     write_current = _write_current = _write_queue.front();
   }
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "write: {}", *write_current);
+  if (write_current->bbdo_event)
+    SPDLOG_LOGGER_TRACE(log_v2::grpc(), "write: {}",
+                        *write_current->bbdo_event);
+  else
+    SPDLOG_LOGGER_TRACE(log_v2::grpc(), "write: {}", write_current->grpc_event);
+
   start_write(write_current);
 }
 
@@ -211,7 +221,12 @@ void channel::on_write_done(bool ok) {
     {
       lock_guard l(_protect);
       _write_pending = false;
-      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "write done: {}", *_write_current);
+      if (_write_current->bbdo_event)
+        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "write done: {}",
+                            *_write_current->bbdo_event);
+      else
+        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "write done: {}",
+                            _write_current->grpc_event);
 
       _write_queue.pop_front();
       data_to_write = !_write_queue.empty();
@@ -222,7 +237,12 @@ void channel::on_write_done(bool ok) {
     }
   } else {
     lock_guard l(_protect);
-    SPDLOG_LOGGER_ERROR(log_v2::grpc(), "write failed: {}", *_write_current);
+    if (_write_current->bbdo_event)
+      SPDLOG_LOGGER_ERROR(log_v2::grpc(), "write failed: {}",
+                          *_write_current->bbdo_event);
+    else
+      SPDLOG_LOGGER_ERROR(log_v2::grpc(), "write failed: {}",
+                          _write_current->grpc_event);
     _error = true;
   }
 }

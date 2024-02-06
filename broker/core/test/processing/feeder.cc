@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2020-2021 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,7 +61,8 @@ class TestFeeder : public ::testing::Test {
     multiplexing::muxer_filter read_filters;
     multiplexing::muxer_filter write_filters;
     _feeder =
-        feeder::create("test-feeder", client, read_filters, write_filters);
+        feeder::create("test-feeder", multiplexing::engine::instance_ptr(),
+                       client, read_filters, write_filters);
   }
 
   void TearDown() override {

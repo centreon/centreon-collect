@@ -24,7 +24,7 @@
 #include "com/centreon/broker/misc/processing_speed_computer.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace processing {
 constexpr unsigned idle_microsec_wait_idle_thread_delay = 100000;
@@ -67,6 +67,6 @@ class stat_visitable {
 };
 }  // namespace processing
 
-CCB_END()
+}
 
 #endif  // !CCB_PROCESSING_STAT_VISITABLE_HH

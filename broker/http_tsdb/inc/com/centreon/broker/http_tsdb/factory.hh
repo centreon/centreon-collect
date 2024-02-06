@@ -20,10 +20,9 @@
 #define CCB_HTTP_TSDB_FACTORY_HH
 
 #include "com/centreon/broker/io/factory.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "http_tsdb_config.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace http_tsdb {
 
@@ -56,6 +55,6 @@ class factory : public io::factory {
 };
 }  // namespace http_tsdb
 
-CCB_END()
+}
 
 #endif  // !CCB_HTTP_TSDB_FACTORY_HH

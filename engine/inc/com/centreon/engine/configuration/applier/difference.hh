@@ -21,9 +21,8 @@
 #define CCE_CONFIGURATION_APPLIER_DIFFERENCE_HH
 
 #include <iterator>
-#include "com/centreon/engine/namespace.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 namespace applier {
@@ -86,6 +85,6 @@ class difference {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_APPLIER_DIFFERENCE_HH

@@ -23,7 +23,7 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/sql/mysql_bind.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 typedef absl::flat_hash_map<std::string, int> mysql_bind_mapping;
 
@@ -414,6 +414,6 @@ class mysql_stmt_base {
 
 }  // namespace database
 
-CCB_END()
+}
 
 #endif  // CCB_MYSQL_STMT_BASE_HH

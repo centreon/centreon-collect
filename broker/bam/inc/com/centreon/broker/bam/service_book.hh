@@ -22,7 +22,7 @@
 #include "com/centreon/broker/bam/service_listener.hh"
 #include "com/centreon/broker/io/stream.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declarations.
 namespace neb {
@@ -73,6 +73,6 @@ class service_book {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_SERVICE_BOOK_HH

@@ -24,18 +24,18 @@
 #include "com/centreon/engine/commands/result.hh"
 #include "com/centreon/engine/macros/defines.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 namespace commands {
 class command;
 }
-CCE_END()
+}
 
 typedef std::unordered_map<
     std::string,
     std::shared_ptr<com::centreon::engine::commands::command> >
     command_map;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace commands {
 /**
@@ -138,7 +138,7 @@ inline std::ostream& operator<<(std::ostream& s, const command::pointer& cmd) {
 
 }  // namespace commands
 
-CCE_END()
+}
 
 namespace fmt {
 template <>

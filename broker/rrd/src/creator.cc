@@ -1,19 +1,19 @@
-/*
-** Copyright 2013-2017 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+* Copyright 2013-2017 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
 */
 
 #include <fcntl.h>
@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <filesystem>
 
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -45,7 +46,8 @@ using namespace com::centreon::broker::rrd;
  */
 creator::creator(std::string const& tmpl_path, uint32_t cache_size)
     : _cache_size(cache_size), _tmpl_path(tmpl_path) {
-  log_v2::rrd()->debug(
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::rrd(),
       "RRD: file creator will maintain at most {} templates in '{}'",
       _cache_size, _tmpl_path);
 }
@@ -105,7 +107,8 @@ void creator::create(std::string const& filename,
     if (it != _fds.end() && it->first.is_length_step_type_equal(info) &&
         it->first.from <= from) {
       _duplicate(filename, it->second);
-      log_v2::rrd()->debug("reuse {} for {}", it->second.path, filename);
+      SPDLOG_LOGGER_DEBUG(log_v2::rrd(), "reuse {} for {}", it->second.path,
+                          filename);
     }
     // Not in the cache, but we have enough space in the cache.
     // Create new entry.
@@ -263,15 +266,28 @@ void creator::_open(std::string const& filename,
 
   // Debug message.
   argv[argc] = nullptr;
-  log_v2::rrd()->debug("RRD: opening file '{}' ({}, {}, {}, step 1, from  {})",
-                       filename, argv[0], argv[1],
-                       (argv[2] ? argv[2] : "(null)"), from);
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::rrd(), "RRD: create file '{}' ({}, {}, {}, step 1, from  {})",
+      filename, argv[0], argv[1], (argv[2] ? argv[2] : "(null)"), from);
 
   // Create RRD file.
   rrd_clear_error();
   if (rrd_create_r(filename.c_str(), 1, from, argc, argv))
     throw exceptions::open("RRD: could not create file '{}: {}", filename,
                            rrd_get_error());
+
+  // by default rrd_create_r create rw-r----- files  group write is mandatory
+  // for rrdcached
+  std::error_code err;
+  std::filesystem::permissions(
+      filename,
+      std::filesystem::perms::group_read | std::filesystem::perms::group_write,
+      std::filesystem::perm_options::add, err);
+  if (err) {
+    SPDLOG_LOGGER_ERROR(log_v2::rrd(),
+                        "RRD: fail to add access rights (660) to {}: {}",
+                        filename, err.message());
+  }
 }
 
 /**

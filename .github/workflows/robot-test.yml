@@ -10,6 +10,9 @@ on:
       image:
         required: true
         type: string
+      image_test:
+        required: true
+        type: string
       image_version:
         required: true
         type: string
@@ -20,6 +23,12 @@ on:
         required: true
         type: string
       database_type:
+        required: true
+        type: string
+      tests_params:
+        required: true
+        type: string
+      test_group_name:
         required: true
         type: string
     secrets:
@@ -34,14 +43,51 @@ on:
 
 
 jobs:
+  test-image-to-cache:
+    runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Login to Registry
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.registry_username }}
+          password: ${{ secrets.registry_password }}
+
+      - name: Login to Proxy Registry
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ${{ vars.DOCKER_PROXY_REGISTRY_URL }}
+          username: ${{ secrets.registry_username }}
+          password: ${{ secrets.registry_password }}
+
+      - name: load image
+        run: |
+          docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
+        shell: bash
+
+      - name: image to disk
+        run: |
+          docker save -o /tmp/${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
+        shell: bash
+
+      - name: image to cache
+        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: /tmp/${{inputs.image}}
+          key: ${{inputs.image_test}}
+
   robot-test-list:
+    needs: [test-image-to-cache]
     runs-on: ubuntu-22.04
     outputs:
       features: ${{ steps.list-features.outputs.features }}
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: List features
         id: list-features
@@ -52,76 +98,144 @@ jobs:
   robot-test:
     needs: [robot-test-list]
     runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
-    container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image}}:${{ inputs.image_version }}
-      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
-      credentials:
-        username: ${{ secrets.registry_username }}
-        password: ${{ secrets.registry_password }}
 
     strategy:
       fail-fast: false
       matrix:
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
 
-    name: ${{ matrix.feature }} ${{inputs.database_type}}
+    name: ${{ matrix.feature }} ${{inputs.test_group_name}}
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
 
+      - name: Restore image
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: /tmp/${{inputs.image}}
+          key: ${{inputs.image_test}}
+          fail-on-cache-miss: true
+
       - name: Restore packages
-        uses: actions/cache@v3
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: ${{ inputs.package_cache_path }}
           key: ${{ inputs.package_cache_key }}
           fail-on-cache-miss: true
 
+      - name: load image
+        run: |
+          docker load --input /tmp/${{ inputs.image }}
+
       - name: Test ${{ matrix.feature }}
-        run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }} ${{inputs.database_type}}
-        shell: bash
+        run: |
+          docker run --rm --privileged --ulimit core=-1 --security-opt seccomp=unconfined \
+          -v $(pwd):/test_collect  \
+          --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+          --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+          --env AWS_BUCKET=centreon-collect-robot-report \
+          --workdir /test_collect \
+          ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} \
+          ./.github/scripts/collect-test-robot.sh \
+          ${{ matrix.feature }} ${{inputs.database_type}} ${{inputs.tests_params}}
+
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
-          AWS_BUCKET: centreon-collect-robot-report
 
       - name: Move reports
-        if: ${{ !cancelled() }}
+        if: ${{ failure() }}
         run: |
           mkdir reports
-          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{inputs.database_type}}
-          mv tests/log.html reports/$FILE_PREFIX-log.html
-          mv tests/output.xml reports/$FILE_PREFIX-output.xml
-          mv tests/report.html reports/$FILE_PREFIX-report.html
+          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{inputs.test_group_name}}
           if [ -d tests/failed ] ; then
-            mv tests/failed reports/$FILE_PREFIX-failed
+            cp -rp tests/failed reports/$FILE_PREFIX-failed
+            cp tests/log.html reports/$FILE_PREFIX-log.html
+            cp tests/output.xml reports/$FILE_PREFIX-output.xml
           fi
 
+      - name: Replace / with - in the feature path
+        id: feature-path
+        if: always()
+        run: |
+          feature_name="${{ matrix.feature }}"
+          feature_name_with_dash="${feature_name//\//-}"
+          echo "Modified Feature Name: $feature_name_with_dash"
+          echo "feature_name_with_dash=$feature_name_with_dash" >> $GITHUB_OUTPUT
+
       - name: Upload Test Results
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v3
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
         with:
-          name: robot-test-reports-${{inputs.database_type}}-${{ inputs.distrib }}-${{ inputs.arch }}
+          name: reports-${{inputs.test_group_name}}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: reports
           retention-days: 1
 
   robot-test-report:
     needs: [robot-test]
-    if: ${{ !cancelled() }}
+    if: ${{ failure() }}
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935 # v4.1.1
         with:
-          name: robot-test-reports-${{inputs.database_type}}-${{ inputs.distrib }}-${{ inputs.arch }}
+          pattern: reports-${{inputs.test_group_name}}-*
           path: reports
+          merge-multiple: true
 
-      - uses: actions/setup-python@v4
+      - name: Upload the regrouped artifact
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        with:
+          name: reports-${{inputs.test_group_name}}
+          path: reports/
+          retention-days: 1
+
+      - name: Delete separated artifacts
+        run: |
+          artifact_pattern="reports-${{inputs.test_group_name}}-"
+          TOKEN=${{ secrets.GITHUB_TOKEN }}
+          artifact_exist=true
+          while [ "$artifact_exist" = true ] ;do
+            artifact_exist=false
+            artifacts_response=$(curl -L \
+                          -H "Accept: application/vnd.github+json" \
+                          -H "Authorization: Bearer $TOKEN" \
+                          -H "X-GitHub-Api-Version: 2022-11-28" \
+                          "https://api.github.com/repos/${{ github.repository }}/actions/artifacts?per_page=100")
+            artifacts=$(echo $artifacts_response | jq -c '.artifacts[]')
+            echo "Those are the artifacts : $artifacts"
+            while read row; do
+              artifact_name=$(echo "$row" | jq -r '.name')
+              if [[ "$artifact_name" =~ ^.*"$artifact_pattern".* ]]; then
+                artifact_exist=true
+                echo "Deleting : $artifact_name"
+                artifact_id=$(echo "$row" | jq -r '.id')
+                curl -L \
+                  -X DELETE \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${artifact_id}"
+              fi
+            done <<< "$artifacts"
+          done
+          echo "End of Deleting"
+        shell: bash
+
+        # setup-python v5.0.0 relies on node20 which is not supported by el7 distributions
+      - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
+        if: ${{ inputs.distrib  == 'el7'}}
+        with:
+          python-version: '3.10'
+
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+        if: ${{ inputs.distrib != 'el7' }}
         with:
           python-version: '3.10'
 
@@ -132,7 +246,7 @@ jobs:
         shell: bash
 
       - name: Send report to commit
-        uses: joonvena/robotframework-reporter-action@v2.1
+        uses: joonvena/robotframework-reporter-action@413a90b26bb8a49eebc51af51f1631500ef0339d # v2.3
         with:
           gh_access_token: ${{ secrets.GITHUB_TOKEN }}
           report_path: reports

@@ -24,7 +24,7 @@
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/opt.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class hostdependency : public object {
@@ -102,6 +102,6 @@ typedef std::shared_ptr<hostdependency> hostdependency_ptr;
 typedef std::set<hostdependency> set_hostdependency;
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_HOSTDEPENDENCY_HH

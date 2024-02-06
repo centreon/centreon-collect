@@ -1,19 +1,19 @@
-/*
-** Copyright 2023 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+* Copyright 2023 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
 */
 
 #include <fmt/format.h>
@@ -40,7 +40,7 @@ inline void char_to_hex(unsigned char c, std::string& output) noexcept {
  */
 std::string com::centreon::common::hex_dump(const unsigned char* buffer,
                                             size_t buff_len,
-                                            int nb_char_per_line) {
+                                            uint32_t nb_char_per_line) {
   std::string ret;
   if (nb_char_per_line > 0) {
     size_t address_len = 0;
@@ -75,7 +75,7 @@ std::string com::centreon::common::hex_dump(const unsigned char* buffer,
         }
       }
       ret.push_back(' ');
-      for (unsigned pad = char_part.length(); pad < nb_char_per_line; ++pad) {
+      for (uint32_t pad = char_part.length(); pad < nb_char_per_line; ++pad) {
         ret.push_back(' ');
         ret.push_back(' ');
       }

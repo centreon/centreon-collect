@@ -21,7 +21,7 @@
 
 #include "http_connection.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace http_client {
 /**
@@ -80,6 +80,6 @@ class https_connection : public connection_base {
 
 }  // namespace http_client
 
-CCB_END()
+}
 
 #endif  // CCB_HTTPS_CLIENT_CONNEXION_HH__

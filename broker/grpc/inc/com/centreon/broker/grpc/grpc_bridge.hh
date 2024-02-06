@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2012 Centreon
+** Copyright 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,23 +16,22 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_NAMESPACE_HH
-#define CCB_NAMESPACE_HH
+#ifndef CCB_GRPC_BRIDGE_HH
+#define CCB_GRPC_BRIDGE_HH
 
-#ifdef CCB_BEGIN
-#undef CCB_BEGIN
-#endif  // CCB_BEGIN
-#define CCB_BEGIN()    \
-  namespace com {      \
-  namespace centreon { \
-  namespace broker {
+#include "com/centreon/broker/io/protobuf.hh"
+#include "grpc_stream.pb.h"
 
-#ifdef CCB_END
-#undef CCB_END
-#endif  // CCB_END
-#define CCB_END() \
-  }               \
-  }               \
-  }
+namespace com::centreon::broker {
 
-#endif  // !CCB_NAMESPACE_HH
+namespace grpc {
+std::shared_ptr<io::data> protobuf_to_event(const event_ptr& stream_content);
+
+std::shared_ptr<channel::event_with_data> create_event_with_data(
+    const std::shared_ptr<io::data>& event);
+
+};  // namespace grpc
+
+}
+
+#endif

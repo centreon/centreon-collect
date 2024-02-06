@@ -25,7 +25,7 @@
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/timeperiod.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 // Forward declaration.
 namespace commands {
@@ -105,6 +105,6 @@ class state {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_APPLIER_STATE_HH

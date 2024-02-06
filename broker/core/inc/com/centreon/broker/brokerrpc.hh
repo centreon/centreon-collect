@@ -1,5 +1,5 @@
-/*
- * Copyright 2020-2021 Centreon (https://www.centreon.com/)
+/**
+ * Copyright 2020-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,10 @@
 #define CENTREON_BROKER_CORE_SRC_BROKERRPC_HH_
 
 #include <grpcpp/server.h>
-#include "com/centreon/broker/broker_impl.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+#include "com/centreon/broker/broker_impl.hh"
+
+namespace com::centreon::broker {
 
 /**
  * @class brokerrpc brokerrpc.hh "com/centreon/broker/brokerrpc.hh"
@@ -35,8 +35,7 @@ class brokerrpc final {
   std::unique_ptr<grpc::Server> _server;
 
  public:
-  brokerrpc(const std::string& address,
-            uint16_t port,
+  brokerrpc(const std::string& address, uint16_t port,
             std::string const& broker_name);
   brokerrpc() = delete;
   brokerrpc(const brokerrpc&) = delete;
@@ -44,6 +43,6 @@ class brokerrpc final {
   void shutdown();
 };
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // CENTREON_BROKER_CORE_SRC_BROKERRPC_HH_

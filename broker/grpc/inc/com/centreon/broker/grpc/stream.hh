@@ -21,7 +21,7 @@
 
 #include "channel.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace grpc {
 
@@ -32,6 +32,8 @@ class stream : public io::stream {
   bool _accept;
 
   std::shared_ptr<channel> _channel;
+
+  grpc_config::pointer _conf;
 
  public:
   stream(const grpc_config::pointer& conf);
@@ -58,6 +60,6 @@ class stream : public io::stream {
 };
 }  // namespace grpc
 
-CCB_END()
+}
 
 #endif  // !CCB_GRPC_STREAM_HH

@@ -21,10 +21,9 @@
 #define CCB_TEMPORARY_STREAM_HH
 
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 /**
  *  @class temporary_stream temporary_stream.hh
@@ -83,6 +82,6 @@ class temporary_stream : public io::stream {
   int32_t stop() override { return 0; }
 };
 
-CCB_END()
+}
 
 #endif  // !CCB_TEMPORARY_STREAM_HH

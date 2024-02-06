@@ -1,20 +1,20 @@
-/*
-** Copyright 2011-2013,2015-2016 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
+/**
+* Copyright 2011-2013,2015-2016 Centreon
+*
+* This file is part of Centreon Engine.
+*
+* Centreon Engine is free software: you can redistribute it and/or
+* modify it under the terms of the GNU General Public License version 2
+* as published by the Free Software Foundation.
+*
+* Centreon Engine is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+* General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Centreon Engine. If not, see
+* <http://www.gnu.org/licenses/>.
 */
 
 #include "com/centreon/engine/retention/dump.hh"
@@ -593,7 +593,7 @@ bool dump::save(std::string const& path) {
  *  @return The output stream.
  */
 std::ostream& dump::service(std::ostream& os,
-                            const absl::string_view& class_name,
+                            const std::string_view& class_name,
                             class service const& obj) {
   std::string hostname;
   if (obj.get_host_ptr())

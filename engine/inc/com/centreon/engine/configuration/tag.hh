@@ -23,7 +23,7 @@
 
 #include "com/centreon/engine/configuration/object.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class tag : public object {
@@ -68,6 +68,6 @@ class tag : public object {
 typedef std::set<tag> set_tag;
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_TAG_HH

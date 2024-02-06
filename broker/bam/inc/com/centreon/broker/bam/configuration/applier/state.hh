@@ -23,9 +23,8 @@
 #include "com/centreon/broker/bam/configuration/applier/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/applier/kpi.hh"
 #include "com/centreon/broker/bam/service_book.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 // Forward declaration.
@@ -78,6 +77,6 @@ class state {
 }  // namespace configuration
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_CONFIGURATION_APPLIER_STATE_HH

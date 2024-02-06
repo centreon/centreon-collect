@@ -22,7 +22,7 @@
 
 #include <cstddef>
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace deleter {
 template <typename T>
@@ -36,6 +36,6 @@ void listmember(T*& ptr, void (*release)(void*)) throw() {
 }
 }  // namespace deleter
 
-CCE_END()
+}
 
 #endif  // !CCE_DELETER_LISTMEMBER_HH

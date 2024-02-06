@@ -4,7 +4,7 @@
 #include <grpcpp/server.h>
 #include "engine_impl.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class enginerpc final {
   engine_impl _service;
   std::unique_ptr<grpc::Server> _server;
@@ -17,5 +17,5 @@ class enginerpc final {
   void shutdown();
 };
 
-CCE_END()
+}
 #endif /* !CCE_ENGINERPC_ENGINE_IMPL_HH */

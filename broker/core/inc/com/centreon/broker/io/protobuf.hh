@@ -1,20 +1,20 @@
-/*
-** Copyright 2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2021-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_IO_PROTOBUF_HH
 #define CCB_IO_PROTOBUF_HH
@@ -22,13 +22,12 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/util/json_util.h>
 #include <google/protobuf/util/message_differencer.h>
+
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-CCB_BEGIN()
-
-namespace io {
+namespace com::centreon::broker::io {
 /**
  *  @class data protobuf.hh "com/centreon/broker/io/protobuf.hh"
  *  @brief Data abstraction.
@@ -53,6 +52,8 @@ class protobuf_base : public data {
  protected:
   protobuf_base(uint32_t typ, google::protobuf::Message* msg)
       : data(typ), _msg{msg} {}
+
+  void set_message(google::protobuf::Message* msg) { _msg = msg; }
 
  public:
   enum attribute {
@@ -106,6 +107,18 @@ class protobuf : public protobuf_base {
    * @param o The protobuf object (it is copied).
    */
   protobuf(const T& o) : protobuf_base(Typ, &_obj), _obj(o) {}
+
+  /**
+   * @brief Construct a new protobuf object
+   * same as previous constructor except that it accepts two more parameters
+   * @param o
+   * @param src_id source_id
+   * @param dest_id destination_id
+   */
+  protobuf(const T& o, uint32_t src_id, uint32_t dest_id) : protobuf(o) {
+    source_id = src_id;
+    destination_id = dest_id;
+  }
 
   protobuf(const protobuf& to_clone) : protobuf_base(Typ, &_obj) {
     _obj.CopyFrom(to_clone._obj);
@@ -168,11 +181,11 @@ class protobuf : public protobuf_base {
     return retval.release();
   }
 
-  const T& obj() const { return _obj; }
+  virtual const T& obj() const { return _obj; }
 
-  T& mut_obj() { return _obj; }
+  virtual T& mut_obj() { return _obj; }
 
-  void set_obj(T&& obj) { _obj = std::move(obj); }
+  virtual void set_obj(T&& obj) { _obj = std::move(obj); }
 
   void dump(std::ostream& s) const override;
   void dump_more_detail(std::ostream& s) const override;
@@ -191,13 +204,14 @@ const io::event_info::event_operations protobuf<T, Typ>::operations{
 
 template <typename T, uint32_t Typ>
 bool protobuf<T, Typ>::operator==(const protobuf<T, Typ>& to_cmp) const {
-  return google::protobuf::util::MessageDifferencer::Equals(_obj, to_cmp._obj);
+  return google::protobuf::util::MessageDifferencer::Equals(this->obj(),
+                                                            (&to_cmp)->obj());
 }
 
 template <typename T, uint32_t Typ>
 void protobuf<T, Typ>::dump(std::ostream& s) const {
   data::dump(s);
-  std::string dump{_obj.ShortDebugString()};
+  std::string dump{this->obj().ShortDebugString()};
   if (dump.size() > 200) {
     dump.resize(200);
     s << fmt::format(" content:'{}...'", dump);
@@ -208,17 +222,16 @@ void protobuf<T, Typ>::dump(std::ostream& s) const {
 template <typename T, uint32_t Typ>
 void protobuf<T, Typ>::dump_more_detail(std::ostream& s) const {
   data::dump(s);
-  s << " content:'" << _obj.ShortDebugString() << '\'';
+  s << " content:'" << this->obj().ShortDebugString() << '\'';
 }
 
 template <typename T, uint32_t Typ>
 void protobuf<T, Typ>::dump_to_json(std::ostream& s) const {
   std::string json_dump;
-  google::protobuf::util::MessageToJsonString(_obj, &json_dump);
+  google::protobuf::util::MessageToJsonString(this->obj(), &json_dump);
   s << " content:'" << json_dump << '\'';
 }
 
-}  // namespace io
-CCB_END()
+}  // namespace com::centreon::broker::io
 
 #endif  // !CCB_IO_PROTOBUF_HH

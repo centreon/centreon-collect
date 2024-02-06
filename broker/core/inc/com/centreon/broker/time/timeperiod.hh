@@ -19,11 +19,10 @@
 #ifndef CCB_CORE_TIME_TIMEPERIOD_HH
 #define CCB_CORE_TIME_TIMEPERIOD_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/time/daterange.hh"
 #include "com/centreon/broker/time/timerange.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace time {
 /**
@@ -121,6 +120,6 @@ class timeperiod {
 };
 }  // namespace time
 
-CCB_END()
+}
 
 #endif  // !CCB_CORE_TIME_TIMEPERIOD_HH

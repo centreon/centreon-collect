@@ -1,24 +1,25 @@
-/*
-** Copyright 2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2022-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/ba_impact.hh"
 
 #include <fmt/format.h>
+
 #include <cassert>
 
 #include "bbdo/bam/ba_status.hh"
@@ -99,7 +100,7 @@ state ba_impact::get_state_soft() const {
  *
  *  @param[in] impact Impact information.
  */
-bool ba_impact::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
+void ba_impact::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
                               ba::impact_info& impact) {
   // Adjust values.
   _acknowledgement_hard += impact.hard_impact.get_acknowledgement();
@@ -108,12 +109,23 @@ bool ba_impact::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
   _downtime_soft += impact.soft_impact.get_downtime();
 
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
-    return false;
-  bool retval = impact.hard_impact.get_nominal() != 0 ||
-                impact.soft_impact.get_nominal() != 0;
+    return;
   _level_hard -= impact.hard_impact.get_nominal();
   _level_soft -= impact.soft_impact.get_nominal();
-  return retval;
+}
+
+bool ba_impact::_apply_changes(kpi* child,
+                               const impact_values& new_hard_impact,
+                               const impact_values& new_soft_impact,
+                               bool in_downtime) {
+  int32_t previous_level = _level_hard;
+  auto it = _impacts.find(child);
+  _unapply_impact(child, it->second);
+  it->second.hard_impact = new_hard_impact;
+  it->second.soft_impact = new_soft_impact;
+  it->second.in_downtime = in_downtime;
+  _apply_impact(child, it->second);
+  return previous_level != _level_hard;
 }
 
 /**
@@ -169,7 +181,7 @@ std::string ba_impact::get_output() const {
     for (auto it = _impacts.begin(), end = _impacts.end(); it != end; ++it) {
       if (it->second.hard_impact.get_nominal() > eps) {
         lst.emplace_back(fmt::format(
-            "KPI{} (impact: {})", it->first->get_id(),
+            "KPI {} (impact: {})", it->first->get_name(),
             static_cast<int32_t>(it->second.hard_impact.get_nominal())));
       }
     }
@@ -232,4 +244,24 @@ std::string ba_impact::get_perfdata() const {
   return fmt::format(
       "BA_Level={};{};{};0;100", static_cast<int>(_normalize(_level_hard)),
       static_cast<int>(_level_warning), static_cast<int>(_level_critical));
+}
+
+/**
+ *  @brief Recompute all impacts.
+ *
+ *  This method was created to prevent the real values to derive to
+ *  much from their true value due to the caching system.
+ */
+void ba_impact::_recompute() {
+  _acknowledgement_hard = 0.0;
+  _acknowledgement_soft = 0.0;
+  _downtime_hard = 0.0;
+  _downtime_soft = 0.0;
+  _level_hard = 100.0;
+  _level_soft = 100.0;
+  for (std::unordered_map<kpi*, impact_info>::iterator it = _impacts.begin(),
+                                                       end = _impacts.end();
+       it != end; ++it)
+    _apply_impact(it->first, it->second);
+  _recompute_count = 0;
 }

@@ -25,9 +25,6 @@ include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 include_directories("${CMAKE_SOURCE_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/storage")
 
-get_protobuf_files(rebuild_message)
-get_protobuf_files(remove_graph_message)
-
 # conflict_manager library.
 add_library(
   conflictmgr STATIC
@@ -59,8 +56,6 @@ add_library(
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/rebuilder.cc"
   "${SRC_DIR}/stream.cc"
-  ${proto_rebuild_message}
-  ${proto_remove_graph_message}
   # Headers.
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/events.hh"
@@ -70,7 +65,8 @@ add_library(
 set_target_properties("${STORAGE}" PROPERTIES PREFIX "" COMPILE_FLAGS "-fPIC")
 add_dependencies("${STORAGE}" target_rebuild_message
                  target_remove_graph_message table_max_size)
-target_link_libraries(${STORAGE} conflictmgr rokerbase bbdo_storage)
+target_link_libraries(${STORAGE} conflictmgr rokerbase bbdo_storage
+                      pb_rebuild_message_lib pb_remove_graph_message_lib)
 target_precompile_headers(${STORAGE} REUSE_FROM conflictmgr)
 
 # Testing.

@@ -32,7 +32,7 @@
 #include "com/centreon/broker/neb/service_group_member.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace lua {
 /**
@@ -43,18 +43,16 @@ class macro_cache {
   std::shared_ptr<persistent_cache> _cache;
   absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _instances;
   absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _hosts;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<neb::host_group>> _host_groups;
-  absl::btree_map<std::pair<uint64_t, uint64_t>,
-                  std::shared_ptr<neb::host_group_member>>
+  absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _host_groups;
+  absl::btree_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _host_group_members;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _custom_vars;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _services;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<neb::service_group>>
-      _service_groups;
+  absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _service_groups;
   absl::btree_map<std::tuple<uint64_t, uint64_t, uint64_t>,
-                  std::shared_ptr<neb::service_group_member>>
+                  std::shared_ptr<io::data>>
       _service_group_members;
   absl::flat_hash_map<uint64_t, std::shared_ptr<storage::pb_index_mapping>>
       _index_mappings;
@@ -87,17 +85,17 @@ class macro_cache {
   const std::string& get_action_url(uint64_t host_id,
                                     uint64_t service_id) const;
   int32_t get_severity(uint64_t host_id, uint64_t service_id) const;
-  absl::string_view get_check_command(uint64_t host_id,
-                                      uint64_t service_id = 0) const;
+  std::string_view get_check_command(uint64_t host_id,
+                                     uint64_t service_id = 0) const;
   const std::string& get_host_group_name(uint64_t id) const;
   absl::btree_map<std::pair<uint64_t, uint64_t>,
-                  std::shared_ptr<neb::host_group_member>> const&
+                  std::shared_ptr<io::data>> const&
   get_host_group_members() const;
   const std::string& get_service_description(uint64_t host_id,
                                              uint64_t service_id) const;
   const std::string& get_service_group_name(uint64_t id) const;
   absl::btree_map<std::tuple<uint64_t, uint64_t, uint64_t>,
-                  std::shared_ptr<neb::service_group_member>> const&
+                  std::shared_ptr<io::data>> const&
   get_service_group_members() const;
   const std::string& get_instance(uint64_t instance_id) const;
 
@@ -120,14 +118,18 @@ class macro_cache {
   void _process_pb_host(std::shared_ptr<io::data> const& data);
   void _process_pb_adaptive_host(std::shared_ptr<io::data> const& data);
   void _process_host_group(std::shared_ptr<io::data> const& data);
+  void _process_pb_host_group(std::shared_ptr<io::data> const& data);
   void _process_host_group_member(std::shared_ptr<io::data> const& data);
+  void _process_pb_host_group_member(std::shared_ptr<io::data> const& data);
   void _process_custom_variable(std::shared_ptr<io::data> const& data);
   void _process_pb_custom_variable(std::shared_ptr<io::data> const& data);
   void _process_service(std::shared_ptr<io::data> const& data);
   void _process_pb_service(std::shared_ptr<io::data> const& data);
   void _process_pb_adaptive_service(std::shared_ptr<io::data> const& data);
   void _process_service_group(std::shared_ptr<io::data> const& data);
+  void _process_pb_service_group(std::shared_ptr<io::data> const& data);
   void _process_service_group_member(std::shared_ptr<io::data> const& data);
+  void _process_pb_service_group_member(std::shared_ptr<io::data> const& data);
   void _process_index_mapping(std::shared_ptr<io::data> const& data);
   void _process_metric_mapping(std::shared_ptr<io::data> const& data);
   void _process_dimension_ba_event(std::shared_ptr<io::data> const& data);
@@ -143,6 +145,6 @@ class macro_cache {
 };
 }  // namespace lua
 
-CCB_END()
+}
 
 #endif  // !CCB_LUA_MACRO_CACHE_HH

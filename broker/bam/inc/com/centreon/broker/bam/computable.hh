@@ -1,5 +1,5 @@
-/*
- * Copyright 2014, 2023 Centreon
+/**
+ * Copyright 2014, 2023-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@
 #define CCB_BAM_COMPUTABLE_HH
 
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -59,7 +58,7 @@ class computable {
    * @brief This method is used by the dump() method. It gives a summary of this
    * computable main informations.
    *
-   * @return A multiline strings with various informations.
+   * @return A multiline string with various informations.
    */
   virtual std::string object_info() const = 0;
   /**
@@ -73,6 +72,6 @@ class computable {
 };
 }  // namespace bam
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_COMPUTABLE_HH

@@ -1,14 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker only start/stop tests
 
-Resource            ../resources/resources.robot
-Library             Process
-Library             OperatingSystem
-Library             DatabaseLibrary
-Library             DateTime
-Library             ../resources/Broker.py
-Library             ../resources/Engine.py
-Library             ../resources/Common.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
@@ -107,7 +100,7 @@ START_STOP_CBD
 
     # wait engine start
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.

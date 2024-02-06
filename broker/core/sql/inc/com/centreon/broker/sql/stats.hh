@@ -22,7 +22,7 @@
 #include <boost/circular_buffer.hpp>
 #include "com/centreon/broker/config/applier/state.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace sql {
 
@@ -221,6 +221,6 @@ class stats {
 
 }  // namespace sql
 
-CCB_END()
+}
 
 #endif /* !CCB_STATS_HH */

@@ -22,9 +22,8 @@
 #include <climits>
 #include <mutex>
 #include <vector>
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 namespace logging {
 class backend;
@@ -91,6 +90,6 @@ class engine {
 };
 }  // namespace logging
 
-CC_END()
+}
 
 #endif  // !CC_LOGGING_ENGINE_HH

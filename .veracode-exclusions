@@ -35,3 +35,4 @@ engine/src/simumod/coder.pl
 grpc/centreon-rpc-client.py
 tests
 packaging
+/root/.conan/

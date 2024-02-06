@@ -20,11 +20,8 @@
 #define CCB_MULTIPLEXING_MUXER_FILTER_HH
 
 #include "bbdo/events.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
-
-namespace multiplexing {
+namespace com::centreon::broker::multiplexing {
 
 namespace detail {
 constexpr uint64_t all_events = 0xFFFFFFFFFFFFFFFF;
@@ -171,8 +168,7 @@ class muxer_filter {
     const uint64_t* other_mask = other._mask;
     for (uint64_t* to_compare = _mask; to_compare < _mask + max_filter_category;
          ++to_compare, ++other_mask) {
-      if (*to_compare != *other_mask)
-        return false;
+      if (*to_compare != *other_mask) return false;
     }
     return true;
   }
@@ -254,8 +250,6 @@ class muxer_filter {
   }
 };
 
-}  // namespace multiplexing
-
-CCB_END()
+}  // namespace com::centreon::broker::multiplexing
 
 #endif

@@ -63,7 +63,9 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <absl/strings/string_view.h>
+#include <re2/re2.h>
 
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/optional.hpp>
@@ -72,14 +74,13 @@
 
 namespace asio = boost::asio;
 
-#include "com/centreon/engine/namespace.hh"
 
 namespace fmt {
 
 template <>
-struct formatter<absl::string_view> : formatter<fmt::string_view> {
+struct formatter<std::string_view> : formatter<fmt::string_view> {
   template <typename FormatContext>
-  auto format(const absl::string_view& p, FormatContext& ctx) const
+  auto format(const std::string_view& p, FormatContext& ctx) const
       -> decltype(ctx.out()) {
     return formatter<fmt::string_view>::format(
         fmt::string_view(p.data(), p.length()), ctx);

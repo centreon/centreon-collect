@@ -1,32 +1,29 @@
-/*
-** Copyright 2011-2013 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCCS_SESSIONS_SESSION_HH
 #define CCCS_SESSIONS_SESSION_HH
 
 #include <libssh2.h>
 
-#include "com/centreon/connector/ssh/namespace.hh"
 #include "com/centreon/connector/ssh/sessions/credentials.hh"
 
-CCCS_BEGIN()
-
-namespace sessions {
+namespace com::centreon::connector::ssh::sessions {
 /**
  *  @class session session.hh "com/centreon/connector/ssh/session.hh"
  *  @brief SSH session.
@@ -60,10 +57,8 @@ class session : public std::enable_shared_from_this<session> {
   int new_channel(LIBSSH2_CHANNEL*&);
 
   template <class action_type, class callback_type>
-  void async_wait(action_type&& action,
-                  callback_type&& callback,
-                  const time_point& time_out,
-                  const char* debug_info);
+  void async_wait(action_type&& action, callback_type&& callback,
+                  const time_point& time_out, const char* debug_info);
 
   shared_io_context get_io_context() const { return _io_context; }
 
@@ -111,10 +106,8 @@ class session : public std::enable_shared_from_this<session> {
 
    public:
     template <class action_type, class callback_type>
-    ssh2_action(action_type&& action,
-                callback_type&& callback,
-                time_point time_out,
-                const char* debug_info)
+    ssh2_action(action_type&& action, callback_type&& callback,
+                time_point time_out, const char* debug_info)
         : _action(action),
           _callback(callback),
           _time_out(time_out),
@@ -128,36 +121,26 @@ class session : public std::enable_shared_from_this<session> {
 
   void on_resolve(const boost::system::error_code& error,
                   const asio::ip::tcp::resolver::results_type& results,
-                  connect_callback callback,
-                  const time_point& timeout);
+                  connect_callback callback, const time_point& timeout);
 
   void on_connect(
       const boost::system::error_code& error,
       asio::ip::tcp::resolver::results_type::const_iterator current_endpoint,
       const asio::ip::tcp::resolver::results_type& all_res,
-      connect_callback callback,
-      const time_point& timeout);
+      connect_callback callback, const time_point& timeout);
 
-  static ssize_t g_socket_recv(libssh2_socket_t sockfd,
-                               void* buffer,
-                               size_t length,
-                               int flags,
-                               void** abstract);
+  static ssize_t g_socket_recv(libssh2_socket_t sockfd, void* buffer,
+                               size_t length, int flags, void** abstract);
 
   ssize_t socket_recv(libssh2_socket_t sockfd, void* buffer, size_t length);
   void start_read();
   void read_handler(const boost::system::error_code& err,
-                    const recv_data::pointer& buff,
-                    size_t nb_recv);
+                    const recv_data::pointer& buff, size_t nb_recv);
 
-  static ssize_t g_socket_send(libssh2_socket_t sockfd,
-                               const void* buffer,
-                               size_t length,
-                               int flags,
-                               void** abstract);
+  static ssize_t g_socket_send(libssh2_socket_t sockfd, const void* buffer,
+                               size_t length, int flags, void** abstract);
 
-  ssize_t socket_send(libssh2_socket_t sockfd,
-                      const void* buffer,
+  ssize_t socket_send(libssh2_socket_t sockfd, const void* buffer,
                       size_t length);
 
   void start_send();
@@ -166,16 +149,13 @@ class session : public std::enable_shared_from_this<session> {
   void notify_listeners(bool force);
 
   void handshake(connect_callback callback, const time_point& timeout);
-  void handshake_handler(int ret,
-                         connect_callback callback,
+  void handshake_handler(int ret, connect_callback callback,
                          const time_point& timeout);
   void _key(connect_callback callback, const time_point& timeout);
-  void _key_handler(int retval,
-                    connect_callback callback,
+  void _key_handler(int retval, connect_callback callback,
                     const time_point& timeout);
   void _passwd(connect_callback callback, const time_point& timeout);
-  void _passwd_handler(int ret,
-                       connect_callback callback,
+  void _passwd_handler(int ret, connect_callback callback,
                        const time_point& timeout);
   void _startup(connect_callback callback, const time_point& timeout);
 
@@ -201,10 +181,8 @@ class session : public std::enable_shared_from_this<session> {
 };  // namespace sessions
 
 template <class action_type, class callback_type>
-void session::async_wait(action_type&& action,
-                         callback_type&& callback,
-                         const time_point& time_out,
-                         const char* debug_info) {
+void session::async_wait(action_type&& action, callback_type&& callback,
+                         const time_point& time_out, const char* debug_info) {
   int retval = action();
   if (retval != LIBSSH2_ERROR_EAGAIN) {
     callback(retval);
@@ -216,9 +194,7 @@ void session::async_wait(action_type&& action,
 
 std::ostream& operator<<(std::ostream& os, const session& sess);
 
-}  // namespace sessions
-
-CCCS_END()
+}  // namespace com::centreon::connector::ssh::sessions
 
 namespace fmt {
 // formatter specializations for fmt

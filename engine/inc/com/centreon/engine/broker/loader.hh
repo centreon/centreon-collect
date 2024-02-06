@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/broker/handle.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace broker {
 /**
@@ -51,6 +51,6 @@ class loader {
 };
 }  // namespace broker
 
-CCE_END()
+}
 
 #endif  // !CCE_MODULES_LOADER_HH

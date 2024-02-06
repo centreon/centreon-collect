@@ -10,6 +10,8 @@ on:
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
       - "centreon-collect/**"
+      - "!centreon-collect/ci/**"
+      - "!centreon-collect/tests/**"
   workflow_dispatch:
 
 env:
@@ -21,7 +23,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
 

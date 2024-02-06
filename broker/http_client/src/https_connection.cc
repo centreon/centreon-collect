@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,10 +29,9 @@ using namespace com::centreon::broker::http_client;
 
 namespace beast = boost::beast;
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
-namespace http_client {
-namespace detail {
+namespace http_client::detail {
 /**
  * @brief to avoid read certificate on each request, this singleton do the job
  * it maintains a certificate cache
@@ -120,10 +119,9 @@ void certificate_cache::clean() {
   }
 }
 
-}  // namespace detail
-};  // namespace http_client
+};  // namespace http_client::detail
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 /**
  * @brief Construct a new https connection::https connection object

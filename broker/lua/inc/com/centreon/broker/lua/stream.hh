@@ -25,7 +25,7 @@
 #include "com/centreon/broker/lua/macro_cache.hh"
 #include "com/centreon/broker/misc/variant.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace lua {
 
@@ -71,6 +71,6 @@ class stream : public io::stream {
 };
 }  // namespace lua
 
-CCB_END()
+}
 
 #endif  // !CCB_LUA_STREAM_HH

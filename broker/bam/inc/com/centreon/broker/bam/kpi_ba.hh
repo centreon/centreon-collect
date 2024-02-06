@@ -24,9 +24,8 @@
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 // Forward declaration.
@@ -57,7 +56,7 @@ class kpi_ba : public kpi {
                        const timestamp& event_start_time);
 
  public:
-  kpi_ba(uint32_t kpi_id, uint32_t ba_id);
+  kpi_ba(uint32_t kpi_id, uint32_t ba_id, const std::string& ba_name);
   ~kpi_ba() noexcept = default;
   kpi_ba(const kpi_ba&) = delete;
   kpi_ba& operator=(const kpi_ba&) = delete;
@@ -79,6 +78,6 @@ class kpi_ba : public kpi {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_KPI_BA_HH

@@ -76,6 +76,7 @@ if(WITH_TESTING)
       "${TESTS_DIR}/configuration/severity.cc"
       "${TESTS_DIR}/configuration/tag.cc"
       "${TESTS_DIR}/configuration/timeperiod-test.cc"
+      "${TESTS_DIR}/configuration/whitelist-test.cc"
       "${TESTS_DIR}/contacts/contactgroup-config.cc"
       "${TESTS_DIR}/contacts/simple-contactgroup.cc"
       "${TESTS_DIR}/custom_vars/extcmd.cc"
@@ -176,5 +177,7 @@ if(WITH_TESTING)
     CONAN_PKG::openssl
     CONAN_PKG::zlib
     CONAN_PKG::fmt
+    CONAN_PKG::rapidyaml
+    stdc++fs
     dl)
 endif()

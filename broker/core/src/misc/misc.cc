@@ -1,23 +1,24 @@
-/*
-** Copyright 2012-2013,2015 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+* Copyright 2012-2013,2015 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
 */
 
 #include "com/centreon/broker/misc/misc.hh"
 
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -187,3 +188,20 @@ std::string misc::dump_filters(const multiplexing::muxer_filter& filters) {
       ret.append(", ").append(it->second);
   return ret;
 }
+
+#if DEBUG_ROBOT
+void misc::debug(const std::string& content) {
+  int p = getpid();
+  std::string filename{fmt::format("failed/{}.log", p)};
+  FILE* f = fopen(filename.c_str(), "a");
+  if (!f) {
+    if (mkdir("failed", 0755) != 0)
+      return;
+    f = fopen(filename.c_str(), "a");
+  }
+  if (f) {
+    fprintf(f, "%s\n", content.c_str());
+    fclose(f);
+  }
+}
+#endif

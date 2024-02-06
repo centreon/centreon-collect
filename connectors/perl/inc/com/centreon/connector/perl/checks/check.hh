@@ -19,15 +19,12 @@
 #ifndef CCCP_CHECKS_CHECK_HH
 #define CCCP_CHECKS_CHECK_HH
 
-#include "com/centreon/connector/namespace.hh"
-#include "com/centreon/connector/perl/namespace.hh"
-
-CCC_BEGIN()
+namespace com::centreon::connector {
 class result;
 class reporter;
-CCC_END()
+}  // namespace com::centreon::connector
 
-CCCP_BEGIN()
+namespace com::centreon::connector::perl {
 
 namespace checks {
 
@@ -99,7 +96,7 @@ inline std::ostream& operator<<(std::ostream& s, const check& obj) {
 
 }  // namespace checks
 
-CCCP_END()
+}  // namespace com::centreon::connector::perl
 
 namespace fmt {
 // formatter specializations for fmt

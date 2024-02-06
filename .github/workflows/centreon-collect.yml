@@ -46,22 +46,6 @@ jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
 
-  veracode-analysis:
-    needs: [get-version]
-    uses: ./.github/workflows/veracode-analysis.yml
-    with:
-      module_name: centreon-collect
-      major_version: ${{ needs.get-version.outputs.version }}
-      minor_version: ${{ needs.get-version.outputs.patch }}
-      stability: ${{ needs.get-version.outputs.stability }}
-      img_version: ${{ needs.get-version.outputs.img_version }}
-    secrets:
-      veracode_api_id: ${{ secrets.VERACODE_API_ID_COLL }}
-      veracode_api_key: ${{ secrets.VERACODE_API_KEY_COLL }}
-      veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
-      docker_registry_id: ${{ secrets.DOCKER_REGISTRY_ID }}
-      docker_registry_passwd: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-
   unit-test:
     needs: [get-version]
     if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
@@ -70,15 +54,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [alma8, alma9, debian-bullseye]
+        image: [alma8, alma9, debian-bullseye, debian-bookworm]
     name: unit test ${{ matrix.image }}
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Login to Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           username: ${{ secrets.DOCKER_REGISTRY_ID }}
@@ -101,16 +85,17 @@ jobs:
       img_version: ${{ needs.get-version.outputs.img_version }}
       release: ${{ needs.get-version.outputs.release }}
       commit_hash: ${{ github.sha }}
+      stability: ${{ needs.get-version.outputs.stability }}
     secrets: inherit
 
   deliver-sources:
     runs-on: [self-hosted, common]
     needs: [get-version, package]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           path: centreon-collect
 
@@ -141,7 +126,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Publish RPM packages
         uses: ./.github/actions/delivery
@@ -150,7 +135,7 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-version.outputs.version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-version.outputs.stability }}
 
   deliver-deb:
@@ -165,12 +150,16 @@ jobs:
             arch: amd64
           - distrib: bullseye
             arch: arm64
+          - distrib: bookworm
+            arch: amd64
+          - distrib: jammy
+            arch: amd64
 
     name: deliver ${{ matrix.distrib }}
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Publish DEB packages
         uses: ./.github/actions/delivery
@@ -179,20 +168,20 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-version.outputs.version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-version.outputs.stability }}
 
   promote:
     needs: [get-version]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye]
+        distrib: [el8, el9, bullseye, bookworm, jammy]
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable
@@ -204,3 +193,4 @@ jobs:
           minor_version: ${{ needs.get-version.outputs.patch }}
           stability: ${{ needs.get-version.outputs.stability }}
           repository_name: standard
+          github_base_ref: ${{ github.base_ref }}

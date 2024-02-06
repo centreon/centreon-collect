@@ -1,20 +1,20 @@
-/*
-** Copyright 2018-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2018-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <absl/strings/str_split.h>
 #include <fmt/format.h>
@@ -206,7 +206,7 @@ TEST_F(LuaTest, SimpleScript) {
   bnd->write(svc);
 
   std::string result(ReadFile("/tmp/test.log"));
-  std::list<absl::string_view> lst{absl::StrSplit(result, '\n')};
+  std::list<std::string_view> lst{absl::StrSplit(result, '\n')};
   // 85 lines and one empty line.
   ASSERT_EQ(lst.size(), 86u);
   size_t pos1 = result.find("INFO: init: address => 127.0.0.1");
@@ -247,7 +247,7 @@ TEST_F(LuaTest, WriteAcknowledgement) {
 
   std::string result{ReadFile("/tmp/test.log")};
   {
-    std::list<absl::string_view> lst{absl::StrSplit(result, '\n')};
+    std::list<std::string_view> lst{absl::StrSplit(result, '\n')};
     // 20 = 19 lines + 1 empty line
     std::cout << result << std::endl;
     ASSERT_EQ(lst.size(), 20u);
@@ -4285,15 +4285,15 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
   binding->write(svc);
   binding->write(svc1);
   std::string ret(ReadFile("/tmp/log"));
-  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
-  std::vector<absl::string_view> lst2 = lst1;
-  std::list<absl::string_view> l1, l2;
+  std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<std::string_view> lst2 = lst1;
+  std::list<std::string_view> l1, l2;
   for (auto& s : lst1) {
-    if (s.find(" * ") != absl::string_view::npos)
+    if (s.find(" * ") != std::string_view::npos)
       l1.emplace_back(s.substr(34));
   }
   for (auto& s : lst2) {
-    if (s.find(" - ") != absl::string_view::npos)
+    if (s.find(" - ") != std::string_view::npos)
       l2.emplace_back(s.substr(34));
   }
 
@@ -4367,15 +4367,15 @@ TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
   binding->write(hst);
   binding->write(hst1);
   std::string ret(ReadFile("/tmp/log"));
-  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
-  std::vector<absl::string_view> lst2 = lst1;
-  std::list<absl::string_view> l1, l2;
+  std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<std::string_view> lst2 = lst1;
+  std::list<std::string_view> l1, l2;
   for (auto& s : lst1) {
-    if (s.find(" * ") != absl::string_view::npos)
+    if (s.find(" * ") != std::string_view::npos)
       l1.emplace_back(s.substr(34));
   }
   for (auto& s : lst2) {
-    if (s.find(" - ") != absl::string_view::npos)
+    if (s.find(" - ") != std::string_view::npos)
       l2.emplace_back(s.substr(34));
   }
 
@@ -4446,15 +4446,15 @@ TEST_F(LuaTest, ServiceStatusObjectMatchBetweenBbdoVersions) {
   binding->write(svc);
   binding->write(svc1);
   std::string ret(ReadFile("/tmp/log"));
-  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
-  std::vector<absl::string_view> lst2 = lst1;
-  std::list<absl::string_view> l1, l2;
+  std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<std::string_view> lst2 = lst1;
+  std::list<std::string_view> l1, l2;
   for (auto& s : lst1) {
-    if (s.find(" * ") != absl::string_view::npos)
+    if (s.find(" * ") != std::string_view::npos)
       l1.emplace_back(s.substr(34));
   }
   for (auto& s : lst2) {
-    if (s.find(" - ") != absl::string_view::npos)
+    if (s.find(" - ") != std::string_view::npos)
       l2.emplace_back(s.substr(34));
   }
 
@@ -4523,15 +4523,15 @@ TEST_F(LuaTest, HostStatusObjectMatchBetweenBbdoVersions) {
   binding->write(hst);
   binding->write(hst1);
   std::string ret(ReadFile("/tmp/log"));
-  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
-  std::vector<absl::string_view> lst2 = lst1;
-  std::list<absl::string_view> l1, l2;
+  std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<std::string_view> lst2 = lst1;
+  std::list<std::string_view> l1, l2;
   for (auto& s : lst1) {
-    if (s.find(" * ") != absl::string_view::npos)
+    if (s.find(" * ") != std::string_view::npos)
       l1.emplace_back(s.substr(34));
   }
   for (auto& s : lst2) {
-    if (s.find(" - ") != absl::string_view::npos)
+    if (s.find(" - ") != std::string_view::npos)
       l2.emplace_back(s.substr(34));
   }
 
@@ -4763,4 +4763,70 @@ TEST_F(LuaTest, JsonDecodeNull) {
   ASSERT_NE(result.find("INFO: v=>12"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
+}
+
+TEST_F(LuaTest, BadLua) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/bad.lua");
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  bad_function()\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  auto s{std::make_unique<neb::service>()};
+  s->host_id = 12;
+  s->service_id = 18;
+  s->output = "Bonjour";
+  std::shared_ptr<io::data> svc(s.release());
+  ASSERT_EQ(binding->write(svc), 0);
+  RemoveFile(filename);
+}
+
+// When a lua script that contains a bad filter() function. "Bad" here
+// is because the return value is not a boolean.
+// Then has_filter() returns false and there is no leak on the stack.
+// (the leak is seen when compiled with -g).
+TEST_F(LuaTest, WithBadFilter1) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/with_bad_filter.lua");
+  CreateScript(filename,
+               "function init()\n"
+               "end\n"
+               "function filter(c, e)\n"
+               "  return \"foo\", \"bar\"\n"
+               "end\n"
+               "function write(d)\n"
+               "  return 1\n"
+               "end");
+  auto bb{std::make_unique<luabinding>(filename, conf, *_cache)};
+  ASSERT_FALSE(bb->has_filter());
+  RemoveFile(filename);
+}
+
+// When a lua script that contains a bad filter() function. "Bad" here
+// because the filter calls a function that doesn't exist.
+// Then has_filter() returns false and there is no leak on the stack.
+// (the leak is seen when compiled with -g).
+TEST_F(LuaTest, WithBadFilter2) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/with_bad_filter.lua");
+  CreateScript(filename,
+               "function init()\n"
+               "end\n"
+               "function filter(c, e)\n"
+               "  unexisting_function()\n"
+               "  return \"foo\", \"bar\"\n"
+               "end\n"
+               "function write(d)\n"
+               "  return 1\n"
+               "end");
+  auto bb{std::make_unique<luabinding>(filename, conf, *_cache)};
+  ASSERT_FALSE(bb->has_filter());
+  RemoveFile(filename);
 }

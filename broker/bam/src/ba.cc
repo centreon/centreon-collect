@@ -1,5 +1,5 @@
-/*
- * Copyright 2014-2016, 2021-2023 Centreon
+/**
+ * Copyright 2014-2016, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "com/centreon/broker/bam/ba.hh"
 
 #include <fmt/format.h>
+
 #include <cassert>
 
 #include "com/centreon/broker/bam/impact_values.hh"
@@ -76,7 +77,7 @@ ba::ba(uint32_t id,
 void ba::add_impact(std::shared_ptr<kpi> const& impact) {
   auto it = _impacts.find(impact.get());
   if (it == _impacts.end()) {
-    impact_info& ii(_impacts[impact.get()]);
+    impact_info& ii = _impacts[impact.get()];
     ii.kpi_ptr = impact;
     impact->impact_hard(ii.hard_impact);
     impact->impact_soft(ii.soft_impact);
@@ -131,7 +132,7 @@ uint32_t ba::get_service_id() const {
  *
  *  @return True if the BA is in downtime, false otherwise.
  */
-bool ba::get_in_downtime() const {
+bool ba::in_downtime() const {
   return _in_downtime;
 }
 
@@ -426,26 +427,6 @@ void ba::_open_new_event(io::stream* visitor,
 }
 
 /**
- *  @brief Recompute all impacts.
- *
- *  This method was created to prevent the real values to derive to
- *  much from their true value due to the caching system.
- */
-void ba::_recompute() {
-  _acknowledgement_hard = 0.0;
-  _acknowledgement_soft = 0.0;
-  _downtime_hard = 0.0;
-  _downtime_soft = 0.0;
-  _level_hard = 100.0;
-  _level_soft = 100.0;
-  for (std::unordered_map<kpi*, impact_info>::iterator it(_impacts.begin()),
-       end(_impacts.end());
-       it != end; ++it)
-    _apply_impact(it->first, it->second);
-  _recompute_count = 0;
-}
-
-/**
  * Commit the initial events of this ba.
  *
  *  @param[in] visitor  The visitor.
@@ -527,7 +508,7 @@ std::shared_ptr<pb_ba_status> ba::_generate_ba_status(
   auto ret{std::make_shared<pb_ba_status>()};
   BaStatus& status = ret->mut_obj();
   status.set_ba_id(get_id());
-  status.set_in_downtime(get_in_downtime());
+  status.set_in_downtime(in_downtime());
   if (_event)
     status.set_last_state_change(_event->obj().start_time());
   else
@@ -631,74 +612,52 @@ void ba::set_level_warning(double level) {
 }
 
 /**
- * @brief Update this computable with the child modifications.
+ * @brief Update this computable with the child modifications. This function is
+ * called only if child has changes. And it will notify its parents only if it
+ * also changes.
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
  */
 void ba::update_from(computable* child, io::stream* visitor) {
   auto logger = log_v2::bam();
-  logger->trace("ba::update_from");
-  auto it = _impacts.find(static_cast<kpi*>(child));
-  if (it != _impacts.end()) {
-    // Get impact.
-    impact_values new_hard_impact;
-    impact_values new_soft_impact;
-    it->second.kpi_ptr->impact_hard(new_hard_impact);
-    it->second.kpi_ptr->impact_soft(new_soft_impact);
-    bool kpi_in_downtime(it->second.kpi_ptr->in_downtime());
+  logger->trace("ba::update_from (BA {})", _id);
+  // Get impact.
+  impact_values new_hard_impact;
+  impact_values new_soft_impact;
+  kpi* kpi_child = static_cast<kpi*>(child);
+  kpi_child->impact_hard(new_hard_impact);
+  kpi_child->impact_soft(new_soft_impact);
+  bool kpi_in_downtime(kpi_child->in_downtime());
+  bool previous_in_downtime = _in_downtime;
 
-    // Logging.
-    SPDLOG_LOGGER_DEBUG(
-        logger,
-        "BAM: BA {}, '{}' is getting notified of child update (KPI {}, impact "
-        "{}, last state change {}, downtime {})",
-        _id, _name, it->second.kpi_ptr->get_id(), new_hard_impact.get_nominal(),
-        it->second.kpi_ptr->get_last_state_change(), kpi_in_downtime);
+  // Logging.
+  SPDLOG_LOGGER_DEBUG(
+      logger,
+      "BAM: BA {}, '{}' is getting notified of child update (KPI {}, impact "
+      "{}, last state change {}, downtime {})",
+      _id, _name, kpi_child->get_id(), new_hard_impact.get_nominal(),
+      kpi_child->get_last_state_change(), kpi_in_downtime);
 
-    // If the new impact is the same as the old, don't update.
-    if (it->second.hard_impact == new_hard_impact &&
-        it->second.soft_impact == new_soft_impact &&
-        it->second.in_downtime == kpi_in_downtime) {
-      SPDLOG_LOGGER_DEBUG(
-          logger,
-          "BAM: BA {} has no changes since last update: hard impact: (ack: {}, "
-          "dwnt: {}, nominal: {}), downtime: {}",
-          _id, new_hard_impact.get_acknowledgement(),
-          new_hard_impact.get_nominal(), new_hard_impact.get_downtime(),
-          kpi_in_downtime);
-      return;
-    }
-    timestamp last_state_change(it->second.kpi_ptr->get_last_state_change());
-    if (!last_state_change.is_null())
-      _last_kpi_update = std::max(_last_kpi_update, last_state_change);
+  timestamp last_state_change(kpi_child->get_last_state_change());
+  if (!last_state_change.is_null())
+    _last_kpi_update = std::max(_last_kpi_update, last_state_change);
 
-    // Discard old data.
-    _unapply_impact(it->first, it->second);
+  // Apply new data.
+  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: BA {} updated from KPI {}", _id,
+                      kpi_child->get_id());
+  bool changed = _apply_changes(kpi_child, new_hard_impact, new_soft_impact,
+                                kpi_in_downtime);
+  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BA has changed: {}", changed);
 
-    // Apply new data.
-    SPDLOG_LOGGER_TRACE(
-        log_v2::bam(),
-        "BAM: BA {} changes: hard impact changed {}, soft impact changed {}, "
-        "downtime {} => {}",
-        _id, it->second.hard_impact != new_hard_impact,
-        it->second.soft_impact != new_soft_impact, it->second.in_downtime,
-        kpi_in_downtime);
-    it->second.hard_impact = new_hard_impact;
-    it->second.soft_impact = new_soft_impact;
-    it->second.in_downtime = kpi_in_downtime;
-    bool changed = _apply_impact(it->first, it->second);
-    SPDLOG_LOGGER_TRACE(log_v2::bam(), "BA has changed: {}", changed);
+  // Check for inherited downtimes.
+  _compute_inherited_downtime(visitor);
 
-    // Check for inherited downtimes.
-    _compute_inherited_downtime(visitor);
+  // Generate status event.
+  visit(visitor);
 
-    // Generate status event.
-    visit(visitor);
-
-    if (changed)
-      notify_parents_of_change(visitor);
-  }
+  if (changed || _in_downtime != previous_in_downtime)
+    notify_parents_of_change(visitor);
 }
 
 /**
@@ -708,8 +667,8 @@ void ba::update_from(computable* child, io::stream* visitor) {
  * @return A multiline strings with various informations.
  */
 std::string ba::object_info() const {
-  return fmt::format("BA {}\nname: {}\nstate: {}", _id, _name,
-                     get_state_hard());
+  return fmt::format("BA {}\nname: {}\nstate: {}\ndowntime: {}", _id, _name,
+                     get_state_hard(), _in_downtime);
 }
 
 /**
