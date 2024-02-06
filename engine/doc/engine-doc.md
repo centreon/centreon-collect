@@ -3,7 +3,7 @@
 ## Whitelist (since 23.10)
 
 In order to enforce security, user can add a whitelist to centreon-engine.
-When the user add a file in /etc/centreon-engine-whitelist or in /usr/share/centreon-engine-whitelist, centengine only executes commands that match to the expressions given in these files.
+When the user add a file in /etc/centreon-engine-whitelist or in /usr/share/centreon-engine/whitelist.conf.d, centengine only executes commands that match to the expressions given in these files.
 Beware, Commands are checked after macros replacement by values, the entire line is checked, the script and his arguments.
 
 ### whitelist format
