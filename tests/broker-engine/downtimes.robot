@@ -214,19 +214,23 @@ BEDTHOSTFIXED
     Config Broker Sql Output    central    unified_sql
 
     Clear Retention
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${start}    Get Round Current Date
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
+    log to console    step1
     # It's time to schedule downtimes
     Schedule Host Fixed Downtime    ${0}    host_1    ${3600}
+    log to console    step2
 
     ${result}    Check Number Of Downtimes    ${21}    ${start}    ${60}
+    log to console    step3
     Should Be True    ${result}    We should have 21 downtimes (1 host + 20 services) enabled.
+    log to console    step4
 
     # It's time to delete downtimes
     Delete Host Downtimes    ${0}    host_1
