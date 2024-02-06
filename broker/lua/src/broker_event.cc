@@ -35,6 +35,7 @@ static void _write_item(lua_State* L,
 
 std::map<const lua_State*, broker_event::gc_info> broker_event::_gc_info;
 std::mutex broker_event::_gc_info_m;
+
 /**
  *  The Lua broker_event constructor
  *
