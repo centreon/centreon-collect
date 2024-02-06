@@ -1275,7 +1275,7 @@ def create_service(index: int, host_id: int, cmd_id: int):
 
     """
     f = open(ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(index), "a+")
-    svc = engine.create_service(host_id, [1, cmd_id])
+    svc = engine._create_service(host_id, [1, cmd_id])
     lst = svc.split('\n')
     good = [l for l in lst if "_SERVICE_ID" in l][0]
     m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)
