@@ -214,9 +214,9 @@ BEDTHOSTFIXED
     Config Broker Sql Output    central    unified_sql
 
     Clear Retention
-    ${start}    Get Current Date
     Start Broker
     Start Engine
+    ${start}    Get Round Current Date
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

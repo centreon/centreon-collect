@@ -1228,7 +1228,7 @@ def check_number_of_downtimes(expected: int, start, timeout: int):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT count(*) FROM downtimes WHERE start_time >= {} AND deletion_time IS NULL".format(d))
+                    f"SELECT count(*) FROM downtimes WHERE start_time >= {d} AND deletion_time IS NULL")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(
