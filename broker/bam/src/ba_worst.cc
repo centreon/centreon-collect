@@ -99,7 +99,7 @@ state ba_worst::get_state_soft() const {
 void ba_worst::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
                              ba::impact_info& impact) {
   auto is_state_worse = [](short current_state, short new_state) -> bool {
-    const std::array<short, 5> order{0, 3, 4, 2, 1};
+    constexpr std::array<short, 5> order{0, 3, 4, 2, 1};
     assert((unsigned int)current_state < order.size());
     assert((unsigned int)new_state < order.size());
     return order[new_state] > order[current_state];
