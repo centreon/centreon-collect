@@ -324,9 +324,11 @@ void applier::kpi::_resolve_kpi(configuration::kpi const& cfg,
     std::shared_ptr<bam::kpi_ba> obj(
         std::static_pointer_cast<bam::kpi_ba>(kpi));
     std::shared_ptr<bam::ba> target(_bas->find_ba(cfg.get_indicator_ba_id()));
-    if (!target)
-      throw exceptions::config("could not find source BA {}",
-                               cfg.get_indicator_ba_id());
+    if (!target) {
+      log_v2::bam()->error("could not find source BA {}",
+                           cfg.get_indicator_ba_id());
+      return;
+    }
     obj->link_ba(target);
     target->add_parent(obj);
     log_v2::bam()->info("BAM: Resolve KPI {} connections to its BA",
@@ -336,9 +338,11 @@ void applier::kpi::_resolve_kpi(configuration::kpi const& cfg,
         std::static_pointer_cast<bam::kpi_boolexp>(kpi));
     std::shared_ptr<bam::bool_expression> target(
         _boolexps->find_boolexp(cfg.get_boolexp_id()));
-    if (!target)
-      throw exceptions::config("could not find source boolean expression {}",
-                               cfg.get_boolexp_id());
+    if (!target) {
+      log_v2::bam()->error("could not find source boolean expression {}",
+                           cfg.get_boolexp_id());
+      return;
+    }
     obj->link_boolexp(target);
     target->add_parent(obj);
     log_v2::bam()->info(

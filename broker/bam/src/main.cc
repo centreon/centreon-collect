@@ -37,6 +37,7 @@
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/bam/factory.hh"
+#include "com/centreon/broker/broker_impl.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -150,6 +151,10 @@ void broker_module_init(void const* arg) {
           "dimension_timeperiod_exclusion");
       register_bam_event<bam::inherited_downtime>(e, bam::de_inherited_downtime,
                                                   "inherited_downtime");
+      /* Let's register the ba_info event to be sure it is declared in case
+       * brokerrpc is not already instanciated. */
+      e.register_event(make_type(io::extcmd, extcmd::de_ba_info), "ba_info",
+                       &extcmd::pb_ba_info::operations);
     }
   }
 }

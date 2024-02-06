@@ -56,7 +56,8 @@ class ba : public computable, public service_listener {
   std::unique_ptr<inherited_downtime> _inherited_downtime;
   std::vector<std::shared_ptr<ba_event>> _initial_events;
 
-  void _open_new_event(io::stream* visitor, short service_hard_state);
+  void _open_new_event(io::stream* visitor,
+                       com::centreon::broker::bam::state service_hard_state);
   void _compute_inherited_downtime(io::stream* visitor);
   void _commit_initial_events(io::stream* visitor);
 
@@ -101,10 +102,20 @@ class ba : public computable, public service_listener {
       configuration::ba::dt_ignore};
   int _recompute_count{0};
 
-  static double _normalize(double d);
-  virtual bool _apply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
+  static constexpr double _normalize(double d) {
+    if (d > 100.0)
+      d = 100.0;
+    else if (d < 0.0)
+      d = 0.0;
+    return d;
+  }
+
+  virtual void _apply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
   virtual void _unapply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
-  virtual void _recompute();
+  virtual bool _apply_changes(kpi* child,
+                              const impact_values& new_hard_impact,
+                              const impact_values& new_soft_impact,
+                              bool in_downtime) = 0;
   std::shared_ptr<ba_status> _generate_ba_status(bool state_changed) const;
   std::shared_ptr<io::data> _generate_virtual_service_status() const;
 
@@ -126,7 +137,7 @@ class ba : public computable, public service_listener {
   uint32_t get_id() const;
   uint32_t get_host_id() const;
   uint32_t get_service_id() const;
-  bool get_in_downtime() const;
+  bool in_downtime() const;
   timestamp get_last_kpi_update() const;
   std::string const& get_name() const;
   virtual std::string get_output() const = 0;

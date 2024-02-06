@@ -147,7 +147,7 @@ void kpi_ba::visit(io::stream* visitor) {
                           last_ba_update);
       }
       // If state changed, close event and open a new one.
-      else if (_ba->get_in_downtime() != _event->in_downtime ||
+      else if (_ba->in_downtime() != _event->in_downtime ||
                ba_state != _event->status) {
         _event->end_time = last_ba_update;
         visitor->write(std::static_pointer_cast<io::data>(_event));
@@ -238,7 +238,7 @@ void kpi_ba::_open_new_event(io::stream* visitor,
                              const timestamp& event_start_time) {
   _event = std::make_shared<kpi_event>(_id, _ba_id, event_start_time);
   _event->impact_level = impact;
-  _event->in_downtime = _ba->get_in_downtime();
+  _event->in_downtime = _ba->in_downtime();
   _event->output = _ba->get_output();
   _event->perfdata = _ba->get_perfdata();
   _event->status = ba_state;
@@ -261,7 +261,7 @@ bool kpi_ba::ok_state() const {
  *  @return  True if this KPI is in downtime.
  */
 bool kpi_ba::in_downtime() const {
-  return _ba->get_in_downtime();
+  return _ba->in_downtime();
 }
 
 /**
