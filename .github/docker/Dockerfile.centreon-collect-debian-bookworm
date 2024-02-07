@@ -57,7 +57,7 @@ COPY vcpkg.json /src
 COPY overlays /overlays
 
 ARG TRIPLET
-RUN bash -e <<EOF
+RUN <<EOF
 
 export VCPKG_ROOT=/vcpkg
 export PATH=$VCPKG_ROOT:$PATH
