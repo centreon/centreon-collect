@@ -1052,9 +1052,9 @@ def get_broker_stats(name: str, expected: str, timeout: int, *keys):
         retry = True
         while retry and time.time() < limit:
             retry = False
-            with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", "r") as f
-              buf = f.read()
-               try:
+            with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", "r") as f:
+                buf = f.read()
+                try:
                     conf = json.loads(buf)
                 except:
                     retry = True
