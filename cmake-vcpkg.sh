@@ -11,6 +11,7 @@ This program build Centreon-broker
     -og           : C++14 standard
     -clang        : Compilation with clang++
     -mold         : Link made with mold
+    -legacy-mold  : Link made with mold but with an old gcc version
     -dr           : Debug robot enabled
     -sccache      : Compilation through sccache
     -h|--help     : help
@@ -65,6 +66,10 @@ do
       ;;
     -mold)
       MOLD=-fuse-ld=mold
+      shift
+      ;;
+    -legacy-mold)
+      MOLD="-B /usr/bin/mold"
       shift
       ;;
     -sccache)
