@@ -40,8 +40,11 @@ apt-get -y install cmake \
     sudo
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
+echo 'deb http://deb.debian.org/debian bookworm-backports main contrib non-free' | tee /etc/apt/sources.list
+
 apt-get update
 apt-get install -y nfpm
+apt-get install -y -t bookworm-backports cmake
 
 apt-get clean
 
@@ -57,7 +60,7 @@ COPY vcpkg.json /src
 COPY overlays /overlays
 
 ARG TRIPLET
-RUN <<EOF
+RUN bash -e <<EOF
 
 export VCPKG_ROOT=/vcpkg
 export PATH=$VCPKG_ROOT:$PATH
