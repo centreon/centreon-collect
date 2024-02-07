@@ -12,6 +12,7 @@ This program build Centreon-broker
     -ng           : C++17 standard
     -clang        : Compilation with clang++
     -mold         : Link with mold instead of ld
+    -legacy-mold  : Link with mold instead of ld but with an old gcc
     -h|--help     : help
 EOF
 }
@@ -59,6 +60,10 @@ do
       ;;
     -mold)
       MOLD="-fuse-ld=mold"
+      shift
+      ;;
+    -legacy-mold)
+      MOLD="-B /usr/bin/mold"
       shift
       ;;
     -fcr|--force-conan-rebuild)

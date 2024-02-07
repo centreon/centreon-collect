@@ -18,7 +18,7 @@ Test Teardown       Save logs If Failed
 
 *** Test Cases ***
 BAPBSTATUS
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service.
+    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. We also check stats output
     [Tags]    broker    downtime    engine    bam
     Clear Commands Status
     Config Broker    module
@@ -69,6 +69,35 @@ BAPBSTATUS
     Wait Until Created    /tmp/output
     ${result}    Grep File    /tmp/output    digraph
     Should Not Be Empty    ${result}    /tmp/output does not contain the word 'digraph'
+
+    # check broker stats
+    ${res}    Get Broker Stats    central    1: 127.0.0.1:[0-9]+    10    endpoint central-broker-master-input    peers
+    Should Be True    ${res}    no central-broker-master-input.peers found in broker stat output
+
+    ${res}    Get Broker Stats    central    listening    10    endpoint central-broker-master-input    state
+    Should Be True    ${res}    central-broker-master-input not listening
+
+    ${res}    Get Broker Stats    central    connected    10    endpoint centreon-bam-monitoring    state
+    Should Be True    ${res}    central-bam-monitoring not connected
+
+    ${res}    Get Broker Stats    central    connected    10    endpoint centreon-bam-reporting    state
+    Should Be True    ${res}    central-bam-reporting not connected
+
+    Reload Engine
+    Reload Broker
+
+    # check broker stats
+    ${res}    Get Broker Stats    central    1: 127.0.0.1:[0-9]+    10    endpoint central-broker-master-input    peers
+    Should Be True    ${res}    no central-broker-master-input.peers found in broker stat output
+
+    ${res}    Get Broker Stats    central    listening    10    endpoint central-broker-master-input    state
+    Should Be True    ${res}    central-broker-master-input not listening
+
+    ${res}    Get Broker Stats    central    connected    10    endpoint centreon-bam-monitoring    state
+    Should Be True    ${res}    central-bam-monitoring not connected
+
+    ${res}    Get Broker Stats    central    connected    10    endpoint centreon-bam-reporting    state
+    Should Be True    ${res}    central-bam-reporting not connected
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
