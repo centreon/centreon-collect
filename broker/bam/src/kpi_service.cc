@@ -386,8 +386,7 @@ void kpi_service::service_update(
   log_v2::bam()->debug(
       "BAM: KPI {} is getting an acknowledgement event for service ({}, {}) "
       "entry_time {} ; deletion_time {}",
-      _id, _host_id, _service_id, ack->entry_time.get_time_t(),
-      ack->deletion_time.get_time_t());
+      _id, _host_id, _service_id, ack->entry_time, ack->deletion_time);
 
   bool changed = false;
   // Update information.
@@ -447,15 +446,14 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
   if (!_event || _event->in_downtime() != _downtimed) {
     _last_check = _downtimed ? dt->actual_start_time : dt->actual_end_time;
     log_v2::bam()->trace("kpi service {} update, last check set to {}", _id,
-                         _last_check.get_time_t());
+                         _last_check);
   }
 
   // Log message.
   log_v2::bam()->debug(
       "BAM: KPI {} is getting notified of a downtime ({}) on its service ({}, "
       "{}), in downtime: {} at {}",
-      _id, dt->internal_id, _host_id, _service_id, _downtimed,
-      _last_check.get_time_t());
+      _id, dt->internal_id, _host_id, _service_id, _downtimed, _last_check);
 
   // Generate status event.
   visit(visitor);
@@ -508,15 +506,14 @@ void kpi_service::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
     _last_check =
         _downtimed ? downtime.actual_start_time() : downtime.actual_end_time();
     log_v2::bam()->trace("kpi service {} update, last check set to {}", _id,
-                         _last_check.get_time_t());
+                         _last_check);
   }
 
   // Log message.
   log_v2::bam()->debug(
       "BAM: KPI {} is getting notified of a downtime ({}) on its service ({}, "
       "{}), in downtime: {} at {}",
-      _id, downtime.id(), _host_id, _service_id, _downtimed,
-      _last_check.get_time_t());
+      _id, downtime.id(), _host_id, _service_id, _downtimed, _last_check);
 
   // Generate status event.
   visit(visitor);

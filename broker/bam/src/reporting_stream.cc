@@ -798,12 +798,10 @@ struct kpi_event_update_binder {
     if (event->type() == bam::kpi_event::static_type()) {
       bam::kpi_event const& ke =
           *std::static_pointer_cast<bam::kpi_event const>(event);
-      std::string sz_ke_time = ke.end_time.is_null()
-                                   ? "NULL"
-                                   : std::to_string(ke.end_time.get_time_t());
+      std::string sz_ke_time{fmt::format("{}", ke.end_time)};
       return fmt::format("({},{},{},{},{},{})", sz_ke_time, ke.status,
                          int(ke.in_downtime), ke.impact_level, ke.kpi_id,
-                         ke.start_time.get_time_t());
+                         ke.start_time);
     } else {
       const KpiEvent& ke =
           std::static_pointer_cast<bam::pb_kpi_event const>(event)->obj();

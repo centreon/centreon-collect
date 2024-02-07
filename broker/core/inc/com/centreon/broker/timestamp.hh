@@ -19,6 +19,7 @@
 #ifndef CCB_TIMESTAMP_HH
 #define CCB_TIMESTAMP_HH
 
+#include <fmt/format.h>
 #include <istream>
 
 namespace com::centreon::broker {
@@ -168,5 +169,22 @@ inline time_t format_as(const timestamp& o) {
 }
 
 }  // namespace com::centreon::broker
+
+namespace fmt {
+template <>
+struct formatter<com::centreon::broker::timestamp> {
+  constexpr auto parse(format_parse_context& ctx)
+      -> format_parse_context::iterator {
+    return ctx.begin();
+  }
+
+  auto format(const com::centreon::broker::timestamp& t,
+              format_context& ctx) const -> format_context::iterator {
+    // ctx.out() is an output iterator to write to.
+    return t.is_null() ? fmt::format_to(ctx.out(), "NULL")
+                       : fmt::format_to(ctx.out(), "{}", t.get_time_t());
+  }
+};
+}  // namespace fmt
 
 #endif  // !CCB_TIMESTAMP_HH
