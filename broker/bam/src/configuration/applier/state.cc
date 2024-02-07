@@ -17,9 +17,14 @@
  */
 
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
+
 #include <fmt/format.h>
+#include "com/centreon/broker/bam/internal.hh"
+
+#include "bbdo/bam_state.pb.h"
 #include "com/centreon/broker/bam/exp_builder.hh"
 #include "com/centreon/broker/bam/exp_parser.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -70,16 +75,6 @@ static std::string meta_node_id(uint32_t meta_id) {
 static std::string service_node_id(uint32_t host_id, uint32_t service_id) {
   return fmt::format("service ({}, {})", host_id, service_id);
 }
-
-/**
- *  Default constructor.
- */
-applier::state::state() {}
-
-/**
- *  Destructor.
- */
-applier::state::~state() {}
 
 /**
  *  Apply configuration.
@@ -233,6 +228,7 @@ void applier::state::_circular_check(applier::state::circular_check_node& n) {
  *  @param[in] cache  The cache.
  */
 void applier::state::save_to_cache(persistent_cache& cache) {
+  _book_service.save_to_cache(cache);
   _ba_applier.save_to_cache(cache);
 }
 
@@ -242,7 +238,31 @@ void applier::state::save_to_cache(persistent_cache& cache) {
  *  @param[in] cache  the cache.
  */
 void applier::state::load_from_cache(persistent_cache& cache) {
-  _ba_applier.load_from_cache(cache);
+  log_v2::bam()->debug(
+      "BAM: loading restoring inherited downtimes and BA states");
+
+  std::shared_ptr<io::data> d;
+  cache.get(d);
+  while (d) {
+    switch (d->type()) {
+      case inherited_downtime::static_type(): {
+        const inherited_downtime& dwn =
+            *std::static_pointer_cast<const inherited_downtime>(d);
+        _ba_applier.apply_inherited_downtime(dwn);
+      } break;
+      case pb_inherited_downtime::static_type(): {
+        const pb_inherited_downtime& dwn =
+            *std::static_pointer_cast<const pb_inherited_downtime>(d);
+        _ba_applier.apply_inherited_downtime(dwn);
+      } break;
+      case pb_services_book_state::static_type(): {
+        const ServicesBookState& state =
+            std::static_pointer_cast<const pb_services_book_state>(d)->obj();
+        _book_service.apply_services_state(state);
+      } break;
+    }
+    cache.get(d);
+  }
 }
 
 /**

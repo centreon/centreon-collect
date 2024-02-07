@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/bam/kpi_service.hh"
+#include "com/centreon/broker/bam/service_state.hh"
 
 #include <cassert>
 
@@ -32,7 +33,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
-static bool time_is_undefined(uint64_t t) {
+static constexpr bool time_is_undefined(uint64_t t) {
   return t == 0 || t == static_cast<uint64_t>(-1);
 }
 
@@ -163,6 +164,32 @@ bool kpi_service::in_downtime() const {
  */
 bool kpi_service::is_acknowledged() const {
   return _acknowledged;
+}
+
+void kpi_service::service_update(const service_state& s) {
+  // Log message.
+  log_v2::bam()->debug("BAM: Service KPI {} is restored from persistent cache",
+                       _id);
+
+  // Update information.
+  if (!time_is_undefined(s.last_check)) {
+    _last_check = s.last_check;
+    log_v2::bam()->trace(
+        "service kpi {} last check updated with status last check {}", _id,
+        s.last_check);
+  }
+  bool changed = _state_hard != static_cast<state>(s.last_hard_state) ||
+                 _state_soft != static_cast<state>(s.current_state) ||
+                 _state_type != s.state_type || _acknowledged != s.acknowledged;
+
+  _state_hard = static_cast<state>(s.last_hard_state);
+  _state_soft = static_cast<state>(s.current_state);
+  _state_type = s.state_type;
+  _acknowledged = s.acknowledged;
+
+  // Propagate change.
+  if (changed)
+    notify_parents_of_change(nullptr);
 }
 
 /**

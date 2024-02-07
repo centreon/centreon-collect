@@ -448,7 +448,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
           dt->was_cancelled);
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(dt, &ev_cache);
+      //_applier.book_service().update(dt, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
     case neb::pb_downtime::static_type(): {
@@ -464,7 +464,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
                           downtime.cancelled());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(dt, &ev_cache);
+      //_applier.book_service().update(dt, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
     case bam::ba_status::static_type(): {

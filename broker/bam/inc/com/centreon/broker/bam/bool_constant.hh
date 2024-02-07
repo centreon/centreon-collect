@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2014, 2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@
 #ifndef CCB_BAM_BOOL_CONSTANT_HH
 #define CCB_BAM_BOOL_CONSTANT_HH
 
+#include "bbdo/bam.pb.h"
 #include "com/centreon/broker/bam/bool_value.hh"
 
 namespace com::centreon::broker {
@@ -50,6 +51,6 @@ class bool_constant : public bool_value {
 };
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_BOOL_CONSTANT_HH

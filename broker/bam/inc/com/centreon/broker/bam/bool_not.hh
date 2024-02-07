@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2014,2016, 2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@
 #ifndef CCB_BAM_BOOL_NOT_HH
 #define CCB_BAM_BOOL_NOT_HH
 
+#include "bbdo/bam.pb.h"
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/io/stream.hh"
 
@@ -55,6 +56,6 @@ class bool_not : public bool_value {
 };
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_BOOL_NOT_HH

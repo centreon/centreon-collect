@@ -19,8 +19,11 @@
 #ifndef CCB_BAM_SERVICE_BOOK_HH
 #define CCB_BAM_SERVICE_BOOK_HH
 
+#include <unordered_map>
 #include "com/centreon/broker/bam/service_listener.hh"
+#include "com/centreon/broker/bam/service_state.hh"
 #include "com/centreon/broker/io/stream.hh"
+#include "com/centreon/broker/persistent_cache.hh"
 
 namespace com::centreon::broker {
 
@@ -43,9 +46,14 @@ class service_listener;
  *  Propagate updates of services to service listeners.
  */
 class service_book {
-  using multimap =
-      std::multimap<std::pair<uint32_t, uint32_t>, service_listener*>;
-  multimap _book;
+  struct service_state_listeners {
+    std::list<service_listener*> listeners;
+    service_state state;
+  };
+  std::unordered_map<std::pair<uint64_t, uint64_t>,
+                     service_state_listeners,
+                     absl::Hash<std::pair<uint64_t, uint64_t>>>
+      _book;
 
  public:
   service_book() = default;
@@ -70,9 +78,11 @@ class service_book {
               io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::pb_service_status>& t,
               io::stream* visitor = nullptr);
+  void save_to_cache(persistent_cache& cache) const;
+  void apply_services_state(const ServicesBookState& state);
 };
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_SERVICE_BOOK_HH

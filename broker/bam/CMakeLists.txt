@@ -164,6 +164,7 @@ if(WITH_TESTING)
       ${TEST_DIR}/exp_parser/get_postfix.cc
       ${TEST_DIR}/exp_tokenizer/next.cc
       ${TEST_DIR}/time/check_timeperiod.cc
+      ${TEST_DIR}/cache/ba_state.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES
       ${TESTS_LIBRARIES} ${BAM}
