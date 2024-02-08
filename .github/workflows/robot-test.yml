@@ -171,7 +171,7 @@ jobs:
         run: |
           pip3.8 install xmljson
           pip install --upgrade pip
-          xml2json output.xml -o output.json
+          xml2json tests/output.xml -o tests/output.json
         shell: bash
 
       - name: Send report to xrays
