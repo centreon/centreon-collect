@@ -121,8 +121,6 @@ jobs:
           apt-get install -y debhelper dh-autoreconf libkrb5-dev libnorm-dev libpgm-dev libsodium-dev libunwind8-dev libnss3-dev libgnutls28-dev libbsd-dev pkg-config asciidoc xmlto
           ln -s packaging/debian
           dpkg-buildpackage -us -uc -nc
-          cd -
-          mv /github/home/*.deb ./
         shell: bash
 
       - name: cache deb
