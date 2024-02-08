@@ -3,9 +3,12 @@ from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
 from pwd import getpwnam
+from google.protobuf.json_format import MessageToJson
 import time
 import json
 import psutil
+import random
+import string
 from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
@@ -1487,7 +1490,7 @@ def set_uid(user_id: int):
 
     
 def has_file_permissions(path: str, permission: int):
-    """! test if file has permission passed in parameter
+    """ test if file has permission passed in parameter
     it does a AND with permission parameter
     @param path path of the file
     @permission mask to test file permission
@@ -1499,3 +1502,146 @@ def has_file_permissions(path: str, permission: int):
         return False
     masked = stat_res.st_mode & permission
     return masked == permission
+
+
+def create_random_string(length: int):
+    """
+    create_random_string
+
+    create a string with random char
+    Args:
+        length output string length
+    Returns: a string
+    """
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(length))
+
+
+def create_random_dictionary(nb_entries: int):
+    """
+    create_random_dictionary
+
+    create a dictionary with random keys and random string values
+    
+    Args:
+        nb_entries  dictionary size
+    Returns: a dictionary
+    """
+    dict_ret = {}
+    for ii in range(nb_entries):
+        dict_ret[create_random_string(10)] = create_random_string(10)
+
+    return dict_ret;
+
+
+def create_empty_list():
+    return list()
+
+def extract_event_from_lua_log(file_path:str, field_name: str):
+    """
+    extract_event_from_lua_log
+
+    extract a json object from a lua log file 
+    Example: Wed Feb  7 15:30:11 2024: INFO: {"_type":196621, "category":3, "element":13, "resource_metrics":{}
+
+    Args:
+        file_path
+        field_name name of the field that contains our message (example: resource_metrics)
+    Return: a json object or None if not found
+    """
+
+    with open(file_path, "r") as f:
+        lines = f.readlines();
+
+    #we search a string like that:
+    #Wed Feb  7 15:30:11 2024: INFO: {"_type":196621, "category":3, "element":13, "resource_metrics":
+    search = re.compile(rf"^.*\"_type\":\d+,\s*\"category\":\d+,\s*\"element\":\d+,\s*\"{field_name}\":(.*)}}$")
+    for line in lines:
+        m = search.search(line)
+        if m is not None:
+            original = m.group(1)
+            return json.loads(re.sub(r"_([a-z])", lambda matched : matched.group(1).upper(), original))
+    return None
+
+
+def is_dict_in_other_dict(haystack: dict, needle:dict):
+    """
+    is_dict_in_other_dict
+
+    search if all elements of a dict are in another dict
+
+    Args:
+       haystack dict where to search element of needle
+       needle 
+
+    Returns: boolean
+    """
+    for key,value in needle.items():
+        if key not in haystack:
+            return False
+        if isinstance(value, str) and isinstance(haystack[key], int) and value.isdigit():
+            value = int(value)
+        elif type(value) != type(haystack[key]):
+            return False
+        if isinstance(value,dict):
+            if not is_dict_in_other_dict(haystack[key], value):
+                return False
+        elif isinstance(value, list):
+            if not is_list_in_other_list(haystack[key], value):
+                return False
+        else:
+            if value != haystack[key]:
+                return False
+    return True
+
+
+def is_list_in_other_list(haystack: list, needle:list):
+    """
+    is_list_in_other_list
+
+    search if all elements of a list are in another list
+
+    Args:
+       haystack list where to search element of needle
+       needle 
+
+    Returns: boolean
+    """
+    for to_search in needle:
+        found = False
+        for to_compare in haystack:
+            if type(to_search) != type(to_compare):
+                continue
+            if isinstance(to_search, dict):
+                if is_dict_in_other_dict(to_compare, to_search):
+                    found = True
+                    break
+            elif isinstance(to_search, list):
+                if is_list_in_other_list(to_compare, to_search):
+                    found = True
+                    break
+            elif to_search == to_compare:
+                found = True
+                break
+        if not found:
+            return False
+        
+    return True
+
+
+
+def protobuf_to_json(protobuf_obj):
+    """
+    protobuf_to_json
+
+    Convert a protobuf object to json
+    it replaces uppercase letters in keys by _<lower>
+    """
+    converted = MessageToJson(protobuf_obj)
+    return json.loads(converted)#, object_pairs_hook=replace_upper_key_by_undescorelower )
+
+# def replace_upper_key_by_undescorelower(key_value_array:list):
+#     ret = []
+#     for key, val in key_value_array: 
+#         ret.append(("".join(['_'+ ch.lower() if ch.isupper() else ch for ch in key]), val))
+#     return ret

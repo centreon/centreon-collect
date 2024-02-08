@@ -19,6 +19,8 @@
 #ifndef CCE_MOD_OTL_SERVER_OTL_FMT_HH
 #define CCE_MOD_OTL_SERVER_OTL_FMT_HH
 
+#include <google/protobuf/util/json_util.h>
+
 namespace fmt {
 
 /**
@@ -42,14 +44,22 @@ struct formatter<
    *
    */
   static int max_length_log;
+  static bool json_grpc_format;
   template <typename FormatContext>
   auto format(const ::opentelemetry::proto::collector::metrics::v1::
                   ExportMetricsServiceRequest& p,
               FormatContext& ctx) const -> decltype(ctx.out()) {
-    return formatter<std::string>::format(
-        max_length_log > 0 ? p.ShortDebugString().substr(0, max_length_log)
-                           : p.ShortDebugString(),
-        ctx);
+    if (json_grpc_format) {
+      std::string output;
+      google::protobuf::util::MessageToJsonString(p, &output);
+      return formatter<std::string>::format(
+          max_length_log > 0 ? output.substr(0, max_length_log) : output, ctx);
+    } else {
+      return formatter<std::string>::format(
+          max_length_log > 0 ? p.ShortDebugString().substr(0, max_length_log)
+                             : p.ShortDebugString(),
+          ctx);
+    }
   }
 };
 
