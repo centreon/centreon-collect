@@ -130,7 +130,7 @@ jobs:
           key: ${{ github.run_id }}-${{ github.sha }}-deb-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
 
   deliver-rpm:
-    if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     needs: [get-version, package-rpm]
     environment: ${{ needs.get-version.outputs.environment }}
     runs-on: [self-hosted, common]
