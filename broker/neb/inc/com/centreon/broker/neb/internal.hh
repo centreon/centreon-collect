@@ -27,6 +27,7 @@
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/callback.hh"
+#include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
 namespace com::centreon::broker {
 
@@ -126,6 +127,10 @@ using pb_host_parent =
 using pb_instance_configuration =
     io::protobuf<InstanceConfiguration,
                  make_type(io::neb, neb::de_pb_instance_configuration)>;
+
+using pb_otl_metrics = io::protobuf<
+    opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest,
+    make_type(io::storage, storage::de_pb_otl_metrics)>;
 
 }  // namespace neb
 
