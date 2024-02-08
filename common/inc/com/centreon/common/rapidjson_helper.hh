@@ -169,6 +169,55 @@ class rapidjson_helper {
     }
   }
 
+  /**
+   * @brief this method simplify access to rapid json value
+   * if field is not found it returns default
+   * if has not the correct type, it throws an exception
+   * this method is used by the following getters
+   * It also allows number contained in string "456"
+   * The conversion param for string is passed in last param
+   *
+   * @tparam return_type double, uint64_t
+   * @param field_name member field name
+   * @param type_name type that will be described in exception message
+   * @param original_type_tester Value method like IsString
+   * @param original_getter  Value getter like GetString
+   * @param simple_ato  absl::SimpleAtoi Atod.....
+   * @param default_value value returned if field is missing
+   * @return * template <typename return_type>  value returned by original
+   * getter
+   */
+  template <typename return_type, typename type_tester>
+  return_type get_or_default(const char* field_name,
+                             const char* type_name,
+                             const type_tester& tester,
+                             return_type (rapidjson::Value::*original_getter)()
+                                 const,
+                             bool (*simple_ato)(absl::string_view,
+                                                return_type*),
+                             const return_type& default_value) const {
+    if (!_val.IsObject()) {
+      throw exceptions::msg_fmt("not an object parent of field {}", field_name);
+    }
+    auto member = _val.FindMember(field_name);
+    if (member == _val.MemberEnd()) {
+      return default_value;
+    }
+    if (tester(member->value)) {
+      return (member->value.*original_getter)();
+    }
+    if (member->value.IsString()) {
+      return_type ret;
+      if (!simple_ato(member->value.GetString(), &ret)) {
+        throw exceptions::msg_fmt("field {} is not a {} string", field_name,
+                                  type_name);
+      }
+      return ret;
+    } else {
+      throw exceptions::msg_fmt("field {} is not a {}", field_name, type_name);
+    }
+  }
+
   const char* get_string(const char* field_name) const;
 
   double get_double(const char* field_name) const;
@@ -179,7 +228,11 @@ class rapidjson_helper {
 
   int get_int(const char* field_name) const;
 
+  int get_int(const char* field_name, int default_value) const;
+
   bool get_bool(const char* field_name) const;
+
+  bool get_bool(const char* field_name, bool default_value) const;
 
   const rapidjson::Value& get_member(const char* field_name) const;
 

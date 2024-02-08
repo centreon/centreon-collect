@@ -37,6 +37,7 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/misc/misc.hh"
+#include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
@@ -189,6 +190,7 @@ static void _message_to_json(std::ostringstream& oss,
           }
           oss << ']';
           break;
+        case google::protobuf::FieldDescriptor::TYPE_SFIXED64:
         case google::protobuf::FieldDescriptor::TYPE_INT64:
           oss << fmt::format("\"{}\":[", entry_name);
           for (size_t j = 0; j < s; j++) {
@@ -198,6 +200,7 @@ static void _message_to_json(std::ostringstream& oss,
           }
           oss << ']';
           break;
+        case google::protobuf::FieldDescriptor::TYPE_FIXED64:
         case google::protobuf::FieldDescriptor::TYPE_UINT64:
           oss << fmt::format("\"{}\":[", entry_name);
           for (size_t j = 0; j < s; j++) {
@@ -237,6 +240,16 @@ static void _message_to_json(std::ostringstream& oss,
           }
           oss << ']';
           break;
+        case google::protobuf::FieldDescriptor::TYPE_BYTES:
+          oss << fmt::format("\"{}\":[", entry_name);
+          for (size_t j = 0; j < s; j++) {
+            if (j > 0)
+              oss << ',';
+            tmpl = refl->GetRepeatedStringReference(*p, f, j, &tmpl);
+            oss << '"' << com::centreon::common::hex_dump(tmpl, 0) << '"';
+          }
+          oss << ']';
+          break;
         default:  // Error, a type not handled
           throw msg_fmt(
               "protobuf {} type ID is not handled in the broker json converter",
@@ -258,9 +271,11 @@ static void _message_to_json(std::ostringstream& oss,
         case google::protobuf::FieldDescriptor::TYPE_UINT32:
           oss << fmt::format("\"{}\":{}", entry_name, refl->GetUInt32(*p, f));
           break;
+        case google::protobuf::FieldDescriptor::TYPE_SFIXED64:
         case google::protobuf::FieldDescriptor::TYPE_INT64:
           oss << fmt::format("\"{}\":{}", entry_name, refl->GetInt64(*p, f));
           break;
+        case google::protobuf::FieldDescriptor::TYPE_FIXED64:
         case google::protobuf::FieldDescriptor::TYPE_UINT64:
           oss << fmt::format("\"{}\":{}", entry_name, refl->GetUInt64(*p, f));
           break;
@@ -276,6 +291,11 @@ static void _message_to_json(std::ostringstream& oss,
           oss << fmt::format("\"{}\":{{", entry_name);
           _message_to_json(oss, &refl->GetMessage(*p, f));
           oss << '}';
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_BYTES:
+          tmpl = refl->GetStringReference(*p, f, &tmpl);
+          oss << fmt::format(R"("{}":"{}")", entry_name,
+                             com::centreon::common::hex_dump(tmpl, 0));
           break;
         default:  // Error, a type not handled
           throw msg_fmt(

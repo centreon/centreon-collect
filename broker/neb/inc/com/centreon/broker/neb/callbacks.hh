@@ -66,6 +66,8 @@ int callback_tag(int callback_type, void* data) noexcept;
 
 int callback_pb_bench(int callback_type, void* data);
 
+int callback_otl_metrics(int callback_type, void* data);
+
 void unregister_callbacks();
 
 }  // namespace com::centreon::broker::neb

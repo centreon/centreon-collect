@@ -24,6 +24,9 @@
 int fmt::formatter< ::opentelemetry::proto::collector::metrics::v1::
                         ExportMetricsServiceRequest>::max_length_log = -1;
 
+bool fmt::formatter< ::opentelemetry::proto::collector::metrics::v1::
+                         ExportMetricsServiceRequest>::json_grpc_format = false;
+
 using namespace com::centreon::engine::modules::otl_server;
 using namespace com::centreon::common;
 
@@ -36,6 +39,10 @@ static constexpr std::string_view _grpc_config_schema(R"(
             "description:": "max dump length of a otel grpc object",
             "type": "integer",
             "min": -1
+        },
+        "grpc_json_log": {
+            "description": "true if we log otl grpc object to json format",
+            "type": "boolean"
         },
         "server": {
             "description": "otel grpc config",
@@ -63,7 +70,8 @@ otl_config::otl_config(const std::string_view& file_path) {
   rapidjson_helper file_content(file_content_d);
 
   file_content.validate(validator);
-  _max_length_grpc_log = file_content.get_int("max_length_grpc_log");
+  _max_length_grpc_log = file_content.get_int("max_length_grpc_log", 400);
+  _json_grpc_log = file_content.get_bool("grpc_json_log", false);
   _grpc_conf = std::make_shared<grpc_config>(file_content.get_member("server"));
 }
 
@@ -72,5 +80,6 @@ bool otl_config::operator==(const otl_config& right) const {
     return false;
   }
   return *_grpc_conf == *right._grpc_conf &&
-         _max_length_grpc_log == right._max_length_grpc_log;
+         _max_length_grpc_log == right._max_length_grpc_log &&
+         _json_grpc_log == right._json_grpc_log;
 }
