@@ -287,6 +287,8 @@ int stream::write(std::shared_ptr<io::data> const& data) {
         _request->add_status(
             std::static_pointer_cast<storage::pb_status>(data)->obj());
         break;
+      case storage::pb_otl_metrics::static_type():
+
       default:
         ++_acknowledged;
         break;

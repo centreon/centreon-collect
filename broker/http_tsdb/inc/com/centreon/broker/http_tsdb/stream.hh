@@ -155,6 +155,6 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
 };
 }  // namespace http_tsdb
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_HTTP_TSDB_STREAM_HH

@@ -22,6 +22,7 @@
 #include "bbdo/events.hh"
 #include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
+#include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
 namespace com::centreon::broker {
 
@@ -37,8 +38,13 @@ using pb_metric =
     io::protobuf<Metric, make_type(io::storage, storage::de_pb_metric)>;
 using pb_status =
     io::protobuf<Status, make_type(io::storage, storage::de_pb_status)>;
+
+using pb_otl_metrics = io::protobuf<
+    opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest,
+    make_type(io::storage, storage::de_pb_otl_metrics)>;
+
 }  // namespace storage
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_HTTP_TSDB_INTERNAL_HH

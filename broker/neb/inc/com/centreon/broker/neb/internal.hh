@@ -123,11 +123,14 @@ using pb_service_group_member =
     io::protobuf<ServiceGroupMember,
                  make_type(io::neb, neb::de_pb_service_group_member)>;
 
+}  // namespace neb
+
+namespace storage {
 using pb_otl_metrics = io::protobuf<
     opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest,
     make_type(io::storage, storage::de_pb_otl_metrics)>;
 
-}  // namespace neb
+}
 
 }  // namespace com::centreon::broker
 
