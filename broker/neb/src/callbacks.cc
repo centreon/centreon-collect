@@ -1,25 +1,27 @@
 /**
-* Copyright 2009-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/neb/callbacks.hh"
 
 #include <absl/strings/str_split.h>
 #include <unistd.h>
+
+#include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
@@ -109,7 +111,8 @@ static struct {
     {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_pb_service_check},
     {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_pb_service_status},
     {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity},
-    {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag}};
+    {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag},
+    {NEBCALLBACK_OTL_METRICS, &neb::callback_otl_metrics}};
 
 // List of Engine-specific callbacks.
 static struct {
@@ -3965,6 +3968,59 @@ int neb::callback_pb_bench(int, void* data) {
                                     *caller_tp->mutable_time());
   }
   gl_publisher.write(std::move(event));
+  return 0;
+}
+
+namespace com::centreon::broker::neb::otl_detail {
+/**
+ * @brief the goal of this little class is to avoid copy of an
+ * ExportMetricsServiceRequest as callback_otl_metrics receives a
+ * shared_ptr<ExportMetricsServiceRequest>
+ *
+ */
+class otl_protobuf
+    : public io::protobuf<opentelemetry::proto::collector::metrics::v1::
+                              ExportMetricsServiceRequest,
+                          make_type(io::storage, storage::de_pb_otl_metrics)> {
+  std::shared_ptr<
+      opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest>
+      _obj;
+
+ public:
+  otl_protobuf(void* pointer_to_shared_ptr)
+      : _obj(*static_cast<
+             std::shared_ptr<opentelemetry::proto::collector::metrics::v1::
+                                 ExportMetricsServiceRequest>*>(
+            pointer_to_shared_ptr)) {}
+
+  const opentelemetry::proto::collector::metrics::v1::
+      ExportMetricsServiceRequest&
+      obj() const override {
+    return *_obj;
+  }
+
+  opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest&
+  mut_obj() override {
+    return *_obj;
+  }
+
+  void set_obj(opentelemetry::proto::collector::metrics::v1::
+                   ExportMetricsServiceRequest&& obj) override {
+    throw com::centreon::exceptions::msg_fmt("unauthorized usage {}",
+                                             typeid(*this).name());
+  }
+};
+
+}  // namespace com::centreon::broker::neb::otl_detail
+
+/**
+ * @brief send an ExportMetricsServiceRequest to broker
+ *
+ * @param data pointer to a shared_ptr<ExportMetricsServiceRequest>
+ * @return int 0
+ */
+int neb::callback_otl_metrics(int, void* data) {
+  gl_publisher.write(std::make_shared<neb::otl_detail::otl_protobuf>(data));
   return 0;
 }
 

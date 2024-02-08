@@ -83,7 +83,7 @@ rapidjson::Value::ConstValueIterator rapidjson_helper::begin() const {
  *
  * @param field_name
  * @return const char* field value
- * @throw msg_fmt if member dos not exist or field value is not a string
+ * @throw msg_fmt if member does not exist or field value is not a string
  */
 const char* rapidjson_helper::get_string(const char* field_name) const {
   return get<const char*>(field_name, "string", &rapidjson::Value::IsString,
@@ -95,7 +95,7 @@ const char* rapidjson_helper::get_string(const char* field_name) const {
  *
  * @param field_name
  * @return const char* field value
- * @throw msg_fmt if member dos not exist or field value is nor a double nor a
+ * @throw msg_fmt if member does not exist or field value is nor a double nor a
  * string containing a double
  */
 double rapidjson_helper::get_double(const char* field_name) const {
@@ -113,8 +113,8 @@ double rapidjson_helper::get_double(const char* field_name) const {
  *
  * @param field_name
  * @return const char* field value
- * @throw msg_fmt if member dos not exist or field value is nor a uint64_t nor a
- * string containing a uint64_t
+ * @throw msg_fmt if member does not exist or field value is nor a uint64_t nor
+ * a string containing a uint64_t
  */
 uint64_t rapidjson_helper::get_uint64_t(const char* field_name) const {
   return get<uint64_t>(
@@ -128,7 +128,7 @@ uint64_t rapidjson_helper::get_uint64_t(const char* field_name) const {
  *
  * @param field_name
  * @return const char* field value
- * @throw msg_fmt if member dos not exist or field value is nor a uint nor a
+ * @throw msg_fmt if member does not exist or field value is nor a uint nor a
  * string containing a uint
  */
 unsigned rapidjson_helper::get_unsigned(const char* field_name) const {
@@ -142,8 +142,24 @@ unsigned rapidjson_helper::get_unsigned(const char* field_name) const {
  * @brief read a integer field
  *
  * @param field_name
+ * @param default_value value returned if member does not exist
  * @return const char* field value
- * @throw msg_fmt if member dos not exist or field value is nor a integer nor a
+ * @throw msg_fmt if field value is nor a integer nor a
+ * string containing a integer
+ */
+int rapidjson_helper::get_int(const char* field_name, int default_value) const {
+  return get_or_default<int>(
+      field_name, "integer",
+      [](const rapidjson::Value& val) { return val.IsInt(); },
+      &rapidjson::Value::GetInt, &absl::SimpleAtoi<int>, default_value);
+}
+
+/**
+ * @brief read a integer field
+ *
+ * @param field_name
+ * @return const char* field value
+ * @throw msg_fmt if member does not exist or field value is nor a integer nor a
  * string containing a integer
  */
 int rapidjson_helper::get_int(const char* field_name) const {
@@ -158,7 +174,7 @@ int rapidjson_helper::get_int(const char* field_name) const {
  *
  * @param field_name
  * @return const char* field value
- * @throw msg_fmt if member dos not exist or field value is nor a boolean nor a
+ * @throw msg_fmt if member does not exist or field value is nor a boolean nor a
  * string containing a boolean
  */
 bool rapidjson_helper::get_bool(const char* field_name) const {
@@ -169,11 +185,28 @@ bool rapidjson_helper::get_bool(const char* field_name) const {
 }
 
 /**
+ * @brief read a boolean field
+ *
+ * @param field_name
+ * @param default_value value returned if member does not exist
+ * @return const char* field value
+ * @throw msg_fmt if field value is nor a boolean nor a
+ * string containing a boolean
+ */
+bool rapidjson_helper::get_bool(const char* field_name,
+                                bool default_value) const {
+  return get_or_default<bool>(
+      field_name, "boolean",
+      [](const rapidjson::Value& val) { return val.IsBool(); },
+      &rapidjson::Value::GetBool, &absl::SimpleAtob, default_value);
+}
+
+/**
  * @brief return a member
  *
  * @param field_name
  * @return const rapidjson::Value& member
- * @throw msg_fmt if member dos not exist
+ * @throw msg_fmt if member does not exist
  */
 const rapidjson::Value& rapidjson_helper::get_member(
     const char* field_name) const {

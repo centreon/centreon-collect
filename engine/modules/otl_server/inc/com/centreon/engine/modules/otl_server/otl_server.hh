@@ -20,6 +20,7 @@
 #define CCE_MOD_OTL_SERVER_OTLSERVER_HH
 
 #include "grpc_config.hh"
+#include "otl_metric.hh"
 
 namespace com::centreon::engine::modules::otl_server {
 
@@ -27,8 +28,6 @@ namespace detail {
 class metric_service;
 };
 
-using metric_ptr = std::shared_ptr<::opentelemetry::proto::collector::metrics::
-                                       v1::ExportMetricsServiceRequest>;
 
 /**
  * @brief the server grpc model used is the callback model

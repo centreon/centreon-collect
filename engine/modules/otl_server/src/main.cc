@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/nebmodules.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -81,12 +82,18 @@ void apply_new_conf(const otl_config& new_conf, const otl_config* old_conf) {
     if (_otl_server) {
       _otl_server->shutdown(std::chrono::seconds(30));
     }
-    _otl_server =
-        otl_server::load(new_conf.get_grpc_config(), [](const metric_ptr&) {});
+    _otl_server = otl_server::load(
+        new_conf.get_grpc_config(), [](const metric_ptr& request) {
+          metric_ptr copy(request);
+          neb_make_callbacks(NEBCALLBACK_OTL_METRICS, &copy);
+        });
   }
   fmt::formatter< ::opentelemetry::proto::collector::metrics::v1::
                       ExportMetricsServiceRequest>::max_length_log =
       new_conf.get_max_length_grpc_log();
+  fmt::formatter< ::opentelemetry::proto::collector::metrics::v1::
+                      ExportMetricsServiceRequest>::json_grpc_format =
+      new_conf.get_json_grpc_log();
 }
 
 /**

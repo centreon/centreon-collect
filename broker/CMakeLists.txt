@@ -455,6 +455,7 @@ target_link_libraries(
   bbdo_bbdo
   pb_bbdo_lib
   pb_extcmd_lib
+  pb_open_telemetry_lib
   berpc
   CONAN_PKG::zlib
   CONAN_PKG::spdlog
