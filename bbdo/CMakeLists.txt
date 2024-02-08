@@ -98,7 +98,6 @@ set(otl_protobuf_files
     opentelemetry/proto/common/v1/common
     opentelemetry/proto/resource/v1/resource
 )
-
 foreach(name IN LISTS otl_protobuf_files)
   set(proto_file "${name}.proto")
   add_custom_command(

@@ -132,6 +132,10 @@ using pb_otl_metrics = io::protobuf<
     opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest,
     make_type(io::storage, storage::de_pb_otl_metrics)>;
 
+using pb_otl_metrics = io::protobuf<
+    opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest,
+    make_type(io::storage, storage::de_pb_otl_metrics)>;
+
 }  // namespace neb
 
 }  // namespace com::centreon::broker

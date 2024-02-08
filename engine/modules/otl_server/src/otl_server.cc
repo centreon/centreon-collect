@@ -20,7 +20,6 @@
 #include <grpcpp/impl/codegen/server_callback.h>
 
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.h"
-#include "opentelemetry/proto/metrics/v1/metrics.grpc.pb.h"
 
 #include "otl_server.hh"
 
