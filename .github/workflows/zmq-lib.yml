@@ -59,13 +59,14 @@ jobs:
           cp libzmq-4.3.5/packaging/redhat/zeromq.spec /github/home/rpmbuild/SPECS/
           wget https://github.com/zeromq/libzmq/releases/download/v4.3.5/zeromq-4.3.5.tar.gz -O  /github/home/rpmbuild/SOURCES/zeromq-4.3.5.tar.gz
           rpmbuild -bb /github/home/rpmbuild/SPECS/zeromq.spec
-
+          cd -
+          mv /github/home/rpmbuild/RPMS/x86_64/*.rpm ./
         shell: bash
 
       - name: cache rpm
         uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
-          path: /github/home/rpmbuild/RPMS/x86_64/*.rpm
+          path: ./*.rpm
           key: ${{ github.run_id }}-${{ github.sha }}-rpm-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
 
   package-deb:
@@ -120,12 +121,14 @@ jobs:
           apt-get install -y debhelper dh-autoreconf libkrb5-dev libnorm-dev libpgm-dev libsodium-dev libunwind8-dev libnss3-dev libgnutls28-dev libbsd-dev pkg-config asciidoc xmlto
           ln -s packaging/debian
           dpkg-buildpackage -us -uc -nc
+          cd -
+          mv /github/home/*.deb ./
         shell: bash
 
       - name: cache deb
         uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
-          path: /github/home/*.deb
+          path: ./*.deb
           key: ${{ github.run_id }}-${{ github.sha }}-deb-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
 
   deliver-rpm:
