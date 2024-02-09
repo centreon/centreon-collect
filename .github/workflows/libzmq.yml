@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-nfpm-alma8
+          - image: packaging-alma8
             distrib: el8
             arch: amd64
           - image: packaging-alma9
@@ -49,6 +49,7 @@ jobs:
     steps:
       - name: package rpm
         run: |
+          rpm --import https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux
           dnf install -y wget rpmdevtools rpmlint epel-release
           dnf config-manager --set-enabled crb || true # alma 9
           dnf config-manager --set-enabled powertools || true # alma 8
