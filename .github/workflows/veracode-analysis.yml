@@ -66,10 +66,10 @@ jobs:
           mkdir build
           cd build
 
-          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
-          sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+          pip3 install conan==1.57.0 --prefix=/usr --upgrade
+          conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
-          sudo cmake \
+          cmake \
             -G "Ninja" \
             -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
             -DWITH_TESTING=OFF \
@@ -88,7 +88,7 @@ jobs:
             -DWITH_CONFIG_FILES=ON \
             ..
 
-          sudo ninja
+          ninja
 
           echo "[DEBUG] - Find compiled files"
           find ./ -name "*.so"
