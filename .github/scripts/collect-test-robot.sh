@@ -62,6 +62,17 @@ echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
 #remove git dubious ownership
 /usr/bin/git config --global --add safe.directory $PWD
 
+echo "##### conan install  opentelemetry-proto  #####"
+echo [requires] > tests/conanfile.txt
+grep opentelemetry-proto conanfile.txt >> tests/conanfile.txt
+echo [generators] >> tests/conanfile.txt
+echo cmake  >> tests/conanfile.txt
+
+mkdir build
+
+conan install tests -i build -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
+
+
 echo "##### Starting tests #####"
 cd tests
 ./init-proto.sh
