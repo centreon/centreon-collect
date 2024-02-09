@@ -119,7 +119,7 @@ jobs:
           cd libzmq-4.3.5
           apt-get install -y debhelper dh-autoreconf libkrb5-dev libnorm-dev libpgm-dev libsodium-dev libunwind8-dev libnss3-dev libgnutls28-dev libbsd-dev pkg-config asciidoc xmlto
           ln -s packaging/debian
-          dpkg-buildpackage -us -uc -nc
+          dpkg-buildpackage -us -uc -nc -v4.3.5-1~${{ matrix.distrib }}
           cd ..
         shell: bash
 
@@ -175,7 +175,7 @@ jobs:
           - distrib: jammy
             arch: amd64
 
-    name: deliver ${{ matrix.distrib }}
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
