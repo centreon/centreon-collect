@@ -133,6 +133,9 @@ jobs:
     name: deliver ${{ matrix.distrib }}
 
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
       - name: Publish RPM packages
         uses: ./.github/actions/delivery
         with:
@@ -157,6 +160,9 @@ jobs:
     name: deliver ${{ matrix.distrib }}
 
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
       - name: Publish DEB packages
         uses: ./.github/actions/delivery
         with:
@@ -176,6 +182,9 @@ jobs:
         distrib: [el8, el9, bullseye]
 
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable
         with:
