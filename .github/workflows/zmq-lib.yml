@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-alma8
+          - image: packaging-nfpm-alma8
             distrib: el8
             arch: amd64
           - image: packaging-alma9
@@ -80,18 +80,6 @@ jobs:
             distrib: bullseye
             runner: ubuntu-22.04
             arch: amd64
-          - image: packaging-bookworm
-            distrib: bookworm
-            runner: ubuntu-22.04
-            arch: amd64
-          - image: packaging-nfpm-jammy
-            distrib: jammy
-            runner: ubuntu-22.04
-            arch: amd64
-          - image: packaging-bullseye-arm64
-            distrib: bullseye
-            runner: ["self-hosted", "collect-arm64"]
-            arch: arm64
 
     runs-on: ${{ matrix.runner }}
 
@@ -165,12 +153,6 @@ jobs:
         include:
           - distrib: bullseye
             arch: amd64
-          - distrib: bullseye
-            arch: arm64
-          - distrib: bookworm
-            arch: amd64
-          - distrib: jammy
-            arch: amd64
 
     name: deliver ${{ matrix.distrib }}
 
@@ -191,7 +173,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy]
+        distrib: [el8, el9, bullseye]
 
     steps:
       - name: Promote ${{ matrix.distrib }} to stable
@@ -204,4 +186,3 @@ jobs:
           minor_version: ${{ needs.get-version.outputs.patch }}
           stability: ${{ needs.get-version.outputs.stability }}
           repository_name: standard
-          github_base_ref: ${{ github.base_ref }}
