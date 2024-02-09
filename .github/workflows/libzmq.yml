@@ -119,6 +119,7 @@ jobs:
           cd libzmq-4.3.5
           ln -s packaging/debian
           sed -Ei 's/([0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+)/\1-${{ matrix.distrib }}/' debian/changelog
+          sed -Ei 's/UNRELEASED/${{ matrix.distrib }}/' debian/changelog
           dpkg-buildpackage -us -uc -nc
           cd ..
         shell: bash
