@@ -49,10 +49,13 @@ jobs:
     steps:
       - name: package rpm
         run: |
-          rpm --import https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux
           dnf install -y wget rpmdevtools rpmlint epel-release
-          dnf config-manager --set-enabled crb || true # alma 9
-          dnf config-manager --set-enabled powertools || true # alma 8
+          if [ "${{ matrix.distrib }}" = "el8" ]; then
+            dnf config-manager --set-enabled powertools
+            rpm --import https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux
+          else
+            dnf config-manager --set-enabled crb
+          fi
           dnf install -y asciidoc autoconf automake gcc gcc-c++ glib2-devel libbsd-devel libtool make xmlto
           cd /github/home
           wget -O - https://github.com/zeromq/libzmq/archive/refs/tags/v4.3.5.tar.gz|tar zxvf -
