@@ -9,9 +9,9 @@
             "id": "10271",
             "name": "Test Execution"
         },
-        "components" : [
+        "components": [
             {
-            "name":"centreon-collect"
+                "name": "centreon-collect"
             }
         ]
     },
