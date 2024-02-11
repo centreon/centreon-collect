@@ -176,7 +176,7 @@ jobs:
 
       - name: Send report to xrays
         run: |
-          curl -H "Content-Type: application/json" -X POST -d @tests/issueFields.json -d @tests/output.json -d @tests/testIssueFields.json -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" "https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON%26testPlanKey=MON-35155"
+          curl -H "Content-Type: application/json" -X POST -d @tests/issueFields.json -d @tests/output.json -d @tests/testIssueFields.json -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" "https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON\&testPlanKey=MON-35155"
 
       - name: Move reports
         if: ${{ failure() }}
