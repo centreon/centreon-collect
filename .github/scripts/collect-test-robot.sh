@@ -23,6 +23,7 @@ if [ ${database_type} == 'mysql' ] && [ ! -f tests/${test_file}.mysql ]; then
     echo '<?xml version="1.0" encoding="UTF-8"?>' > tests/output.xml
     echo '<robot generator="Robot 6.0.2 (Python 3.9.14 on linux)" generated="20230517 15:35:12.235" rpa="false" schemaversion="3"></robot>' >> tests/output.xml
     echo > tests/report.html
+    echo > tests/output.json
   
     exit 0
 fi

@@ -169,14 +169,14 @@ jobs:
 
       - name: Generate JSON report
         run: |
-          pip3.8 install xmljson
+          pip install xmljson
           pip install --upgrade pip
           xml2json tests/output.xml -o tests/output.json
         shell: bash
 
       - name: Send report to xrays
         run: |
-          curl -H "Content-Type: application/json" -X POST -d @tests/issueFields.json -d @tests/output.json -d @tests/testIssueFields.json -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" "https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON\&testPlanKey=MON-35155"
+          curl -H "Content-Type: application/json" -X POST -d @tests/issueFields.json -d @tests/output.json -d @tests/testIssueFields.json -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" "https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON"
 
       - name: Move reports
         if: ${{ failure() }}

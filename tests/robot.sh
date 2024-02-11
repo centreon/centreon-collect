@@ -7,7 +7,7 @@ sysctl -w kernel.core_pattern=/tmp/core-%e.%p.%h.%t
 robot -L TRACE $*
 rep=$(date +%s)
 mkdir $rep
-mv report.html log.html output.xml $rep
+mv report.html log.html output.xml output.json $rep
 if [ -f processing.log ] ; then
   mv processing.log $rep
 fi
