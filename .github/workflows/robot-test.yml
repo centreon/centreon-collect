@@ -168,9 +168,10 @@ jobs:
           ls -l
           ls -l tests
           pip install --upgrade pip
-          xml2json tests/output.xml -o output.json
+          cd tests/
+          xml2json output.xml -o output.json
           ls -l tests
-          cp tests/output.json /tmp/
+          cp output.json /tmp/
           echo "Listing files in /runner/_work/centreon-collect/centreon-collect/"
           ls -l /runner/_work/centreon-collect/centreon-collect/
         shell: bash
