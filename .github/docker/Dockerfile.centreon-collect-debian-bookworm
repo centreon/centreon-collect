@@ -4,12 +4,8 @@ FROM ${REGISTRY_URL}/debian:bookworm
 
 RUN bash -e <<EOF
 
-echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
-echo 'deb http://deb.debian.org/debian bookworm-backports main contrib' | tee /etc/apt/sources.list
-
 apt-get update
 
-apt-get install -y -t bookworm-backports cmake
 apt-get -y install git \
     curl \
     gcc \
@@ -41,6 +37,11 @@ apt-get -y install git \
     zip \
     libcurl4-openssl-dev \
     sudo
+
+echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
+echo 'deb http://deb.debian.org/debian bookworm-backports main contrib' | tee /etc/apt/sources.list
+
+apt-get install -y -t bookworm-backports cmake
 
 apt-get install -y nfpm
 
