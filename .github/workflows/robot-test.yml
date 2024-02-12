@@ -169,9 +169,10 @@ jobs:
           ls -l tests
           pip install --upgrade pip
           xml2json tests/output.xml -o output.json
-          find / -name output.json
           ls -l tests
           cp tests/output.json /tmp/
+          echo "Listing files in /runner/_work/centreon-collect/centreon-collect/"
+          ls -l /runner/_work/centreon-collect/centreon-collect/
         shell: bash
 
       - name: Send report to xrays
