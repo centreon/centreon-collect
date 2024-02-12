@@ -171,6 +171,7 @@ jobs:
           ls -l
           chmod +w output.json
           cp output.json /tmp/
+          cat /tmp/output.json
         shell: bash
 
       - name: Send report to xrays
