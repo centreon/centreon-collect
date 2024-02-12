@@ -66,7 +66,7 @@ jobs:
           mkdir build
           cd build
 
-          pip3 install conan==1.57.0 --prefix=/usr --upgrade
+          pip3 install conan==1.62.0 --prefix=/usr --upgrade
           conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
           cmake \
