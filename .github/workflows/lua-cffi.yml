@@ -8,20 +8,22 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - dependencies/lua-cffi/**
+      - stream-connectors/dependencies/lua-cffi/**
   push:
     branches:
       - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
       - master
+      - "[2-9][0-9].[0-9][0-9].x"
     paths:
-      - dependencies/lua-cffi/**
+      - stream-connectors/dependencies/lua-cffi/**
 
 jobs:
-  get-environment:
-    uses: ./.github/workflows/get-environment.yml
+  get-version:
+    uses: ./.github/workflows/get-version.yml
 
   package:
-    needs: [get-environment]
+    needs: [get-version]
 
     strategy:
       fail-fast: false
@@ -47,7 +49,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:latest
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
@@ -92,14 +94,14 @@ jobs:
           fi
           ninja all
           cd ../..
-          mkdir -p dependencies/lua-cffi/lua-cffi
-          mv cffi-lua-src/build/cffi.so dependencies/lua-cffi/lua-cffi/
+          mkdir -p stream-connectors/dependencies/lua-cffi/lua-cffi
+          mv cffi-lua-src/build/cffi.so stream-connectors/dependencies/lua-cffi/lua-cffi/
         shell: bash
 
       - name: Package
         uses: ./.github/actions/package-nfpm
         with:
-          nfpm_file_pattern: "dependencies/lua-cffi/packaging/*.yaml"
+          nfpm_file_pattern: "stream-connectors/dependencies/lua-cffi/packaging/*.yaml"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
           arch: amd64
@@ -110,11 +112,11 @@ jobs:
           rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
           rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
           rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          stability: ${{ needs.get-version.outputs.stability }}
 
   deliver-rpm:
-    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-environment.outputs.stability) }}
-    needs: [get-environment, package]
+    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
+    needs: [get-version, package]
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -130,13 +132,14 @@ jobs:
         with:
           module_name: lua-cffi
           distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-version.outputs.version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-lua-cffi-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          stability: ${{ needs.get-version.outputs.stability }}
 
   deliver-deb:
-    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-environment.outputs.stability) }}
-    needs: [get-environment, package]
+    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
+    needs: [get-version, package]
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -152,6 +155,7 @@ jobs:
         with:
           module_name: lua-cffi
           distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-version.outputs.version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-lua-cffi-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          stability: ${{ needs.get-version.outputs.stability }}

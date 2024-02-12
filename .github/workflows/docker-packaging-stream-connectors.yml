@@ -10,13 +10,17 @@ on:
     branches:
       - develop
     paths:
-      - ".github/docker/Dockerfile.packaging-*"
+      - ".github/docker/Dockerfile.packaging-stream-connectors-*"
   pull_request:
     paths:
-      - ".github/docker/Dockerfile.packaging-*"
+      - ".github/docker/Dockerfile.packaging-stream-connectors-*"
 
 jobs:
+  get-version:
+    uses: ./.github/workflows/get-version.yml
+
   dockerize:
+    needs: [get-version]
     runs-on: ubuntu-22.04
 
     strategy:
@@ -42,4 +46,4 @@ jobs:
           build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
           pull: true
           push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-stream-connectors-nfpm-${{ matrix.distrib }}:latest
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-stream-connectors-nfpm-${{ matrix.distrib }}:${{ needs.get-version.outputs.version }}

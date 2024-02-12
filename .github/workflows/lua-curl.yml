@@ -8,20 +8,22 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - dependencies/lua-curl/**
+      - stream-connectors/dependencies/lua-curl/**
   push:
     branches:
       - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
       - master
+      - "[2-9][0-9].[0-9][0-9].x"
     paths:
-      - dependencies/lua-curl/**
+      - stream-connectors/dependencies/lua-curl/**
 
 jobs:
-  get-environment:
-    uses: ./.github/workflows/get-environment.yml
+  get-version:
+    uses: ./.github/workflows/get-version.yml
 
   package:
-    needs: [get-environment]
+    needs: [get-version]
 
     strategy:
       fail-fast: false
@@ -47,7 +49,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:latest
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
@@ -118,10 +120,10 @@ jobs:
 
           cd ..
 
-          mkdir -p dependencies/lua-curl/lua-curl/
-          cp -p lua-curl-src/lcurl.so dependencies/lua-curl/lua-curl/
-          cp -rp lua-curl-src/src/lua/cURL dependencies/lua-curl/lua-curl/
-          cp -p lua-curl-src/src/lua/cURL.lua dependencies/lua-curl/lua-curl/
+          mkdir -p stream-connectors/dependencies/lua-curl/lua-curl/
+          cp -p lua-curl-src/lcurl.so stream-connectors/dependencies/lua-curl/lua-curl/
+          cp -rp lua-curl-src/src/lua/cURL stream-connectors/dependencies/lua-curl/lua-curl/
+          cp -p lua-curl-src/src/lua/cURL.lua stream-connectors/dependencies/lua-curl/lua-curl/
         shell: bash
 
       - name: Update package name
@@ -131,13 +133,13 @@ jobs:
           else
             NAME="lua5.3-curl"
           fi
-          sed -i "s/@NAME@/$NAME/g" ./dependencies/lua-curl/packaging/lua-curl.yaml
+          sed -i "s/@NAME@/$NAME/g" ./stream-connectors/dependencies/lua-curl/packaging/lua-curl.yaml
         shell: bash
 
       - name: Package
         uses: ./.github/actions/package-nfpm
         with:
-          nfpm_file_pattern: "dependencies/lua-curl/packaging/lua-curl.yaml"
+          nfpm_file_pattern: "stream-connectors/dependencies/lua-curl/packaging/lua-curl.yaml"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
           arch: amd64
@@ -148,11 +150,11 @@ jobs:
           rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
           rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
           rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          stability: ${{ needs.get-version.outputs.stability }}
 
   deliver-rpm:
-    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-environment.outputs.stability) }}
-    needs: [get-environment, package]
+    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
+    needs: [get-version, package]
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -168,13 +170,14 @@ jobs:
         with:
           module_name: lua-curl
           distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-version.outputs.version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-lua-curl-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          stability: ${{ needs.get-version.outputs.stability }}
 
   deliver-deb:
-    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-environment.outputs.stability) }}
-    needs: [get-environment, package]
+    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
+    needs: [get-version, package]
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -190,6 +193,7 @@ jobs:
         with:
           module_name: lua-curl
           distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-version.outputs.version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-lua-curl-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          stability: ${{ needs.get-version.outputs.stability }}

@@ -1,8 +1,0 @@
-*                   @centreon/owners-lua
-
-*.md                @centreon/owners-doc
-*.mdx               @centreon/owners-doc
-
-.github/**          @centreon/owners-pipelines
-packaging/**        @centreon/owners-pipelines
-selinux/**          @centreon/owners-pipelines
