@@ -171,6 +171,7 @@ jobs:
           cd tests/
           xml2json output.xml -o output.json
           ls -l tests
+          chmod +w output.json
           cp output.json /tmp/
           echo "Listing files in /runner/_work/centreon-collect/centreon-collect/"
           ls -l /runner/_work/centreon-collect/centreon-collect/
