@@ -52,6 +52,7 @@ jobs:
           dnf install -y wget rpmdevtools rpmlint epel-release
           if [ "${{ matrix.distrib }}" = "el8" ]; then
             dnf config-manager --set-enabled powertools
+            rpm --import https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux
           else
             dnf config-manager --set-enabled crb
           fi
