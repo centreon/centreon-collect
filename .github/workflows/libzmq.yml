@@ -29,10 +29,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-alma8
+          - image: packaging-nfpm-alma8
             distrib: el8
             arch: amd64
-          - image: packaging-alma9
+          - image: packaging-nfpm-alma9
             distrib: el9
             arch: amd64
 
@@ -52,7 +52,7 @@ jobs:
           dnf install -y wget rpmdevtools rpmlint epel-release
           dnf config-manager --set-enabled crb || true # alma 9
           dnf config-manager --set-enabled powertools || true # alma 8
-          dnf install -y asciidoc autoconf automake gcc gcc-c++ glib2-devel libbsd-devel libtool make xmlto
+          dnf install -y asciidoc autoconf automake gcc gcc-c++ glib2-devel libbsd-devel libtool make rpm-build xmlto
 
           cd /github/home
           wget -O - https://github.com/zeromq/libzmq/archive/refs/tags/v4.3.5.tar.gz | tar zxvf -
@@ -79,11 +79,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-bullseye
+          - image: packaging-nfpm-bullseye
             distrib: bullseye
             runner: ubuntu-22.04
             arch: amd64
-          - image: packaging-bookworm
+          - image: packaging-nfpm-bookworm
             distrib: bookworm
             runner: ubuntu-22.04
             arch: amd64
@@ -110,8 +110,7 @@ jobs:
       - name: package deb
         run: |
           apt-get update
-          apt-get install -y dpkg-dev wget
-          apt-get install -y debhelper dh-autoreconf libkrb5-dev libnorm-dev libpgm-dev libsodium-dev libunwind8-dev libnss3-dev libgnutls28-dev libbsd-dev pkg-config asciidoc xmlto
+          apt-get install -y debhelper dh-autoreconf dpkg-dev libkrb5-dev libnorm-dev libpgm-dev libsodium-dev libunwind8-dev libnss3-dev libgnutls28-dev libbsd-dev pkg-config asciidoc wget xmlto
           wget -O - https://github.com/zeromq/libzmq/releases/download/v4.3.5/zeromq-4.3.5.tar.gz | tar zxvf -
 
           cd zeromq-4.3.5
@@ -126,6 +125,7 @@ jobs:
           sed -Ei 's/([0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+)/\1~${{ matrix.distrib }}/' debian/changelog
           sed -Ei 's/UNRELEASED/${{ matrix.distrib }}/' debian/changelog
           dpkg-buildpackage -us -uc -nc
+          cd ..
 
           rm -f libzmq5-dbg_*.deb
         shell: bash
