@@ -22,8 +22,8 @@ contents:
 overrides:
   rpm:
     depends: [
-      centreon-stream-connectors-lib >= ${MAJOR_VERSION},
-      centreon-stream-connectors-lib < ${NEXT_MAJOR_VERSION},
+      "centreon-stream-connectors-lib >= ${MAJOR_VERSION}",
+      "centreon-stream-connectors-lib < ${NEXT_MAJOR_VERSION}",
       @RPM_DEPENDENCIES@
     ]
   deb:
