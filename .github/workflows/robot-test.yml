@@ -166,7 +166,7 @@ jobs:
         run: |
           pip install xmljson
           pip install --upgrade pip
-          xml2json tests/output.xml -o tests/output.json
+          xml2json output.xml -o output.json
           cp tests/output.json /tmp/
         shell: bash
 
