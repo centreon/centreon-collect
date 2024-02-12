@@ -61,7 +61,9 @@ jobs:
           wget https://github.com/zeromq/libzmq/releases/download/v4.3.5/zeromq-4.3.5.tar.gz -O  /github/home/rpmbuild/SOURCES/zeromq-4.3.5.tar.gz
           rpmbuild -bb /github/home/rpmbuild/SPECS/zeromq.spec
           cd -
+
           mv /github/home/rpmbuild/RPMS/x86_64/*.rpm ./
+          rm -f zeromq-debugsource-*.rpm libzmq5-debuginfo-*.rpm
         shell: bash
 
       - name: cache rpm
@@ -124,6 +126,8 @@ jobs:
           sed -Ei 's/([0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+)/\1~${{ matrix.distrib }}/' debian/changelog
           sed -Ei 's/UNRELEASED/${{ matrix.distrib }}/' debian/changelog
           dpkg-buildpackage -us -uc -nc
+
+          rm -f libzmq5-dbg_*.deb
         shell: bash
 
       - name: cache deb
