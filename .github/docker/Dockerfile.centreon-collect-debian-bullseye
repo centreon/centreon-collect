@@ -50,7 +50,12 @@ apt-get clean
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 EOF
 
-RUN <<EOF
+ARG TRIPLET
+RUN bash -e <<EOF
+if [ "${TRIPLET}" = "arm64-linux" ] ; then
+  export VCPKG_FORCE_SYSTEM_BINARIES=1
+fi
+
 cd /
 git clone -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
 /vcpkg/bootstrap-vcpkg.sh
@@ -61,14 +66,10 @@ COPY vcpkg.json /src
 COPY overlays /overlays
 
 ARG TRIPLET
-RUN <<EOF
+RUN bash -e <<EOF
 
 export VCPKG_ROOT=/vcpkg
-export PATH=$VCPKG_ROOT:$PATH
-
-echo "#######################################################"
-echo "TRIPLET=${TRIPLET}"
-echo "#######################################################"
+export PATH=\$VCPKG_ROOT:\$PATH
 
 if [ "${TRIPLET}" = "arm64-linux" ] ; then
   export VCPKG_FORCE_SYSTEM_BINARIES=1
