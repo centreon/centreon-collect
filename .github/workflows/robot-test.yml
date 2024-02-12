@@ -165,8 +165,10 @@ jobs:
       - name: Generate JSON report
         run: |
           pip install xmljson
+          find / -name output.json
           pip install --upgrade pip
-          xml2json output.xml -o output.json
+          xml2json tests/output.xml -o output.json
+          find / -name output.json
           cp tests/output.json /tmp/
         shell: bash
 
