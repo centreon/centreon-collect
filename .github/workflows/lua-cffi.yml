@@ -99,12 +99,13 @@ jobs:
         shell: bash
 
       - name: Package
-        uses: ./.github/actions/package-nfpm
+        uses: ./.github/actions/package
         with:
           nfpm_file_pattern: "stream-connectors/dependencies/lua-cffi/packaging/*.yaml"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
           arch: amd64
+          major_version: ${{ needs.get-version.outputs.version }}
           version: "0.2.4"
           release: "1"
           commit_hash: ${{ github.sha }}

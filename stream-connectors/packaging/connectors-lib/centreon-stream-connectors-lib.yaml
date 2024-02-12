@@ -4,6 +4,7 @@ platform: "linux"
 version_schema: "none"
 version: "${VERSION}"
 release: "${RELEASE}${DIST}"
+epoch: 1
 section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
@@ -29,13 +30,15 @@ contents:
 overrides:
   rpm:
     depends:
+      - centreon-broker-core >= ${MAJOR_VERSION}
+      - centreon-broker-core < ${NEXT_MAJOR_VERSION}
       - lua-socket >= 3.0
-      - centreon-broker-core >= 22.04.0
       - lua-curl
       - lua
   deb:
     depends:
-      - "centreon-broker-core (>= 22.04.0)"
+      - "centreon-broker-core (>= ${MAJOR_VERSION}~)"
+      - "centreon-broker-core (<< ${NEXT_MAJOR_VERSION}~)"
       - "lua-socket (>= 3.0~)"
       - "lua5.3-curl"
       - "lua5.3"

@@ -4,6 +4,7 @@ platform: "linux"
 version_schema: "none"
 version: "${VERSION}"
 release: "${RELEASE}${DIST}"
+epoch: 1
 section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
@@ -21,12 +22,14 @@ contents:
 overrides:
   rpm:
     depends: [
-      centreon-stream-connectors-lib >= 3.0.0,
+      centreon-stream-connectors-lib >= ${MAJOR_VERSION},
+      centreon-stream-connectors-lib < ${NEXT_MAJOR_VERSION},
       @RPM_DEPENDENCIES@
     ]
   deb:
     depends: [
-      "centreon-stream-connectors-lib (>= 3.0.0~)",
+      "centreon-stream-connectors-lib (>= ${MAJOR_VERSION}~)",
+      "centreon-stream-connectors-lib (<< ${NEXT_MAJOR_VERSION}~)",
       @DEB_DEPENDENCIES@
     ]
 rpm:
