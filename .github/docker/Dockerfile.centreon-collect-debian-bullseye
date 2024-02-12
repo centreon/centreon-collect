@@ -66,6 +66,10 @@ RUN <<EOF
 export VCPKG_ROOT=/vcpkg
 export PATH=$VCPKG_ROOT:$PATH
 
+echo "#######################################################"
+echo "TRIPLET=${TRIPLET}"
+echo "#######################################################"
+
 if [ "${TRIPLET}" = "arm64-linux" ] ; then
   export VCPKG_FORCE_SYSTEM_BINARIES=1
 fi
