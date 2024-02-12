@@ -106,7 +106,7 @@ jobs:
               ENV="production"
               ;;
             *)
-              STABILITY="unstable"
+              STABILITY="testing"
               ;;
           esac
           echo "stability=$STABILITY" >> $GITHUB_OUTPUT
