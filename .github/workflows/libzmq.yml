@@ -115,10 +115,11 @@ jobs:
           make install
           cd ..
 
-          wget -O - https://github.com/zeromq/libzmq/archive/refs/tags/v4.3.5.tar.gz|tar zxvf -
+          wget -O - https://github.com/zeromq/libzmq/archive/refs/tags/v4.3.5.tar.gz | tar zxvf -
           cd libzmq-4.3.5
-          apt-get install -y debhelper dh-autoreconf libkrb5-dev libnorm-dev libpgm-dev libsodium-dev libunwind8-dev libnss3-dev libgnutls28-dev libbsd-dev pkg-config asciidoc xmlto
           ln -s packaging/debian
+          sed -Ei 's/([0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+)/\1~${{ matrix.distrib }}/' debian/changelog
+          sed -Ei 's/UNRELEASED/${{ matrix.distrib }}/' debian/changelog
           dpkg-buildpackage -us -uc -nc
           cd ..
 
