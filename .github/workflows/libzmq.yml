@@ -29,10 +29,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-nfpm-alma8
+          - image: packaging-alma8
             distrib: el8
             arch: amd64
-          - image: packaging-nfpm-alma9
+          - image: packaging-alma9
             distrib: el9
             arch: amd64
 
@@ -56,7 +56,7 @@ jobs:
             dnf config-manager --set-enabled crb
           fi
           dnf install -y asciidoc autoconf automake gcc gcc-c++ glib2-devel libbsd-devel libtool make rpm-build xmlto
-          
+
           cd /github/home
           wget -O - https://github.com/zeromq/libzmq/archive/refs/tags/v4.3.5.tar.gz | tar zxvf -
           mkdir -p /github/home/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
@@ -64,7 +64,7 @@ jobs:
           wget https://github.com/zeromq/libzmq/releases/download/v4.3.5/zeromq-4.3.5.tar.gz -O  /github/home/rpmbuild/SOURCES/zeromq-4.3.5.tar.gz
           rpmbuild -bb /github/home/rpmbuild/SPECS/zeromq.spec
           cd -
-          
+
           mv /github/home/rpmbuild/RPMS/x86_64/*.rpm ./
           rm -f zeromq-debugsource-*.rpm libzmq5-debuginfo-*.rpm
         shell: bash
@@ -82,7 +82,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-nfpm-bullseye
+          - image: packaging-bullseye
             distrib: bullseye
             runner: ubuntu-22.04
             arch: amd64
@@ -107,20 +107,20 @@ jobs:
           apt-get update
           apt-get install -y debhelper dh-autoreconf dpkg-dev libkrb5-dev libnorm-dev libpgm-dev libsodium-dev libunwind8-dev libnss3-dev libgnutls28-dev libbsd-dev pkg-config asciidoc wget xmlto
           wget -O - https://github.com/zeromq/libzmq/releases/download/v4.3.5/zeromq-4.3.5.tar.gz | tar zxvf -
-          
+
           cd zeromq-4.3.5
           ./configure
           make
           make install
           cd ..
-          
+
           wget -O - https://github.com/zeromq/libzmq/archive/refs/tags/v4.3.5.tar.gz|tar zxvf -
           cd libzmq-4.3.5
           apt-get install -y debhelper dh-autoreconf libkrb5-dev libnorm-dev libpgm-dev libsodium-dev libunwind8-dev libnss3-dev libgnutls28-dev libbsd-dev pkg-config asciidoc xmlto
           ln -s packaging/debian
           dpkg-buildpackage -us -uc -nc
           cd ..
-          
+
           rm -f libzmq5-dbg_*.deb
         shell: bash
 
