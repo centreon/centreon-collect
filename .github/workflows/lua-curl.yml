@@ -144,8 +144,8 @@ jobs:
           package_extension: ${{ matrix.package_extension }}
           arch: amd64
           major_version: ${{ needs.get-version.outputs.version }}
-          version: "0.3.13"
-          release: "7"
+          version: ${{ needs.get-version.outputs.version }}.0
+          release: "1"
           commit_hash: ${{ github.sha }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-lua-curl-${{ matrix.distrib }}
           rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}

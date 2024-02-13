@@ -32,15 +32,17 @@ overrides:
     depends:
       - centreon-broker-core >= ${MAJOR_VERSION}
       - centreon-broker-core < ${NEXT_MAJOR_VERSION}
+      - lua-curl >= ${MAJOR_VERSION}
+      - lua-curl < ${NEXT_MAJOR_VERSION}
       - lua-socket >= 3.0
-      - lua-curl
       - lua
   deb:
     depends:
       - "centreon-broker-core (>= ${MAJOR_VERSION}~)"
       - "centreon-broker-core (<< ${NEXT_MAJOR_VERSION}~)"
+      - "lua5.3-curl (>= ${MAJOR_VERSION}~)"
+      - "lua5.3-curl (<< ${NEXT_MAJOR_VERSION}~)"
       - "lua-socket (>= 3.0~)"
-      - "lua5.3-curl"
       - "lua5.3"
 
 rpm:

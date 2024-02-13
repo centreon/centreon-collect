@@ -126,7 +126,7 @@ jobs:
           nfpm_file_pattern: "stream-connectors/packaging/connectors/centreon-stream-connectors.yaml"
           distrib: ${{ matrix.distrib }}
           major_version: ${{ needs.get-version.outputs.version }}
-          version: ${{ steps.package-version.outputs.package_version }}
+          version: ${{ needs.get-version.outputs.version }}.${{ steps.package-version.outputs.package_version }}
           release: "1"
           package_extension: ${{ matrix.package_extension }}
           arch: all
