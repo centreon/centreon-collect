@@ -40,11 +40,9 @@ apt-get -y install git \
     sudo
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
-#echo 'deb http://deb.debian.org/debian bookworm-backports main contrib' | tee -a /etc/apt/sources.list
 
 apt-get update
 apt-get install -y nfpm
-#apt-get install -y -t bookworm-backports cmake
 
 apt-get clean
 
@@ -71,6 +69,9 @@ RUN bash -e <<EOF
 if [ "${TRIPLET}" = "arm64-linux" ] ; then
   export VCPKG_FORCE_SYSTEM_BINARIES=1
 fi
+
+echo "set(VCPKG_BUILD_TYPE release)" >> /vcpkg/triplets/x64-linux.cmake
+echo "set(VCPKG_BUILD_TYPE release)" >> /vcpkg/triplets/arm64-linux.cmake
 
 export VCPKG_ROOT=/vcpkg
 export PATH=\$VCPKG_ROOT:\$PATH
