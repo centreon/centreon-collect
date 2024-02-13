@@ -113,8 +113,6 @@ jobs:
           fi
           sed -i "s/@RPM_DEPENDENCIES@/$RPM_DEPENDENCIES/g;" ./stream-connectors/packaging/connectors/centreon-stream-connectors.yaml
           sed -i "s/@DEB_DEPENDENCIES@/$DEB_DEPENDENCIES/g;" ./stream-connectors/packaging/connectors/centreon-stream-connectors.yaml
-
-          cat ./stream-connectors/packaging/connectors/centreon-stream-connectors.yaml
         shell: bash
 
       - name: Export package version
