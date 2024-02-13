@@ -103,13 +103,13 @@ jobs:
           RPM_DEPENDENCIES=""
           if [ "${{ matrix.connector_path }}" = "kafka" ]; then
             DEB_DEPENDENCIES='librdkafka1,"lua-cffi (>= ${MAJOR_VERSION}~)","lua-cffi (<< ${NEXT_MAJOR_VERSION}~)"'
-            RPM_DEPENDENCIES='librdkafka,lua-cffi >= ${MAJOR_VERSION},lua-cffi ${NEXT_MAJOR_VERSION}'
+            RPM_DEPENDENCIES='librdkafka,"lua-cffi >= ${MAJOR_VERSION}","lua-cffi ${NEXT_MAJOR_VERSION}"'
           elif [ "${{ matrix.connector_path }}" = "pagerduty" ]; then
-            DEB_DEPENDENCIES='lua-tz (>= ${MAJOR_VERSION}~)","lua-tz (<< ${NEXT_MAJOR_VERSION}~)"'
-            RPM_DEPENDENCIES='lua-tz >= ${MAJOR_VERSION},lua-tz ${NEXT_MAJOR_VERSION}'
+            DEB_DEPENDENCIES='"lua-tz (>= ${MAJOR_VERSION}~)","lua-tz (<< ${NEXT_MAJOR_VERSION}~)"'
+            RPM_DEPENDENCIES='"lua-tz >= ${MAJOR_VERSION}","lua-tz ${NEXT_MAJOR_VERSION}"'
           elif [ "${{ matrix.connector_path }}" = "splunk" ]; then
-            DEB_DEPENDENCIES='lua-tz (>= ${MAJOR_VERSION}~)","lua-tz (<< ${NEXT_MAJOR_VERSION}~)"'
-            RPM_DEPENDENCIES='lua-tz >= ${MAJOR_VERSION},lua-tz ${NEXT_MAJOR_VERSION}'
+            DEB_DEPENDENCIES='"lua-tz (>= ${MAJOR_VERSION}~)","lua-tz (<< ${NEXT_MAJOR_VERSION}~)"'
+            RPM_DEPENDENCIES='"lua-tz >= ${MAJOR_VERSION}","lua-tz ${NEXT_MAJOR_VERSION}"'
           fi
           sed -i "s/@RPM_DEPENDENCIES@/$RPM_DEPENDENCIES/g;" ./stream-connectors/packaging/connectors/centreon-stream-connectors.yaml
           sed -i "s/@DEB_DEPENDENCIES@/$DEB_DEPENDENCIES/g;" ./stream-connectors/packaging/connectors/centreon-stream-connectors.yaml
