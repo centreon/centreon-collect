@@ -4,7 +4,6 @@ platform: "linux"
 version_schema: "none"
 version: "${VERSION}"
 release: "${RELEASE}${DIST}"
-epoch: 1
 section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
