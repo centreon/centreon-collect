@@ -71,6 +71,7 @@ jobs:
           rm -rf build
           cmake \
             -B build \
+            -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
             -DVCPKG_OVERLAY_PORTS=/overlays \
             -S . \
             -GNinja \
