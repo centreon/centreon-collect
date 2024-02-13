@@ -52,4 +52,3 @@ cd /tmp/collect
 /bin/rm -rf /tmp/collect
 
 EOF
-
