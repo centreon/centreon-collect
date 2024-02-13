@@ -167,7 +167,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Publish RPM packages
-        uses: ./.github/actions/rpm-delivery
+        uses: ./.github/actions/delivery
         with:
           module_name: lua-curl
           distrib: ${{ matrix.distrib }}
@@ -190,7 +190,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Publish DEB packages
-        uses: ./.github/actions/deb-delivery
+        uses: ./.github/actions/delivery
         with:
           module_name: lua-curl
           distrib: ${{ matrix.distrib }}
