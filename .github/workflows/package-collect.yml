@@ -129,6 +129,7 @@ jobs:
           export PATH="$VCPKG_ROOT:$PATH"
           $CMAKE \
                   -B build \
+                  -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
                   -DVCPKG_OVERLAY_PORTS=/overlays \
                   -GNinja \
                   -DDEBUG_ROBOT=OFF \
