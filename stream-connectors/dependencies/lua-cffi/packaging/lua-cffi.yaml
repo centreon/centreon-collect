@@ -32,7 +32,7 @@ overrides:
   deb:
     depends:
       - "lua5.3"
-      - "libffi7"
+      - "${LIBFFI_DEPENDENCY}"
       - "libffi-dev"
 
 rpm:
