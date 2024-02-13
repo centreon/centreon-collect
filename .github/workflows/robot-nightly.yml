@@ -57,7 +57,7 @@ jobs:
     secrets: inherit
 
   robot-test:
-    needs: [get-version, package]
+    needs: [get-version]
 
     strategy:
       fail-fast: false

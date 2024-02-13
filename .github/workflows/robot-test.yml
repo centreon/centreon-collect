@@ -158,25 +158,9 @@ jobs:
           echo "xray_token=$xray_token" >> $GITHUB_OUTPUT
         shell: bash
 
-      - name: Install Robot Framework
-        run: |
-          pip install robotframework
-
-      - name: Generate JSON report
-        run: |
-          pip install xmljson
-          pip install --upgrade pip
-          cd tests/
-          xml2json output.xml -o output.json
-          ls -l
-          chmod +w output.json
-          cp output.json /tmp/
-          cat /tmp/output.json
-        shell: bash
-
       - name: Send report to xrays
         run: |
-          curl -H "Content-Type: application/json" -X POST -d @tests/issueFields.json -d @tests/output.json -d @tests/testIssueFields.json -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" -v "https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON"
+          curl -H "Content-Type: text/xml" -X POST -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}"  --data @"output.xml" https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON&testExecKey=MON-35270
 
       - name: Move reports
         if: ${{ failure() }}
