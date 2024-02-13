@@ -1,6 +1,7 @@
 ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/debian:bookworm
+ARG TRIPLET
 
 RUN bash -e <<EOF
 
@@ -39,7 +40,7 @@ apt-get -y install git \
     libcurl4-openssl-dev \
     sudo
 
-echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
+echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' > /etc/apt/sources.list.d/goreleaser.list
 
 apt-get update
 apt-get install -y nfpm
@@ -49,7 +50,6 @@ apt-get clean
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 EOF
 
-ARG TRIPLET
 RUN bash -e <<EOF
 if [ "${TRIPLET}" = "arm64-linux" ] ; then
   export VCPKG_FORCE_SYSTEM_BINARIES=1
@@ -64,7 +64,6 @@ EOF
 COPY vcpkg.json /src
 COPY overlays /overlays
 
-ARG TRIPLET
 RUN bash -e <<EOF
 if [ "${TRIPLET}" = "arm64-linux" ] ; then
   export VCPKG_FORCE_SYSTEM_BINARIES=1

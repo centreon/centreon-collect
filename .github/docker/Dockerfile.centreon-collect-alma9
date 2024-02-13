@@ -63,11 +63,13 @@ COPY overlays /overlays
 
 RUN bash -e <<EOF
 
-echo "############### ${PWD} ###################"
-ls -l
-echo "##########################################"
+echo "set(VCPKG_BUILD_TYPE release)" >> /vcpkg/triplets/x64-linux.cmake
+echo "set(VCPKG_BUILD_TYPE release)" >> /vcpkg/triplets/arm64-linux.cmake
 
-vcpkg/vcpkg install --triplet x64-linux --vcpkg-root vcpkg --x-wait-for-lock --x-manifest-root=/src --x-install-root=build/vcpkg_installed --overlay-ports=overlays
+export VCPKG_ROOT=/vcpkg
+export PATH=\$VCPKG_ROOT:\$PATH
+
+/vcpkg/vcpkg install --triplet x64-linux --vcpkg-root vcpkg --x-wait-for-lock --x-manifest-root=/src --x-install-root=build/vcpkg_installed --overlay-ports=overlays
 
 EOF
 

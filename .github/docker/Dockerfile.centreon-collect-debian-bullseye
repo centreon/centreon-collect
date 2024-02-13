@@ -1,6 +1,7 @@
 ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/debian:bullseye
+ARG TRIPLET
 
 RUN bash -e <<EOF
 
@@ -50,7 +51,6 @@ apt-get clean
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 EOF
 
-ARG TRIPLET
 RUN bash -e <<EOF
 if [ "${TRIPLET}" = "arm64-linux" ] ; then
   export VCPKG_FORCE_SYSTEM_BINARIES=1
@@ -65,8 +65,10 @@ EOF
 COPY vcpkg.json /src
 COPY overlays /overlays
 
-ARG TRIPLET
 RUN bash -e <<EOF
+
+echo "set(VCPKG_BUILD_TYPE release)" >> /vcpkg/triplets/x64-linux.cmake
+echo "set(VCPKG_BUILD_TYPE release)" >> /vcpkg/triplets/arm64-linux.cmake
 
 export VCPKG_ROOT=/vcpkg
 export PATH=\$VCPKG_ROOT:\$PATH
