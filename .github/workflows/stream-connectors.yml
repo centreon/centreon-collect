@@ -154,7 +154,7 @@ jobs:
       - name: Publish RPM packages
         uses: ./.github/actions/delivery
         with:
-          module_name: stream-connectors
+          module_name: stream-connector-${{ matrix.connector_path }}
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-version.outputs.version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
@@ -178,7 +178,7 @@ jobs:
       - name: Publish DEB packages
         uses: ./.github/actions/delivery
         with:
-          module_name: stream-connectors
+          module_name: stream-connector-${{ matrix.connector_path }}
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-version.outputs.version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
