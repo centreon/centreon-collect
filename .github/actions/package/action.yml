@@ -96,7 +96,9 @@ runs:
           DIRNAME=$(dirname $FILE)
           BASENAME=$(basename $FILE)
           if [ -f $DIRNAME/env/.env.${{ inputs.distrib }} ]; then
+            set -o allexport
             source $DIRNAME/env/.env.${{ inputs.distrib }}
+            set +o allexport
           fi
           cd $DIRNAME
           sed -i "s/@luaver@/$luaver/g" $BASENAME
