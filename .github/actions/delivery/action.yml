@@ -46,7 +46,7 @@ runs:
         JF_URL: https://centreon.jfrog.io
         JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
 
-    - if: ${{ env.extfile == 'rpm' && inputs.distrib == 'el9' }}
+    - if: ${{ env.extfile == 'rpm' }}
       name: Publish RPMs
       run: |
         FILES="*.${{ env.extfile }}"
@@ -89,7 +89,7 @@ runs:
         done
       shell: bash
 
-    - if: ${{ env.extfile == 'deb' && inputs.distrib == 'el9' }}
+    - if: ${{ env.extfile == 'deb' }}
       name: Publish DEBs
       run: |
         FILES="*.${{ env.extfile }}"
