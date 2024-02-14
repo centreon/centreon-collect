@@ -1483,6 +1483,14 @@ def check_no_host_dependencies(timeout=TIMEOUT):
     return False
 
 
+def grep(file_path: str, pattern: str):
+    with open(file_path, "r") as file:
+        for line in file:
+            if re.search(pattern, line):
+                return line.strip()
+    return ""
+
+
 def get_collect_version():
     f = open("../CMakeLists.txt", "r")
     lines = f.readlines()
