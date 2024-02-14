@@ -57,7 +57,7 @@ if [ "${TRIPLET}" = "arm64-linux" ] ; then
 fi
 
 cd /
-git clone -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
+git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
 /vcpkg/bootstrap-vcpkg.sh
 mkdir /src
 EOF
