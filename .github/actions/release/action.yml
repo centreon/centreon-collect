@@ -40,7 +40,7 @@ runs:
         MINOR_VERSION_FILE_PATH=".version"
 
         # Get current stable branch name
-        # CURRENT_STABLE_BRANCH_MAJOR_VERSION=$(git rev-parse --abbrev-ref HEAD | cut -d '.' -f1,2)
+        # CURRENT_STABLE_BRANCH_MAJOR_VERSION=$(echo ${{ inputs.github_ref_name }} | cut -d '.' -f1,2)
         CURRENT_STABLE_BRANCH_MAJOR_VERSION="42.04"
         echo "Current stable branch major version: $CURRENT_STABLE_BRANCH_MAJOR_VERSION"
 
@@ -147,14 +147,7 @@ runs:
         for TAG in ${NEW_RELEASE_TAGS[@]}; do
           echo "::notice::Creating JIRA release $TAG based on git release tag $TAG."
           # Build JSON with release information for JIRA API
-          JIRA_RELEASE_DATA=$(jq -n \
-            --arg archived "$JIRA_RELEASE_ARCHIVED" \
-            --arg description "$JIRA_RELEASE_DESCRIPTION" \
-            --arg releaseDate "$JIRA_RELEASE_DATE" \
-            --arg name "$TAG" \
-            --arg projectId "$JIRA_PROJECT_ID" \
-            --arg "$JIRA_RELEASE_RELEASED" \
-            '$ARGS.named' )
+          JIRA_RELEASE_DATA=$(jq -n --arg archived "$JIRA_RELEASE_ARCHIVED" --arg description "$JIRA_RELEASE_DESCRIPTION" --arg releaseDate "$JIRA_RELEASE_DATE" --arg name "$TAG" --arg projectId "$JIRA_PROJECT_ID" --arg "$JIRA_RELEASE_RELEASED" '$ARGS.named' )
           echo "Sending to JIRA release: $JIRA_RELEASE_DATA"
           curl --fail --request POST \
             --url 'https://centreon.atlassian.net/rest/api/3/version' \
