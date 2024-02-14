@@ -38,7 +38,7 @@ runs:
 
         # Get current stable branch name
         # CURRENT_STABLE_BRANCH_MAJOR_VERSION=$(git rev-parse --abbrev-ref HEAD | cut -d '.' -f1,2)
-        CURRENT_STABLE_BRANCH_MAJOR_VERSION="24.04"
+        CURRENT_STABLE_BRANCH_MAJOR_VERSION="42.04"
         echo "Current stable branch major version: $CURRENT_STABLE_BRANCH_MAJOR_VERSION"
 
         # Get previous and new version tags for components
@@ -80,8 +80,8 @@ runs:
         echo "Creating release tags."
         for TAG in ${NEW_STABLE_TAGS[@]}; do
           if [ -z $(git tag --list "$TAG" | head -n 1) ]; then
-            git tag -a "$TAG" -m "$TAG"
-            git push --follow-tags
+            # git tag -a "$TAG" -m "$TAG"
+            # git push --follow-tags
             echo "::notice::Tagging branch with $TAG."
           else
             echo "::error::Release tag $TAG already exists, exiting."
@@ -110,7 +110,7 @@ runs:
         echo "Creating GITHUB releases."
         for TAG in ${NEW_STABLE_TAGS[@]}; do
           echo "::notice::Creating release with title $TAG for tag $TAG."
-          gh release create $TAG --target "${{ inputs.github_ref_name }} --title "$TAG" --verify-tag
+          # gh release create $TAG --target "${{ inputs.github_ref_name }} --title "$TAG" --verify-tag
         done
       shell: bash
 
@@ -137,12 +137,13 @@ runs:
           echo "::notice::Creating JIRA release $TAG based on git release tag $TAG."
           JIRA_VERSION_DATA="{\"archived\":false,\"releaseDate\":\"$(date +%Y-%m-%d)\",\"name\":\"$TAG\",\"projectId\":${{ inputs.jira_project_id }},\"released\":false}"
           echo "Sending to JIRA release: $JIRA_VERSION_DATA"
-          curl --fail --request POST \
-            --url 'https://centreon.atlassian.net/rest/api/3/version' \
-            --header 'Authorization: Basic ${{ inputs.jira_token }}' \
-            --header 'Accept: application/json' \
-            --header 'Content-Type: application/json' \
-            --data ''$VERSION_DATA''
+          # curl --fail --request POST \
+          #   --url 'https://centreon.atlassian.net/rest/api/3/version' \
+          #   --header 'Authorization: Basic ${{ inputs.jira_token }}' \
+          #   --header 'Accept: application/json' \
+          #   --header 'Content-Type: application/json' \
+          #   --data ''$VERSION_DATA''
+          echo ''$VERSION_DATA''
         done
       shell: bash
 
