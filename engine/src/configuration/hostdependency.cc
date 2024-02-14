@@ -469,7 +469,6 @@ bool hostdependency::_set_dependent_hosts(std::string const& value) {
  */
 bool hostdependency::_set_execution_failure_options(std::string const& value) {
   unsigned short options(none);
-  dependency_type(execution_dependency);
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
@@ -539,7 +538,6 @@ bool hostdependency::_set_inherits_parent(bool value) {
  */
 bool hostdependency::_set_notification_failure_options(
     std::string const& value) {
-  dependency_type(notification_dependency);
   unsigned short options(none);
   std::list<std::string> values;
   string::split(value, values, ',');
