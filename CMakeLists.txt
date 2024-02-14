@@ -163,7 +163,16 @@ include(FindPkgConfig)
 pkg_check_modules(MARIADB REQUIRED libmariadb)
 pkg_check_modules(LIBSSH2 REQUIRED libssh2)
 
-set(GRPC_TOOLS_DIR ${gRPC_DIR}/../../tools/grpc)
+# There is a bug with grpc. It is not put in the triplet directory. So we have
+# to search for its plugin.
+file(GLOB_RECURSE GRPC_CPP_PLUGIN_EXE
+  RELATIVE ${CMAKE_BINARY_DIR} grpc_cpp_plugin)
+find_program(GRPC_CPP_PLUGIN
+  NAMES ${GRPC_CPP_PLUGIN_EXE}
+  PATHS ${CMAKE_BINARY_DIR}
+  REQUIRED
+  NO_DEFAULT_PATH)
+
 set(PROTOBUF_LIB_DIR ${Protobuf_DIR}/../../lib)
 set(OTLP_LIB_DIR ${opentelemetry-cpp_DIR}/../../lib)
 set(VCPKG_INCLUDE_DIR ${Protobuf_INCLUDE_DIR})

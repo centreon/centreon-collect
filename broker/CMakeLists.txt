@@ -94,7 +94,7 @@ add_custom_command(
   OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${GRPC_TOOLS_DIR}/grpc_cpp_plugin
+    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
     --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
   DEPENDS ${SRC_DIR}/broker.proto

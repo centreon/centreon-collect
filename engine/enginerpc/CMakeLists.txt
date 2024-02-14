@@ -37,7 +37,7 @@ add_custom_command(
   OUTPUT ${ENGINERPC_DIR}/engine.grpc.pb.cc ${ENGINERPC_DIR}/engine.grpc.pb.h
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${GRPC_TOOLS_DIR}/grpc_cpp_plugin
+    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
     --proto_path=${ENGINERPC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     --grpc_out="${ENGINERPC_DIR}" ${ENGINERPC_DIR}/engine.proto
   DEPENDS ${ENGINERPC_DIR}/engine.proto
