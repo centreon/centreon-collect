@@ -128,7 +128,7 @@ jobs:
           export VCPKG_ROOT="/vcpkg"
           export PATH="$VCPKG_ROOT:$PATH"
           $CMAKE \
-                  -B /build \
+                  -B build \
                   -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
                   -DVCPKG_TARGET_TRIPLET=x64-linux-release \
                   -DVCPKG_OVERLAY_PORTS=/overlays \
@@ -153,7 +153,7 @@ jobs:
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -S .
 
-          ninja -C/build
+          ninja -Cbuild
         shell: bash
 
       - name: Cache statistics
@@ -166,20 +166,20 @@ jobs:
 
       - name: Generate debug files
         run: |
-          for file in $(find /build/{broker,engine,clib,connectors} -name '*.so' -type f); do
+          for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
             echo "Making a debug file of $file"
             objcopy --only-keep-debug $file $file.debug
             objcopy --strip-debug $file
             objcopy --add-gnu-debuglink $file.debug $file
           done
-          exe=("/build/broker/cbd"
-               "/build/broker/watchdog/cbwd"
-               "/build/engine/centengine"
-               "/build/engine/centenginestats"
-               "/build/engine/modules/bench/centengine_bench_passive"
-               "/build/connectors/perl/centreon_connector_perl"
-               "/build/connectors/ssh/centreon_connector_ssh"
-               "/build/ccc/ccc")
+          exe=("build/broker/cbd"
+               "build/broker/watchdog/cbwd"
+               "build/engine/centengine"
+               "build/engine/centenginestats"
+               "build/engine/modules/bench/centengine_bench_passive"
+               "build/connectors/perl/centreon_connector_perl"
+               "build/connectors/ssh/centreon_connector_ssh"
+               "build/ccc/ccc")
           for file in ${exe[@]}; do
             echo "Making a debug file of $file"
             objcopy --only-keep-debug $file $file.debug
