@@ -5,7 +5,7 @@ inputs:
     description: "Github ref name"
     required: true
   jira_token:
-    description: "Token to authenticate to Jira"
+    description: "NOT the Token to authenticate to Jira"
     required: true
   jira_project_id:
     description: "Jira project id to create release"
@@ -14,10 +14,10 @@ inputs:
     description: "Jira release webhook"
     required: true
   jira_user_email:
-    description: "Something"
+    description: "Jira user email"
     required: true
   jira_api_token:
-    description: "Something"
+    description: "Jira api token"
     required: true
 
 runs:
@@ -146,8 +146,7 @@ runs:
             --user '${{ inputs.jira_user_email }}:${{ inputs.jira_api_token }}' \
             --header 'Accept: application/json' \
             --header 'Content-Type: application/json' \
-            --data ''$JIRA_VERSION_DATA''
-          echo ''$JIRA_VERSION_DATA''
+            --data '$JIRA_VERSION_DATA'
         done
       shell: bash
 
