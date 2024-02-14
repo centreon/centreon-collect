@@ -68,10 +68,11 @@ jobs:
           mv /root/.cache /github/home
           export VCPKG_ROOT=/vcpkg
           export PATH=$VCPKG_ROOT:$PATH
-          rm -rf build
+          rm -rf /build
           cmake \
-            -B build \
+            -B /build \
             -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
+            -DVCPKG_TARGET_TRIPLET=x64-linux-release \
             -DVCPKG_OVERLAY_PORTS=/overlays \
             -S . \
             -GNinja \
@@ -93,18 +94,18 @@ jobs:
             -DWITH_CONFIG_FILES=ON \
             -DNG=ON
 
-          ninja -Cbuild
+          ninja -C/build
 
           echo "[DEBUG] - Find compiled files"
-          find ./build/{broker,engine,clib,connectors,common} -name "*.so" -type f
+          find /build/{broker,engine,clib,connectors,common} -name "*.so" -type f
           echo "[DEBUG] - Build size"
-          du -sh $(find ./build/{broker,engine,clib,connectors,common} -name "*.so" -type f) | sort -rh
+          du -sh $(find /build/{broker,engine,clib,connectors,common} -name "*.so" -type f) | sort -rh
 
       - name: Binary preparation
         run: |
           echo "[INFO] - Keeping only compiled files"
           # preserve binaries from cleaning
-          find ./build -type f -not \( -name "*.so" -or -name "cbd" -or -name "centengine" -or -name "cbwd" -or -name "centreon_connector_*" \) -delete
+          find /build -type f -not \( -name "*.so" -or -name "cbd" -or -name "centengine" -or -name "cbwd" -or -name "centreon_connector_*" \) -delete
 
           echo "[INFO] - Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then
@@ -125,11 +126,11 @@ jobs:
             echo "::warning::No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
           echo "[INFO] - Keeping only build's non empty folders"
-          find ./build -empty -type d -delete
-          ls -la ./build
+          find /build -empty -type d -delete
+          ls -la /build
 
           echo "[INFO] - Generating the tarball"
-          tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
+          tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" /build
 
       - name: Cache
         uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
