@@ -531,7 +531,7 @@ TEST_F(BamBA, KpiServiceDtInheritAllCritical) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     results.pop();
   }
 }
@@ -587,7 +587,7 @@ TEST_F(BamBA, KpiServiceDtInheritOneOK) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     results.pop();
   }
 
@@ -643,7 +643,7 @@ TEST_F(BamBA, KpiServiceIgnoreDt) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     results.pop();
   }
 }
@@ -695,7 +695,7 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpi) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     results.pop();
   }
 }
@@ -977,7 +977,7 @@ TEST_F(BamBA, KpiServiceDt) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = *it;
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     ++it;
   }
 
@@ -1091,7 +1091,7 @@ TEST_F(BamBA, KpiServiceDt) {
       ++it;
     } while (it->typ != test_visitor::test_event::kpi);
   }
-  ASSERT_FALSE(test_ba->get_in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
 }
 
 TEST_F(BamBA, KpiServiceDtInherited_set) {
@@ -1138,7 +1138,7 @@ TEST_F(BamBA, KpiServiceDtInherited_set) {
     kpis[j]->service_update(dt, _visitor.get());
 
     short val = *it;
-    ASSERT_EQ(test_ba->get_in_downtime(), val);
+    ASSERT_EQ(test_ba->in_downtime(), val);
     ++it;
   }
 
@@ -1150,7 +1150,7 @@ TEST_F(BamBA, KpiServiceDtInherited_set) {
     dt->was_started = true;
     kpis[0]->service_update(dt, _visitor.get());
   }
-  ASSERT_TRUE(test_ba->get_in_downtime());
+  ASSERT_TRUE(test_ba->in_downtime());
 }
 
 TEST_F(BamBA, KpiServiceDtInherited_unset) {
@@ -1195,7 +1195,7 @@ TEST_F(BamBA, KpiServiceDtInherited_unset) {
     kpis[j]->service_update(dt, _visitor.get());
   }
 
-  ASSERT_FALSE(test_ba->get_in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
 }
 
 TEST_F(BamBA, KpiServiceAcknowledgement) {

@@ -591,7 +591,7 @@ TEST_F(KpiBA, KpiBaDtOff) {
   dt->was_started = true;
   dt->was_cancelled = true;
   kpis[0]->service_update(dt, _visitor.get());
-  ASSERT_TRUE(!test_ba->get_in_downtime());
+  ASSERT_TRUE(!test_ba->in_downtime());
 
   auto events = _visitor->queue();
 
@@ -711,7 +711,7 @@ TEST_F(KpiBA, KpiBaDtOffPb) {
   dt->was_started = true;
   dt->was_cancelled = true;
   kpis[0]->service_update(dt, _visitor.get());
-  ASSERT_TRUE(!test_ba->get_in_downtime());
+  ASSERT_TRUE(!test_ba->in_downtime());
 
   auto events = _visitor->queue();
 
@@ -815,7 +815,7 @@ TEST_F(KpiBA, KpiBaOkDtOff) {
   dt->actual_end_time = -1;
   dt->was_started = true;
   kpis[0]->service_update(dt, _visitor.get());
-  ASSERT_FALSE(test_ba->get_in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
 
   /* Let's remove the downtime from the service. */
   dt = std::make_shared<neb::downtime>();
@@ -827,7 +827,7 @@ TEST_F(KpiBA, KpiBaOkDtOff) {
   dt->was_started = true;
   dt->was_cancelled = true;
   kpis[0]->service_update(dt, _visitor.get());
-  ASSERT_FALSE(test_ba->get_in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
 }
 
 /**
@@ -919,7 +919,7 @@ TEST_F(KpiBA, KpiBaOkDtOffPb) {
   dt->actual_end_time = -1;
   dt->was_started = true;
   kpis[0]->service_update(dt, _visitor.get());
-  ASSERT_FALSE(test_ba->get_in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
 
   /* Let's remove the downtime from the service. */
   dt = std::make_shared<neb::downtime>();
@@ -931,7 +931,7 @@ TEST_F(KpiBA, KpiBaOkDtOffPb) {
   dt->was_started = true;
   dt->was_cancelled = true;
   kpis[0]->service_update(dt, _visitor.get());
-  ASSERT_FALSE(test_ba->get_in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
 }
 
 /**

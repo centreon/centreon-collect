@@ -228,6 +228,7 @@ class DbConf:
                         self.host[v[0]], self.service[v[1]], id_ba))
 
             connection.commit()
+            return (id_ba, sid)
 
     def create_ba(self, name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy: str):
         connection = pymysql.connect(host=DB_HOST,

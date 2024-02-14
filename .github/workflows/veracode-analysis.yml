@@ -27,11 +27,32 @@ on:
         required: true
 
 jobs:
+  routing:
+    name: Check before analysis
+    runs-on: ubuntu-latest
+    outputs:
+      development_stage: ${{ steps.routing-mode.outputs.development_stage }}
+
+    steps:
+      - name: Set routing mode
+        id: routing-mode
+        run: |
+          CHECK_BRANCH=`echo "${{ github.ref_name }}" | cut -d'/' -f2`
+          if [[ $CHECK_BRANCH != "merge" && '${{ github.event_name }}' != 'pull_request' ]]; then
+            DEVELOPMENT_STAGE="Release"
+          else
+            DEVELOPMENT_STAGE="Development"
+          fi
+          echo "development_stage=$DEVELOPMENT_STAGE" >> $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
+
   build:
     name: Binary preparation
     runs-on: [self-hosted, collect]
+    needs: [routing]
+    if: needs.routing.outputs.development_stage != 'Development'
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma8:${{ inputs.img_version }}
       credentials:
         username: ${{ secrets.docker_registry_id }}
         password: ${{ secrets.docker_registry_passwd }}
@@ -108,18 +129,19 @@ jobs:
           tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
 
       - name: Cache
-        uses: actions/cache/save@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
   sandbox-scan:
-    needs: [build]
     name: Sandbox scan
+    needs: [build]
     runs-on: ubuntu-latest
 
     steps:
       - name: Promote latest scan
+        if: github.ref_name == 'develop'
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
           VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
@@ -135,13 +157,13 @@ jobs:
           delete-on-promote: false
 
       - name: Get build binary
-        uses: actions/cache/restore@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache/restore@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
       - name: Sandbox scan
-        uses: veracode/veracode-uploadandscan-action@0.2.6
+        uses: veracode/veracode-uploadandscan-action@98e2a2941b985e55bfe469ebcb970b2e686625e4 # v0.2.6
         continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' }}
         with:
           appname: "${{ inputs.module_name }}"
