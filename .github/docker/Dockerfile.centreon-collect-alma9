@@ -48,7 +48,7 @@ dnf --best install -y cmake \
     nfpm \
     sudo
 
-pip3 install conan==1.57.0 --prefix=/usr --upgrade
+pip3 install conan==1.62.0 --prefix=/usr --upgrade
 rm -rf ~/.conan/profiles/default
 
 EOF
@@ -58,7 +58,7 @@ COPY conanfile.txt .
 RUN <<EOF
 
 cat conanfile.txt
-conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
 
 EOF
 

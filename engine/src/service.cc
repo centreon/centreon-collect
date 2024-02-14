@@ -21,8 +21,11 @@
 
 #include <absl/strings/match.h>
 
+#include "com/centreon/engine/log_v2.hh"
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
@@ -30,7 +33,6 @@
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostdependency.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
@@ -1603,9 +1605,8 @@ int service::handle_async_check_result(
     set_no_more_notifications(false);
 
     if (reschedule_check)
-      next_service_check =
-          (time_t)(get_last_check() +
-                   check_interval() * config->interval_length());
+      next_service_check = (time_t)(
+          get_last_check() + check_interval() * config->interval_length());
   }
 
   /*******************************************/
@@ -1790,9 +1791,8 @@ int service::handle_async_check_result(
         /* the host is not up, so reschedule the next service check at regular
          * interval */
         if (reschedule_check)
-          next_service_check =
-              (time_t)(get_last_check() +
-                       check_interval() * config->interval_length());
+          next_service_check = (time_t)(
+              get_last_check() + check_interval() * config->interval_length());
 
         /* log the problem as a hard state if the host just went down */
         if (hard_state_change) {
@@ -1822,9 +1822,8 @@ int service::handle_async_check_result(
         handle_service_event();
 
         if (reschedule_check)
-          next_service_check =
-              (time_t)(get_last_check() +
-                       retry_interval() * config->interval_length());
+          next_service_check = (time_t)(
+              get_last_check() + retry_interval() * config->interval_length());
       }
 
       /* perform dependency checks on the second to last check of the service */
@@ -1923,9 +1922,8 @@ int service::handle_async_check_result(
 
       /* reschedule the next check at the regular interval */
       if (reschedule_check)
-        next_service_check =
-            (time_t)(get_last_check() +
-                     check_interval() * config->interval_length());
+        next_service_check = (time_t)(
+            get_last_check() + check_interval() * config->interval_length());
     }
 
     /* should we obsessive over service checks? */
@@ -2648,47 +2646,64 @@ int service::run_async_check_local(int check_options,
                                      : ACTIVE_ONDEMAND_SERVICE_CHECK_STATS,
                      start_time.tv_sec);
 
-  bool retry;
-  check_result::pointer check_result_info;
-  do {
-    // Init check result info.
-    check_result_info = std::make_shared<check_result>(
-        service_check, this, checkable::check_active, check_options,
-        reschedule_check, latency, start_time, start_time, false, true,
-        service::state_ok, "");
+  // Init check result info.
+  check_result::pointer check_result_info = std::make_shared<check_result>(
+      service_check, this, checkable::check_active, check_options,
+      reschedule_check, latency, start_time, start_time, false, true,
+      service::state_ok, "");
 
-    retry = false;
-    try {
-      // Run command.
-      uint64_t id =
-          cmd->run(processed_cmd, *macros, config->service_check_timeout(),
-                   check_result_info, this);
-      SPDLOG_LOGGER_DEBUG(log_v2::checks(),
-                          "run id={} {} for service {} host {}", id,
-                          processed_cmd, _service_id, _hostname);
-    } catch (com::centreon::exceptions::interruption const& e) {
-      retry = true;
-    } catch (std::exception const& e) {
-      // Update check result.
-      timeval tv;
-      gettimeofday(&tv, nullptr);
-      check_result_info->set_finish_time(tv);
-      check_result_info->set_early_timeout(false);
-      check_result_info->set_return_code(service::state_unknown);
-      check_result_info->set_exited_ok(true);
-      check_result_info->set_output("(Execute command failed)");
+  auto run_failure = [&](const std::string& reason) {
+    // Update check result.
+    timeval tv;
+    gettimeofday(&tv, nullptr);
+    check_result_info->set_finish_time(tv);
+    check_result_info->set_early_timeout(false);
+    check_result_info->set_return_code(service::state_unknown);
+    check_result_info->set_exited_ok(true);
+    check_result_info->set_output(reason);
 
-      // Queue check result.
-      checks::checker::instance().add_check_result_to_reap(check_result_info);
+    // Queue check result.
+    checks::checker::instance().add_check_result_to_reap(check_result_info);
+  };
 
-      engine_logger(log_runtime_warning, basic)
-          << "Error: Service check command execution failed: " << e.what();
-      SPDLOG_LOGGER_WARN(log_v2::runtime(),
-                         "Error: Service check command execution failed: {}",
-                         e.what());
-    }
-  } while (retry);
+  // allowed by whitelist?
+  if (!is_whitelist_allowed(processed_cmd)) {
+    SPDLOG_LOGGER_ERROR(
+        log_v2::commands(),
+        "service {}: this command cannot be executed because of "
+        "security restrictions on the poller. A whitelist has "
+        "been defined, and it does not include this command.",
+        name());
 
+    SPDLOG_LOGGER_DEBUG(log_v2::commands(),
+                        "service {}: command not allowed by whitelist {}",
+                        name(), processed_cmd);
+    run_failure(configuration::command_blacklist_output);
+  } else {
+    bool retry;
+    do {
+      retry = false;
+      try {
+        // Run command.
+        uint64_t id =
+            cmd->run(processed_cmd, *macros, config->service_check_timeout(),
+                     check_result_info, this);
+        SPDLOG_LOGGER_DEBUG(log_v2::checks(),
+                            "run id={} {} for service {} host {}", id,
+                            processed_cmd, _service_id, _hostname);
+      } catch (com::centreon::exceptions::interruption const& e) {
+        retry = true;
+      } catch (std::exception const& e) {
+        run_failure("(Execute command failed)");
+
+        engine_logger(log_runtime_warning, basic)
+            << "Error: Service check command execution failed: " << e.what();
+        SPDLOG_LOGGER_WARN(log_v2::runtime(),
+                           "Error: Service check command execution failed: {}",
+                           e.what());
+      }
+    } while (retry);
+  }
   // Cleanup.
   clear_volatile_macros_r(macros);
   return OK;
@@ -3432,9 +3447,9 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
    * suggested by Altinity */
   else if (this->active_checks_enabled() && event_start > get_last_check() &&
            this->get_freshness_threshold() == 0)
-    expiration_time = (time_t)(event_start + freshness_threshold +
-                               (config->max_service_check_spread() *
-                                config->interval_length()));
+    expiration_time = (time_t)(
+        event_start + freshness_threshold +
+        (config->max_service_check_spread() * config->interval_length()));
   else
     expiration_time = (time_t)(get_last_check() + freshness_threshold);
 

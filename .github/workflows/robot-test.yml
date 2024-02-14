@@ -71,7 +71,7 @@ jobs:
         shell: bash
 
       - name: image to cache
-        uses: actions/cache/save@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: /tmp/${{inputs.image}}
           key: ${{inputs.image_test}}
@@ -110,14 +110,14 @@ jobs:
           fetch-depth: 0
 
       - name: Restore image
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: /tmp/${{inputs.image}}
           key: ${{inputs.image_test}}
           fail-on-cache-miss: true
 
       - name: Restore packages
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: ${{ inputs.package_cache_path }}
           key: ${{ inputs.package_cache_key }}
@@ -154,11 +154,20 @@ jobs:
             cp tests/output.xml reports/$FILE_PREFIX-output.xml
           fi
 
+      - name: Replace / with - in the feature path
+        id: feature-path
+        if: always()
+        run: |
+          feature_name="${{ matrix.feature }}"
+          feature_name_with_dash="${feature_name//\//-}"
+          echo "Modified Feature Name: $feature_name_with_dash"
+          echo "feature_name_with_dash=$feature_name_with_dash" >> $GITHUB_OUTPUT
+
       - name: Upload Test Results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
         with:
-          name: reports-${{inputs.test_group_name}}
+          name: reports-${{inputs.test_group_name}}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: reports
           retention-days: 1
 
@@ -171,12 +180,59 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Download Artifacts
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935 # v4.1.1
+        with:
+          pattern: reports-${{inputs.test_group_name}}-*
+          path: reports
+          merge-multiple: true
+
+      - name: Upload the regrouped artifact
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
         with:
           name: reports-${{inputs.test_group_name}}
-          path: reports
+          path: reports/
+          retention-days: 1
 
-      - uses: actions/setup-python@v4
+      - name: Delete separated artifacts
+        run: |
+          artifact_pattern="reports-${{inputs.test_group_name}}-"
+          TOKEN=${{ secrets.GITHUB_TOKEN }}
+          artifact_exist=true
+          while [ "$artifact_exist" = true ]; do
+            artifact_exist=false
+            artifacts_response=$(curl -L \
+                          -H "Accept: application/vnd.github+json" \
+                          -H "Authorization: Bearer $TOKEN" \
+                          -H "X-GitHub-Api-Version: 2022-11-28" \
+                          "https://api.github.com/repos/${{ github.repository }}/actions/artifacts?per_page=100")
+            artifacts=$(echo $artifacts_response | jq -c '.artifacts[]')
+            echo "Those are the artifacts : $artifacts"
+            while read row; do
+              artifact_name=$(echo "$row" | jq -r '.name')
+              if [[ "$artifact_name" =~ ^.*"$artifact_pattern".* ]]; then
+                artifact_exist=true
+                echo "Deleting : $artifact_name"
+                artifact_id=$(echo "$row" | jq -r '.id')
+                curl -L \
+                  -X DELETE \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${artifact_id}"
+              fi
+            done <<< "$artifacts"
+          done
+          echo "End of Deleting"
+        shell: bash
+
+      # setup-python v5.0.0 relies on node20 which is not supported by el7 distributions
+      - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
+        if: ${{ inputs.distrib  == 'el7'}}
+        with:
+          python-version: '3.10'
+
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+        if: ${{ inputs.distrib != 'el7' }}
         with:
           python-version: '3.10'
 
