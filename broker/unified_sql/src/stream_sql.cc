@@ -1206,8 +1206,11 @@ void stream::_process_host_dependency(const std::shared_ptr<io::data>& d) {
   // Insert/Update.
   if (hd.enabled) {
     SPDLOG_LOGGER_INFO(log_v2::sql(),
-                       "SQL: enabling host dependency of {} on {}",
-                       hd.dependent_host_id, hd.host_id);
+                       "SQL: enabling host dependency of {} on {}: execution "
+                       "failure options: {} - notification failure options: {}",
+                       hd.dependent_host_id, hd.host_id,
+                       hd.execution_failure_options,
+                       hd.notification_failure_options);
 
     // Prepare queries.
     if (!_host_dependency_insupdate.prepared()) {
@@ -1259,9 +1262,12 @@ void stream::_process_pb_host_dependency(const std::shared_ptr<io::data>& d) {
 
   // Insert/Update.
   if (hd.enabled()) {
-    SPDLOG_LOGGER_INFO(log_v2::sql(),
-                       "SQL: enabling host dependency of {} on {}",
-                       hd.dependent_host_id(), hd.host_id());
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(),
+        "SQL: enabling pb host dependency of {} on {}: execution failure "
+        "options: {} - notification failure options: {}",
+        hd.dependent_host_id(), hd.host_id(), hd.execution_failure_options(),
+        hd.notification_failure_options());
 
     // Prepare queries.
     if (!_pb_host_dependency_insupdate.prepared()) {
