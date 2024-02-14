@@ -134,20 +134,50 @@ runs:
         # TODO: add a future capacity to determine wether the release is hotfix or standard (using TYPE)
         # OR: rely on jira automation to do it (less hassle on github side, and jira knows jira best)
 
+        # Build JSON vars for JIRA_RELEASE_DATA
+        JIRA_RELEASE_ARCHIVED="false"
+        JIRA_RELEASE_DESCRIPTION="jean_patrik"
+        JIRA_RELEASE_DATE="$(date +%Y-%m-%d)"
+        JIRA_RELEASE_NAME=""
+        JIRA_PROJECT_ID="${{ inputs.jira_project_id }}"
+        JIRA_RELEASE_RELEASED="false"
+
         # Create JIRA version for each released component
         echo "Creating JIRA releases."
         for TAG in ${NEW_RELEASE_TAGS[@]}; do
           echo "::notice::Creating JIRA release $TAG based on git release tag $TAG."
-          #JIRA_VERSION_DATA="{\"archived\":false,\"description\":\"centreon-collect-42.04\",\"releaseDate\":\"$(date +%Y-%m-%d)\",\"name\":\"$TAG\",\"projectId\":"${{ inputs.jira_project_id }}",\"released\":false}"
-          JIRA_VERSION_DATA="{"archived":false,"releaseDate":"$(date +%Y-%m-%d)","name":"$TAG","projectId":"${{ inputs.jira_project_id }}","released":false}"
-          echo "Sending to JIRA release: $JIRA_VERSION_DATA"
+          # Build JSON with release information for JIRA API
+          JIRA_RELEASE_DATA=$(jq -n \
+            --arg archived "$JIRA_RELEASE_ARCHIVED" \
+            --arg description "$JIRA_RELEASE_DESCRIPTION" \
+            --arg releaseDate "$JIRA_RELEASE_DATE" \
+            --arg name "$TAG" \
+            --arg projectId "$JIRA_PROJECT_ID" \
+            --arg "$JIRA_RELEASE_RELEASED" \
+            '$ARGS.named' )
+          echo "Sending to JIRA release: $JIRA_RELEASE_DATA"
           curl --fail --request POST \
             --url 'https://centreon.atlassian.net/rest/api/3/version' \
             --user '${{ inputs.jira_user_email }}:${{ inputs.jira_api_token }}' \
             --header 'Accept: application/json' \
             --header 'Content-Type: application/json' \
-            --data '$JIRA_VERSION_DATA'
+            --data '$JIRA_RELEASE_DATA'
         done
+
+        # # Create JIRA version for each released component
+        # echo "Creating JIRA releases."
+        # for TAG in ${NEW_RELEASE_TAGS[@]}; do
+        #   echo "::notice::Creating JIRA release $TAG based on git release tag $TAG."
+        #   #JIRA_VERSION_DATA="{\"archived\":false,\"description\":\"centreon-collect-42.04\",\"releaseDate\":\"$(date +%Y-%m-%d)\",\"name\":\"$TAG\",\"projectId\":"${{ inputs.jira_project_id }}",\"released\":false}"
+        #   JIRA_VERSION_DATA="{"archived":false,"releaseDate":"$(date +%Y-%m-%d)","name":"$TAG","projectId":"${{ inputs.jira_project_id }}","released":false}"
+        #   echo "Sending to JIRA release: $JIRA_VERSION_DATA"
+        #   curl --fail --request POST \
+        #     --url 'https://centreon.atlassian.net/rest/api/3/version' \
+        #     --user '${{ inputs.jira_user_email }}:${{ inputs.jira_api_token }}' \
+        #     --header 'Accept: application/json' \
+        #     --header 'Content-Type: application/json' \
+        #     --data '$JIRA_VERSION_DATA'
+        # done
       shell: bash
 
     - name: Trigger release communication for new releases
