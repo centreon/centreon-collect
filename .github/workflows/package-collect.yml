@@ -122,6 +122,9 @@ jobs:
 
           if [ "${{ matrix.arch }}" = "arm64" ]; then
             export VCPKG_FORCE_SYSTEM_BINARIES=1
+            export TRIPLET=arm64-linux-release
+          else
+            export TRIPLET=x64-linux-release
           fi
 
           mv /root/.cache /github/home/
@@ -130,7 +133,7 @@ jobs:
           $CMAKE \
                   -B build \
                   -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
-                  -DVCPKG_TARGET_TRIPLET=x64-linux-release \
+                  -DVCPKG_TARGET_TRIPLET=$TRIPLET \
                   -DVCPKG_OVERLAY_PORTS=/overlays \
                   -GNinja \
                   -DDEBUG_ROBOT=OFF \
