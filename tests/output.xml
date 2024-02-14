@@ -1,111 +1,373 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<robot generated="20170220 14:18:54.562" generator="Robot 3.0.2 (Python 2.7.13 on win32)">
-  <suite source="C:\Users\lmfv\Documents\Saco de Features\xray-1238\robot-example\robotframework-webdemo\login_tests" id="s1" name="Login Tests">
-    <suite source="C:\Users\lmfv\Documents\Saco de Features\xray-1238\robot-example\robotframework-webdemo\login_tests\gherkin_login.robot" id="s1-s1" name="Gherkin Login">
-      <test id="s1-s1-t1" name="Gherkin Valid Login">
-        <kw name="Given browser is opened to login page">
-          <kw name="Login Page Should Be Open" library="resource">
-            <kw name="Title Should Be" library="Selenium2Library">
-              <doc>Verifies that current page title equals `title`.</doc>
-              <arguments>
-                <arg>Log in - Your Company JIRA</arg>
-              </arguments>
-              <msg timestamp="20170220 14:19:07.693" level="INFO">Page title is 'Log in - Your Company JIRA'.</msg>
-              <status status="PASS" endtime="20170220 14:19:07.693" starttime="20170220 14:19:07.158">
-              </status>
-            </kw>
-            <status status="PASS" endtime="20170220 14:19:07.693" starttime="20170220 14:19:07.158">
-            </status>
-          </kw>
-          <status status="PASS" endtime="20170220 14:19:07.693" starttime="20170220 14:18:55.937">
-          </status>
-        </kw>
-        <kw name="When user &quot;admin&quot; logs in with password &quot;password123&quot;">
-          <kw name="Input Username" library="resource">
-            <arguments>
-              <arg>${username}</arg>
-            </arguments>
-            <kw name="Input Text" library="Selenium2Library">
-              <doc>Types the given `text` into text field identified by `locator`.</doc>
-              <arguments>
-                <arg>login-form-username</arg>
-                <arg>${username}</arg>
-              </arguments>
-              <msg timestamp="20170220 14:19:07.696" level="INFO">Typing text 'admin' into text field 'login-form-username'</msg>
-              <status status="PASS" endtime="20170220 14:19:09.314" starttime="20170220 14:19:07.696">
-              </status>
-            </kw>
-            <status status="PASS" endtime="20170220 14:19:09.314" starttime="20170220 14:19:07.695">
-            </status>
-          </kw>
-          <kw name="Input Password" library="resource">
-            <arguments>
-              <arg>${password}</arg>
-            </arguments>
-            <kw name="Input Text" library="Selenium2Library">
-              <doc>Types the given `text` into text field identified by `locator`.</doc>
-              <arguments>
-                <arg>login-form-password</arg>
-                <arg>${password}</arg>
-              </arguments>
-              <msg timestamp="20170220 14:19:09.316" level="INFO">Typing text 'password123' into text field 'login-form-password'</msg>
-              <status status="PASS" endtime="20170220 14:19:10.956" starttime="20170220 14:19:09.316">
-              </status>
-            </kw>
-            <status status="PASS" endtime="20170220 14:19:10.956" starttime="20170220 14:19:09.315">
-            </status>
-          </kw>
-          <kw name="Submit Credentials" library="resource">
-            <kw name="Click Button" library="Selenium2Library">
-              <doc>Clicks a button identified by `locator`.</doc>
-              <arguments>
-                <arg>login-form-submit</arg>
-              </arguments>
-              <msg timestamp="20170220 14:19:10.958" level="INFO">Clicking button 'login-form-submit'.</msg>
-              <status status="PASS" endtime="20170220 14:19:17.476" starttime="20170220 14:19:10.958">
-              </status>
-            </kw>
-            <status status="PASS" endtime="20170220 14:19:17.477" starttime="20170220 14:19:10.957">
-            </status>
-          </kw>
-          <status status="PASS" endtime="20170220 14:19:17.478" starttime="20170220 14:19:07.695">
-          </status>
-        </kw>
-        <kw name="Then welcome page should be open" library="resource">
-          <kw name="Location Should Be" library="Selenium2Library">
-            <doc>Verifies that current URL is exactly `url`.</doc>
-            <arguments>
-              <arg>${WELCOME URL}</arg>
-            </arguments>
-            <kw name="Capture Page Screenshot" library="Selenium2Library">
-              <doc>Takes a screenshot of the current page and embeds it into the log.</doc>
-              <msg timestamp="20170220 14:19:18.702" html="yes" level="INFO">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="selenium-screenshot-1.png"&gt;&lt;img src="selenium-screenshot-1.png" width="800px"&gt;&lt;/a&gt;</msg>
-              <status status="PASS" endtime="20170220 14:19:18.702" starttime="20170220 14:19:18.004">
-              </status>
-            </kw>
-            <msg timestamp="20170220 14:19:18.705" level="FAIL">Location should have been 'http://localhost:8080/secure/Dashboard.jspa' but was 'http://localhost:8080/login.jsp'</msg>
-            <status status="FAIL" endtime="20170220 14:19:18.705" starttime="20170220 14:19:17.483">
-            </status>
-          </kw>
-          <status status="FAIL" endtime="20170220 14:19:18.706" starttime="20170220 14:19:17.481">
-          </status>
-        </kw>
-        <kw type="teardown" name="Close Browser" library="Selenium2Library">
-          <doc>Closes the current browser.</doc>
-          <status status="PASS" endtime="20170220 14:19:22.382" starttime="20170220 14:19:18.707">
-          </status>
-        </kw>
-        <tags>
-          <tag>WEB-1</tag>
-          <tag>WEB-3</tag>
-        </tags>
-        <status status="FAIL" endtime="20170220 14:19:22.383" critical="yes" starttime="20170220 14:18:55.936">Location should have been 'http://localhost:8080/secure/Dashboard.jspa' but was 'http://localhost:8080/login.jsp'</status>
-      </test>
-      <doc>A test suite with a single Gherkin style test.This test is functionally identical to the example invalid_login.robot file.</doc>
-      <status status="FAIL" endtime="20170220 14:19:22.397" starttime="20170220 14:18:54.670">
-      </status>
-    </suite>
-    <status status="FAIL" endtime="20170220 14:22:12.549" starttime="20170220 14:18:54.567">
-    </status>
-  </suite>
+<robot generator="Robot 7.0 (Python 3.8.17 on linux)" generated="2024-02-14T11:04:04.351458" rpa="false" schemaversion="5">
+<suite id="s1" name="Tests" source="/root/centreon-collect/tests">
+<suite id="s1-s1" name="Broker-Engine" source="/root/centreon-collect/tests/broker-engine">
+<suite id="s1-s1-s1" name="Services" source="/root/centreon-collect/tests/broker-engine/services.robot">
+<kw name="Clean Before Suite" owner="resources" type="SETUP">
+<kw name="Clear Db" owner="Common">
+<arg>resources</arg>
+<status status="PASS" start="2024-02-14T11:04:04.741418" elapsed="0.009834"/>
+</kw>
+<kw name="Clear Db" owner="Common">
+<arg>hosts</arg>
+<status status="PASS" start="2024-02-14T11:04:04.752090" elapsed="0.019179"/>
+</kw>
+<kw name="Clear Db" owner="Common">
+<arg>services</arg>
+<status status="PASS" start="2024-02-14T11:04:04.771592" elapsed="0.002875"/>
+</kw>
+<kw name="Clear Db" owner="Common">
+<arg>tags</arg>
+<status status="PASS" start="2024-02-14T11:04:04.774768" elapsed="0.002713"/>
+</kw>
+<kw name="Stop Processes" owner="resources">
+<kw name="Terminate All Processes" owner="Process">
+<arg>kill=True</arg>
+<doc>Terminates all still running processes started by this library.</doc>
+<status status="PASS" start="2024-02-14T11:04:04.778342" elapsed="0.000585"/>
+</kw>
+<kw name="Kill Broker" owner="Common">
+<status status="PASS" start="2024-02-14T11:04:04.779149" elapsed="0.043737"/>
+</kw>
+<kw name="Kill Engine" owner="Common">
+<status status="PASS" start="2024-02-14T11:04:04.824649" elapsed="0.023631"/>
+</kw>
+<status status="PASS" start="2024-02-14T11:04:04.777907" elapsed="0.071053"/>
+</kw>
+<kw name="Clear Engine Logs" owner="resources">
+<kw name="Remove Directory" owner="OperatingSystem">
+<msg time="2024-02-14T11:04:04.852893" level="INFO" html="true">Removed directory '&lt;a href="file:///tmp/var/log/centreon-engine"&gt;/tmp/var/log/centreon-engine&lt;/a&gt;'.</msg>
+<arg>${ENGINE_LOG}</arg>
+<arg>Recursive=True</arg>
+<doc>Removes the directory pointed to by the given ``path``.</doc>
+<status status="PASS" start="2024-02-14T11:04:04.851019" elapsed="0.002164"/>
+</kw>
+<kw name="Create Directory" owner="OperatingSystem">
+<msg time="2024-02-14T11:04:04.854053" level="INFO" html="true">Created directory '&lt;a href="file:///tmp/var/log/centreon-engine"&gt;/tmp/var/log/centreon-engine&lt;/a&gt;'.</msg>
+<arg>${ENGINE_LOG}</arg>
+<doc>Creates the specified directory.</doc>
+<status status="PASS" start="2024-02-14T11:04:04.853705" elapsed="0.000497"/>
+</kw>
+<status status="PASS" start="2024-02-14T11:04:04.850127" elapsed="0.004189"/>
+</kw>
+<kw name="Clear Broker Logs" owner="resources">
+<kw name="Remove Directory" owner="OperatingSystem">
+<msg time="2024-02-14T11:04:04.855434" level="INFO" html="true">Removed directory '&lt;a href="file:///tmp/var/log/centreon-broker"&gt;/tmp/var/log/centreon-broker&lt;/a&gt;'.</msg>
+<arg>${BROKER_LOG}</arg>
+<arg>Recursive=True</arg>
+<doc>Removes the directory pointed to by the given ``path``.</doc>
+<status status="PASS" start="2024-02-14T11:04:04.854897" elapsed="0.000623"/>
+</kw>
+<kw name="Create Directory" owner="OperatingSystem">
+<msg time="2024-02-14T11:04:04.856489" level="INFO" html="true">Created directory '&lt;a href="file:///tmp/var/log/centreon-broker"&gt;/tmp/var/log/centreon-broker&lt;/a&gt;'.</msg>
+<arg>${BROKER_LOG}</arg>
+<doc>Creates the specified directory.</doc>
+<status status="PASS" start="2024-02-14T11:04:04.855723" elapsed="0.000862"/>
+</kw>
+<status status="PASS" start="2024-02-14T11:04:04.854605" elapsed="0.002208"/>
+</kw>
+<status status="PASS" start="2024-02-14T11:04:04.739609" elapsed="0.117314"/>
+</kw>
+<test id="s1-s1-s1-t1" name="service" line="21">
+<kw name="Stop Processes" owner="resources" type="SETUP">
+<kw name="Terminate All Processes" owner="Process">
+<arg>kill=True</arg>
+<doc>Terminates all still running processes started by this library.</doc>
+<status status="PASS" start="2024-02-14T11:04:04.860101" elapsed="0.000528"/>
+</kw>
+<kw name="Kill Broker" owner="Common">
+<status status="PASS" start="2024-02-14T11:04:04.861148" elapsed="0.035833"/>
+</kw>
+<kw name="Kill Engine" owner="Common">
+<status status="PASS" start="2024-02-14T11:04:04.897822" elapsed="0.016315"/>
+</kw>
+<status status="PASS" start="2024-02-14T11:04:04.859481" elapsed="0.055225"/>
+</kw>
+<kw name="Config Engine" owner="Engine">
+<arg>${1}</arg>
+<arg>${1}</arg>
+<arg>${25}</arg>
+<status status="PASS" start="2024-02-14T11:04:04.915623" elapsed="0.004899"/>
+</kw>
+<kw name="Config Broker" owner="Broker">
+<arg>rrd</arg>
+<status status="PASS" start="2024-02-14T11:04:04.921101" elapsed="0.018019"/>
+</kw>
+<kw name="Config Broker" owner="Broker">
+<arg>central</arg>
+<status status="PASS" start="2024-02-14T11:04:04.940416" elapsed="0.000683"/>
+</kw>
+<kw name="Config Broker" owner="Broker">
+<arg>module</arg>
+<arg>${1}</arg>
+<status status="PASS" start="2024-02-14T11:04:04.941410" elapsed="0.001209"/>
+</kw>
+<kw name="Config BBDO3" owner="resources">
+<kw name="Config Broker Sql Output" owner="Broker">
+<arg>central</arg>
+<arg>unified_sql</arg>
+<status status="PASS" start="2024-02-14T11:04:04.943677" elapsed="0.000802"/>
+</kw>
+<kw name="Broker Config Add Item" owner="Broker">
+<arg>rrd</arg>
+<arg>bbdo_version</arg>
+<arg>${version}</arg>
+<status status="PASS" start="2024-02-14T11:04:04.944659" elapsed="0.000472"/>
+</kw>
+<kw name="Broker Config Add Item" owner="Broker">
+<arg>central</arg>
+<arg>bbdo_version</arg>
+<arg>${version}</arg>
+<status status="PASS" start="2024-02-14T11:04:04.945343" elapsed="0.000547"/>
+</kw>
+<for flavor="IN RANGE">
+<iter>
+<kw name="Catenate" owner="BuiltIn">
+<msg time="2024-02-14T11:04:04.947025" level="INFO">${mod} = module0</msg>
+<var>${mod}</var>
+<arg>SEPARATOR=</arg>
+<arg>module</arg>
+<arg>${i}</arg>
+<doc>Catenates the given items together and returns the resulted string.</doc>
+<status status="PASS" start="2024-02-14T11:04:04.946745" elapsed="0.000320"/>
+</kw>
+<kw name="Broker Config Add Item" owner="Broker">
+<arg>${mod}</arg>
+<arg>bbdo_version</arg>
+<arg>${version}</arg>
+<status status="PASS" start="2024-02-14T11:04:04.947319" elapsed="0.000602"/>
+</kw>
+<var name="${i}">0</var>
+<status status="PASS" start="2024-02-14T11:04:04.946522" elapsed="0.001458"/>
+</iter>
+<var>${i}</var>
+<value>${nbEngine}</value>
+<status status="PASS" start="2024-02-14T11:04:04.946070" elapsed="0.001953"/>
+</for>
+<arg>1</arg>
+<status status="PASS" start="2024-02-14T11:04:04.943142" elapsed="0.004970"/>
+</kw>
+<kw name="Broker Config Log" owner="Broker">
+<arg>central</arg>
+<arg>sql</arg>
+<arg>debug</arg>
+<status status="PASS" start="2024-02-14T11:04:04.948457" elapsed="0.000708"/>
+</kw>
+<kw name="Broker Config Log" owner="Broker">
+<arg>module0</arg>
+<arg>neb</arg>
+<arg>trace</arg>
+<status status="PASS" start="2024-02-14T11:04:04.949431" elapsed="0.000521"/>
+</kw>
+<kw name="Config Broker Sql Output" owner="Broker">
+<arg>central</arg>
+<arg>unified_sql</arg>
+<status status="PASS" start="2024-02-14T11:04:04.950212" elapsed="0.000509"/>
+</kw>
+<kw name="Get Current Date" owner="DateTime">
+<msg time="2024-02-14T11:04:04.951345" level="INFO">${start} = 2024-02-14 11:04:04.951</msg>
+<var>${start}</var>
+<doc>Returns current local or UTC time with an optional increment.</doc>
+<status status="PASS" start="2024-02-14T11:04:04.951037" elapsed="0.000351"/>
+</kw>
+<kw name="Start Broker" owner="resources">
+<kw name="Start Process" owner="Process">
+<msg time="2024-02-14T11:04:04.957066" level="INFO">Starting process:
+/usr/sbin/cbd /tmp/etc/centreon-broker/central-broker.json</msg>
+<arg>/usr/sbin/cbd</arg>
+<arg>${EtcRoot}/centreon-broker/central-broker.json</arg>
+<arg>alias=b1</arg>
+<doc>Starts a new process on background.</doc>
+<status status="PASS" start="2024-02-14T11:04:04.952670" elapsed="0.019225"/>
+</kw>
+<if>
+<branch type="IF" condition="not ${only_central}">
+<kw name="Start Process" owner="Process">
+<msg time="2024-02-14T11:04:04.974369" level="INFO">Starting process:
+/usr/sbin/cbd /tmp/etc/centreon-broker/central-rrd.json</msg>
+<arg>/usr/sbin/cbd</arg>
+<arg>${EtcRoot}/centreon-broker/central-rrd.json</arg>
+<arg>alias=b2</arg>
+<doc>Starts a new process on background.</doc>
+<status status="PASS" start="2024-02-14T11:04:04.973647" elapsed="0.020268"/>
+</kw>
+<status status="PASS" start="2024-02-14T11:04:04.972613" elapsed="0.021845"/>
+</branch>
+<status status="PASS" start="2024-02-14T11:04:04.972500" elapsed="0.022093"/>
+</if>
+<status status="PASS" start="2024-02-14T11:04:04.951871" elapsed="0.042974"/>
+</kw>
+<kw name="Start Engine" owner="resources">
+<kw name="Get Engines Count" owner="Engine">
+<msg time="2024-02-14T11:04:04.997792" level="INFO">${count} = 1</msg>
+<var>${count}</var>
+<status status="PASS" start="2024-02-14T11:04:04.997091" elapsed="0.000762"/>
+</kw>
+<for flavor="IN RANGE">
+<iter>
+<kw name="Catenate" owner="BuiltIn">
+<msg time="2024-02-14T11:04:04.999454" level="INFO">${alias} = e0</msg>
+<var>${alias}</var>
+<arg>SEPARATOR=</arg>
+<arg>e</arg>
+<arg>${idx}</arg>
+<doc>Catenates the given items together and returns the resulted string.</doc>
+<status status="PASS" start="2024-02-14T11:04:04.999029" elapsed="0.000491"/>
+</kw>
+<kw name="Catenate" owner="BuiltIn">
+<msg time="2024-02-14T11:04:05.000292" level="INFO">${conf} = /tmp/etc/centreon-engine/config0/centengine.cfg</msg>
+<var>${conf}</var>
+<arg>SEPARATOR=</arg>
+<arg>${EtcRoot}</arg>
+<arg>/centreon-engine/config</arg>
+<arg>${idx}</arg>
+<arg>/centengine.cfg</arg>
+<doc>Catenates the given items together and returns the resulted string.</doc>
+<status status="PASS" start="2024-02-14T11:04:04.999807" elapsed="0.000551"/>
+</kw>
+<kw name="Catenate" owner="BuiltIn">
+<msg time="2024-02-14T11:04:05.001028" level="INFO">${log} = /tmp/var/log/centreon-engine/config0</msg>
+<var>${log}</var>
+<arg>SEPARATOR=</arg>
+<arg>${VarRoot}</arg>
+<arg>/log/centreon-engine/config</arg>
+<arg>${idx}</arg>
+<doc>Catenates the given items together and returns the resulted string.</doc>
+<status status="PASS" start="2024-02-14T11:04:05.000633" elapsed="0.000440"/>
+</kw>
+<kw name="Catenate" owner="BuiltIn">
+<msg time="2024-02-14T11:04:05.001744" level="INFO">${lib} = /tmp/var/lib/centreon-engine/config0</msg>
+<var>${lib}</var>
+<arg>SEPARATOR=</arg>
+<arg>${VarRoot}</arg>
+<arg>/lib/centreon-engine/config</arg>
+<arg>${idx}</arg>
+<doc>Catenates the given items together and returns the resulted string.</doc>
+<status status="PASS" start="2024-02-14T11:04:05.001335" elapsed="0.000454"/>
+</kw>
+<kw name="Create Directory" owner="OperatingSystem">
+<msg time="2024-02-14T11:04:05.002582" level="INFO" html="true">Created directory '&lt;a href="file:///tmp/var/log/centreon-engine/config0"&gt;/tmp/var/log/centreon-engine/config0&lt;/a&gt;'.</msg>
+<arg>${log}</arg>
+<doc>Creates the specified directory.</doc>
+<status status="PASS" start="2024-02-14T11:04:05.002051" elapsed="0.000643"/>
+</kw>
+<kw name="Create Directory" owner="OperatingSystem">
+<msg time="2024-02-14T11:04:05.003288" level="INFO" html="true">Directory '&lt;a href="file:///tmp/var/lib/centreon-engine/config0"&gt;/tmp/var/lib/centreon-engine/config0&lt;/a&gt;' already exists.</msg>
+<arg>${lib}</arg>
+<doc>Creates the specified directory.</doc>
+<status status="PASS" start="2024-02-14T11:04:05.002954" elapsed="0.000447"/>
+</kw>
+<try>
+<branch type="TRY">
+<kw name="Remove File" owner="OperatingSystem">
+<msg time="2024-02-14T11:04:05.004674" level="INFO" html="true">File '&lt;a href="file:///tmp/var/lib/centreon-engine/config0/rw/centengine.cmd"&gt;/tmp/var/lib/centreon-engine/config0/rw/centengine.cmd&lt;/a&gt;' does not exist.</msg>
+<arg>${lib}/rw/centengine.cmd</arg>
+<doc>Removes a file with the given path.</doc>
+<status status="PASS" start="2024-02-14T11:04:05.003886" elapsed="0.000900"/>
+</kw>
+<status status="PASS" start="2024-02-14T11:04:05.003666" elapsed="0.001187"/>
+</branch>
+<branch type="EXCEPT">
+<kw name="Log" owner="BuiltIn">
+<arg>can't remove ${lib}/rw/centengine.cmd don't worry</arg>
+<doc>Logs the given message with the given level.</doc>
+<status status="NOT RUN" start="2024-02-14T11:04:05.005188" elapsed="0.000061"/>
+</kw>
+<status status="NOT RUN" start="2024-02-14T11:04:05.004960" elapsed="0.000354"/>
+</branch>
+<status status="PASS" start="2024-02-14T11:04:05.003545" elapsed="0.001832"/>
+</try>
+<kw name="Start Process" owner="Process">
+<msg time="2024-02-14T11:04:05.006124" level="INFO">Starting process:
+/usr/sbin/centengine /tmp/etc/centreon-engine/config0/centengine.cfg</msg>
+<arg>/usr/sbin/centengine</arg>
+<arg>${conf}</arg>
+<arg>alias=${alias}</arg>
+<doc>Starts a new process on background.</doc>
+<status status="PASS" start="2024-02-14T11:04:05.005598" elapsed="0.010967"/>
+</kw>
+<var name="${idx}">0</var>
+<status status="PASS" start="2024-02-14T11:04:04.998775" elapsed="0.018291"/>
+</iter>
+<var>${idx}</var>
+<value>0</value>
+<value>${count}</value>
+<status status="PASS" start="2024-02-14T11:04:04.998007" elapsed="0.019167"/>
+</for>
+<status status="PASS" start="2024-02-14T11:04:04.996107" elapsed="0.021400"/>
+</kw>
+<kw name="Create List" owner="BuiltIn">
+<msg time="2024-02-14T11:04:05.019188" level="INFO">${content} = ['check_for_external_commands()']</msg>
+<var>${content}</var>
+<arg>check_for_external_commands()</arg>
+<doc>Returns a list containing given items.</doc>
+<status status="PASS" start="2024-02-14T11:04:05.018464" elapsed="0.000799"/>
+</kw>
+<kw name="Find In Log With Timeout" owner="Common">
+<msg time="2024-02-14T11:04:05.020351" level="INFO">regex=False</msg>
+<msg time="2024-02-14T11:04:10.025313" level="INFO">regex=False</msg>
+<msg time="2024-02-14T11:04:10.027562" level="INFO">${result} = True</msg>
+<var>${result}</var>
+<arg>${engineLog0}</arg>
+<arg>${start}</arg>
+<arg>${content}</arg>
+<arg>60</arg>
+<status status="PASS" start="2024-02-14T11:04:05.019720" elapsed="5.007912"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${result}</arg>
+<arg>A message telling check_for_external_commands() should be available.</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2024-02-14T11:04:10.028061" elapsed="0.004752"/>
+</kw>
+<kw name="Save Logs If Failed" owner="resources" type="TEARDOWN">
+<kw name="Run Keyword If Test Failed" owner="BuiltIn">
+<arg>Save Logs</arg>
+<doc>Runs the given keyword with the given arguments, if the test failed.</doc>
+<status status="PASS" start="2024-02-14T11:04:10.037698" elapsed="0.000210"/>
+</kw>
+<status status="PASS" start="2024-02-14T11:04:10.033904" elapsed="0.004103"/>
+</kw>
+<doc>The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then engine and broker are started and broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that broker doesn't crash anymore.</doc>
+<tag>MON-18531</tag>
+<tag>MON-34772</tag>
+<status status="PASS" start="2024-02-14T11:04:04.857236" elapsed="5.180947"/>
+</test>
+<kw name="Clean After Suite" owner="resources" type="TEARDOWN">
+<kw name="Terminate All Processes" owner="Process">
+<msg time="2024-02-14T11:04:10.044808" level="INFO">Forcefully killing process.</msg>
+<msg time="2024-02-14T11:04:10.145410" level="INFO">Process completed.</msg>
+<msg time="2024-02-14T11:04:10.146001" level="INFO">Forcefully killing process.</msg>
+<msg time="2024-02-14T11:04:10.246426" level="INFO">Process completed.</msg>
+<msg time="2024-02-14T11:04:10.246551" level="INFO">Forcefully killing process.</msg>
+<msg time="2024-02-14T11:04:10.346974" level="INFO">Process completed.</msg>
+<arg>kill=True</arg>
+<doc>Terminates all still running processes started by this library.</doc>
+<status status="PASS" start="2024-02-14T11:04:10.043465" elapsed="0.303751"/>
+</kw>
+<status status="PASS" start="2024-02-14T11:04:10.042586" elapsed="0.305368"/>
+</kw>
+<doc>Centreon Broker and Engine progressively add services</doc>
+<status status="PASS" start="2024-02-14T11:04:04.404583" elapsed="5.943414"/>
+</suite>
+<status status="PASS" start="2024-02-14T11:04:04.402052" elapsed="5.948337"/>
+</suite>
+<status status="PASS" start="2024-02-14T11:04:04.355257" elapsed="5.996081"/>
+</suite>
+<statistics>
+<total>
+<stat pass="1" fail="0" skip="0">All Tests</stat>
+</total>
+<tag>
+<stat pass="1" fail="0" skip="0">MON-18531</stat>
+<stat pass="1" fail="0" skip="0">MON-34772</stat>
+</tag>
+<suite>
+<stat pass="1" fail="0" skip="0" id="s1" name="Tests">Tests</stat>
+<stat pass="1" fail="0" skip="0" id="s1-s1" name="Broker-Engine">Tests.Broker-Engine</stat>
+<stat pass="1" fail="0" skip="0" id="s1-s1-s1" name="Services">Tests.Broker-Engine.Services</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
 </robot>
