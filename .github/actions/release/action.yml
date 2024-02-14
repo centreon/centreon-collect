@@ -119,7 +119,7 @@ runs:
 
     - name: Create stable JIRA versions from new release tags
       run: |
-        set -eu
+        set -eux
 
         # Call JIRA to provide new jira versions to create
         # Webhook url
