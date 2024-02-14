@@ -274,7 +274,7 @@ config = {
                 "json_fifo": "{7}/lib/centreon-broker/central-rrd-master-stats.json"
             }}
         ],
-        "grpc": {{ 
+        "grpc": {{
             "port": 51002
         }}
     }}
@@ -1019,6 +1019,54 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
             return retval
         time.sleep(5)
     return retval
+
+
+def get_broker_stats(name: str, expected: str, timeout: int, *keys):
+    """!
+    read a value from broker stats
+    @param name central, module or rrd
+    @param expected: value expected (regexp)
+    @timeout delay to find key in stats
+    @param keys  keys in json stats output
+    @return True if value found and matches expected
+    """
+
+    def json_get(json_dict, keys: tuple, index: int):
+        try:
+            key = keys[index]
+            if index == len(keys) - 1:
+                return json_dict[key]
+            else:
+                return json_get(json_dict[key], keys, index + 1)
+        except:
+            return None
+    limit = time.time() + timeout
+    if name == 'central':
+        filename = "central-broker-master-stats.json"
+    elif name == 'module':
+        filename = "central-module-master-stats.json"
+    else:
+        filename = "central-rrd-master-stats.json"
+    r_expected = re.compile(expected)
+    while time.time() < limit:
+        retry = True
+        while retry and time.time() < limit:
+            retry = False
+            with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", "r") as f:
+                buf = f.read()
+                try:
+                    conf = json.loads(buf)
+                except:
+                    retry = True
+                    time.sleep(1)
+        if conf is None:
+            continue
+        value = json_get(conf, keys, 0)
+        if value is not None and r_expected.match(value):
+            return True
+        time.sleep(5)
+    logger.console(f"key:{keys} value not expected: {value}")
+    return False
 
 
 ##
@@ -1960,7 +2008,7 @@ def config_broker_remove_rrd_output(name):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_get_ba(port:int, ba_id:int, output_file:str, timeout=TIMEOUT):
+def broker_get_ba(port: int, ba_id: int, output_file:str, timeout=TIMEOUT):
     """
     broker_get_ba calls the gRPC GetBa function provided by Broker.
     Args:

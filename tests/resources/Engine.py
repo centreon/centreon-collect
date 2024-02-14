@@ -405,7 +405,7 @@ passive_checks_enabled 1
         ff.close()
 
     @staticmethod
-    def create_tags(poller: int, nb: int, offset: int):
+    def create_tags(poller: int, nb: int, offset: int, tag_type: str):
         tt = ["servicegroup", "hostgroup", "servicecategory", "hostcategory"]
 
         config_file = "{}/config{}/tags.cfg".format(CONF_DIR, poller)
@@ -413,9 +413,13 @@ passive_checks_enabled 1
         content = ""
         tid = 0
         for i in range(nb):
-            if i % 4 == 0:
-                tid += 1
-            typ = tt[i % 4]
+            if not tag_type:
+                 if i % 4 == 0:
+                     tid += 1
+                 typ = tt[i % 4]
+            else:
+                 typ = tag_type
+                 tid += 1
             content += """define tag {{
     id                     {0}
     name                   tag{2}
@@ -899,10 +903,9 @@ def engine_config_remove_service_host(idx: int, host: str):
 
 
 def engine_config_remove_host(idx: int, host: str):
-    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
 
     host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
     host_begin = re.compile(r"^define host {$")
@@ -1615,8 +1618,42 @@ def create_template_file(poller: int, typ: str, what: str, ids: list):
     engine.create_template_file(poller, typ, what, ids)
 
 
-def create_tags_file(poller: int, nb: int, offset: int = 1):
-    engine.create_tags(poller, nb, offset)
+def create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
+    engine.create_tags(poller, nb, offset, tag_type)
+
+
+def engine_config_remove_tag(poller: int, tag_id: int):
+    """! remove tags from tags.cfg where tag id = tag_id
+    @param poller  poller index
+    @param tag_id  id of the tag to remove
+    """
+    filename = f"{CONF_DIR}/config{poller}/tags.cfg"
+    with open(filename, "r") as ff:
+        lines = ff.readlines()
+
+    tag_name = re.compile(f"^\s*id\s+{tag_id}\s*$")
+    tag_begin = re.compile(r"^define tag {$")
+    tag_end = re.compile(r"^}$")
+    tag_begin_idx = 0
+    while tag_begin_idx < len(lines):
+        if (tag_begin.match(lines[tag_begin_idx])):
+            for tag_line_idx in range(tag_begin_idx, len(lines)):
+                if (tag_name.match(lines[tag_line_idx])):
+                    for end_tag_line in range(tag_line_idx, len(lines)):
+                        if tag_end.match(lines[end_tag_line]):
+                            del lines[tag_begin_idx:end_tag_line + 1]
+                            break
+                    break
+                elif tag_end.match(lines[tag_line_idx]):
+                    tag_begin_idx = tag_line_idx
+                    break
+        else:
+            tag_begin_idx = tag_begin_idx + 1
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
+
 
 
 def config_engine_add_cfg_file(poller: int, cfg: str):
@@ -1881,23 +1918,32 @@ def external_command(func):
     return wrapper
 
 
-def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0'):
+def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
     now = int(time.time())
     pd = [output + " | "]
     for m in range(metrics):
         v = math.sin((now + m) / 1000) * 5
-        pd.append(f"metric{m}={v}")
+        pd.append(f"{metric_name}{m}={v}")
+        logger.trace(f"{metric_name}{m}={v}")
     full_output = " ".join(pd)
     process_service_check_result(hst, svc, state, full_output, config)
 
+def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
+    if use_grpc > 0:
+        port = 50001 + int(config[6:])
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            for i in range(nb_check):
+                indexed_output = f"{output}_{i}"
+                stub.ProcessServiceCheckResult(engine_pb2.Check(
+                    host_name=hst, svc_desc=svc, output=indexed_output, code=state))
 
-def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
-    now = int(time.time())
-    cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
-    f = open(
-        f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    else:
+        now = int(time.time())
+        with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
+            for i in range(nb_check):
+                cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}_{i}\n"
+                f.write(cmd)
 
 
 @external_command
