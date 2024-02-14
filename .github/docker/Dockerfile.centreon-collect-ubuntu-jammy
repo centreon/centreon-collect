@@ -49,7 +49,7 @@ apt-get clean
 
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
-git clone -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
+git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
 ./vcpkg/bootstrap-vcpkg.sh
 mkdir /src
 
