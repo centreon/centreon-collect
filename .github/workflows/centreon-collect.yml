@@ -13,14 +13,17 @@ on:
       - ccc/**
       - clib/**
       - connectors/**
+      - custom-triplets/**
       - engine/**
       - grpc/**
       - packaging/**
       - cmake.sh
+      - cmake-vcpkg.sh
       - CMakeLists.txt
       - vcpkg.json
       - overlays/**
       - selinux/**
+      - vcpkg/**
       - "!.veracode-exclusions"
   push:
     branches:
@@ -34,14 +37,17 @@ on:
       - ccc/**
       - clib/**
       - connectors/**
+      - custom-triplets/**
       - engine/**
       - grpc/**
       - packaging/**
       - cmake.sh
+      - cmake-vcpkg.sh
       - CMakeLists.txt
       - vcpkg.json
       - overlays/**
       - selinux/**
+      - vcpkg/**
       - "!.veracode-exclusions"
 
 jobs:
