@@ -67,7 +67,7 @@ RUN bash -e <<EOF
 export VCPKG_ROOT=/vcpkg
 export PATH=\$VCPKG_ROOT:\$PATH
 
-/vcpkg/vcpkg install --overlay-triplets=custom-triplets --triplet x64-linux-release --vcpkg-root vcpkg --x-wait-for-lock --x-manifest-root=/src --x-install-root=build/vcpkg_installed --overlay-ports=overlays
+/vcpkg/vcpkg install --overlay-triplets=custom-triplets --triplet x64-linux-release --vcpkg-root vcpkg --x-wait-for-lock --x-manifest-root=/src --x-install-root=vcpkg_installed --overlay-ports=overlays
 
 EOF
 
