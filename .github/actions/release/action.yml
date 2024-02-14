@@ -41,7 +41,7 @@ runs:
         CURRENT_STABLE_BRANCH_MAJOR_VERSION="24.04"
         echo "Current stable branch major version: $CURRENT_STABLE_BRANCH_MAJOR_VERSION"
 
-        # Get previous version tags for components
+        # Get previous and new version tags for components
         for component in ${COMPONENTS_COLLECT[@]}; do
           if [[ $component == "centreon-web" ]]; then
             COMPONENT_DIR="centreon"
@@ -50,22 +50,13 @@ runs:
           fi
           MAJOR_VERSION=$(grep -E "MAJOR" .version | cut -d '=' -f2)
           MINOR_VERSION=$(grep -E "MINOR" .version | cut -d '=' -f2)
+          # Previous stable tags array
           PREVIOUS_STABLE_TAGS+=($(git tag -l --sort=-version:refname "$component-$CURRENT_STABLE_BRANCH_MAJOR_VERSION*" | head -n 1))
+          # New stable tags array
+          NEW_STABLE_TAGS+=("$component-$MAJOR_VERSION.$MINOR_VERSION")
+
         done
         echo "Previous releases were: ${PREVIOUS_STABLE_TAGS[*]}"
-
-        # Get new version tags for components
-        for component in ${COMPONENTS_COLLECT[@]}; do
-          if [[ $component == "centreon-web" ]]; then
-            COMPONENT_DIR="centreon"
-          else
-            COMPONENT_DIR=$component
-          fi
-          MAJOR_VERSION=$(grep -E "MAJOR" .version | cut -d '=' -f2)
-          MINOR_VERSION=$(grep -E "MINOR" .version | cut -d '=' -f2)
-          NEW_STABLE_TAGS+=("$component-$MAJOR_VERSION.$MINOR_VERSION")
-        done
-
         echo "New releases are: ${NEW_STABLE_TAGS[*]}"
 
         # Check that NEW_STABLE_TAGS are fully different from PREVIOUS_STABLE_TAGS
@@ -146,7 +137,7 @@ runs:
           echo "::notice::Creating JIRA release $TAG based on git release tag $TAG."
           JIRA_VERSION_DATA="{\"archived\":false,\"releaseDate\":\"$(date +%Y-%m-%d)\",\"name\":\"$TAG\",\"projectId\":${{ inputs.jira_project_id }},\"released\":false}"
           echo "Sending to JIRA release: $JIRA_VERSION_DATA"
-          # curl --fail --request POST \
+          curl --fail --request POST \
             --url 'https://centreon.atlassian.net/rest/api/3/version' \
             --header 'Authorization: Basic ${{ inputs.jira_token }}' \
             --header 'Accept: application/json' \
