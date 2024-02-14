@@ -135,7 +135,7 @@ runs:
         echo "Creating JIRA releases."
         for TAG in ${NEW_RELEASE_TAGS[@]}; do
           echo "::notice::Creating JIRA release $TAG based on git release tag $TAG."
-          JIRA_VERSION_DATA="{\"archived\":false,\"description\": \"centreon-collect-42.04\",\"releaseDate\":\"$(date +%Y-%m-%d)\",\"name\":\"$TAG\",\"projectId\":${{ inputs.jira_project_id }},\"released\":false}"
+          JIRA_VERSION_DATA="{\"archived\":false,\"description\":\"centreon-collect-42.04\",\"releaseDate\":\"$(date +%Y-%m-%d)\",\"name\":\"$TAG\",\"projectId\":${{ inputs.jira_project_id }},\"released\":false}"
           #JIRA_VERSION_DATA="{"archived":false,"releaseDate":"$(date +%Y-%m-%d)","name":"$TAG","projectId":${{ inputs.jira_project_id }},"released":false}
           echo "Sending to JIRA release: $JIRA_VERSION_DATA"
           curl --fail --request POST \
