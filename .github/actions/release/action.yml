@@ -13,6 +13,12 @@ inputs:
   jira_webhook_url:
     description: "Jira release webhook"
     required: true
+  jira_user_email:
+    description: "Something"
+    required: true
+  jira_api_token:
+    description: "Something"
+    required: true
 
 runs:
   using: "composite"
@@ -137,7 +143,7 @@ runs:
           echo "Sending to JIRA release: $JIRA_VERSION_DATA"
           curl --fail --request POST \
             --url 'https://centreon.atlassian.net/rest/api/3/version' \
-            --header 'Authorization: Basic ${{ inputs.jira_token }}' \
+            --user '${{ inputs.jira_user_email }}:${{ inputs.jira_api_token }}' \
             --header 'Accept: application/json' \
             --header 'Content-Type: application/json' \
             --data ''$JIRA_VERSION_DATA''
