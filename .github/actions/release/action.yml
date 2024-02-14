@@ -154,7 +154,7 @@ runs:
             --user '${{ inputs.jira_user_email }}:${{ inputs.jira_api_token }}' \
             --header 'Accept: application/json' \
             --header 'Content-Type: application/json' \
-            --data '$JIRA_RELEASE_DATA'
+            --data "$JIRA_RELEASE_DATA"
         done
 
         # # Create JIRA version for each released component
