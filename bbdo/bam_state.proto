@@ -29,8 +29,7 @@ message ServiceState {
   State last_hard_state = 4;
   uint64 last_check = 5;
   bool state_type = 6;
-  bool in_downtime = 7;
-  bool acknowledged = 8;
+  bool acknowledged = 7;
 }
 
 /**

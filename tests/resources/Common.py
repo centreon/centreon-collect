@@ -83,7 +83,7 @@ def wait_for_connections(port: int, nb: int, timeout: int = 60):
     """
     limit = time.time() + timeout
     r = re.compile(
-        r"^ESTAB.*127\.0\.0\.1\]*:{}\s|^ESTAB.*\[::1\]*:{}\s".format(port, port))
+        fr"^ESTAB.*127\.0\.0\.1:{port}\s|^ESTAB.*\[::1\]*:{port}\s")
 
     while time.time() < limit:
         out = getoutput("ss -plant")
@@ -91,11 +91,25 @@ def wait_for_connections(port: int, nb: int, timeout: int = 60):
         estab_port = list(filter(r.match, lst))
         if len(estab_port) >= nb:
             return True
-        time.sleep(5)
+        logger.console(f"Currently {estab_port} connections")
+        time.sleep(2)
     return False
 
 
 def wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int = 30):
+    """Wait that an instance of the given program listens on each port in the
+       given range. On success, the function returns True, if the timeout is
+       reached with some missing instances, it returns False.
+
+    Args:
+        port1: The first port
+        port2: The second port (all the ports p such that port1 <= p <p port2
+               will be tested.
+        prog: The name of the program that should be listening.
+        timeout: A timeout in seconds.
+    Returns:
+        A boolean True on success.
+    """
     port1 = int(port1)
     port2 = int(port2)
     rng = range(port1, port2 + 1)
@@ -562,14 +576,14 @@ def check_service_resource_status_with_timeout(hostname: str, service_desc: str,
                 cursor.execute(
                     f"SELECT r.status,r.status_confirmed FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}'")
                 result = cursor.fetchall()
-                logger.console(
-                    f"result: {int(result[0]['status'])} status: {int(status)}")
+                if len(result) > 0:
+                    logger.console(f"result: {result}")
                 if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
                     logger.console(
                         f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
                     if state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:
                         return True
-                    else:
+                    elif state_type == 'SOFT' and int(result[0]['status_confirmed']) == 0:
                         return True
         time.sleep(1)
     return False
@@ -618,15 +632,17 @@ def check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int, whi
                 cursor.execute(
                     f"SELECT c.deletion_time, a.entry_time, a.deletion_time FROM comments c LEFT JOIN acknowledgements a ON c.host_id=a.host_id AND c.service_id=a.service_id AND c.entry_time=a.entry_time WHERE c.entry_type=4 AND a.acknowledgement_id={ack_id}")
                 result = cursor.fetchall()
-                logger.console(result)
-                if len(result) > 0 and result[0]['deletion_time'] is not None and int(result[0]['deletion_time']) > int(result[0]['entry_time']):
-                    if which == 'BOTH' and not result[0]['a.deletion_time']:
+                logger.console(f"### {result}")
+                if len(result) > 0 and result[0]['deletion_time'] is not None and int(result[0]['deletion_time']) >= int(result[0]['entry_time']):
+                    if which == 'BOTH':
+                        if result[0]['a.deletion_time']:
+                            return True
                         logger.console(
                             f"Acknowledgement {ack_id} is only deleted in comments")
                     else:
                         logger.console(
                             f"Acknowledgement {ack_id} is deleted at {result[0]['deletion_time']}")
-                    return True
+                        return True
         time.sleep(1)
     return False
 
@@ -788,7 +804,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                 logger.console(f"ba: {result[0]}")
                 if len(result) > 0 and result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
                     return True
-        time.sleep(5)
+        time.sleep(1)
     return False
 
 

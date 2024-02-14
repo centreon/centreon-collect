@@ -409,15 +409,11 @@ void kpi_service::service_update(
  */
 void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
                                  io::stream* visitor) {
-  assert(dt && dt->host_id == _host_id && dt->service_id == _service_id);
+  log_v2::bam()->info("kpi_service:service_update on downtime {}: was started {} ; actual end time {}",
+      dt->internal_id, dt->was_started, dt->actual_end_time.get_time_t());
   // Update information.
   bool downtimed = dt->was_started && dt->actual_end_time.is_null();
-  bool changed = true;
-
-  if (!_downtimed && downtimed) {
-    _downtimed = true;
-    changed = true;
-  }
+  bool changed = false;
 
   if (_downtime_ids.contains(dt->internal_id) && dt->deletion_time.is_null()) {
     log_v2::bam()->trace("Downtime {} already handled in this kpi service",
@@ -425,17 +421,23 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
     return;
   }
 
+  log_v2::bam()->info("kpi_service:service_update on downtime {}: was started {} ; actual end time {} ; downtimed {}",
+      dt->internal_id, dt->was_started, dt->actual_end_time.get_time_t(), downtimed);
   if (downtimed) {
     log_v2::bam()->trace("adding in kpi service the impacting downtime {}",
                          dt->internal_id);
     _downtime_ids.insert(dt->internal_id);
+    if (!_downtimed) {
+      _downtimed = true;
+      changed = true;
+    }
   } else {
     log_v2::bam()->trace("removing from kpi service the impacting downtime {}",
                          dt->internal_id);
     _downtime_ids.erase(dt->internal_id);
     bool new_downtimed = !_downtime_ids.empty();
     if (new_downtimed != _downtimed) {
-      _downtimed = !_downtime_ids.empty();
+      _downtimed = new_downtimed;
       changed = true;
     }
   }

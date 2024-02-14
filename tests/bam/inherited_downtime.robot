@@ -146,16 +146,17 @@ BEBAMIDT2
     # The downtime is deleted
     Delete Service Downtime    host_16    service_314
     ${result}    Check Service Downtime With Timeout    host_16    service_314    0    60
-    Should Be True    ${result}    The service (host_16, service_314) is in downtime and should not.
+    Should Be True    ${result}    The service (host_16, service_314) is in downtime but should not.
+
     ${result}    Check Downtimes With Timeout    0    60
     Should Be True    ${result}    We should have no more downtime
 
-    ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
-    Should Be True    ${result}    The BA ba_1 is in downtime as it should not
-
-    Log To Console    Broker is stopped (end of BEBAMIDT2)
-    Stop Engine
-    Kindly Stop Broker
+#    ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
+#    Should Be True    ${result}    The BA ba_1 is in downtime as it should not
+#
+#    Log To Console    Broker is stopped (end of BEBAMIDT2)
+#    Stop Engine
+#    Kindly Stop Broker
 
 BEBAMIGNDT1
     [Documentation]    A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.

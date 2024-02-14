@@ -116,35 +116,30 @@ void service_book::update(const std::shared_ptr<neb::acknowledgement>& t,
  * @param t The event to handle.
  * @param visitor The stream to write into.
  */
-// void service_book::update(const std::shared_ptr<neb::downtime>& t,
-//                           io::stream* visitor) {
-//   auto found = _book.find(std::make_pair(t->host_id, t->service_id));
-//   if (found == _book.end())
-//     return;
-//   auto& svc_state = found->second.state;
-//   svc_state.in_downtime = t->was_started && t->actual_end_time.is_null();
-//   for (auto l : found->second.listeners)
-//     l->service_update(t, visitor);
-// }
-//
-///**
-// * @brief Propagate events of type neb::pb_downtime to the concerned services
-// * and then to the corresponding kpi.
-// *
-// * @param t The event to handle.
-// * @param visitor The stream to write into.
-// */
-// void service_book::update(const std::shared_ptr<neb::pb_downtime>& t,
-//                          io::stream* visitor) {
-//  auto found = _book.find(std::make_pair(t->obj().host_id(),
-//  t->obj().service_id())); if (found == _book.end())
-//    return;
-//  auto& svc_state = found->second.state;
-//  svc_state.in_downtime =
-//      t->obj().started() && time_is_undefined(t->obj().actual_end_time());
-//  for (auto l : found->second.listeners)
-//    l->service_update(t, visitor);
-//}
+ void service_book::update(const std::shared_ptr<neb::downtime>& t,
+                           io::stream* visitor) {
+   auto found = _book.find(std::make_pair(t->host_id, t->service_id));
+   if (found == _book.end())
+     return;
+   for (auto l : found->second.listeners)
+     l->service_update(t, visitor);
+ }
+
+/**
+ * @brief Propagate events of type neb::pb_downtime to the concerned services
+ * and then to the corresponding kpi.
+ *
+ * @param t The event to handle.
+ * @param visitor The stream to write into.
+ */
+ void service_book::update(const std::shared_ptr<neb::pb_downtime>& t,
+                          io::stream* visitor) {
+  auto found = _book.find(std::make_pair(t->obj().host_id(),
+  t->obj().service_id())); if (found == _book.end())
+    return;
+  for (auto l : found->second.listeners)
+    l->service_update(t, visitor);
+}
 
 /**
  * @brief Propagate events of type neb::service_status to the concerned services
