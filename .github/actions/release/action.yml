@@ -147,7 +147,7 @@ runs:
         for TAG in ${NEW_RELEASE_TAGS[@]}; do
           echo "::notice::Creating JIRA release $TAG based on git release tag $TAG."
           # Build JSON with release information for JIRA API
-          JIRA_RELEASE_DATA=$(jq -n --arg archived "$JIRA_RELEASE_ARCHIVED" --arg description "$JIRA_RELEASE_DESCRIPTION" --arg releaseDate "$JIRA_RELEASE_DATE" --arg name "$TAG" --arg projectId "$JIRA_PROJECT_ID" --arg "$JIRA_RELEASE_RELEASED" '$ARGS.named' )
+          JIRA_RELEASE_DATA=$(jq -n --arg archived "$JIRA_RELEASE_ARCHIVED" --arg description "$JIRA_RELEASE_DESCRIPTION" --arg releaseDate "$JIRA_RELEASE_DATE" --arg name "$TAG" --arg projectId "$JIRA_PROJECT_ID" --arg released "$JIRA_RELEASE_RELEASED" '$ARGS.named' )
           echo "Sending to JIRA release: $JIRA_RELEASE_DATA"
           curl --fail --request POST \
             --url 'https://centreon.atlassian.net/rest/api/3/version' \
