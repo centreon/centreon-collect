@@ -1423,6 +1423,83 @@ def grep(file_path: str, pattern: str):
     return ""
 
 
+def check_types_in_resources(lst: list):                                        
+    connection = pymysql.connect(host=DB_HOST,                                  
+                                 user=DB_USER,                                  
+                                 password=DB_PASS,                              
+                                 database=DB_NAME_STORAGE,                      
+                                 charset='utf8mb4',                             
+                                 autocommit=True,                               
+                                 cursorclass=pymysql.cursors.DictCursor)        
+                                                                                
+    with connection:                                                            
+        with connection.cursor() as cursor:                                     
+            logger.console("select distinct type from resources")               
+            cursor.execute("select distinct type from resources")               
+            result = cursor.fetchall()                                          
+            if len(result) > 0:                                                 
+                for t in lst:                                                   
+                    found = False                                               
+                    for r in result:                                            
+                        v = r['type']                                           
+                        if int(v) == int(t):                                    
+                            found = True                                        
+                            break                                               
+                    if not found:                                               
+                        logger.console(                                         
+                            f"Value {t} not found in result of query 'select distinct type from resources'")
+                        return False                                            
+                return True                                                     
+    return False                                                                
+                                                                                
+                                                                                
+def check_host_dependencies(dep_host_id, host_id, dep_period, inherits_parent, notif_fail_opts, exec_fail_opts, timeout = TIMEOUT):
+    limit = time.time() + timeout                                               
+    logger.console(f"SELECT count(*) FROM hosts_hosts_dependencies WHERE dependent_host_id={dep_host_id} AND host_id={host_id} AND dependency_period='{dep_period}' AND inherits_parent={inherits_parent} AND notification_failure_options='{notif_fail_opts}' AND execution_failure_options='{exec_fail_opts}'")
+    while time.time() < limit:                                                  
+        connection = pymysql.connect(host=DB_HOST,                              
+                                     user=DB_USER,                              
+                                     password=DB_PASS,                          
+                                     database=DB_NAME_STORAGE,                  
+                                     charset='utf8mb4',                         
+                                     autocommit=True,                           
+                                     cursorclass=pymysql.cursors.DictCursor)    
+                                                                                
+        with connection:                                                        
+            with connection.cursor() as cursor:                                 
+                cursor.execute("SELECT * FROM hosts_hosts_dependencies")
+                result = cursor.fetchall()                                      
+                logger.console(result)
+                cursor.execute(f"SELECT count(*) FROM hosts_hosts_dependencies WHERE dependent_host_id={dep_host_id} AND host_id={host_id} AND dependency_period='{dep_period}' AND inherits_parent={inherits_parent} AND notification_failure_options='{notif_fail_opts}' AND execution_failure_options='{exec_fail_opts}'")
+                result = cursor.fetchall()                                      
+                logger.console(result)
+                if len(result) > 0 and int(result[0]['count(*)']) > 0:                                             
+                    return True
+                time.sleep(2)
+    return False
+
+
+def check_no_host_dependencies(timeout = TIMEOUT):                              
+    limit = time.time() + timeout                                               
+    logger.console(f"SELECT count(*) FROM hosts_hosts_dependencies")            
+    while time.time() < limit:                                                  
+        connection = pymysql.connect(host=DB_HOST,                              
+                                     user=DB_USER,                              
+                                     password=DB_PASS,                          
+                                     database=DB_NAME_STORAGE,                  
+                                     charset='utf8mb4',                         
+                                     autocommit=True,                           
+                                     cursorclass=pymysql.cursors.DictCursor)    
+                                                                                
+        with connection:                                                        
+            with connection.cursor() as cursor:                                 
+                cursor.execute(f"SELECT count(*) FROM hosts_hosts_dependencies")
+                result = cursor.fetchall()                                      
+                if len(result) > 0 and int(result[0]['count(*)']) == 0:                                            
+                    return True                                                 
+    return False
+
+
 def get_collect_version():
     f = open("../CMakeLists.txt", "r")
     lines = f.readlines()
