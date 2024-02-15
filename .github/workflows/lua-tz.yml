@@ -65,7 +65,7 @@ jobs:
         with:
           repository: "daurnimator/luatz"
           path: "luatz-src"
-          ref: "v0.4-1"
+          ref: "e49b496e112ae1f0efdec24fc1c6a6f978f68014" # v0.4-1
 
       - name: Prepare packaging of lua-tz
         run: cp -r luatz-src/luatz stream-connectors/dependencies/lua-tz/lua-tz
