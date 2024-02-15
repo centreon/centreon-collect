@@ -7,6 +7,6 @@
           "Server",
           "Robot"
       ],
-      "testType": "API"
+      "testType": "Automated (Robot)"
   }
 }

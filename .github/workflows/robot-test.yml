@@ -161,6 +161,7 @@ jobs:
       - name: Send report to xrays
         run: |
           cd tests/
+          cat output.xml
           curl -v -H "Content-Type: multipart/form-data" -X POST -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" --data @issueFields.json --data @"output.xml" --data @testIssueFields.json https://xray.cloud.getxray.app/api/v2/import/execution/robot/multipart
 
       - name: Move reports
