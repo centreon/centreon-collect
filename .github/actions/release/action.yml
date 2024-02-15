@@ -144,7 +144,14 @@ runs:
         for TAG in ${NEW_RELEASE_TAGS[@]}; do
           echo "::notice::Creating JIRA release $TAG based on git release tag $TAG."
           # Build JSON with release information for JIRA API
-          JIRA_RELEASE_DATA=$(jq -nc --arg archived "$JIRA_RELEASE_ARCHIVED" --arg description "$JIRA_RELEASE_DESCRIPTION" --arg releaseDate "$JIRA_RELEASE_DATE" --arg name "$TAG" --arg projectId "$JIRA_PROJECT_ID" --arg released "$JIRA_RELEASE_RELEASED" '$ARGS.named' )
+          JIRA_RELEASE_DATA=$(jq -nc \
+            --arg archived "$JIRA_RELEASE_ARCHIVED" \
+            --arg description "$JIRA_RELEASE_DESCRIPTION" \
+            --arg releaseDate "$JIRA_RELEASE_DATE" \
+            --arg name "$TAG" \
+            --arg projectId "$JIRA_PROJECT_ID" \
+            --arg released "$JIRA_RELEASE_RELEASED" \
+            '$ARGS.named' )
           # Send to JIRA API release
           echo "Sending to JIRA API release: $JIRA_RELEASE_DATA"
           curl --fail --request POST \
@@ -177,7 +184,7 @@ runs:
         # DEBUG
         echo "JSON_TAGS: \r\n$JSON_TAGS"
         echo "JSON_VERSION_INFO: $JSON_VERSION_INFO"
-        echo "Sending to JIRA: \r\n$RELEASE_JSON"
+        echo "Sending to JIRA AUTOMATION: \r\n$RELEASE_JSON"
 
         # Call jira webhook to trigger the communication workflow
         # and provide versions data for communication
