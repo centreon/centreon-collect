@@ -117,10 +117,6 @@ runs:
       run: |
         set -eu
 
-        # Call JIRA to provide new jira versions to create
-        # Webhook url
-        JIRA_INCOMING_WEBHOOK="${{ inputs.jira_webhook_url }}"
-
         # Rebuild NEW_STABLE_TAGS as an array
         for i in ${NEW_STABLE_TAGS[@]}; do
           NEW_RELEASE_TAGS+=("$i")
@@ -132,7 +128,7 @@ runs:
 
         # Build JSON vars for JIRA_RELEASE_DATA
         JIRA_RELEASE_ARCHIVED="false"
-        JIRA_RELEASE_DESCRIPTION="jean_patrik"
+        JIRA_RELEASE_DESCRIPTION=""
         JIRA_RELEASE_DATE="$(date +%Y-%m-%d)"
         JIRA_RELEASE_NAME=""
         JIRA_PROJECT_ID="${{ inputs.jira_project_id }}"
@@ -145,7 +141,7 @@ runs:
           # Build JSON with release information for JIRA API
           JIRA_RELEASE_DATA=$(jq -nc \
             --arg archived "$JIRA_RELEASE_ARCHIVED" \
-            --arg description "$JIRA_RELEASE_DESCRIPTION" \
+            --arg description "$TAG" \
             --arg releaseDate "$JIRA_RELEASE_DATE" \
             --arg name "$TAG" \
             --arg projectId "$JIRA_PROJECT_ID" \

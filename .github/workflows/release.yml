@@ -16,9 +16,6 @@ on:
       - ".veracode-exclusions"
       - "README.md"
       - "sonar-project.properties"
-  pull_request:
-    paths:
-      - ".github/workflows/release.yml"
   workflow_dispatch:
 
 jobs:
