@@ -310,6 +310,6 @@ whitelist& whitelist::instance() {
 
 void whitelist::reload() {
   static constexpr std::string_view directories[] = {
-      "/etc/centreon-engine-whitelist", "/usr/share/centreon-engine-whitelist"};
+      "/etc/centreon-engine-whitelist", "/usr/share/centreon-engine/whitelist.conf.d"};
   _instance = std::make_unique<whitelist>(directories, directories + 2);
 }
