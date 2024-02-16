@@ -28,12 +28,18 @@ class otl_config {
   int _max_length_grpc_log = -1;
   bool _json_grpc_log = false;
 
+  unsigned _second_fifo_expiry;
+  size_t _max_fifo_size;
+
  public:
   otl_config(const std::string_view& file_path);
 
   grpc_config::pointer get_grpc_config() const { return _grpc_conf; }
   int get_max_length_grpc_log() const { return _max_length_grpc_log; }
   bool get_json_grpc_log() const { return _json_grpc_log; }
+
+  unsigned get_second_fifo_expiry() const { return _second_fifo_expiry; }
+  size_t get_max_fifo_size() const { return _max_fifo_size; }
 
   bool operator==(const otl_config& right) const;
 };

@@ -34,22 +34,25 @@ class state;
 
 namespace applier {
 class command {
+  void create_command(const configuration::command& conf_obj);
+
  public:
   command();
+
+  command(command const& right) = delete;
+  command& operator=(command const& right) = delete;
+
   ~command() throw();
+  
   void add_object(configuration::command const& obj);
   void expand_objects(configuration::state& s);
   void modify_object(configuration::command const& obj);
   void remove_object(configuration::command const& obj);
   void resolve_object(configuration::command const& obj);
-
- private:
-  command(command const& right);
-  command& operator=(command const& right);
 };
 }  // namespace applier
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_COMMAND_HH

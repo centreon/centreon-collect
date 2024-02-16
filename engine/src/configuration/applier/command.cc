@@ -1,27 +1,28 @@
 /**
-* Copyright 2011-2013,2017 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/forward.hh"
+#include "com/centreon/engine/commands/otel_command.hh"
 #include "com/centreon/engine/commands/raw.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -42,20 +43,7 @@ applier::command::command() {}
  */
 applier::command::~command() throw() {}
 
-/**
- *  Add new command.
- *
- *  @param[in] obj  The new command to add into the monitoring engine.
- */
-void applier::command::add_object(configuration::command const& obj) {
-  // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new command '" << obj.command_name() << "'.";
-  log_v2::config()->debug("Creating new command '{}'.", obj.command_name());
-
-  // Add command to the global configuration set.
-  config->commands().insert(obj);
-
+void applier::command::create_command(const configuration::command& obj) {
   if (obj.connector().empty()) {
     std::shared_ptr<commands::raw> raw = std::make_shared<commands::raw>(
         obj.command_name(), obj.command_line(), &checks::checker::instance());
@@ -69,11 +57,37 @@ void applier::command::add_object(configuration::command const& obj) {
           std::make_shared<commands::forward>(
               obj.command_name(), obj.command_line(), found_con->second)};
       commands::command::commands[forward->get_name()] = forward;
-    } else
-      throw engine_error() << "Could not register command '"
-                           << obj.command_name() << "': unable to find '"
-                           << obj.connector() << "'";
+    } else {
+      std::shared_ptr<commands::otel_command> otel_cmd =
+          commands::otel_command::get_otel_command(obj.connector());
+      if (otel_cmd) {
+        std::shared_ptr<commands::forward> forward{
+            std::make_shared<commands::forward>(obj.command_name(),
+                                                obj.command_line(), otel_cmd)};
+        commands::command::commands[forward->get_name()] = forward;
+      } else {
+        throw engine_error()
+            << "Could not register command '" << obj.command_name()
+            << "': unable to find '" << obj.connector() << "'";
+      }
+    }
   }
+}
+
+/**
+ *  Add new command.
+ *
+ *  @param[in] obj  The new command to add into the monitoring engine.
+ */
+void applier::command::add_object(configuration::command const& obj) {
+  // Logging.
+  engine_logger(logging::dbg_config, logging::more)
+      << "Creating new command '" << obj.command_name() << "'.";
+  log_v2::config()->debug("Creating new command '{}'.", obj.command_name());
+
+  // Add command to the global configuration set.
+  config->commands().insert(obj);
+  create_command(obj);
 }
 
 /**

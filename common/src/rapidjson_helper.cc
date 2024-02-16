@@ -124,7 +124,24 @@ uint64_t rapidjson_helper::get_uint64_t(const char* field_name) const {
 }
 
 /**
- * @brief read a unsigned int field
+ * @brief read an unsigned integer field
+ *
+ * @param field_name
+ * @param default_value value returned if member does not exist
+ * @return const char* field value
+ * @throw msg_fmt if field value is nor a integer nor a
+ * string containing a integer
+ */
+unsigned rapidjson_helper::get_unsigned(const char* field_name,
+                                        unsigned default_value) const {
+  return get_or_default<unsigned>(
+      field_name, "unsigned int",
+      [](const rapidjson::Value& val) { return val.IsUint(); },
+      &rapidjson::Value::GetUint, &absl::SimpleAtoi<unsigned>, default_value);
+}
+
+/**
+ * @brief read an unsigned int field
  *
  * @param field_name
  * @return const char* field value
