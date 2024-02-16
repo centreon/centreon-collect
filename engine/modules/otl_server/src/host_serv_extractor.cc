@@ -1,0 +1,216 @@
+/**
+ * Copyright 2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
+
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/misc/get_options.hh"
+
+#include "host_serv_extractor.hh"
+
+using namespace com::centreon::engine::modules::otl_server;
+
+namespace com::centreon::engine::modules::otl_server::options {
+
+/**
+ * @brief command line parser for host_serv_attributes_extractor_config
+ *
+ */
+class host_serv_attributes_extractor_config_options
+    : public com::centreon::misc::get_options {
+ public:
+  host_serv_attributes_extractor_config_options();
+  void parse(const std::string& cmd_line) { _parse_arguments(cmd_line); }
+};
+
+host_serv_attributes_extractor_config_options::
+    host_serv_attributes_extractor_config_options() {
+  _add_argument("host_attribute", 'h',
+                "Where to find host attribute allowed values: resource, scope, "
+                "data_point",
+                true, true, "data_point");
+  _add_argument("host_tag", 'i',
+                "the key of attributes where we can find host name", true, true,
+                "host");
+  _add_argument(
+      "service_attribute", 's',
+      "Where to find service attribute allowed values: resource, scope, "
+      "data_point",
+      true, true, "data_point");
+  _add_argument("service_tag", 't',
+                "the key of attributes where we can find the name of service",
+                true, true, "service");
+}
+
+};  // namespace com::centreon::engine::modules::otl_server::options
+
+std::shared_ptr<host_serv_extractor> host_serv_extractor::create(
+    const std::string& command_line) {
+  // type of the converter is the first field
+  size_t sep_pos = command_line.find(' ');
+  std::string conf_type = sep_pos == std::string::npos
+                              ? command_line
+                              : command_line.substr(0, sep_pos);
+  boost::trim(conf_type);
+  std::string params =
+      sep_pos == std::string::npos ? "" : command_line.substr(sep_pos + 1);
+
+  boost::trim(params);
+
+  if (conf_type == "attributes") {
+    return std::make_shared<host_serv_attributes_extractor>(params);
+  } else {
+    SPDLOG_LOGGER_ERROR(log_v2::otl(), "unknown converter type:{}", conf_type);
+    throw exceptions::msg_fmt("unknown converter type:{}", conf_type);
+  }
+}
+
+/**
+ * @brief create a host_serv_extractor_config from a command line
+ * first field identify type of config
+ * Example:
+ * @code {.c++}
+ * host_serv_extractor_config::pointer conf =
+ * host_serv_extractor_config::load("attributes --host_attribute=data_point
+ * --host_tag=host --service_attribute=data_point --service_tag=service");
+ * @endcode
+ *
+ * @param cmd_line
+ * @return host_serv_extractor_config::pointer
+ * @throw if cmdline can't be parsed
+ */
+// host_serv_extractor_config::pointer host_serv_extractor_config::load(
+//     const std::string& cmd_line) {
+//   size_t sep_pos = cmd_line.find(' ');
+//   std::string conf_type =
+//       sep_pos == std::string::npos ? cmd_line : cmd_line.substr(0, sep_pos);
+//   boost::trim(conf_type);
+//   std::string params =
+//       sep_pos == std::string::npos ? "" : cmd_line.substr(sep_pos + 1);
+//   if (conf_type.empty() || conf_type == "attributes") {
+//     return std::make_shared<host_serv_attributes_extractor_config>(params);
+//   } else {
+//     SPDLOG_LOGGER_ERROR(log_v2::otl(), "unknown otel extractor config {}",
+//                         cmd_line);
+//     throw exceptions::msg_fmt("unknown otel extractor config {}", cmd_line);
+//   }
+// }
+
+/**
+ * @brief Construct a new host serv attributes extractor config object
+ *
+ * path must follow this syntax:
+ * (resource|scope|data_point).<tag name>
+ *
+ * @param cmd_line
+ */
+// host_serv_attributes_extractor_config::host_serv_attributes_extractor_config(
+//     const std::string& cmd_line)
+//     : host_serv_extractor_config(e_attributes) {
+//   options::host_serv_attributes_extractor_config_options args;
+//   args.parse(cmd_line);
+
+//   auto parse_param =
+//       [&args](
+//           const std::string& attribute,
+//           const std::string& tag) -> std::pair<attribute_owner, std::string>
+//           {
+//     const std::string& path = args.get_argument(attribute).get_value();
+//     attribute_owner owner;
+//     if (path == "resource") {
+//       owner = attribute_owner::resource;
+//     } else if (path == "scope") {
+//       owner = attribute_owner::scope;
+//     } else {
+//       owner = attribute_owner::data_point;
+//     }
+
+//     std::string ret_tag = args.get_argument(tag).get_value();
+//     return std::make_pair(owner, ret_tag);
+//   };
+
+//   std::tie(_host_path, _host_tag) = parse_param("host_attribute",
+//   "host_tag"); std::tie(_serv_path, _serv_tag) =
+//       parse_param("service_attribute", "service_tag");
+// }
+
+host_serv_attributes_extractor::host_serv_attributes_extractor(
+    const std::string& command_line)
+    : host_serv_extractor(command_line) {
+  options::host_serv_attributes_extractor_config_options args;
+  args.parse(command_line);
+
+  auto parse_param =
+      [&args](
+          const std::string& attribute,
+          const std::string& tag) -> std::pair<attribute_owner, std::string> {
+    const std::string& path = args.get_argument(attribute).get_value();
+    attribute_owner owner;
+    if (path == "resource") {
+      owner = attribute_owner::resource;
+    } else if (path == "scope") {
+      owner = attribute_owner::scope;
+    } else {
+      owner = attribute_owner::data_point;
+    }
+
+    std::string ret_tag = args.get_argument(tag).get_value();
+    return std::make_pair(owner, ret_tag);
+  };
+
+  std::tie(_host_path, _host_tag) = parse_param("host_attribute", "host_tag");
+  std::tie(_serv_path, _serv_tag) =
+      parse_param("service_attribute", "service_tag");
+}
+
+static const std::string _empty_str;
+
+host_serv_metric host_serv_attributes_extractor::extract_host_serv_metric(
+    const data_point& data_pt) const {
+  auto extract = [](const data_point& data_pt, attribute_owner owner,
+                    const std::string& tag) -> const std::string& {
+    const ::google::protobuf::RepeatedPtrField<
+        ::opentelemetry::proto::common::v1::KeyValue>* attributes = nullptr;
+    switch (owner) {
+      case attribute_owner::data_point:
+        attributes = &data_pt.get_data_point_attributes();
+        break;
+      case attribute_owner::scope:
+        attributes = &data_pt.get_scope().attributes();
+        break;
+      case attribute_owner::resource:
+        attributes = &data_pt.get_resource().attributes();
+        break;
+      default:
+        return _empty_str;
+    }
+    for (const auto& key_val : *attributes) {
+      if (key_val.key() == tag && key_val.value().has_string_value()) {
+        return key_val.value().string_value();
+      }
+    }
+    return _empty_str;
+  };
+
+  host_serv_metric ret;
+  ret.host = extract(data_pt, _host_path, _host_tag);
+  if (!ret.host.empty()) {
+    ret.service = extract(data_pt, _serv_path, _serv_tag);
+    ret.metric = data_pt.get_metric().name();
+  }
+
+  return ret;
+}

@@ -26,11 +26,17 @@
 #include <string_view>
 
 #include <absl/container/btree_map.h>
+#include <absl/container/btree_set.h>
+#include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 
 #include <boost/asio.hpp>
 namespace asio = boost::asio;
 #include <boost/algorithm/string.hpp>
 #include <boost/container/flat_map.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 #include <boost/optional.hpp>
 
 #include <spdlog/fmt/ostr.h>
@@ -41,6 +47,8 @@ namespace asio = boost::asio;
 #include <rapidjson/document.h>
 
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
+#include "opentelemetry/proto/common/v1/common.pb.h"
+#include "opentelemetry/proto/metrics/v1/metrics.pb.h"
 
 #include "com/centreon/engine/log_v2.hh"
 

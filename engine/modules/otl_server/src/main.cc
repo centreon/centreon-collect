@@ -22,11 +22,7 @@
 #include "com/centreon/engine/nebmodules.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-#include "opentelemetry/proto/metrics/v1/metrics.pb.h"
-
-#include "otl_config.hh"
-#include "otl_fmt.hh"
-#include "otl_server.hh"
+#include "com/centreon/engine/modules/otl_server/opentelemetry.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::modules::otl_server;
@@ -38,11 +34,7 @@ NEB_API_VERSION(CURRENT_NEB_API_VERSION)
 // Module handle
 static void* gl_mod_handle(NULL);
 
-static std::string _conf_file_path;
-
-static std::unique_ptr<otl_config> _conf;
-
-static std::shared_ptr<otl_server> _otl_server;
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 /**************************************
  *                                     *
@@ -63,37 +55,8 @@ static std::shared_ptr<otl_server> _otl_server;
  *  @return 0 on success, any other value on failure.
  */
 extern "C" int nebmodule_deinit(int /*flags*/, int /*reason*/) {
-  if (_otl_server) {
-    _otl_server->shutdown(std::chrono::seconds(30));
-  }
+  open_telemetry::unload();
   return 0;
-}
-
-/**
- * @brief apply a new configuration, if server conf has been changed, grpc
- * server is restarted
- *
- * @param new_conf
- * @param old_conf nullptr if module start
- */
-void apply_new_conf(const otl_config& new_conf, const otl_config* old_conf) {
-  if (!old_conf ||
-      !(*new_conf.get_grpc_config() == *old_conf->get_grpc_config())) {
-    if (_otl_server) {
-      _otl_server->shutdown(std::chrono::seconds(30));
-    }
-    _otl_server = otl_server::load(
-        new_conf.get_grpc_config(), [](const metric_ptr& request) {
-          metric_ptr copy(request);
-          neb_make_callbacks(NEBCALLBACK_OTL_METRICS, &copy);
-        });
-  }
-  fmt::formatter< ::opentelemetry::proto::collector::metrics::v1::
-                      ExportMetricsServiceRequest>::max_length_log =
-      new_conf.get_max_length_grpc_log();
-  fmt::formatter< ::opentelemetry::proto::collector::metrics::v1::
-                      ExportMetricsServiceRequest>::json_grpc_format =
-      new_conf.get_json_grpc_log();
 }
 
 /**
@@ -130,20 +93,19 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
       "Centreon-Engine's open telemetry grpc server. It provides grpc otl "
       "server and inject incomming metrics in centreon system.");
 
+  std::string_view conf_file_path;
   if (args) {
     const std::string_view config_file("config_file=");
     const std::string_view arg(args);
     if (!config_file.compare(0, config_file.length(), arg)) {
-      _conf_file_path = arg.substr(config_file.length());
+      conf_file_path = arg.substr(config_file.length());
     } else {
-      _conf_file_path = arg;
+      conf_file_path = arg;
     }
-
   } else
     throw msg_fmt("main: no configuration file provided");
 
-  _conf = std::make_unique<otl_config>(_conf_file_path);
-  apply_new_conf(*_conf, nullptr);
+  open_telemetry::load(conf_file_path, *g_io_context);
 
   return 0;
 }
@@ -153,23 +115,6 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
  *
  */
 extern "C" int nebmodule_reload() {
-  std::unique_ptr<otl_config> conf;
-  try {
-    conf = std::make_unique<otl_config>(_conf_file_path);
-  } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(
-        log_v2::otl(),
-        "bad configuration, new configuration  not taken into account: {}",
-        e.what());
-    return 0;
-  }
-
-  if (*conf == *_conf) {
-    return 0;
-  }
-
-  apply_new_conf(*conf, _conf.get());
-  _conf = std::move(conf);
-
+  open_telemetry::reload();
   return 0;
 }

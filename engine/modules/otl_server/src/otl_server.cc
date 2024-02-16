@@ -47,7 +47,7 @@ class request_response_holder
     : public ::grpc::MessageHolder<
           otl_col_metrics::ExportMetricsServiceRequest,
           otl_col_metrics::ExportMetricsServiceResponse> {
-  metric_ptr _request;
+  metric_request_ptr _request;
   otl_col_metrics::ExportMetricsServiceResponse _response;
   std::shared_ptr<request_response_allocator> _allocator;
 
@@ -61,7 +61,7 @@ class request_response_holder
     set_response(&_response);
   }
 
-  const metric_ptr& get_request() const { return _request; }
+  const metric_request_ptr& get_request() const { return _request; }
 
   void Release() override;
 };
@@ -77,12 +77,12 @@ class request_response_allocator
           otl_col_metrics::ExportMetricsServiceResponse>,
       public std::enable_shared_from_this<request_response_allocator> {
   absl::btree_map<const otl_col_metrics::ExportMetricsServiceRequest*,
-                  metric_ptr>
+                  metric_request_ptr>
       _allocated;
   absl::Mutex _protect;
 
  public:
-  metric_ptr get_metric_ptr_from_raw(
+  metric_request_ptr get_metric_request_ptr_from_raw(
       const otl_col_metrics::ExportMetricsServiceRequest* raw_request);
 
   void release_request(
@@ -98,16 +98,16 @@ class request_response_allocator
  * raw pointer
  *
  * @param raw_request request raw pointer
- * @return metric_ptr shared_ptr that holds raw_request
+ * @return metric_request_ptr shared_ptr that holds raw_request
  */
-metric_ptr request_response_allocator::get_metric_ptr_from_raw(
+metric_request_ptr request_response_allocator::get_metric_request_ptr_from_raw(
     const otl_col_metrics::ExportMetricsServiceRequest* raw_request) {
   absl::MutexLock l(&_protect);
   auto found = _allocated.find(raw_request);
   if (found != _allocated.end()) {
     return found->second;
   }
-  return metric_ptr();
+  return metric_request_ptr();
 }
 
 /**
@@ -259,7 +259,8 @@ std::shared_ptr<metric_service> metric_service::create(
     ::grpc::CallbackServerContext* context,
     const otl_col_metrics::ExportMetricsServiceRequest* request,
     otl_col_metrics::ExportMetricsServiceResponse* response) {
-  metric_ptr shared_request = _allocator->get_metric_ptr_from_raw(request);
+  metric_request_ptr shared_request =
+      _allocator->get_metric_request_ptr_from_raw(request);
 
   SPDLOG_LOGGER_TRACE(log_v2::otl(), "receive:{}", *request);
   if (shared_request) {

@@ -20,7 +20,8 @@
 #define CCE_MOD_OTL_SERVER_OTLSERVER_HH
 
 #include "grpc_config.hh"
-#include "otl_metric.hh"
+
+#include "otl_data_point.hh"
 
 namespace com::centreon::engine::modules::otl_server {
 
@@ -28,13 +29,12 @@ namespace detail {
 class metric_service;
 };
 
-
 /**
  * @brief the server grpc model used is the callback model
  * So you need to give to the server this handler to handle incoming requests
  *
  */
-using metric_handler = std::function<void(const metric_ptr&)>;
+using metric_handler = std::function<void(const metric_request_ptr&)>;
 
 /**
  * @brief grpc metric receiver server

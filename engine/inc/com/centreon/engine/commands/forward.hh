@@ -33,13 +33,12 @@ namespace commands {
  *  provide forward, is more efficiente that a raw command.
  */
 class forward : public command {
-  std::shared_ptr<command> _s_command;
-  command* _command;
+  std::shared_ptr<command> _command;
 
  public:
   forward(const std::string& command_name,
           const std::string& command_line,
-          std::shared_ptr<connector>& cmd);
+          const std::shared_ptr<command>& cmd);
   ~forward() noexcept = default;
   forward(const forward&) = delete;
   forward& operator=(const forward&) = delete;
@@ -55,6 +54,6 @@ class forward : public command {
 };
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_COMMANDS_FORWARD_HH

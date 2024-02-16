@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2020 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2020 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/applier/state.hh"
 
@@ -23,6 +23,7 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/connector.hh"
+#include "com/centreon/engine/commands/otel_command.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
@@ -149,6 +150,7 @@ void applier::state::clear() {
   engine::hostgroup::hostgroups.clear();
   engine::commands::command::commands.clear();
   engine::commands::connector::connectors.clear();
+  engine::commands::otel_command::clear();
   engine::service::services.clear();
   engine::service::services_by_id.clear();
   engine::servicedependency::servicedependencies.clear();
@@ -187,6 +189,7 @@ applier::state::~state() noexcept {
   engine::hostgroup::hostgroups.clear();
   engine::commands::command::commands.clear();
   engine::commands::connector::connectors.clear();
+  engine::commands::otel_command::clear();
   engine::service::services.clear();
   engine::service::services_by_id.clear();
   engine::servicedependency::servicedependencies.clear();
