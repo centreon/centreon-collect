@@ -28,6 +28,7 @@
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/pool.hh"
+#include "rs_centreon/rs_centreon.h"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
@@ -280,7 +281,8 @@ void engine::unsubscribe_muxer(const muxer* subscriber) {
  *  Default constructor.
  */
 engine::engine()
-    : _state{not_started},
+    : _rs_engine{rsc::new_engine()},
+      _state{not_started},
       _stats{stats::center::instance().register_engine()},
       _unprocessed_events{0u},
       _sending_to_subscribers{false} {

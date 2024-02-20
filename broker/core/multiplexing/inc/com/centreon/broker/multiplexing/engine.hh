@@ -21,6 +21,7 @@
 
 #include "com/centreon/broker/persistent_cache.hh"
 #include "com/centreon/broker/stats/center.hh"
+#include "rs_centreon/rs_centreon.h"
 
 namespace com::centreon::broker::multiplexing {
 // Forward declaration.
@@ -63,6 +64,8 @@ class callback_caller;
 class engine {
   static std::mutex _load_m;
   static std::shared_ptr<engine> _instance;
+
+  rust::Box<rsc::Engine> _rs_engine;
 
   enum state { not_started, running, stopped };
 
@@ -109,6 +112,7 @@ class engine {
   void stop();
   void subscribe(const std::shared_ptr<muxer>& subscriber);
   void unsubscribe_muxer(const muxer* subscriber);
+  rust::Box<rsc::Engine>& rs_engine() { return _rs_engine; }
 };
 }  // namespace com::centreon::broker::multiplexing
 

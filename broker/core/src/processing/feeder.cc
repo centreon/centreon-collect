@@ -84,7 +84,6 @@ feeder::feeder(const std::string& name,
                                          std::move(read_filters),
                                          std::move(write_filters),
                                          false)),
-      _rs_muxer(rsc::new_muxer(name)),
       _stat_timer(pool::io_context()),
       _read_from_stream_timer(pool::io_context()),
       _io_context(pool::io_context_ptr()) {
@@ -99,6 +98,7 @@ feeder::feeder(const std::string& name,
   set_state("connected");
   SPDLOG_LOGGER_DEBUG(log_v2::core(), "create feeder {}, {:p}", name,
                       static_cast<const void*>(this));
+  parent->rs_engine()->add_muxer(name);
 }
 
 /**
