@@ -38,11 +38,9 @@ dnf --best install -y cmake \
     python3 \
     python3-pip \
     perl-Thread-Queue \
-    rpm-build \
     rrdtool-devel \
     yum-utils \
     perl \
-    rpm-build \
     procps-ng \
     zstd \
     nfpm \

@@ -2,11 +2,13 @@ ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/ubuntu:jammy
 
+ENV DEBIAN_FRONTEND noninteractive
+
 RUN bash -e <<EOF
 
 apt-get update
 
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
+apt-get install -y --no-install-recommends tzdata
 
 apt-get -y install cmake \
     git \
