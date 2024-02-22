@@ -19,7 +19,6 @@
 #ifndef CCB_BAM_BOOL_CONSTANT_HH
 #define CCB_BAM_BOOL_CONSTANT_HH
 
-#include "bbdo/bam.pb.h"
 #include "com/centreon/broker/bam/bool_value.hh"
 
 namespace com::centreon::broker {

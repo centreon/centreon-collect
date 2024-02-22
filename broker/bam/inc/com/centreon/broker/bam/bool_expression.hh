@@ -22,7 +22,6 @@
 #include "bbdo/bam/state.hh"
 #include "bbdo/bam_state.pb.h"
 #include "com/centreon/broker/bam/computable.hh"
-#include "com/centreon/broker/io/stream.hh"
 #include "impact_values.hh"
 
 namespace com::centreon::broker {
