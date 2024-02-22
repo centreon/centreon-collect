@@ -17,14 +17,11 @@
  */
 
 #include "com/centreon/broker/bam/service_book.hh"
-#include "bbdo/bam_state.pb.h"
 #include "com/centreon/broker/log_v2.hh"
 
 #include "com/centreon/broker/bam/internal.hh"
-#include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
-#include "com/centreon/broker/persistent_cache.hh"
 
 using namespace com::centreon::broker::bam;
 
@@ -214,6 +211,12 @@ void service_book::update(const std::shared_ptr<neb::pb_service_status>& t,
     l->service_update(t, visitor);
 }
 
+/**
+ * @brief Save the services states from the service_book to the cache. The cache
+ * must be open with write mode, otherwise, this function throws an exception.
+ *
+ * @param cache The persistent cache to receive data.
+ */
 void service_book::save_to_cache(persistent_cache& cache) const {
   auto to_save_ptr = std::make_shared<pb_services_book_state>();
   ServicesBookState& to_save = to_save_ptr->mut_obj();
@@ -231,6 +234,12 @@ void service_book::save_to_cache(persistent_cache& cache) const {
   cache.add(to_save_ptr);
 }
 
+/**
+ * @brief Restore from the ServicesBookState the states of all the services
+ * involved in BAs.
+ *
+ * @param state A ServicesBookState get from the cache.
+ */
 void service_book::apply_services_state(const ServicesBookState& state) {
   log_v2::bam()->trace("BAM: applying services state from cache");
   for (auto& svc : state.service()) {

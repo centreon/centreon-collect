@@ -60,6 +60,13 @@ uint32_t bool_service::get_service_id() const {
   return _service_id;
 }
 
+/**
+ * @brief When the cache is restored, this method is used to update services in
+ * BAs. It works as others service_update() methods, except no visitor is
+ * needed here.
+ *
+ * @param s The service_state to apply.
+ */
 void bool_service::service_update(const service_state& s) {
   // Update information.
   log_v2::bam()->debug("BAM: bool_service updated with service state {}", s);
@@ -95,8 +102,6 @@ void bool_service::service_update(
                    _in_downtime != new_in_downtime;
     if (changed) {
       _state_hard = status->last_hard_state;
-      log_v2::bam()->debug("BAM: bool_service 1 state hard set to {}",
-                           _state_hard);
       _state_known = true;
       _in_downtime = new_in_downtime;
       notify_parents_of_change(visitor);
@@ -124,8 +129,6 @@ void bool_service::service_update(const std::shared_ptr<neb::pb_service>& svc,
                    _in_downtime != new_in_downtime;
     if (changed) {
       _state_hard = o.last_hard_state();
-      log_v2::bam()->debug("BAM: bool_service 2 state hard set to {}",
-                           _state_hard);
       _state_known = true;
       _in_downtime = new_in_downtime;
       log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
@@ -154,8 +157,6 @@ void bool_service::service_update(
     if (_state_hard != o.last_hard_state() || !_state_known ||
         _in_downtime != new_in_downtime) {
       _state_hard = o.last_hard_state();
-      log_v2::bam()->debug("BAM: bool_service 3 state hard set to {}",
-                           _state_hard);
       _state_known = true;
       _in_downtime = new_in_downtime;
       log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
