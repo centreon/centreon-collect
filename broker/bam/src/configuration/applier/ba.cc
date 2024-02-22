@@ -372,13 +372,11 @@ std::shared_ptr<bam::ba> applier::ba::_new_ba(configuration::ba const& cfg,
  *  @param[in] cache  The cache.
  */
 void applier::ba::save_to_cache(persistent_cache& cache) {
-  cache.transaction();
   for (std::map<uint32_t, applied>::const_iterator it = _applied.begin(),
                                                    end = _applied.end();
        it != end; ++it) {
     it->second.obj->save_inherited_downtime(cache);
   }
-  cache.commit();
 }
 
 /**

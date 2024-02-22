@@ -315,9 +315,102 @@ BABOOCOMPL
 
     FOR    ${i}    IN RANGE    ${1}    ${21}    ${2}
         ${result}    Check Ba Status With Timeout    boolean-ba    2    30
-        Dump Ba On Error    ${result}    ${id_ba__sid[0]}
         Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
         Process Service Result Hard    host_1    service_${i}    0    output ok for service_${i}
+    END
+
+    ${result}    Check Ba Status With Timeout    boolean-ba    0    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
+
+    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+
+
+BABOOCOMPL_RESTART
+    [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
+    [Tags]    broker    engine    bam    boolean_expression    MON-32246
+    Clear Commands Status
+    Clear Retention
+    Config Broker    module
+    Config Broker    central
+    Config Broker    rrd
+    Broker Config Log    central    core    error
+    Broker Config Log    central    bam    trace
+    Broker Config Log    central    sql    error
+    Broker Config Flush Log    central    0
+    Broker Config Source Log    central    1
+    Config BBDO3    ${1}
+    Config Engine    ${1}
+
+    Clone Engine Config To DB
+    Add Bam Config To Engine
+    Add Bam Config To Broker    central
+    # Services 1 to 21 are passive now.
+    FOR    ${i}    IN RANGE    ${1}    ${21}
+        Set Services Passive    ${0}    service_${i}
+    END
+
+    ${id_ba__sid}    Create Ba    boolean-ba    impact    70    80
+    ${id_bool}    Add Boolean Kpi
+    ...    ${id_ba__sid[0]}
+    ...    ({host_1 service_1} {IS} {OK} {OR} {host_1 service_2} {IS} {OK}) {AND} ({host_1 service_3} {IS} {OK} {OR} {host_1 service_4} {IS} {OK}) {AND} ({host_1 service_5} {IS} {OK} {OR} {host_1 service_6} {IS} {OK}) {AND} ({host_1 service_7} {IS} {OK} {OR} {host_1 service_8} {IS} {OK}) {AND} ({host_1 service_9} {IS} {OK} {OR} {host_1 service_10} {IS} {OK}) {AND} ({host_1 service_11} {IS} {OK} {OR} {host_1 service_12} {IS} {OK}) {AND} ({host_1 service_13} {IS} {OK} {OR} {host_1 service_14} {IS} {OK}) {AND} ({host_1 service_15} {IS} {OK} {OR} {host_1 service_16} {IS} {OK}) {AND} ({host_1 service_17} {IS} {OK} {OR} {host_1 service_18} {IS} {OK}) {AND} ({host_1 service_19} {IS} {OK} {OR} {host_1 service_20} {IS} {OK})
+    ...    False
+    ...    100
+
+    Start Broker
+    ${start}    Get Current Date
+    Start Engine
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Log To Console    Services from 1 to 20 are set to CRITICAL.
+    FOR    ${i}    IN RANGE    ${1}    ${21}
+        Process Service Result Hard    host_1    service_${i}    2    output critical for service_${i}
+    END
+    Log To Console    Check services from 1 to 20 are CRITICAL.
+    FOR    ${i}    IN RANGE    ${1}    ${21}
+        ${result}    Check Service Resource Status With Timeout    host_1    service_${i}    2    30    HARD
+        Should Be True    ${result}    The service (host_1:service_${i}) should be CRITICAL.
+    END
+
+    Log To Console    Services from 1 to 14 by 2 are set to OK.
+    FOR    ${i}    IN RANGE    ${1}    ${15}    ${2}
+        Process Service Result Hard    host_1    service_${i}    0    output ok for service_${i}
+    END
+    Log To Console    Check services from 1 to 14 by 2 are OK
+    FOR    ${i}    IN RANGE    ${1}    ${15}    ${2}
+        ${result}    Check Service Resource Status With Timeout    host_1    service_${i}    0    30    HARD
+        Should Be True    ${result}    The service (host_1:service_${i}) should be OK.
+    END
+    Log To Console    Check the BA is still CRITICAL.
+    ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+    Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
+
+    Log To Console    Services from 15 to 20 by 2 are set OK. The BA must stay critical.
+    ...               And in each step, Broker is restarted to check that the BA states
+    ...               did not change during the restart.
+    FOR    ${i}    IN RANGE    ${15}    ${21}    ${2}
+	Remove Files    /tmp/ba${id_ba__sid[0]}_*.dot
+        ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+        Dump Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_1.dot
+        Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
+        ${start}    Get Current Date
+
+	# A restart of cbd should not alter the boolean rules content.
+	Restart Broker
+	${content}    Create List    Inherited downtimes and BA states restored
+        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+	Should Be True    ${result}    It seems that no cache has been restored into BAM.
+
+        Dump Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_2.dot
+
+	Wait Until Created    /tmp/ba${id_ba__sid[0]}_2.dot
+	${result}    Compare Dot Files    /tmp/ba${id_ba__sid[0]}_1.dot    /tmp/ba${id_ba__sid[0]}_2.dot
+        Should Be True    ${result}    Known and values in files /tmp/ba${id_ba__sid[0]}_1.dot and /tmp/ba${id_ba__sid[0]}_2.dot should be the same.
+        Process Service Result Hard    host_1    service_${i}    0    output ok for service_${i}
+        ${result}    Check Service Resource Status With Timeout    host_1    service_${i}    0    30    HARD
+        Should Be True    ${result}    The service (host_16:service_${i}) should be OK.
     END
 
     ${result}    Check Ba Status With Timeout    boolean-ba    0    30

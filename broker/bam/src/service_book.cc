@@ -116,14 +116,14 @@ void service_book::update(const std::shared_ptr<neb::acknowledgement>& t,
  * @param t The event to handle.
  * @param visitor The stream to write into.
  */
- void service_book::update(const std::shared_ptr<neb::downtime>& t,
-                           io::stream* visitor) {
-   auto found = _book.find(std::make_pair(t->host_id, t->service_id));
-   if (found == _book.end())
-     return;
-   for (auto l : found->second.listeners)
-     l->service_update(t, visitor);
- }
+void service_book::update(const std::shared_ptr<neb::downtime>& t,
+                          io::stream* visitor) {
+  auto found = _book.find(std::make_pair(t->host_id, t->service_id));
+  if (found == _book.end())
+    return;
+  for (auto l : found->second.listeners)
+    l->service_update(t, visitor);
+}
 
 /**
  * @brief Propagate events of type neb::pb_downtime to the concerned services
@@ -132,10 +132,11 @@ void service_book::update(const std::shared_ptr<neb::acknowledgement>& t,
  * @param t The event to handle.
  * @param visitor The stream to write into.
  */
- void service_book::update(const std::shared_ptr<neb::pb_downtime>& t,
+void service_book::update(const std::shared_ptr<neb::pb_downtime>& t,
                           io::stream* visitor) {
-  auto found = _book.find(std::make_pair(t->obj().host_id(),
-  t->obj().service_id())); if (found == _book.end())
+  auto found =
+      _book.find(std::make_pair(t->obj().host_id(), t->obj().service_id()));
+  if (found == _book.end())
     return;
   for (auto l : found->second.listeners)
     l->service_update(t, visitor);
@@ -231,6 +232,7 @@ void service_book::save_to_cache(persistent_cache& cache) const {
 }
 
 void service_book::apply_services_state(const ServicesBookState& state) {
+  log_v2::bam()->trace("BAM: applying services state from cache");
   for (auto& svc : state.service()) {
     auto found = _book.find(std::make_pair(svc.host_id(), svc.service_id()));
     if (found == _book.end())
@@ -244,4 +246,5 @@ void service_book::apply_services_state(const ServicesBookState& state) {
     for (auto l : found->second.listeners)
       l->service_update(svc_state);
   }
+  log_v2::bam()->trace("BAM: Services state applied from cache");
 }

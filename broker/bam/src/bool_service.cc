@@ -62,9 +62,13 @@ uint32_t bool_service::get_service_id() const {
 
 void bool_service::service_update(const service_state& s) {
   // Update information.
-  bool changed = _state_hard != static_cast<state>(s.last_hard_state);
+  log_v2::bam()->debug("BAM: bool_service updated with service state {}", s);
+  bool changed =
+      _state_hard != static_cast<state>(s.last_hard_state) || !_state_known;
 
   _state_hard = static_cast<short>(s.last_hard_state);
+  log_v2::bam()->debug("BAM: bool_service ({},{}) state hard set to {}",
+                       s.host_id, s.service_id, _state_hard);
   if (_state_hard != state_unknown)
     _state_known = true;
 
@@ -91,6 +95,8 @@ void bool_service::service_update(
                    _in_downtime != new_in_downtime;
     if (changed) {
       _state_hard = status->last_hard_state;
+      log_v2::bam()->debug("BAM: bool_service 1 state hard set to {}",
+                           _state_hard);
       _state_known = true;
       _in_downtime = new_in_downtime;
       notify_parents_of_change(visitor);
@@ -118,6 +124,8 @@ void bool_service::service_update(const std::shared_ptr<neb::pb_service>& svc,
                    _in_downtime != new_in_downtime;
     if (changed) {
       _state_hard = o.last_hard_state();
+      log_v2::bam()->debug("BAM: bool_service 2 state hard set to {}",
+                           _state_hard);
       _state_known = true;
       _in_downtime = new_in_downtime;
       log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
@@ -146,6 +154,8 @@ void bool_service::service_update(
     if (_state_hard != o.last_hard_state() || !_state_known ||
         _in_downtime != new_in_downtime) {
       _state_hard = o.last_hard_state();
+      log_v2::bam()->debug("BAM: bool_service 3 state hard set to {}",
+                           _state_hard);
       _state_known = true;
       _in_downtime = new_in_downtime;
       log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
@@ -178,7 +188,6 @@ bool bool_service::boolean_value() const {
  *  @return  True if the state is known.
  */
 bool bool_service::state_known() const {
-  log_v2::bam()->trace("BAM: bool_service::state_known: {}", _state_known);
   return _state_known;
 }
 

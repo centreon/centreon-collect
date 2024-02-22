@@ -55,14 +55,14 @@ def check_connection(port: int, pid1: int, pid2: int):
         estab_port = list(filter(r.match, lst))
         if len(estab_port) >= 2:
             ok = [False, False]
-            for l in estab_port:
-                m = p.search(l)
+            for line in estab_port:
+                m = p.search(line)
                 if m is not None:
                     if pid1 == int(m.group(3)):
                         ok[0] = True
                     if pid2 == int(m.group(3)):
                         ok[1] = True
-                m = p_v6.search(l)
+                m = p_v6.search(line)
                 if m is not None:
                     if pid1 == int(m.group(3)):
                         ok[0] = True
@@ -117,10 +117,9 @@ def wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int = 3
     r = re.compile(rf"^LISTEN [0-9]+\s+[0-9]+\s+\[::1\]:([0-9]+)\s+.*{prog}")
     size = port2 - port1 + 1
 
-    def ok(l):
-        m = r.match(l)
+    def ok(line):
+        m = r.match(line)
         if m:
-            value = int(m.group(1))
             if int(m.group(1)) in rng:
                 return True
         return False
@@ -273,13 +272,11 @@ def create_key_and_certificate(host: str, key: str, cert: str):
     if len(cert) > 0:
         os.makedirs(os.path.dirname(cert), mode=0o777, exist_ok=True)
     if len(key) > 0:
-        retval = getoutput(
-            "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout {} -out {} -subj '/CN={}'".format(key,
-                                                                                                                cert,
-                                                                                                                host))
+        getoutput(
+            f"openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout {key} -out {cert} -subj '/CN={host}'")
     else:
-        retval = getoutput(
-            "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -out {} -subj '/CN={}'".format(key, cert, host))
+        getoutput(
+            f"openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -out {cert} -subj '/CN={host}'")
 
 
 def create_certificate(host: str, cert: str):
@@ -407,23 +404,21 @@ def check_engine_logs_are_duplicated(log: str, date):
             lines = f.readlines()
 
         idx = find_line_from(lines, date)
-        count_true = 0
-        count_false = 0
         logs_old = []
         logs_new = []
         old_log = re.compile(r"\[[^\]]*\] \[[^\]]*\] ([^\[].*)")
         new_log = re.compile(
             r"\[[^\]]*\] \[[^\]]*\] \[.*\] \[[0-9]+\] (.*)")
-        for l in lines[idx:]:
-            mo = old_log.match(l)
-            mn = new_log.match(l)
+        for line in lines[idx:]:
+            mo = old_log.match(line)
+            mn = new_log.match(line)
             if mo is not None:
                 if mo.group(1) in logs_new:
                     logs_new.remove(mo.group(1))
                 else:
                     logs_old.append(mo.group(1))
             else:
-                mn = new_log.match(l)
+                mn = new_log.match(line)
                 if mn is not None:
                     if mn.group(1) in logs_old:
                         logs_old.remove(mn.group(1))
@@ -436,8 +431,8 @@ def check_engine_logs_are_duplicated(log: str, date):
         else:
             logger.console(
                 "{} old logs are not duplicated".format(len(logs_old)))
-            for l in logs_old:
-                logger.console(l)
+            for line in logs_old:
+                logger.console(line)
             # We don't care about new logs not duplicated, in a future, we won't have any old logs
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
@@ -506,7 +501,6 @@ def check_reschedule(log: str, date, content: str, retry: bool):
 
 def check_reschedule_with_timeout(log: str, date, content: str, retry: bool, timeout: int):
     limit = time.time() + timeout
-    c = ""
     while time.time() < limit:
         v = check_reschedule(log, date, content, retry)
         if v:
@@ -849,7 +843,7 @@ def check_downtimes_with_timeout(nb: int, timeout: int):
                 cursor.execute(
                     "SELECT count(*) FROM downtimes WHERE deletion_time IS NULL")
                 result = cursor.fetchall()
-                if len(result) > 0 and not result[0]['count(*)'] is None:
+                if len(result) > 0 and result[0]['count(*)'] is not None:
                     if result[0]['count(*)'] == int(nb):
                         return True
                     else:
@@ -909,7 +903,7 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
                     cursor.execute("SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{}' AND h.name='{}'".format(
                         service_desc, hostname))
                     result = cursor.fetchall()
-                    if len(result) == int(enabled) and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
+                    if len(result) == int(enabled) and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == int(enabled):
                         return True
                     if (len(result) > 0):
                         logger.console("{} downtimes for serv {} scheduled_downtime_depth={}".format(
@@ -921,7 +915,7 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
                     cursor.execute("SELECT s.scheduled_downtime_depth, d.deletion_time, d.downtime_id FROM services s INNER JOIN hosts h on s.host_id = h.host_id LEFT JOIN downtimes d ON s.host_id = d.host_id AND s.service_id = d.service_id WHERE s.description='{}' AND h.name='{}'".format(
                         service_desc, hostname))
                     result = cursor.fetchall()
-                    if len(result) > 0 and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is None or not result[0]['deletion_time'] is None):
+                    if len(result) > 0 and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is None or result[0]['deletion_time'] is not None):
                         return True
         time.sleep(2)
     return False
@@ -988,7 +982,7 @@ def show_downtimes():
     with connection:
         with connection.cursor() as cursor:
             cursor.execute(
-                f"select * FROM downtimes WHERE deletion_time is null")
+                "select * FROM downtimes WHERE deletion_time is null")
             result = cursor.fetchall()
 
     for r in result:
@@ -1091,7 +1085,7 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
                     if severity_id == 'None':
                         if result[0]['id'] is None:
                             return True
-                    elif not result[0]['id'] is None and int(result[0]['id']) == int(severity_id):
+                    elif result[0]['id'] is not None and int(result[0]['id']) == int(severity_id):
                         return True
         time.sleep(1)
     return False
@@ -1117,7 +1111,7 @@ def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int = T
                     if severity_id == 'None':
                         if result[0]['id'] is None:
                             return True
-                    elif not result[0]['id'] is None and int(result[0]['id']) == int(severity_id):
+                    elif result[0]['id'] is not None and int(result[0]['id']) == int(severity_id):
                         return True
         time.sleep(1)
     return False
@@ -1267,7 +1261,7 @@ def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value:
     return False
 
 
-def check_number_of_relations_between_servicegroup_and_services(servicegroup: int, value: int, timeout: int, service_group_name: str = None ):
+def check_number_of_relations_between_servicegroup_and_services(servicegroup: int, value: int, timeout: int, service_group_name: str = None):
     limit = time.time() + timeout
     request = f"SELECT count(*) from servicegroups s join services_servicegroups sg on s.servicegroup_id = sg.servicegroup_id  WHERE s.servicegroup_id={servicegroup}"
 
@@ -1401,6 +1395,14 @@ def create_bad_queue(filename: str):
     f.close()
 
 
+def grep(file_path: str, pattern: str):
+    with open(file_path, "r") as file:
+        for line in file:
+            if re.search(pattern, line):
+                return line.strip()
+    return ""
+
+
 def check_types_in_resources(lst: list):
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
@@ -1431,88 +1433,53 @@ def check_types_in_resources(lst: list):
     return False
 
 
-def grep(file_path: str, pattern: str):
-    with open(file_path, "r") as file:
-        for line in file:
-            if re.search(pattern, line):
-                return line.strip()
-    return ""
+def check_host_dependencies(dep_host_id, host_id, dep_period, inherits_parent, notif_fail_opts, exec_fail_opts, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    logger.console(
+        f"SELECT count(*) FROM hosts_hosts_dependencies WHERE dependent_host_id={dep_host_id} AND host_id={host_id} AND dependency_period='{dep_period}' AND inherits_parent={inherits_parent} AND notification_failure_options='{notif_fail_opts}' AND execution_failure_options='{exec_fail_opts}'")
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     autocommit=True,
+                                     cursorclass=pymysql.cursors.DictCursor)
 
-
-def check_types_in_resources(lst: list):                                        
-    connection = pymysql.connect(host=DB_HOST,                                  
-                                 user=DB_USER,                                  
-                                 password=DB_PASS,                              
-                                 database=DB_NAME_STORAGE,                      
-                                 charset='utf8mb4',                             
-                                 autocommit=True,                               
-                                 cursorclass=pymysql.cursors.DictCursor)        
-                                                                                
-    with connection:                                                            
-        with connection.cursor() as cursor:                                     
-            logger.console("select distinct type from resources")               
-            cursor.execute("select distinct type from resources")               
-            result = cursor.fetchall()                                          
-            if len(result) > 0:                                                 
-                for t in lst:                                                   
-                    found = False                                               
-                    for r in result:                                            
-                        v = r['type']                                           
-                        if int(v) == int(t):                                    
-                            found = True                                        
-                            break                                               
-                    if not found:                                               
-                        logger.console(                                         
-                            f"Value {t} not found in result of query 'select distinct type from resources'")
-                        return False                                            
-                return True                                                     
-    return False                                                                
-                                                                                
-                                                                                
-def check_host_dependencies(dep_host_id, host_id, dep_period, inherits_parent, notif_fail_opts, exec_fail_opts, timeout = TIMEOUT):
-    limit = time.time() + timeout                                               
-    logger.console(f"SELECT count(*) FROM hosts_hosts_dependencies WHERE dependent_host_id={dep_host_id} AND host_id={host_id} AND dependency_period='{dep_period}' AND inherits_parent={inherits_parent} AND notification_failure_options='{notif_fail_opts}' AND execution_failure_options='{exec_fail_opts}'")
-    while time.time() < limit:                                                  
-        connection = pymysql.connect(host=DB_HOST,                              
-                                     user=DB_USER,                              
-                                     password=DB_PASS,                          
-                                     database=DB_NAME_STORAGE,                  
-                                     charset='utf8mb4',                         
-                                     autocommit=True,                           
-                                     cursorclass=pymysql.cursors.DictCursor)    
-                                                                                
-        with connection:                                                        
-            with connection.cursor() as cursor:                                 
+        with connection:
+            with connection.cursor() as cursor:
                 cursor.execute("SELECT * FROM hosts_hosts_dependencies")
-                result = cursor.fetchall()                                      
+                result = cursor.fetchall()
                 logger.console(result)
-                cursor.execute(f"SELECT count(*) FROM hosts_hosts_dependencies WHERE dependent_host_id={dep_host_id} AND host_id={host_id} AND dependency_period='{dep_period}' AND inherits_parent={inherits_parent} AND notification_failure_options='{notif_fail_opts}' AND execution_failure_options='{exec_fail_opts}'")
-                result = cursor.fetchall()                                      
+                cursor.execute(
+                    f"SELECT count(*) FROM hosts_hosts_dependencies WHERE dependent_host_id={dep_host_id} AND host_id={host_id} AND dependency_period='{dep_period}' AND inherits_parent={inherits_parent} AND notification_failure_options='{notif_fail_opts}' AND execution_failure_options='{exec_fail_opts}'")
+                result = cursor.fetchall()
                 logger.console(result)
-                if len(result) > 0 and int(result[0]['count(*)']) > 0:                                             
+                if len(result) > 0 and int(result[0]['count(*)']) > 0:
                     return True
                 time.sleep(2)
     return False
 
 
-def check_no_host_dependencies(timeout = TIMEOUT):                              
-    limit = time.time() + timeout                                               
-    logger.console(f"SELECT count(*) FROM hosts_hosts_dependencies")            
-    while time.time() < limit:                                                  
-        connection = pymysql.connect(host=DB_HOST,                              
-                                     user=DB_USER,                              
-                                     password=DB_PASS,                          
-                                     database=DB_NAME_STORAGE,                  
-                                     charset='utf8mb4',                         
-                                     autocommit=True,                           
-                                     cursorclass=pymysql.cursors.DictCursor)    
-                                                                                
-        with connection:                                                        
-            with connection.cursor() as cursor:                                 
-                cursor.execute(f"SELECT count(*) FROM hosts_hosts_dependencies")
-                result = cursor.fetchall()                                      
-                if len(result) > 0 and int(result[0]['count(*)']) == 0:                                            
-                    return True                                                 
+def check_no_host_dependencies(timeout=TIMEOUT):
+    limit = time.time() + timeout
+    logger.console("SELECT count(*) FROM hosts_hosts_dependencies")
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     autocommit=True,
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT count(*) FROM hosts_hosts_dependencies")
+                result = cursor.fetchall()
+                if len(result) > 0 and int(result[0]['count(*)']) == 0:
+                    return True
     return False
 
 
@@ -1520,15 +1487,15 @@ def get_collect_version():
     f = open("../CMakeLists.txt", "r")
     lines = f.readlines()
     f.close()
-    filtered = filter(lambda l: l.startswith("set(COLLECT_"), lines)
+    filtered = filter(lambda line: line.startswith("set(COLLECT_"), lines)
 
     rmaj = re.compile(r"set\(COLLECT_MAJOR\s*([0-9]+)")
     rmin = re.compile(r"set\(COLLECT_MINOR\s*([0-9]+)")
     rpatch = re.compile(r"set\(COLLECT_PATCH\s*([0-9]+)")
-    for l in filtered:
-        m1 = rmaj.match(l)
-        m2 = rmin.match(l)
-        m3 = rpatch.match(l)
+    for line in filtered:
+        m1 = rmaj.match(line)
+        m2 = rmin.match(line)
+        m3 = rpatch.match(line)
         if m1:
             maj = m1.group(1)
         if m2:
@@ -1578,7 +1545,7 @@ def get_uid():
 def set_uid(user_id: int):
     os.setuid(user_id)
 
-    
+
 def has_file_permissions(path: str, permission: int):
     """! test if file has permission passed in parameter
     it does a AND with permission parameter
@@ -1586,9 +1553,47 @@ def has_file_permissions(path: str, permission: int):
     @permission mask to test file permission
     @return True if the file has the requested permissions
     """
-    stat_res= os.stat(path)
+    stat_res = os.stat(path)
     if stat_res is None:
         logger.console(f"fail to get permission of {path}")
         return False
     masked = stat_res.st_mode & permission
     return masked == permission
+
+
+def compare_dot_files(file1: str, file2: str):
+    """
+    Compare two dot files file1 and file2 after removing the pointer addresses
+    that clearly are not the same.
+
+    Args:
+        file1: The first file to compare.
+        file2: The second file to compare.
+
+    Returns: True if they have the same content, False otherwise.
+    """
+
+    with open(file1, "r") as f1:
+        content1 = f1.readlines()
+    with open(file2, "r") as f2:
+        content2 = f2.readlines()
+    r = re.compile(r"(.*) 0x[0-9a-f]+")
+
+    def replace_ptr(line):
+        m = r.match(line)
+        if m:
+            return m.group(1)
+        else:
+            return line
+
+    content1 = list(map(replace_ptr, content1))
+    content2 = list(map(replace_ptr, content2))
+
+    if len(content1) != len(content2):
+        return False
+    for i in range(len(content1)):
+        if content1[i] != content2[i]:
+            logger.console(
+                f"Files are different at line {i + 1}: first => << {content1[i].strip()} >> and second => << {content2[i].strip()} >>")
+            return False
+    return True

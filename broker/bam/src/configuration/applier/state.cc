@@ -228,8 +228,12 @@ void applier::state::_circular_check(applier::state::circular_check_node& n) {
  *  @param[in] cache  The cache.
  */
 void applier::state::save_to_cache(persistent_cache& cache) {
+  log_v2::bam()->trace("BAM: Saving states to cache");
+  cache.transaction();
   _book_service.save_to_cache(cache);
   _ba_applier.save_to_cache(cache);
+  cache.commit();
+  log_v2::bam()->trace("BAM: States correctly saved");
 }
 
 /**
@@ -239,7 +243,7 @@ void applier::state::save_to_cache(persistent_cache& cache) {
  */
 void applier::state::load_from_cache(persistent_cache& cache) {
   log_v2::bam()->debug(
-      "BAM: loading restoring inherited downtimes and BA states");
+      "BAM: Loading restoring inherited downtimes and BA states");
 
   std::shared_ptr<io::data> d;
   cache.get(d);
@@ -263,6 +267,7 @@ void applier::state::load_from_cache(persistent_cache& cache) {
     }
     cache.get(d);
   }
+  log_v2::bam()->debug("BAM: Inherited downtimes and BA states restored");
 }
 
 /**
