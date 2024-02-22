@@ -73,6 +73,8 @@
 
 #include <boost/asio.hpp>
 
+namespace asio = boost::asio;
+
 #include "com/centreon/engine/namespace.hh"
 
 namespace fmt {
