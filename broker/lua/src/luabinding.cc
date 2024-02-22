@@ -91,6 +91,7 @@ int32_t luabinding::stop() {
   if (_L) {
     retval = flush();
     lua_close(_L);
+    broker_event::lua_close(_L);
     _L = nullptr;
   }
   return retval;
