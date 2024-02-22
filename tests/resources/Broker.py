@@ -1041,9 +1041,8 @@ def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
         retry = True
         while retry and time.time() < limit:
             retry = False
-            f = open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", "r")
-            buf = f.read()
-            f.close()
+            with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", "r") as f:
+                buf = f.read()
 
             try:
                 conf = json.loads(buf)

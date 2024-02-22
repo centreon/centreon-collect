@@ -315,6 +315,7 @@ BABOOCOMPL
 
     FOR    ${i}    IN RANGE    ${1}    ${21}    ${2}
         ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+	Dump Ba On Error    ${result}    ${id_ba__sid[0]}
         Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
         Process Service Result Hard    host_1    service_${i}    0    output ok for service_${i}
     END
