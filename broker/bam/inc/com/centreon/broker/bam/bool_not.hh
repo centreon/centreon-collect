@@ -19,7 +19,6 @@
 #ifndef CCB_BAM_BOOL_NOT_HH
 #define CCB_BAM_BOOL_NOT_HH
 
-#include "bbdo/bam.pb.h"
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/io/stream.hh"
 

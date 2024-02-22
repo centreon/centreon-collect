@@ -20,7 +20,6 @@
 #define CCB_BAM_SERVICE_STATE_HH
 
 #include "bbdo/bam_state.pb.h"
-#include "bbdo/neb.pb.h"
 #include "com/centreon/broker/bam/service_listener.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 

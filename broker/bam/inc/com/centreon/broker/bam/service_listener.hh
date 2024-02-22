@@ -32,7 +32,7 @@ class service_status;
 }  // namespace neb
 
 namespace bam {
-class service_state;
+struct service_state;
 
 /**
  *  @class service_listener service_listener.hh
