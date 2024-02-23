@@ -19,7 +19,7 @@ Test Teardown       Save Logs If Failed
 *** Test Cases ***
 BAPBSTATUS
     [Documentation]    With bbdo version 3.0.0, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service.
-    [Tags]    broker    downtime    engine    bam
+    [Tags]    broker    downtime    engine    bam    MON-35113
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
