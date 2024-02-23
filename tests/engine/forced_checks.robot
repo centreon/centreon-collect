@@ -291,7 +291,7 @@ EMACROS_NOTIF
 
 EMACROS_SEMICOLON
     [Documentation]    Macros with a semicolon are used even if they contain a semicolon.
-    [Tags]    engine    external_cmd    macros    MON-35107
+    [Tags]    engine    external_cmd    macros    MON-35107    MON-35560
     Config Engine    ${1}
     Config Broker    central
     Config Broker    rrd
