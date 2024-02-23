@@ -58,6 +58,43 @@ BAPBSTATUS
     ...    SELECT current_level, acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
     Should Be Equal As Strings    ${output}    ((100.0, 0.0, 0.0, 0, 2),)
 
+    # check broker stats
+    ${res}    Get Broker Stats    central    1: 127.0.0.1:[0-9]+    10    endpoint central-broker-master-input    peers
+    Should Be True    ${res}    no central-broker-master-input.peers found in broker stat output
+
+    ${res}    Get Broker Stats    central    listening    10    endpoint central-broker-master-input    state
+    Should Be True    ${res}    central-broker-master-input not listening
+
+    ${res}    Get Broker Stats    central    connected    10    endpoint centreon-bam-monitoring    state
+    Should Be True    ${res}    central-bam-monitoring not connected
+
+    ${res}    Get Broker Stats    central    connected    10    endpoint centreon-bam-reporting    state
+    Should Be True    ${res}    central-bam-reporting not connected
+
+    Reload Engine
+    Reload Broker
+
+    # check broker stats
+    ${res}    Get Broker Stats    central    1: 127.0.0.1:[0-9]+    10    endpoint central-broker-master-input    peers
+    Should Be True    ${res}    no central-broker-master-input.peers found in broker stat output
+
+    ${res}    Get Broker Stats    central    listening    10    endpoint central-broker-master-input    state
+    Should Be True    ${res}    central-broker-master-input not listening
+
+    ${res}    Get Broker Stats    central    connected    10    endpoint centreon-bam-monitoring    state
+    Should Be True    ${res}    central-bam-monitoring not connected
+
+    ${res}    Get Broker Stats    central    connected    10    endpoint centreon-bam-reporting    state
+    Should Be True    ${res}    central-bam-reporting not connected
+
+    # Little check of the GetBa gRPC command
+    ${result}    Run Keyword And Return Status    File Should Exist    /tmp/output
+    Run Keyword If    ${result} is True    Remove File    /tmp/output
+@ -99,7 +128,7 @@ BAWORST
+    Wait Until Created    /tmp/output
+    ${result}    Grep File    /tmp/output    digraph
+    Should Not Be Empty    ${result}    /tmp/output does not contain the word 'digraph'
+
     Stop Engine
     Kindly Stop Broker
 
