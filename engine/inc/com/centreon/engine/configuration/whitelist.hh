@@ -19,9 +19,7 @@
 #ifndef CCE_CONFIGURATION_WHITELIST_HH
 #define CCE_CONFIGURATION_WHITELIST_HH
 
-#include "com/centreon/engine/namespace.hh"
-
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 
@@ -109,6 +107,6 @@ whitelist::whitelist(string_iter dir_path_begin, string_iter dir_path_end) {
 
 };  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif

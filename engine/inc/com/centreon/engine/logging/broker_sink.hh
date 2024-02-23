@@ -26,7 +26,7 @@
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/unique_array_ptr.hh"
 #include "spdlog/details/null_mutex.h"
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace logging {
 template <typename Mutex>
@@ -55,6 +55,6 @@ using broker_sink_mt = broker_sink<std::mutex>;
 using broker_sink_st = broker_sink<spdlog::details::null_mutex>;
 
 }  // namespace logging
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_LOGGING_BROKER_SINK_HH

@@ -67,7 +67,7 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::downtimes;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 std::ostream& operator<<(std::ostream& str, const HostIdentifier& host_id) {
   switch (host_id.identifier_case()) {
@@ -99,7 +99,7 @@ std::ostream& operator<<(std::ostream& str, const ServiceIdentifier& serv_id) {
   return str;
 }
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 namespace fmt {
 template <>

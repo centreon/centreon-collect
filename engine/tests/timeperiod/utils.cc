@@ -23,8 +23,6 @@
 #include <memory>
 #include <unordered_map>
 
-#include "com/centreon/engine/namespace.hh"
-
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/timerange.hh"
 #include "tests/timeperiod/utils.hh"

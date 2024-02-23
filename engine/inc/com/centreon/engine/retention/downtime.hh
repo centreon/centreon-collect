@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/retention/object.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace retention {
 class downtime : public object {
@@ -87,6 +87,6 @@ typedef std::shared_ptr<downtime> downtime_ptr;
 typedef std::list<downtime_ptr> list_downtime;
 }  // namespace retention
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_RETENTION_DOWNTIME_HH

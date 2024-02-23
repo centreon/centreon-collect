@@ -28,7 +28,7 @@
 #include "common.hh"
 
 class nagios_macros;
-CCE_BEGIN()
+namespace com::centreon::engine {
 // Forward declarations
 class escalation;
 class contact;
@@ -340,7 +340,7 @@ class notifier : public checkable {
   int _pending_flex_downtime;
 };
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
                              com::centreon::engine::contact* cntct);

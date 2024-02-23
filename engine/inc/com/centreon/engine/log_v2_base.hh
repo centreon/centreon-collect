@@ -22,9 +22,7 @@
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
-#include "namespace.hh"
-
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 class log_v2_base {
  protected:
@@ -62,6 +60,6 @@ class log_v2_logger : public spdlog::logger {
   log_v2_base* get_parent() { return _parent; }
 };
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif

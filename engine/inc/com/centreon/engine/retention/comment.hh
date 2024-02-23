@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/retention/object.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace retention {
 class comment : public object {
@@ -87,6 +87,6 @@ typedef std::shared_ptr<comment> comment_ptr;
 typedef std::list<comment_ptr> list_comment;
 }  // namespace retention
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_RETENTION_COMMENT_HH

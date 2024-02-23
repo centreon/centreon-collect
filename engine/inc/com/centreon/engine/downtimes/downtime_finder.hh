@@ -20,7 +20,7 @@
 #ifndef CCE_DOWNTIMES_DOWNTIME_FINDER_HH
 #define CCE_DOWNTIMES_DOWNTIME_FINDER_HH
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace downtimes {
 class downtime;
@@ -55,6 +55,6 @@ class downtime_finder {
 };
 }  // namespace downtimes
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_DOWNTIMES_DOWNTIME_FINDER_HH

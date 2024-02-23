@@ -22,7 +22,8 @@
 
 #include <com/centreon/engine/timeperiod.hh>
 
-CCE_BEGIN();
+namespace com::centreon::engine {
+;
 
 class dependency {
  public:
@@ -71,6 +72,6 @@ class dependency {
   bool _contains_circular_path;
 };
 
-CCE_END();
+};  // namespace com::centreon::engine
 
 #endif  // CENTREON_ENGINE_DEPENDENCY_HH
