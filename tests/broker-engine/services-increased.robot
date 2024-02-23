@@ -59,7 +59,7 @@ EBNSVC1
 
 Service_increased_huge_check_interval
     [Documentation]    New services with high check interval at creation time.
-    [Tags]    broker    engine    services    protobuf
+    [Tags]    broker    engine    services    protobuf    MON-32951
     Config Engine    ${1}    ${10}    ${10}
     Config Broker    rrd
     Config Broker    central
@@ -140,7 +140,7 @@ Service_increased_huge_check_interval
 
     ${metrics}    Get Metrics For Service    ${new_service_id}
 
-    Should Not Be Equal    ${metrics}    None    no metric found for service ${new_service_id}
+    Should Not Be Equal    ${metrics}    ${None}    no metric found for service ${new_service_id}
 
     FOR    ${m}    IN    @{metrics}
         ${result}    Wait Until File Modified    ${VarRoot}/lib/centreon/metrics/${m}.rrd    ${start}
