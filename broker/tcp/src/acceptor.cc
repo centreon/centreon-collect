@@ -74,6 +74,7 @@ std::unique_ptr<io::stream> acceptor::open() {
   if (conn) {
     assert(conn->port());
     log_v2::tcp()->info("acceptor gets a new connection from {}", conn->peer());
+    add_child(conn->peer());
     return std::make_unique<stream>(conn, _conf);
   }
   return nullptr;
