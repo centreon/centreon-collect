@@ -281,7 +281,7 @@ EBPS2
 
 Services_and_bulks_${id}
     [Documentation]    One service is configured with one metric with a name of 150 to 1021 characters.
-    [Tags]    broker    engine    services    unified_sql    benchmark
+    [Tags]    broker    engine    services    unified_sql    benchmark    MON-32951
     Clear Metrics
     Config Engine    ${1}    ${1}    ${1}
     # We want all the services to be passive to avoid parasite checks during our test.
