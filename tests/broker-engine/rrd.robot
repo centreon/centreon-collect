@@ -345,7 +345,7 @@ BRRDRM1
 
 BRRDRMU1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output.
-    [Tags]    rrd    metric    rebuild    unified_sql    grpc
+    [Tags]    rrd    metric    rebuild    unified_sql    grpc    MON-34594
     Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
