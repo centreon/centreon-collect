@@ -91,7 +91,10 @@ class DbConf:
             with connection.cursor() as cursor:
                 self.module_bam_hid = self.engine.create_bam_host()
                 cursor.execute("INSERT INTO host (host_id, host_name, contact_additive_inheritance, cg_additive_inheritance,host_location,host_locked,host_register,host_activate) VALUES ({}, '_Module_BAM_1',0,0,0,0,'2','1')".format(self.module_bam_hid))
-                connection.commit()
+            with connection.cursor() as cursor:
+                cursor.execute("""INSERT INTO timeperiod (`tp_id`,`tp_name`,`tp_alias`,`tp_sunday`,`tp_monday`,`tp_tuesday`,`tp_wednesday`,`tp_thursday`,`tp_friday`,`tp_saturday`)
+VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00:00-24:00','00:00-24:00','00:00-24:00','00:00-24:00','00:00-24:00');""")
+            connection.commit()
         self.engine.centengine_conf_add_bam()
 
     def create_conf_db(self):
