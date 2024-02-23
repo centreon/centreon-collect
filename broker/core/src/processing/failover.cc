@@ -1,20 +1,20 @@
-/*
-** Copyright 2011-2017, 2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2017, 2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/processing/failover.hh"
 
@@ -23,8 +23,8 @@
 #include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/misc/misc.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -50,7 +50,9 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
       _next_timeout(0),
       _muxer(mux),
       _update(false) {
-  DEBUG(fmt::format("CONSTRUCTOR failover {:p} {} - muxer: {:p}", static_cast<void*>(this), name, static_cast<void*>(mux.get())));
+  DEBUG(fmt::format("CONSTRUCTOR failover {:p} {} - muxer: {:p}",
+                    static_cast<void*>(this), name,
+                    static_cast<void*>(mux.get())));
   SPDLOG_LOGGER_TRACE(log_v2::core(), "failover '{}' construction.", _name);
 }
 
@@ -196,6 +198,12 @@ void failover::_run() {
           std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
           _stream = s;
           set_state(s ? "connected" : "connecting");
+          if (s)
+            SPDLOG_LOGGER_DEBUG(log_v2::processing(), "{} stream connected",
+                                _name);
+          else
+            SPDLOG_LOGGER_DEBUG(log_v2::processing(),
+                                "{} fail to create stream", _name);
         }
         _initialized = true;
         set_last_connection_success(timestamp::now());
@@ -406,12 +414,12 @@ void failover::_run() {
     }
     // Some real error occured.
     catch (const exceptions::connection_closed&) {
-      SPDLOG_LOGGER_INFO(log_v2::core(), "failover {}: connection closed",
+      SPDLOG_LOGGER_INFO(log_v2::processing(), "failover {}: connection closed",
                          _name);
       on_exception_handler();
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::core(), "failover: global error: {}",
-                          e.what());
+      SPDLOG_LOGGER_ERROR(log_v2::processing(), "failover {}: global error: {}",
+                          _name, e.what());
       on_exception_handler();
     } catch (...) {
       SPDLOG_LOGGER_ERROR(
@@ -423,6 +431,9 @@ void failover::_run() {
       on_exception_handler();
     }
 
+    SPDLOG_LOGGER_DEBUG(log_v2::processing(),
+                        "failover {} end of loop => reconnect", _name);
+
     // Clear stream.
     {
       std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
@@ -432,7 +443,7 @@ void failover::_run() {
         try {
           ack_events = _stream->stop();
         } catch (const std::exception& e) {
-          SPDLOG_LOGGER_ERROR(log_v2::core(),
+          SPDLOG_LOGGER_ERROR(log_v2::processing(),
                               "Failed to send stop event to stream: {}",
                               e.what());
         }
