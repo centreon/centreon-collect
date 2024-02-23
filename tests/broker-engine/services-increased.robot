@@ -59,7 +59,7 @@ EBNSVC1
 
 Service_increased_huge_check_interval
     [Documentation]    New services with high check interval at creation time.
-    [Tags]    broker    engine    services    protobuf
+    [Tags]    broker    engine    services    protobuf    MON-32951
     Config Engine    ${1}    ${10}    ${10}
     Config Broker    rrd
     Config Broker    central
