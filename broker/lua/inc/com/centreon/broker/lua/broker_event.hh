@@ -59,6 +59,7 @@ class broker_event {
   static std::mutex _gc_info_m;
 
   static int l_broker_event_destructor(lua_State* L);
+
  public:
   static void broker_event_reg(lua_State* L);
   static void create(lua_State* L, std::shared_ptr<io::data> e);
