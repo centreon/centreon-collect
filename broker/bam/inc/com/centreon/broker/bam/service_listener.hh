@@ -1,5 +1,5 @@
-/*
- * Copyright 2014-2015, 2021-2023 Centreon
+/**
+ * Copyright 2014-2015, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,8 @@ class service_status;
 }  // namespace neb
 
 namespace bam {
+struct service_state;
+
 /**
  *  @class service_listener service_listener.hh
  * "com/centreon/broker/bam/service_listener.hh"
@@ -46,6 +48,7 @@ class service_listener {
   service_listener(const service_listener&) = delete;
   virtual ~service_listener() noexcept = default;
   service_listener& operator=(const service_listener&) = delete;
+  virtual void service_update(const service_state& s);
   virtual void service_update(std::shared_ptr<neb::pb_service> const& status,
                               io::stream* visitor = nullptr);
   virtual void service_update(
@@ -66,6 +69,6 @@ class service_listener {
 };
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_SERVICE_LISTENER_HH

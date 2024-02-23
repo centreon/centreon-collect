@@ -2,24 +2,34 @@
 
 use strict;
 use warnings;
-
-if ($#ARGV < 1) {
-    die "The script must be used with one integer argument\n";
-}
+use Getopt::Long;
 
 my $d = time();
 my $dd = localtime();
+
+my $id;
+my $state;
+
+GetOptions(
+  'id=s'    =>	\$id,
+  'state=s' =>	\$state,
+);
+
+unless (defined $id) {
+  die "'--id' option is mandatory.";
+}
+
 {
     use integer;
-    $d = ($d + 3 * $ARGV[0]) & 0x1ff;
+    $d = ($d + 3 * $id) & 0x1ff;
 }
 
 my $status = -1;
 
-if ($ARGV[0] eq 0) {
+if ($id eq 0) {
   printf("Host check $dd");
-  if ($#ARGV eq 1) {
-    $status = $ARGV[1];
+  if (defined $state) {
+    $status = $state;
   } else {
     $status = 0;
   }
@@ -27,7 +37,7 @@ if ($ARGV[0] eq 0) {
 else {
   if (open(FH, '<', "/tmp/states")) {
     while (<FH>) {
-      if (/$ARGV[0]=>(.*)/) {
+      if (/$id=>(.*)/) {
         $status = $1;
         chomp $status;
       }
@@ -35,9 +45,9 @@ else {
     close FH;
   }
 
-  $d /= ($ARGV[0] + 1);
-  my $w = 300 / ($ARGV[0] + 1);
-  my $c = 400 / ($ARGV[0] + 1);
+  $d /= ($id + 1);
+  my $w = 300 / ($id + 1);
+  my $c = 400 / ($id + 1);
   if ($status == 0) {
     $d = $w / 2;
   } elsif ($status == 1) {
@@ -53,7 +63,7 @@ else {
       $status = 0;
     }
   }
-  printf("Test check $ARGV[0] | metric=%.2f;%.2f;%.2f\n", $d, $w, $c);
+  printf("Test check $id | metric=%.2f;%.2f;%.2f\n", $d, $w, $c);
   exit $status;
 }
 exit $status;

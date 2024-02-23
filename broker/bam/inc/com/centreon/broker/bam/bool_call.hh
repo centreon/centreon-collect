@@ -52,6 +52,6 @@ class bool_call : public bool_value {
 };
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_BOOL_CALL_HH

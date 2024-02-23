@@ -86,6 +86,9 @@ broker/librokerbase.a
 broker/test/python/*.crt
 broker/test/python/*.key
 broker/compile_commands.json
+broker/grpc/grpc_stream.proto
+broker/grpc/src/grpc_bridge.cc
+
 
 # clib
 clib/inc/com/centreon/clib/version.hh
@@ -133,3 +136,6 @@ tests/src/config/centreon-engine/config*/*
 test/python/*.crt
 test/python/*.key
 tests/logs/*
+tests/bench.unqlite
+tests/resources/process_stat_pb2.py
+tests/resources/process_stat_pb2_grpc.py

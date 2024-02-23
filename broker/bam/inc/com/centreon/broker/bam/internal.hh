@@ -20,6 +20,7 @@
 #define CCB_BAM_INTERNAL_HH
 
 #include "bbdo/bam.pb.h"
+#include "bbdo/bam_state.pb.h"
 #include "broker.pb.h"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
@@ -75,6 +76,10 @@ using pb_dimension_truncate_table_signal =
     io::protobuf<DimensionTruncateTableSignal,
                  make_type(io::bam,
                            bam::de_pb_dimension_truncate_table_signal)>;
+
+using pb_services_book_state =
+    io::protobuf<ServicesBookState,
+                 make_type(io::bam, bam::de_pb_services_book_state)>;
 
 }  // namespace bam
 

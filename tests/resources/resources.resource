@@ -77,6 +77,11 @@ Start Broker
         Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2
     END
 
+Restart Broker
+    [Arguments]    ${only_central}=False
+    Kindly Stop Broker    ${only_central}
+    Start Broker    ${only_central}
+
 Reload Broker
     Send Signal To Process    SIGHUP    b1
     Send Signal To Process    SIGHUP    b2
