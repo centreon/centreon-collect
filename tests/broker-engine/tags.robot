@@ -19,7 +19,7 @@ Test Teardown       Stop Engine Broker And Save Logs
 *** Test Cases ***
 BETAG1
     [Documentation]    Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Broker is started before.
-    [Tags]    broker    engine    protobuf    bbdo    tags
+    [Tags]    broker    engine    protobuf    bbdo    tags    MON-32811
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
@@ -45,7 +45,7 @@ BETAG1
 
 BETAG2
     [Documentation]    Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
-    [Tags]    broker    engine    protobuf    bbdo    tags
+    [Tags]    broker    engine    protobuf    bbdo    tags    MON-32811
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
@@ -72,7 +72,7 @@ BETAG2
 
 BEUTAG1
     [Documentation]    Engine is configured with some tags. When broker receives them through unified_sql stream, it stores them in the centreon_storage.tags table. Broker is started before.
-    [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql
+    [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql    MON-32811
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
@@ -100,7 +100,7 @@ BEUTAG1
 
 BEUTAG2
     [Documentation]    Engine is configured with some tags. A new service is added with a tag. Broker should make the relations.
-    [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql
+    [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql    MON-32811
     Clear Db    resources
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
@@ -144,7 +144,7 @@ BEUTAG2
 
 BEUTAG3
     [Documentation]    Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
-    [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql
+    [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql    MON-32811
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
@@ -173,7 +173,7 @@ BEUTAG3
 
 BEUTAG4
     [Documentation]    Engine is configured with some tags. Group tags tag9, tag13 are set to services 1 and 3. Category tags tag3 and tag11 are added to services 1, 3, 5 and 6. The centreon_storage.resources and resources_tags tables are well filled.
-    [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql
+    [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql    MON-32811
     # Clear Db    tags
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
@@ -209,7 +209,7 @@ BEUTAG4
 
 BEUTAG5
     [Documentation]    Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled.
-    [Tags]    broker    engine    protobuf    bbdo    tags
+    [Tags]    broker    engine    protobuf    bbdo    tags    MON-32811
     # Clear Db    tags
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
@@ -245,7 +245,7 @@ BEUTAG5
 
 BEUTAG6
     [Documentation]    Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.resources_tags table. Engine is started before.
-    [Tags]    broker    engine    protobuf    bbdo    tags
+    [Tags]    broker    engine    protobuf    bbdo    tags    MON-32811
     # Clear Db    tags
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
@@ -283,7 +283,7 @@ BEUTAG6
 
 BEUTAG7
     [Documentation]    Some services are configured with tags on two pollers. Then tags configuration is modified.
-    [Tags]    broker    engine    protobuf    bbdo    tags    unstable
+    [Tags]    broker    engine    protobuf    bbdo    tags    unstable    MON-32811
     Config Engine    ${2}
     Create Tags File    ${0}    ${20}
     Create Tags File    ${1}    ${20}
@@ -345,7 +345,7 @@ BEUTAG7
 
 BEUTAG8
     [Documentation]    Services have tags provided by templates.
-    [Tags]    broker    engine    protobuf    bbdo    tags
+    [Tags]    broker    engine    protobuf    bbdo    tags    MON-32811
     Config Engine    ${2}
     Create Tags File    ${0}    ${40}
     Create Tags File    ${1}    ${40}
@@ -401,7 +401,7 @@ BEUTAG8
 
 BEUTAG9
     [Documentation]    hosts have tags provided by templates.
-    [Tags]    broker    engine    protobuf    bbdo    tags
+    [Tags]    broker    engine    protobuf    bbdo    tags    MON-32811
     Config Engine    ${2}
     Create Tags File    ${0}    ${40}
     Create Tags File    ${1}    ${40}
@@ -464,7 +464,7 @@ BEUTAG9
 
 BEUTAG10
     [Documentation]    some services are configured with tags on two pollers. Then tags are removed from some of them and in centreon_storage, we can observe resources_tags table updated.
-    [Tags]    broker    engine    protobuf    bbdo    tags
+    [Tags]    broker    engine    protobuf    bbdo    tags    MON-32811
     Config Engine    ${2}
     Create Tags File    ${0}    ${20}
     Create Tags File    ${1}    ${20}
@@ -530,7 +530,7 @@ BEUTAG10
 
 BEUTAG11
     [Documentation]    some services are configured with tags on two pollers. Then several tags are removed, and we can observe resources_tags table updated.
-    [Tags]    broker    engine    protobuf    bbdo    tags
+    [Tags]    broker    engine    protobuf    bbdo    tags    MON-32811
     Config Engine    ${2}
     Create Tags File    ${0}    ${20}
     Create Tags File    ${1}    ${20}
@@ -577,7 +577,7 @@ BEUTAG11
 
 BEUTAG12
     [Documentation]    Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled. The tag6 and tag8 are removed and resources_tags is also well updated.
-    [Tags]    broker    engine    protobuf    bbdo    tags
+    [Tags]    broker    engine    protobuf    bbdo    tags    MON-32811
     # Clear Db    tags
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
@@ -632,7 +632,7 @@ BEUTAG12
 
 BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     [Documentation]    remove a host from hostgroup, reload, insert 2 host in the hostgroup must not make sql error
-    [Tags]    broker    engine    tags
+    [Tags]    broker    engine    tags    MON-32811
     Clear Db    tags
     Config Engine    ${1}
     Create Tags File    ${0}    ${3}    ${0}    hostgroup
