@@ -24,9 +24,9 @@
 #define CCE_EVENTS_SCHED_INFO_HH
 
 // Forward declaration.
-CCE_BEGIN()
+namespace com::centreon::engine {
 class service;
-CCE_END()
+}
 
 struct timed_event_struct;
 

@@ -33,10 +33,10 @@
 #define NSLOG_SERVICE_WARNING 32768
 #define NSLOG_SERVICE_CRITICAL 65536
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class host;
 class service;
-CCE_END()
+}  // namespace com::centreon::engine
 
 #ifdef __cplusplus
 extern "C" {

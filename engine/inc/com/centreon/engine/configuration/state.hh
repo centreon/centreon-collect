@@ -38,7 +38,7 @@
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 
@@ -662,10 +662,9 @@ class state {
   std::string _log_level_runtime;
   std::string _use_timezone;
   bool _use_true_regexp_matching;
-
 };
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_STATE_HH

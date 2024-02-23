@@ -24,7 +24,7 @@
 #include "com/centreon/engine/macros/process.hh"
 #include "com/centreon/engine/string.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace macros {
 /**
@@ -241,6 +241,6 @@ std::string get_state_type(T& t, nagios_macros* mac) {
 }
 }  // namespace macros
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_MACROS_GRAB_HH

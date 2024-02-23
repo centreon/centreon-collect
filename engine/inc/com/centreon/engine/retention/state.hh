@@ -29,7 +29,7 @@
 #include "com/centreon/engine/retention/program.hh"
 #include "com/centreon/engine/retention/service.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace retention {
 class state {
@@ -73,6 +73,6 @@ class state {
 };
 }  // namespace retention
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_RETENTION_STATE_HH

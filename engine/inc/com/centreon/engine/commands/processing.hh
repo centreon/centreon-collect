@@ -29,7 +29,7 @@
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/servicegroup.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace commands {
 
@@ -155,6 +155,6 @@ class processing {
 };
 }  // namespace commands
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_MOD_EXTCMD_PROCESSING_HH

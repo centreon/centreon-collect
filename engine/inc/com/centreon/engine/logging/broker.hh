@@ -22,7 +22,7 @@
 #include <thread>
 #include "com/centreon/logging/backend.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace logging {
 /**
@@ -50,6 +50,6 @@ class broker : public com::centreon::logging::backend {
 };
 }  // namespace logging
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_LOGGING_BROKER_HH

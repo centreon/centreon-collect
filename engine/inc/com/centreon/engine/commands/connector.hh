@@ -25,18 +25,18 @@
 #include "com/centreon/process.hh"
 #include "com/centreon/process_listener.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 namespace commands {
 class connector;
 }
-CCE_END()
+}  // namespace com::centreon::engine
 
 typedef std::unordered_map<
     std::string,
     std::shared_ptr<com::centreon::engine::commands::connector> >
     connector_map;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace commands {
 /**
@@ -141,7 +141,7 @@ class connector : public command, public process_listener {
 };
 }  // namespace commands
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::commands::connector const& obj);

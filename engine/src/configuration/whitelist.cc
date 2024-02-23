@@ -40,7 +40,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 
@@ -65,7 +65,7 @@ void on_rapidyaml_error(const char* buff,
 
 }  // namespace configuration
 
-CCE_END();
+}  // namespace com::centreon::engine
 
 std::unique_ptr<whitelist> whitelist::_instance;
 
@@ -310,6 +310,7 @@ whitelist& whitelist::instance() {
 
 void whitelist::reload() {
   static constexpr std::string_view directories[] = {
-      "/etc/centreon-engine-whitelist", "/usr/share/centreon-engine/whitelist.conf.d"};
+      "/etc/centreon-engine-whitelist",
+      "/usr/share/centreon-engine/whitelist.conf.d"};
   _instance = std::make_unique<whitelist>(directories, directories + 2);
 }

@@ -18,7 +18,7 @@
  */
 #include <chrono>
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 struct restart_stats {
   std::chrono::system_clock::time_point apply_start;
@@ -48,4 +48,4 @@ struct restart_stats {
   std::chrono::system_clock::time_point apply_end;
 };
 
-CCE_END()
+}  // namespace com::centreon::engine
