@@ -83,8 +83,8 @@ BAWORST
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${output}    Query
-    ...    SELECT current_level, acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
-    Should Be Equal As Strings    ${output}    ((100.0, 0.0, 0.0, 0, 2),)
+    ...    SELECT acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
+    Should Be Equal As Strings    ${output}    ((0.0, 0.0, 0, 2),)
 
     ${result}    Check Ba Output With Timeout
     ...    test

@@ -26,6 +26,7 @@ set(protobuf_files
     neb
     storage
     bam
+    bam_state
     extcmd)
 
 foreach(name IN LISTS protobuf_files)
@@ -70,8 +71,8 @@ add_library(pb_tag_lib STATIC tag.pb.cc tag.pb.h)
 add_dependencies(pb_tag_lib target_neb)
 set_target_properties(pb_tag_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-add_library(pb_bam_lib STATIC bam.pb.cc bam.pb.h)
-add_dependencies(pb_bam_lib target_bam target_header)
+add_library(pb_bam_lib STATIC bam.pb.cc bam.pb.h bam_state.pb.cc bam_state.pb.h)
+add_dependencies(pb_bam_lib target_bam target_bam_state target_header)
 set_target_properties(pb_bam_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(pb_extcmd_lib STATIC extcmd.pb.cc extcmd.pb.h)

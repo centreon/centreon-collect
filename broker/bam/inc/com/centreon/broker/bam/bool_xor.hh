@@ -43,6 +43,6 @@ class bool_xor : public bool_binary_operator {
 };
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_BOOL_XOR_HH

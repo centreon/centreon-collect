@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from robot.api import logger
 import pymysql.cursors
 from robot.libraries.BuiltIn import BuiltIn
 
@@ -119,29 +118,28 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
             if hosts % self.instances > 0:
                 r = 1
             v = int(hosts / self.instances) + r
-            last = hosts - (self.instances - 1) * v
             with connection.cursor() as cursor:
                 # Insertion of HOSTS COMMANDS
                 for i in range(1, self.hosts_count + 1):
-                    name = "checkh{}".format(i)
+                    name = f"checkh{i}"
                     cursor.execute(
-                        "INSERT INTO command (command_name,command_line) VALUES (\"{2}\",\"{0}/check.pl --id 0 --state {1}\")".format(ENGINE_HOME, i, name))
+                        f"INSERT INTO command (command_name,command_line) VALUES (\"{name}\",\"{ENGINE_HOME}/check.pl --id 0 --state {i}\")")
                     self.command[name] = cursor.lastrowid
                 connection.commit()
 
                 # Insertion of SERVICES COMMANDS
                 for i in range(1, self.commands_per_poller_count * self.instances + 1):
-                    name = "command_{}".format(i)
+                    name = f"command_{i}"
                     cursor.execute(
-                        "INSERT INTO command (command_name,command_line) VALUES (\"{2}\",\"{0}/check.pl --id {1}\")".format(ENGINE_HOME, i, name))
+                        f"INSERT INTO command (command_name,command_line) VALUES (\"{name}\",\"{ENGINE_HOME}/check.pl --id {i}\")")
                     self.command[name] = cursor.lastrowid
 
                 # Two specific commands
                 cursor.execute(
-                    "INSERT INTO command (command_name,command_line) VALUES (\"notif\",\"{}/notif.pl\")".format(ENGINE_HOME))
+                    f"INSERT INTO command (command_name,command_line) VALUES (\"notif\",\"{ENGINE_HOME}/notif.pl\")")
                 self.command["notif"] = cursor.lastrowid
                 cursor.execute(
-                    "INSERT INTO command (command_name,command_line) VALUES (\"test-notif\",\"{}/notif.pl\")".format(ENGINE_HOME))
+                    f"INSERT INTO command (command_name,command_line) VALUES (\"test-notif\",\"{ENGINE_HOME}/notif.pl\")")
                 self.command["test-notif"] = cursor.lastrowid
                 connection.commit()
 

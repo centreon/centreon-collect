@@ -91,3 +91,7 @@ attributes.
 This BA works as the Ratio number BA, except that we count CRITICAL states
 in percents relatively to the total of KPIs.
 
+### BAM cache
+When BAM is stopped (broker is stopped or reloaded), living data are saved into a cache. There are two kinds of information:
+* InheritedDowntime: it is then possible to restore the exact situation of the BA's concerning downtimes when cbd will be restarted.
+* ServicesBookState: the goal of this message is to save the BA's states. This message contains only services' states as they are the living parts of BA's. And these services states are minimalistic, we just save data used by BAM.
