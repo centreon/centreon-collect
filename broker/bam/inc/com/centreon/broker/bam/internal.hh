@@ -19,7 +19,6 @@
 #ifndef CCB_BAM_INTERNAL_HH
 #define CCB_BAM_INTERNAL_HH
 
-#include "bbdo/bam.pb.h"
 #include "broker.pb.h"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
