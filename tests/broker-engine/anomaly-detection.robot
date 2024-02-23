@@ -31,7 +31,7 @@ ANO_NOFILE
 
 ANO_NOFILE_VERIF_CONFIG_NO_ERROR
     [Documentation]    an anomaly detection without threshold file doesn't display error on config check
-    [Tags]    broker    engine    anomaly
+    [Tags]    broker    engine    anomaly    MON-20385
     Config Engine    ${1}    ${50}    ${20}
     Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     Remove File    /tmp/anomaly_threshold.json
