@@ -551,7 +551,25 @@ BEUTAG11
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention
+    ${start}    Get Current Date
+    Start Engine
+    Start Broker
 
+    # Let's wait for the external command check start                           
+    ${content}    Create List    check_for_external_commands()                  
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+                                                                                
+    ${result}    Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
+    Should Be True    ${result}    First step: Service (1, 4) should have servicegroup tags 2 and 4
+    ${result}    Check Resources Tags With Timeout    1    3    servicecategory    [3,5]    60
+    Should Be True    ${result}    First step: Service (1, 3) should have servicecategory tags 3 and 5
+                                                                                
+    ${result}    Check Resources Tags With Timeout    26    504    servicegroup    [3,5]    60
+    Should Be True    ${result}    First step: Service (26, 504) should have servicegroup tags 3 and 5.
+    ${result}    Check Resources Tags With Timeout    26    503    servicecategory    [2,4]    60
+    Should Be True    ${result}    First step: Service (26, 503) should have servicecategory tags 2 and 4.
+                                                                                
     Remove Tags From Services    ${0}    group_tags
     Remove Tags From Services    ${0}    category_tags
     Remove Tags From Services    ${1}    group_tags
@@ -561,7 +579,9 @@ BEUTAG11
     Add Tags To Services    ${0}    category_tags    3    [1, 2, 3, 4]
     Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503]
     Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 504]
+    log to console    toto0
     Reload Engine
+    log to console    toto1
     Reload Broker
     ${result}    Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
     Should Be True    ${result}    Second step: Service (1, 4) should not have servicegroup tags 2 and 4
