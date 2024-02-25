@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2014-2015, 2021-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/bam/kpi_service.hh"
+#include "com/centreon/broker/bam/service_state.hh"
 
 #include <cassert>
 
@@ -32,7 +33,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
-static bool time_is_undefined(uint64_t t) {
+static constexpr bool time_is_undefined(uint64_t t) {
   return t == 0 || t == static_cast<uint64_t>(-1);
 }
 
@@ -163,6 +164,32 @@ bool kpi_service::in_downtime() const {
  */
 bool kpi_service::is_acknowledged() const {
   return _acknowledged;
+}
+
+void kpi_service::service_update(const service_state& s) {
+  // Log message.
+  log_v2::bam()->debug("BAM: Service KPI {} is restored from persistent cache",
+                       _id);
+
+  // Update information.
+  if (!time_is_undefined(s.last_check)) {
+    _last_check = s.last_check;
+    log_v2::bam()->trace(
+        "service kpi {} last check updated with status last check {}", _id,
+        s.last_check);
+  }
+  bool changed = _state_hard != static_cast<state>(s.last_hard_state) ||
+                 _state_soft != static_cast<state>(s.current_state) ||
+                 _state_type != s.state_type || _acknowledged != s.acknowledged;
+
+  _state_hard = static_cast<state>(s.last_hard_state);
+  _state_soft = static_cast<state>(s.current_state);
+  _state_type = s.state_type;
+  _acknowledged = s.acknowledged;
+
+  // Propagate change.
+  if (changed)
+    notify_parents_of_change(nullptr);
 }
 
 /**
@@ -382,15 +409,13 @@ void kpi_service::service_update(
  */
 void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
                                  io::stream* visitor) {
-  assert(dt && dt->host_id == _host_id && dt->service_id == _service_id);
+  log_v2::bam()->info(
+      "kpi_service:service_update on downtime {}: was started {} ; actual end "
+      "time {}",
+      dt->internal_id, dt->was_started, dt->actual_end_time.get_time_t());
   // Update information.
   bool downtimed = dt->was_started && dt->actual_end_time.is_null();
-  bool changed = true;
-
-  if (!_downtimed && downtimed) {
-    _downtimed = true;
-    changed = true;
-  }
+  bool changed = false;
 
   if (_downtime_ids.contains(dt->internal_id) && dt->deletion_time.is_null()) {
     log_v2::bam()->trace("Downtime {} already handled in this kpi service",
@@ -398,17 +423,26 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
     return;
   }
 
+  log_v2::bam()->info(
+      "kpi_service:service_update on downtime {}: was started {} ; actual end "
+      "time {} ; downtimed {}",
+      dt->internal_id, dt->was_started, dt->actual_end_time.get_time_t(),
+      downtimed);
   if (downtimed) {
     log_v2::bam()->trace("adding in kpi service the impacting downtime {}",
                          dt->internal_id);
     _downtime_ids.insert(dt->internal_id);
+    if (!_downtimed) {
+      _downtimed = true;
+      changed = true;
+    }
   } else {
     log_v2::bam()->trace("removing from kpi service the impacting downtime {}",
                          dt->internal_id);
     _downtime_ids.erase(dt->internal_id);
     bool new_downtimed = !_downtime_ids.empty();
     if (new_downtimed != _downtimed) {
-      _downtimed = !_downtime_ids.empty();
+      _downtimed = new_downtimed;
       changed = true;
     }
   }
