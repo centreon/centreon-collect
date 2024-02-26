@@ -1342,9 +1342,47 @@ def has_file_permissions(path: str, permission: int):
     @permission mask to test file permission
     @return True if the file has the requested permissions
     """
-    stat_res= os.stat(path)
+    stat_res = os.stat(path)
     if stat_res is None:
         logger.console(f"fail to get permission of {path}")
         return False
     masked = stat_res.st_mode & permission
     return masked == permission
+
+
+def compare_dot_files(file1: str, file2: str):
+    """                                                                         
+    Compare two dot files file1 and file2 after removing the pointer addresses  
+    that clearly are not the same.                                              
+
+    Args:                                                                       
+        file1: The first file to compare.                                       
+        file2: The second file to compare.                                      
+
+    Returns: True if they have the same content, False otherwise.               
+    """
+
+    with open(file1, "r") as f1:
+        content1 = f1.readlines()
+    with open(file2, "r") as f2:
+        content2 = f2.readlines()
+    r = re.compile(r"(.*) 0x[0-9a-f]+")
+
+    def replace_ptr(line):
+        m = r.match(line)
+        if m:
+            return m.group(1)
+        else:
+            return line
+
+    content1 = list(map(replace_ptr, content1))
+    content2 = list(map(replace_ptr, content2))
+
+    if len(content1) != len(content2):
+        return False
+    for i in range(len(content1)):
+        if content1[i] != content2[i]:
+            logger.console(
+                f"Files are different at line {i + 1}: first => << {content1[i].strip()} >> and second => << {content2[i].strip()} >>")
+            return False
+    return True

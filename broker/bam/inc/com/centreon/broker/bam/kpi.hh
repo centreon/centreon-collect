@@ -22,7 +22,6 @@
 #include "com/centreon/broker/bam/computable.hh"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/timestamp.hh"
 
 CCB_BEGIN()
