@@ -949,7 +949,8 @@ TEST_F(TcpAcceptor, ChildsAndStats) {
 
   nlohmann::json obj;
   acc.stats(obj);
-  ASSERT_EQ(obj.dump(), "{\"peers\":\"2: child1, child3\"}");
+  ASSERT_TRUE(obj.dump() == "{\"peers\":\"2: child1, child3\"}" ||
+              obj.dump() == "{\"peers\":\"2: child3, child1\"}");
 }
 
 TEST_F(TcpAcceptor, QuestionAnswerMultiple) {

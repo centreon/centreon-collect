@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2014-2015, 2021-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -77,6 +77,7 @@ class kpi_service : public service_listener, public kpi {
   void impact_soft(impact_values& impact) override;
   bool in_downtime() const override;
   bool is_acknowledged() const;
+  void service_update(const service_state& state) override;
   void service_update(std::shared_ptr<neb::service_status> const& status,
                       io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::pb_service>& status,

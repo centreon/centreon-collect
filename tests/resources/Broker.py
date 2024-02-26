@@ -890,9 +890,8 @@ def broker_config_output_set(name, output, key, value):
     output_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     output_dict[key] = value
-    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def broker_config_output_set_json(name, output, key, value):
@@ -1042,9 +1041,8 @@ def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
         retry = True
         while retry and time.time() < limit:
             retry = False
-            f = open(VAR_ROOT + "/lib/centreon-broker/{}".format(filename), "r")
-            buf = f.read()
-            f.close()
+            with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", "r") as f:
+                buf = f.read()
 
             try:
                 conf = json.loads(buf)
@@ -1070,9 +1068,8 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
         retry = True
         while retry and time.time() < limit:
             retry = False
-            f = open(VAR_ROOT + "/lib/centreon-broker/{}".format(filename), "r")
-            buf = f.read()
-            f.close()
+            with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", "r") as f:
+                buf = f.read()
             try:
                 conf = json.loads(buf)
             except:
@@ -1088,6 +1085,53 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
             return retval
         time.sleep(5)
     return retval
+
+def get_broker_stats(name: str, expected:str, timeout: int, *keys):
+    """!
+    read a value from broker stats
+    @param name central, module or rrd
+    @param expected: value expected (regexp)
+    @timeout delay to find key in stats
+    @param keys  keys in json stats output
+    @return True if value found and matches expected
+    """
+
+    def json_get(json_dict, keys: tuple, index: int):
+        try:
+            key = keys[index]
+            if index == len(keys) -1:
+                return json_dict[key]
+            else:
+                return json_get(json_dict[key], keys, index + 1)
+        except:
+            return None
+    limit = time.time() + timeout
+    if name == 'central':
+        filename = "central-broker-master-stats.json"
+    elif name == 'module':
+        filename = "central-module-master-stats.json"
+    else:
+        filename = "central-rrd-master-stats.json"
+    r_expected = re.compile(expected)
+    while time.time() < limit:
+        retry = True
+        while retry and time.time() < limit:
+            retry = False
+            with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", "r") as f:
+                buf = f.read()
+                try:
+                    conf = json.loads(buf)
+                except:
+                    retry = True
+                    time.sleep(1)
+        if conf is None:
+            continue
+        value = json_get(conf, keys, 0)
+        if value is not None and r_expected.match(value):
+            return True
+        time.sleep(5)
+    logger.console(f"key:{keys} value not expected: {value}")
+    return False
 
 
 ##
@@ -1728,10 +1772,8 @@ def rebuild_rrd_graphs_from_db(indexes):
 #
 # @return A boolean.
 def compare_rrd_average_value(metric, value: float):
-    res = getoutput("rrdtool graph dummy --start=end-180d --end=now"
-                    " DEF:x=" + VAR_ROOT +
-                    "/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
-                    .format(metric))
+    res = getoutput(f"rrdtool graph dummy --start=end-180d --end=now"
+                    " DEF:x={VAR_ROOT}/lib/centreon/metrics/{metric}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf")
     lst = res.split('\n')
     if len(lst) >= 2:
         res = float(lst[1].replace(',', '.'))

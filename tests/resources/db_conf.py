@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from robot.api import logger
 import pymysql.cursors
 from robot.libraries.BuiltIn import BuiltIn
 
@@ -91,7 +90,10 @@ class DbConf:
             with connection.cursor() as cursor:
                 self.module_bam_hid = self.engine.create_bam_host()
                 cursor.execute("INSERT INTO host (host_id, host_name, contact_additive_inheritance, cg_additive_inheritance,host_location,host_locked,host_register,host_activate) VALUES ({}, '_Module_BAM_1',0,0,0,0,'2','1')".format(self.module_bam_hid))
-                connection.commit()
+            with connection.cursor() as cursor:
+                cursor.execute("""INSERT INTO timeperiod (`tp_id`,`tp_name`,`tp_alias`,`tp_sunday`,`tp_monday`,`tp_tuesday`,`tp_wednesday`,`tp_thursday`,`tp_friday`,`tp_saturday`)
+VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00:00-24:00','00:00-24:00','00:00-24:00','00:00-24:00','00:00-24:00');""")
+            connection.commit()
         self.engine.centengine_conf_add_bam()
 
     def create_conf_db(self):
@@ -116,29 +118,28 @@ class DbConf:
             if hosts % self.instances > 0:
                 r = 1
             v = int(hosts / self.instances) + r
-            last = hosts - (self.instances - 1) * v
             with connection.cursor() as cursor:
                 # Insertion of HOSTS COMMANDS
                 for i in range(1, self.hosts_count + 1):
-                    name = "checkh{}".format(i)
+                    name = f"checkh{i}"
                     cursor.execute(
-                        "INSERT INTO command (command_name,command_line) VALUES (\"{2}\",\"{0}/check.pl 0 {1}\")".format(ENGINE_HOME, i, name))
+                        f"INSERT INTO command (command_name,command_line) VALUES (\"{name}\",\"{ENGINE_HOME}/check.pl --id 0 --state {i}\")")
                     self.command[name] = cursor.lastrowid
                 connection.commit()
 
                 # Insertion of SERVICES COMMANDS
                 for i in range(1, self.commands_per_poller_count * self.instances + 1):
-                    name = "command_{}".format(i)
+                    name = f"command_{i}"
                     cursor.execute(
-                        "INSERT INTO command (command_name,command_line) VALUES (\"{2}\",\"{0}/check.pl {1}\")".format(ENGINE_HOME, i, name))
+                        f"INSERT INTO command (command_name,command_line) VALUES (\"{name}\",\"{ENGINE_HOME}/check.pl --id {i}\")")
                     self.command[name] = cursor.lastrowid
 
                 # Two specific commands
                 cursor.execute(
-                    "INSERT INTO command (command_name,command_line) VALUES (\"notif\",\"{}/notif.pl\")".format(ENGINE_HOME))
+                    f"INSERT INTO command (command_name,command_line) VALUES (\"notif\",\"{ENGINE_HOME}/notif.pl\")")
                 self.command["notif"] = cursor.lastrowid
                 cursor.execute(
-                    "INSERT INTO command (command_name,command_line) VALUES (\"test-notif\",\"{}/notif.pl\")".format(ENGINE_HOME))
+                    f"INSERT INTO command (command_name,command_line) VALUES (\"test-notif\",\"{ENGINE_HOME}/notif.pl\")")
                 self.command["test-notif"] = cursor.lastrowid
                 connection.commit()
 

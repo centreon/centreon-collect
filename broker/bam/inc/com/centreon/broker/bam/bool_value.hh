@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2014, 2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,6 +45,6 @@ class bool_value : public computable {
 };
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_BOOL_VALUE_HH
