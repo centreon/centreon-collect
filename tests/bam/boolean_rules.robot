@@ -336,7 +336,7 @@ BABOOCOMPL
 
 BABOOCOMPL_RESTART
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
-    [Tags]    broker    engine    bam    boolean_expression    MON-34246
+    [Tags]    broker    engine    bam    boolean_expression    MON-35582
     Clear Commands Status
     Clear Retention
     Config Broker    module
@@ -430,7 +430,7 @@ BABOOCOMPL_RESTART
 
 BABOOCOMPL_RELOAD
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
-    [Tags]    broker    engine    bam    boolean_expression    MON-34246
+    [Tags]    broker    engine    bam    boolean_expression    MON-35582
     Clear Commands Status
     Clear Retention
     Config Broker    module
