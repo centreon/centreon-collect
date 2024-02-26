@@ -18,18 +18,13 @@
 
 #include "com/centreon/broker/bam/configuration/reader_v2.hh"
 
-#include <fmt/format.h>
-
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/bam/configuration/reader_exception.hh"
-#include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;

@@ -27,9 +27,7 @@
 #include "com/centreon/broker/bam/bool_not_equal.hh"
 #include "com/centreon/broker/bam/bool_operation.hh"
 #include "com/centreon/broker/bam/bool_or.hh"
-#include "com/centreon/broker/bam/bool_service.hh"
 #include "com/centreon/broker/bam/bool_xor.hh"
-#include "com/centreon/broker/bam/exp_parser.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;

@@ -20,12 +20,8 @@
 #define CCB_BAM_CONFIGURATION_APPLIER_BA_HH
 
 #include "com/centreon/broker/bam/ba.hh"
-#include "com/centreon/broker/bam/configuration/ba.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/bam/service_book.hh"
-#include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/persistent_cache.hh"
 
 CCB_BEGIN()
 

@@ -18,10 +18,6 @@
 
 #include "com/centreon/broker/bam/ba_ratio_number.hh"
 
-#include <fmt/format.h>
-
-#include <cassert>
-
 #include "bbdo/bam/ba_status.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"

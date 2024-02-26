@@ -16,12 +16,9 @@
  * For more information : contact@centreon.com
  */
 
-#include <cassert>
-
 #include "com/centreon/broker/bam/bool_service.hh"
 
 #include "bbdo/bam/state.hh"
-#include "com/centreon/broker/bam/service_state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 

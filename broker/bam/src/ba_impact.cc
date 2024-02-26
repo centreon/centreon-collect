@@ -18,12 +18,7 @@
 
 #include "com/centreon/broker/bam/ba_impact.hh"
 
-#include <fmt/format.h>
-
-#include <cassert>
-
 #include "bbdo/bam/ba_status.hh"
-#include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/log_v2.hh"

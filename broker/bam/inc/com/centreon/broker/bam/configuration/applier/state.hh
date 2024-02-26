@@ -22,8 +22,6 @@
 #include "com/centreon/broker/bam/configuration/applier/ba.hh"
 #include "com/centreon/broker/bam/configuration/applier/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/applier/kpi.hh"
-#include "com/centreon/broker/bam/service_book.hh"
-#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 

@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/bam/configuration/applier/ba.hh"
-#include <fmt/format.h>
 #include "com/centreon/broker/bam/ba_best.hh"
 #include "com/centreon/broker/bam/ba_impact.hh"
 #include "com/centreon/broker/bam/ba_ratio_number.hh"
@@ -26,7 +25,6 @@
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/service.hh"
 

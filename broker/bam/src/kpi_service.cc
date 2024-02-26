@@ -19,12 +19,7 @@
 #include "com/centreon/broker/bam/kpi_service.hh"
 #include "com/centreon/broker/bam/service_state.hh"
 
-#include <cassert>
-
-#include "com/centreon/broker/bam/impact_values.hh"
-#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

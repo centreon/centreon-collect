@@ -22,7 +22,6 @@
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "impact_values.hh"
 
 CCB_BEGIN()

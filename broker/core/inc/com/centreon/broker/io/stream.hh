@@ -22,7 +22,6 @@
 #include <nlohmann/json.hpp>
 
 #include "com/centreon/broker/io/data.hh"
-#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 

@@ -35,7 +35,6 @@
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service.hh"
-#include "com/centreon/broker/neb/service_status.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;

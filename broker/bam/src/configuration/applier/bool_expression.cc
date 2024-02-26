@@ -16,14 +16,9 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/bam/bool_expression.hh"
-#include "com/centreon/broker/bam/ba.hh"
-#include "com/centreon/broker/bam/configuration/applier/ba.hh"
 #include "com/centreon/broker/bam/configuration/applier/bool_expression.hh"
-#include "com/centreon/broker/bam/configuration/bool_expression.hh"
+#include "com/centreon/broker/bam/configuration/applier/ba.hh"
 #include "com/centreon/broker/bam/exp_builder.hh"
-#include "com/centreon/broker/bam/exp_parser.hh"
-#include "com/centreon/broker/bam/service_book.hh"
 #include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
