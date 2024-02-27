@@ -35,6 +35,12 @@ class kpi;
  *  of value.
  */
 class ba_impact : public ba {
+  double _downtime_hard = 0.0;
+  double _downtime_soft = 0.0;
+
+  double _acknowledgement_hard = 0.0;
+  double _acknowledgement_soft = 0.0;
+
   void _recompute();
 
  protected:
@@ -44,6 +50,8 @@ class ba_impact : public ba {
                       const impact_values& new_hard_impact,
                       const impact_values& new_soft_impact,
                       bool in_downtime) override;
+  std::shared_ptr<pb_ba_status> _generate_ba_status(
+      bool state_changed) const override;
 
  public:
   ba_impact(uint32_t id,

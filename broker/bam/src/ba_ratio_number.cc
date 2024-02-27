@@ -188,3 +188,25 @@ std::string ba_ratio_number::get_perfdata() const {
                      static_cast<int>(_level_warning),
                      static_cast<int>(_level_critical), _impacts.size());
 }
+
+std::shared_ptr<pb_ba_status> ba_ratio_number::_generate_ba_status(
+    bool state_changed) const {
+  auto ret = std::make_shared<pb_ba_status>();
+  BaStatus& status = ret->mut_obj();
+  status.set_ba_id(get_id());
+  status.set_in_downtime(in_downtime());
+  if (_event)
+    status.set_last_state_change(_event->obj().start_time());
+  else
+    status.set_last_state_change(get_last_kpi_update());
+  status.set_level_nominal(_normalize(_level_hard));
+  status.set_state(com::centreon::broker::State(get_state_hard()));
+  status.set_state_changed(state_changed);
+
+  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+                      "BAM: generating status of ratio number BA {} '{}' "
+                      "(state {}, in downtime {}, level {})",
+                      get_id(), _name, status.state(), status.in_downtime(),
+                      status.level_nominal());
+  return ret;
+}

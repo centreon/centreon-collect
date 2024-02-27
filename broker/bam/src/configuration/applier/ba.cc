@@ -1,5 +1,5 @@
-/*
- * Copyright 2014-2017, 2021-2023 Centreon
+/**
+ * Copyright 2014-2017, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,13 @@
 
 #include "com/centreon/broker/bam/configuration/applier/ba.hh"
 #include <fmt/format.h>
+#include "bbdo/bam/inherited_downtime.hh"
 #include "com/centreon/broker/bam/ba_best.hh"
 #include "com/centreon/broker/bam/ba_impact.hh"
 #include "com/centreon/broker/bam/ba_ratio_number.hh"
 #include "com/centreon/broker/bam/ba_ratio_percent.hh"
 #include "com/centreon/broker/bam/ba_worst.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -70,7 +72,7 @@ applier::ba& applier::ba::operator=(applier::ba const& other) {
  *  @param[in] my_bas  BAs to apply.
  *  @param[in] book    The service book.
  */
-void applier::ba::apply(bam::configuration::state::bas const& my_bas,
+void applier::ba::apply(const bam::configuration::state::bas& my_bas,
                         service_book& book) {
   //
   // DIFF
@@ -371,13 +373,11 @@ std::shared_ptr<bam::ba> applier::ba::_new_ba(configuration::ba const& cfg,
  *  @param[in] cache  The cache.
  */
 void applier::ba::save_to_cache(persistent_cache& cache) {
-  cache.transaction();
   for (std::map<uint32_t, applied>::const_iterator it = _applied.begin(),
                                                    end = _applied.end();
        it != end; ++it) {
     it->second.obj->save_inherited_downtime(cache);
   }
-  cache.commit();
 }
 
 /**
@@ -385,53 +385,44 @@ void applier::ba::save_to_cache(persistent_cache& cache) {
  *
  *  @param[in] cache  The cache.
  */
-void applier::ba::load_from_cache(persistent_cache& cache) {
-  log_v2::bam()->trace("BAM: loading inherited downtimes from cache");
+void applier::ba::apply_inherited_downtime(const inherited_downtime& dwn) {
   auto bbdo = config::applier::state::instance().get_bbdo_version();
   bool bbdo3_enabled = bbdo.major_v >= 3;
-  std::shared_ptr<io::data> d;
-  cache.get(d);
-  while (d) {
-    if (d->type() == inherited_downtime::static_type()) {
-      inherited_downtime const& dwn =
-          *std::static_pointer_cast<inherited_downtime const>(d);
-      std::map<uint32_t, applied>::iterator found = _applied.find(dwn.ba_id);
-      if (found != _applied.end()) {
-        log_v2::bam()->debug("BAM: found an inherited downtime for BA {}",
-                             found->first);
-        found->second.obj->set_inherited_downtime(dwn);
-        std::shared_ptr<io::data> s;
-        if (bbdo3_enabled)
-          s = _ba_pb_service(found->first, found->second.cfg.get_host_id(),
-                             found->second.cfg.get_service_id(),
-                             dwn.in_downtime);
-        else
-          s = _ba_service(found->first, found->second.cfg.get_host_id(),
-                          found->second.cfg.get_service_id(), dwn.in_downtime);
-        multiplexing::publisher().write(s);
-      }
-      cache.get(d);
-    } else if (d->type() == pb_inherited_downtime::static_type()) {
-      pb_inherited_downtime const& dwn =
-          *std::static_pointer_cast<pb_inherited_downtime const>(d);
-      std::map<uint32_t, applied>::iterator found =
-          _applied.find(dwn.obj().ba_id());
-      if (found != _applied.end()) {
-        log_v2::bam()->debug("BAM: found an inherited downtime for BA {}",
-                             found->first);
-        found->second.obj->set_inherited_downtime(dwn);
-        std::shared_ptr<io::data> s;
-        if (bbdo3_enabled)
-          s = _ba_pb_service(found->first, found->second.cfg.get_host_id(),
-                             found->second.cfg.get_service_id(),
-                             dwn.obj().in_downtime());
-        else
-          s = _ba_service(found->first, found->second.cfg.get_host_id(),
-                          found->second.cfg.get_service_id(),
-                          dwn.obj().in_downtime());
-        multiplexing::publisher().write(s);
-      }
-      cache.get(d);
-    }
+
+  std::map<uint32_t, applied>::iterator found = _applied.find(dwn.ba_id);
+  if (found != _applied.end()) {
+    log_v2::bam()->debug("BAM: found an inherited downtime for BA {}",
+                         found->first);
+    found->second.obj->set_inherited_downtime(dwn);
+    std::shared_ptr<io::data> s;
+    if (bbdo3_enabled)
+      s = _ba_pb_service(found->first, found->second.cfg.get_host_id(),
+                         found->second.cfg.get_service_id(), dwn.in_downtime);
+    else
+      s = _ba_service(found->first, found->second.cfg.get_host_id(),
+                      found->second.cfg.get_service_id(), dwn.in_downtime);
+    multiplexing::publisher().write(s);
+  }
+}
+
+void applier::ba::apply_inherited_downtime(const pb_inherited_downtime& dwn) {
+  auto bbdo = config::applier::state::instance().get_bbdo_version();
+  bool bbdo3_enabled = bbdo.major_v >= 3;
+  std::map<uint32_t, applied>::iterator found =
+      _applied.find(dwn.obj().ba_id());
+  if (found != _applied.end()) {
+    log_v2::bam()->debug("BAM: found an inherited downtime for BA {}",
+                         found->first);
+    found->second.obj->set_inherited_downtime(dwn);
+    std::shared_ptr<io::data> s;
+    if (bbdo3_enabled)
+      s = _ba_pb_service(found->first, found->second.cfg.get_host_id(),
+                         found->second.cfg.get_service_id(),
+                         dwn.obj().in_downtime());
+    else
+      s = _ba_service(found->first, found->second.cfg.get_host_id(),
+                      found->second.cfg.get_service_id(),
+                      dwn.obj().in_downtime());
+    multiplexing::publisher().write(s);
   }
 }

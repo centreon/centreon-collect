@@ -1,5 +1,5 @@
-/*
- * Copyright 2014, 2021-2023 Centreon
+/**
+ * Copyright 2014, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,9 @@
  * For more information : contact@centreon.com
  */
 
-#include <cassert>
-
 #include "com/centreon/broker/bam/bool_service.hh"
-
+#include "bbdo/bam/state.hh"
+#include "com/centreon/broker/bam/service_state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 
@@ -52,6 +51,30 @@ uint32_t bool_service::get_host_id() const {
  */
 uint32_t bool_service::get_service_id() const {
   return _service_id;
+}
+
+/**
+ * @brief When the cache is restored, this method is used to update services in
+ * BAs. It works as others service_update() methods, except no visitor is
+ * needed here.
+ *
+ * @param s The service_state to apply.
+ */
+void bool_service::service_update(const service_state& s) {
+  // Update information.
+  log_v2::bam()->debug("BAM: bool_service updated with service state {}", s);
+  bool changed =
+      _state_hard != static_cast<state>(s.last_hard_state) || !_state_known;
+
+  _state_hard = static_cast<short>(s.last_hard_state);
+  log_v2::bam()->debug("BAM: bool_service ({},{}) state hard set to {}",
+                       s.host_id, s.service_id, _state_hard);
+  if (_state_hard != state_unknown)
+    _state_known = true;
+
+  // Propagate change.
+  if (changed)
+    notify_parents_of_change(nullptr);
 }
 
 /**
@@ -159,7 +182,6 @@ bool bool_service::boolean_value() const {
  *  @return  True if the state is known.
  */
 bool bool_service::state_known() const {
-  log_v2::bam()->trace("BAM: bool_service::state_known: {}", _state_known);
   return _state_known;
 }
 

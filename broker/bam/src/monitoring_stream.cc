@@ -75,8 +75,6 @@ monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
   // Let's update BAs then we will be able to load the cache with inherited
   // downtimes.
   update();
-  // Read cache.
-  _read_cache();
 }
 
 /**
@@ -181,6 +179,8 @@ void monitoring_stream::update() {
     _ba_mapping = s.get_ba_svc_mapping();
     _rebuild();
     initialize();
+    // Read cache.
+    _read_cache();
   } catch (std::exception const& e) {
     throw msg_fmt("BAM: could not process configuration update: {}", e.what());
   }
@@ -500,6 +500,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _write_external_command(cmd);
     } break;
     case extcmd::pb_ba_info::static_type(): {
+      log_v2::bam()->info("BAM: dump BA");
       extcmd::pb_ba_info const& e =
           *std::static_pointer_cast<const extcmd::pb_ba_info>(data);
       auto& obj = e.obj();
