@@ -21,6 +21,7 @@ ${engineLog0}       ${ENGINE_LOG}/config0/centengine.log
 ${engineLog1}       ${ENGINE_LOG}/config1/centengine.log
 ${engineLog2}       ${ENGINE_LOG}/config2/centengine.log
 ${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
+${engineLog4}       ${ENGINE_LOG}/config4/centengine.log
 
 
 *** Keywords ***
