@@ -40,6 +40,11 @@ on:
         required: true
       collect_s3_secret_key:
         required: true
+      xray_client_id:
+        required: true
+      xray_client_secret:
+        required: true
+
 
 
 jobs:
@@ -145,6 +150,18 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
+
+      - name: Generate Xray Token
+        id: generate-xray-token
+        run: |
+          token_response=$(curl -H "Content-Type: application/json" -X POST --data "{\"client_id\": \"${{ secrets.XRAY_CLIENT_ID }}\", \"client_secret\": \"${{ secrets.XRAY_CLIENT_SECRET }}\"}" "https://xray.cloud.getxray.app/api/v1/authenticate")
+          xray_token=$(echo "$token_response" | sed -n 's/.*"\(.*\)".*/\1/p')
+          echo "xray_token=$xray_token" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Send report to xrays
+        run: |
+          curl -H "Content-Type: multipart/form-data" -X POST -F info=@tests/issueFields.json -F results=@tests/output.xml -F testInfo=@tests/testIssueFields.json -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" https://xray.cloud.getxray.app/api/v2/import/execution/robot/multipart
 
       - name: Move reports
         if: ${{ failure() }}
