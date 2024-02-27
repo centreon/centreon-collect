@@ -6,7 +6,6 @@
       "labels": [
           "Server",
           "Robot"
-      ],
-      "testType": "Generic"
+      ]
   }
 }
