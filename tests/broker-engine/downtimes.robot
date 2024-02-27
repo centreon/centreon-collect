@@ -44,21 +44,16 @@ BEDTMASS1
     ${start}    Get Current Date
     Start Broker
     Start Engine
-    # Let's wait for the initial service states.
-    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # It's time to schedule downtimes
     FOR    ${i}    IN RANGE    ${17}
-        ${host0}    Catenate    SEPARATOR=    host_    ${i + 1}
-        ${host1}    Catenate    SEPARATOR=    host_    ${i + 18}
-        ${host2}    Catenate    SEPARATOR=    host_    ${i + 35}
-        Schedule Host Downtime    ${0}    ${host0}    ${3600}
-        Schedule Host Downtime    ${1}    ${host1}    ${3600}
-        Schedule Host Downtime    ${2}    ${host2}    ${3600}
+        Schedule Host Downtime    ${0}    host_${i + 1}    ${3600}
+        Schedule Host Downtime    ${1}    host_${i + 18}    ${3600}
+        Schedule Host Downtime    ${2}    host_${i + 35}    ${3600}
     END
 
     ${result}    Check Number Of Downtimes    ${1050}    ${start}    ${60}
@@ -66,12 +61,9 @@ BEDTMASS1
 
     # It's time to delete downtimes
     FOR    ${i}    IN RANGE    ${17}
-        ${host0}    Catenate    SEPARATOR=    host_    ${i + 1}
-        ${host1}    Catenate    SEPARATOR=    host_    ${i + 18}
-        ${host2}    Catenate    SEPARATOR=    host_    ${i + 35}
-        Delete Host Downtimes    ${0}    ${host0}
-        Delete Host Downtimes    ${1}    ${host1}
-        Delete Host Downtimes    ${2}    ${host2}
+        Delete Host Downtimes    ${0}    host_${i + 1}
+        Delete Host Downtimes    ${1}    host_${i + 18}
+        Delete Host Downtimes    ${2}    host_${i + 35}
     END
 
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
@@ -100,21 +92,16 @@ BEDTMASS2
     ${start}    Get Current Date
     Start Broker
     Start Engine
-    # Let's wait for the initial service states.
-    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # It's time to schedule downtimes
     FOR    ${i}    IN RANGE    ${17}
-        ${host0}    Catenate    SEPARATOR=    host_    ${i + 1}
-        ${host1}    Catenate    SEPARATOR=    host_    ${i + 18}
-        ${host2}    Catenate    SEPARATOR=    host_    ${i + 35}
-        Schedule Host Downtime    ${0}    ${host0}    ${3600}
-        Schedule Host Downtime    ${1}    ${host1}    ${3600}
-        Schedule Host Downtime    ${2}    ${host2}    ${3600}
+        Schedule Host Downtime    ${0}    host_${i + 1}    ${3600}
+        Schedule Host Downtime    ${1}    host_${i + 18}    ${3600}
+        Schedule Host Downtime    ${2}    host_${i + 35}    ${3600}
     END
 
     ${result}    Check Number Of Downtimes    ${1050}    ${start}    ${60}
@@ -122,12 +109,9 @@ BEDTMASS2
 
     # It's time to delete downtimes
     FOR    ${i}    IN RANGE    ${17}
-        ${host0}    Catenate    SEPARATOR=    host_    ${i + 1}
-        ${host1}    Catenate    SEPARATOR=    host_    ${i + 18}
-        ${host2}    Catenate    SEPARATOR=    host_    ${i + 35}
-        Delete Host Downtimes    ${0}    ${host0}
-        Delete Host Downtimes    ${1}    ${host1}
-        Delete Host Downtimes    ${2}    ${host2}
+        Delete Host Downtimes    ${0}    host_${i + 1}
+        Delete Host Downtimes    ${1}    host_${i + 18}
+        Delete Host Downtimes    ${2}    host_${i + 35}
     END
 
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
@@ -245,6 +229,64 @@ BEDTHOSTFIXED
 
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
+
+    Stop Engine
+    Kindly Stop Broker
+
+DTIM
+    [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 5250 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.1
+    [Tags]    broker    engine    services    host    downtimes    MON-36693
+    Config Engine    ${5}    ${250}    ${20}
+    Engine Config Set Value    ${0}    log_level_functions    trace
+    Engine Config Set Value    ${1}    log_level_functions    trace
+    Engine Config Set Value    ${2}    log_level_functions    trace
+    Engine Config Set Value    ${3}    log_level_functions    trace
+    Engine Config Set Value    ${4}    log_level_functions    trace
+    Config Broker    rrd
+    Config Broker    central
+    Config Broker    module    ${5}
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    module1    bbdo_version    3.0.1
+    Broker Config Add Item    module2    bbdo_version    3.0.1
+    Broker Config Add Item    module3    bbdo_version    3.0.1
+    Broker Config Add Item    module4    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config Broker Sql Output    central    unified_sql
+    Clear Retention
+
+    ${start}    Get Current Date
+    Start Broker
+    Start Engine
+
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog4}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    # It's time to schedule downtimes
+    FOR    ${i}    IN RANGE    ${50}
+        Schedule Host Fixed Downtime    ${0}    host_${i + 1}    ${3600}
+        Schedule Host Fixed Downtime    ${1}    host_${i + 51}    ${3600}
+        Schedule Host Fixed Downtime    ${2}    host_${i + 101}    ${3600}
+        Schedule Host Fixed Downtime    ${3}    host_${i + 151}    ${3600}
+        Schedule Host Fixed Downtime    ${4}    host_${i + 201}    ${3600}
+    END
+
+    ${result}    Check Number Of Downtimes    ${5250}    ${start}    ${60}
+    Should be true    ${result}    We should have 5250 downtimes enabled.
+
+    # It's time to delete downtimes
+    FOR    ${i}    IN RANGE    ${50}
+        Delete Host Downtimes    ${0}    host_${i + 1}
+        Delete Host Downtimes    ${1}    host_${i + 51}
+        Delete Host Downtimes    ${2}    host_${i + 101}
+        Delete Host Downtimes    ${3}    host_${i + 151}
+        Delete Host Downtimes    ${4}    host_${i + 201}
+    END
+
+    ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
+    Should Be True    ${result}    There are still some downtimes enabled.
 
     Stop Engine
     Kindly Stop Broker
