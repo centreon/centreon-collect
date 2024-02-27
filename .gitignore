@@ -86,6 +86,8 @@ broker/librokerbase.a
 broker/test/python/*.crt
 broker/test/python/*.key
 broker/compile_commands.json
+broker/grpc/grpc_stream.proto
+broker/grpc/src/grpc_bridge.cc
 
 # clib
 clib/inc/com/centreon/clib/version.hh

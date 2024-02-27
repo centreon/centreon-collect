@@ -1,5 +1,5 @@
-/*
- * Copyright 2014, 202122023 Centreon
+/**
+ * Copyright 2014, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "impact_values.hh"
 
 CCB_BEGIN()

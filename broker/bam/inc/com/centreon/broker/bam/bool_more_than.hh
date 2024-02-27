@@ -20,7 +20,6 @@
 #define CCB_BAM_BOOL_MORE_THAN_HH
 
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
-#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 

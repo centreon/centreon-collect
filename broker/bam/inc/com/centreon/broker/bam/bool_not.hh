@@ -21,7 +21,6 @@
 
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
