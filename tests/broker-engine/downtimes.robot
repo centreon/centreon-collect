@@ -235,7 +235,7 @@ BEDTHOSTFIXED
 
 DTIM
     [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 5250 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.1
-    [Tags]    broker    engine    services    host    downtimes    MON-19339
+    [Tags]    broker    engine    services    host    downtimes    MON-36693
     Config Engine    ${5}    ${250}    ${20}
     Engine Config Set Value    ${0}    log_level_functions    trace
     Engine Config Set Value    ${1}    log_level_functions    trace
