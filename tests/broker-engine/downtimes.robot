@@ -42,10 +42,10 @@ BEDTMASS1
     ${start}    Get Current Date
     Start Broker
     Start Engine
-    # Let's wait for the initial service states.
-    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
-    Should Be True    ${result}    An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # It's time to schedule downtimes
     FOR    ${i}    IN RANGE    ${17}
@@ -258,12 +258,10 @@ DTIM
     Start Broker
     Start Engine
 
-    # Let's wait for the initial service states.
-    ${content}    Create List    INITIAL SERVICE STATE: host_250;service_5000;
-    ${result}    Find In Log with Timeout    ${engineLog4}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial service state on service (250, 5000) should be raised before we can start external commands.
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog4}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # It's time to schedule downtimes
     FOR    ${i}    IN RANGE    ${50}
