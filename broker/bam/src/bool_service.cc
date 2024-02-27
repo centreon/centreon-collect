@@ -25,10 +25,6 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
-static constexpr bool time_is_undefined(uint64_t t) {
-  return t == 0 || t == static_cast<uint64_t>(-1);
-}
-
 /**
  *  Default constructor.
  */
