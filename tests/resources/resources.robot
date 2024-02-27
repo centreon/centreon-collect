@@ -1,8 +1,28 @@
 *** Settings ***
-Resource	./db_variables.robot
-Library	Process
-Library	OperatingSystem
-Library	Common.py
+Resource    ./db_variables.robot
+Library     Process
+Library     OperatingSystem
+Library     Common.py
+
+
+*** Variables ***
+${BROKER_LOG}       ${VarRoot}/log/centreon-broker
+${BROKER_LIB}       ${VarRoot}/lib/centreon-broker
+${ENGINE_LOG}       ${VarRoot}/log/centreon-engine
+${SCRIPTS}          ${CURDIR}${/}scripts${/}
+${centralLog}       ${BROKER_LOG}/central-broker-master.log
+${moduleLog0}       ${BROKER_LOG}/central-module-master0.log
+${moduleLog1}       ${BROKER_LOG}/central-module-master1.log
+${moduleLog2}       ${BROKER_LOG}/central-module-master2.log
+${moduleLog3}       ${BROKER_LOG}/central-module-master3.log
+${moduleLog4}       ${BROKER_LOG}/central-module-master4.log
+${rrdLog}           ${BROKER_LOG}/central-rrd-master.log
+
+${engineLog0}       ${ENGINE_LOG}/config0/centengine.log
+${engineLog1}       ${ENGINE_LOG}/config1/centengine.log
+${engineLog2}       ${ENGINE_LOG}/config2/centengine.log
+${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
+${engineLog4}       ${ENGINE_LOG}/config4/centengine.log
 
 *** Keywords ***
 Config BBDO3
@@ -249,20 +269,3 @@ Clear Metrics
 	Execute SQL String	DELETE FROM metrics
 	Execute SQL String	DELETE FROM index_data
 	Execute SQL String	DELETE FROM data_bin
-
-*** Variables ***
-${BROKER_LOG}	${VarRoot}/log/centreon-broker
-${BROKER_LIB}	${VarRoot}/lib/centreon-broker
-${ENGINE_LOG}	${VarRoot}/log/centreon-engine
-${SCRIPTS}	${CURDIR}${/}scripts${/}
-${centralLog}	${BROKER_LOG}/central-broker-master.log
-${moduleLog0}	${BROKER_LOG}/central-module-master0.log
-${moduleLog1}	${BROKER_LOG}/central-module-master1.log
-${moduleLog2}	${BROKER_LOG}/central-module-master2.log
-${moduleLog3}	${BROKER_LOG}/central-module-master3.log
-${rrdLog}	${BROKER_LOG}/central-rrd-master.log
-
-${engineLog0}	${ENGINE_LOG}/config0/centengine.log
-${engineLog1}	${ENGINE_LOG}/config1/centengine.log
-${engineLog2}	${ENGINE_LOG}/config2/centengine.log
-${engineLog3}	${ENGINE_LOG}/config3/centengine.log
