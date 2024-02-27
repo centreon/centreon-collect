@@ -7,6 +7,6 @@
           "Server",
           "Robot"
       ],
-      "testType": "Automated (Robot)"
+      "testType": "Generic"
   }
 }
