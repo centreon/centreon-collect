@@ -49,7 +49,7 @@ class http_client_test : public ::testing::Test {
   static void SetUpTestSuite() {
     srand(time(nullptr));
     pool::load(g_io_context, 1);
-    log_v2::tcp()->set_level(spdlog::level::debug);
+    log_v2::tcp()->set_level(spdlog::level::info);
   };
 };
 
@@ -221,7 +221,8 @@ class connection_bagot : public connection_base {
   void connect(connect_callback_type&& callback) override {
     _fail_stage = fail_stage(rand() % 3);
     SPDLOG_LOGGER_DEBUG(_logger, "connection_bagot connect {:p} _fail_stage={}",
-                        static_cast<void*>(this), _fail_stage);
+                        static_cast<void*>(this),
+                        static_cast<uint32_t>(_fail_stage));
 
     if (_fail_stage == fail_stage::fail_connect) {
       _state = e_not_connected;

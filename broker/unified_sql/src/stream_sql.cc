@@ -334,8 +334,9 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
         "UPDATE hosts AS h LEFT JOIN services AS s ON h.host_id=s.host_id "
         "SET h.real_state=h.state,s.real_state=s.state,h.state={},s.state={} "
         "WHERE h.instance_id={}",
-        com::centreon::engine::host::state_unreachable,
-        com::centreon::engine::service::state_unknown, id);
+        static_cast<uint32_t>(com::centreon::engine::host::state_unreachable),
+        static_cast<uint32_t>(com::centreon::engine::service::state_unknown),
+        id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::hosts);
   }
@@ -582,16 +583,16 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
       if (cmmnt.deletion_time.is_null())
         b.set_null_i64(3);
       else
-        b.set_value_as_i64(3, cmmnt.deletion_time.get_time_t());
+        b.set_value_as_i64(3, cmmnt.deletion_time);
       if (cmmnt.entry_time.is_null())
         b.set_null_i64(4);
       else
-        b.set_value_as_i64(4, cmmnt.entry_time.get_time_t());
+        b.set_value_as_i64(4, cmmnt.entry_time);
       b.set_value_as_i32(5, cmmnt.entry_type);
       if (cmmnt.expire_time.is_null())
         b.set_null_i64(6);
       else
-        b.set_value_as_i64(6, cmmnt.expire_time.get_time_t());
+        b.set_value_as_i64(6, cmmnt.expire_time);
       b.set_value_as_tiny(7, cmmnt.expires);
       b.set_value_as_i64(8, cmmnt.host_id, mapping::entry::invalid_on_zero);
       b.set_value_as_i64(9, cmmnt.internal_id);
@@ -874,11 +875,11 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
         if (dd.actual_end_time.is_null())
           b.set_null_i64(0);
         else
-          b.set_value_as_i64(0, dd.actual_end_time.get_time_t());
+          b.set_value_as_i64(0, dd.actual_end_time);
         if (dd.actual_start_time.is_null())
           b.set_null_i64(1);
         else
-          b.set_value_as_i64(1, dd.actual_start_time.get_time_t());
+          b.set_value_as_i64(1, dd.actual_start_time);
         b.set_value_as_str(
             2, misc::string::escape(dd.author,
                                     get_downtimes_col_size(downtimes_author)));
@@ -886,16 +887,16 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
         if (dd.deletion_time.is_null())
           b.set_null_i64(4);
         else
-          b.set_value_as_i64(4, dd.deletion_time.get_time_t());
+          b.set_value_as_i64(4, dd.deletion_time);
         b.set_value_as_i64(5, dd.duration);
         if (dd.end_time.is_null())
           b.set_null_i64(6);
         else
-          b.set_value_as_i64(6, dd.end_time.get_time_t());
+          b.set_value_as_i64(6, dd.end_time);
         if (dd.entry_time.is_null())
           b.set_null_i64(7);
         else
-          b.set_value_as_i64(7, dd.entry_time.get_time_t());
+          b.set_value_as_i64(7, dd.entry_time);
         b.set_value_as_tiny(8, int(dd.fixed));
         b.set_value_as_i64(9, dd.host_id);
         b.set_value_as_i64(10, dd.poller_id);
@@ -904,7 +905,7 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
         if (dd.start_time.is_null())
           b.set_null_i64(13);
         else
-          b.set_value_as_i64(13, dd.start_time.get_time_t());
+          b.set_value_as_i64(13, dd.start_time);
         if (dd.triggered_by == 0)
           b.set_null_i32(14);
         else
@@ -918,15 +919,20 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
       };
       _downtimes->add_bulk_row(binder);
     } else {
+      log_v2::sql()->error("original actual end time {} is null {}",
+                           dd.actual_end_time.get_time_t(),
+                           dd.actual_end_time.is_null());
+      log_v2::sql()->error("actual end time {}", dd.actual_end_time);
       _downtimes->add_multi_row(fmt::format(
           "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
-          dd.actual_end_time, dd.actual_start_time,
+          dd.actual_end_time.to_string(), dd.actual_start_time.to_string(),
           misc::string::escape(dd.author,
                                get_downtimes_col_size(downtimes_author)),
-          dd.downtime_type, dd.deletion_time, dd.duration, dd.end_time,
-          dd.entry_time, dd.fixed, dd.host_id, dd.poller_id, dd.internal_id,
-          dd.service_id, dd.start_time, int64_not_minus_one{dd.triggered_by},
-          dd.was_cancelled, dd.was_started,
+          dd.downtime_type, dd.deletion_time.to_string(), dd.duration,
+          dd.end_time.to_string(), dd.entry_time.to_string(), dd.fixed,
+          dd.host_id, dd.poller_id, dd.internal_id, dd.service_id,
+          dd.start_time, int64_not_minus_one{dd.triggered_by}, dd.was_cancelled,
+          dd.was_started,
           misc::string::escape(
               dd.comment, get_downtimes_col_size(downtimes_comment_data))));
     }
@@ -999,6 +1005,9 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
       };
       _downtimes->add_bulk_row(binder);
     } else {
+      log_v2::sql()->error("PB actual end time {} -> {}",
+                           dt_obj.actual_end_time(),
+                           uint64_not_null_not_neg_1{dt_obj.actual_end_time()});
       _downtimes->add_multi_row(fmt::format(
           "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
           uint64_not_null_not_neg_1{dt_obj.actual_end_time()},
@@ -1197,8 +1206,11 @@ void stream::_process_host_dependency(const std::shared_ptr<io::data>& d) {
   // Insert/Update.
   if (hd.enabled) {
     SPDLOG_LOGGER_INFO(log_v2::sql(),
-                       "SQL: enabling host dependency of {} on {}",
-                       hd.dependent_host_id, hd.host_id);
+                       "SQL: enabling host dependency of {} on {}: execution "
+                       "failure options: {} - notification failure options: {}",
+                       hd.dependent_host_id, hd.host_id,
+                       hd.execution_failure_options,
+                       hd.notification_failure_options);
 
     // Prepare queries.
     if (!_host_dependency_insupdate.prepared()) {
@@ -1250,9 +1262,12 @@ void stream::_process_pb_host_dependency(const std::shared_ptr<io::data>& d) {
 
   // Insert/Update.
   if (hd.enabled()) {
-    SPDLOG_LOGGER_INFO(log_v2::sql(),
-                       "SQL: enabling host dependency of {} on {}",
-                       hd.dependent_host_id(), hd.host_id());
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(),
+        "SQL: enabling pb host dependency of {} on {}: execution failure "
+        "options: {} - notification failure options: {}",
+        hd.dependent_host_id(), hd.host_id(), hd.execution_failure_options(),
+        hd.notification_failure_options());
 
     // Prepare queries.
     if (!_pb_host_dependency_insupdate.prepared()) {
@@ -2800,7 +2815,7 @@ void stream::_process_log(const std::shared_ptr<io::data>& d) {
   // Push query.
   if (_logs->is_bulk()) {
     auto binder = [&](database::mysql_bulk_bind& b) {
-      b.set_value_as_i64(0, le.c_time.get_time_t());
+      b.set_value_as_i64(0, le.c_time);
       b.set_value_as_i64(1, le.host_id);
       b.set_value_as_i64(2, le.service_id);
       b.set_value_as_str(

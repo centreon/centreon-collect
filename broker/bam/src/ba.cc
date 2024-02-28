@@ -191,7 +191,7 @@ void ba::set_initial_event(const pb_ba_event& event) {
       "BAM: ba initial event set (ba_id:{}, start_time:{}, end_time:{}, "
       "in_downtime:{}, status:{})",
       data.ba_id(), data.start_time(), data.end_time(), data.in_downtime(),
-      data.status());
+      static_cast<uint32_t>(data.status()));
 
   if (!_event) {
     _event = std::make_shared<pb_ba_event>(event);
@@ -206,7 +206,7 @@ void ba::set_initial_event(const pb_ba_event& event) {
         "BAM: impossible to set ba initial event (ba_id:{}, start_time:{}, "
         "end_time:{}, in_downtime:{}, status:{}): event already defined",
         data.ba_id(), data.start_time(), data.end_time(), data.in_downtime(),
-        data.status());
+        static_cast<uint32_t>(data.status()));
   }
 }
 
@@ -269,7 +269,7 @@ void ba::visit(io::stream* visitor) {
           "dt:{}, state:{} ",
           _in_downtime != _event->obj().in_downtime(),
           com::centreon::broker::State(hard_state) != _event->obj().status(),
-          _in_downtime, hard_state);
+          _in_downtime, static_cast<uint32_t>(hard_state));
       state_changed = true;
       _event->mut_obj().set_end_time(_last_kpi_update);
       visitor->write(std::static_pointer_cast<io::data>(_event));
@@ -639,7 +639,7 @@ void ba::update_from(computable* child, io::stream* visitor) {
  */
 std::string ba::object_info() const {
   return fmt::format("BA {}\nname: {}\nstate: {}\ndowntime: {}", _id, _name,
-                     get_state_hard(), _in_downtime);
+                     static_cast<uint32_t>(get_state_hard()), _in_downtime);
 }
 
 /**

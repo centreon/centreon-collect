@@ -163,11 +163,12 @@ int32_t tcp_connection::write(const std::vector<char>& v) {
  * @return false if timeout expires
  */
 bool tcp_connection::wait_for_all_events_written(unsigned ms_timeout) {
-  log_v2::tcp()->trace("wait_for_all_events_written _writing={}", _writing);
+  log_v2::tcp()->trace("wait_for_all_events_written _writing={}",
+                       static_cast<bool>(_writing));
   std::mutex dummy;
   std::unique_lock<std::mutex> l(dummy);
   return _writing_cv.wait_for(l, std::chrono::milliseconds(ms_timeout),
-                              [this]() { return _writing == false; });
+                              [this]() { return !_writing; });
 }
 
 /**

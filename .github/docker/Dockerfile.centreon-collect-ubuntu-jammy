@@ -2,9 +2,13 @@ ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/ubuntu:jammy
 
+ENV DEBIAN_FRONTEND noninteractive
+
 RUN bash -e <<EOF
 
 apt-get update
+
+apt-get install -y --no-install-recommends tzdata
 
 apt-get -y install cmake \
     git \
@@ -25,12 +29,18 @@ apt-get -y install cmake \
     libperl-dev \
     libgcrypt20-dev \
     aptitude \
+    git-buildpackage \
     fakeroot \
     strace \
     locales \
     rrdtool \
     rrdcached \
     zstd \
+    libssl-dev \
+    libssh2-1-dev \
+    zlib1g-dev \
+    zip \
+    libcurl4-openssl-dev \
     sudo
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
@@ -41,18 +51,26 @@ apt-get clean
 
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
-pip3 install conan==1.61.0
-ln -s /usr/local/bin/conan /usr/bin/conan
-rm -rf ~/.conan/profiles/default
+git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
+./vcpkg/bootstrap-vcpkg.sh
+mkdir /src
 
 EOF
 
-COPY conanfile.txt .
+COPY vcpkg.json /src
+COPY overlays /overlays
+COPY custom-triplets /custom-triplets
 
+ARG TRIPLET
 RUN bash -e <<EOF
 
-cat conanfile.txt
-conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build='missing'
+export VCPKG_ROOT=/vcpkg
+export PATH=$VCPKG_ROOT:$PATH
+
+if [ "${TRIPLET}" = "arm64-linux" ] ; then
+  export VCPKG_FORCE_SYSTEM_BINARIES=1
+fi
+vcpkg/vcpkg install --overlay-triplets=custom-triplets --triplet ${TRIPLET}-release --vcpkg-root vcpkg --x-wait-for-lock --x-manifest-root=/src --x-install-root=vcpkg_installed --overlay-ports=overlays
 
 EOF
 

@@ -1395,6 +1395,13 @@ def create_metrics(count: int):
 
 
 def run_reverse_bam(duration, interval):
+    """Launch a map_client.py script that emulates map.
+
+    Args:
+        duration: The duration in seconds before to stop map_client.py
+        interval: Interval given to the map_client.py that tells the duration
+                  between to recv calls.
+    """
     pro = subp.Popen("broker/map_client.py {:f}".format(interval),
                      shell=True, stdout=subp.PIPE, stdin=subp.PIPE, preexec_fn=setsid)
     time.sleep(duration)

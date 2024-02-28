@@ -31,9 +31,9 @@ set_target_properties(${STATS_EXPORTER} PROPERTIES PREFIX "")
 # deadlocks with it. So here we only get from opentelemetry new stuffs.
 target_link_libraries(
   ${STATS_EXPORTER}
-  CONAN_PKG::libcurl
-  CONAN_PKG::spdlog
-  -L${CONAN_LIB_DIRS_OPENTELEMETRY-CPP}
+  ${CURL_LIBRARY_RELEASE}
+  spdlog::spdlog
+  -L${OTLP_LIB_DIR}
   opentelemetry_version
   opentelemetry_exporter_otlp_grpc
   opentelemetry_exporter_otlp_grpc_metrics

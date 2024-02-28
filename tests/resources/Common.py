@@ -1228,7 +1228,7 @@ def check_number_of_downtimes(expected: int, start, timeout: int):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT count(*) FROM downtimes WHERE start_time >= {} AND deletion_time IS NULL".format(d))
+                    f"SELECT count(*) FROM downtimes WHERE start_time >= {d} AND deletion_time IS NULL")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(
@@ -1481,6 +1481,14 @@ def check_no_host_dependencies(timeout=TIMEOUT):
                 if len(result) > 0 and int(result[0]['count(*)']) == 0:
                     return True
     return False
+
+
+def grep(file_path: str, pattern: str):
+    with open(file_path, "r") as file:
+        for line in file:
+            if re.search(pattern, line):
+                return line.strip()
+    return ""
 
 
 def get_collect_version():
