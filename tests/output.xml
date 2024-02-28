@@ -1,221 +1,221 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<robot generator="Robot 7.0 (Python 3.8.17 on linux)" generated="2024-02-15T14:35:42.841750" rpa="false" schemaversion="5">
+<robot generator="Robot 7.0 (Python 3.8.17 on linux)" generated="2024-02-28T09:23:22.646097" rpa="false" schemaversion="5">
 <suite id="s1" name="Tests" source="/root/centreon-collect/tests">
 <suite id="s1-s1" name="Broker-Engine" source="/root/centreon-collect/tests/broker-engine">
 <suite id="s1-s1-s1" name="Services" source="/root/centreon-collect/tests/broker-engine/services.robot">
 <kw name="Clean Before Suite" owner="resources" type="SETUP">
 <kw name="Clear Db" owner="Common">
 <arg>resources</arg>
-<status status="PASS" start="2024-02-15T14:35:43.054501" elapsed="0.003832"/>
+<status status="PASS" start="2024-02-28T09:23:22.933108" elapsed="0.006266"/>
 </kw>
 <kw name="Clear Db" owner="Common">
 <arg>hosts</arg>
-<status status="PASS" start="2024-02-15T14:35:43.058601" elapsed="0.001604"/>
+<status status="PASS" start="2024-02-28T09:23:22.939929" elapsed="0.012914"/>
 </kw>
 <kw name="Clear Db" owner="Common">
 <arg>services</arg>
-<status status="PASS" start="2024-02-15T14:35:43.060452" elapsed="0.001163"/>
+<status status="PASS" start="2024-02-28T09:23:22.953160" elapsed="0.001269"/>
 </kw>
 <kw name="Clear Db" owner="Common">
 <arg>tags</arg>
-<status status="PASS" start="2024-02-15T14:35:43.061803" elapsed="0.001059"/>
+<status status="PASS" start="2024-02-28T09:23:22.954646" elapsed="0.001763"/>
 </kw>
 <kw name="Stop Processes" owner="resources">
 <kw name="Terminate All Processes" owner="Process">
 <arg>kill=True</arg>
 <doc>Terminates all still running processes started by this library.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.063441" elapsed="0.000516"/>
+<status status="PASS" start="2024-02-28T09:23:22.957196" elapsed="0.000214"/>
 </kw>
 <kw name="Kill Broker" owner="Common">
-<status status="PASS" start="2024-02-15T14:35:43.064120" elapsed="0.033721"/>
+<status status="PASS" start="2024-02-28T09:23:22.957557" elapsed="0.031184"/>
 </kw>
 <kw name="Kill Engine" owner="Common">
-<status status="PASS" start="2024-02-15T14:35:43.098697" elapsed="0.018309"/>
+<status status="PASS" start="2024-02-28T09:23:22.989490" elapsed="0.015776"/>
 </kw>
-<status status="PASS" start="2024-02-15T14:35:43.063135" elapsed="0.054289"/>
+<status status="PASS" start="2024-02-28T09:23:22.956885" elapsed="0.048771"/>
 </kw>
 <kw name="Clear Engine Logs" owner="resources">
 <kw name="Remove Directory" owner="OperatingSystem">
-<msg time="2024-02-15T14:35:43.119651" level="INFO" html="true">Removed directory '&lt;a href="file:///tmp/var/log/centreon-engine"&gt;/tmp/var/log/centreon-engine&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:23.008317" level="INFO" html="true">Removed directory '&lt;a href="file:///tmp/var/log/centreon-engine"&gt;/tmp/var/log/centreon-engine&lt;/a&gt;'.</msg>
 <arg>${ENGINE_LOG}</arg>
 <arg>Recursive=True</arg>
 <doc>Removes the directory pointed to by the given ``path``.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.118660" elapsed="0.001144"/>
+<status status="PASS" start="2024-02-28T09:23:23.007112" elapsed="0.001357"/>
 </kw>
 <kw name="Create Directory" owner="OperatingSystem">
-<msg time="2024-02-15T14:35:43.120308" level="INFO" html="true">Created directory '&lt;a href="file:///tmp/var/log/centreon-engine"&gt;/tmp/var/log/centreon-engine&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:23.009325" level="INFO" html="true">Created directory '&lt;a href="file:///tmp/var/log/centreon-engine"&gt;/tmp/var/log/centreon-engine&lt;/a&gt;'.</msg>
 <arg>${ENGINE_LOG}</arg>
 <doc>Creates the specified directory.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.120024" elapsed="0.000501"/>
+<status status="PASS" start="2024-02-28T09:23:23.008938" elapsed="0.000473"/>
 </kw>
-<status status="PASS" start="2024-02-15T14:35:43.118053" elapsed="0.002570"/>
+<status status="PASS" start="2024-02-28T09:23:23.006403" elapsed="0.003104"/>
 </kw>
 <kw name="Clear Broker Logs" owner="resources">
 <kw name="Remove Directory" owner="OperatingSystem">
-<msg time="2024-02-15T14:35:43.122081" level="INFO" html="true">Removed directory '&lt;a href="file:///tmp/var/log/centreon-broker"&gt;/tmp/var/log/centreon-broker&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:23.010629" level="INFO" html="true">Removed directory '&lt;a href="file:///tmp/var/log/centreon-broker"&gt;/tmp/var/log/centreon-broker&lt;/a&gt;'.</msg>
 <arg>${BROKER_LOG}</arg>
 <arg>Recursive=True</arg>
 <doc>Removes the directory pointed to by the given ``path``.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.121133" elapsed="0.001049"/>
+<status status="PASS" start="2024-02-28T09:23:23.010154" elapsed="0.000558"/>
 </kw>
 <kw name="Create Directory" owner="OperatingSystem">
-<msg time="2024-02-15T14:35:43.122706" level="INFO" html="true">Created directory '&lt;a href="file:///tmp/var/log/centreon-broker"&gt;/tmp/var/log/centreon-broker&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:23.011156" level="INFO" html="true">Created directory '&lt;a href="file:///tmp/var/log/centreon-broker"&gt;/tmp/var/log/centreon-broker&lt;/a&gt;'.</msg>
 <arg>${BROKER_LOG}</arg>
 <doc>Creates the specified directory.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.122400" elapsed="0.000388"/>
+<status status="PASS" start="2024-02-28T09:23:23.010913" elapsed="0.000311"/>
 </kw>
-<status status="PASS" start="2024-02-15T14:35:43.120839" elapsed="0.002046"/>
+<status status="PASS" start="2024-02-28T09:23:23.009743" elapsed="0.001555"/>
 </kw>
-<status status="PASS" start="2024-02-15T14:35:43.053094" elapsed="0.069887"/>
+<status status="PASS" start="2024-02-28T09:23:22.931812" elapsed="0.079557"/>
 </kw>
-<test id="s1-s1-s1-t1" name="service" line="21">
+<test id="s1-s1-s1-t1" name="lua" line="21">
 <kw name="Stop Processes" owner="resources" type="SETUP">
 <kw name="Terminate All Processes" owner="Process">
 <arg>kill=True</arg>
 <doc>Terminates all still running processes started by this library.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.125143" elapsed="0.000263"/>
+<status status="PASS" start="2024-02-28T09:23:23.013709" elapsed="0.000255"/>
 </kw>
 <kw name="Kill Broker" owner="Common">
-<status status="PASS" start="2024-02-15T14:35:43.125568" elapsed="0.032853"/>
+<status status="PASS" start="2024-02-28T09:23:23.014129" elapsed="0.026702"/>
 </kw>
 <kw name="Kill Engine" owner="Common">
-<status status="PASS" start="2024-02-15T14:35:43.159155" elapsed="0.022721"/>
+<status status="PASS" start="2024-02-28T09:23:23.041567" elapsed="0.016696"/>
 </kw>
-<status status="PASS" start="2024-02-15T14:35:43.124790" elapsed="0.057489"/>
+<status status="PASS" start="2024-02-28T09:23:23.013332" elapsed="0.045366"/>
 </kw>
 <kw name="Config Engine" owner="Engine">
 <arg>${1}</arg>
 <arg>${1}</arg>
 <arg>${25}</arg>
-<status status="PASS" start="2024-02-15T14:35:43.183421" elapsed="0.003685"/>
+<status status="PASS" start="2024-02-28T09:23:23.059891" elapsed="0.004743"/>
 </kw>
 <kw name="Config Broker" owner="Broker">
 <arg>rrd</arg>
-<status status="PASS" start="2024-02-15T14:35:43.187724" elapsed="0.000477"/>
+<status status="PASS" start="2024-02-28T09:23:23.065158" elapsed="0.000419"/>
 </kw>
 <kw name="Config Broker" owner="Broker">
 <arg>central</arg>
-<status status="PASS" start="2024-02-15T14:35:43.188558" elapsed="0.000435"/>
+<status status="PASS" start="2024-02-28T09:23:23.065919" elapsed="0.000418"/>
 </kw>
 <kw name="Config Broker" owner="Broker">
 <arg>module</arg>
 <arg>${1}</arg>
-<status status="PASS" start="2024-02-15T14:35:43.189400" elapsed="0.001036"/>
+<status status="PASS" start="2024-02-28T09:23:23.066566" elapsed="0.000932"/>
 </kw>
 <kw name="Config BBDO3" owner="resources">
 <kw name="Config Broker Sql Output" owner="Broker">
 <arg>central</arg>
 <arg>unified_sql</arg>
-<status status="PASS" start="2024-02-15T14:35:43.191501" elapsed="0.001221"/>
+<status status="PASS" start="2024-02-28T09:23:23.069077" elapsed="0.000511"/>
 </kw>
 <kw name="Broker Config Add Item" owner="Broker">
 <arg>rrd</arg>
 <arg>bbdo_version</arg>
 <arg>${version}</arg>
-<status status="PASS" start="2024-02-15T14:35:43.192974" elapsed="0.000636"/>
+<status status="PASS" start="2024-02-28T09:23:23.069804" elapsed="0.000625"/>
 </kw>
 <kw name="Broker Config Add Item" owner="Broker">
 <arg>central</arg>
 <arg>bbdo_version</arg>
 <arg>${version}</arg>
-<status status="PASS" start="2024-02-15T14:35:43.194220" elapsed="0.000805"/>
+<status status="PASS" start="2024-02-28T09:23:23.070622" elapsed="0.000761"/>
 </kw>
 <for flavor="IN RANGE">
 <iter>
 <kw name="Catenate" owner="BuiltIn">
-<msg time="2024-02-15T14:35:43.196041" level="INFO">${mod} = module0</msg>
+<msg time="2024-02-28T09:23:23.072287" level="INFO">${mod} = module0</msg>
 <var>${mod}</var>
 <arg>SEPARATOR=</arg>
 <arg>module</arg>
 <arg>${i}</arg>
 <doc>Catenates the given items together and returns the resulted string.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.195685" elapsed="0.000400"/>
+<status status="PASS" start="2024-02-28T09:23:23.071992" elapsed="0.000337"/>
 </kw>
 <kw name="Broker Config Add Item" owner="Broker">
 <arg>${mod}</arg>
 <arg>bbdo_version</arg>
 <arg>${version}</arg>
-<status status="PASS" start="2024-02-15T14:35:43.196327" elapsed="0.000523"/>
+<status status="PASS" start="2024-02-28T09:23:23.072562" elapsed="0.000562"/>
 </kw>
 <var name="${i}">0</var>
-<status status="PASS" start="2024-02-15T14:35:43.195504" elapsed="0.001405"/>
+<status status="PASS" start="2024-02-28T09:23:23.071816" elapsed="0.001365"/>
 </iter>
 <var>${i}</var>
 <value>${nbEngine}</value>
-<status status="PASS" start="2024-02-15T14:35:43.195155" elapsed="0.001796"/>
+<status status="PASS" start="2024-02-28T09:23:23.071510" elapsed="0.001718"/>
 </for>
 <arg>1</arg>
-<status status="PASS" start="2024-02-15T14:35:43.190925" elapsed="0.006108"/>
+<status status="PASS" start="2024-02-28T09:23:23.068144" elapsed="0.005166"/>
 </kw>
 <kw name="Broker Config Log" owner="Broker">
 <arg>central</arg>
 <arg>sql</arg>
 <arg>debug</arg>
-<status status="PASS" start="2024-02-15T14:35:43.197377" elapsed="0.000587"/>
+<status status="PASS" start="2024-02-28T09:23:23.073542" elapsed="0.000525"/>
 </kw>
 <kw name="Broker Config Log" owner="Broker">
 <arg>module0</arg>
 <arg>neb</arg>
 <arg>trace</arg>
-<status status="PASS" start="2024-02-15T14:35:43.198215" elapsed="0.000474"/>
+<status status="PASS" start="2024-02-28T09:23:23.074333" elapsed="0.000412"/>
 </kw>
 <kw name="Config Broker Sql Output" owner="Broker">
 <arg>central</arg>
 <arg>unified_sql</arg>
-<status status="PASS" start="2024-02-15T14:35:43.199019" elapsed="0.000541"/>
+<status status="PASS" start="2024-02-28T09:23:23.075083" elapsed="0.000485"/>
 </kw>
 <kw name="Get Current Date" owner="DateTime">
-<msg time="2024-02-15T14:35:43.200150" level="INFO">${start} = 2024-02-15 14:35:43.200</msg>
+<msg time="2024-02-28T09:23:23.076187" level="INFO">${start} = 2024-02-28 09:23:23.076</msg>
 <var>${start}</var>
 <doc>Returns current local or UTC time with an optional increment.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.199862" elapsed="0.000321"/>
+<status status="PASS" start="2024-02-28T09:23:23.075915" elapsed="0.000304"/>
 </kw>
 <kw name="Start Broker" owner="resources">
 <kw name="Start Process" owner="Process">
-<msg time="2024-02-15T14:35:43.201570" level="INFO">Starting process:
+<msg time="2024-02-28T09:23:23.077469" level="INFO">Starting process:
 /usr/sbin/cbd /tmp/etc/centreon-broker/central-broker.json</msg>
 <arg>/usr/sbin/cbd</arg>
 <arg>${EtcRoot}/centreon-broker/central-broker.json</arg>
 <arg>alias=b1</arg>
 <doc>Starts a new process on background.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.201178" elapsed="0.006806"/>
+<status status="PASS" start="2024-02-28T09:23:23.077132" elapsed="0.004601"/>
 </kw>
 <if>
 <branch type="IF" condition="not ${only_central}">
 <kw name="Start Process" owner="Process">
-<msg time="2024-02-15T14:35:43.210800" level="INFO">Starting process:
+<msg time="2024-02-28T09:23:23.083984" level="INFO">Starting process:
 /usr/sbin/cbd /tmp/etc/centreon-broker/central-rrd.json</msg>
 <arg>/usr/sbin/cbd</arg>
 <arg>${EtcRoot}/centreon-broker/central-rrd.json</arg>
 <arg>alias=b2</arg>
 <doc>Starts a new process on background.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.210080" elapsed="0.021702"/>
+<status status="PASS" start="2024-02-28T09:23:23.083322" elapsed="0.011212"/>
 </kw>
-<status status="PASS" start="2024-02-15T14:35:43.208971" elapsed="0.023413"/>
+<status status="PASS" start="2024-02-28T09:23:23.082409" elapsed="0.013487"/>
 </branch>
-<status status="PASS" start="2024-02-15T14:35:43.208715" elapsed="0.023791"/>
+<status status="PASS" start="2024-02-28T09:23:23.082305" elapsed="0.013740"/>
 </if>
-<status status="PASS" start="2024-02-15T14:35:43.200629" elapsed="0.032145"/>
+<status status="PASS" start="2024-02-28T09:23:23.076623" elapsed="0.019682"/>
 </kw>
 <kw name="Start Engine" owner="resources">
 <kw name="Get Engines Count" owner="Engine">
-<msg time="2024-02-15T14:35:43.236332" level="INFO">${count} = 1</msg>
+<msg time="2024-02-28T09:23:23.099458" level="INFO">${count} = 1</msg>
 <var>${count}</var>
-<status status="PASS" start="2024-02-15T14:35:43.235445" elapsed="0.000984"/>
+<status status="PASS" start="2024-02-28T09:23:23.099135" elapsed="0.000372"/>
 </kw>
 <for flavor="IN RANGE">
 <iter>
 <kw name="Catenate" owner="BuiltIn">
-<msg time="2024-02-15T14:35:43.245894" level="INFO">${alias} = e0</msg>
+<msg time="2024-02-28T09:23:23.100838" level="INFO">${alias} = e0</msg>
 <var>${alias}</var>
 <arg>SEPARATOR=</arg>
 <arg>e</arg>
 <arg>${idx}</arg>
 <doc>Catenates the given items together and returns the resulted string.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.245308" elapsed="0.002681"/>
+<status status="PASS" start="2024-02-28T09:23:23.100443" elapsed="0.000460"/>
 </kw>
 <kw name="Catenate" owner="BuiltIn">
-<msg time="2024-02-15T14:35:43.248929" level="INFO">${conf} = /tmp/etc/centreon-engine/config0/centengine.cfg</msg>
+<msg time="2024-02-28T09:23:23.101584" level="INFO">${conf} = /tmp/etc/centreon-engine/config0/centengine.cfg</msg>
 <var>${conf}</var>
 <arg>SEPARATOR=</arg>
 <arg>${EtcRoot}</arg>
@@ -223,152 +223,242 @@
 <arg>${idx}</arg>
 <arg>/centengine.cfg</arg>
 <doc>Catenates the given items together and returns the resulted string.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.248428" elapsed="0.000553"/>
+<status status="PASS" start="2024-02-28T09:23:23.101170" elapsed="0.000463"/>
 </kw>
 <kw name="Catenate" owner="BuiltIn">
-<msg time="2024-02-15T14:35:43.253952" level="INFO">${log} = /tmp/var/log/centreon-engine/config0</msg>
+<msg time="2024-02-28T09:23:23.102508" level="INFO">${log} = /tmp/var/log/centreon-engine/config0</msg>
 <var>${log}</var>
 <arg>SEPARATOR=</arg>
 <arg>${VarRoot}</arg>
 <arg>/log/centreon-engine/config</arg>
 <arg>${idx}</arg>
 <doc>Catenates the given items together and returns the resulted string.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.251472" elapsed="0.002537"/>
+<status status="PASS" start="2024-02-28T09:23:23.101988" elapsed="0.000568"/>
 </kw>
 <kw name="Catenate" owner="BuiltIn">
-<msg time="2024-02-15T14:35:43.254775" level="INFO">${lib} = /tmp/var/lib/centreon-engine/config0</msg>
+<msg time="2024-02-28T09:23:23.103203" level="INFO">${lib} = /tmp/var/lib/centreon-engine/config0</msg>
 <var>${lib}</var>
 <arg>SEPARATOR=</arg>
 <arg>${VarRoot}</arg>
 <arg>/lib/centreon-engine/config</arg>
 <arg>${idx}</arg>
 <doc>Catenates the given items together and returns the resulted string.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.254327" elapsed="0.000493"/>
+<status status="PASS" start="2024-02-28T09:23:23.102823" elapsed="0.000422"/>
 </kw>
 <kw name="Create Directory" owner="OperatingSystem">
-<msg time="2024-02-15T14:35:43.258316" level="INFO" html="true">Created directory '&lt;a href="file:///tmp/var/log/centreon-engine/config0"&gt;/tmp/var/log/centreon-engine/config0&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:23.104454" level="INFO" html="true">Created directory '&lt;a href="file:///tmp/var/log/centreon-engine/config0"&gt;/tmp/var/log/centreon-engine/config0&lt;/a&gt;'.</msg>
 <arg>${log}</arg>
 <doc>Creates the specified directory.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.257737" elapsed="0.000719"/>
+<status status="PASS" start="2024-02-28T09:23:23.103912" elapsed="0.000651"/>
 </kw>
 <kw name="Create Directory" owner="OperatingSystem">
-<msg time="2024-02-15T14:35:43.259079" level="INFO" html="true">Directory '&lt;a href="file:///tmp/var/lib/centreon-engine/config0"&gt;/tmp/var/lib/centreon-engine/config0&lt;/a&gt;' already exists.</msg>
+<msg time="2024-02-28T09:23:23.105180" level="INFO" html="true">Directory '&lt;a href="file:///tmp/var/lib/centreon-engine/config0"&gt;/tmp/var/lib/centreon-engine/config0&lt;/a&gt;' already exists.</msg>
 <arg>${lib}</arg>
 <doc>Creates the specified directory.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.258747" elapsed="0.000427"/>
+<status status="PASS" start="2024-02-28T09:23:23.104884" elapsed="0.000387"/>
 </kw>
 <try>
 <branch type="TRY">
 <kw name="Remove File" owner="OperatingSystem">
-<msg time="2024-02-15T14:35:43.262134" level="FAIL">Path '/tmp/var/lib/centreon-engine/config0/rw/centengine.cmd' is not a file.</msg>
+<msg time="2024-02-28T09:23:23.109640" level="FAIL">Path '/tmp/var/lib/centreon-engine/config0/rw/centengine.cmd' is not a file.</msg>
 <arg>${lib}/rw/centengine.cmd</arg>
 <doc>Removes a file with the given path.</doc>
-<status status="FAIL" start="2024-02-15T14:35:43.261062" elapsed="0.001293">Path '/tmp/var/lib/centreon-engine/config0/rw/centengine.cmd' is not a file.</status>
+<status status="FAIL" start="2024-02-28T09:23:23.105718" elapsed="0.004227">Path '/tmp/var/lib/centreon-engine/config0/rw/centengine.cmd' is not a file.</status>
 </kw>
-<status status="FAIL" start="2024-02-15T14:35:43.260785" elapsed="0.001734">Path '/tmp/var/lib/centreon-engine/config0/rw/centengine.cmd' is not a file.</status>
+<status status="FAIL" start="2024-02-28T09:23:23.105501" elapsed="0.004631">Path '/tmp/var/lib/centreon-engine/config0/rw/centengine.cmd' is not a file.</status>
 </branch>
 <branch type="EXCEPT">
 <kw name="Log" owner="BuiltIn">
-<msg time="2024-02-15T14:35:43.263331" level="INFO">can't remove /tmp/var/lib/centreon-engine/config0/rw/centengine.cmd don't worry</msg>
+<msg time="2024-02-28T09:23:23.110898" level="INFO">can't remove /tmp/var/lib/centreon-engine/config0/rw/centengine.cmd don't worry</msg>
 <arg>can't remove ${lib}/rw/centengine.cmd don't worry</arg>
 <doc>Logs the given message with the given level.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.262981" elapsed="0.000469"/>
+<status status="PASS" start="2024-02-28T09:23:23.110537" elapsed="0.000460"/>
 </kw>
-<status status="PASS" start="2024-02-15T14:35:43.262714" elapsed="0.000803"/>
+<status status="PASS" start="2024-02-28T09:23:23.110269" elapsed="0.000795"/>
 </branch>
-<status status="PASS" start="2024-02-15T14:35:43.259310" elapsed="0.004345"/>
+<status status="PASS" start="2024-02-28T09:23:23.105395" elapsed="0.005751"/>
 </try>
 <kw name="Start Process" owner="Process">
-<msg time="2024-02-15T14:35:43.264418" level="INFO">Starting process:
+<msg time="2024-02-28T09:23:23.112015" level="INFO">Starting process:
 /usr/sbin/centengine /tmp/etc/centreon-engine/config0/centengine.cfg</msg>
 <arg>/usr/sbin/centengine</arg>
 <arg>${conf}</arg>
 <arg>alias=${alias}</arg>
 <doc>Starts a new process on background.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.263918" elapsed="0.020531"/>
+<status status="PASS" start="2024-02-28T09:23:23.111400" elapsed="0.016618"/>
 </kw>
 <var name="${idx}">0</var>
-<status status="PASS" start="2024-02-15T14:35:43.244938" elapsed="0.039902"/>
+<status status="PASS" start="2024-02-28T09:23:23.100215" elapsed="0.028201"/>
 </iter>
 <var>${idx}</var>
 <value>0</value>
 <value>${count}</value>
-<status status="PASS" start="2024-02-15T14:35:43.236577" elapsed="0.048383"/>
+<status status="PASS" start="2024-02-28T09:23:23.099639" elapsed="0.028890"/>
 </for>
-<status status="PASS" start="2024-02-15T14:35:43.234214" elapsed="0.051214"/>
+<status status="PASS" start="2024-02-28T09:23:23.098224" elapsed="0.030667"/>
 </kw>
 <kw name="Create List" owner="BuiltIn">
-<msg time="2024-02-15T14:35:43.291979" level="INFO">${content} = ['check_for_external_commands()']</msg>
+<msg time="2024-02-28T09:23:23.130650" level="INFO">${content} = ['check_for_external_commands()']</msg>
 <var>${content}</var>
 <arg>check_for_external_commands()</arg>
 <doc>Returns a list containing given items.</doc>
-<status status="PASS" start="2024-02-15T14:35:43.286734" elapsed="0.005361"/>
+<status status="PASS" start="2024-02-28T09:23:23.129938" elapsed="0.000768"/>
 </kw>
 <kw name="Find In Log With Timeout" owner="Common">
-<msg time="2024-02-15T14:35:43.293656" level="INFO">regex=False</msg>
-<msg time="2024-02-15T14:35:48.299842" level="INFO">regex=False</msg>
-<msg time="2024-02-15T14:35:48.301340" level="INFO">${result} = True</msg>
+<msg time="2024-02-28T09:23:23.131752" level="INFO">regex=False</msg>
+<msg time="2024-02-28T09:23:28.137049" level="INFO">regex=False</msg>
+<msg time="2024-02-28T09:23:28.139256" level="INFO">${result} = True</msg>
 <var>${result}</var>
 <arg>${engineLog0}</arg>
 <arg>${start}</arg>
 <arg>${content}</arg>
 <arg>60</arg>
-<status status="PASS" start="2024-02-15T14:35:43.292660" elapsed="5.008752"/>
+<status status="PASS" start="2024-02-28T09:23:23.131185" elapsed="5.008139"/>
 </kw>
 <kw name="Should Be True" owner="BuiltIn">
-<arg>${result}</arg>
+<arg>${content}</arg>
 <arg>A message telling check_for_external_commands() should be available.</arg>
 <doc>Fails if the given condition is not true.</doc>
-<status status="PASS" start="2024-02-15T14:35:48.301815" elapsed="0.000340"/>
+<status status="PASS" start="2024-02-28T09:23:28.139765" elapsed="0.000542"/>
+</kw>
+<kw name="Schedule Host Fixed Downtime" owner="Engine">
+<msg time="2024-02-28T09:23:28.143238" level="FAIL">Resolving variable '${i + 1}' failed: Variable '${i }' not found.</msg>
+<arg>${0}</arg>
+<arg>host_${i + 1}</arg>
+<arg>${3600}</arg>
+<status status="FAIL" start="2024-02-28T09:23:28.140663" elapsed="0.002652">Resolving variable '${i + 1}' failed: Variable '${i }' not found.</status>
 </kw>
 <kw name="Save Logs If Failed" owner="resources" type="TEARDOWN">
 <kw name="Run Keyword If Test Failed" owner="BuiltIn">
+<kw name="Save Logs" owner="resources">
+<kw name="Create Directory" owner="OperatingSystem">
+<msg time="2024-02-28T09:23:28.148084" level="INFO" html="true">Directory '&lt;a href="file:///root/centreon-collect/tests/failed"&gt;/root/centreon-collect/tests/failed&lt;/a&gt;' already exists.</msg>
+<arg>failed</arg>
+<doc>Creates the specified directory.</doc>
+<status status="PASS" start="2024-02-28T09:23:28.147706" elapsed="0.000503"/>
+</kw>
+<kw name="Catenate" owner="BuiltIn">
+<msg time="2024-02-28T09:23:28.148940" level="INFO">${failDir} = failed/lua</msg>
+<var>${failDir}</var>
+<arg>SEPARATOR=</arg>
+<arg>failed/</arg>
+<arg>${Test Name}</arg>
+<doc>Catenates the given items together and returns the resulted string.</doc>
+<status status="PASS" start="2024-02-28T09:23:28.148515" elapsed="0.000460"/>
+</kw>
+<kw name="Create Directory" owner="OperatingSystem">
+<msg time="2024-02-28T09:23:28.149675" level="INFO" html="true">Created directory '&lt;a href="file:///root/centreon-collect/tests/failed/lua"&gt;/root/centreon-collect/tests/failed/lua&lt;/a&gt;'.</msg>
+<arg>${failDir}</arg>
+<doc>Creates the specified directory.</doc>
+<status status="PASS" start="2024-02-28T09:23:28.149149" elapsed="0.000687"/>
+</kw>
+<kw name="Copy Files" owner="OperatingSystem">
+<msg time="2024-02-28T09:23:28.154788" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/var/log/centreon-broker/central-broker-master.log"&gt;/tmp/var/log/centreon-broker/central-broker-master.log&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/central-broker-master.log"&gt;/root/centreon-collect/tests/failed/lua/central-broker-master.log&lt;/a&gt;'.</msg>
+<arg>${centralLog}</arg>
+<arg>${failDir}</arg>
+<doc>Copies specified files to the target directory.</doc>
+<status status="PASS" start="2024-02-28T09:23:28.150142" elapsed="0.004962"/>
+</kw>
+<kw name="Copy Files" owner="OperatingSystem">
+<msg time="2024-02-28T09:23:28.156421" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/var/log/centreon-broker/central-rrd-master.log"&gt;/tmp/var/log/centreon-broker/central-rrd-master.log&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/central-rrd-master.log"&gt;/root/centreon-collect/tests/failed/lua/central-rrd-master.log&lt;/a&gt;'.</msg>
+<arg>${rrdLog}</arg>
+<arg>${failDir}</arg>
+<doc>Copies specified files to the target directory.</doc>
+<status status="PASS" start="2024-02-28T09:23:28.155557" elapsed="0.001036"/>
+</kw>
+<kw name="Copy Files" owner="OperatingSystem">
+<msg time="2024-02-28T09:23:28.158005" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/var/log/centreon-broker/central-module-master0.log"&gt;/tmp/var/log/centreon-broker/central-module-master0.log&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/central-module-master0.log"&gt;/root/centreon-collect/tests/failed/lua/central-module-master0.log&lt;/a&gt;'.</msg>
+<arg>${moduleLog0}</arg>
+<arg>${failDir}</arg>
+<doc>Copies specified files to the target directory.</doc>
+<status status="PASS" start="2024-02-28T09:23:28.156941" elapsed="0.001177"/>
+</kw>
+<kw name="Copy Files" owner="OperatingSystem">
+<msg time="2024-02-28T09:23:28.159353" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/var/log/centreon-engine/config0/centengine.log"&gt;/tmp/var/log/centreon-engine/config0/centengine.log&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/centengine.log"&gt;/root/centreon-collect/tests/failed/lua/centengine.log&lt;/a&gt;'.</msg>
+<arg>${engineLog0}</arg>
+<arg>${failDir}</arg>
+<doc>Copies specified files to the target directory.</doc>
+<status status="PASS" start="2024-02-28T09:23:28.158376" elapsed="0.001083"/>
+</kw>
+<kw name="Copy Files" owner="OperatingSystem">
+<msg time="2024-02-28T09:23:28.161318" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-engine/config0/centengine.cfg"&gt;/tmp/etc/centreon-engine/config0/centengine.cfg&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/centengine.cfg"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/centengine.cfg&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.161787" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-engine/config0/hosts.cfg"&gt;/tmp/etc/centreon-engine/config0/hosts.cfg&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/hosts.cfg"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/hosts.cfg&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.163072" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-engine/config0/services.cfg"&gt;/tmp/etc/centreon-engine/config0/services.cfg&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/services.cfg"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/services.cfg&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.163487" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-engine/config0/commands.cfg"&gt;/tmp/etc/centreon-engine/config0/commands.cfg&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/commands.cfg"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/commands.cfg&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.163870" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-engine/config0/connectors.cfg"&gt;/tmp/etc/centreon-engine/config0/connectors.cfg&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/connectors.cfg"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/connectors.cfg&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.164364" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-engine/config0/resource.cfg"&gt;/tmp/etc/centreon-engine/config0/resource.cfg&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/resource.cfg"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/resource.cfg&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.164827" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-engine/config0/timeperiods.cfg"&gt;/tmp/etc/centreon-engine/config0/timeperiods.cfg&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/timeperiods.cfg"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/timeperiods.cfg&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.165237" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-engine/config0/hostgroups.cfg"&gt;/tmp/etc/centreon-engine/config0/hostgroups.cfg&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/hostgroups.cfg"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/hostgroups.cfg&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.165782" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-engine/config0/contacts.cfg"&gt;/tmp/etc/centreon-engine/config0/contacts.cfg&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/contacts.cfg"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/contacts.cfg&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.166373" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-engine/config0/dependencies.cfg"&gt;/tmp/etc/centreon-engine/config0/dependencies.cfg&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/dependencies.cfg"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/dependencies.cfg&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.166824" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-engine/config0/contactgroups.cfg"&gt;/tmp/etc/centreon-engine/config0/contactgroups.cfg&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/contactgroups.cfg"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/contactgroups.cfg&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.169274" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-engine/config0/escalations.cfg"&gt;/tmp/etc/centreon-engine/config0/escalations.cfg&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/escalations.cfg"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-engine/config0/escalations.cfg&lt;/a&gt;'.</msg>
+<arg>${EtcRoot}/centreon-engine/config0/*.cfg</arg>
+<arg>${failDir}/etc/centreon-engine/config0</arg>
+<doc>Copies specified files to the target directory.</doc>
+<status status="PASS" start="2024-02-28T09:23:28.159716" elapsed="0.009672"/>
+</kw>
+<kw name="Copy Files" owner="OperatingSystem">
+<msg time="2024-02-28T09:23:28.171995" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-broker/central-rrd.json"&gt;/tmp/etc/centreon-broker/central-rrd.json&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-broker/central-rrd.json"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-broker/central-rrd.json&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.172738" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-broker/central-broker.json"&gt;/tmp/etc/centreon-broker/central-broker.json&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-broker/central-broker.json"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-broker/central-broker.json&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.173258" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-broker/central-module0.json"&gt;/tmp/etc/centreon-broker/central-module0.json&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-broker/central-module0.json"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-broker/central-module0.json&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.174183" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-broker/central-module1.json"&gt;/tmp/etc/centreon-broker/central-module1.json&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-broker/central-module1.json"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-broker/central-module1.json&lt;/a&gt;'.</msg>
+<msg time="2024-02-28T09:23:28.175141" level="INFO" html="true">Copied file from '&lt;a href="file:///tmp/etc/centreon-broker/central-module2.json"&gt;/tmp/etc/centreon-broker/central-module2.json&lt;/a&gt;' to '&lt;a href="file:///root/centreon-collect/tests/failed/lua/etc/centreon-broker/central-module2.json"&gt;/root/centreon-collect/tests/failed/lua/etc/centreon-broker/central-module2.json&lt;/a&gt;'.</msg>
+<arg>${EtcRoot}/centreon-broker/*.json</arg>
+<arg>${failDir}/etc/centreon-broker</arg>
+<doc>Copies specified files to the target directory.</doc>
+<status status="PASS" start="2024-02-28T09:23:28.169664" elapsed="0.005617"/>
+</kw>
+<kw name="Move Files" owner="OperatingSystem">
+<arg>/tmp/lua*.log</arg>
+<arg>${failDir}</arg>
+<doc>Moves specified files to the target directory.</doc>
+<status status="PASS" start="2024-02-28T09:23:28.175735" elapsed="0.000978"/>
+</kw>
+<status status="PASS" start="2024-02-28T09:23:28.147094" elapsed="0.029784"/>
+</kw>
 <arg>Save Logs</arg>
 <doc>Runs the given keyword with the given arguments, if the test failed.</doc>
-<status status="PASS" start="2024-02-15T14:35:48.303254" elapsed="0.000146"/>
+<status status="PASS" start="2024-02-28T09:23:28.146138" elapsed="0.030799"/>
 </kw>
-<status status="PASS" start="2024-02-15T14:35:48.302739" elapsed="0.000733"/>
+<status status="PASS" start="2024-02-28T09:23:28.144066" elapsed="0.032935"/>
 </kw>
 <doc>The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then engine and broker are started and broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that broker doesn't crash anymore.</doc>
-<tag>MON-18531</tag>
-<tag>MON-35339</tag>
-<tag>MON-35375</tag>
-<status status="PASS" start="2024-02-15T14:35:43.123174" elapsed="5.180412"/>
+<tag>MON-24745</tag>
+<status status="FAIL" start="2024-02-28T09:23:23.011546" elapsed="5.165646">Resolving variable '${i + 1}' failed: Variable '${i }' not found.</status>
 </test>
 <kw name="Clean After Suite" owner="resources" type="TEARDOWN">
 <kw name="Terminate All Processes" owner="Process">
-<msg time="2024-02-15T14:35:48.305050" level="INFO">Forcefully killing process.</msg>
-<msg time="2024-02-15T14:35:48.405517" level="INFO">Process completed.</msg>
-<msg time="2024-02-15T14:35:48.405650" level="INFO">Forcefully killing process.</msg>
-<msg time="2024-02-15T14:35:48.506057" level="INFO">Process completed.</msg>
-<msg time="2024-02-15T14:35:48.506188" level="INFO">Forcefully killing process.</msg>
-<msg time="2024-02-15T14:35:48.606694" level="INFO">Process completed.</msg>
+<msg time="2024-02-28T09:23:28.178817" level="INFO">Forcefully killing process.</msg>
+<msg time="2024-02-28T09:23:28.280896" level="INFO">Process completed.</msg>
+<msg time="2024-02-28T09:23:28.282031" level="INFO">Forcefully killing process.</msg>
+<msg time="2024-02-28T09:23:28.382406" level="INFO">Process completed.</msg>
+<msg time="2024-02-28T09:23:28.382526" level="INFO">Forcefully killing process.</msg>
+<msg time="2024-02-28T09:23:28.482913" level="INFO">Process completed.</msg>
 <arg>kill=True</arg>
 <doc>Terminates all still running processes started by this library.</doc>
-<status status="PASS" start="2024-02-15T14:35:48.304836" elapsed="0.302206"/>
+<status status="PASS" start="2024-02-28T09:23:28.178554" elapsed="0.304603"/>
 </kw>
-<status status="PASS" start="2024-02-15T14:35:48.304508" elapsed="0.302678"/>
+<status status="PASS" start="2024-02-28T09:23:28.178200" elapsed="0.305081"/>
 </kw>
 <doc>Centreon Broker and Engine progressively add services</doc>
-<status status="PASS" start="2024-02-15T14:35:42.869198" elapsed="5.738025"/>
+<status status="FAIL" start="2024-02-28T09:23:22.674247" elapsed="5.809074"/>
 </suite>
-<status status="PASS" start="2024-02-15T14:35:42.867745" elapsed="5.740674"/>
+<status status="FAIL" start="2024-02-28T09:23:22.672764" elapsed="5.811804"/>
 </suite>
-<status status="PASS" start="2024-02-15T14:35:42.843652" elapsed="5.765435"/>
+<status status="FAIL" start="2024-02-28T09:23:22.648037" elapsed="5.837251"/>
 </suite>
 <statistics>
 <total>
-<stat pass="1" fail="0" skip="0">All Tests</stat>
+<stat pass="0" fail="1" skip="0">All Tests</stat>
 </total>
 <tag>
-<stat pass="1" fail="0" skip="0">MON-18531</stat>
-<stat pass="1" fail="0" skip="0">MON-35339</stat>
-<stat pass="1" fail="0" skip="0">MON-35375</stat>
+<stat pass="0" fail="1" skip="0">MON-24745</stat>
 </tag>
 <suite>
-<stat pass="1" fail="0" skip="0" id="s1" name="Tests">Tests</stat>
-<stat pass="1" fail="0" skip="0" id="s1-s1" name="Broker-Engine">Tests.Broker-Engine</stat>
-<stat pass="1" fail="0" skip="0" id="s1-s1-s1" name="Services">Tests.Broker-Engine.Services</stat>
+<stat pass="0" fail="1" skip="0" id="s1" name="Tests">Tests</stat>
+<stat pass="0" fail="1" skip="0" id="s1-s1" name="Broker-Engine">Tests.Broker-Engine</stat>
+<stat pass="0" fail="1" skip="0" id="s1-s1-s1" name="Services">Tests.Broker-Engine.Services</stat>
 </suite>
 </statistics>
 <errors>
