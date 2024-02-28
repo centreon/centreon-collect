@@ -176,7 +176,7 @@ BEPBCVS
     [Teardown]    Stop Engine Broker And Save Logs    True
 
 BEPB_HOST_DEPENDENCY                                                            
-    [Documentation]    bbdo_version 3 communication of host dependencies.       
+    [Documentation]    BBDO 3 communication of host dependencies.       
     [Tags]    broker    engine    protobuf    bbdo                              
     Config Engine    ${1}                                                       
     Config Engine Add Cfg File    0    dependencies.cfg                         
