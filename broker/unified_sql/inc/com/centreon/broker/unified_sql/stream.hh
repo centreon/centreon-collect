@@ -1,20 +1,21 @@
-/*
-** Copyright 2019-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2019-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
+
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
 #include <absl/container/flat_hash_map.h>
@@ -324,8 +325,8 @@ class stream : public io::stream {
   database::mysql_stmt _flapping_status_insupdate;
   database::mysql_stmt _host_check_update;
   database::mysql_stmt _pb_host_check_update;
-  database::mysql_stmt _host_dependency_insupdate;
-  database::mysql_stmt _pb_host_dependency_insupdate;
+  database::mysql_stmt _host_exe_dependency_insupdate;
+  database::mysql_stmt _host_notif_dependency_insupdate;
   database::mysql_stmt _host_group_insupdate;
   database::mysql_stmt _pb_host_group_insupdate;
   database::mysql_stmt _host_group_member_delete;
