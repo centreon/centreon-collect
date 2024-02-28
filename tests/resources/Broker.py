@@ -22,7 +22,6 @@ from Common import DB_NAME_STORAGE, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_
 
 TIMEOUT = 30
 
-
 config = {
     "central": """{{
     "centreonBroker": {{
@@ -397,29 +396,23 @@ def _apply_conf(name, callback):
     else:
         filename = "central-rrd.json"
 
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     callback(conf)
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def config_broker(name: str, poller_inst: int = 1):
     """
-
     config_broker
 
-    Configure broker instances for test. Write the configuration files.
+    Configure a broker instance for test. Write the configuration files.
 
     Args:
         name (str): name of the conf broker wanted
         poller_inst (int, optional): Defaults to 1.
-
-    Returns: create  conf broker with the chosen name
-
     """
     makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
     makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
@@ -475,7 +468,7 @@ def config_broker(name: str, poller_inst: int = 1):
     else:
         f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "w")
         f.write(config[name].format(broker_id, broker_name,
-                DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT))
+                                    DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT))
         f.close()
         if default_bbdo_version is not None:
             if default_bbdo_version >= "3.0.0" and (name == "central" or name == "central_map"):
@@ -506,6 +499,7 @@ def change_broker_tcp_output_to_grpc(name: str):
     Returns: N/A
 
     """
+
     def output_to_grpc(conf):
         output_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(output_dict):
@@ -513,6 +507,7 @@ def change_broker_tcp_output_to_grpc(name: str):
                 v["type"] = "grpc"
             if "transport_protocol" in v:
                 v["transport_protocol"] = "grpc"
+
     _apply_conf(name, output_to_grpc)
 
 
@@ -529,11 +524,13 @@ def add_path_to_rrd_output(name: str, path: str):
     Returns: N/A
 
     """
+
     def rrd_output(conf):
         output_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(output_dict):
             if v["type"] == "rrd":
                 v["path"] = path
+
     _apply_conf(name, rrd_output)
 
 
@@ -549,6 +546,7 @@ def change_broker_tcp_input_to_grpc(name: str):
     Returns: N/A
 
     """
+
     def input_to_grpc(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
@@ -556,6 +554,7 @@ def change_broker_tcp_input_to_grpc(name: str):
                 v["type"] = "grpc"
             if "transport_protocol" in v:
                 v["transport_protocol"] = "grpc"
+
     _apply_conf(name, input_to_grpc)
 
 
@@ -583,11 +582,13 @@ def add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
 
     Returns: N/A
     """
+
     def _crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
             if v["type"] == "grpc":
                 _add_broker_crypto(v, add_cert, reversed)
+
     _apply_conf(name, _crypto_modifier)
 
 
@@ -608,11 +609,13 @@ def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool)
     Returns: N/A
 
     """
+
     def _crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(input_dict):
             if v["type"] == "grpc":
                 _add_broker_crypto(v, add_cert, not reversed)
+
     _apply_conf(name, _crypto_modifier)
 
 
@@ -634,11 +637,13 @@ def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
     Returns: N/A
 
     """
+
     def modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(input_dict):
             if (v["name"] == output_name):
                 v["host"] = host_ip
+
     _apply_conf(name, modifier)
 
 
@@ -660,11 +665,13 @@ def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
     Returns: N/A
 
     """
+
     def modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
             if (v["name"] == input_name):
                 v["host"] = host_ip
+
     _apply_conf(name, modifier)
 
 
@@ -685,11 +692,13 @@ def remove_host_from_broker_output(name: str, output_name: str):
     Returns: N/A
 
     """
+
     def modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(input_dict):
             if (v["name"] == output_name):
                 v.pop("host")
+
     _apply_conf(name, modifier)
 
 
@@ -710,11 +719,13 @@ def remove_host_from_broker_input(name: str, input_name: str):
     Returns: N/A
 
     """
+
     def modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
             if (v["name"] == input_name):
                 v.pop("host")
+
     _apply_conf(name, modifier)
 
 
@@ -736,11 +747,13 @@ def change_broker_compression_output(config_name: str, output_name: str, compres
     Returns: N/A
 
     """
+
     def compression_modifier(conf):
         output_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(output_dict):
             if (v["name"] == output_name):
                 v["compression"] = compression_value
+
     _apply_conf(config_name, compression_modifier)
 
 
@@ -762,11 +775,13 @@ def change_broker_compression_input(config_name: str, input_name: str, compressi
     Returns: N/A
 
     """
+
     def compression_modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
             if (v["name"] == input_name):
                 v["compression"] = compression_value
+
     _apply_conf(config_name, compression_modifier)
 
 
@@ -841,14 +856,14 @@ def config_broker_bbdo_input(name, stream, port, proto, host=None):
     else:
         filename = "central-rrd.json"
         input_name = "central-rrd-master-input"
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     io_dict = conf["centreonBroker"]["input"]
     # Cleanup
     for i, v in enumerate(io_dict):
-        if (v["type"] == "ipv4" or v["type"] == "grpc" or v["type"] == "bbdo_client" or v["type"] == "bbdo_server") and v["port"] == port:
+        if (v["type"] == "ipv4" or v["type"] == "grpc" or v["type"] == "bbdo_client" or v["type"] == "bbdo_server") and \
+                v["port"] == port:
             io_dict.pop(i)
     stream = {
         "name": input_name,
@@ -906,7 +921,8 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
     io_dict = conf["centreonBroker"]["output"]
     # Cleanup
     for i, v in enumerate(io_dict):
-        if (v["type"] == "ipv4" or v["type"] == "grpc" or v["type"] == "bbdo_client" or v["type"] == "bbdo_server") and v["port"] == port:
+        if (v["type"] == "ipv4" or v["type"] == "grpc" or v["type"] == "bbdo_client" or v["type"] == "bbdo_server") and \
+                v["port"] == port:
             io_dict.pop(i)
     stream = {
         "name": f"{output_name}",
@@ -1088,55 +1104,47 @@ def config_broker_victoria_output():
 
 def broker_config_add_item(name, key, value):
     """
-
     broker_config_add_item
 
-    Add item to broker configuration
+    Add item to the broker configuration
 
     Args:
-        name (str):
-        key (str):
-        value (int):
+        name (str): Which broker instance: central, rrd or module%d.
+        key (str): The key to add directly in the configuration first level.
+        value: The value.
 
-    Example:
+    *Example:*
+
     | Broker Config Add Item | module0 | bbdo_version | 3.0.1 |
-
-    Returns: N/A
-
     """
     if name == 'central':
         filename = "central-broker.json"
     elif name == 'rrd':
         filename = "central-rrd.json"
     elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
+        filename = f"central-{name}.json"
 
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     conf["centreonBroker"][key] = value
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def broker_config_remove_item(name, key):
     """
-
     broker_config_remove_item
 
-    Remove item from broker configuration
+    Remove item from the broker configuration
 
     Args:
-        name (_type_):
-        key (_type_):
+        name: The broker instance name among central, rrd and module%d
+        key: The key to remove. It must be defined at the first level of the configuration.
 
-    Example:
+    *Example:*
+
     | Broker Config Remove Item | module0 | bbdo_version |
-
-    Returns: N/A
-
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1145,33 +1153,28 @@ def broker_config_remove_item(name, key):
     elif name.startswith('module'):
         filename = "central-{}.json".format(name)
 
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     conf["centreonBroker"].pop(key)
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def broker_config_add_lua_output(name, output, luafile):
     """
-
     broker_config_add_lua_output
 
-    Add lua output to broker configuration
+    Add lua output to the broker configuration
 
     Args:
-        name (str):
-        output (str):
-        luafile (str):
+        name (str): The broker instance name among central, rrd, module%d
+        output (str): The name of the Lua output.
+        luafile (str): The full name of the Lua script.
 
-    Example:
+    *Example:*
+
     | `Broker Config Add Lua Output` | central | test-protobuf | /tmp/lua.lua |
-
-    Returns: N/A
-
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1180,9 +1183,8 @@ def broker_config_add_lua_output(name, output, luafile):
     else:
         filename = "central-rrd.json"
 
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     output_dict = conf["centreonBroker"]["output"]
     output_dict.append({
@@ -1190,39 +1192,34 @@ def broker_config_add_lua_output(name, output, luafile):
         "path": luafile,
         "type": "lua"
     })
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def broker_config_output_set(name, output, key, value):
     """
-
     broker_config_output_set
 
-    Configure broker output set.
+    Set an attribute value in a broker output.
 
     Args:
-        name (str):
-        output (str):
-        key (str):
-        value (str):
+        name (str): The broker instance among central, rrd, module%d.
+        output (str): The output to work with.
+        key (str): The key whose value is to modify.
+        value (str): The new value to set.
 
-    Example:
+    *Example:*
+
     | Broker Config Output Set | central | central-broker-master-sql | host | localhost |
-
-    Returns: N/A
-
     """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
+        filename = f"central-{name}.json"
     else:
         filename = "central-rrd.json"
-    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     output_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
@@ -1233,22 +1230,19 @@ def broker_config_output_set(name, output, key, value):
 
 def broker_config_output_set_json(name, output, key, value):
     """
-
     broker_config_output_set_json
 
-    Configure broker output set json.
+    Set an attribute value in a broker output. The value is given as a json string.
 
     Args:
-        name (str):
-        output (str):
-        key (str):
-        value (str):
+        name (str): The broker instance among central, rrd, module%d.
+        output (str): The output to work with.
+        key (str): The key whose value is to modify.
+        value (str): The new value to set.
 
-    Example:
+    *Example:*
+
     | Broker Config Output Set Json | central | central-broker-master-sql | filters | {"category": ["neb", "foo", "bar"]} |
-
-    Returns: N/A
-
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1256,36 +1250,31 @@ def broker_config_output_set_json(name, output, key, value):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     output_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     j = json.loads(value)
     output_dict[key] = j
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def broker_config_output_remove(name, output, key):
     """
-
     broker_config_output_remove
 
-    Configure broker output remove.
+    Remove a key from an output of the broker configuration.
 
     Args:
-        name (_type_):
-        output (_type_):
-        key (_type_):
+        name: The broker instance among central, rrd, module%d.
+        output: The output to work with.
+        key: The key to remove.
 
-    Example:
+    *Example:*
+
     | Broker Config Output Remove | central | centreon-broker-master-rrd | host |
-
-    Returns: N/A
-
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1309,22 +1298,19 @@ def broker_config_output_remove(name, output, key):
 
 def broker_config_input_set(name, inp, key, value):
     """
-
     broker_config_input_set
 
-    Configure broker input set.
+    Set an attribute in an input of a broker configuration.
 
     Args:
-        name (str):
-        inp (str):
-        key (str):
-        value (str):
+        name (str): The broker instance among central, rrd, module%d.
+        inp (str): The input to work with.
+        key (str): The key whose value is to modify.
+        value (str): The new value to set.
 
-    Example:
+    *Example:*
+
     | Broker Config Input Set | rrd | rrd-broker-master-input | encryption | yes |
-
-    Returns: N/A
-
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1346,42 +1332,47 @@ def broker_config_input_set(name, inp, key, value):
 
 
 def broker_config_input_remove(name, inp, key):
+    """
+    broker_config_input_remove
+
+    Remove a key from an input of the broker configuration.
+
+    Args:
+        name: The broker instance among central, rrd, module%d.
+        inp: The input to work with.
+        key: The key to remove.
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     input_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["input"]) if elem["name"] == inp][0]
     if key in input_dict:
         input_dict.pop(key)
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def broker_config_log(name, key, value):
     """
-
     broker_config_log
 
     Configure broker log level.
 
     Args:
-        name (str):
-        key (str):
-        value (str):
+        name (str): The broker instance among central, rrd, module%d.
+        key (str): The logger name to modify.
+        value (str): The level among error, trace, info, debug, etc...
 
-    Example:
+    *Example:*
+
     | Broker Config Log | central | bam | trace |
-
-    Returns: N/A
-
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1389,33 +1380,28 @@ def broker_config_log(name, key, value):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     loggers = conf["centreonBroker"]["log"]["loggers"]
     loggers[key] = value
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def broker_config_flush_log(name, value):
     """
-
     broker_config_flush_log
 
-    Flush broker configuration log.
+    Configure the flush interval of the broker loggers. This value is in seconds, with 0, every logs are flushed.
 
     Args:
-        name (str):
-        value (int):
+        name (str): the broker instance among central, rrd, module%d.
+        value (int): The value in seconds.
 
-    Example:
+    *Example:*
+
     | Broker Config Flush Log | central | 1 |
-
-    Returns: N/A
-
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1423,15 +1409,13 @@ def broker_config_flush_log(name, value):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     log = conf["centreonBroker"]["log"]
     log["flush_period"] = value
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def broker_config_source_log(name, value):
@@ -1582,6 +1566,7 @@ def get_broker_stats(name: str, expected: str, timeout: int, *keys):
                 return json_get(json_dict[key], keys, index + 1)
         except:
             return None
+
     limit = time.time() + timeout
     if name == 'central':
         filename = "central-broker-master-stats.json"
@@ -2058,16 +2043,17 @@ def get_indexes_to_rebuild(count: int, nb_day=180):
                     logger.console(
                         "building data for metric {} index_id {}".format(r['metric_id'], index_id))
                     # We go back to 180 days with steps of 5 mn
-                    start = int(time.time()/86400)*86400 - \
-                        24 * 60 * 60 * nb_day
+                    start = int(time.time() / 86400) * 86400 - \
+                            24 * 60 * 60 * nb_day
                     value = int(r['metric_id']) // 2
                     status_value = index_id % 3
                     cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                         r['metric_id'], start))
                     # We set the value to a constant on 180 days
                     for i in range(0, 24 * 60 * 60 * nb_day, 60 * 5):
-                        cursor.execute("INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
-                            r['metric_id'], start + i, value, status_value))
+                        cursor.execute(
+                            "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
+                                r['metric_id'], start + i, value, status_value))
                     connection.commit()
                     retval.append(index_id)
 
@@ -2406,7 +2392,7 @@ def compare_rrd_average_value_with_grpc(metric, key, value: float):
             if key in line:
                 last_update = int(line.split('=')[1])
                 logger.console(f"{key}: {last_update}")
-                return last_update == value*60
+                return last_update == value * 60
     else:
         logger.console(
             f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd")
@@ -2729,7 +2715,7 @@ def parse_victoria_body(request_body: str):
     return victoria_payload
 
 
-def check_victoria_data(request_body: str, data_type: str, min_timestamp: int,  **to_check):
+def check_victoria_data(request_body: str, data_type: str, min_timestamp: int, **to_check):
     """
     check_victoria_data
 
@@ -2760,7 +2746,7 @@ def check_victoria_data(request_body: str, data_type: str, min_timestamp: int,  
     return False
 
 
-def check_victoria_metric(request_body: str, min_timestamp: int,  **to_check):
+def check_victoria_metric(request_body: str, min_timestamp: int, **to_check):
     """
 
     check_victoria_metric
@@ -2782,7 +2768,7 @@ def check_victoria_metric(request_body: str, min_timestamp: int,  **to_check):
     return check_victoria_data(request_body, "metric", min_timestamp, **to_check)
 
 
-def check_victoria_status(request_body: str, min_timestamp: int,  **to_check):
+def check_victoria_status(request_body: str, min_timestamp: int, **to_check):
     """
 
     check_victoria_status
