@@ -15,7 +15,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../lib/15-stats_exporter.so.debug"
+  - src: "../build/broker/stats_exporter/15-stats_exporter.so.debug"
     dst: "/usr/lib/debug/usr/share/centreon/lib/centreon-broker/"
 
 overrides:
@@ -25,6 +25,7 @@ overrides:
   deb:
     depends:
       - centreon-broker-stats-exporter (= ${VERSION}-${RELEASE}${DIST})
+      - libcurl4
     conflicts:
       - centreon-broker-stats-exporter-dbgsym
     replaces:

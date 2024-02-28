@@ -206,14 +206,64 @@ BEDTHOSTFIXED
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
+    log to console    step1
     # It's time to schedule downtimes
     Schedule Host Fixed Downtime    ${0}    host_1    ${3600}
+    log to console    step2
+    ${content}    Create List    HOST DOWNTIME ALERT: host_1;STARTED; Host has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_1;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_2;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_3;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_4;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_5;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_6;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_7;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_8;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_9;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_10;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_11;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_12;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_13;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_14;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_15;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_16;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_17;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_18;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_19;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_20;STARTED; Service has entered a period of scheduled downtime
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    We should have 1 host downtime and 20 service downtimes on engine side.
 
     ${result}    Check Number Of Downtimes    ${21}    ${start}    ${60}
+    log to console    step3
     Should Be True    ${result}    We should have 21 downtimes (1 host + 20 services) enabled.
+    log to console    step4
 
     # It's time to delete downtimes
     Delete Host Downtimes    ${0}    host_1
+    ${content}    Create List    HOST DOWNTIME ALERT: host_1;CANCELLED; Scheduled downtime for host has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_1;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_2;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_3;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_4;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_5;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_6;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_7;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_8;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_9;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_10;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_11;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_12;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_13;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_14;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_15;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_16;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_17;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_18;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_19;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_20;CANCELLED; Scheduled downtime for service has been cancelled.
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    We should have 1 host downtime and 20 service downtimes on engine side.
 
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.

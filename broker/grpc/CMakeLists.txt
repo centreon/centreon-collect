@@ -69,7 +69,7 @@ target_link_libraries(
   pb_remove_graph_message_lib
   pb_header_lib
   "-Wl,--no-whole-archive"
-  CONAN_PKG::spdlog)
+  spdlog::spdlog)
 
 target_precompile_headers(${GRPC} PRIVATE precomp_inc/precomp.hh)
 
@@ -104,7 +104,7 @@ add_custom_command(
   COMMENT "Generating interface files grpc.pb of grpc_stream.proto"
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --grpc_out=${SRC_DIR}
-    --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin
+    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
     grpc_stream.proto
   VERBATIM)

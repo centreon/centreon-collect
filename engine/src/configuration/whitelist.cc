@@ -27,7 +27,7 @@
 
 #include <filesystem>
 #include <iostream>
-#include <ryml.hpp>
+#include <ryml/ryml.hpp>
 
 #include "absl/base/call_once.h"
 #include "com/centreon/engine/log_v2.hh"

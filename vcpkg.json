@@ -1,0 +1,34 @@
+{
+  "dependencies": [
+    {
+      "name": "abseil",
+      "features": [
+	"cxx17"
+      ]
+    },
+    "libmariadb",
+    "libssh2",
+    "curl",
+    "fmt",
+    "grpc",
+    "ryml",
+    "spdlog",
+    "boost-asio",
+    "boost-beast",
+    "boost-container",
+    "boost-circular-buffer",
+    "boost-multi-index",
+    "boost-interprocess",
+    "boost-exception",
+    "boost-serialization",
+    {
+      "name": "opentelemetry-cpp",
+      "features": [
+	"otlp-grpc",
+	"otlp-http"
+      ]
+    },
+    "nlohmann-json",
+    "gtest"
+  ]
+}

@@ -16,14 +16,14 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "./files/empty_file"
+  - src: "files/empty_file"
     dst: "/var/log/centreon-engine/centengine.debug"
     file_info:
       mode: 0755
       owner: centreon-engine
       group: centreon-engine
 
-  - src: "./files/empty_file"
+  - src: "files/empty_file"
     dst: "/var/log/centreon-engine/centengine.log"
     file_info:
       mode: 0755
@@ -33,7 +33,7 @@ contents:
   - dst: "/var/log/centreon-engine/retention.dat"
     type: ghost
 
-  - src: "./files/empty_file"
+  - src: "files/empty_file"
     dst: "/var/log/centreon-engine/status.dat"
     file_info:
       mode: 0755

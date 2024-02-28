@@ -45,7 +45,7 @@ state bool_expression::get_state() const {
   state retval = v == _impact_if ? state_critical : state_ok;
   log_v2::bam()->debug(
       "BAM: boolean expression {} - impact if: {} - value: {} - state: {}", _id,
-      _impact_if, v, retval);
+      _impact_if, static_cast<uint32_t>(v), static_cast<uint32_t>(retval));
   return retval;
 }
 
@@ -111,7 +111,7 @@ void bool_expression::update_from(computable* child, io::stream* visitor) {
 std::string bool_expression::object_info() const {
   return fmt::format("Boolean exp {}\nimpact if: {}\nknown: {}\nstate: {}",
                      get_id(), _impact_if ? "true" : "false", state_known(),
-                     get_state());
+                     static_cast<uint32_t>(get_state()));
 }
 
 /**

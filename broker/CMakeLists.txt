@@ -87,8 +87,6 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_definitions(${spdlog_DEFINITIONS} ${mariadb-connector-c_DEFINITIONS})
 
-include_directories(${CONAN_INCLUDE_DIRS_MARIADB-CONNECTOR-C})
-
 # link_directories(${mariadb-connector-c_LIB_DIRS})
 add_custom_command(
   DEPENDS ${SRC_DIR}/broker.proto
@@ -96,7 +94,7 @@ add_custom_command(
   OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin
+    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
     --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
   DEPENDS ${SRC_DIR}/broker.proto
@@ -115,7 +113,7 @@ include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
-target_link_libraries(berpc CONAN_PKG::protobuf)
+target_link_libraries(berpc protobuf)
 set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 # Version.
@@ -443,7 +441,7 @@ set(LIBROKER_SOURCES
 add_library(rokerlog STATIC ${SRC_DIR}/log_v2.cc)
 set_target_properties(rokerlog PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerlog REUSE_FROM multiplexing)
-target_link_libraries(rokerlog CONAN_PKG::spdlog)
+target_link_libraries(rokerlog spdlog::spdlog)
 
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
@@ -456,14 +454,15 @@ target_link_libraries(
   pb_bbdo_lib
   pb_extcmd_lib
   berpc
-  CONAN_PKG::zlib
-  CONAN_PKG::spdlog
-  CONAN_PKG::openssl
+  z
+  spdlog::spdlog
+  crypto ssl
   pthread
   dl)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
-target_link_libraries(roker rokerbase CONAN_PKG::openssl CONAN_PKG::grpc
+target_link_libraries(roker rokerbase crypto ssl
+  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
                       pthread dl)
 
 # Standalone binary.
@@ -482,17 +481,16 @@ target_link_libraries(
   multiplexing
   centreon_common
   "-Wl,--no-whole-archive"
-  CONAN_PKG::nlohmann_json
-  CONAN_PKG::fmt
-  -L${CONAN_LIB_DIRS_GRPC}
-  -L${CONAN_LIB_DIRS_PROTOBUF}
+  nlohmann_json::nlohmann_json
+  fmt::fmt
+  -L${PROTOBUF_LIB_DIR}
   "-Wl,--whole-archive"
-  grpc++
-  ${CONAN_LIBS_PROTOBUF}
+  gRPC::grpc++
+  protobuf
   "-Wl,--no-whole-archive"
-  CONAN_PKG::spdlog
-  CONAN_PKG::grpc
-  stdc++fs)
+  stdc++fs
+  spdlog::spdlog
+  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)

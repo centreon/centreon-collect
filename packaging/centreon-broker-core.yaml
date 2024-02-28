@@ -15,7 +15,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../lib/{10-neb,15-stats,20-bam,20-storage,20-unified_sql,50-tcp,50-grpc,60-tls,70-rrd,70-lua,80-sql}.so"
+  - src: "../build/broker/{neb,stats,bam,storage,unified_sql,tcp,grpc,tls,rrd,lua,sql}/*.so"
     dst: "/usr/share/centreon/lib/centreon-broker/"
 
   - src: "../broker/script/centreon-broker.logrotate"
@@ -57,7 +57,9 @@ overrides:
       - ${LUA_VERSION}
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-broker (= ${VERSION}-${RELEASE}${DIST})
-      - ${LIB_GNU_TLS_VERSION}
+      - libgnutls30
+      - libssl1.1 | libssl3
+      - zlib1g
     conflicts:
       - centreon-broker-storage
       - centreon-broker-core-dev

@@ -22,7 +22,6 @@ jobs:
           gh workflow run robot-nightly.yml -r "dev-23.10.x"
           gh workflow run robot-nightly.yml -r "dev-23.04.x"
           gh workflow run robot-nightly.yml -r "dev-22.10.x"
-          gh workflow run robot-nightly.yml -r "dev-22.04.x"
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -84,14 +83,13 @@ jobs:
             database_type: mariadb
             test_group_name: robot_test-mariadb-bullseye-arm64
             tests_params: '{}'
-          # uncomment once bbdo-protobuf.robot test is fixed
-          # - distrib: bookworm
-          #   image: centreon-collect-debian-bookworm-test
-          #   package_extension: deb
-          #   arch: amd64
-          #   database_type: mariadb
-          #   test_group_name: robot_test-mariadb-bookworm-amd64
-          #   tests_params: '{}'
+          - distrib: bookworm
+            image: centreon-collect-debian-bookworm-test
+            package_extension: deb
+            arch: amd64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-bookworm-amd64
+            tests_params: '{}'
           - distrib: el9
             image: centreon-collect-alma9-test
             package_extension: rpm

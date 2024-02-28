@@ -205,18 +205,18 @@ void kpi_boolexp::_update_state() {
     _current_state = _boolexp->get_state();
     log_v2::bam()->trace(
         "BAM: kpi {} boolean expression: state (known) value: {}", id,
-        _current_state);
+        static_cast<uint32_t>(_current_state));
   } else if (_event) {
     _current_state = static_cast<state>(_event->status());
     log_v2::bam()->trace(
         "BAM: kpi {} boolean expression: state from internal event: {}", id,
-        _current_state);
+        static_cast<uint32_t>(_current_state));
   } else {
     _current_state = _boolexp->get_state();
     log_v2::bam()->trace(
         "BAM: kpi {} boolean expression: state value still taken from "
         "boolexp: {}",
-        id, _current_state);
+        id, static_cast<uint32_t>(_current_state));
   }
 }
 
@@ -247,7 +247,8 @@ void kpi_boolexp::update_from(computable* child, io::stream* visitor) {
     log_v2::bam()->debug(
         "BAM: boolean expression KPI {} is getting notified of child update "
         "old_state={}, new_state={}",
-        _id, old_state, _current_state);
+        _id, static_cast<uint32_t>(old_state),
+        static_cast<uint32_t>(_current_state));
     if (old_state != _current_state)
       notify_parents_of_change(visitor);
   }
@@ -260,7 +261,8 @@ void kpi_boolexp::update_from(computable* child, io::stream* visitor) {
  * @return A multiline strings with various informations.
  */
 std::string kpi_boolexp::object_info() const {
-  return fmt::format("KPI {}\nstate: {}\n", get_id(), _current_state);
+  return fmt::format("KPI {}\nstate: {}\n", get_id(),
+                     static_cast<uint32_t>(_current_state));
 }
 
 /**

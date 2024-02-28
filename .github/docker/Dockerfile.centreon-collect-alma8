@@ -43,31 +43,36 @@ dnf install -y cmake \
     python38-pip \
     perl-Thread-Queue \
     redhat-lsb \
-    rpm-build \
     rrdtool-devel \
     selinux-policy-devel \
     yum-utils \
     perl \
-    rpm-build \
     zstd \
     nfpm \
+    openssl-devel \
+    libssh2-devel \
+    libcurl-devel \
+    zlib-devel \
     sudo
 
 dnf update libarchive
 
-dnf clean all
-
-pip3 install conan==1.61.0 --prefix=/usr --upgrade
-rm -rf ~/.conan/profiles/default
+git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
+./vcpkg/bootstrap-vcpkg.sh
+mkdir /src
 
 EOF
 
-COPY conanfile.txt .
+COPY vcpkg.json /src
+COPY overlays /overlays
+COPY custom-triplets /custom-triplets
 
 RUN bash -e <<EOF
 
-cat conanfile.txt
-conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
+export VCPKG_ROOT=/vcpkg
+export PATH=\$VCPKG_ROOT:\$PATH
+
+/vcpkg/vcpkg install --overlay-triplets=custom-triplets --triplet x64-linux-release --vcpkg-root vcpkg --x-wait-for-lock --x-manifest-root=/src --x-install-root=vcpkg_installed --overlay-ports=overlays
 
 EOF
 

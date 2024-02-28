@@ -47,8 +47,8 @@ set(PRECOMP_HEADER "${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh")
 
 set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 
-include_directories("${INC_DIR}")
-include_directories("${INC_DIR}/compatibility")
+include_directories("${INC_DIR}"
+"${INC_DIR}/compatibility")
 
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
@@ -499,7 +499,7 @@ include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src)
 add_library(enginelog STATIC src/log_v2.cc)
 target_precompile_headers(enginelog PRIVATE ${PRECOMP_HEADER})
 set_target_properties(enginelog PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(enginelog CONAN_PKG::spdlog)
+target_link_libraries(enginelog spdlog::spdlog)
 
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
 add_dependencies(cce_core engine_rpc)
@@ -510,13 +510,13 @@ target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 # Link target with required libraries.
 target_link_libraries(
   cce_core
-  CONAN_PKG::nlohmann_json
+  nlohmann_json::nlohmann_json
   ${MATH_LIBRARIES}
   ${PTHREAD_LIBRARIES}
   ${SOCKET_LIBRARIES}
   centreon_clib
-  ${fmt_LIBRARIES}
-  CONAN_PKG::spdlog)
+  fmt::fmt
+  spdlog::spdlog)
 
 # centengine target.
 add_executable("centengine" "${SRC_DIR}/main.cc")
@@ -526,30 +526,28 @@ add_dependencies(centengine centreon_clib)
 # Link centengine with required libraries.
 target_link_libraries(
   centengine
+  -L${PROTOBUF_LIB_DIR}
   "-rdynamic"
   centreon_clib
   enginelog
   "-Wl,-whole-archive"
   enginerpc
   cce_core
-  "-Wl,-no-whole-archive"
-  -L${CONAN_LIB_DIRS_GRPC}
-  "-Wl,--whole-archive"
-  grpc++
+  gRPC::grpc++
   "-Wl,--no-whole-archive"
-  CONAN_PKG::grpc
-  ${absl_LIBS}
-  CONAN_PKG::openssl
+  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+  absl::any absl::log absl::base absl::bits
+  crypto ssl
   ${c-ares_LIBS}
-  CONAN_PKG::zlib
-  CONAN_PKG::rapidyaml
+  z
+  ryml::ryml
   stdc++fs
   dl)
 
 # centenginestats target.
 add_executable("centenginestats" "${SRC_DIR}/centenginestats.cc")
 add_dependencies("centenginestats" centreon_clib)
-target_link_libraries("centenginestats" centreon_clib)
+target_link_libraries("centenginestats" centreon_clib fmt::fmt)
 target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 
 # Unit tests.

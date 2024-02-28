@@ -162,4 +162,4 @@ add_library(
   "bam/kpi_event.hh")
 set_target_properties(bbdo_bam PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(bbdo_bam REUSE_FROM bbdo_bbdo)
-add_dependencies(bbdo_bam table_max_size)
+add_dependencies(bbdo_bam table_max_size pb_bam_lib)

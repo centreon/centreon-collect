@@ -31,7 +31,6 @@ set(INC_DIR "${INC_DIR}/com/centreon/broker/simu")
 set(SIMU "70-simu")
 set(SIMU "${SIMU}" PARENT_SCOPE)
 add_library("${SIMU}" SHARED
-
   # Sources.
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/factory.cc"
@@ -45,7 +44,13 @@ add_library("${SIMU}" SHARED
   "${INC_DIR}/luabinding.hh"
   "${INC_DIR}/stream.hh"
 )
-target_link_libraries("${SIMU}" ${LUA_LIBRARIES} CONAN_PKG::spdlog)
+add_dependencies(${SIMU}
+	pb_neb_lib
+	pb_header_lib
+	pb_storage_lib
+	pb_bam_lib)
+
+target_link_libraries("${SIMU}" ${LUA_LIBRARIES} spdlog::spdlog)
 target_precompile_headers(${SIMU} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${SIMU}" PROPERTIES PREFIX "")
 

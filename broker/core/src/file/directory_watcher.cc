@@ -1,20 +1,20 @@
 /**
-* Copyright 2015 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2015 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/file/directory_watcher.hh"
 
@@ -192,7 +192,7 @@ std::vector<directory_event> directory_watcher::get_events() {
     ret.push_back(directory_event(name, event_type, ft));
     log_v2::core()->debug(
         "file: directory watcher getting an event for path '{}' and type {}",
-        name, event_type);
+        name, static_cast<uint32_t>(event_type));
   }
 
   return ret;

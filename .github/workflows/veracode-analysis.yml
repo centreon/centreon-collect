@@ -65,15 +65,17 @@ jobs:
 
       - name: Compiling Cpp sources
         run: |
+          mv /root/.cache /github/home
+          export VCPKG_ROOT=/vcpkg
+          export PATH=$VCPKG_ROOT:$PATH
           rm -rf build
-          mkdir build
-          cd build
-
-          sudo pip3 install conan==1.61.0 --prefix=/usr --upgrade
-          sudo conan install .. -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
-
-          sudo cmake \
-            -G "Ninja" \
+          cmake \
+            -B build \
+            -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
+            -DVCPKG_TARGET_TRIPLET=x64-linux-release \
+            -DVCPKG_OVERLAY_PORTS=/overlays \
+            -S . \
+            -GNinja \
             -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
             -DDEBUG_ROBOT=OFF \
             -DWITH_TESTING=OFF \
@@ -90,23 +92,20 @@ jobs:
             -DWITH_DAEMONS=ON \
             -DWITH_CREATE_FILES=OFF \
             -DWITH_CONFIG_FILES=ON \
-            -DNG=ON \
-            ..
+            -DNG=ON
 
-          sudo ninja
+          ninja -Cbuild
 
           echo "[DEBUG] - Find compiled files"
-          find ./ -name "*.so"
+          find build/{broker,engine,clib,connectors,common} -name "*.so" -type f
           echo "[DEBUG] - Build size"
-          du -sh ./lib/*.so | sort -rh
+          du -sh $(find build/{broker,engine,clib,connectors,common} -name "*.so" -type f) | sort -rh
 
       - name: Binary preparation
         run: |
           echo "[INFO] - Keeping only compiled files"
           # preserve binaries from cleaning
-          mv ./build/bin ./
-          find ./build -type f -not \( -name "*.so" \) -delete
-          mv ./bin ./build
+          find build -type f -not \( -name "*.so" -or -name "cbd" -or -name "centengine" -or -name "cbwd" -or -name "centreon_connector_*" \) -delete
 
           echo "[INFO] - Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then
@@ -127,8 +126,8 @@ jobs:
             echo "::warning::No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
           echo "[INFO] - Keeping only build's non empty folders"
-          find ./build -empty -type d -delete
-          ls -la ./build
+          find build -empty -type d -delete
+          ls -la build
 
           echo "[INFO] - Generating the tarball"
           tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
