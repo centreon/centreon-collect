@@ -191,7 +191,7 @@ BEPB_HOST_DEPENDENCY
     Start Broker    True                                                        
     Start Engine                                                                
                                                                                 
-    ${result}    Common.Check Host Dependencies    2    1        24x7    1   ou    ${EMPTY}    30
+    ${result}    Common.Check Host Dependencies    2    1        24x7    1   ou    dp    30
     Should Be True    ${result}    No notification dependency from 2 to 1 with timeperiod 24x7 on 'ou'
                                                                                 
     Config Engine    ${1}                                                       

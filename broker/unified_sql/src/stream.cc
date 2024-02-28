@@ -1320,7 +1320,7 @@ void stream::_init_statements() {
   const std::string host_exe_dep_query(
       "INSERT INTO hosts_hosts_dependencies (dependent_host_id, host_id, "
       "dependency_period, execution_failure_options, inherits_parent) "
-      "SET(?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+      "VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE "
       "dependency_period=VALUES(dependency_period), "
       "execution_failure_options=VALUES(execution_failure_options), "
       "inherits_parent=VALUES(inherits_parent)");
@@ -1328,7 +1328,7 @@ void stream::_init_statements() {
   const std::string host_notif_dep_query(
       "INSERT INTO hosts_hosts_dependencies (dependent_host_id, host_id, "
       "dependency_period, notification_failure_options, inherits_parent) "
-      "SET(?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+      "VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE "
       "dependency_period=VALUES(dependency_period), "
       "notification_failure_options=VALUES(notification_failure_options), "
       "inherits_parent=VALUES(inherits_parent)");
