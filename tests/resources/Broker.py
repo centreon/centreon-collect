@@ -262,7 +262,7 @@ config = {
                 "json_fifo": "{7}/lib/centreon-broker/central-rrd-master-stats.json"
             }}
         ],
-        "grpc": {{ 
+        "grpc": {{
             "port": 51002
         }}
     }}
@@ -410,7 +410,7 @@ def _apply_conf(name, callback):
 def config_broker(name: str, poller_inst: int = 1):
     """
 
-    config_broker 
+    config_broker
 
     Configure broker instances for test. Write the configuration files.
 
@@ -496,7 +496,7 @@ def config_broker(name: str, poller_inst: int = 1):
 def change_broker_tcp_output_to_grpc(name: str):
     """
 
-    change_broker_tcp_output_to_grpc 
+    change_broker_tcp_output_to_grpc
 
     Update broker configuration to use a gRPC output instead of a TCP one.
 
@@ -518,7 +518,7 @@ def change_broker_tcp_output_to_grpc(name: str):
 
 def add_path_to_rrd_output(name: str, path: str):
     """
-    add_path_to_rrd_output 
+    add_path_to_rrd_output
 
     Set the path to rrd output.
 
@@ -593,14 +593,14 @@ def add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
 
 def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool):
     """
-    add_broker_tcp_output_grpc_crypto 
+    add_broker_tcp_output_grpc_crypto
 
     Add grpc crypto to broker tcp output
 
     Args:
-        name (str): 
-        add_cert (bool): 
-        reversed (bool): 
+        name (str):
+        add_cert (bool):
+        reversed (bool):
 
      Example:
     | Add Broker Tcp Output Grpc Crypto | module0 | ${True} | ${False} |
@@ -619,7 +619,7 @@ def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool)
 def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
     """
 
-    add_host_to_broker_output 
+    add_host_to_broker_output
 
     Add host to broker output
 
@@ -645,14 +645,14 @@ def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
 def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
     """
 
-    add_host_to_broker_input 
+    add_host_to_broker_input
 
     Add host to broker input
 
     Args:
-        name (str): 
-        input_name (str): 
-        host_ip (str): 
+        name (str):
+        input_name (str):
+        host_ip (str):
 
     Example:
     | Add Host To Broker Input | central | central-broker-master-input | localhost |
@@ -671,13 +671,13 @@ def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
 def remove_host_from_broker_output(name: str, output_name: str):
     """
 
-    remove_host_from_broker_output 
+    remove_host_from_broker_output
 
     Remove host from broker output
 
     Args:
-        name (str): 
-        output_name (str): 
+        name (str):
+        output_name (str):
 
     Example:
     | Remove Host From Broker Output | module0 | central-module-master-output |
@@ -696,13 +696,13 @@ def remove_host_from_broker_output(name: str, output_name: str):
 def remove_host_from_broker_input(name: str, input_name: str):
     """
 
-    remove_host_from_broker_input 
+    remove_host_from_broker_input
 
     Remove host from broker input
 
     Args:
-        name (str): 
-        input_name (str): 
+        name (str):
+        input_name (str):
 
     Example:
     | Remove Host From Broker Input | central | central-broker-master-input |
@@ -721,14 +721,14 @@ def remove_host_from_broker_input(name: str, input_name: str):
 def change_broker_compression_output(config_name: str, output_name: str, compression_value: str):
     """
 
-    change_broker_compression_output 
+    change_broker_compression_output
 
     Update broker configuration compression output
 
     Args:
-        config_name (str): 
-        output_name (str): 
-        compression_value (str): 
+        config_name (str):
+        output_name (str):
+        compression_value (str):
 
     Example:
     | Change Broker Compression Output | module0 | central-module-master-output | yes |
@@ -747,14 +747,14 @@ def change_broker_compression_output(config_name: str, output_name: str, compres
 def change_broker_compression_input(config_name: str, input_name: str, compression_value: str):
     """
 
-    change_broker_compression_input 
+    change_broker_compression_input
 
     Update broker configuration compression input
 
     Args:
-        config_name (str): 
-        input_name (str): 
-        compression_value (str): 
+        config_name (str):
+        input_name (str):
+        compression_value (str):
 
     Example:
     | Change Broker Compression Input | central | central-broker-master-input | yes |
@@ -773,12 +773,12 @@ def change_broker_compression_input(config_name: str, input_name: str, compressi
 def config_broker_remove_rrd_output(name):
     """
 
-    config_broker_remove_rrd_output 
+    config_broker_remove_rrd_output
 
     Remove rrd output from broker configuration
 
     Args:
-        name (str): 
+        name (str):
 
     Example:
     | Config Broker Remove Rrd Output | central |
@@ -925,7 +925,7 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
 def config_broker_sql_output(name, output, queries_per_transaction: int = 20000):
     """
 
-    config_broker_sql_output 
+    config_broker_sql_output
 
     Configure broker sql output
 
@@ -1054,7 +1054,7 @@ def broker_config_clear_outputs_except(name, ex: list):
 def config_broker_victoria_output():
     """
 
-    config_broker_victoria_output 
+    config_broker_victoria_output
 
     Configure broker to add victoria output
 
@@ -1089,14 +1089,14 @@ def config_broker_victoria_output():
 def broker_config_add_item(name, key, value):
     """
 
-    broker_config_add_item 
+    broker_config_add_item
 
     Add item to broker configuration
 
     Args:
-        name (str): 
+        name (str):
         key (str):
-        value (int): 
+        value (int):
 
     Example:
     | Broker Config Add Item | module0 | bbdo_version | 3.0.1 |
@@ -1129,8 +1129,8 @@ def broker_config_remove_item(name, key):
     Remove item from broker configuration
 
     Args:
-        name (_type_): 
-        key (_type_): 
+        name (_type_):
+        key (_type_):
 
     Example:
     | Broker Config Remove Item | module0 | bbdo_version |
@@ -1163,9 +1163,9 @@ def broker_config_add_lua_output(name, output, luafile):
     Add lua output to broker configuration
 
     Args:
-        name (str): 
-        output (str): 
-        luafile (str): 
+        name (str):
+        output (str):
+        luafile (str):
 
     Example:
     | `Broker Config Add Lua Output` | central | test-protobuf | /tmp/lua.lua |
@@ -1198,15 +1198,15 @@ def broker_config_add_lua_output(name, output, luafile):
 def broker_config_output_set(name, output, key, value):
     """
 
-    broker_config_output_set 
+    broker_config_output_set
 
     Configure broker output set.
 
     Args:
         name (str):
-        output (str): 
-        key (str): 
-        value (str): 
+        output (str):
+        key (str):
+        value (str):
 
     Example:
     | Broker Config Output Set | central | central-broker-master-sql | host | localhost |
@@ -1239,10 +1239,10 @@ def broker_config_output_set_json(name, output, key, value):
     Configure broker output set json.
 
     Args:
-        name (str): 
+        name (str):
         output (str):
-        key (str): 
-        value (str): 
+        key (str):
+        value (str):
 
     Example:
     | Broker Config Output Set Json | central | central-broker-master-sql | filters | {"category": ["neb", "foo", "bar"]} |
@@ -1272,7 +1272,7 @@ def broker_config_output_set_json(name, output, key, value):
 def broker_config_output_remove(name, output, key):
     """
 
-    broker_config_output_remove 
+    broker_config_output_remove
 
     Configure broker output remove.
 
@@ -1403,7 +1403,7 @@ def broker_config_log(name, key, value):
 def broker_config_flush_log(name, value):
     """
 
-    broker_config_flush_log 
+    broker_config_flush_log
 
     Flush broker configuration log.
 
@@ -1437,7 +1437,7 @@ def broker_config_flush_log(name, value):
 def broker_config_source_log(name, value):
     """
 
-    broker_config_source_log 
+    broker_config_source_log
 
     Configure the log source.
 
@@ -1471,15 +1471,15 @@ def broker_config_source_log(name, value):
 def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
     """
 
-    check_broker_stats_exist 
+    check_broker_stats_exist
 
     Return True if the stats key exists.
     Should be true if the poller is connected to the central broker.
 
     Args:
-        name (str): 
+        name (str):
         key1 (str):
-        key2 (str): 
+        key2 (str):
         timeout (int, optional): . Defaults to TIMEOUT.
 
     Example:
@@ -1517,12 +1517,12 @@ def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
 def get_broker_stats_size(name, key, timeout=TIMEOUT):
     """
 
-    get_broker_stats_size 
+    get_broker_stats_size
 
     Return the size of the stats key.
 
     Args:
-        name (_type_): 
+        name (_type_):
         key (_type_):
         timeout (_type_, optional): Defaults to TIMEOUT.
 
@@ -1721,14 +1721,14 @@ def delete_all_rrd_metrics():
 def check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
     """
 
-    check_rrd_info 
+    check_rrd_info
 
     Execute rrdtool info and check one value of the returned informations
 
     Args:
-        metric_id (int): 
-        key (str): 
-        value (_type_): 
+        metric_id (int):
+        key (str):
+        value (_type_):
         timeout (int, optional): Defaults to 60.
 
     Example:
@@ -1755,12 +1755,12 @@ def check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
 def get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: int = 60):
     """
 
-    get_metrics_for_service 
+    get_metrics_for_service
 
     scan data base every 5s to extract metric ids for a service
 
     Args:
-        service_id (int): 
+        service_id (int):
         metric_name (str, optional): Defaults to "%".
         timeout (int, optional): Defaults to 60.
 
@@ -1798,7 +1798,7 @@ def get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: in
 def get_not_existing_metrics(count: int):
     """
 
-    get_not_existing_metrics 
+    get_not_existing_metrics
 
     Return a list of metrics that does not exist.
 
@@ -2116,7 +2116,7 @@ def add_duplicate_metrics():
 def check_for_NaN_metric(add_duplicate_metrics_ret):
     """
 
-    check_for_NaN_metric 
+    check_for_NaN_metric
 
     check that metrics are not a NaN during one day
 
@@ -2147,7 +2147,7 @@ def check_for_NaN_metric(add_duplicate_metrics_ret):
 def get_metrics_matching_indexes(indexes):
     """
 
-    get_metrics_matching_indexes 
+    get_metrics_matching_indexes
 
     Returns metric ids matching the given indexes.
 
@@ -2179,7 +2179,7 @@ def get_metrics_matching_indexes(indexes):
 def remove_graphs(port, indexes, metrics, timeout=10):
     """
 
-    remove_graphs 
+    remove_graphs
 
     send a gRPC command to remove graphs (by indexes or by metrics)
 
@@ -2251,7 +2251,7 @@ def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
 def remove_graphs_from_db(indexes, metrics, timeout=10):
     """
 
-    remove_graphs_from_db 
+    remove_graphs_from_db
 
     send a query to the db to remove graphs (by indexes or by metrics)
 
@@ -2289,7 +2289,7 @@ def remove_graphs_from_db(indexes, metrics, timeout=10):
 def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
     """
 
-    rebuild_rrd_graphs 
+    rebuild_rrd_graphs
 
     Execute the gRPC command RebuildRRDGraphs()
 
@@ -2345,7 +2345,7 @@ def rebuild_rrd_graphs_from_db(indexes):
 def compare_rrd_average_value(metric, value: float):
     """
 
-    compare_rrd_average_value 
+    compare_rrd_average_value
 
     Compare the average value for an RRD metric on the last 30 days with a value.
 
@@ -2475,7 +2475,7 @@ def check_all_sql_connections_down_with_grpc(port, timeout=TIMEOUT):
 def add_bam_config_to_broker(name):
     """
 
-    add_bam_config_to_broker 
+    add_bam_config_to_broker
 
     Add the bam configuration to broker.
 
@@ -2535,7 +2535,7 @@ def add_bam_config_to_broker(name):
 def remove_poller(port, name, timeout=TIMEOUT):
     """
 
-    remove_poller 
+    remove_poller
 
     send a gRPC command to remove by name a poller
 
@@ -2563,7 +2563,7 @@ def remove_poller(port, name, timeout=TIMEOUT):
 def remove_poller_by_id(port, idx, timeout=TIMEOUT):
     """
 
-    remove_poller_by_id 
+    remove_poller_by_id
 
     send a gRPC command to remove by id a poller
 
@@ -2680,7 +2680,7 @@ def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
 def get_broker_process_stat(port, timeout=10):
     """
 
-    get_broker_process_stat 
+    get_broker_process_stat
 
     Call the GetGenericStats function by gRPC it works with both engine and broker
 
@@ -2712,8 +2712,8 @@ def get_broker_process_stat(port, timeout=10):
 
 def parse_victoria_body(request_body: str):
     victoria_payload = {}
+    key_val = []
     for field_val in request_body.split(','):
-        key_val = ""
         if field_val == "status" or field_val == "metric":
             victoria_payload["type"] = field_val
         elif " " in field_val:
@@ -2731,15 +2731,14 @@ def parse_victoria_body(request_body: str):
 
 def check_victoria_data(request_body: str, data_type: str, min_timestamp: int,  **to_check):
     """
-
-    check_victoria_data 
+    check_victoria_data
 
     Return the value of a check if the data is present in the request body and if it matches the given values.
 
     Args:
-        request_body (str): 
-        data_type (str): 
-        min_timestamp (int): 
+        request_body (str):
+        data_type (str):
+        min_timestamp (int):
 
     Example:
     | ${metric_found} = | Check Victoria Data | ${body} | metric | 16000000 | unit=% | host_id=16 | serv_id=314 |
@@ -2764,12 +2763,12 @@ def check_victoria_data(request_body: str, data_type: str, min_timestamp: int,  
 def check_victoria_metric(request_body: str, min_timestamp: int,  **to_check):
     """
 
-    check_victoria_metric 
+    check_victoria_metric
 
     Return the value of a check if the metric is present in the request body and if it matches the given values.
 
     Args:
-        request_body (str): 
+        request_body (str):
         min_timestamp (int):
 
     Example:
@@ -2786,13 +2785,13 @@ def check_victoria_metric(request_body: str, min_timestamp: int,  **to_check):
 def check_victoria_status(request_body: str, min_timestamp: int,  **to_check):
     """
 
-    check_victoria_status 
+    check_victoria_status
 
     Return the value of a check if the status is present in the request body and if it matches the given values.
 
     Args:
-        request_body (str): 
-        min_timestamp (int): 
+        request_body (str):
+        min_timestamp (int):
 
     Example:
     | ${metric_found} = | Check Victoria Status | ${body} | 16000000 | host_id=16 | serv_id=314 |
