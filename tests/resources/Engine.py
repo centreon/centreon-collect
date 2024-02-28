@@ -706,8 +706,6 @@ engine = None
 
 def config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
     """
-    config_engine
-
     Configure all the necessary files for num instances of centengine.
 
     Args:
@@ -720,12 +718,11 @@ def config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
 
 
 def get_engines_count():
-    """get_engines_count _summary_
-
+    """
     Return the number of centengine configurations.
 
     Returns:
-        ${count}: Get Engines Count
+        The number of running centengine instances
     """
     if engine is None:
         return 0
@@ -735,20 +732,18 @@ def get_engines_count():
 
 def engine_config_set_value(idx: int, key: str, value: str, force: bool = False):
     """
-    engine_config_set_value
-
-    Run a command to set a value in the centengine.cfg for the config idx
+    Set a value in the centengine.cfg
 
     Args:
-        idx (int): idx index of the configuration (from 0)
-        key (str): the key to change the value.
-        value (str): the new value to set to the key variable.
-        force (bool, optional): Defaults to False.
+        idx (int): Index of the Engine configuration (from 0)
+        key (str): the key whose value needs to change.
+        value (str): the new value to set.
+        force (bool, optional): Defaults to False. If the key doesn't exist in the configuration, and force is set to
+        true, the key will be added to the file.
     """
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
+    with open(filename, "r") as f:
+        lines = f.readlines()
 
     replaced = False
     for i in range(len(lines)):
@@ -759,9 +754,8 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
     if not replaced and force:
         lines.append("{}={}\n".format(key, value))
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def engine_config_add_value(idx: int, key: str, value: str):
@@ -776,53 +770,42 @@ def engine_config_add_value(idx: int, key: str, value: str):
         value (str): the new value to set to the key variable.
     """
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
-    f = open(filename, "a")
-    f.write(f"{key}={value}")
-    f.close()
+    with open(filename, "a") as f:
+        f.write(f"{key}={value}")
 
 
 def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: str):
     """
-    engine_config_set_value_in_services _Engine Config Set Value In Services_
-
-    Run a command to set a value in the services.cfg for the config idx
+    Set a parameter in the services.cfg.
 
     Args:
-        idx (int): idx index of the configuration (from 0)
-        desc (str): ervice description of the service to modify.
-        key (str): the key to change the value.
-        value (str): the new value to set to the key variable.
-
-    Returns: N/A
-
+        idx (int): Index of the centengine configuration (from 0).
+        desc (str): Service description of the service to modify.
+        key (str): The key whose value needs to change.
+        value (str): The new value to set.
     """
     filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
+    with open(filename, "r") as f:
+        lines = f.readlines()
 
     r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines.insert(i + 1, "    {}              {}\n".format(key, value))
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
     """
-    engine_config_replace_value_in_services
+    Changes the value of a parameter in the services.cfg file for the centengine number idx.
 
-    Function to update a value in the services.cfg for the config idx
     Args:
-        idx (int): idx index of the configuration (from 0)
-        desc (str): desc service description of the service to modify.
-        key (str): key the key to change the value.
-        value (str): value the new value to set to the key variable.
-
-    Returns: N/A
+        idx (int): Index of the configuration (from 0)
+        desc (str): Service description of the service to modify.
+        key (str): Name of the parameter to change.
+        value (str): New value to set.
     """
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
     with open(filename, "r") as f:
@@ -843,51 +826,40 @@ def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value
 
 def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
     """
-    engine_config_set_value_in_hosts
-
-    Function to set a value in the hosts.cfg for the config idx.
+    Set a parameter in the hosts.cfg for the Engine configuration idx.
 
     Args:
-        idx (int): index of the configuration (from 0)
+        idx (int): Index of the Engine configuration (from 0)
         desc (str): host name of the host to modify.
-        key (str): the key to change the value.
-        value (str): the value to set to the key variable.
-
-    Returns: N/A
+        key (str): the parameter whose value has to change.
+        value (str): the value to set.
     """
-    filename = ETC_ROOT + "/centreon-engine/config{}/hosts.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
 
     r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines.insert(i + 1, "    {}              {}\n".format(key, value))
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: str):
     """
-    engine_config_replace_value_in_hosts
-
-    Function to change a value in the hosts.cfg for the config idx.
+    Change a parameter in the hosts.cfg file of the Engine config idx.
 
     Args:
-        idx (int): index of the configuration (from 0)
+        idx (int): index of the configuration (from 0).
         desc (str): host name of the host to modify.
-        key (str): the key to change the value.
-        value (str): the new value to set to the key variable.
-
-    Returns: N/A
+        key (str): the parameter whose value has to change.
+        value (str): the new value to set.
     """
     filename = ETC_ROOT + "/centreon-engine/config{}/hosts.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
+    with open(filename, "r") as f:
+        lines = f.readlines()
 
     r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
     rkey = re.compile(r"^\s*"+key+"\s+[\w\.]+\s*$")
@@ -899,27 +871,23 @@ def engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: s
                     break
                 i += 1
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def engine_config_change_command(idx: int, command_index: str, new_command: str):
     """
-    engine_config_change_command
-
-    Function to change a value in the commands.cfg for the config idx.
+    Changes the command line of command whose index is command_index in the Engine config idx.
 
     Args:
-        idx (int): index of the configuration (from 0)
-        command_index (str): ndex of the command (may be a regex)
-        new_command (str): new_command
+        idx (int): Index of the configuration (from 0)
+        command_index (str): Index of the command (may be a regex)
+        new_command (str): The new command line.
     """
-    f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "r")
-    lines = f.readlines()
-    f.close
+    with open(f"{CONF_DIR}/config{idx}/commands.cfg", "r") as f:
+        lines = f.readlines()
     new_lines = []
-    r = re.compile(f"^\\s+command_name\\s+command_{command_index}$")
+    r = re.compile(rf"^\s+command_name\s+command_{command_index}$")
     found = 0
     for line in lines:
         if found == 1:
@@ -930,62 +898,49 @@ def engine_config_change_command(idx: int, command_index: str, new_command: str)
             new_lines.append(line)
         if r.match(line) is not None:
             found = 1
-    f = open(f"{CONF_DIR}/config0/commands.cfg", "w")
-    f.writelines(new_lines)
-    f.close
+    with open(f"{CONF_DIR}/config0/commands.cfg", "w") as f:
+        f.writelines(new_lines)
 
 
 def engine_config_add_command(idx: int, command_name: str, new_command: str, connector: str = None):
     """
-    engine_config_add_command
-
-    Function to add a new command in the commands.cfg for the config idx
+    Add a new command in the commands.cfg for the Engine config idx.
 
     Args:
-        idx (int): index of the configuration (from 0)
-        command_name (str): command_name
-        new_command (str): new_command
+        idx (int): Index of the Engine configuration (from 0)
+        command_name (str): Command name
+        new_command (str): Command line
         connector (str, optional): Defaults to None.
-
-    Returns: N/A
-
     """
-    f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "a")
-    if connector is None:
-        f.write("""define command {{
-    command_name                   {}
-    command_line                   {}
-}}
-    """.format(command_name, new_command))
-    else:
-        f.write("""define command {{
-    command_name                   {}
-    command_line                   {}
-    connector                      {}
-}}
-    """.format(command_name, new_command, connector))
-    f.close()
+    with open(f"{CONF_DIR}/config{idx}/commands.cfg", "a") as f:
+        if connector is None:
+            f.write(f"""define command {{
+        command_name                   {command_name}
+        command_line                   {new_command}
+    }}
+        """)
+        else:
+            f.write(f"""define command {{
+        command_name                   {command_name}
+        command_line                   {new_command}
+        connector                      {connector}
+    }}
+        """)
 
 
 def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str):
     """
-    engine_config_set_value_in_contacts _Engine Config Set Value In Contacts_
-
-    Replace a value in the contacts.cfg for the config idx
+    Modify a parameter in the contacts.cfg for the Engine config idx.
 
     Args:
-        idx (int): index of the configuration (from 0)
-        desc (str): contact_name
-        key (str): the key to change the value.
-        value (str): the new value to set to the key variable.
-
-    Returns: N/A
-
+        idx (int): Index of the configuration (from 0)
+        desc (str): Contact name
+        key (str): The parameter whose value must change.
+        value (str): The new value to set.
     """
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/contacts.cfg"
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
+    with open(filename, "r") as f:
+        lines = f.readlines()
 
     r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
     for i in range(len(lines)):
@@ -993,22 +948,19 @@ def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: st
             lines.insert(i + 1, f"    {key}              {value}\n")
             break
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
     """
-    engine_config_set_value_in_escalations _Engine Config Set Value In Escalations_
-
     Replace a value in the escalations.cfg for the config idx
 
     Args:
-        idx (int): index of the configuration (from 0)
-        desc (str): escalations_name
-        key (str): the key to change the value.
-        value (str): the new value to set to the key variable.
+        idx (int): Index of the Engine configuration (from 0)
+        desc (str): Escalation name
+        key (str): the parameter whose value must change.
+        value (str): the new value to set.
     """
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "r") as ff:
         lines = ff.readlines()
@@ -1023,21 +975,15 @@ def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value:
 
 def engine_config_remove_service_host(idx: int, host: str):
     """
-    engine_config_remove_service_host _Engine Config Remove Service Host_
-
-    Remove a host from the configuration idx
+    Remove all the services of a host from the services.cfg file.
 
     Args:
         idx (int): index of the configuration (from 0)
-        host (str): host_name
-
-    Returns: N/A
-
+        host (str): Host name
     """
-    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
     host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
     serv_begin = re.compile(r"^define service {$")
     serv_end = re.compile(r"^}$")
@@ -1059,23 +1005,17 @@ def engine_config_remove_service_host(idx: int, host: str):
         else:
             serv_begin_idx = serv_begin_idx + 1
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def engine_config_remove_host(idx: int, host: str):
     """
-    engine_config_remove_host _Engine Config Remove Host_
-
-    Remove a host from the configuration idx
+    Remove a host from the hosts.cfg configuration file.
 
     Args:
-        idx (int): index of the configuration (from 0)
+        idx (int): Index of the configuration (from 0)
         host (str): name of the host wanted to be removed
-
-    Returns: N/A
-
     """
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
     with open(filename, "r") as f:
@@ -1102,24 +1042,18 @@ def engine_config_remove_host(idx: int, host: str):
         else:
             host_begin_idx = host_begin_idx + 1
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def add_host_group(index: int, id_host_group: int, members: list):
     """
-    add_host_group _Add Host Group_
-
-    Run the command to add a host group on the engine instance index
+    Add a host group on the engine instance index
 
     Args:
         index (int): index of the configuration (from 0)
-        id_host_group (int):
-        members (list):
-
-    Returns: N/A
-
+        id_host_group (int): ID of the new host group to add.
+        members (list): A list of host names.
     """
     mbs = [line for line in members if line in engine.hosts]
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/hostgroups.cfg", "a+") as f:
@@ -1129,17 +1063,16 @@ def add_host_group(index: int, id_host_group: int, members: list):
 
 def rename_host_group(index: int, id_host_group: int, name: str, members: list):
     """
-    rename_host_group _Rename Host Group_
+    Rename a host group on the engine instance index. It also modifies its members.
 
-    Run the command to rename a host group on the engine instance index
+    Warning:
+        This function changes the configuration file but not the internal configuration. It can lead to conflicts.
 
     Args:
         index (int): index of the configuration (from 0)
-        id_host_group (int):
+        id_host_group (int): Host group ID.
         name (str): host_group_name
-        members (list): _description_
-
-    Returns: N/A
+        members (list): The new list of host members.
     """
     mbs = [line for line in members if line in engine.hosts]
     mbs_str = ",".join(mbs)
@@ -1156,22 +1089,16 @@ def rename_host_group(index: int, id_host_group: int, name: str, members: list):
 
 def rename_service(index: int, hst: str, svc: str, new_svc: str):
     """
-    rename_service _Rename Service_
-
-    Rename a service on the engine instance index, on the host hst, with the service svc
+    Rename a service on the engine instance index.
 
     Args:
-        index (int): 0
-        hst (str): host_
-        svc (str): service_
-        new_svc (str): new_service_
-
-    Returns: N/A
-
+        index (int): Index of the configuration(from 0).
+        hst (str): The host containing the service.
+        svc (str): The description of the service.
+        new_svc (str): The new description of the service.
     """
-    f = open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "r")
-    ll = f.readlines()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "r") as f:
+        ll = f.readlines()
     rs_start = re.compile(r"^\s*define service {")
     rs_end = re.compile(r"^\s*}")
     rs_hst = re.compile(r"^\s*host_name\s+([a-z_0-9]+)")
