@@ -455,9 +455,8 @@ def config_broker(name: str, poller_inst: int = 1):
             conf["centreonBroker"]["poller_name"] = f"Poller{i}"
             conf["centreonBroker"]["poller_id"] = i + 1
 
-            f = open(broker_name, "w")
-            f.write(json.dumps(conf, indent=2))
-            f.close()
+            with open(broker_name, "w") as f:
+                f.write(json.dumps(conf, indent=2))
             if default_bbdo_version is not None:
                 broker_config_add_item(
                     f"{name}{i}", "bbdo_version", default_bbdo_version)
@@ -466,10 +465,9 @@ def config_broker(name: str, poller_inst: int = 1):
                     f"{name}{i}", "bbdo_client", "5669", "grpc", "localhost")
 
     else:
-        f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "w")
-        f.write(config[name].format(broker_id, broker_name,
+        with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+            f.write(config[name].format(broker_id, broker_name,
                                     DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT))
-        f.close()
         if default_bbdo_version is not None:
             if default_bbdo_version >= "3.0.0" and (name == "central" or name == "central_map"):
                 config_broker_sql_output(name, 'unified_sql')
@@ -488,18 +486,13 @@ def config_broker(name: str, poller_inst: int = 1):
 
 def change_broker_tcp_output_to_grpc(name: str):
     """
-
     change_broker_tcp_output_to_grpc
 
     Update broker configuration to use a gRPC output instead of a TCP one.
 
     Args:
         name (str): name of the conf broker wanted to be changed
-
-    Returns: N/A
-
     """
-
     def output_to_grpc(conf):
         output_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(output_dict):
@@ -515,16 +508,13 @@ def add_path_to_rrd_output(name: str, path: str):
     """
     add_path_to_rrd_output
 
-    Set the path to rrd output.
+    Set the path for the rrd output. If no rrd output is defined, this function
+    does nothing.
 
     Args:
-        name (str): rrd
-        path (str): path to the rrd output (/tmp/rrd)
-
-    Returns: N/A
-
+        name (str): The broker instance name among central, rrd and module%d.
+        path (str): path to the rrd output.
     """
-
     def rrd_output(conf):
         output_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(output_dict):
@@ -538,15 +528,12 @@ def change_broker_tcp_input_to_grpc(name: str):
     """
     change_broker_tcp_input_to_grpc
 
-    Update broker configuration to use gRPC input
+    Update the broker configuration to use gRPC input instead of a TCP one.
+    If no tcp input is found, no replacement is done.
 
     Args:
-        name (str): input name
-
-    Returns: N/A
-
+        name: The broker instance name among central, rrd and module%d.
     """
-
     def input_to_grpc(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
@@ -571,18 +558,17 @@ def add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
     """
     add_broker_tcp_input_grpc_crypto
 
-    Add grpc crypto to broker tcp input
+    Add some crypto to broker gRPC input.
 
     Args:
-        name (str):
-        add_cert (bool):
-        reversed (bool):
-    Example:
+        name: The broker instance name among central, rrd and module%d.
+        add_cert (bool): True to add a certificate, False otherwise.
+        reversed (bool): True if only a CA certificate is provided.
+
+    *Example:*
+
     | Add Broker Tcp Input Grpc Crypto | central | ${True} | ${False} |
-
-    Returns: N/A
     """
-
     def _crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
@@ -599,17 +585,14 @@ def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool)
     Add grpc crypto to broker tcp output
 
     Args:
-        name (str):
-        add_cert (bool):
-        reversed (bool):
+        name: The broker instance name among central, rrd and module%d.
+        add_cert (bool): True to add a certificate, False otherwise.
+        reversed (bool): False if only a we just want a CA certificate.
 
-     Example:
+     *Example:*
+
     | Add Broker Tcp Output Grpc Crypto | module0 | ${True} | ${False} |
-
-    Returns: N/A
-
     """
-
     def _crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(input_dict):
@@ -621,23 +604,20 @@ def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool)
 
 def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
     """
-
     add_host_to_broker_output
 
-    Add host to broker output
+    Add a host to some broker output. This is useful for a grpc or tcp client
+    where we want where to connect to.
 
     Args:
-        name (str): _description_
-        output_name (str): _description_
-        host_ip (str): _description_
+        name (str): The broker instance name among central, rrd and module%d.
+        output_name (str): The name of the output to modify.
+        host_ip (str): the host address to set.
 
-    Example:
+    *Example:*
+
     | Add Host To Broker Output | module0 | central-module-master-output | localhost |
-
-    Returns: N/A
-
     """
-
     def modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(input_dict):
@@ -649,23 +629,20 @@ def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
 
 def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
     """
-
     add_host_to_broker_input
 
-    Add host to broker input
+    Add host to some broker input. This is useful for a grpc or tcp client
+    where we want to set where to connect to.
 
     Args:
-        name (str):
-        input_name (str):
-        host_ip (str):
+        name: The broker instance name among central, rrd and module%d.
+        input_name (str): the name of the input to modify.
+        host_ip (str): the host address to set.
 
-    Example:
+    *Example:*
+
     | Add Host To Broker Input | central | central-broker-master-input | localhost |
-
-    Returns: N/A
-
     """
-
     def modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
@@ -677,20 +654,17 @@ def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
 
 def remove_host_from_broker_output(name: str, output_name: str):
     """
-
     remove_host_from_broker_output
 
-    Remove host from broker output
+    Remove the host entry from a broker output given by its name.
 
     Args:
-        name (str):
-        output_name (str):
+        name: The broker instance name among central, rrd and module%d.
+        output_name (str): The name of the output containing a host entry.
 
-    Example:
+    *Example:*
+
     | Remove Host From Broker Output | module0 | central-module-master-output |
-
-    Returns: N/A
-
     """
 
     def modifier(conf):
@@ -707,17 +681,15 @@ def remove_host_from_broker_input(name: str, input_name: str):
 
     remove_host_from_broker_input
 
-    Remove host from broker input
+    Remove the host entry from a broker input given by its name.
 
     Args:
-        name (str):
-        input_name (str):
+        name: The broker instance name among central, rrd and module%d.
+        input_name (str): The name of the input containing a host entry.
 
-    Example:
+    *Example:*
+
     | Remove Host From Broker Input | central | central-broker-master-input |
-
-    Returns: N/A
-
     """
 
     def modifier(conf):
@@ -734,20 +706,17 @@ def change_broker_compression_output(config_name: str, output_name: str, compres
 
     change_broker_compression_output
 
-    Update broker configuration compression output
+    Change the compression option of a broker output.
 
     Args:
-        config_name (str):
-        output_name (str):
-        compression_value (str):
+        config_name (str): The broker instance name among central, rrd and module%d.
+        output_name (str): The output name to modify.
+        compression_value (str): The compression value. "yes/no", "1/0" or "true/false".
 
-    Example:
+    *Example:*
+
     | Change Broker Compression Output | module0 | central-module-master-output | yes |
-
-    Returns: N/A
-
     """
-
     def compression_modifier(conf):
         output_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(output_dict):
@@ -759,7 +728,6 @@ def change_broker_compression_output(config_name: str, output_name: str, compres
 
 def change_broker_compression_input(config_name: str, input_name: str, compression_value: str):
     """
-
     change_broker_compression_input
 
     Update broker configuration compression input
@@ -769,11 +737,9 @@ def change_broker_compression_input(config_name: str, input_name: str, compressi
         input_name (str):
         compression_value (str):
 
-    Example:
+    *Example:*
+
     | Change Broker Compression Input | central | central-broker-master-input | yes |
-
-    Returns: N/A
-
     """
 
     def compression_modifier(conf):
@@ -793,13 +759,11 @@ def config_broker_remove_rrd_output(name):
     Remove rrd output from broker configuration
 
     Args:
-        name (str):
+        name: The broker instance name among central, rrd and module%d.
 
-    Example:
+    *Example:*
+
     | Config Broker Remove Rrd Output | central |
-
-    Returns: N/A
-
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -823,24 +787,23 @@ def config_broker_remove_rrd_output(name):
 
 def config_broker_bbdo_input(name, stream, port, proto, host=None):
     """
-
     config_broker_bbdo_input
 
-    Configure broker bbdo input
+    Configure Broker BBDO input. It can be a client or a server. We provide a
+    port number and a protocol that is grpc or tcp.
 
     Args:
-        name (_type_):
-        stream (_type_):
-        port (_type_):
-        proto (_type_):
-        host (_type_, optional): Defaults to None.
+        name: The broker instance name among central, rrd and module%d.
+        stream: The type of stream among [bbdo_server, bbdo_client].
+        port: A port number.
+        proto: grpc or tcp.
+        host (str, optional): Defaults to None. Used to provide a host, needed
+        in the case of bbdo_client.
 
-    Example:
-    | Config Broker Bbdo Input | central | bbdo_server | 5669 | bbdo | localhost |
+    *Example:*
+
+    | Config Broker Bbdo Input | central | bbdo_server | 5669 | grpc | |
     | Config Broker Bbdo Input | rrd | bbdo_client | 5670 | tcp | localhost |
-
-    Returns: N/A
-
     """
     if stream != "bbdo_server" and stream != "bbdo_client":
         raise Exception(
@@ -852,11 +815,11 @@ def config_broker_bbdo_input(name, stream, port, proto, host=None):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
+        filename = f"central-{name}.json"
     else:
         filename = "central-rrd.json"
         input_name = "central-rrd-master-input"
-    with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r") as f:
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
         buf = f.read()
     conf = json.loads(buf)
     io_dict = conf["centreonBroker"]["input"]
@@ -874,30 +837,28 @@ def config_broker_bbdo_input(name, stream, port, proto, host=None):
     if host is not None:
         stream["host"] = host
     io_dict.append(stream)
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def config_broker_bbdo_output(name, stream, port, proto, host=None):
     """
-
     config_broker_bbdo_output
 
-    Configure broker bbdo output
+    Configure Broker BBDO output. It can be a client or a server. We provide a
+    port number and a protocol that is grpc or tcp.
 
     Args:
-        name (str):
-        stream (str):
-        port (int):
-        proto (str):
-        host (str, optional): Defaults to None.
+        name: The broker instance name among central, rrd and module%d.
+        stream (str): The type of stream among [bbdo_server, bbdo_client].
+        port (int): A port number.
+        proto (str): grpc or tcp.
+        host (str, optional): Defaults to None. Used to provide a host to connect,
+        needed in the case of bbdo_client.
 
-    Example:
-    | Config Broker Bbdo Output | central | bbdo_server | 5670 | tcp | localhost |
+    *Example:*
 
-    Returns: N/A
-
+    | Config Broker Bbdo Output | central | bbdo_client | 5670 | tcp | localhost |
     """
     if stream != "bbdo_server" and stream != "bbdo_client":
         raise Exception(
@@ -914,9 +875,8 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
         output_name = 'central-module-master-output'
     else:
         filename = "central-rrd.json"
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     io_dict = conf["centreonBroker"]["output"]
     # Cleanup
@@ -933,9 +893,8 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
     if host is not None:
         stream["host"] = host
     io_dict.append(stream)
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def config_broker_sql_output(name, output, queries_per_transaction: int = 20000):
@@ -949,9 +908,6 @@ def config_broker_sql_output(name, output, queries_per_transaction: int = 20000)
         name (str): name of the poller
         output (str): unified_sql
         queries_per_transaction (int, optional): Defaults to 20000.
-
-    Returns: N/A
-
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -960,9 +916,8 @@ def config_broker_sql_output(name, output, queries_per_transaction: int = 20000)
     else:
         filename = "central-rrd.json"
 
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     output_dict = conf["centreonBroker"]["output"]
     for i, v in enumerate(output_dict):
@@ -1026,9 +981,8 @@ def config_broker_sql_output(name, output, queries_per_transaction: int = 20000)
             "insert_in_index_data": "1",
             "type": "storage"
         })
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def broker_config_clear_outputs_except(name, ex: list):
@@ -1039,14 +993,12 @@ def broker_config_clear_outputs_except(name, ex: list):
     Configure broker to clear outputs except the one in the list
 
     Args:
-        name (_type_):
+        name: The broker instance name among central, rrd and module%d.
         ex (list):
 
-    Example:
+    *Example:*
+
     | Broker Config Clear Outputs Except | central | ["sql", "storage"] |
-
-    Returns: N/A
-
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1055,7 +1007,7 @@ def broker_config_clear_outputs_except(name, ex: list):
     else:
         filename = "central-rrd.json"
 
-    with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r") as f:
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
         buf = f.read()
     conf = json.loads(buf)
     output_dict = conf["centreonBroker"]["output"]
@@ -1063,7 +1015,7 @@ def broker_config_clear_outputs_except(name, ex: list):
         if v["type"] not in ex:
             output_dict.pop(i)
 
-    with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w") as f:
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 
 
@@ -1074,15 +1026,13 @@ def config_broker_victoria_output():
 
     Configure broker to add victoria output
 
-    Example:
+    *Example:*
+
     | Config Broker Victoria Output |
-
-    Returns: N/A
-
     """
     filename = "central-broker.json"
 
-    with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r") as f:
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
         buf = f.read()
     conf = json.loads(buf)
     output_dict = conf["centreonBroker"]["output"]
@@ -1098,7 +1048,7 @@ def config_broker_victoria_output():
         "db_password": "titi",
         "queries_per_transaction": "1",
     })
-    with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w") as f:
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 
 
@@ -1355,7 +1305,7 @@ def broker_config_input_remove(name, inp, key):
         conf["centreonBroker"]["input"]) if elem["name"] == inp][0]
     if key in input_dict:
         input_dict.pop(key)
-    with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w") as f:
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 
 
@@ -1420,20 +1370,17 @@ def broker_config_flush_log(name, value):
 
 def broker_config_source_log(name, value):
     """
-
     broker_config_source_log
 
-    Configure the log source.
+    Configure if logs should contain the source file and its line number.
 
     Args:
-        name (_type_):
-        value (_type_):
+        name: The broker instance name among central, rrd and module%d.
+        value: A boolean that can be "true/false", "1/0" or "yes/no".
 
-    Example:
+    *Example:*
+
     | Broker Config Source Log | central | 1 |
-
-    Returns: N/A
-
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1441,37 +1388,34 @@ def broker_config_source_log(name, value):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     log = conf["centreonBroker"]["log"]
     log["log_source"] = value
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
     """
-
     check_broker_stats_exist
 
-    Return True if the stats key exists.
+    Return True if the Broker stats contain keys (key1,key2), it is possible that key2 is None then it only checks
+    that key1 exists.
+
     Should be true if the poller is connected to the central broker.
 
     Args:
-        name (str):
+        name: The broker instance name among central, rrd and module%d.
         key1 (str):
         key2 (str):
         timeout (int, optional): . Defaults to TIMEOUT.
 
-    Example:
+    *Example:*
+
     | ${exist} | Check Broker Stats Exist | mysql manager | poller | waiting tasks in connection 0 |
     | Should Be True | ${exist} |
-
-    Returns: N/A
-
     """
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1506,15 +1450,13 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
     Return the size of the stats key.
 
     Args:
-        name (_type_):
+        name: The broker instance name among central, rrd and module%d.
         key (_type_):
         timeout (_type_, optional): Defaults to TIMEOUT.
 
-    Example:
+    *Example:*
+
     | ${size} | Get Broker Stats Size | central | poller | # 2 |
-
-    Returns: N/A
-
     """
     limit = time.time() + timeout
     retval = 0
@@ -1607,7 +1549,8 @@ def get_not_existing_indexes(count: int):
     Args:
         count (int): The number of indexes to get.
 
-    Example:
+    *Example:*
+
     | @{indexes} | Get Not Existing Indexes | 10 |
     | Log To Console | @{indexes} |
 
@@ -1654,7 +1597,8 @@ def get_indexes_to_delete(count: int):
     Args:
         count (int): int The number of indexes to get.
 
-    Example:
+    *Example:*
+
     | @{indexes} | Get Not Existing Indexes | 10 |
     | Log To Console | @{indexes} |
 
@@ -1716,12 +1660,10 @@ def check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
         value (_type_):
         timeout (int, optional): Defaults to 60.
 
-    Example:
+    *Example:*
+
     | ${result} | Check Rrd Info | 1 | step | 60 |
     | Should Be True | ${result} |
-
-    Returns: N/A
-
     """
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1749,11 +1691,9 @@ def get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: in
         metric_name (str, optional): Defaults to "%".
         timeout (int, optional): Defaults to 60.
 
-    Example:
+    *Example:*
+
     | ${metrics} | Get Metrics For Service | 1 | % |
-
-    Returns: N/A
-
     """
     limit = time.time() + timeout
 
@@ -1790,12 +1730,10 @@ def get_not_existing_metrics(count: int):
     Args:
         count (int):
 
-    Example:
+    *Example:*
+
     | @{metrics} | Get Not Existing Metrics | 10 |
     | Log To Console | @{metrics} |
-
-    Returns: N/A
-
     """
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
@@ -2476,9 +2414,8 @@ def add_bam_config_to_broker(name):
     else:
         filename = "central-rrd.json"
 
-    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     output_dict = conf["centreonBroker"]["output"]
     output_dict.append({
@@ -2513,9 +2450,8 @@ def add_bam_config_to_broker(name):
         "queries_per_transaction": "0",
         "type": "bam_bi"
     })
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def remove_poller(port, name, timeout=TIMEOUT):
@@ -2674,7 +2610,8 @@ def get_broker_process_stat(port, timeout=10):
         port (int): of the grpc server
         timeout (int, optional): Defaults to 10.
 
-    Example:
+    *Example:*
+
     | ${process_stat_pb1} = | Get Broker Process Stat | 8082 | 20 |
     | ${process_stat_pb2} = | Get Engine Process Stat | 8082 |
 
@@ -2726,7 +2663,8 @@ def check_victoria_data(request_body: str, data_type: str, min_timestamp: int, *
         data_type (str):
         min_timestamp (int):
 
-    Example:
+    *Example:*
+
     | ${metric_found} = | Check Victoria Data | ${body} | metric | 16000000 | unit=% | host_id=16 | serv_id=314 |
     | Should Be True | ${metric_found} | if the request body contains a metric with the unit=%, host_id=16 and serv_id=314 |
 
@@ -2757,13 +2695,11 @@ def check_victoria_metric(request_body: str, min_timestamp: int, **to_check):
         request_body (str):
         min_timestamp (int):
 
-    Example:
+    *Example:*
+
     | ${metric_found} = | Check Victoria Metric | ${body} | 16000000 | unit=% | host_id=16 | serv_id=314 |
     =>
     | ${metric_found} = TRUE if the request body contains a metric with the unit=%, host_id=16 and serv_id=314
-
-    Returns: N/A
-
     """
     return check_victoria_data(request_body, "metric", min_timestamp, **to_check)
 
@@ -2779,13 +2715,11 @@ def check_victoria_status(request_body: str, min_timestamp: int, **to_check):
         request_body (str):
         min_timestamp (int):
 
-    Example:
+    *Example:*
+
     | ${metric_found} = | Check Victoria Status | ${body} | 16000000 | host_id=16 | serv_id=314 |
     =>
     | ${metric_found} = TRUE if the request body contains a status with the host_id=16 and serv_id=314
-
-    Returns: N/A
-
     """
     return check_victoria_data(request_body, "status", min_timestamp, **to_check)
 
