@@ -18,7 +18,7 @@ Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
-lua
+service
     [Documentation]    The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then engine and broker are started and broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that broker doesn't crash anymore.
     [Tags]    MON-24745
     Config Engine    ${1}    ${1}    ${25}
@@ -37,5 +37,3 @@ lua
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${content}    A message telling check_for_external_commands() should be available.
-
-    Schedule Host Fixed Downtime    ${0}    host_${i + 1}    ${3600}
