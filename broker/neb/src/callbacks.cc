@@ -102,7 +102,6 @@ static struct {
     {NEBCALLBACK_COMMENT_DATA, &neb::callback_pb_comment},
     {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_pb_downtime},
     {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_pb_external_command},
-    {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
     {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_pb_host_check},
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_pb_host_status},
     {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_pb_program_status},
