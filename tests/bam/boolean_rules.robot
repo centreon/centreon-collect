@@ -394,7 +394,7 @@ BABOOCOMPL_RESTART
     FOR    ${i}    IN RANGE    ${15}    ${21}    ${2}
 	Remove Files    /tmp/ba${id_ba__sid[0]}_*.dot
         ${result}    Check Ba Status With Timeout    boolean-ba    2    30
-        Dump Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_1.dot
+        Broker Get Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_1.dot
         Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
         ${start}    Get Current Date
 
@@ -404,7 +404,7 @@ BABOOCOMPL_RESTART
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
 	Should Be True    ${result}    It seems that no cache has been restored into BAM.
 
-        Dump Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_2.dot
+        Broker Get Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_2.dot
 
 	Wait Until Created    /tmp/ba${id_ba__sid[0]}_2.dot
 	${result}    Compare Dot Files    /tmp/ba${id_ba__sid[0]}_1.dot    /tmp/ba${id_ba__sid[0]}_2.dot
@@ -488,7 +488,7 @@ BABOOCOMPL_RELOAD
     FOR    ${i}    IN RANGE    ${15}    ${21}    ${2}
 	Remove Files    /tmp/ba${id_ba__sid[0]}_*.dot
         ${result}    Check Ba Status With Timeout    boolean-ba    2    30
-        Dump Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_1.dot
+        Broker Get Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_1.dot
         Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
         ${start}    Get Current Date
 
@@ -498,7 +498,7 @@ BABOOCOMPL_RELOAD
         ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
 	Should Be True    ${result}    It seems that no cache has been restored into BAM.
 
-        Dump Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_2.dot
+        Broker Get Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_2.dot
 
 	Wait Until Created    /tmp/ba${id_ba__sid[0]}_2.dot
 	${result}    Compare Dot Files    /tmp/ba${id_ba__sid[0]}_1.dot    /tmp/ba${id_ba__sid[0]}_2.dot
