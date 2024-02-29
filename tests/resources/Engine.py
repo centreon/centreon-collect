@@ -650,12 +650,12 @@ define contact {
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
             for file in ["check.pl", "notif.pl"]:
-                shutil.copyfile("{0}/{1}".format(SCRIPT_DIR, file),
-                                "{0}/{1}".format(ENGINE_HOME, file))
-                chmod("{0}/{1}".format(ENGINE_HOME, file),
-                      stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP)
-            if not exists(ENGINE_HOME + "/config{}/rw".format(inst)):
-                makedirs(ENGINE_HOME + "/config{}/rw".format(inst))
+                shutil.copyfile(f"{SCRIPT_DIR}/{file}",
+                                f"{ENGINE_HOME}/{file}")
+                chmod(f"{ENGINE_HOME}/{file}", stat.S_IRWXU |
+                      stat.S_IRGRP | stat.S_IXGRP)
+            if not exists(f"{ENGINE_HOME}/config{inst}/rw"):
+                makedirs(f"{ENGINE_HOME}/config{inst}/rw")
 
     def centengine_conf_add_bam(self):
         """
@@ -2301,18 +2301,12 @@ def set_services_passive(poller: int, srv_regex):
 
 def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     """
-
-    add_severity_to_hosts _summary_
-
-    Run the command to add severity to hosts
+    Add a severity to a list of hosts given by their ID.
 
     Args:
         poller (int): Index of the poller to work with.
-        severity_id (int):
-        svc_lst (_type_):
-
-    Returns: n:a
-
+        severity_id (int): The severity ID.
+        svc_lst: A list of host IDs.
     """
     with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r") as ff:
         lines = ff.readlines()
@@ -2323,50 +2317,38 @@ def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
             lines.insert(
                 i + 1, "    severity_id                     {}\n".format(severity_id))
 
-    with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w") as ff:
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
         ff.writelines(lines)
 
 
 def add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
     """
-
-    add_tags_to_services
-
-    Run the command to add tags to services
+    Add tags to a list of services given by their ID (just service ID).
 
     Args:
         poller (int): Index of the poller to work with.
-        type (str):
-        tag_id (str):
-        svc_lst (_type_):
-
-    Returns: N/A
-
+        type (str): One string of [group_tags, category_tags].
+        tag_id (str): A string with the tag IDs separated by a comma.
+        svc_lst: A list of service IDs.
     """
 
-    with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r") as ff:
+    with open(f"{CONF_DIR}/config{poller}/services.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None and m.group(1) in svc_lst:
-            lines.insert(
-                i + 1, "    {}                     {}\n".format(type, tag_id))
-    with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w") as ff:
+            lines.insert(i + 1, f"    {type}                     {tag_id}\n")
+    with open(f"{CONF_DIR}/config{poller}/services.cfg", "w") as ff:
         ff.writelines(lines)
 
 
 def remove_severities_from_services(poller: int):
     """
-
-    remove_severities_from_services
-
-    Remove severities from services
+    Remove severities from services on a poller.
 
     Args:
         poller (int): Index of the poller to work with.
-
-    Returns: N/A
     """
     with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r") as ff:
         lines = ff.readlines()
@@ -2378,17 +2360,12 @@ def remove_severities_from_services(poller: int):
 
 def remove_severities_from_hosts(poller: int):
     """
-    remove_severities_from_hosts
-
-    Remove severities from hosts
+    Remove severities from hosts on a poller.
 
     Args:
         poller (int): Index of the poller to work with.
-
-    Returns:
-
     """
-    with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r") as ff:
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*severity_id\s*\d+$")
     out = [line for line in lines if not r.match(line)]
@@ -2398,20 +2375,23 @@ def remove_severities_from_hosts(poller: int):
 
 def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
     """
-    check_search
-
-    Function that search a check, retrieve command index and return check resultBthen it searchs the string "connector::run: id=1090", and then search "connector::_recv_query_execute: id=1090," and return this line
+    Search a check, retrieve command index and return check result.
+    Then it searchs the string "connector::run: id=\d+",
+    and then search "connector::_recv_query_execute: id=\d+,"
+    and return this line.
 
     Args:
         debug_file_path (str): path of the debug log file
-        str_to_search (_type_): string after which we will start connector::run search
-        timeout (_type_, optional): Defaults to TIMEOUT.
+        str_to_search (str): string after which we will start connector::run search
+        timeout (int, optional): Defaults to TIMEOUT.
 
-    Example:
-    | ${search_result} | `Check Search` | /var/log/centreon-engine/centengine.debug | "connector::run: id=1090" |
-    | Should Contain | ${search_result} | "connector::_recv_query_execute: id=1090," |
+    *Example:*
 
-    Returns: N/A
+    | ${search_result} | `Check Search` | /var/log/centreon-engine/centengine.debug | connector::run: id=1090 |
+    | Should Contain | ${search_result} | connector::_recv_query_execute: id=1090, |
+
+    Returns:
+        A string.
     """
     limit = time.time() + timeout
     r_query_execute = "none"
