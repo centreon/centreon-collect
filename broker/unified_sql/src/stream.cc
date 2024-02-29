@@ -1,5 +1,5 @@
 /**
- * Copyright 2021-2023 Centreon
+ * Copyright 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -113,7 +113,8 @@ constexpr void (stream::*const stream::neb_processing_table[])(
     &stream::_process_pb_host_group,
     &stream::_process_pb_host_group_member,
     &stream::_process_pb_service_group,
-    &stream::_process_pb_service_group_member};
+    &stream::_process_pb_service_group_member,
+    &stream::_process_pb_host_parent};
 
 constexpr size_t neb_processing_table_size =
     sizeof(stream::neb_processing_table) /
