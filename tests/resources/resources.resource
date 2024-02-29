@@ -84,8 +84,9 @@ Restart Broker
     Start Broker    ${only_central}
 
 Reload Broker
+    [Arguments]    ${only_central}=False
     Send Signal To Process    SIGHUP    b1
-    Send Signal To Process    SIGHUP    b2
+    IF    not ${only_central}    Send Signal To Process    SIGHUP    b2
 
 Kindly Stop Broker
     [Arguments]    ${only_central}=False
