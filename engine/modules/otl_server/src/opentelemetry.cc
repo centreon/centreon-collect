@@ -26,23 +26,28 @@
 
 using namespace com::centreon::engine::modules::otl_server;
 
-open_telemetry::open_telemetry(const std::string_view config_file_path,
-                               asio::io_context& io_context)
-    : _config_file_path(config_file_path), _second_timer(io_context) {}
+/**
+ * @brief Construct a new open telemetry::open telemetry object
+ *
+ * @param config_file_path
+ * @param io_context
+ */
+open_telemetry::open_telemetry(
+    const std::string_view config_file_path,
+    const std::shared_ptr<asio::io_context>& io_context)
+    : _config_file_path(config_file_path),
+      _second_timer(*io_context),
+      _io_context(io_context) {}
 
+/**
+ * @brief to call when configuration changes
+ *
+ */
 void open_telemetry::_reload() {
   std::unique_ptr<otl_config> new_conf =
       std::make_unique<otl_config>(_config_file_path);
   if (!_conf || !(*new_conf->get_grpc_config() == *_conf->get_grpc_config())) {
-    std::shared_ptr<otl_server> to_shutdown = _otl_server.lock();
-    if (to_shutdown) {
-      to_shutdown->shutdown(std::chrono::seconds(10));
-    }
-    _otl_server = otl_server::load(
-        new_conf->get_grpc_config(),
-        [me = shared_from_this()](const metric_request_ptr& request) {
-          me->_on_metric(request);
-        });
+    this->_create_otl_server(new_conf->get_grpc_config());
   }
   if (!_conf || !(*_conf == *new_conf)) {
     fmt::formatter<::opentelemetry::proto::collector::metrics::v1::
@@ -58,9 +63,16 @@ void open_telemetry::_reload() {
   }
 }
 
+/**
+ * @brief static creator of singleton
+ *
+ * @param config_path
+ * @param io_context
+ * @return std::shared_ptr<open_telemetry>
+ */
 std::shared_ptr<open_telemetry> open_telemetry::load(
     const std::string_view& config_path,
-    asio::io_context& io_context) {
+    const std::shared_ptr<asio::io_context>& io_context) {
   if (!_instance) {
     _instance = std::make_shared<open_telemetry>(config_path, io_context);
     instance()->_reload();
@@ -69,6 +81,28 @@ std::shared_ptr<open_telemetry> open_telemetry::load(
   return instance();
 }
 
+/**
+ * @brief create grpc server witch accept otel collector connections
+ *
+ * @param server_conf json server config
+ */
+void open_telemetry::_create_otl_server(
+    const grpc_config::pointer& server_conf) {
+  std::shared_ptr<otl_server> to_shutdown = _otl_server.lock();
+  if (to_shutdown) {
+    to_shutdown->shutdown(std::chrono::seconds(10));
+  }
+  _otl_server = otl_server::load(
+      server_conf,
+      [me = shared_from_this()](const metric_request_ptr& request) {
+        me->_on_metric(request);
+      });
+}
+
+/**
+ * @brief static method used to make singleton reload is configuration
+ *
+ */
 void open_telemetry::reload() {
   if (_instance) {
     try {
@@ -82,6 +116,11 @@ void open_telemetry::reload() {
   }
 }
 
+/**
+ * @brief shutdown singleton and dereference it. It may continue to live until
+ * no object has a reference on it
+ *
+ */
 void open_telemetry::unload() {
   if (_instance) {
     instance()->_shutdown();
@@ -89,6 +128,10 @@ void open_telemetry::unload() {
   }
 }
 
+/**
+ * @brief shutdown grpc server and stop second timer
+ *
+ */
 void open_telemetry::_shutdown() {
   std::shared_ptr<otl_server> to_shutdown = _otl_server.lock();
   if (to_shutdown) {
@@ -98,6 +141,15 @@ void open_telemetry::_shutdown() {
   _second_timer.cancel();
 }
 
+/**
+ * @brief create an host serv extractor from connector command line
+ *
+ * @param cmdline witch begins with name of extractor, following parameters are
+ * used by extractor
+ * @return
+ * std::shared_ptr<com::centreon::engine::commands::otel::host_serv_extractor>
+ * @throw if extractor type is unknown
+ */
 std::shared_ptr<com::centreon::engine::commands::otel::host_serv_extractor>
 open_telemetry::create_extractor(const std::string& cmdline) {
   // erase host serv extractors that are only owned by this object
@@ -115,8 +167,10 @@ open_telemetry::create_extractor(const std::string& cmdline) {
   std::lock_guard l(_protect);
   auto exist = _extractors.find(cmdline);
   if (exist != _extractors.end()) {
+    std::shared_ptr<com::centreon::engine::commands::otel::host_serv_extractor>
+        to_ret = exist->second;
     clean();
-    return exist->second;
+    return to_ret;
   }
   clean();
   std::shared_ptr<host_serv_extractor> new_extractor =
@@ -125,6 +179,22 @@ open_telemetry::create_extractor(const std::string& cmdline) {
   return new_extractor;
 }
 
+/**
+ * @brief simulate a check by reading in metrics fifos
+ * It creates an otel_converter, the first word of processed_cmd is the name of
+ * converter such as nagios_telegraf. Following parameters are used by converter
+ *
+ * @param processed_cmd converter type with arguments
+ * @param command_id command id
+ * @param macros
+ * @param timeout
+ * @param res filled if it returns true
+ * @param handler called later if it returns false
+ * @return true res is filled with a result
+ * @return false result will be passed to handler as soon as available or
+ * timeout
+ * @throw  if converter type is unknown
+ */
 bool open_telemetry::check(const std::string& processed_cmd,
                            uint64_t command_id,
                            nagios_macros& macros,
@@ -149,6 +219,15 @@ bool open_telemetry::check(const std::string& processed_cmd,
   return false;
 }
 
+/**
+ * @brief called on metric reception
+ * we first fill data_point fifos and then if a converter of a service is
+ * waiting for data_point, we call him. If it achieve to generate a check
+ * result, the handler of otl_converter is called
+ * unknown metrics are passed to _forward_to_broker
+ *
+ * @param metrics collector request
+ */
 void open_telemetry::_on_metric(const metric_request_ptr& metrics) {
   std::vector<data_point> unknown;
   {
@@ -167,9 +246,12 @@ void open_telemetry::_on_metric(const metric_request_ptr& metrics) {
                                                 &host_serv_index, &to_notify](
                                                    const data_point& data_pt) {
         bool data_point_known = false;
+        // we try all extractors and we begin with the last witch has achieved
+        // to extract host
         for (unsigned tries = 0; tries < _extractors.size(); ++tries) {
           host_serv_metric hostservmetric =
               last_success->second->extract_host_serv_metric(data_pt);
+
           if (!hostservmetric.host.empty()) {
             _fifo.add_data_point(hostservmetric.host, hostservmetric.service,
                                  hostservmetric.metric, data_pt);
@@ -208,18 +290,27 @@ void open_telemetry::_on_metric(const metric_request_ptr& metrics) {
   }
 }
 
+/**
+ * @brief the second timer is used to handle converter timeouts
+ *
+ */
 void open_telemetry::_start_second_timer() {
   std::lock_guard l(_protect);
-  _second_timer.expires_from_now(std::chrono::seconds());
+  _second_timer.expires_from_now(std::chrono::seconds(1));
   _second_timer.async_wait(
       [me = shared_from_this()](const boost::system::error_code& err) {
-        if (err) {
-          return;
-        };
+        if (!err) {
+          me->_second_timer_handler();
+        }
       });
 }
 
+/**
+ * @brief notify all timeouts
+ *
+ */
 void open_telemetry::_second_timer_handler() {
+  std::vector<std::shared_ptr<otl_converter>> to_notify;
   {
     std::lock_guard l(_protect);
     std::chrono::system_clock::time_point now =
@@ -230,8 +321,15 @@ void open_telemetry::_second_timer_handler() {
       if ((*oldest)->get_time_out() > now) {
         break;
       }
+      to_notify.push_back(*oldest);
       expiry_index.erase(oldest);
     }
+  }
+
+  // notify all timeout
+  for (std::shared_ptr<otl_converter> to_not : to_notify) {
+    SPDLOG_LOGGER_DEBUG(log_v2::otl(), "time out: {}", *to_not);
+    to_not->async_time_out();
   }
 
   _start_second_timer();

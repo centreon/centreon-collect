@@ -60,6 +60,9 @@ TEST_F(otl_host_serv_attributes_extractor_test, resource_attrib) {
   auto host = resources->mutable_resource()->mutable_attributes()->Add();
   host->set_key("host");
   host->mutable_value()->set_string_value("my_host");
+  auto host2 = resources->mutable_resource()->mutable_attributes()->Add();
+  host2->set_key("host");
+  host2->mutable_value()->set_string_value("my_host2");
   auto metric = resources->add_scope_metrics()->add_metrics();
   metric->set_name("metric cpu");
   metric->set_description("metric to send");
@@ -70,54 +73,94 @@ TEST_F(otl_host_serv_attributes_extractor_test, resource_attrib) {
 
   unsigned data_point_extracted_cpt = 0;
 
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf3)->extract_host_serv_metric(data_pt);
-    ASSERT_EQ(to_test.host, "my_host");
-    ASSERT_EQ(to_test.service, "");
-    ASSERT_EQ(to_test.metric, "metric cpu");
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf3);
+        extractor->register_host_serv("my_host2", "");
+        extractor->register_host_serv("my_host2", "my_serv2");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_EQ(to_test.host, "my_host2");
+        ASSERT_EQ(to_test.service, "");
+        ASSERT_EQ(to_test.metric, "metric cpu");
+      });
 
   ASSERT_EQ(data_point_extracted_cpt, 1);
 
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf1)->extract_host_serv_metric(data_pt);
-    ASSERT_TRUE(to_test.host.empty());
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf1);
+        extractor->register_host_serv("my_host", "");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_TRUE(to_test.host.empty());
+      });
 
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf4)->extract_host_serv_metric(data_pt);
-    ASSERT_TRUE(to_test.host.empty());
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf4);
+        extractor->register_host_serv("my_host", "");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_TRUE(to_test.host.empty());
+      });
 
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf6)->extract_host_serv_metric(data_pt);
-    ASSERT_TRUE(to_test.host.empty());
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf6);
+        extractor->register_host_serv("my_host", "");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_TRUE(to_test.host.empty());
+      });
 
   auto serv = resources->mutable_resource()->mutable_attributes()->Add();
   serv->set_key("service");
   serv->mutable_value()->set_string_value("my_serv");
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf3)->extract_host_serv_metric(data_pt);
-    ASSERT_EQ(to_test.host, "my_host");
-    ASSERT_EQ(to_test.service, "my_serv");
-    ASSERT_EQ(to_test.metric, "metric cpu");
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf3);
+        extractor->register_host_serv("my_host", "my_serv");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_EQ(to_test.host, "my_host");
+        ASSERT_EQ(to_test.service, "my_serv");
+        ASSERT_EQ(to_test.metric, "metric cpu");
+      });
+
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf3);
+        extractor->register_host_serv("my_host2", "my_serv");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_EQ(to_test.host, "my_host2");
+        ASSERT_EQ(to_test.service, "my_serv");
+        ASSERT_EQ(to_test.metric, "metric cpu");
+      });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf3);
+        extractor->register_host_serv("my_host3", "my_serv");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_TRUE(to_test.host.empty());
+      });
+
+  auto serv2 = resources->mutable_resource()->mutable_attributes()->Add();
+  serv2->set_key("service");
+  serv2->mutable_value()->set_string_value("my_serv2");
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf3);
+        extractor->register_host_serv("my_host2", "");
+        extractor->register_host_serv("my_host2", "my_serv2");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_EQ(to_test.host, "my_host2");
+        ASSERT_EQ(to_test.service, "my_serv2");
+        ASSERT_EQ(to_test.metric, "metric cpu");
+      });
 }
 
 TEST_F(otl_host_serv_attributes_extractor_test, scope_attrib) {
@@ -130,6 +173,9 @@ TEST_F(otl_host_serv_attributes_extractor_test, scope_attrib) {
   auto host = scope->mutable_scope()->mutable_attributes()->Add();
   host->set_key("host");
   host->mutable_value()->set_string_value("my_host");
+  auto burk_host = scope->mutable_scope()->mutable_attributes()->Add();
+  burk_host->set_key("host");
+  burk_host->mutable_value()->set_string_value("bad_host");
   auto metric = scope->add_metrics();
   metric->set_name("metric cpu");
   metric->set_description("metric to send");
@@ -140,54 +186,60 @@ TEST_F(otl_host_serv_attributes_extractor_test, scope_attrib) {
 
   unsigned data_point_extracted_cpt = 0;
 
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf4)->extract_host_serv_metric(data_pt);
-    ASSERT_EQ(to_test.host, "my_host");
-    ASSERT_EQ(to_test.service, "");
-    ASSERT_EQ(to_test.metric, "metric cpu");
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf4);
+        extractor->register_host_serv("my_host", "");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+
+        ASSERT_EQ(to_test.host, "my_host");
+        ASSERT_EQ(to_test.service, "");
+        ASSERT_EQ(to_test.metric, "metric cpu");
+      });
 
   ASSERT_EQ(data_point_extracted_cpt, 1);
 
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf1)->extract_host_serv_metric(data_pt);
-    ASSERT_TRUE(to_test.host.empty());
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf1);
+        extractor->register_host_serv("my_host", "");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_TRUE(to_test.host.empty());
+      });
 
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf3)->extract_host_serv_metric(data_pt);
-    ASSERT_TRUE(to_test.host.empty());
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf3);
+        extractor->register_host_serv("my_host", "");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_TRUE(to_test.host.empty());
+      });
 
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf5)->extract_host_serv_metric(data_pt);
-    ASSERT_TRUE(to_test.host.empty());
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf5);
+        extractor->register_host_serv("my_host", "");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_TRUE(to_test.host.empty());
+      });
 
   auto serv = scope->mutable_scope()->mutable_attributes()->Add();
   serv->set_key("service");
   serv->mutable_value()->set_string_value("my_serv");
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf4)->extract_host_serv_metric(data_pt);
-    ASSERT_EQ(to_test.host, "my_host");
-    ASSERT_EQ(to_test.service, "my_serv");
-    ASSERT_EQ(to_test.metric, "metric cpu");
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf4);
+        extractor->register_host_serv("my_host", "my_serv");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_EQ(to_test.host, "my_host");
+        ASSERT_EQ(to_test.service, "my_serv");
+        ASSERT_EQ(to_test.metric, "metric cpu");
+      });
 }
 
 TEST_F(otl_host_serv_attributes_extractor_test, data_point_attrib) {
@@ -210,62 +262,68 @@ TEST_F(otl_host_serv_attributes_extractor_test, data_point_attrib) {
 
   unsigned data_point_extracted_cpt = 0;
 
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf1)->extract_host_serv_metric(data_pt);
-    ASSERT_EQ(to_test.host, "my_host");
-    ASSERT_EQ(to_test.service, "");
-    ASSERT_EQ(to_test.metric, "metric cpu");
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf1);
+        extractor->register_host_serv("my_host", "");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_EQ(to_test.host, "my_host");
+        ASSERT_EQ(to_test.service, "");
+        ASSERT_EQ(to_test.metric, "metric cpu");
+      });
 
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf5)->extract_host_serv_metric(data_pt);
-    ASSERT_EQ(to_test.host, "my_host");
-    ASSERT_EQ(to_test.service, "");
-    ASSERT_EQ(to_test.metric, "metric cpu");
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf5);
+        extractor->register_host_serv("my_host", "");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_EQ(to_test.host, "my_host");
+        ASSERT_EQ(to_test.service, "");
+        ASSERT_EQ(to_test.metric, "metric cpu");
+      });
 
   ASSERT_EQ(data_point_extracted_cpt, 2);
 
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf3)->extract_host_serv_metric(data_pt);
-    ASSERT_TRUE(to_test.host.empty());
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf3);
+        extractor->register_host_serv("my_host", "");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_TRUE(to_test.host.empty());
+      });
 
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf4)->extract_host_serv_metric(data_pt);
-    ASSERT_TRUE(to_test.host.empty());
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf4);
+        extractor->register_host_serv("my_host", "");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_TRUE(to_test.host.empty());
+      });
 
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf6)->extract_host_serv_metric(data_pt);
-    ASSERT_TRUE(to_test.host.empty());
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf6);
+        extractor->register_host_serv("my_host", "");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_TRUE(to_test.host.empty());
+      });
 
   auto serv = point->mutable_attributes()->Add();
   serv->set_key("service");
   serv->mutable_value()->set_string_value("my_serv");
-  data_point::extract_data_points(request, [this, &data_point_extracted_cpt](
-                                               const data_point& data_pt) {
-    ++data_point_extracted_cpt;
-    host_serv_metric to_test =
-        host_serv_extractor::create(_conf1)->extract_host_serv_metric(data_pt);
-    ASSERT_EQ(to_test.host, "my_host");
-    ASSERT_EQ(to_test.service, "my_serv");
-    ASSERT_EQ(to_test.metric, "metric cpu");
-  });
+  data_point::extract_data_points(
+      request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
+        ++data_point_extracted_cpt;
+        auto extractor = host_serv_extractor::create(_conf1);
+        extractor->register_host_serv("my_host", "my_serv");
+        host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
+        ASSERT_EQ(to_test.host, "my_host");
+        ASSERT_EQ(to_test.service, "my_serv");
+        ASSERT_EQ(to_test.metric, "metric cpu");
+      });
 }

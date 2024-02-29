@@ -17,6 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include "com/centreon/engine/commands/otel_command.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/nebmodules.hh"
@@ -105,7 +106,8 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
   } else
     throw msg_fmt("main: no configuration file provided");
 
-  open_telemetry::load(conf_file_path, *g_io_context);
+  open_telemetry::load(conf_file_path, g_io_context);
+  commands::otel_command::init_all();
 
   return 0;
 }

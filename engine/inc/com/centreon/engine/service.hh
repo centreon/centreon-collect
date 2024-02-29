@@ -37,7 +37,7 @@ class host;
 class service;
 class servicegroup;
 class serviceescalation;
-}
+}  // namespace com::centreon::engine
 
 using service_map =
     absl::flat_hash_map<std::pair<std::string, std::string>,
@@ -214,6 +214,9 @@ class service : public notifier {
   host* get_host_ptr();
   bool get_host_problem_at_last_check() const;
 
+  void set_check_command_ptr(
+      const std::shared_ptr<commands::command>& cmd) override;
+
   static service_map services;
   static service_id_map services_by_id;
 
@@ -239,7 +242,7 @@ class service : public notifier {
   host* _host_ptr;
   bool _host_problem_at_last_check;
 };
-}
+}  // namespace com::centreon::engine
 
 com::centreon::engine::service* add_service(
     uint64_t host_id,
@@ -310,6 +313,6 @@ std::pair<std::string, std::string> get_host_and_service_names(
     const uint64_t service_id);
 uint64_t get_service_id(std::string const& host, std::string const& svc);
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_SERVICE_HH

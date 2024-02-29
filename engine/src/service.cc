@@ -159,8 +159,10 @@ service::service(const std::string& hostname,
 }
 
 service::~service() noexcept {
-  if (get_check_command_ptr()) {
-    get_check_command_ptr()->remove_caller(this);
+  std::shared_ptr<commands::command> cmd = get_check_command_ptr();
+  if (cmd) {
+    cmd->remove_caller(this);
+    cmd->unregister_host_serv(_hostname, description());
   }
 }
 
@@ -3922,4 +3924,19 @@ bool service::get_host_problem_at_last_check() const {
  */
 service_type service::get_service_type() const {
   return _service_type;
+}
+
+void service::set_check_command_ptr(
+    const std::shared_ptr<commands::command>& cmd) {
+  std::shared_ptr<commands::command> old = get_check_command_ptr();
+  if (cmd == old) {
+    return;
+  }
+  if (old) {
+    old->unregister_host_serv(_hostname, description());
+  }
+  notifier::set_check_command_ptr(cmd);
+  if (cmd) {
+    cmd->register_host_serv(_hostname, description());
+  }
 }

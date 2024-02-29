@@ -51,6 +51,12 @@ class forward : public command {
            nagios_macros& macros,
            uint32_t timeout,
            result& res) override;
+
+  void register_host_serv(const std::string& host,
+                          const std::string& service_description) override;
+
+  void unregister_host_serv(const std::string& host,
+                            const std::string& service_description) override;
 };
 }  // namespace commands
 

@@ -34,10 +34,11 @@ class data_point_container;
  *
  */
 class otl_converter : public std::enable_shared_from_this<otl_converter> {
-  uint64_t _command_id;
-  std::pair<std::string /*host*/, std::string /*service*/> _host_serv;
-  std::chrono::system_clock::time_point _timeout;
-  commands::otel::result_callback _callback;
+  const std::string _cmd_line;
+  const uint64_t _command_id;
+  const std::pair<std::string /*host*/, std::string /*service*/> _host_serv;
+  const std::chrono::system_clock::time_point _timeout;
+  const commands::otel::result_callback _callback;
 
  protected:
   virtual bool _build_result_from_metrics(metric_name_to_fifo&,
@@ -52,6 +53,8 @@ class otl_converter : public std::enable_shared_from_this<otl_converter> {
                 commands::otel::result_callback&& handler);
 
   virtual ~otl_converter() = default;
+
+  const std::string& get_cmd_line() const { return _cmd_line; }
 
   uint64_t get_command_id() const { return _command_id; }
 
@@ -104,5 +107,26 @@ class otl_nagios_telegraf_converter : public otl_converter {
 };
 
 }  // namespace com::centreon::engine::modules::otl_server
+
+namespace fmt {
+
+template <>
+struct formatter<com::centreon::engine::modules::otl_server::otl_converter> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) {
+    return ctx.begin();
+  }
+
+  // Formats the point p using the parsed format specification (presentation)
+  // stored in this formatter.
+  template <typename FormatContext>
+  auto format(
+      const com::centreon::engine::modules::otl_server::otl_converter& conv,
+      FormatContext& ctx) const -> decltype(ctx.out()) {
+    return format_to(ctx.out(), "command_id:{}, cmd_line: {}",
+                     conv.get_command_id(), conv.get_cmd_line());
+  }
+};
+
+}  // namespace fmt
 
 #endif

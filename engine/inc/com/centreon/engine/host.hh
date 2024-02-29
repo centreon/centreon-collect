@@ -102,7 +102,7 @@ class host : public notifier {
        bool obsess_over_host,
        std::string const& timezone,
        uint64_t icon_id);
-  ~host() noexcept = default;
+  ~host();
   uint64_t host_id() const;
   void set_host_id(uint64_t id);
   void add_child_host(host* child);
@@ -246,6 +246,9 @@ class host : public notifier {
   bool get_notify_on_current_state() const override;
   bool is_in_downtime() const override;
   void resolve(int& w, int& e);
+
+  void set_check_command_ptr(
+      const std::shared_ptr<commands::command>& cmd) override;
 
   host_map_unsafe parent_hosts;
   host_map_unsafe child_hosts;

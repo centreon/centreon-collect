@@ -43,7 +43,7 @@ class otel_command : public command,
   std::shared_ptr<otel::host_serv_extractor> _extractor;
 
   void init();
-    void reset_extractor();
+  void reset_extractor();
 
  public:
   static void create(const std::string& connector_name,
@@ -81,6 +81,12 @@ class otel_command : public command,
                    nagios_macros& macros,
                    uint32_t timeout,
                    result& res) override;
+
+  void register_host_serv(const std::string& host,
+                          const std::string& service_description) override;
+
+  void unregister_host_serv(const std::string& host,
+                            const std::string& service_description) override;
 };
 
 }  // namespace com::centreon::engine::commands

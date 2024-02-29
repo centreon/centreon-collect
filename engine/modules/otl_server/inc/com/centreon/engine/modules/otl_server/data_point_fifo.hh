@@ -39,10 +39,10 @@ class data_point_fifo {
   };
 
  public:
-  using container = absl::btree_set<data_point, time_unix_nano_compare>;
+  using container = absl::btree_multiset<data_point, time_unix_nano_compare>;
 
  private:
-  static unsigned _second_datapoint_expiry;
+  static time_t _second_datapoint_expiry;
   static size_t _max_size;
 
   container _fifo;
@@ -52,17 +52,19 @@ class data_point_fifo {
 
   bool empty() const { return _fifo.empty(); }
 
+  void clear() { _fifo.clear(); }
+
   void add_data_point(const data_point& data_pt);
 
   void clean();
 
-  static void update_fifo_limit(unsigned second_datapoint_expiry,
+  void clean_oldest(uint64_t expiry);
+
+  static void update_fifo_limit(time_t second_datapoint_expiry,
                                 size_t max_size);
 };
 
-  using metric_name_to_fifo = absl::flat_hash_map<std::string, data_point_fifo>;
-
-
+using metric_name_to_fifo = absl::flat_hash_map<std::string, data_point_fifo>;
 
 }  // namespace com::centreon::engine::modules::otl_server
 

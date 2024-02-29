@@ -53,7 +53,7 @@ static constexpr std::string_view _grpc_config_schema(R"(
             "description:": "max number of data points in fifos",
             "type": "integer",
             "min": 1
-        }
+        },
         "server": {
             "description": "otel grpc config",
             "type": "object"

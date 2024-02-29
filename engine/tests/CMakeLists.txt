@@ -104,6 +104,8 @@ if(WITH_TESTING)
       "${TESTS_DIR}/notifications/service_downtime_notification_test.cc"
       "${TESTS_DIR}/otl_server/grpc_config_test.cc"
       "${TESTS_DIR}/otl_server/host_serv_extractor_test.cc"
+      "${TESTS_DIR}/otl_server/opentelemetry_test.cc"
+      "${TESTS_DIR}/otl_server/otl_converter_test.cc"
       "${TESTS_DIR}/otl_server/otl_server_test.cc"
       "${TESTS_DIR}/perfdata/perfdata.cc"
       "${TESTS_DIR}/retention/host.cc"

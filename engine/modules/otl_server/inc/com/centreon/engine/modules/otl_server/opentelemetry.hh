@@ -29,6 +29,13 @@ namespace com::centreon::engine::modules::otl_server {
 
 class otl_server;
 
+/**
+ * @brief This class is the high level main class of otel module
+ * It needs a json config file witch path is passed to load and an io_context
+ * for second timer
+ * The two methods used during runtime is create_extractor and check
+ *
+ */
 class open_telemetry : public commands::otel::open_telemetry_base {
   asio::system_timer _second_timer;
   std::weak_ptr<otl_server> _otl_server;
@@ -54,6 +61,11 @@ class open_telemetry : public commands::otel::open_telemetry_base {
     }
   };
 
+  /**
+   * @brief when check can't return data right now, converter is stored in this
+   * container. It's indexed by host,serv and by timeout
+   *
+   */
   using waiting_converter = boost::multi_index::multi_index_container<
       std::shared_ptr<otl_converter>,
       boost::multi_index::indexed_by<
@@ -62,22 +74,23 @@ class open_telemetry : public commands::otel::open_telemetry_base {
 
   waiting_converter _waiting;
 
+  std::shared_ptr<asio::io_context> _io_context;
   mutable std::mutex _protect;
-
-  void _on_metric(const metric_request_ptr& metric);
-
-  void _reload();
-
-  void _shutdown();
 
   void _forward_to_broker(const std::vector<data_point>& unknown);
 
-  void _start_second_timer();
   void _second_timer_handler();
+
+ protected:
+  virtual void _create_otl_server(const grpc_config::pointer& server_conf);
+  void _on_metric(const metric_request_ptr& metric);
+  void _reload();
+  void _start_second_timer();
+  void _shutdown();
 
  public:
   open_telemetry(const std::string_view config_file_path,
-                 asio::io_context& io_context);
+                 const std::shared_ptr<asio::io_context>& io_context);
 
   std::shared_ptr<open_telemetry> shared_from_this() {
     return std::static_pointer_cast<open_telemetry>(
@@ -86,7 +99,7 @@ class open_telemetry : public commands::otel::open_telemetry_base {
 
   static std::shared_ptr<open_telemetry> load(
       const std::string_view& config_path,
-      asio::io_context& io_context);
+      const std::shared_ptr<asio::io_context>& io_context);
 
   static void reload();
 

@@ -28,7 +28,7 @@ namespace com::centreon::engine {
 namespace commands {
 class command;
 }
-}
+}  // namespace com::centreon::engine
 
 typedef std::unordered_map<
     std::string,
@@ -109,6 +109,24 @@ class command {
                    uint32_t timeout,
                    result& res) = 0;
 
+  /**
+   * @brief notify a command of host service owner
+   *
+   * @param host
+   * @param service_description empty for host command
+   */
+  virtual void register_host_serv(const std::string& host,
+                                  const std::string& service_description){};
+
+  /**
+   * @brief notify a command that a service is not using it anymore
+   *
+   * @param host
+   * @param service_description empty for host command
+   */
+  virtual void unregister_host_serv(const std::string& host,
+                                    const std::string& service_description){};
+
   template <typename caller_iterator>
   void add_caller_group(caller_iterator begin, caller_iterator end);
   void remove_caller(void* caller);
@@ -138,7 +156,7 @@ inline std::ostream& operator<<(std::ostream& s, const command::pointer& cmd) {
 
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 namespace fmt {
 template <>
