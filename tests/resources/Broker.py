@@ -2069,6 +2069,16 @@ def remove_graphs(port, indexes, metrics, timeout=10):
 
 
 def broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout=TIMEOUT):
+    """
+    Set values to the SQL manager stats: number of slowest statements and number
+    of slowest queries to keep in memory.
+
+    Args:
+        port: The gRPC port to use.
+        stmt: The number of slowest statements to keep in memory.
+        queries: The number of slowest queries to keep in memory.
+        timeout: A timeout in seconds, by default 30s.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
@@ -2085,6 +2095,18 @@ def broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout=TIM
 
 
 def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
+    """
+    Tries to get some statistics about an SQL query. If that query makes part
+    of the slowest queries or statements, we get the average duration of it.
+
+    Args:
+        port: gRPC port to use.
+        query: An SQL query.
+        timeout: A timeout in seconds, by default 30s.
+
+    Returns:
+        A number of seconds or -1 on failure.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
@@ -2113,18 +2135,13 @@ def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
 
 def remove_graphs_from_db(indexes, metrics, timeout=10):
     """
-
-    remove_graphs_from_db
-
-    send a query to the db to remove graphs (by indexes or by metrics)
+    Send a query to the db to remove graphs (by indexes or by metrics).
 
     Args:
         indexes (list): a list of indexes
         metrics (list): a list of metrics
         timeout (int, optional): Defaults to 10.
-
     """
-    logger.console("rem1")
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -2151,16 +2168,12 @@ def remove_graphs_from_db(indexes, metrics, timeout=10):
 
 def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
     """
-
-    rebuild_rrd_graphs
-
-    Execute the gRPC command RebuildRRDGraphs()
+    Execute the gRPC command RebuildRRDGraphs().
 
     Args:
         port (int): The port to use with gRPC
         indexes (list): The list of indexes corresponding to metrics to rebuild.
         timeout (int, optional): Defaults to TIMEOUT.
-
     """
     logger.console("start gRPC server")
     limit = time.time() + timeout
@@ -2180,13 +2193,10 @@ def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
 
 def rebuild_rrd_graphs_from_db(indexes):
     """
-    rebuild_rrd_graphs_from_db
-
     Send a query to the db to rebuild graphs
 
     Args:
         indexes (list): The list of indexes corresponding to metrics to rebuild.
-
     """
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
@@ -2207,17 +2217,14 @@ def rebuild_rrd_graphs_from_db(indexes):
 
 def compare_rrd_average_value(metric, value: float):
     """
-
-    compare_rrd_average_value
-
     Compare the average value for an RRD metric on the last 30 days with a value.
 
     Args:
         metric (int): The metric id
         value (float): float The value to compare with.
 
-    Returns: A boolean.
-
+    Returns:
+        A boolean.
     """
     res = getoutput(
         f"rrdtool graph dummy --start=end-180d --end=now DEF:x={VAR_ROOT}/lib/centreon/metrics/{metric}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf")
@@ -2235,10 +2242,15 @@ def compare_rrd_average_value(metric, value: float):
 
 
 def compare_rrd_status_average_value(index_id, value: int):
-    """Compare the average value for an RRD metric on the last 30 days with a value.
-    Args
+    """
+    Compare the average value for an RRD metric on the last 30 days with a value.
+
+    Args:
         index_id is the index of the status
         average value expected is 100 if value=0, 75 if value=1, 0 if value=2
+
+    Returns:
+        True on success.
     """
     res = getoutput(
         f"rrdtool graph dummy --start=end-180d --end=now DEF:x={VAR_ROOT}/lib/centreon/status/{index_id}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf")
@@ -2254,11 +2266,16 @@ def compare_rrd_status_average_value(index_id, value: int):
 
 
 def compare_rrd_average_value_with_grpc(metric, key, value: float):
-    """! Compare the average value for an RRD metric.
-    @param metric The metric id
-    @param key The key to search in the rrd info
-    @param float The value to compare with.
-    @return True if value pointed by key is equal to value param.
+    """
+    Compare the average value for an RRD metric with a given value.
+
+    Args:
+        metric: The metric id
+        key: The key to search in the rrd info
+        value: The value to compare with.
+
+    Returns:
+        True if value pointed by key is equal to value param.
     """
     res = getoutput(
         f"rrdtool info {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd"
@@ -2277,11 +2294,16 @@ def compare_rrd_average_value_with_grpc(metric, key, value: float):
 
 
 def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
-    """!Call the GetSqlManagerStats function by gRPC and checks there are count active connections.
-    @param port grpc port
-    @param count number of expected connections
-    @param timeout timeout in seconds
-    @return  True is nb connections is equal to count
+    """
+    Call the GetSqlManagerStats function by gRPC and checks there are count active connections.
+
+    Args:
+        port: grpc port
+        count: number of expected connections
+        timeout: timeout in seconds
+
+    Returns:
+        True is nb connections is equal to count
     """
     limit = time.time() + timeout
     while time.time() < limit:
@@ -2307,17 +2329,14 @@ def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
 
 def check_all_sql_connections_down_with_grpc(port, timeout=TIMEOUT):
     """
-
-    check_all_sql_connections_down_with_grpc
-
     Call the GetSqlManagerStats function by gRPC and checks there are count active connections.
 
     Args:
         port (int): The expected number of active connections.
         timeout (int, optional): Defaults to TIMEOUT.
 
-    Returns: A boolean.
-
+    Returns:
+        A boolean.
     """
     limit = time.time() + timeout
     while time.time() < limit:
@@ -2337,14 +2356,10 @@ def check_all_sql_connections_down_with_grpc(port, timeout=TIMEOUT):
 
 def add_bam_config_to_broker(name):
     """
-
-    add_bam_config_to_broker
-
     Add the bam configuration to broker.
 
     Args:
         name (str): The broker name to consider.
-
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -2395,10 +2410,7 @@ def add_bam_config_to_broker(name):
 
 def remove_poller(port, name, timeout=TIMEOUT):
     """
-
-    remove_poller
-
-    send a gRPC command to remove by name a poller
+    Send a gRPC command to remove by name a poller.
 
     Args:
         port (int): the gRPC port to use
@@ -2423,16 +2435,12 @@ def remove_poller(port, name, timeout=TIMEOUT):
 
 def remove_poller_by_id(port, idx, timeout=TIMEOUT):
     """
-
-    remove_poller_by_id
-
-    send a gRPC command to remove by id a poller
+    Send a gRPC command to remove by id a poller
 
     Args:
         port (int): the gRPC port to use
         idx (int): the poller name
         timeout (int, optional): Defaults to TIMEOUT.
-
     """
     limit = time.time() + timeout
     while time.time() < limit:
@@ -2451,6 +2459,16 @@ def remove_poller_by_id(port, idx, timeout=TIMEOUT):
 
 
 def check_poller_disabled_in_database(poller_id: int, timeout: int):
+    """
+    Check if all the hosts monitored by a poller are disabled.
+
+    Args:
+        poller_id: The poller ID.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True on success.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -2472,6 +2490,16 @@ def check_poller_disabled_in_database(poller_id: int, timeout: int):
 
 
 def check_poller_enabled_in_database(poller_id: int, timeout: int):
+    """
+    Check if at least one host monitored by a poller is enabled.
+
+    Args:
+        poller_id: The poller ID.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True on success.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -2488,11 +2516,23 @@ def check_poller_enabled_in_database(poller_id: int, timeout: int):
                 result = cursor.fetchall()
                 if len(result) > 0:
                     return True
-        time.sleep(5)
+        time.sleep(2)
     return False
 
 
-def get_broker_log_level(port, name, log, timeout=TIMEOUT):
+def get_broker_log_level(port, log, timeout=TIMEOUT):
+    """
+    Get the log level of a given logger. The timeout is due to the way we ask
+    for this information ; we use gRPC and the server may not be correctly
+    started.
+
+    Args:
+        port: The gRPC port to use.
+        log: The logger name.
+
+    Returns:
+        A string with the log level.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         logger.console("Try to call GetLogInfo")
@@ -2510,7 +2550,16 @@ def get_broker_log_level(port, name, log, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
+def set_broker_log_level(port, log, level, timeout=TIMEOUT):
+    """
+    Set the log level of a given logger.
+
+    Args:
+        port: The gRPC port.
+        log: The name of the logger.
+        level: The level to set.
+        timeout: A timeout in seconds, 30s by default.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         logger.console("Try to call SetLogLevel")
@@ -2540,9 +2589,6 @@ def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
 
 def get_broker_process_stat(port, timeout=10):
     """
-
-    get_broker_process_stat
-
     Call the GetGenericStats function by gRPC it works with both engine and broker
 
     Args:
@@ -2625,9 +2671,6 @@ def check_victoria_data(request_body: str, data_type: str, min_timestamp: int, *
 
 def check_victoria_metric(request_body: str, min_timestamp: int, **to_check):
     """
-
-    check_victoria_metric
-
     Return the value of a check if the metric is present in the request body and if it matches the given values.
 
     Args:
@@ -2645,9 +2688,6 @@ def check_victoria_metric(request_body: str, min_timestamp: int, **to_check):
 
 def check_victoria_status(request_body: str, min_timestamp: int, **to_check):
     """
-
-    check_victoria_status
-
     Return the value of a check if the status is present in the request body and if it matches the given values.
 
     Args:

@@ -36,10 +36,10 @@ BLEC1
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
     Start Broker
-    ${result}    Get Broker Log Level    51001    central    core
+    ${result}    Get Broker Log Level    51001    core
     Should Be Equal    ${result}    trace
-    Set Broker Log Level    51001    central    core    debug
-    ${result}    Get Broker Log Level    51001    central    core
+    Set Broker Log Level    51001    core    debug
+    ${result}    Get Broker Log Level    51001    core
     Should Be Equal    ${result}    debug
 
 BLEC2
@@ -51,9 +51,9 @@ BLEC2
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
     Start Broker
-    ${result}    Get Broker Log Level    51001    central    core
+    ${result}    Get Broker Log Level    51001    core
     Should Be Equal    ${result}    trace
-    ${result}    Set Broker Log Level    51001    central    core    foo
+    ${result}    Set Broker Log Level    51001    core    foo
     Should Be Equal    ${result}    Enum LogLevelEnum has no value defined for name 'FOO'
 
 BLEC3
@@ -65,5 +65,5 @@ BLEC3
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
     Start Broker
-    ${result}    Set Broker Log Level    51001    central    foo    trace
+    ${result}    Set Broker Log Level    51001    foo    trace
     Should Be Equal    ${result}    The 'foo' logger does not exist
