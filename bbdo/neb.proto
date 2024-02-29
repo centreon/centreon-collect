@@ -156,7 +156,6 @@ message Service {
   uint64 icon_id = 87;
 }
 
-
 /**
  * @brief Message sent in BBDO 3.0.0 instead of neb::service_status
  */
@@ -243,7 +242,7 @@ message AdaptiveService {
   optional string check_command = 11;
   optional uint32 check_interval = 12;
   optional uint32 retry_interval = 13;
-  optional uint32 max_check_attempts  = 14;
+  optional uint32 max_check_attempts = 14;
   optional bool check_freshness = 15;
   optional string check_period = 16;
   optional string notification_period = 17;
@@ -425,13 +424,13 @@ message AdaptiveHost {
   optional bool flap_detection = 7;
   optional bool obsess_over_host = 8;
   optional string event_handler = 9;
-  optional string check_command  = 10;
-  optional uint32 check_interval  = 11;
-  optional uint32 retry_interval  = 12;
-  optional uint32 max_check_attempts  = 13;
+  optional string check_command = 10;
+  optional uint32 check_interval = 11;
+  optional uint32 retry_interval = 12;
+  optional uint32 max_check_attempts = 13;
   optional bool check_freshness = 14;
-  optional string check_period  = 15;
-  optional string notification_period  = 16;
+  optional string check_period = 15;
+  optional string notification_period = 16;
 }
 
 /*io::neb, neb::de_pb_comment*/
@@ -480,10 +479,10 @@ message Comment {
 /*io::neb, neb::de_pb_downtime*/
 message Downtime {
   enum DowntimeType {
-  NOT_USED = 0;
-  SERVICE = 1;
-  HOST = 2;
-  ANY = 3;
+    NOT_USED = 0;
+    SERVICE = 1;
+    HOST = 2;
+    ANY = 3;
   };
   uint64 id = 1;
   uint64 instance_id = 2;
@@ -526,19 +525,19 @@ message CustomVariable {
 }
 
 enum CheckType {
-    CheckActive = 0;
-    CheckPassive = 1;
+  CheckActive = 0;
+  CheckPassive = 1;
 }
 
 /*io::neb, neb::de_pb_host_check*/
 message HostCheck {
-    BBDOHeader header = 1;
+  BBDOHeader header = 1;
 
-    bool active_checks_enabled = 2;
-    CheckType check_type = 3;
-    string command_line = 4;
-    uint64 host_id = 5;
-    uint64 next_check = 6;
+  bool active_checks_enabled = 2;
+  CheckType check_type = 3;
+  string command_line = 4;
+  uint64 host_id = 5;
+  uint64 next_check = 6;
 }
 
 /*io::neb, neb::de_pb_service_check*/
@@ -601,7 +600,7 @@ message InstanceStatus {
   bool active_host_checks = 5;
   bool active_service_checks = 6;
   bool check_hosts_freshness = 7;
-  bool check_services_freshness =  8;
+  bool check_services_freshness = 8;
   string global_host_event_handler = 9;
   string global_service_event_handler = 10;
   uint64 last_alive = 11;
@@ -659,7 +658,7 @@ message Acknowledgement {
 message HostDependency {
   BBDOHeader header = 1;
 
-  string dependency_period= 2;
+  string dependency_period = 2;
   uint64 dependent_host_id = 3;
   bool enabled = 4;
   string execution_failure_options = 5;
@@ -668,12 +667,11 @@ message HostDependency {
   string notification_failure_options = 8;
 }
 
-
 /*io::neb, neb::de_pb_service_dependency*/
 message ServiceDependency {
   BBDOHeader header = 1;
 
-  string dependency_period= 2;
+  string dependency_period = 2;
   uint64 dependent_host_id = 3;
   bool enabled = 4;
   string execution_failure_options = 5;
@@ -694,7 +692,6 @@ message HostGroup {
   uint64 poller_id = 5;
 }
 
-
 /*io::neb, neb::de_pb_service_group*/
 message ServiceGroup {
   BBDOHeader header = 1;
@@ -704,7 +701,6 @@ message ServiceGroup {
   string name = 4;
   uint64 poller_id = 5;
 }
-
 
 /*io::neb, neb::de_pb_host_group_member*/
 message HostGroupMember {
@@ -729,3 +725,11 @@ message ServiceGroupMember {
   uint64 service_id = 7;
 }
 
+/*io::neb, neb::de_pb_host_parent*/
+message HostParent {
+  BBDOHeader header = 1;
+
+  bool enabled = 2;
+  uint64 child_id = 3;
+  uint64 parent_id = 4;
+}
