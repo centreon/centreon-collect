@@ -408,26 +408,25 @@ passive_checks_enabled 1
     def create_tags(poller: int, nb: int, offset: int, tag_type: str):
         tt = ["servicegroup", "hostgroup", "servicecategory", "hostcategory"]
 
-        config_file = "{}/config{}/tags.cfg".format(CONF_DIR, poller)
-        ff = open(config_file, "w+")
-        content = ""
-        tid = 0
-        for i in range(nb):
-            if not tag_type:
-                 if i % 4 == 0:
-                     tid += 1
-                 typ = tt[i % 4]
-            else:
-                 typ = tag_type
-                 tid += 1
-            content += """define tag {{
-    id                     {0}
-    name                   tag{2}
-    type                   {1}
+        config_file = f"{CONF_DIR}/config{poller}/tags.cfg"
+        with open(config_file, "w+") as ff:
+            content = ""
+            tid = 0
+            for i in range(nb):
+                if len(tag_type) > 0:
+                    typ = tag_type
+                    tid += 1
+                else:
+                    if i % 4 == 0:
+                        tid += 1
+                    typ = tt[i % 4]
+                content += f"""define tag {{
+    id                     {tid}
+    tag_name               tag{i + offset}
+    type                   {typ}
 }}
-""".format(tid, typ, i + offset)
-        ff.write(content)
-        ff.close()
+"""
+            ff.write(content)
 
     def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
         if exists(CONF_DIR):
