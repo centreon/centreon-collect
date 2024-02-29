@@ -2481,6 +2481,28 @@ def remove_tags_from_hosts(poller: int, type: str):
         ff.writelines(lines)
 
 
+def add_parent_to_host(poller: int, host: str, parent_host: str):
+    """
+    Add a parent host to an host.
+
+    Args:
+        poller: index of the Engine configuration (from 0)
+        host: child host name.
+        parent_host: host name of the parent of the child host.
+    """
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(rf"^\s*host_name\s+{host}$")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines.insert(
+                i + 1, f"    parents                        {parent_host}\n")
+            break
+
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+        ff.writelines(lines)
+
+
 def add_template_to_services(poller: int, tmpl: str, svc_lst):
     """
     Add a service template to services.
