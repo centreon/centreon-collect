@@ -1212,19 +1212,29 @@ void stream::_process_host_dependency(const std::shared_ptr<io::data>& d) {
                        hd.execution_failure_options,
                        hd.notification_failure_options);
 
-    // Prepare queries.
-    if (!_host_dependency_insupdate.prepared()) {
-      query_preparator::event_unique unique;
-      unique.insert("host_id");
-      unique.insert("dependent_host_id");
-      query_preparator qp(neb::host_dependency::static_type(), unique);
-      _host_dependency_insupdate = qp.prepare_insert_or_update(_mysql);
-    }
-
     // Process object.
-    _host_dependency_insupdate << hd;
-    _mysql.run_statement(_host_dependency_insupdate,
-                         database::mysql_error::store_host_dependency, conn);
+    if (!hd.execution_failure_options.empty()) {
+      _host_exe_dependency_insupdate.bind_value_as_i32(0, hd.dependent_host_id);
+      _host_exe_dependency_insupdate.bind_value_as_i32(1, hd.host_id);
+      _host_exe_dependency_insupdate.bind_value_as_str(2, hd.dependency_period);
+      _host_exe_dependency_insupdate.bind_value_as_str(
+          3, hd.execution_failure_options);
+      _host_exe_dependency_insupdate.bind_value_as_tiny(4, hd.inherits_parent);
+      _mysql.run_statement(_host_exe_dependency_insupdate,
+                           database::mysql_error::store_host_dependency, conn);
+    } else if (!hd.notification_failure_options.empty()) {
+      _host_notif_dependency_insupdate.bind_value_as_i32(0,
+                                                         hd.dependent_host_id);
+      _host_notif_dependency_insupdate.bind_value_as_i32(1, hd.host_id);
+      _host_notif_dependency_insupdate.bind_value_as_str(2,
+                                                         hd.dependency_period);
+      _host_notif_dependency_insupdate.bind_value_as_str(
+          3, hd.notification_failure_options);
+      _host_notif_dependency_insupdate.bind_value_as_tiny(4,
+                                                          hd.inherits_parent);
+      _mysql.run_statement(_host_notif_dependency_insupdate,
+                           database::mysql_error::store_host_dependency, conn);
+    }
     _add_action(conn, actions::host_dependencies);
   }
   // Delete.
@@ -1269,33 +1279,32 @@ void stream::_process_pb_host_dependency(const std::shared_ptr<io::data>& d) {
         hd.dependent_host_id(), hd.host_id(), hd.execution_failure_options(),
         hd.notification_failure_options());
 
-    // Prepare queries.
-    if (!_pb_host_dependency_insupdate.prepared()) {
-      query_preparator::event_pb_unique unique{
-          {6, "host_id", io::protobuf_base::invalid_on_zero, 0},
-          {3, "dependent_host_id", io::protobuf_base::invalid_on_zero, 0}};
-      query_preparator qp(neb::pb_host_dependency::static_type(), unique);
-      _pb_host_dependency_insupdate = qp.prepare_insert_or_update_table(
-          _mysql, "hosts_hosts_dependencies ", /*space is mandatory to avoid
-                               conflict with _process_host_dependency*/
-          {{3, "dependent_host_id", io::protobuf_base::invalid_on_zero, 0},
-           {6, "host_id", io::protobuf_base::invalid_on_zero, 0},
-           {2, "dependency_period", 0,
-            get_hosts_hosts_dependencies_col_size(
-                hosts_hosts_dependencies_dependency_period)},
-           {5, "execution_failure_options", 0,
-            get_hosts_hosts_dependencies_col_size(
-                hosts_hosts_dependencies_execution_failure_options)},
-           {7, "inherits_parent", 0, 0},
-           {8, "notification_failure_options", 0,
-            get_hosts_hosts_dependencies_col_size(
-                hosts_hosts_dependencies_notification_failure_options)}});
-    }
-
     // Process object.
-    _pb_host_dependency_insupdate << hd_protobuf;
-    _mysql.run_statement(_pb_host_dependency_insupdate,
-                         database::mysql_error::store_host_dependency, conn);
+    if (!hd.execution_failure_options().empty()) {
+      _host_exe_dependency_insupdate.bind_value_as_i32(0,
+                                                       hd.dependent_host_id());
+      _host_exe_dependency_insupdate.bind_value_as_i32(1, hd.host_id());
+      _host_exe_dependency_insupdate.bind_value_as_str(2,
+                                                       hd.dependency_period());
+      _host_exe_dependency_insupdate.bind_value_as_str(
+          3, hd.execution_failure_options());
+      _host_exe_dependency_insupdate.bind_value_as_tiny(4,
+                                                        hd.inherits_parent());
+      _mysql.run_statement(_host_exe_dependency_insupdate,
+                           database::mysql_error::store_host_dependency, conn);
+    } else if (!hd.notification_failure_options().empty()) {
+      _host_notif_dependency_insupdate.bind_value_as_i32(
+          0, hd.dependent_host_id());
+      _host_notif_dependency_insupdate.bind_value_as_i32(1, hd.host_id());
+      _host_notif_dependency_insupdate.bind_value_as_str(
+          2, hd.dependency_period());
+      _host_notif_dependency_insupdate.bind_value_as_str(
+          3, hd.notification_failure_options());
+      _host_notif_dependency_insupdate.bind_value_as_tiny(4,
+                                                          hd.inherits_parent());
+      _mysql.run_statement(_host_notif_dependency_insupdate,
+                           database::mysql_error::store_host_dependency, conn);
+    }
     _add_action(conn, actions::host_dependencies);
   }
   // Delete.

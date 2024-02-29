@@ -1317,6 +1317,22 @@ void stream::_init_statements() {
       "last_check=?,"                 // 9: last_check
       "output=? "                     // 10: output
       "WHERE id=? AND parent_id=?");  // 11, 12: service_id and host_id
+  const std::string host_exe_dep_query(
+      "INSERT INTO hosts_hosts_dependencies (dependent_host_id, host_id, "
+      "dependency_period, execution_failure_options, inherits_parent) "
+      "VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+      "dependency_period=VALUES(dependency_period), "
+      "execution_failure_options=VALUES(execution_failure_options), "
+      "inherits_parent=VALUES(inherits_parent)");
+  _host_exe_dependency_insupdate = _mysql.prepare_query(host_exe_dep_query);
+  const std::string host_notif_dep_query(
+      "INSERT INTO hosts_hosts_dependencies (dependent_host_id, host_id, "
+      "dependency_period, notification_failure_options, inherits_parent) "
+      "VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+      "dependency_period=VALUES(dependency_period), "
+      "notification_failure_options=VALUES(notification_failure_options), "
+      "inherits_parent=VALUES(inherits_parent)");
+  _host_notif_dependency_insupdate = _mysql.prepare_query(host_notif_dep_query);
   if (_store_in_hosts_services) {
     if (_bulk_prepared_statement) {
       auto hu = std::make_unique<database::mysql_bulk_stmt>(hscr_query);
