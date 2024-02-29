@@ -30,3 +30,150 @@ The main main job is done by whitelist class, it parses file and compares final 
 This class is a singleton witch is replace by another instance each time conf is reloaded.
 
 Checkable class inherited by service and host classes keeps the last result of whitelist's check in cache in order to reduce CPU whitelist usage.
+
+
+## Open-telemetry
+### Principe
+Engine can receive open telemetry data on a grpc server
+A new module is added otl_server
+It works like that:
+* metrics are received
+* extractors tries to extract host name and service description for each data_point. On success, data_point are pushed on fifos indexed by host, service
+* a service that used these datas wants to do a check. The cmd line identifies the otl_converter that will construct check result from host service data_point fifos. If converter achieves to build a result from metrics, it returns right now, if it doesn't, a handler will be called as soon as needed metrics will be available or timeout expires.
+
+### open telemetry request
+The proto is organized like that
+```json
+{
+    "resourceMetrics": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "attrib1",
+                        "value": {
+                            "stringValue": "attrib value"
+                        }
+                    }
+                ]
+            },
+            "scopeMetrics": [
+                {
+                    "scope": {
+                        "attributes": [
+                            {
+                                "key": "attrib1",
+                                "value": {
+                                    "stringValue": "attrib value"
+                                }
+                            }
+                        ]
+                    },
+                    "metrics": [
+                        {
+                            "name": "check_icmp_warning_gt",
+                            "gauge": {
+                                "dataPoints": [
+                                    {
+                                        "timeUnixNano": "1707744430000000000",
+                                        "asDouble": 200,
+                                        "attributes": [
+                                            {
+                                                "key": "host",
+                                                "value": {
+                                                    "stringValue": "localhost"
+                                                }
+                                            },
+                                            {
+                                                "key": "perfdata",
+                                                "value": {
+                                                    "stringValue": "rta"
+                                                }
+                                            },
+                                            {
+                                                "key": "service",
+                                                "value": {
+                                                    "stringValue": "check_icmp"
+                                                }
+                                            },
+                                            {
+                                                "key": "unit",
+                                                "value": {
+                                                    "stringValue": "ms"
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "timeUnixNano": "1707744430000000000",
+                                        "asDouble": 40,
+                                        "attributes": [
+                                            {
+                                                "key": "host",
+                                                "value": {
+                                                    "stringValue": "localhost"
+                                                }
+                                            },
+                                            {
+                                                "key": "perfdata",
+                                                "value": {
+                                                    "stringValue": "pl"
+                                                }
+                                            },
+                                            {
+                                                "key": "service",
+                                                "value": {
+                                                    "stringValue": "check_icmp"
+                                                }
+                                            },
+                                            {
+                                                "key": "unit",
+                                                "value": {
+                                                    "stringValue": "%"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+
+```
+
+### Concepts and classes
+* data_point: data_point is the smallest unit of received request, data_point class contains data_point protobuf object and all his parents (resource, scope, metric)
+* host serv extractors: When we receive otel metrics, we must extract host and service, this is his job. It can be configurable in order for example to search host name in data_point attribute or in scope. host serv extractors also contains host serv allowed. This list is updated by register_host_serv command method
+* data_point fifo: a container that contains data points indexed by timestamp
+* data_point fifo container: fifos indexed by host service
+* otel_command: a fake connector that is used to make the link between engine and otel module
+* otl_server: a grpc server that accept otel collector incoming connections
+* otl_converter: This short lived object is created each time engine wants to do a check. His final class as his configuration is done from the command line of the check. His job is to create a check result from data_point fifo container datas. It's destroyed when he achieved to create a check result or when timeout expires.
+
+### How engine access to otl object
+In otel_interface.hh, otel object interface are defined in engine commands namespace.
+Object used by both otel module and engine are inherited from these interfaces.
+Engine only knows a singleton of the interface open_telemetry_base. This singleton is initialized at otl module loading.
+
+### How to configure it
+We use a fake connector. When configuration is loaded, if a connector command line begins with "open_telemetry", we create an otel_command. Arguments following "open_telemetry" are used to create an host service extractor. If otel module is loaded, we create extractor, otherwise, the otel_command initialization will be done at otel module loading.
+So user has to build one connector by host serv extractor configuration.
+Then commands can use these fake connectors (class otel_command) to run checks.
+
+### How a service do a check
+When otel_command::run is called, it calls the check method of open_telemetry singleton.
+The check method of open_telemetry object will use command line passed to run to create an otl_converter object that has to convert metrics to check result.
+The open_telemetry call sync_build_result_from_metrics, if it can't achieve to build a result, otl_converter is stored in a container.
+When a metric of a waiting service is received, async_build_result_from_metrics of otl_converter is called.
+In open_telemetry object, a second timer is also used to call async_time_out of otl_converter on timeout expire.
+
+### other configuration
+other configuration parameters are stored in a dedicated json file. The path of this file is passed as argument in centengine.cfg
+Example: broker_module=lib/libotl_server.so /etc/centreon_engine/otl_server.json
+In this file there are grpc server parameters and some other parameters.
+
