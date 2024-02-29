@@ -48,7 +48,8 @@ otl_converter::otl_converter(const std::string& cmd_line,
                              const service* service,
                              std::chrono::system_clock::time_point timeout,
                              commands::otel::result_callback&& handler)
-    : _command_id(command_id),
+    : _cmd_line(cmd_line),
+      _command_id(command_id),
       _host_serv{host.name(), service ? service->description() : ""},
       _timeout(timeout),
       _callback(handler) {}
@@ -197,15 +198,58 @@ https://github.com/influxdata/telegraf/blob/master/plugins/parsers/nagios/parser
 namespace com::centreon::engine::modules::otl_server::detail {
 
 struct perf_data {
-  std::string_view unit;
+  std::string unit;
   std::optional<double> val;
   std::optional<double> warning_le, warning_lt, warning_ge, warning_gt;
   std::optional<double> critical_le, critical_lt, critical_ge, critical_gt;
   std::optional<double> min, max;
+
+  bool fill_from_suffix(const std::string_view& suffix, double value);
+
+  static const absl::flat_hash_map<std::string_view,
+                                   std::optional<double> perf_data::*>
+      _suffix_to_value;
 };
+
+const absl::flat_hash_map<std::string_view, std::optional<double> perf_data::*>
+    perf_data::_suffix_to_value = {{"warning_le", &perf_data::warning_le},
+                                   {"warning_lt", &perf_data::warning_lt},
+                                   {"warning_ge", &perf_data::warning_ge},
+                                   {"warning_gt", &perf_data::warning_gt},
+                                   {"critical_le", &perf_data::critical_le},
+                                   {"critical_lt", &perf_data::critical_lt},
+                                   {"critical_ge", &perf_data::critical_ge},
+                                   {"critical_gt", &perf_data::critical_gt},
+                                   {"min", &perf_data::min},
+                                   {"max", &perf_data::max},
+                                   {"value", &perf_data::val}};
+
+/**
+ * @brief fill field identified by suffix
+ *
+ * @param suffix
+ * @param value
+ * @return true suffix is known
+ * @return false suffix is unknown and no value is set
+ */
+bool perf_data::fill_from_suffix(const std::string_view& suffix, double value) {
+  auto search = _suffix_to_value.find(suffix);
+  if (search != _suffix_to_value.end()) {
+    this->*search->second = value;
+    return true;
+  }
+  SPDLOG_LOGGER_WARN(log_v2::otl(), "unknown suffix {}", suffix);
+  return false;
+}
 
 }  // namespace com::centreon::engine::modules::otl_server::detail
 
+/**
+ * @brief metric name in nagios telegraf are like check_icmp_min,
+ * check_icmp_critical_lt, check_icmp_value we extract all after check_icmp
+ * @param metric_name
+ * @return std::string_view suffix like min or critical_lt
+ */
 static std::string_view get_nagios_telegraf_suffix(
     const std::string_view metric_name) {
   std::size_t sep_pos = metric_name.rfind('_');
@@ -213,9 +257,9 @@ static std::string_view get_nagios_telegraf_suffix(
     return "";
   }
   std::string_view last_word = metric_name.substr(sep_pos + 1);
-  if (last_word == "lt" || last_word == "gt" || last_word == "lt" ||
-      last_word == "gt" && sep_pos > 0) {  // critical_lt or warning_le
-    sep_pos = metric_name.find('_', sep_pos - 1);
+  if (last_word == "lt" || last_word == "gt" || last_word == "le" ||
+      last_word == "ge" && sep_pos > 0) {  // critical_lt or warning_le
+    sep_pos = metric_name.rfind('_', sep_pos - 1);
     if (sep_pos != std::string_view::npos) {
       return metric_name.substr(sep_pos + 1);
     }
@@ -226,7 +270,8 @@ static std::string_view get_nagios_telegraf_suffix(
 /**
  * @brief
  *
- * @param fifos
+ * @param fifos fifos indexed by metric_name such as check_icmp_critical_gt,
+ * check_icmp_state
  * @return com::centreon::engine::commands::result
  */
 bool otl_nagios_telegraf_converter::_build_result_from_metrics(
@@ -235,13 +280,14 @@ bool otl_nagios_telegraf_converter::_build_result_from_metrics(
   // first we search last state timestamp
   uint64_t last_time = 0;
 
-  for (const auto& metric_to_fifo : fifos) {
+  for (auto& metric_to_fifo : fifos) {
     if (get_nagios_telegraf_suffix(metric_to_fifo.first) == "state") {
-      const auto& fifo = metric_to_fifo.second.get_fifo();
+      auto& fifo = metric_to_fifo.second.get_fifo();
       if (!fifo.empty()) {
         const auto& last_sample = *fifo.rbegin();
         last_time = last_sample.get_nano_timestamp();
         res.exit_code = last_sample.get_value();
+        metric_to_fifo.second.clear();
       }
       break;
     }
@@ -254,22 +300,28 @@ bool otl_nagios_telegraf_converter::_build_result_from_metrics(
   res.end_time = res.start_time = last_time / 1000000000;
 
   // construct perfdata list by perfdata name
-  absl::flat_hash_map<std::string_view, detail::perf_data> perfs;
+  std::map<std::string, detail::perf_data> perfs;
 
-  for (const auto& metric_to_fifo : fifos) {
-    const auto& data_pt_search =
-        metric_to_fifo.second.get_fifo().find(last_time);
-    if (data_pt_search != metric_to_fifo.second.get_fifo().end()) {
-      std::string_view suffix =
-          get_nagios_telegraf_suffix(metric_to_fifo.first);
-      const auto attributes = data_pt_search->get_data_point_attributes();
-      std::string_view perfdata_name;
-      std::string_view unit;
+  for (auto& metric_to_fifo : fifos) {
+    std::string_view suffix = get_nagios_telegraf_suffix(metric_to_fifo.first);
+    const data_point_fifo::container& data_points =
+        metric_to_fifo.second.get_fifo();
+    // we scan all data points for that metric (example check_icmp_critical_gt
+    // can contain a data point for pl and another for rta)
+    auto data_pt_search = data_points.equal_range(last_time);
+    for (; data_pt_search.first != data_pt_search.second;
+         ++data_pt_search.first) {
+      const auto attributes = data_pt_search.first->get_data_point_attributes();
+      std::string perfdata_name;
+      std::string unit;
       for (const auto& attrib : attributes) {
         if (attrib.key() == "perfdata") {
           perfdata_name = attrib.value().string_value();
+        } else if (attrib.key() == "unit") {
           unit = attrib.value().string_value();
-          ;
+        }
+        if (!perfdata_name.empty() && !unit.empty()) {
+          break;
         }
       }
       if (!perfdata_name.empty()) {
@@ -277,31 +329,10 @@ bool otl_nagios_telegraf_converter::_build_result_from_metrics(
         if (!unit.empty()) {
           to_fill.unit = unit;
         }
-        if (suffix == "critical_le") {
-          to_fill.critical_le = data_pt_search->get_value();
-        } else if (suffix == "critical_ge") {
-          to_fill.critical_ge = data_pt_search->get_value();
-        } else if (suffix == "critical_lt") {
-          to_fill.critical_lt = data_pt_search->get_value();
-        } else if (suffix == "critical_gt") {
-          to_fill.critical_gt = data_pt_search->get_value();
-        } else if (suffix == "critical_le") {
-          to_fill.critical_le = data_pt_search->get_value();
-        } else if (suffix == "critical_ge") {
-          to_fill.critical_ge = data_pt_search->get_value();
-        } else if (suffix == "critical_lt") {
-          to_fill.critical_lt = data_pt_search->get_value();
-        } else if (suffix == "critical_gt") {
-          to_fill.critical_gt = data_pt_search->get_value();
-        } else if (suffix == "min") {
-          to_fill.min = data_pt_search->get_value();
-        } else if (suffix == "max") {
-          to_fill.max = data_pt_search->get_value();
-        } else if (suffix == "value") {
-          to_fill.val = data_pt_search->get_value();
-        }
+        to_fill.fill_from_suffix(suffix, data_pt_search.first->get_value());
       }
     }
+    metric_to_fifo.second.clean_oldest(last_time);
   }
 
   // then format all in a string with format:
@@ -352,5 +383,7 @@ bool otl_nagios_telegraf_converter::_build_result_from_metrics(
       res.output.push_back(' ');
     }
   }
+  // remove last space
+  res.output.pop_back();
   return true;
 }

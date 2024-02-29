@@ -23,6 +23,57 @@
 
 using namespace com::centreon::engine::modules::otl_server;
 
+/**
+ * @brief add a host serv allowed for extraction
+ *
+ * @param host
+ * @param service_description empty if host command
+ */
+void host_serv_extractor::register_host_serv(
+    const std::string& host,
+    const std::string& service_description) {
+  absl::WriterMutexLock l(&_host_serv_allowed_m);
+  _host_serv_allowed[host].emplace(service_description);
+}
+
+/**
+ * @brief remove a host serv allowed for extraction
+ *
+ * @param host
+ * @param service_description empty if host command
+ */
+void host_serv_extractor::unregister_host_serv(
+    const std::string& host,
+    const std::string& service_description) {
+  absl::WriterMutexLock l(&_host_serv_allowed_m);
+  auto host_iter = _host_serv_allowed.find(host);
+  if (host_iter != _host_serv_allowed.end()) {
+    host_iter->second.erase(service_description);
+    if (host_iter->second.empty()) {
+      _host_serv_allowed.erase(host_iter);
+    }
+  }
+}
+
+/**
+ * @brief test if a host serv is allowed for this extractor
+ *
+ * @param host
+ * @param service_description
+ * @return true
+ * @return false
+ */
+bool host_serv_extractor::is_allowed(
+    const std::string& host,
+    const std::string& service_description) const {
+  absl::ReaderMutexLock l(&_host_serv_allowed_m);
+  auto host_iter = _host_serv_allowed.find(host);
+  if (host_iter == _host_serv_allowed.end()) {
+    return false;
+  }
+  return host_iter->second.contains(service_description);
+}
+
 namespace com::centreon::engine::modules::otl_server::options {
 
 /**
@@ -70,82 +121,13 @@ std::shared_ptr<host_serv_extractor> host_serv_extractor::create(
 
   boost::trim(params);
 
-  if (conf_type == "attributes") {
+  if (conf_type.empty() || conf_type == "attributes") {
     return std::make_shared<host_serv_attributes_extractor>(params);
   } else {
     SPDLOG_LOGGER_ERROR(log_v2::otl(), "unknown converter type:{}", conf_type);
     throw exceptions::msg_fmt("unknown converter type:{}", conf_type);
   }
 }
-
-/**
- * @brief create a host_serv_extractor_config from a command line
- * first field identify type of config
- * Example:
- * @code {.c++}
- * host_serv_extractor_config::pointer conf =
- * host_serv_extractor_config::load("attributes --host_attribute=data_point
- * --host_tag=host --service_attribute=data_point --service_tag=service");
- * @endcode
- *
- * @param cmd_line
- * @return host_serv_extractor_config::pointer
- * @throw if cmdline can't be parsed
- */
-// host_serv_extractor_config::pointer host_serv_extractor_config::load(
-//     const std::string& cmd_line) {
-//   size_t sep_pos = cmd_line.find(' ');
-//   std::string conf_type =
-//       sep_pos == std::string::npos ? cmd_line : cmd_line.substr(0, sep_pos);
-//   boost::trim(conf_type);
-//   std::string params =
-//       sep_pos == std::string::npos ? "" : cmd_line.substr(sep_pos + 1);
-//   if (conf_type.empty() || conf_type == "attributes") {
-//     return std::make_shared<host_serv_attributes_extractor_config>(params);
-//   } else {
-//     SPDLOG_LOGGER_ERROR(log_v2::otl(), "unknown otel extractor config {}",
-//                         cmd_line);
-//     throw exceptions::msg_fmt("unknown otel extractor config {}", cmd_line);
-//   }
-// }
-
-/**
- * @brief Construct a new host serv attributes extractor config object
- *
- * path must follow this syntax:
- * (resource|scope|data_point).<tag name>
- *
- * @param cmd_line
- */
-// host_serv_attributes_extractor_config::host_serv_attributes_extractor_config(
-//     const std::string& cmd_line)
-//     : host_serv_extractor_config(e_attributes) {
-//   options::host_serv_attributes_extractor_config_options args;
-//   args.parse(cmd_line);
-
-//   auto parse_param =
-//       [&args](
-//           const std::string& attribute,
-//           const std::string& tag) -> std::pair<attribute_owner, std::string>
-//           {
-//     const std::string& path = args.get_argument(attribute).get_value();
-//     attribute_owner owner;
-//     if (path == "resource") {
-//       owner = attribute_owner::resource;
-//     } else if (path == "scope") {
-//       owner = attribute_owner::scope;
-//     } else {
-//       owner = attribute_owner::data_point;
-//     }
-
-//     std::string ret_tag = args.get_argument(tag).get_value();
-//     return std::make_pair(owner, ret_tag);
-//   };
-
-//   std::tie(_host_path, _host_tag) = parse_param("host_attribute",
-//   "host_tag"); std::tie(_serv_path, _serv_tag) =
-//       parse_param("service_attribute", "service_tag");
-// }
 
 host_serv_attributes_extractor::host_serv_attributes_extractor(
     const std::string& command_line)
@@ -171,17 +153,27 @@ host_serv_attributes_extractor::host_serv_attributes_extractor(
     return std::make_pair(owner, ret_tag);
   };
 
-  std::tie(_host_path, _host_tag) = parse_param("host_attribute", "host_tag");
-  std::tie(_serv_path, _serv_tag) =
-      parse_param("service_attribute", "service_tag");
+  try {
+    std::tie(_host_path, _host_tag) = parse_param("host_attribute", "host_tag");
+  } catch (const std::exception&) {  // default configuration
+    _host_path = attribute_owner::data_point;
+    _host_tag = "host";
+  }
+  try {
+    std::tie(_serv_path, _serv_tag) =
+        parse_param("service_attribute", "service_tag");
+  } catch (const std::exception&) {  // default configuration
+    _serv_path = attribute_owner::data_point;
+    _serv_tag = "service";
+  }
 }
-
-static const std::string _empty_str;
 
 host_serv_metric host_serv_attributes_extractor::extract_host_serv_metric(
     const data_point& data_pt) const {
-  auto extract = [](const data_point& data_pt, attribute_owner owner,
-                    const std::string& tag) -> const std::string& {
+  auto extract =
+      [](const data_point& data_pt, attribute_owner owner,
+         const std::string& tag) -> absl::flat_hash_set<std::string_view> {
+    absl::flat_hash_set<std::string_view> ret;
     const ::google::protobuf::RepeatedPtrField<
         ::opentelemetry::proto::common::v1::KeyValue>* attributes = nullptr;
     switch (owner) {
@@ -195,21 +187,28 @@ host_serv_metric host_serv_attributes_extractor::extract_host_serv_metric(
         attributes = &data_pt.get_resource().attributes();
         break;
       default:
-        return _empty_str;
+        return ret;
     }
     for (const auto& key_val : *attributes) {
       if (key_val.key() == tag && key_val.value().has_string_value()) {
-        return key_val.value().string_value();
+        ret.insert(key_val.value().string_value());
       }
     }
-    return _empty_str;
+    return ret;
   };
 
   host_serv_metric ret;
-  ret.host = extract(data_pt, _host_path, _host_tag);
-  if (!ret.host.empty()) {
-    ret.service = extract(data_pt, _serv_path, _serv_tag);
-    ret.metric = data_pt.get_metric().name();
+
+  absl::flat_hash_set<std::string_view> hosts =
+      extract(data_pt, _host_path, _host_tag);
+
+  if (!hosts.empty()) {
+    absl::flat_hash_set<std::string_view> services =
+        extract(data_pt, _serv_path, _serv_tag);
+    ret = is_allowed(hosts, services);
+    if (!ret.host.empty()) {
+      ret.metric = data_pt.get_metric().name();
+    }
   }
 
   return ret;

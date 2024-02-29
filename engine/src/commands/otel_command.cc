@@ -16,8 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/synchronization/notification.h>
-
 #include "com/centreon/engine/commands/otel_command.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -200,18 +198,19 @@ void otel_command::run(const std::string& processed_cmd,
 
   uint64_t command_id(get_uniq_id());
 
-  absl::Notification notif;
+  std::condition_variable cv;
+  std::mutex cv_m;
 
-  bool res_available =
-      otel->check(processed_cmd, command_id, macros, timeout, res,
-                  [&res, &notif](const result& async_res) {
-                    res = async_res;
-                    notif.Notify();
-                  });
+  bool res_available = otel->check(processed_cmd, command_id, macros, timeout,
+                                   res, [&res, &cv](const result& async_res) {
+                                     res = async_res;
+                                     cv.notify_one();
+                                   });
 
   // no data_point available => wait util available or timeout
   if (!res_available) {
-    notif.WaitForNotification();
+    std::unique_lock l(cv_m);
+    cv.wait(l);
   }
   SPDLOG_LOGGER_TRACE(log_v2::otl(),
                       "otel_command::end sync_run: connector='{}', cmd='{}', "
@@ -240,4 +239,34 @@ void otel_command::init() {
  */
 void otel_command::reset_extractor() {
   _extractor.reset();
+}
+
+/**
+ * @brief add a host service allowed by the extractor of the connector
+ *
+ * @param host
+ * @param service_description empty if host command
+ */
+void otel_command::register_host_serv(const std::string& host,
+                                      const std::string& service_description) {
+  std::shared_ptr<otel::host_serv_extractor> extract = _extractor;
+  if (extract) {
+    extract->register_host_serv(host, service_description);
+  }
+}
+
+/**
+ * @brief remove a host service from host service allowed by the extractor of
+ * the connector
+ *
+ * @param host
+ * @param service_description empty if host command
+ */
+void otel_command::unregister_host_serv(
+    const std::string& host,
+    const std::string& service_description) {
+  std::shared_ptr<otel::host_serv_extractor> extract = _extractor;
+  if (extract) {
+    extract->unregister_host_serv(host, service_description);
+  }
 }

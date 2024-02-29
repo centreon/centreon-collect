@@ -27,6 +27,12 @@ namespace com::centreon::engine::commands::otel {
 class host_serv_extractor {
  public:
   virtual ~host_serv_extractor() = default;
+
+  virtual void register_host_serv(const std::string& host,
+                                  const std::string& service_description) = 0;
+
+  virtual void unregister_host_serv(const std::string& host,
+                                    const std::string& service_description) = 0;
 };
 
 using result_callback = std::function<void(const result&)>;

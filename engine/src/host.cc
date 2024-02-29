@@ -301,6 +301,13 @@ host::host(uint64_t host_id,
                 (flap_detection_on_up > 0 ? up : 0));
 }
 
+host::~host() {
+  std::shared_ptr<commands::command> cmd = get_check_command_ptr();
+  if (cmd) {
+    cmd->unregister_host_serv(name(), "");
+  }
+}
+
 uint64_t host::host_id() const {
   return _id;
 }
@@ -4024,4 +4031,25 @@ void host::resolve(int& w, int& e) {
 timeperiod* host::get_notification_timeperiod() const {
   /* if the service has no notification period, inherit one from the host */
   return get_notification_period_ptr();
+}
+
+/**
+ * @brief update check command
+ *
+ * @param cmd
+ */
+void host::set_check_command_ptr(
+    const std::shared_ptr<commands::command>& cmd) {
+  std::shared_ptr<commands::command> old = get_check_command_ptr();
+  if (cmd == old) {
+    return;
+  }
+
+  if (old) {
+    old->unregister_host_serv(name(), "");
+  }
+  notifier::set_check_command_ptr(cmd);
+  if (cmd) {
+    cmd->register_host_serv(name(), "");
+  }
 }

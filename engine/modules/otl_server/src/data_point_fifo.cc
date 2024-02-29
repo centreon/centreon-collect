@@ -20,10 +20,10 @@
 
 using namespace com::centreon::engine::modules::otl_server;
 
-unsigned data_point_fifo::_second_datapoint_expiry = 600;
+time_t data_point_fifo::_second_datapoint_expiry = 600;
 size_t data_point_fifo::_max_size = 2;
 
-void data_point_fifo::update_fifo_limit(unsigned second_datapoint_expiry,
+void data_point_fifo::update_fifo_limit(time_t second_datapoint_expiry,
                                         size_t max_size) {
   _second_datapoint_expiry = second_datapoint_expiry;
   _max_size = max_size;
@@ -38,6 +38,9 @@ void data_point_fifo::clean() {
   if (!_fifo.empty()) {
     auto first = _fifo.begin();
     time_t expiry = time(nullptr) - _second_datapoint_expiry;
+    if (expiry < 0) {
+      expiry = 0;
+    }
 
     while (!_fifo.empty() &&
            first->get_nano_timestamp() / 1000000000 < expiry) {
@@ -50,3 +53,13 @@ void data_point_fifo::clean() {
   }
 }
 
+/**
+ * @brief erase oldest element
+ *
+ * @param expiry  data points oldest than this nano timestamp are erased
+ */
+void data_point_fifo::clean_oldest(uint64_t expiry) {
+  while (!_fifo.empty() && _fifo.begin()->get_nano_timestamp() < expiry) {
+    _fifo.erase(_fifo.begin());
+  }
+}
