@@ -421,7 +421,14 @@ def _apply_conf(name, callback):
     f.close()
 
 
-def config_broker(name, poller_inst: int = 1):
+def config_broker(name: str, poller_inst: int = 1):
+    """
+    Configure a broker instance for test. Write the configuration files.
+
+    Args:
+        name (str): name of the conf broker wanted
+        poller_inst (int, optional): Defaults to 1.
+    """
     makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
     makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
     makedirs(ETC_ROOT + "/centreon-broker", mode=0o777, exist_ok=True)
@@ -472,6 +479,12 @@ def config_broker(name, poller_inst: int = 1):
 
 
 def change_broker_tcp_output_to_grpc(name: str):
+    """
+    Update broker configuration to use a gRPC output instead of a TCP one.
+
+    Args:
+        name (str): name of the conf broker wanted to be changed
+    """
     def output_to_grpc(conf):
         output_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(output_dict):
@@ -481,6 +494,14 @@ def change_broker_tcp_output_to_grpc(name: str):
 
 
 def add_path_to_rrd_output(name: str, path: str):
+    """
+    Set the path for the rrd output. If no rrd output is defined, this function
+    does nothing.
+
+    Args:
+        name (str): The broker instance name among central, rrd and module%d.
+        path (str): path to the rrd output.
+    """
     def rrd_output(conf):
         output_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(output_dict):
@@ -490,6 +511,13 @@ def add_path_to_rrd_output(name: str, path: str):
 
 
 def change_broker_tcp_input_to_grpc(name: str):
+    """
+    Update the broker configuration to use gRPC input instead of a TCP one.
+    If no tcp input is found, no replacement is done.
+
+    Args:
+        name: The broker instance name among central, rrd and module%d.
+    """
     def input_to_grpc(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
@@ -498,7 +526,7 @@ def change_broker_tcp_input_to_grpc(name: str):
     _apply_conf(name, input_to_grpc)
 
 
-def add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
+def _add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
     json_dict["encryption"] = "yes"
     if (add_cert):
         json_dict["ca_certificate"] = "/tmp/ca_1234.crt"
@@ -508,24 +536,61 @@ def add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
 
 
 def add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
+    """
+    Add some crypto to broker gRPC input.
+
+    Args:
+        name: The broker instance name among central, rrd and module%d.
+        add_cert (bool): True to add a certificate, False otherwise.
+        reversed (bool): True if only a CA certificate is provided.
+
+    *Example:*
+
+    | Add Broker Tcp Input Grpc Crypto | central | ${True} | ${False} |
+    """
     def crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
             if v["type"] == "grpc":
-                add_broker_crypto(v, add_cert, reversed)
+                _add_broker_crypto(v, add_cert, reversed)
     _apply_conf(name, crypto_modifier)
 
 
 def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool):
+    """
+    Add grpc crypto to broker tcp output
+
+    Args:
+        name: The broker instance name among central, rrd and module%d.
+        add_cert (bool): True to add a certificate, False otherwise.
+        reversed (bool): False if only a we just want a CA certificate.
+
+     *Example:*
+
+    | Add Broker Tcp Output Grpc Crypto | module0 | ${True} | ${False} |
+    """
     def crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(input_dict):
             if v["type"] == "grpc":
-                add_broker_crypto(v, add_cert, not reversed)
+                _add_broker_crypto(v, add_cert, not reversed)
     _apply_conf(name, crypto_modifier)
 
 
 def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
+    """
+    Add a host to some broker output. This is useful for a grpc or tcp client
+    where we want where to connect to.
+
+    Args:
+        name (str): The broker instance name among central, rrd and module%d.
+        output_name (str): The name of the output to modify.
+        host_ip (str): the host address to set.
+
+    *Example:*
+
+    | Add Host To Broker Output | module0 | central-module-master-output | localhost |
+    """
     def modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(input_dict):
@@ -535,6 +600,19 @@ def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
 
 
 def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
+    """
+    Add host to some broker input. This is useful for a grpc or tcp client
+    where we want to set where to connect to.
+
+    Args:
+        name: The broker instance name among central, rrd and module%d.
+        input_name (str): the name of the input to modify.
+        host_ip (str): the host address to set.
+
+    *Example:*
+
+    | Add Host To Broker Input | central | central-broker-master-input | localhost |
+    """
     def modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
@@ -544,6 +622,17 @@ def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
 
 
 def remove_host_from_broker_output(name: str, output_name: str):
+    """
+    Remove the host entry from a broker output given by its name.
+
+    Args:
+        name: The broker instance name among central, rrd and module%d.
+        output_name (str): The name of the output containing a host entry.
+
+    *Example:*
+
+    | Remove Host From Broker Output | module0 | central-module-master-output |
+    """
     def modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(input_dict):
@@ -553,6 +642,17 @@ def remove_host_from_broker_output(name: str, output_name: str):
 
 
 def remove_host_from_broker_input(name: str, input_name: str):
+    """
+    Remove the host entry from a broker input given by its name.
+
+    Args:
+        name: The broker instance name among central, rrd and module%d.
+        input_name (str): The name of the input containing a host entry.
+
+    *Example:*
+
+    | Remove Host From Broker Input | central | central-broker-master-input |
+    """
     def modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
@@ -562,6 +662,18 @@ def remove_host_from_broker_input(name: str, input_name: str):
 
 
 def change_broker_compression_output(config_name: str, output_name: str, compression_value: str):
+    """
+    Change the compression option of a broker output.
+
+    Args:
+        config_name (str): The broker instance name among central, rrd and module%d.
+        output_name (str): The output name to modify.
+        compression_value (str): The compression value. "yes/no", "1/0" or "true/false".
+
+    *Example:*
+
+    | Change Broker Compression Output | module0 | central-module-master-output | yes |
+    """
     def compression_modifier(conf):
         output_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(output_dict):
@@ -571,6 +683,18 @@ def change_broker_compression_output(config_name: str, output_name: str, compres
 
 
 def change_broker_compression_input(config_name: str, input_name: str, compression_value: str):
+    """
+    Change the compression option of a broker input.
+
+    Args:
+        config_name (str): The broker instance name among central, rrd and module%d.
+        input_name (str): The input name to modify.
+        compression_value (str): The compression value: "yes/no", "1/0" or "true/false".
+
+    *Example:*
+
+    | Change Broker Compression Input | central | central-broker-master-input | yes |
+    """
     def compression_modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
@@ -580,6 +704,16 @@ def change_broker_compression_input(config_name: str, input_name: str, compressi
 
 
 def config_broker_remove_rrd_output(name):
+    """
+    Remove rrd output from  a broker configuration
+
+    Args:
+        name: The broker instance name among central, rrd and module%d.
+
+    *Example:*
+
+    | Config Broker Remove Rrd Output | central |
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -601,6 +735,23 @@ def config_broker_remove_rrd_output(name):
 
 
 def config_broker_bbdo_input(name, stream, port, proto, host=None):
+    """
+    Configure Broker BBDO input. It can be a client or a server. We provide a
+    port number and a protocol that is grpc or tcp.
+
+    Args:
+        name: The broker instance name among central, rrd and module%d.
+        stream: The type of stream among [bbdo_server, bbdo_client].
+        port: A port number.
+        proto: grpc or tcp.
+        host (str, optional): Defaults to None. Used to provide a host, needed
+        in the case of bbdo_client.
+
+    *Example:*
+
+    | Config Broker Bbdo Input | central | bbdo_server | 5669 | grpc | |
+    | Config Broker Bbdo Input | rrd | bbdo_client | 5670 | tcp | localhost |
+    """
     if stream != "bbdo_server" and stream != "bbdo_client":
         raise Exception(
             "config_broker_bbdo_input_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
@@ -637,6 +788,22 @@ def config_broker_bbdo_input(name, stream, port, proto, host=None):
 
 
 def config_broker_bbdo_output(name, stream, port, proto, host=None):
+    """
+    Configure Broker BBDO output. It can be a client or a server. We provide a
+    port number and a protocol that is grpc or tcp.
+
+    Args:
+        name: The broker instance name among central, rrd and module%d.
+        stream (str): The type of stream among [bbdo_server, bbdo_client].
+        port (int): A port number.
+        proto (str): grpc or tcp.
+        host (str, optional): Defaults to None. Used to provide a host to connect,
+        needed in the case of bbdo_client.
+
+    *Example:*
+
+    | Config Broker Bbdo Output | central | bbdo_client | 5670 | tcp | localhost |
+    """
     if stream != "bbdo_server" and stream != "bbdo_client":
         raise Exception(
             "config_broker_bbdo_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
@@ -675,6 +842,14 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
 
 
 def config_broker_sql_output(name, output, queries_per_transaction: int = 20000):
+    """
+    Configure the broker sql output.
+
+    Args:
+        name (str): The broker instance name among central, rrd and module%d.
+        output (str): One string among "unified_sql" and "sql/perfdata".
+        queries_per_transaction (int, optional): Defaults to 20000.
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -754,6 +929,18 @@ def config_broker_sql_output(name, output, queries_per_transaction: int = 20000)
 
 
 def broker_config_clear_outputs_except(name, ex: list):
+    """
+    Remove all the outputs of the broker configuration except those of types given
+    in the ex list.
+
+    Args:
+        name: The broker instance name among central, rrd and module%d.
+        ex (list): A list of type.
+
+    *Example:*
+
+    | Broker Config Clear Outputs Except | central | ["sql", "storage"] |
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -774,6 +961,14 @@ def broker_config_clear_outputs_except(name, ex: list):
 
 
 def config_broker_victoria_output():
+    """
+    Configure broker to add a Victoria output. If some old VictoriaMetrics
+    outputs exist, they are removed.
+
+    *Example:*
+
+    | Config Broker Victoria Output |
+    """
     filename = "central-broker.json"
 
     with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r") as f:
@@ -797,6 +992,18 @@ def config_broker_victoria_output():
 
 
 def broker_config_add_item(name, key, value):
+    """
+    Add an item to the broker configuration
+
+    Args:
+        name (str): Which broker instance: central, rrd or module%d.
+        key (str): The key to add directly in the configuration first level.
+        value: The value.
+
+    *Example:*
+
+    | Broker Config Add Item | module0 | bbdo_version | 3.0.1 |
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name == 'rrd':
@@ -815,6 +1022,17 @@ def broker_config_add_item(name, key, value):
 
 
 def broker_config_remove_item(name, key):
+    """
+    Remove an item from the broker configuration
+
+    Args:
+        name: The broker instance name among central, rrd and module%d
+        key: The key to remove. It must be defined at the first level of the configuration.
+
+    *Example:*
+
+    | Broker Config Remove Item | module0 | bbdo_version |
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name == 'rrd':
@@ -833,6 +1051,18 @@ def broker_config_remove_item(name, key):
 
 
 def broker_config_add_lua_output(name, output, luafile):
+    """
+    Add a lua output to the broker configuration.
+
+    Args:
+        name (str): The broker instance name among central, rrd, module%d
+        output (str): The name of the Lua output.
+        luafile (str): The full name of the Lua script.
+
+    *Example:*
+
+    | Broker Config Add Lua Output | central | test-protobuf | /tmp/lua.lua |
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -856,6 +1086,19 @@ def broker_config_add_lua_output(name, output, luafile):
 
 
 def broker_config_output_set(name, output, key, value):
+    """
+    Set an attribute value in a broker output.
+
+    Args:
+        name (str): The broker instance among central, rrd, module%d.
+        output (str): The output to work with.
+        key (str): The key whose value is to modify.
+        value (str): The new value to set.
+
+    *Example:*
+
+    | Broker Config Output Set | central | central-broker-master-sql | host | localhost |
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -875,6 +1118,19 @@ def broker_config_output_set(name, output, key, value):
 
 
 def broker_config_output_set_json(name, output, key, value):
+    """
+    Set an attribute value in a broker output. The value is given as a json string.
+
+    Args:
+        name (str): The broker instance among central, rrd, module%d.
+        output (str): The output to work with.
+        key (str): The key whose value is to modify.
+        value (str): The new value to set.
+
+    *Example:*
+
+    | Broker Config Output Set Json | central | central-broker-master-sql | filters | {"category": ["neb", "foo", "bar"]} |
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -895,6 +1151,18 @@ def broker_config_output_set_json(name, output, key, value):
 
 
 def broker_config_output_remove(name, output, key):
+    """
+    Remove a key from an output of the broker configuration.
+
+    Args:
+        name: The broker instance among central, rrd, module%d.
+        output: The output to work with.
+        key: The key to remove.
+
+    *Example:*
+
+    | Broker Config Output Remove | central | centreon-broker-master-rrd | host |
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -913,6 +1181,19 @@ def broker_config_output_remove(name, output, key):
 
 
 def broker_config_input_set(name, inp, key, value):
+    """
+    Set an attribute in an input of a broker configuration.
+
+    Args:
+        name (str): The broker instance among central, rrd, module%d.
+        inp (str): The input to work with.
+        key (str): The key whose value is to modify.
+        value (str): The new value to set.
+
+    *Example:*
+
+    | Broker Config Input Set | rrd | rrd-broker-master-input | encryption | yes |
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -931,6 +1212,14 @@ def broker_config_input_set(name, inp, key, value):
 
 
 def broker_config_input_remove(name, inp, key):
+    """
+    Remove a key from an input of the broker configuration.
+
+    Args:
+        name: The broker instance among central, rrd, module%d.
+        inp: The input to work with.
+        key: The key to remove.
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -951,6 +1240,18 @@ def broker_config_input_remove(name, inp, key):
 
 
 def broker_config_log(name, key, value):
+    """
+    Configure broker log level.
+
+    Args:
+        name (str): The broker instance among central, rrd, module%d.
+        key (str): The logger name to modify.
+        value (str): The level among error, trace, info, debug, etc...
+
+    *Example:*
+
+    | Broker Config Log | central | bam | trace |
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -969,6 +1270,17 @@ def broker_config_log(name, key, value):
 
 
 def broker_config_flush_log(name, value):
+    """
+    Configure the flush interval of the broker loggers. This value is in seconds, with 0, every logs are flushed.
+
+    Args:
+        name (str): the broker instance among central, rrd, module%d.
+        value (int): The value in seconds.
+
+    *Example:*
+
+    | Broker Config Flush Log | central | 1 |
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -987,6 +1299,17 @@ def broker_config_flush_log(name, value):
 
 
 def broker_config_source_log(name, value):
+    """
+    Configure if logs should contain the source file and its line number.
+
+    Args:
+        name: The broker instance name among central, rrd and module%d.
+        value: A boolean that can be "true/false", "1/0" or "yes/no".
+
+    *Example:*
+
+    | Broker Config Source Log | central | 1 |
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -1005,6 +1328,23 @@ def broker_config_source_log(name, value):
 
 
 def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
+    """
+    Return True if the Broker stats file contain keys pair (key1,key2). key2 must
+    be a daughter key of key1.
+
+    Should be true if the poller is connected to the central broker.
+
+    Args:
+        name: The broker instance name among central, rrd and module%d.
+        key1 (str): A key at first level.
+        key2 (str): A key under the key1 key.
+        timeout (int, optional): . Defaults to TIMEOUT.
+
+    *Example:*
+
+    | ${exist} | Check Broker Stats Exist | mysql manager | poller | waiting tasks in connection 0 |
+    | Should Be True | ${exist} |
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         if name == 'central':
@@ -1032,6 +1372,18 @@ def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
 
 
 def get_broker_stats_size(name, key, timeout=TIMEOUT):
+    """
+    Return the number of items under the given key in the stats file.
+
+    Args:
+        name: The broker instance name among central, rrd and module%d.
+        key: The key to work with.
+        timeout (int, optional): Defaults to TIMEOUT = 30s.
+
+    *Example:*
+
+    | ${size} | Get Broker Stats Size | central | poller | # 2 |
+    """
     limit = time.time() + timeout
     retval = 0
     while time.time() < limit:
@@ -1063,14 +1415,17 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
         time.sleep(5)
     return retval
 
-def get_broker_stats(name: str, expected:str, timeout: int, *keys):
-    """!
-    read a value from broker stats
-    @param name central, module or rrd
-    @param expected: value expected (regexp)
-    @timeout delay to find key in stats
-    @param keys  keys in json stats output
-    @return True if value found and matches expected
+def get_broker_stats(name: str, expected: str, timeout: int, *keys):
+    """
+    Read a value from the broker stats file following the given keys. If the value is the expected one, return True.
+
+    Args:
+        name The broker instance to work with among central, module%d or rrd
+        expected: value expected (regexp)
+        timeout: duration in seconds after what the check fails.
+        keys: keys in json stats output
+
+    Returns: True if the expected value was found, otherwise it returns False.
     """
 
     def json_get(json_dict, keys: tuple, index: int):
@@ -1111,14 +1466,21 @@ def get_broker_stats(name: str, expected:str, timeout: int, *keys):
     return False
 
 
-##
-# @brief Gets count indexes that does not exist in index_data.
-#
-# @param count:int The number of indexes to get.
-#
-# @return a list of index ids.
-#
 def get_not_existing_indexes(count: int):
+    """
+    Gets count indexes that does not exist in the centreon_storage.index_data table.
+
+    Args:
+        count (int): The number of indexes to get.
+
+    *Example:*
+
+    | @{indexes} | Get Not Existing Indexes | 10 |
+    | Log To Console | @{indexes} |
+
+    Returns:
+         a list of index IDs.
+    """
     # Connect to the database
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
@@ -1149,14 +1511,20 @@ def get_not_existing_indexes(count: int):
     return ids_db
 
 
-##
-# @brief Gets count indexes from available ones.
-#
-# @param count:int The number of indexes to get.
-#
-# @return a list of index ids.
-#
 def get_indexes_to_delete(count: int):
+    """
+    Gets count indexes from centreon_storage.index_data that really exist.
+
+    Args:
+        count (int): The number of indexes to get.
+
+    *Example:*
+
+    | @{indexes} | Get Not Existing Indexes | 10 |
+
+    Returns:
+        A list of index IDs.
+    """
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
@@ -1190,7 +1558,8 @@ def get_indexes_to_delete(count: int):
 
 
 def delete_all_rrd_metrics():
-    """! remove all rrd metrics files
+    """
+    Remove all rrd metrics files.
     """
     with os.scandir(VAR_ROOT + "/lib/centreon/metrics/") as it:
         for entry in it:
@@ -1199,12 +1568,19 @@ def delete_all_rrd_metrics():
 
 
 def check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
-    """!  execute rrdtool info and check one value of the returned informations
-    @param metric_id
-    @param key key to search in the rrdtool info result
-    @param value value to search in the rrdtool info result fot key
-    @param timeout  timeout for metric file creation
-    @return True if key = value found
+    """
+    Execute rrdtool info and check one value of the returned informations
+
+    Args:
+        metric_id (int): A metric ID.
+        key (str): The key whose value is to check.
+        value: The expected value.
+        timeout (int, optional): Defaults to 60.
+
+    *Example:*
+
+    | ${result} | Check Rrd Info | 1 | step | 60 |
+    | Should Be True | ${result} |
     """
 
     limit = time.time() + timeout
@@ -1222,11 +1598,23 @@ def check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
 
 
 def get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: int = 60):
-    """! scan data base every 5s to extract metric ids for a service
+    """
+    Try to get the metric IDs of a service.
 
-    @param service_id id of the service
-    @param timeout  timeout in second
-    @return array of metric ids
+    Warning:
+        A service is identified by a host ID and a service ID. This function should be used with caution.
+
+    Args:
+        service_id (int): The ID of the service.
+        metric_name (str, optional): Defaults to "%".
+        timeout (int, optional): Defaults to 60.
+
+    Returns:
+        A list of metric IDs or None if no metric found.
+
+    *Example:*
+
+    | ${metrics} | Get Metrics For Service | 1 | % |
     """
     limit = time.time() + timeout
 
@@ -1253,14 +1641,20 @@ def get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: in
     return None
 
 
-##
-# @brief Gets count metrics that does not exist.
-#
-# @param count:int The number of metrics to get.
-#
-# @return a list of metric ids.
-#
 def get_not_existing_metrics(count: int):
+    """
+    Return a list of metrics that does not exist.
+
+    Args:
+        count (int): How many metric IDs do we want.
+
+    Returns:
+        A list of IDs.
+
+    *Example:*
+
+    | @{metrics} | Get Not Existing Metrics | 10 |
+    """
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
@@ -1291,14 +1685,16 @@ def get_not_existing_metrics(count: int):
     return retval
 
 
-##
-# @brief Gets count metrics from available ones.
-#
-# @param count:int The number of metrics to get.
-#
-# @return a list of metric ids.
-#
 def get_metrics_to_delete(count: int):
+    """
+    Get count metrics from availables ones.
+
+    Args:
+        count (int): The number of metrics to get.
+
+    Returns:
+        A list of metric IDs.
+    """
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
@@ -1323,12 +1719,13 @@ def get_metrics_to_delete(count: int):
     return inter[:count]
 
 
-##
-# @brief creat metrics from available ones.
-#
-# @param count:int The number of metrics to create.
-#
 def create_metrics(count: int):
+    """
+    Create count metrics from available ones.
+
+    Args:
+        count (int): How many metrics to create.
+    """
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
@@ -1372,6 +1769,14 @@ def create_metrics(count: int):
 
 
 def run_reverse_bam(duration, interval):
+    """
+    Launch the map_client.py script that simulates map.
+
+    Args:
+        duration: The duration in seconds before to stop map_client.py
+        interval: Interval given to the map_client.py that tells the duration
+                  between to recv calls.
+    """
     pro = subp.Popen("broker/map_client.py {:f}".format(interval),
                      shell=True, stdout=subp.PIPE, stdin=subp.PIPE, preexec_fn=setsid)
     time.sleep(duration)
@@ -1379,17 +1784,36 @@ def run_reverse_bam(duration, interval):
 
 
 def start_map():
+    """
+    Launch the map_client_types.py script that simulates map.
+    """
     global map_process
     map_process = subp.Popen("broker/map_client_types.py",
                              shell=True, stdout=subp.DEVNULL, stdin=subp.DEVNULL)
 
 
 def clear_map_logs():
+    """
+    Reset the content of the /tmp/map-output.log file.
+    """
     with open('/tmp/map-output.log', 'w') as f:
         f.write("")
 
 
 def check_map_output(categories_str, expected_events, timeout: int = TIMEOUT):
+    """
+    Check the content of the /tmp/map-output.log file. This file contains informations on categories/elements of each
+    received event. A list of categories and event types are given to this function, so it can check if the file
+    contain these types of events. If it contains them, True is returned.
+
+    Args:
+        categories_str: A list of categories, for example ["1", "2"].
+        expected_events: A list of event types.
+        timeout (int, optional): A number of seconds, the default value is TIMEOUT.
+
+    Returns:
+        True on success, otherwise False.
+    """
     retval = False
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1436,11 +1860,20 @@ def check_map_output(categories_str, expected_events, timeout: int = TIMEOUT):
 
 
 def get_map_output():
+    """
+    The map_client_types.py script writes on STDOUT. This function allows to get this output.
+
+    Returns:
+        A string containing the output.
+    """
     global map_process
     return map_process.communicate()[0]
 
 
 def stop_map():
+    """
+    Stop the script simulating map. Works with map_client_type.
+    """
     for proc in psutil.process_iter():
         if 'map_client_type' in proc.name():
             logger.console(
@@ -1462,13 +1895,17 @@ def stop_map():
     logger.console("map_client_type stopped")
 
 
-##
-# @brief Get count indexes that are available to rebuild them.
-#
-# @param count is the number of indexes to get.
-#
-# @return a list of indexes
 def get_indexes_to_rebuild(count: int, nb_day=180):
+    """
+    Get count indexes that are available to rebuild.
+
+    Args:
+        count (int): The number of indexes to get.
+        nb_day (int, optional): Defaults to 180.
+
+    Returns:
+         A list of indexes.
+    """
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
@@ -1514,12 +1951,13 @@ def get_indexes_to_rebuild(count: int, nb_day=180):
     return retval
 
 
-##
-# @brief add a value at the mid of the first day of each metric
-#
-#
-# @return a list of indexes of pair <time of oldest value>, <metric id>
 def add_duplicate_metrics():
+    """
+    Add a value at the middle of the first day of each metric
+
+    Returns:
+        A list of indexes of pair <time of oldest value>, <metric id>
+    """
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -1543,13 +1981,16 @@ def add_duplicate_metrics():
     return retval
 
 
-##
-# @brief check that metrics are not a NaN during one day
-#
-# @param an array of pair <time of oldest value>, <metric id> returned by add_duplicate_metrics
-#
-# @return true or false
 def check_for_NaN_metric(add_duplicate_metrics_ret):
+    """
+    Check that metrics are not a NaN during one day
+
+    Args:
+        add_duplicate_metrics_ret (): an array of pair <time of oldest value>, <metric id> returned by add_duplicate_metrics
+
+    Returns:
+        True on Success, otherwise False.
+    """
     for min_timestamp, metric_id in add_duplicate_metrics_ret:
         max_timestamp = min_timestamp + 86400
         res = getoutput(
@@ -1567,13 +2008,16 @@ def check_for_NaN_metric(add_duplicate_metrics_ret):
     return True
 
 
-##
-# @brief Returns metric ids matching the given indexes.
-#
-# @param indexes a list of indexes from index_data
-#
-# @return a list of metric ids.
 def get_metrics_matching_indexes(indexes):
+    """
+    Get metric IDs matching the given indexes.
+
+    Args:
+        indexes (list): a list of indexes from index_data.
+
+    Returns:
+        A list of metric IDs.
+    """
     # Connect to the database
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
@@ -1592,14 +2036,16 @@ def get_metrics_matching_indexes(indexes):
             return retval
 
 
-##
-# @brief send a gRPC command to remove graphs (by indexes or by metrics)
-#
-# @param port the gRPC port to use to send the command
-# @param indexes a list of indexes
-# @param metrics a list of metrics
-#
 def remove_graphs(port, indexes, metrics, timeout=10):
+    """
+    Send a gRPC command to remove graphs (by indexes or by metrics)
+
+    Args:
+        port (int): port the gRPC port to use to send the command
+        indexes (list): indexes a list of indexes
+        metrics (str): metrics a list of metrics
+        timeout (int, optional): Defaults to 10.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
@@ -1616,6 +2062,16 @@ def remove_graphs(port, indexes, metrics, timeout=10):
 
 
 def broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout=TIMEOUT):
+    """
+    Set values to the SQL manager stats: number of slowest statements and number
+    of slowest queries to keep in memory.
+
+    Args:
+        port: The gRPC port to use.
+        stmt: The number of slowest statements to keep in memory.
+        queries: The number of slowest queries to keep in memory.
+        timeout: A timeout in seconds, by default 30s.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
@@ -1632,6 +2088,18 @@ def broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout=TIM
 
 
 def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
+    """
+    Tries to get some statistics about an SQL query. If that query makes part
+    of the slowest queries or statements, we get the average duration of it.
+
+    Args:
+        port: gRPC port to use.
+        query: An SQL query.
+        timeout: A timeout in seconds, by default 30s.
+
+    Returns:
+        A number of seconds or -1 on failure.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
@@ -1657,15 +2125,15 @@ def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
     return -1
 
-##
-# @brief send a query to the db to remove graphs (by indexes or by metrics)
-#
-# @param indexes a list of indexes
-# @param metrics a list of metrics
-#
-
-
 def remove_graphs_from_db(indexes, metrics, timeout=10):
+    """
+    Send a query to the db to remove graphs (by indexes or by metrics).
+
+    Args:
+        indexes (list): a list of indexes
+        metrics (list): a list of metrics
+        timeout (int, optional): Defaults to 10.
+    """
     logger.console("rem1")
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
@@ -1692,13 +2160,15 @@ def remove_graphs_from_db(indexes, metrics, timeout=10):
             connection.commit()
 
 
-##
-# @brief Execute the gRPC command RebuildRRDGraphs()
-#
-# @param port The port to use with gRPC.
-# @param indexes The list of indexes corresponding to metrics to rebuild.
-#
 def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
+    """
+    Execute the gRPC command RebuildRRDGraphs().
+
+    Args:
+        port (int): The port to use with gRPC
+        indexes (list): The list of indexes corresponding to metrics to rebuild.
+        timeout (int, optional): Defaults to TIMEOUT.
+    """
     logger.console("start gRPC server")
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1716,12 +2186,13 @@ def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-##
-# @brief Send a query to the db to rebuild graphs
-#
-# @param indexes The list of indexes corresponding to metrics to rebuild.
-#
 def rebuild_rrd_graphs_from_db(indexes):
+    """
+    Send a query to the db to rebuild graphs
+
+    Args:
+        indexes (list): The list of indexes corresponding to metrics to rebuild.
+    """
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -1740,15 +2211,17 @@ def rebuild_rrd_graphs_from_db(indexes):
                 connection.commit()
 
 
-##
-# @brief Compare the average value for an RRD metric on the last 30 days with
-# a value.
-#
-# @param metric The metric id
-# @param float The value to compare with.
-#
-# @return A boolean.
 def compare_rrd_average_value(metric, value: float):
+    """
+    Compare the average value for an RRD metric on the last 30 days with a value.
+
+    Args:
+        metric (int): The metric id
+        value (float): float The value to compare with.
+
+    Returns:
+        A boolean.
+    """
     res = getoutput("rrdtool graph dummy --start=end-180d --end=now"
                     " DEF:x=" + VAR_ROOT +
                     "/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
@@ -1767,9 +2240,15 @@ def compare_rrd_average_value(metric, value: float):
 
 
 def compare_rrd_status_average_value(index_id, value: int):
-    """Compare the average value for an RRD metric on the last 30 days with a value.
-    index_id is the index of the status
-    average value expected is 100 if value=0, 75 if value=1, 0 if value=2
+    """
+    Compare the average value for an RRD metric on the last 30 days with a value.
+
+    Args:
+        index_id is the index of the status
+        average value expected is 100 if value=0, 75 if value=1, 0 if value=2
+
+    Returns:
+        True on success.
     """
     res = getoutput(f"rrdtool graph dummy --start=end-180d --end=now"
                     " DEF:x=" + VAR_ROOT +
@@ -1786,11 +2265,16 @@ def compare_rrd_status_average_value(index_id, value: int):
 
 
 def compare_rrd_average_value_with_grpc(metric, key, value: float):
-    """! Compare the average value for an RRD metric.
-    @param metric The metric id
-    @param key The key to search in the rrd info
-    @param float The value to compare with.
-    @return True if value pointed by key is equal to value param.
+    """
+    Compare the average value for an RRD metric with a given value.
+
+    Args:
+        metric: The metric id
+        key: The key to search in the rrd info
+        value: The value to compare with.
+
+    Returns:
+        True if value pointed by key is equal to value param.
     """
     res = getoutput(
         f"rrdtool info {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd"
@@ -1809,11 +2293,16 @@ def compare_rrd_average_value_with_grpc(metric, key, value: float):
 
 
 def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
-    """!Call the GetSqlManagerStats function by gRPC and checks there are count active connections.
-    @param port grpc port
-    @param count number of expected connections
-    @param timeout timeout in seconds
-    @return  True is nb connections is equal to count
+    """
+    Call the GetSqlManagerStats function by gRPC and checks there are count active connections.
+
+    Args:
+        port: grpc port
+        count: number of expected connections
+        timeout: timeout in seconds
+
+    Returns:
+        True is nb connections is equal to count
     """
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1837,14 +2326,17 @@ def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
     return False
 
 
-##
-# @brief Call the GetSqlManagerStats function by gRPC and checks there are
-# count active connections.
-#
-# @param count The expected number of active connections.
-#
-# @return A boolean.
 def check_all_sql_connections_down_with_grpc(port, timeout=TIMEOUT):
+    """
+    Call the GetSqlManagerStats function by gRPC and checks there are count active connections.
+
+    Args:
+        port (int): The expected number of active connections.
+        timeout (int, optional): Defaults to TIMEOUT.
+
+    Returns:
+        A boolean.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
@@ -1861,12 +2353,13 @@ def check_all_sql_connections_down_with_grpc(port, timeout=TIMEOUT):
     return False
 
 
-##
-# @brief Add the bam configuration to broker.
-#
-# @param name The broker name to consider.
-#
 def add_bam_config_to_broker(name):
+    """
+    Add the bam configuration to broker.
+
+    Args:
+        name (str): The broker name to consider.
+    """
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -1915,15 +2408,16 @@ def add_bam_config_to_broker(name):
     f.write(json.dumps(conf, indent=2))
     f.close()
 
-##
-# @brief send a gRPC command to remove by name a poller
-#
-# @param port the gRPC port to use
-# @param name the poller name
-#
-
-
 def remove_poller(port, name, timeout=TIMEOUT):
+    """
+    Send a gRPC command to remove by name a poller.
+
+    Args:
+        port (int): the gRPC port to use
+        name (str): the poller name
+        timeout (int, optional): Defaults to TIMEOUT.
+
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         logger.console(f"Try to call removePoller by name on port {port}")
@@ -1938,15 +2432,15 @@ def remove_poller(port, name, timeout=TIMEOUT):
             except:
                 logger.console("gRPC server not ready")
 
-##
-# @brief send a gRPC command to remove by id a poller
-#
-# @param port the gRPC port to use
-# @param name the poller name
-#
-
-
 def remove_poller_by_id(port, idx, timeout=TIMEOUT):
+    """
+    Send a gRPC command to remove by id a poller
+
+    Args:
+        port (int): the gRPC port to use
+        idx (int): the poller name
+        timeout (int, optional): Defaults to TIMEOUT.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         logger.console(
@@ -1964,6 +2458,16 @@ def remove_poller_by_id(port, idx, timeout=TIMEOUT):
 
 
 def check_poller_disabled_in_database(poller_id: int, timeout: int):
+    """
+    Check if all the hosts monitored by a poller are disabled.
+
+    Args:
+        poller_id: The poller ID.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True on success.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1985,6 +2489,16 @@ def check_poller_disabled_in_database(poller_id: int, timeout: int):
 
 
 def check_poller_enabled_in_database(poller_id: int, timeout: int):
+    """
+    Check if at least one host monitored by a poller is enabled.
+
+    Args:
+        poller_id: The poller ID.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True on success.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -2005,7 +2519,19 @@ def check_poller_enabled_in_database(poller_id: int, timeout: int):
     return False
 
 
-def get_broker_log_level(port, name, log, timeout=TIMEOUT):
+def get_broker_log_level(port, log, timeout=TIMEOUT):
+    """
+    Get the log level of a given logger. The timeout is due to the way we ask
+    for this information ; we use gRPC and the server may not be correctly
+    started.
+
+    Args:
+        port: The gRPC port to use.
+        log: The logger name.
+
+    Returns:
+        A string with the log level.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         logger.console("Try to call GetLogInfo")
@@ -2023,7 +2549,16 @@ def get_broker_log_level(port, name, log, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
+def set_broker_log_level(port, log, level, timeout=TIMEOUT):
+    """
+    Set the log level of a given logger.
+
+    Args:
+        port: The gRPC port.
+        log: The name of the logger.
+        level: The level to set.
+        timeout: A timeout in seconds, 30s by default.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         logger.console("Try to call SetLogLevel")
@@ -2051,14 +2586,22 @@ def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
     return res
 
 
-##
-# @brief Call the GetGenericStats function by gRPC
-# it works with both engine and broker
-#
-# @param port of the grpc server
-#
-# @return process__stat__pb2.pb_process_stat
 def get_broker_process_stat(port, timeout=10):
+    """
+    Call the GetGenericStats function by gRPC it works with both engine and broker
+
+    Args:
+        port (int): of the grpc server
+        timeout (int, optional): Defaults to 10.
+
+    *Example:*
+
+    | ${process_stat_pb1} = | Get Broker Process Stat | 8082 | 20 |
+    | ${process_stat_pb2} = | Get Engine Process Stat | 8082 |
+
+    Returns:
+        process__stat__pb2.pb_process_stat
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
@@ -2093,6 +2636,22 @@ def parse_victoria_body(request_body: str):
 
 
 def check_victoria_data(request_body: str, data_type: str, min_timestamp: int,  **to_check):
+    """
+    check_victoria_data
+
+    Return the value of a check if the data is present in the request body and if it matches the given values.
+
+    Args:
+        request_body (str):
+        data_type (str):
+        min_timestamp (int):
+
+    *Example:*
+
+    | ${metric_found} = | Check Victoria Data | ${body} | metric | 16000000 | unit=% | host_id=16 | serv_id=314 |
+    | Should Be True | ${metric_found} | if the request body contains a metric with the unit=%, host_id=16 and serv_id=314 |
+
+    """
     for line in request_body.splitlines():
         datas = parse_victoria_body(line)
         if datas["type"] != data_type:
@@ -2109,29 +2668,42 @@ def check_victoria_data(request_body: str, data_type: str, min_timestamp: int,  
 
 
 def check_victoria_metric(request_body: str, min_timestamp: int,  **to_check):
+    """
+    Return the value of a check if the metric is present in the request body and if it matches the given values.
+
+    Args:
+        request_body (str):
+        min_timestamp (int):
+
+    *Example:*
+
+    | ${metric_found} = | Check Victoria Metric | ${body} | 16000000 | unit=% | host_id=16 | serv_id=314 |
+    =>
+    | ${metric_found} = TRUE if the request body contains a metric with the unit=%, host_id=16 and serv_id=314
+    """
     return check_victoria_data(request_body, "metric", min_timestamp, **to_check)
 
 
 def check_victoria_status(request_body: str, min_timestamp: int,  **to_check):
+    """
+    Return the value of a check if the status is present in the request body and if it matches the given values.
+
+    Args:
+        request_body (str):
+        min_timestamp (int):
+
+    *Example:*
+
+    | ${metric_found} = | Check Victoria Status | ${body} | 16000000 | host_id=16 | serv_id=314 |
+    =>
+    | ${metric_found} = TRUE if the request body contains a status with the host_id=16 and serv_id=314
+    """
     return check_victoria_data(request_body, "status", min_timestamp, **to_check)
-
-
-def dump_ba(port, index: int, filename: str):
-    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
-        stub = broker_pb2_grpc.BrokerStub(channel)
-        info = broker_pb2.BaInfo()
-        info.id = index
-        info.output_file = filename
-        try:
-            stub.GetBa(info)
-            logger.console(f"BA {index} dump to {filename}")
-        except:
-            logger.console("gRPC server not ready")
 
 
 def broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
     """
-    broker_get_ba calls the gRPC GetBa function.
+    Calls the gRPC GetBa function to create a dot file.
 
     Args:
         port: the gRPC port to use.
