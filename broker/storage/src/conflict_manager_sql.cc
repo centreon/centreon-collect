@@ -1,5 +1,5 @@
 /**
- * Copyright 2019-2022 Centreon
+ * Copyright 2019-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1508,18 +1508,6 @@ void conflict_manager::_process_service_status(
         "{}))",
         ss.host_id, ss.service_id, ss.check_type, ss.last_check, ss.next_check,
         now, ss.current_state, ss.state_type);
-  *std::get<2>(t) = true;
-}
-
-/**
- *  Process an instance configuration event.
- *
- *  @param[in] e  Uncasted instance configuration.
- *
- * @return The number of events that can be acknowledged.
- */
-void conflict_manager::_process_instance_configuration(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
   *std::get<2>(t) = true;
 }
 
