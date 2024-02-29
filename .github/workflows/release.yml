@@ -1,25 +1,26 @@
 ---
-name: Create collect jira version
+name: Release
 
 on:
-  pull_request_target:
+  pull_request:
     types:
       - closed
     branches:
       - master
       - "[2-9][0-9].[0-9][0-9].x"
-    paths:
-      - "centreon-collect/**"
-      - "!centreon-collect/ci/**"
-      - "!centreon-collect/tests/**"
+    paths-ignore:
+      - ".github/**"
+      - ".jira/**"
+      - "tests/**"
+      - ".deepsource.toml"
+      - ".veracode-exclusions"
+      - "README.md"
+      - "sonar-project.properties"
   workflow_dispatch:
-
-env:
-  module: "collect"
 
 jobs:
   release:
-    if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true && (github.base_ref == 'master' || github.base_ref == '[2-9][0-9].[0-9][0-9].x')
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout sources
@@ -31,7 +32,8 @@ jobs:
         id: release
         uses: ./.github/actions/release
         with:
+          github_ref_name: ${{ github.head_ref || github.ref_name }}
+          jira_project_id: ${{ secrets.JIRA_PROJECT_ID }}
+          jira_webhook_url: ${{ secrets.JIRA_RELEASE_WEBHOOK }}
           jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
           jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
-          jira_project_id: ${{ secrets.JIRA_PROJECT_ID }}
-          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
