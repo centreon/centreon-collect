@@ -333,7 +333,7 @@ Dump Ba On Error
     [Arguments]    ${result}    ${ba_id}
     IF    not ${result}
         Save Logs
-        Dump Ba    51001    ${ba_id}    failed/${Test Name}/ba_${ba_id}.dot
+        Broker Get Ba    51001    ${ba_id}    failed/${Test Name}/ba_${ba_id}.dot
     END
 
 Process Service Result Hard
