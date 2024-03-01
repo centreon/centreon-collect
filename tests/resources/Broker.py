@@ -1473,7 +1473,7 @@ def ctn_get_broker_stats(name: str, expected: str, timeout: int, *keys):
     return False
 
 
-def get_not_existing_indexes(count: int):
+def ctn_get_not_existing_indexes(count: int):
     """
     Gets count indexes that does not exist in the centreon_storage.index_data table.
 
@@ -1482,7 +1482,7 @@ def get_not_existing_indexes(count: int):
 
     *Example:*
 
-    | @{indexes} | Get Not Existing Indexes | 10 |
+    | @{indexes} | Ctn Get Not Existing Indexes | 10 |
     | Log To Console | @{indexes} |
 
     Returns:
@@ -1527,7 +1527,7 @@ def get_indexes_to_delete(count: int):
 
     *Example:*
 
-    | @{indexes} | Get Not Existing Indexes | 10 |
+    | @{indexes} | Ctn Get Not Existing Indexes | 10 |
 
     Returns:
         A list of index IDs.
@@ -1647,7 +1647,7 @@ def get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: in
     return None
 
 
-def get_not_existing_metrics(count: int):
+def ctn_get_not_existing_metrics(count: int):
     """
     Return a list of metrics that does not exist.
 
@@ -1659,7 +1659,7 @@ def get_not_existing_metrics(count: int):
 
     *Example:*
 
-    | @{metrics} | Get Not Existing Metrics | 10 |
+    | @{metrics} | Ctn Get Not Existing Metrics | 10 |
     """
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
