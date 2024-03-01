@@ -67,7 +67,7 @@ jobs:
         shell: bash
 
       - name: cache rpm
-        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache/save@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
         with:
           path: ./*.rpm
           key: ${{ github.run_id }}-${{ github.sha }}-rpm-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
@@ -131,7 +131,7 @@ jobs:
         shell: bash
 
       - name: cache deb
-        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache/save@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
         with:
           path: ./*.deb
           key: ${{ github.run_id }}-${{ github.sha }}-deb-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
