@@ -270,7 +270,7 @@ BDBM1
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
         Start Mysql
-        ${result}    Get Broker Stats Size    central    mysql manager
+        ${result}    Ctn Get Broker Stats Size    central    mysql manager
         Should Be True
         ...    ${result} >= ${c} + 1
         ...    The stats file should contain at least ${c} + 1 connections to the database.
@@ -384,7 +384,7 @@ BDBMU1
         Start Mysql
         ${result}    Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    80
         Should Be True    ${result}    No stats on mysql manager found
-        ${result}    Get Broker Stats Size    central    mysql manager    ${60}
+        ${result}    Ctn Get Broker Stats Size    central    mysql manager    ${60}
         Should Be True    ${result} >= ${c} + 1    Broker mysql manager stats do not show the ${c} connections
         Ctn Kindly Stop Broker
         Ctn Stop Engine

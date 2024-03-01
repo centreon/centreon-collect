@@ -35,12 +35,12 @@ BENCH_${nb_check}STATUS
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    ${broker_stat_before}    Get Broker Process Stat    51001
+    ${broker_stat_before}    Ctn Get Broker Process Stat    51001
     ${engine_stat_before}    Get Engine Process Stat    50001
     Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
     Send Bench    1    50001
     ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
-    ${broker_stat_after}    Get Broker Process Stat    51001
+    ${broker_stat_after}    Ctn Get Broker Process Stat    51001
     ${engine_stat_after}    Get Engine Process Stat    50001
     ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
     ${diff_engine}    Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
@@ -103,12 +103,12 @@ BENCH_${nb_check}STATUS_TRACES
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    ${broker_stat_before}    Get Broker Process Stat    51001
+    ${broker_stat_before}    Ctn Get Broker Process Stat    51001
     ${engine_stat_before}    Get Engine Process Stat    50001
     Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
     Send Bench    1    50001
     ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
-    ${broker_stat_after}    Get Broker Process Stat    51001
+    ${broker_stat_after}    Ctn Get Broker Process Stat    51001
     ${engine_stat_after}    Get Engine Process Stat    50001
     ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
     ${diff_engine}    Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
@@ -174,7 +174,7 @@ BENCH_1000STATUS_100${suffixe}
     ${result}    Ctn Find In Log With Timeout    ${ENGINE_LOG}/config99/centengine.log    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    ${broker_stat_before}    Get Broker Process Stat    51001
+    ${broker_stat_before}    Ctn Get Broker Process Stat    51001
     ${engine_stat_before}    Get Engine Process Stat    50001
 
     ${start_check}    Get Current Date
@@ -196,7 +196,7 @@ BENCH_1000STATUS_100${suffixe}
     END
 
     ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
-    ${broker_stat_after}    Get Broker Process Stat    51001
+    ${broker_stat_after}    Ctn Get Broker Process Stat    51001
     ${engine_stat_after}    Get Engine Process Stat    50001
     ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
     ${diff_engine}    Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}

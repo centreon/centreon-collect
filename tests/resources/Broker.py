@@ -1377,7 +1377,7 @@ def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
     return False
 
 
-def get_broker_stats_size(name, key, timeout=TIMEOUT):
+def ctn_get_broker_stats_size(name, key, timeout=TIMEOUT):
     """
     Return the number of items under the given key in the stats file.
 
@@ -1388,7 +1388,7 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
 
     *Example:*
 
-    | ${size} | Get Broker Stats Size | central | poller | # 2 |
+    | ${size} | Ctn Get Broker Stats Size | central | poller | # 2 |
     """
     limit = time.time() + timeout
     retval = 0
@@ -1421,7 +1421,7 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
     return retval
 
 
-def get_broker_stats(name: str, expected: str, timeout: int, *keys):
+def ctn_get_broker_stats(name: str, expected: str, timeout: int, *keys):
     """
     Read a value from the broker stats file following the given keys. If the value is the expected one, return True.
 
@@ -2520,7 +2520,7 @@ def check_poller_enabled_in_database(poller_id: int, timeout: int):
     return False
 
 
-def get_broker_log_level(port, log, timeout=TIMEOUT):
+def ctn_get_broker_log_level(port, log, timeout=TIMEOUT):
     """
     Get the log level of a given logger. The timeout is due to the way we ask
     for this information ; we use gRPC and the server may not be correctly
@@ -2587,7 +2587,7 @@ def set_broker_log_level(port, log, level, timeout=TIMEOUT):
     return res
 
 
-def get_broker_process_stat(port, timeout=10):
+def ctn_get_broker_process_stat(port, timeout=10):
     """
     Call the GetGenericStats function by gRPC it works with both engine and broker
 
@@ -2597,7 +2597,7 @@ def get_broker_process_stat(port, timeout=10):
 
     *Example:*
 
-    | ${process_stat_pb1} = | Get Broker Process Stat | 8082 | 20 |
+    | ${process_stat_pb1} = | Ctn Get Broker Process Stat | 8082 | 20 |
     | ${process_stat_pb2} = | Get Engine Process Stat | 8082 |
 
     Returns: process__stat__pb2.pb_process_stat
