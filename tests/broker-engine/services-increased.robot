@@ -23,7 +23,7 @@ EBNSVC1
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     FOR    ${i}    IN RANGE    ${3}
         Sleep    10s
         ${srv_by_host}    Evaluate    20 + 4 * $i
@@ -69,7 +69,7 @@ Service_increased_huge_check_interval
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     # Start Checkers
     ${result}    Check Host Status    host_1    4    1    False
     Should Be True    ${result}    host_1 should be pending

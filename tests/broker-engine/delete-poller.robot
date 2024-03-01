@@ -21,7 +21,7 @@ EBDP1
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -42,7 +42,7 @@ EBDP1
     Config Engine    ${3}    ${50}    ${20}
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the initial service states.
     ${content}    Create List    check_for_external_commands()
@@ -74,7 +74,7 @@ EBDP2
     Broker Config Log    central    processing    info
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -108,7 +108,7 @@ EBDP2
     ${start}    Get Current Date
     Kindly Stop Broker
     Clear Engine Logs
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     # Let's wait until engine listens to external_commands.
@@ -146,7 +146,7 @@ EBDP_GRPC2
     Broker Config Log    central    grpc    info
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -181,7 +181,7 @@ EBDP_GRPC2
     ${start}    Get Current Date
     Kindly Stop Broker
     Clear Engine Logs
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     # Let's wait until engine listens to external_commands.
@@ -213,7 +213,7 @@ EBDP3
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -242,7 +242,7 @@ EBDP3
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
     Clear Engine Logs
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -276,7 +276,7 @@ EBDP4
     Broker Config Flush Log    central    0
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -338,7 +338,7 @@ EBDP4
     END
     Should Be Equal As Strings    ${output}    ()
 
-    Start Engine
+    Ctn Start Engine
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -362,7 +362,7 @@ EBDP5
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait until engine listens to external_commands
     ${content}    Create List    check_for_external_commands
@@ -383,7 +383,7 @@ EBDP5
     Config Engine    ${3}    ${50}    ${20}
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait until engine listens to external_commands
     ${content}    Create List    check_for_external_commands
@@ -419,7 +419,7 @@ EBDP6
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -449,7 +449,7 @@ EBDP6
     ${start}    Get Current Date
     Kindly Stop Broker
     Clear Engine Logs
-    Start Engine
+    Ctn Start Engine
     Start Broker
 
     # Let's wait until engine listens to external_commands.
@@ -487,7 +487,7 @@ EBDP7
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -516,7 +516,7 @@ EBDP7
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
     Clear Engine Logs
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -556,7 +556,7 @@ EBDP8
     Broker Config Flush Log    central    0
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -612,7 +612,7 @@ EBDP8
     END
     Should Be Equal As Strings    ${output}    ()
 
-    Start Engine
+    Ctn Start Engine
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

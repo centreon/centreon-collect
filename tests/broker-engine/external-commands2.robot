@@ -25,7 +25,7 @@ BEEXTCMD30
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -75,7 +75,7 @@ BEEXTCMD31
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -165,7 +165,7 @@ BEEXTCMD32
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -241,7 +241,7 @@ BEEXTCMD33
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -292,7 +292,7 @@ BEEXTCMD34
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -346,7 +346,7 @@ BEEXTCMD35
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -411,7 +411,7 @@ BEEXTCMD36
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -461,7 +461,7 @@ BEEXTCMD37
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -530,7 +530,7 @@ BEEXTCMD38
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -584,7 +584,7 @@ BEEXTCMD39
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -631,7 +631,7 @@ BEEXTCMD40
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -681,7 +681,7 @@ BEEXTCMD41
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -732,7 +732,7 @@ BEEXTCMD42
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -787,7 +787,7 @@ BEEXTCMD_GRPC1
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -826,7 +826,7 @@ BEEXTCMD_GRPC2
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -869,7 +869,7 @@ BEEXTCMD_GRPC3
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -907,7 +907,7 @@ BEEXTCMD_GRPC4
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -951,7 +951,7 @@ BEEXTCMD_REVERSE_GRPC1
         ${start}    Get Current Date
         Sleep    1s
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -994,7 +994,7 @@ BEEXTCMD_REVERSE_GRPC2
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1041,7 +1041,7 @@ BEEXTCMD_REVERSE_GRPC3
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1083,7 +1083,7 @@ BEEXTCMD_REVERSE_GRPC4
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1125,7 +1125,7 @@ BEEXTCMD_COMPRESS_GRPC1
         Clear Retention
         ${start}    Get Current Date
         Start Broker
-        Start Engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1160,7 +1160,7 @@ BEATOI11
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -1182,7 +1182,7 @@ BEATOI12
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -1205,7 +1205,7 @@ BEATOI13
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -1228,7 +1228,7 @@ BEATOI21
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date    exclude_millis=True
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -1256,7 +1256,7 @@ BEATOI22
     ${start}    Get Current Date
     Sleep    1s
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -1285,7 +1285,7 @@ BEATOI23
     Broker Config Log    central    sql    error
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -1308,7 +1308,7 @@ BECUSTOMHOSTVAR
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -1342,7 +1342,7 @@ BECUSTOMSVCVAR
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -1376,7 +1376,7 @@ BESERVCHECK
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -1402,7 +1402,7 @@ BEHOSTCHECK
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.

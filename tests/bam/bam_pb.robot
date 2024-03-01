@@ -19,7 +19,7 @@ BAWORST
     ${ba__svc}    Create Ba With Services    test    worst    ${svc}
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -150,7 +150,7 @@ BAWORST2
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -237,7 +237,7 @@ BABEST_SERVICE_CRITICAL
     Set Command Status    ${cmd_1}    2
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -342,7 +342,7 @@ BA_IMPACT_2KPI_SERVICES
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -449,7 +449,7 @@ BA_RATIO_PERCENT_BA_SERVICE
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -553,7 +553,7 @@ BA_RATIO_NUMBER_BA_SERVICE
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -661,7 +661,7 @@ BA_BOOL_KPI
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -710,7 +710,7 @@ BEPB_DIMENSION_BV_EVENT
     ...    INSERT INTO mod_bam_ba_groups (id_ba_group, ba_group_name, ba_group_description) VALUES (574, 'virsgtr', 'description_grtmxzo')
 
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -742,7 +742,7 @@ BEPB_DIMENSION_BA_EVENT
     ...    UPDATE mod_bam set description='fdpgvo75', sla_month_percent_warn=1.23, sla_month_percent_crit=4.56, sla_month_duration_warn=852, sla_month_duration_crit=789, id_reporting_period=741
 
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -775,7 +775,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     Execute SQL String    INSERT INTO mod_bam_bagroup_ba_relation (id_ba, id_ba_group) VALUES (1, 456)
 
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -811,7 +811,7 @@ BEPB_DIMENSION_TIMEPERIOD
     ...    INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "sunday_value", "monday_value", "tuesday_value", "wednesday_value", "thursday_value", "friday_value", "saturday_value")
 
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -836,7 +836,7 @@ BEPB_DIMENSION_KPI_EVENT
     Add Boolean Kpi    ${baid_svcid[0]}    {host_16 service_302} {IS} {OK}    False    100
 
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${expected}    Catenate    (('bool test',    ${baid_svcid[0]}
@@ -867,7 +867,7 @@ BEPB_KPI_STATUS
     Create Ba With Services    test    worst    ${svc}
 
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
 
     ${start}    Get Current Date    result_format=epoch
 
@@ -908,7 +908,7 @@ BEPB_BA_DURATION_EVENT
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events_durations
 
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
 
     # KPI set to critical
     # as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
@@ -954,7 +954,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     Execute SQL String    INSERT INTO mod_bam_relations_ba_timeperiods (ba_id, tp_id) VALUES (1,732)
 
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    10
@@ -984,7 +984,7 @@ BEPB_DIMENSION_TRUNCATE_TABLE
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -1015,7 +1015,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1076,7 +1076,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

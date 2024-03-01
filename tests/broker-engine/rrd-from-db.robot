@@ -28,7 +28,7 @@ BRRDDMDB1
     Create Metrics    3
     ${start}    Get Current Date    exclude_millis=True
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -67,7 +67,7 @@ BRRDDIDDB1
     ${start}    Get Current Date
     Sleep    1s
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -111,7 +111,7 @@ BRRDRBDB1
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -159,7 +159,7 @@ BRRDRBUDB1
 
     ${start}    Get Current Date    exclude_millis=True
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -205,7 +205,7 @@ BRRDUPLICATE
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 

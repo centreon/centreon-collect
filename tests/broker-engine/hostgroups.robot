@@ -23,7 +23,7 @@ EBNHG1
     Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
@@ -51,7 +51,7 @@ EBNHGU1
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
@@ -80,7 +80,7 @@ EBNHGU2
     Config BBDO3    3
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
@@ -110,7 +110,7 @@ EBNHGU3
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
     Add Host Group    ${1}    ${1}    ["host_21", "host_22", "host_23"]
     Add Host Group    ${2}    ${1}    ["host_31", "host_32", "host_33"]
@@ -144,7 +144,7 @@ EBNHG4
     Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     Sleep    3s
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
@@ -202,7 +202,7 @@ EBNHGU4_${test_label}
 
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     Sleep    3s
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 

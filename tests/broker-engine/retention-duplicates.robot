@@ -28,7 +28,7 @@ BERD1
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
@@ -69,7 +69,7 @@ BERD2
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
@@ -79,7 +79,7 @@ BERD2
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    15s
     Stop Engine
-    Start Engine
+    Ctn Start Engine
     Sleep    25s
     Stop Engine
     Kindly Stop Broker
@@ -109,7 +109,7 @@ BERDUC1
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
@@ -148,7 +148,7 @@ BERDUCU1
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
@@ -183,7 +183,7 @@ BERDUC2
     Config Broker    rrd
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
@@ -195,7 +195,7 @@ BERDUC2
     Stop Engine
     Sleep    5s
     Clear Cache
-    Start Engine
+    Ctn Start Engine
     Sleep    25s
     Stop Engine
     Kindly Stop Broker
@@ -222,7 +222,7 @@ BERDUCU2
     Config Broker    rrd
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
@@ -234,7 +234,7 @@ BERDUCU2
     Stop Engine
     Sleep    5s
     Clear Cache
-    Start Engine
+    Ctn Start Engine
     Sleep    25s
     Stop Engine
     Kindly Stop Broker
@@ -260,7 +260,7 @@ BERDUC3U1
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
@@ -300,7 +300,7 @@ BERDUC3U2
     Config BBDO3    1
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the lua to be correctly initialized
     ${content}    Create List    lua: initializing the Lua virtual machine
@@ -325,7 +325,7 @@ BERDUC3U2
     Stop Engine
     Sleep    5s
     Clear Cache
-    Start Engine
+    Ctn Start Engine
     Sleep    25s
     Stop Engine
     Kindly Stop Broker
@@ -357,7 +357,7 @@ BERDUCA300
     Broker Config Add Item    rrd    bbdo_version    3.0.0
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
@@ -410,7 +410,7 @@ BERDUCA301
     ${start}    Get Current Date
 
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.

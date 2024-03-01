@@ -23,7 +23,7 @@ SDER
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -39,7 +39,7 @@ SDER
 
     Modify Retention Dat    0    host_1    service_1    current_state    2
     Modify Retention Dat    0    host_1    service_1    state_type    1
-    Start Engine
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 

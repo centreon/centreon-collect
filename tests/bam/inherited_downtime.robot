@@ -32,7 +32,7 @@ BEBAMIDT1
     Set Command Status    ${cmd_1}    2
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for Engine to be ready
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -92,7 +92,7 @@ BEBAMIDT2
     Set Command Status    ${cmd_1}    2
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for Engine to be ready
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -124,7 +124,7 @@ BEBAMIDT2
         # Engine is restarted
         Stop Engine
         ${start}    Get Current Date
-        Start Engine
+        Ctn Start Engine
         # Let's wait for Engine to be ready
         ${content}    Create List    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -195,7 +195,7 @@ BEBAMIGNDT1
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the initial service states.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -294,7 +294,7 @@ BEBAMIGNDT2
     Set Command Status    ${cmd_2}    2
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the initial service states.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

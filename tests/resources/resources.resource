@@ -140,7 +140,7 @@ Stop Processes
     Kill Broker
     Kill Engine
 
-Start Engine
+Ctn Start Engine
     ${count}    Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -159,7 +159,7 @@ Start Engine
 
 Restart Engine
     Stop Engine
-    Start Engine
+    Ctn Start Engine
 
 Start Custom Engine
     [Arguments]    ${conf_path}    ${process_alias}

@@ -45,7 +45,7 @@ BABOO
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -113,7 +113,7 @@ BABOOOR
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -160,7 +160,7 @@ BABOOAND
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -208,7 +208,7 @@ BABOOORREL
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -304,7 +304,7 @@ BABOOCOMPL
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -360,7 +360,7 @@ BABOOCOMPL_RESTART
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -454,7 +454,7 @@ BABOOCOMPL_RELOAD
 
     Start Broker
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

@@ -27,7 +27,7 @@ TestBadUser
     ...    ssh_linux_snmp
     ...    $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"
     ...    SSH Connector
-    Start Engine
+    Ctn Start Engine
 
     ${start}    Get Current Date
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
@@ -60,7 +60,7 @@ TestBadPwd
     ...    ssh_linux_snmp
     ...    $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"
     ...    SSH Connector
-    Start Engine
+    Ctn Start Engine
 
     ${start}    Get Current Date
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
@@ -110,7 +110,7 @@ Test6Hosts
         Engine Config Set Value In Hosts    ${0}    host_${idx}    _IDENTITYFILE    /home/testconnssh/.ssh/id_rsa
         Engine Config Set Value In Hosts    ${0}    host_${idx}    _PASSWORD    passwd
     END
-    Start Engine
+    Ctn Start Engine
 
     ${start}    Get Current Date
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
@@ -173,7 +173,7 @@ TestWhiteList
     ...    {"whitelist":{"regex":["/tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]}}
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
 
-    Start Engine
+    Ctn Start Engine
 
     ${start}    Get Current Date
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()

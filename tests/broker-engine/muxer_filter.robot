@@ -24,7 +24,7 @@ STUPID_FILTER
 
     ${start}    Get Current Date
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
 
     ${content}    Create List
     ...    The configured write filters for the endpoint 'central-broker-unified-sql' are too restrictive and will be ignored. neb,bbdo,extcmd categories are mandatory.
@@ -50,7 +50,7 @@ STORAGE_ON_LUA
     Broker Config Output Set Json    central    test-filter    filters    {"category": [ "storage"]}
 
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log
     FOR    ${index}    IN RANGE    30
@@ -89,7 +89,7 @@ FILTER_ON_LUA_EVENT
     ...    {"category": [ "storage:pb_metric_mapping"]}
 
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log
     FOR    ${index}    IN RANGE    30
@@ -134,7 +134,7 @@ BAM_STREAM_FILTER
     Set Command Status    ${cmd_1}    2
     Start Broker    True
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -216,7 +216,7 @@ UNIFIED_SQL_FILTER
 
     ${start}    Get Current Date
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -255,7 +255,7 @@ CBD_RELOAD_AND_FILTERS
     Log To Console    First configuration: all events are sent to rrd.
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -358,7 +358,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Log To Console    First configuration: all events are sent to rrd.
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -477,7 +477,7 @@ SEVERAL_FILTERS_ON_LUA_EVENT
     ...    {"category": [ "neb:ServiceStatus"]}
 
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log
     FOR    ${index}    IN RANGE    30

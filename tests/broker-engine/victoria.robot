@@ -26,7 +26,7 @@ VICT_ONE_CHECK_METRIC
     Config Broker Victoria Output
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     Start Server    127.0.0.1    8000
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
@@ -85,7 +85,7 @@ VICT_ONE_CHECK_STATUS
     Config Broker Victoria Output
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     Start Server    127.0.0.1    8000
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
@@ -208,7 +208,7 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     Config Broker Victoria Output
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

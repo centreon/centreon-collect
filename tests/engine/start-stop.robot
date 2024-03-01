@@ -41,6 +41,6 @@ ESS4
 *** Keywords ***
 Start Stop Instances
     [Arguments]    ${interval}
-    Start Engine
+    Ctn Start Engine
     Sleep    ${interval}
     Stop Engine

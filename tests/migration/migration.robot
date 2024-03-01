@@ -24,7 +24,7 @@ MIGRATION
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
 
     ${contentCentral}    Create List    SQL: processing service status event
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${contentCentral}    60
@@ -40,7 +40,7 @@ MIGRATION
     Kindly Stop Broker
     Start Broker
     Stop Engine
-    Start Engine
+    Ctn Start Engine
     Sleep    2s
 
     ${contentCentral}    Create List    SQL: processing service status event
@@ -57,7 +57,7 @@ MIGRATION
     Kindly Stop Broker
     Start Broker
     Stop Engine
-    Start Engine
+    Ctn Start Engine
     Sleep    2s
 
     ${contentCentral}    Create List    status check result output:
@@ -78,7 +78,7 @@ MIGRATION
     Kindly Stop Broker
     Start Broker
     Stop Engine
-    Start Engine
+    Ctn Start Engine
     Sleep    2s
 
     ${contentCentral}    Create List    SQL: processing service status event
@@ -93,7 +93,7 @@ MIGRATION
     Kindly Stop Broker
     Start Broker
     Stop Engine
-    Start Engine
+    Ctn Start Engine
     Sleep    2s
 
     ${contentCentral}    Create List    SQL: processing service status event

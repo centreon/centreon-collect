@@ -23,7 +23,7 @@ BEPBBEE1
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    BBDO: peer is using protocol version 3.0.0 whereas we're using protocol version 2.0.0
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Message about not matching bbdo versions not available
@@ -45,7 +45,7 @@ BEPBBEE2
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List
     ...    Configuration check error: bbdo versions >= 3.0.0 need the unified_sql module to be configured.
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -67,7 +67,7 @@ BEPBBEE3
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     Wait Until Created    /tmp/pbservicestatus.log    1m
 
     [Teardown]    Stop Engine Broker And Save Logs
@@ -87,7 +87,7 @@ BEPBBEE4
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     Wait Until Created    /tmp/pbhoststatus.log    1m
 
     [Teardown]    Stop Engine Broker And Save Logs
@@ -107,7 +107,7 @@ BEPBBEE5
     Clear Retention
     ${start}    Get Current Date
     Start Broker
-    Start Engine
+    Ctn Start Engine
     Wait Until Created    /tmp/pbservice.log    1m
 
     [Teardown]    Stop Engine Broker And Save Logs
@@ -131,7 +131,7 @@ BEPBRI1
     Execute SQL String    DELETE FROM instances
     ${start}    Get Current Date
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
     Wait Until Created    /tmp/pbresponsiveinstance.log    30s
     ${grep_res}    Grep File    /tmp/pbresponsiveinstance.log    "_type":65582, "category":1, "element":46,
     ${grep_res}    Get Lines Containing String    ${grep_res}    "poller_id":1, "responsive":true
@@ -158,7 +158,7 @@ BEPBCVS
     Clear Retention
     ${start}    Get Current Date
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -189,7 +189,7 @@ BEPB_HOST_DEPENDENCY
     Clear Retention                                                             
     ${start}    Get Current Date                                                
     Start Broker    True                                                        
-    Start Engine                                                                
+    Ctn Start Engine                                                                
                                                                                 
     ${result}    Common.Check Host Dependencies    2    1        24x7    1   ou    dp    30
     Should Be True    ${result}    No notification dependency from 2 to 1 with timeperiod 24x7 on 'ou'
@@ -216,7 +216,7 @@ BEPB_SERVICE_DEPENDENCY
     Clear Retention
     ${start}    Get Current Date
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -259,7 +259,7 @@ BEPBHostParent
     Clear Retention
     ${start}    Get Current Date
     Start Broker    True
-    Start Engine
+    Ctn Start Engine
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
     FOR    ${index}    IN RANGE    30

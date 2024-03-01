@@ -17,7 +17,7 @@ EPC1
     Engine Config Set Value    ${0}    log_level_commands    trace
     ${start}    Get Current Date
 
-    Start Engine
+    Ctn Start Engine
     ${content}    Create List    connector::run: connector='Perl Connector'
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Missing a message talking about 'Perl Connector'

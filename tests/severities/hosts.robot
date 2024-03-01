@@ -26,7 +26,7 @@ BEUHSEV1
     Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
     Sleep    2s
 
@@ -70,7 +70,7 @@ BEUHSEV2
     Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
@@ -146,7 +146,7 @@ BETUHSEV1
     Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
-    Start Engine
+    Ctn Start Engine
     Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
