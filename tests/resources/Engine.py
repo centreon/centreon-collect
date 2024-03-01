@@ -2931,6 +2931,27 @@ def ctn_grep_retention(poller: int, pattern: str):
     return Common.ctn_grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
 
 
+def ctn_config_add_otl_connector(poller: int, connector_name: str, command_line:str):
+    """
+    config_add_otl_connector
+
+     add a connector entry to connectors.cfg
+
+    Args:
+        poller: poller index
+        connector_name: 
+        command_line:
+    """
+
+    with open(f"{CONF_DIR}/config{poller}/connectors.cfg", "a") as f:
+        f.write(f"""
+define connector {{
+    connector_name                 {connector_name}
+    connector_line                 {command_line}
+}}
+""")
+
+
 def ctn_modify_retention_dat(poller, host, service, key, value):
     """
     Modify a parameter of a service in the retention.dat file.
@@ -3235,8 +3256,31 @@ def randomword(length):
 # }
 
 
+def add_data_point_to_metric(metric, attrib:dict, metric_value = None):
+    """
+    
+    add_data_point_to_metric
 
-def ctn_create_otl_metric(name:str, nb_datapoints:int, attrib:dict):
+    add a data point to metric
+    Args:
+        metric: metric
+        attrib: key =>values to add in datapoint attributes
+        metric_value (optional) value of metric, random if not given
+
+    """
+    data_point = metric.gauge.data_points.add()
+    data_point.time_unix_nano = int(time.time())
+    if metric_value is not None:
+        data_point.as_double = metric_value
+    else:
+        data_point.as_double = random.random()
+    for key, value in attrib.items():
+        attr = data_point.attributes.add()
+        attr.key = key
+        attr.value.string_value = value
+
+
+def create_otl_metric(name:str, nb_datapoints:int, attrib:dict, metric_value = None):
     """
 
     create_otl_metric
@@ -3246,18 +3290,13 @@ def ctn_create_otl_metric(name:str, nb_datapoints:int, attrib:dict):
         name:  metric name
         nb_datapoints: number of datapoints added to the metric
         attrib: key =>values to add in datapoint attributes
+        metric_value (optional) value of metric, random if not given
     Returns:  opentelemetry.proto.metrics.v1.Metric object
     """
     metric = opentelemetry.proto.metrics.v1.metrics_pb2.Metric()
     metric.name = name
     for i in range(nb_datapoints):
-        data_point = metric.gauge.data_points.add()
-        data_point.time_unix_nano = int(time.time())
-        data_point.as_double = random.random()
-        for key, value in attrib.items():
-            attr = data_point.attributes.add()
-            attr.key = key
-            attr.value.string_value = value
+        add_data_point_to_metric(metric, attrib, metric_value)
     return metric
     
 

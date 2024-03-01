@@ -18,9 +18,9 @@
 #ifndef CENTREON_BROKER_TCP_INC_COM_CENTREON_BROKER_TCP_TCP_ASYNC_HH_
 #define CENTREON_BROKER_TCP_INC_COM_CENTREON_BROKER_TCP_TCP_ASYNC_HH_
 
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/tcp/tcp_config.hh"
 #include "com/centreon/broker/tcp/tcp_connection.hh"
+#include "com/centreon/common/pool.hh"
 
 namespace com::centreon::broker {
 namespace tcp {
@@ -108,5 +108,5 @@ class tcp_async : public std::enable_shared_from_this<tcp_async> {
 };
 }  // namespace tcp
 
-}
+}  // namespace com::centreon::broker
 #endif  // CENTREON_BROKER_TCP_INC_COM_CENTREON_BROKER_TCP_TCP_ASYNC_HH_

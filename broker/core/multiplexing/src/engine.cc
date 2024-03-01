@@ -27,7 +27,7 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/pool.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
@@ -394,7 +394,8 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
       /* We use the thread pool for the muxers from the first one to the
        * second to last */
       for (auto it = _muxers.begin(); it != it_last; ++it) {
-        pool::io_context().post([kiew, m = it->lock(), cb]() {
+        com::centreon::common::pool::io_context().post([kiew, m = it->lock(),
+                                                        cb]() {
           try {
             m->publish(*kiew);
           }  // pool threads protection

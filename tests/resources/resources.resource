@@ -266,13 +266,14 @@ Ctn Save Logs
 Ctn Dump Process
     [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${pid}    Get Process Id    ${process_name}
-    IF    ${pid} is not ${None}
+    IF    ${pid} > 0
         ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
         Create Directory    ${failDir}
         ${output}    Catenate    SEPARATOR=    /tmp/core-    ${name}
         ${gdb_output}    Catenate    SEPARATOR=    ${failDir}    /core-    ${name}    .txt
         # Log To Console    Creation of core ${output}.${pid} to debug
         # Run Process    gcore    -o    ${output}    ${pid}
+        Log To Console    Creation of core ${gdb_output}
         Run Process
         ...    gdb
         ...    -batch

@@ -1608,3 +1608,85 @@ def ctn_compare_dot_files(file1: str, file2: str):
                 f"Files are different at line {i + 1}: first => << {content1[i].strip()} >> and second => << {content2[i].strip()} >>")
             return False
     return True
+
+def create_random_string(length:int):
+    """
+    create_random_string
+
+    create a string with random char
+    Args:
+        length output string length
+    Returns: a string
+    """
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(length))
+
+
+def create_random_dictionary(nb_entries: int):
+    """
+    create_random_dictionary
+
+    create a dictionary with random keys and random string values
+    
+    Args:
+        nb_entries  dictionary size
+    Returns: a dictionary
+    """
+    dict_ret = {}
+    for ii in range(nb_entries):
+        dict_ret[create_random_string(10)] = create_random_string(10)
+
+    return dict_ret;
+
+
+def extract_event_from_lua_log(file_path:str, field_name: str):
+    """
+    extract_event_from_lua_log
+
+    extract a json object from a lua log file 
+    Example: Wed Feb  7 15:30:11 2024: INFO: {"_type":196621, "category":3, "element":13, "resource_metrics":{}
+
+    Args:
+        file1: The first file to compare.
+        file2: The second file to compare.
+
+    Returns: True if they have the same content, False otherwise.
+    """
+
+    with open(file1, "r") as f1:
+        content1 = f1.readlines()
+    with open(file2, "r") as f2:
+        content2 = f2.readlines()
+    r = re.compile(r"(.*) 0x[0-9a-f]+")
+
+    def replace_ptr(line):
+        m = r.match(line)
+        if m:
+            return m.group(1)
+        else:
+            return line
+
+    content1 = list(map(replace_ptr, content1))
+    content2 = list(map(replace_ptr, content2))
+
+    if len(content1) != len(content2):
+        return False
+    for i in range(len(content1)):
+        if content1[i] != content2[i]:
+            logger.console(
+                f"Files are different at line {i + 1}: first => << {content1[i].strip()} >> and second => << {content2[i].strip()} >>")
+            return False
+    return True
+
+
+
+def protobuf_to_json(protobuf_obj):
+    """
+    protobuf_to_json
+
+    Convert a protobuf object to json
+    it replaces uppercase letters in keys by _<lower>
+    """
+    converted = MessageToJson(protobuf_obj)
+    return json.loads(converted)#, object_pairs_hook=replace_upper_key_by_undescorelower )
+

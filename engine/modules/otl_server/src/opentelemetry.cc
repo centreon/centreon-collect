@@ -37,7 +37,9 @@ open_telemetry::open_telemetry(
     const std::shared_ptr<asio::io_context>& io_context)
     : _config_file_path(config_file_path),
       _second_timer(*io_context),
-      _io_context(io_context) {}
+      _io_context(io_context) {
+  SPDLOG_LOGGER_INFO(log_v2::otl(), "load of open telemetry module");
+}
 
 /**
  * @brief to call when configuration changes
@@ -88,7 +90,7 @@ std::shared_ptr<open_telemetry> open_telemetry::load(
  */
 void open_telemetry::_create_otl_server(
     const grpc_config::pointer& server_conf) {
-  std::shared_ptr<otl_server> to_shutdown = _otl_server.lock();
+  std::shared_ptr<otl_server> to_shutdown = _otl_server;
   if (to_shutdown) {
     to_shutdown->shutdown(std::chrono::seconds(10));
   }
@@ -106,6 +108,7 @@ void open_telemetry::_create_otl_server(
 void open_telemetry::reload() {
   if (_instance) {
     try {
+      SPDLOG_LOGGER_INFO(log_v2::otl(), "reload of open telemetry module");
       instance()->_reload();
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(
@@ -123,6 +126,7 @@ void open_telemetry::reload() {
  */
 void open_telemetry::unload() {
   if (_instance) {
+    SPDLOG_LOGGER_INFO(log_v2::otl(), "unload of open telemetry module");
     instance()->_shutdown();
     _instance.reset();
   }
@@ -133,7 +137,8 @@ void open_telemetry::unload() {
  *
  */
 void open_telemetry::_shutdown() {
-  std::shared_ptr<otl_server> to_shutdown = _otl_server.lock();
+  std::shared_ptr<otl_server> to_shutdown = _otl_server;
+  _otl_server.reset();
   if (to_shutdown) {
     to_shutdown->shutdown(std::chrono::seconds(10));
   }
@@ -265,10 +270,9 @@ void open_telemetry::_on_metric(const metric_request_ptr& metrics) {
             data_point_known = true;
             break;
           }
+          ++last_success;
           if (last_success == _extractors.end()) {
             last_success = _extractors.begin();
-          } else {
-            ++last_success;
           }
         }
         if (!data_point_known) {

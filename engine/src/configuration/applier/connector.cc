@@ -66,8 +66,11 @@ void applier::connector::add_object(configuration::connector const& obj) {
   // Create connector.
   boost::trim(processed_cmd);
   if (!processed_cmd.compare(0, _otel_fake_exe.length(), _otel_fake_exe)) {
-    commands::otel_command::create(obj.connector_name(), processed_cmd,
-                                   &checks::checker::instance());
+    commands::otel_command::create(
+        obj.connector_name(),
+        boost::algorithm::trim_copy(
+            processed_cmd.substr(_otel_fake_exe.length())),
+        &checks::checker::instance());
   } else {
     auto cmd = std::make_shared<commands::connector>(
         obj.connector_name(), processed_cmd, &checks::checker::instance());
@@ -123,7 +126,8 @@ void applier::connector::modify_object(configuration::connector const& obj) {
       // connector object become an otel fake connector
       if (exist_connector != commands::connector::connectors.end()) {
         commands::connector::connectors.erase(exist_connector);
-        commands::otel_command::create(obj.key(), processed_cmd,&checks::checker::instance());
+        commands::otel_command::create(obj.key(), processed_cmd,
+                                       &checks::checker::instance());
       } else {
         throw com::centreon::exceptions::msg_fmt(
             "unknown open telemetry command to update: {}", obj.key());
