@@ -4,9 +4,6 @@ inputs:
   github_ref_name:
     description: "Github ref name"
     required: true
-  module_name:
-    description: "The package module name"
-    required: true
   jira_api_token:
     description: "Token to authenticate to Jira"
     required: true
@@ -29,7 +26,7 @@ runs:
     - name: Get released versions for components
       run: |
         set -eu
-        COMPONENTS_RELEASED=()
+
         COMPONENTS_OSS=("centreon-awie" "centreon-dsm" "centreon-gorgone" "centreon-ha" "centreon-open-tickets" "centreon-web")
         COMPONENTS_MODULES=("centreon-anomaly-detection" "centreon-autodiscovery" "centreon-bam" "centreon-cloud-business-extensions" "centreon-cloud-extensions" "centreon-it-edition-extensions" "centreon-license-manager" "centreon-map" "centreon-mbi" "centreon-pp-manager")
         COMPONENTS_COLLECT=("centreon-collect")
