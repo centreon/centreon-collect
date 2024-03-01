@@ -24,38 +24,6 @@
 using namespace com::centreon::engine::modules::otl_server;
 
 /**
- * @brief add a host serv allowed for extraction
- *
- * @param host
- * @param service_description empty if host command
- */
-void host_serv_extractor::register_host_serv(
-    const std::string& host,
-    const std::string& service_description) {
-  absl::WriterMutexLock l(&_host_serv_allowed_m);
-  _host_serv_allowed[host].emplace(service_description);
-}
-
-/**
- * @brief remove a host serv allowed for extraction
- *
- * @param host
- * @param service_description empty if host command
- */
-void host_serv_extractor::unregister_host_serv(
-    const std::string& host,
-    const std::string& service_description) {
-  absl::WriterMutexLock l(&_host_serv_allowed_m);
-  auto host_iter = _host_serv_allowed.find(host);
-  if (host_iter != _host_serv_allowed.end()) {
-    host_iter->second.erase(service_description);
-    if (host_iter->second.empty()) {
-      _host_serv_allowed.erase(host_iter);
-    }
-  }
-}
-
-/**
  * @brief test if a host serv is allowed for this extractor
  *
  * @param host
@@ -66,12 +34,7 @@ void host_serv_extractor::unregister_host_serv(
 bool host_serv_extractor::is_allowed(
     const std::string& host,
     const std::string& service_description) const {
-  absl::ReaderMutexLock l(&_host_serv_allowed_m);
-  auto host_iter = _host_serv_allowed.find(host);
-  if (host_iter == _host_serv_allowed.end()) {
-    return false;
-  }
-  return host_iter->second.contains(service_description);
+  return _host_serv_list->is_allowed(host, service_description);
 }
 
 namespace com::centreon::engine::modules::otl_server::options {
@@ -109,7 +72,8 @@ host_serv_attributes_extractor_config_options::
 };  // namespace com::centreon::engine::modules::otl_server::options
 
 std::shared_ptr<host_serv_extractor> host_serv_extractor::create(
-    const std::string& command_line) {
+    const std::string& command_line,
+    const commands::otel::host_serv_list::pointer& host_serv_list) {
   // type of the converter is the first field
   size_t sep_pos = command_line.find(' ');
   std::string conf_type = sep_pos == std::string::npos
@@ -122,7 +86,8 @@ std::shared_ptr<host_serv_extractor> host_serv_extractor::create(
   boost::trim(params);
 
   if (conf_type.empty() || conf_type == "attributes") {
-    return std::make_shared<host_serv_attributes_extractor>(params);
+    return std::make_shared<host_serv_attributes_extractor>(params,
+                                                            host_serv_list);
   } else {
     SPDLOG_LOGGER_ERROR(log_v2::otl(), "unknown converter type:{}", conf_type);
     throw exceptions::msg_fmt("unknown converter type:{}", conf_type);
@@ -130,8 +95,9 @@ std::shared_ptr<host_serv_extractor> host_serv_extractor::create(
 }
 
 host_serv_attributes_extractor::host_serv_attributes_extractor(
-    const std::string& command_line)
-    : host_serv_extractor(command_line) {
+    const std::string& command_line,
+    const commands::otel::host_serv_list::pointer& host_serv_list)
+    : host_serv_extractor(command_line, host_serv_list) {
   options::host_serv_attributes_extractor_config_options args;
   args.parse(command_line);
 

@@ -79,7 +79,7 @@ BEOTEL_TELEGRAF_CHECK_HOST
     [Documentation]    we send nagios telegraf formated datas and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    mon-34004
     Config Engine    ${1}
-    Add Otl ServerModule    0    {"server":{"host": "0.0.0.0","port": 4317}}
+    Add Otl ServerModule    0    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
     Config Add Otl Connector
     ...    0
     ...    OTEL connector

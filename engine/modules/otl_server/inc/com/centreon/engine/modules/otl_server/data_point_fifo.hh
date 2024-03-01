@@ -54,6 +54,8 @@ class data_point_fifo {
 
   void clear() { _fifo.clear(); }
 
+  size_t size() const { return _fifo.size(); }
+
   void add_data_point(const data_point& data_pt);
 
   void clean();

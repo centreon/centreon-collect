@@ -375,8 +375,6 @@ void otl_server::start() {
  * @param timeout after this timeout, grpc server will be stopped
  */
 void otl_server::shutdown(const std::chrono::system_clock::duration& timeout) {
-  SPDLOG_LOGGER_INFO(log_v2::otl(), "{:p} shutdown {}",
-                     static_cast<const void*>(this), _conf->get_hostport());
   std::unique_ptr<::grpc::Server> to_shutdown;
   {
     absl::MutexLock l(&_protect);
@@ -386,6 +384,8 @@ void otl_server::shutdown(const std::chrono::system_clock::duration& timeout) {
     to_shutdown = std::move(_server);
     _server.reset();
   }
+  SPDLOG_LOGGER_INFO(log_v2::otl(), "{:p} shutdown {}",
+                     static_cast<const void*>(this), _conf->get_hostport());
   to_shutdown->Shutdown(std::chrono::system_clock::now() + timeout);
   to_shutdown->Wait();
 }

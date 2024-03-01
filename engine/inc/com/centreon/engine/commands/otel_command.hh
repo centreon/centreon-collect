@@ -33,6 +33,8 @@ namespace com::centreon::engine::commands {
  */
 class otel_command : public command,
                      public std::enable_shared_from_this<otel_command> {
+  otel::host_serv_list::pointer _host_serv_list;
+
  public:
   using otel_command_container =
       absl::flat_hash_map<std::string, std::shared_ptr<otel_command>>;

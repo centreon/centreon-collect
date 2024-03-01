@@ -82,3 +82,23 @@ metric_name_to_fifo& data_point_container::get_fifos(
   auto exist = _data.find({host, service});
   return exist == _data.end() ? _empty : exist->second;
 }
+
+void data_point_container::dump(std::string& output) const {
+  output.push_back('{');
+  for (const auto& host_serv : _data) {
+    output.push_back('"');
+    output.append(host_serv.first.first);
+    output.push_back(',');
+    output.append(host_serv.first.second);
+    output.append("\":{");
+    for (const auto& metric_to_fifo : host_serv.second) {
+      output.push_back('"');
+      output.append(metric_to_fifo.first);
+      output.append("\":");
+      absl::StrAppend(&output, metric_to_fifo.second.size());
+      output.push_back(',');
+    }
+    output.append("},");
+  }
+  output.push_back('}');
+}

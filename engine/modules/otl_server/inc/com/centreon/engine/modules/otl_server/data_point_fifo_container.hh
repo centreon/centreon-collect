@@ -53,8 +53,28 @@ class data_point_container {
   void lock() { _data_m.lock(); }
 
   void unlock() { _data_m.unlock(); }
+
+  void dump(std::string& output) const;
 };
 
 }  // namespace com::centreon::engine::modules::otl_server
+
+namespace fmt {
+template <>
+struct formatter<
+    com::centreon::engine::modules::otl_server::data_point_container>
+    : formatter<std::string> {
+  template <typename FormatContext>
+  auto format(
+      const com::centreon::engine::modules::otl_server::data_point_container&
+          cont,
+      FormatContext& ctx) const -> decltype(ctx.out()) {
+    std::string output;
+    cont.dump(output);
+    return formatter<std::string>::format(output, ctx);
+  }
+};
+
+}  // namespace fmt
 
 #endif

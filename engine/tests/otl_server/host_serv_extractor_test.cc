@@ -26,6 +26,7 @@
 #include "com/centreon/engine/modules/otl_server/host_serv_extractor.hh"
 
 using namespace com::centreon::engine::modules::otl_server;
+using namespace com::centreon::engine;
 
 TEST(otl_host_serv_extractor_test, empty_request) {
   metric_request_ptr request =
@@ -47,7 +48,7 @@ class otl_host_serv_attributes_extractor_test : public ::testing::Test {
   const std::string _conf5 =
       "attributes --host_attribute=data_point --service_attribute=data_point";
   const std::string _conf6 =
-      "attributes --host_attribute=data_point --host_tag=bad_host "
+      "attributes --host_attribute=data_point --host_key=bad_host "
       "--service_attribute=data_point";
 };
 
@@ -76,9 +77,11 @@ TEST_F(otl_host_serv_attributes_extractor_test, resource_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf3);
-        extractor->register_host_serv("my_host2", "");
-        extractor->register_host_serv("my_host2", "my_serv2");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf3, host_srv_list);
+        host_srv_list->register_host_serv("my_host2", "");
+        host_srv_list->register_host_serv("my_host2", "my_serv2");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_EQ(to_test.host, "my_host2");
         ASSERT_EQ(to_test.service, "");
@@ -90,8 +93,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, resource_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf1);
-        extractor->register_host_serv("my_host", "");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf1, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_TRUE(to_test.host.empty());
       });
@@ -99,8 +104,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, resource_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf4);
-        extractor->register_host_serv("my_host", "");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf4, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_TRUE(to_test.host.empty());
       });
@@ -108,8 +115,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, resource_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf6);
-        extractor->register_host_serv("my_host", "");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf6, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_TRUE(to_test.host.empty());
       });
@@ -120,8 +129,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, resource_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf3);
-        extractor->register_host_serv("my_host", "my_serv");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf3, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "my_serv");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_EQ(to_test.host, "my_host");
         ASSERT_EQ(to_test.service, "my_serv");
@@ -131,8 +142,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, resource_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf3);
-        extractor->register_host_serv("my_host2", "my_serv");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf3, host_srv_list);
+        host_srv_list->register_host_serv("my_host2", "my_serv");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_EQ(to_test.host, "my_host2");
         ASSERT_EQ(to_test.service, "my_serv");
@@ -141,8 +154,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, resource_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf3);
-        extractor->register_host_serv("my_host3", "my_serv");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf3, host_srv_list);
+        host_srv_list->register_host_serv("my_host3", "my_serv");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_TRUE(to_test.host.empty());
       });
@@ -153,9 +168,11 @@ TEST_F(otl_host_serv_attributes_extractor_test, resource_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf3);
-        extractor->register_host_serv("my_host2", "");
-        extractor->register_host_serv("my_host2", "my_serv2");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf3, host_srv_list);
+        host_srv_list->register_host_serv("my_host2", "");
+        host_srv_list->register_host_serv("my_host2", "my_serv2");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_EQ(to_test.host, "my_host2");
         ASSERT_EQ(to_test.service, "my_serv2");
@@ -189,8 +206,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, scope_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf4);
-        extractor->register_host_serv("my_host", "");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf4, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
 
         ASSERT_EQ(to_test.host, "my_host");
@@ -203,8 +222,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, scope_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf1);
-        extractor->register_host_serv("my_host", "");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf1, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_TRUE(to_test.host.empty());
       });
@@ -212,8 +233,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, scope_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf3);
-        extractor->register_host_serv("my_host", "");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf3, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_TRUE(to_test.host.empty());
       });
@@ -221,8 +244,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, scope_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf5);
-        extractor->register_host_serv("my_host", "");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf5, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_TRUE(to_test.host.empty());
       });
@@ -233,8 +258,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, scope_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf4);
-        extractor->register_host_serv("my_host", "my_serv");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf4, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "my_serv");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_EQ(to_test.host, "my_host");
         ASSERT_EQ(to_test.service, "my_serv");
@@ -265,8 +292,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, data_point_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf1);
-        extractor->register_host_serv("my_host", "");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf1, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_EQ(to_test.host, "my_host");
         ASSERT_EQ(to_test.service, "");
@@ -276,8 +305,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, data_point_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf5);
-        extractor->register_host_serv("my_host", "");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf5, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_EQ(to_test.host, "my_host");
         ASSERT_EQ(to_test.service, "");
@@ -289,8 +320,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, data_point_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf3);
-        extractor->register_host_serv("my_host", "");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf3, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_TRUE(to_test.host.empty());
       });
@@ -298,8 +331,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, data_point_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf4);
-        extractor->register_host_serv("my_host", "");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf4, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_TRUE(to_test.host.empty());
       });
@@ -307,8 +342,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, data_point_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf6);
-        extractor->register_host_serv("my_host", "");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf6, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_TRUE(to_test.host.empty());
       });
@@ -319,8 +356,10 @@ TEST_F(otl_host_serv_attributes_extractor_test, data_point_attrib) {
   data_point::extract_data_points(
       request, [this, &data_point_extracted_cpt](const data_point& data_pt) {
         ++data_point_extracted_cpt;
-        auto extractor = host_serv_extractor::create(_conf1);
-        extractor->register_host_serv("my_host", "my_serv");
+        commands::otel::host_serv_list::pointer host_srv_list =
+            std::make_shared<commands::otel::host_serv_list>();
+        auto extractor = host_serv_extractor::create(_conf1, host_srv_list);
+        host_srv_list->register_host_serv("my_host", "my_serv");
         host_serv_metric to_test = extractor->extract_host_serv_metric(data_pt);
         ASSERT_EQ(to_test.host, "my_host");
         ASSERT_EQ(to_test.service, "my_serv");

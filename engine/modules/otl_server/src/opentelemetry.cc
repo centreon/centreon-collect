@@ -156,13 +156,17 @@ void open_telemetry::_shutdown() {
  * @throw if extractor type is unknown
  */
 std::shared_ptr<com::centreon::engine::commands::otel::host_serv_extractor>
-open_telemetry::create_extractor(const std::string& cmdline) {
+open_telemetry::create_extractor(
+    const std::string& cmdline,
+    const commands::otel::host_serv_list::pointer& host_serv_list) {
   // erase host serv extractors that are only owned by this object
   auto clean = [this]() {
     for (cmd_line_to_extractor_map::const_iterator to_test =
              _extractors.begin();
          !_extractors.empty() && to_test != _extractors.end();) {
       if (to_test->second.use_count() <= 1) {
+        SPDLOG_LOGGER_DEBUG(log_v2::otl(), "create extractor:{}",
+                            *to_test->second);
         to_test = _extractors.erase(to_test);
       } else {
         ++to_test;
@@ -178,10 +182,17 @@ open_telemetry::create_extractor(const std::string& cmdline) {
     return to_ret;
   }
   clean();
-  std::shared_ptr<host_serv_extractor> new_extractor =
-      host_serv_extractor::create(cmdline);
-  _extractors.emplace(cmdline, new_extractor);
-  return new_extractor;
+  try {
+    std::shared_ptr<host_serv_extractor> new_extractor =
+        host_serv_extractor::create(cmdline, host_serv_list);
+    _extractors.emplace(cmdline, new_extractor);
+    SPDLOG_LOGGER_DEBUG(log_v2::otl(), "create extractor:{}", *new_extractor);
+    return new_extractor;
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::otl(), "fail to create extractor \"{}\" : {}",
+                        cmdline, e.what());
+    throw;
+  }
 }
 
 /**
@@ -206,16 +217,30 @@ bool open_telemetry::check(const std::string& processed_cmd,
                            uint32_t timeout,
                            commands::result& res,
                            commands::otel::result_callback&& handler) {
-  std::shared_ptr<otl_converter> to_use = otl_converter::create(
-      processed_cmd, command_id, *macros.host_ptr, macros.service_ptr,
-      std::chrono::system_clock::now() + std::chrono::seconds(timeout),
-      std::move(handler));
+  std::shared_ptr<otl_converter> to_use;
+  try {
+    to_use = otl_converter::create(
+        processed_cmd, command_id, *macros.host_ptr, macros.service_ptr,
+        std::chrono::system_clock::now() + std::chrono::seconds(timeout),
+        std::move(handler));
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::otl(), "fail to create converter for {} : {}",
+                        processed_cmd, e.what());
+    throw;
+  };
 
   bool res_available = to_use->sync_build_result_from_metrics(_fifo, res);
 
   if (res_available) {
+    SPDLOG_LOGGER_TRACE(log_v2::otl(),
+                        "data available for command {} converter:{}",
+                        command_id, *to_use);
     return true;
   }
+
+  SPDLOG_LOGGER_TRACE(
+      log_v2::otl(), "data unavailable for command {} timeout: {} converter:{}",
+      command_id, timeout, *to_use);
 
   // metrics not yet available = wait for data or until timeout
   std::lock_guard l(_protect);
@@ -287,9 +312,12 @@ void open_telemetry::_on_metric(const metric_request_ptr& metrics) {
           _waiting.insert(to_callback);
         }
       }
+      SPDLOG_LOGGER_TRACE(log_v2::otl(), "fifos:{}", _fifo);
     }
   }
   if (!unknown.empty()) {
+    SPDLOG_LOGGER_TRACE(log_v2::otl(), "{} unknown data_points",
+                        unknown.size());
     _forward_to_broker(unknown);
   }
 }

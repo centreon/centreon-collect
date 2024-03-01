@@ -81,11 +81,20 @@ class open_telemetry
 };
 
 class open_telemetry_test : public TestEngine {
+
  public:
+  commands::otel::host_serv_list::pointer _host_serv_list;
+
+  open_telemetry_test();
   static void SetUpTestSuite();
   void SetUp() override;
   void TearDown() override;
 };
+
+open_telemetry_test::open_telemetry_test()
+    : _host_serv_list(std::make_shared<commands::otel::host_serv_list>()) {
+  _host_serv_list->register_host_serv("localhost", "check_icmp");
+}
 
 void open_telemetry_test::SetUpTestSuite() {
   std::ofstream conf_file("/tmp/otel_conf.json");
@@ -130,8 +139,8 @@ void open_telemetry_test::TearDown() {
 TEST_F(open_telemetry_test, data_available) {
   auto instance = ::open_telemetry::load("/tmp/otel_conf.json", g_io_context);
 
-  instance->create_extractor("")->register_host_serv(
-      "localhost", "check_icmp");  // create a defaut attribute extractor
+  instance->create_extractor(
+      "", _host_serv_list);  // create a defaut attribute extractor
 
   metric_request_ptr request =
       std::make_shared<::opentelemetry::proto::collector::metrics::v1::
@@ -159,8 +168,8 @@ TEST_F(open_telemetry_test, data_available) {
 TEST_F(open_telemetry_test, timeout) {
   auto instance = ::open_telemetry::load("/tmp/otel_conf.json", g_io_context);
 
-  instance->create_extractor("")->register_host_serv(
-      "localhost", "check_icmp");  // create a defaut attribute extractor
+  instance->create_extractor(
+      "", _host_serv_list);  // create a defaut attribute extractor
 
   commands::result res;
   res.exit_status = com::centreon::process::normal;
@@ -184,8 +193,8 @@ TEST_F(open_telemetry_test, timeout) {
 TEST_F(open_telemetry_test, wait_for_data) {
   auto instance = ::open_telemetry::load("/tmp/otel_conf.json", g_io_context);
 
-  instance->create_extractor("")->register_host_serv(
-      "localhost", "check_icmp");  // create a defaut attribute extractor
+  instance->create_extractor(
+      "", _host_serv_list);  // create a defaut attribute extractor
 
   commands::result res;
   res.exit_status = com::centreon::process::normal;
