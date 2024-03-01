@@ -16,15 +16,15 @@ EBBPS1
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    info
     Ctn Broker Config Log    central    tcp    error
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    perfdata    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
@@ -99,15 +99,15 @@ EBBPS2
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    info
     Ctn Broker Config Log    central    tcp    error
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    perfdata    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
@@ -182,15 +182,15 @@ EBMSSM
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    tcp    error
     Ctn Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Remove Rrd Output    central
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -228,17 +228,17 @@ EBPS2
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    tcp    error
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    perfdata    debug
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Remove Rrd Output    central
     Clear Retention
 
     ${start}    Get Current Date
@@ -269,14 +269,14 @@ RLCode
 
     Remove File    /tmp/toto.lua
     Config Engine    ${1}    ${1}    ${10}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    tcp    error
     Ctn Broker Config Log    central    sql    error
     Ctn Broker Config Log    central    lua    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
 
     ${INITIAL_SCRIPT_CONTENT}    Catenate
     ...    function init(params)
@@ -339,13 +339,13 @@ metric_mapping
 
     Remove File    /tmp/test.log
     Config Engine    ${1}    ${1}    ${10}
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Broker Config Add Item    central    bbdo_version    3.0.1
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.1
     Ctn Broker Config Log    central    lua    debug
     Ctn Broker Config Log    module0    neb    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
 
     ${new_content}    Catenate
     ...    function init(params)
@@ -390,18 +390,18 @@ Services_and_bulks_${id}
     # We want all the services to be passive to avoid parasite checks during our test.
     ${random_string}    Generate Random String    ${metric_num_char}    [LOWER]
     Set Services passive    ${0}    service_.*
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.1
     Ctn Broker Config Add Item    central    bbdo_version    3.0.1
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    tcp    error
     Ctn Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Source Log    central    1
 
-    Config Broker Remove Rrd Output    central
+    Ctn Config Broker Remove Rrd Output    central
     Clear Retention
     Clear Db    metrics
 

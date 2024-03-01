@@ -38,14 +38,14 @@ NetworkDBFail6
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s
     [Tags]    broker    database    network    unstable
     Config Engine    ${1}
-    Config Broker    central
+    Ctn Config Broker    central
     Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
     Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     Ctn Broker Config Log    central    sql    trace
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -67,13 +67,13 @@ NetworkDBFailU6
     [Tags]    broker    database    network    unified_sql    unstable
     Reset Eth Connection
     Config Engine    ${1}
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Broker Config Log    central    sql    trace
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -96,15 +96,15 @@ NetworkDBFail7
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s
     [Tags]    broker    database    network
     Config Engine    ${1}
-    Config Broker    central
+    Ctn Config Broker    central
     Reset Eth Connection
     Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
     Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     Ctn Broker Config Log    central    sql    trace
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -130,13 +130,13 @@ NetworkDBFailU7
     [Tags]    broker    database    network    unified_sql
     Reset Eth Connection
     Config Engine    ${1}
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Broker Config Log    central    sql    trace
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -169,9 +169,9 @@ Network Failure
     [Arguments]    ${interval}
     Reset Eth Connection
     Config Engine    ${1}
-    Config Broker    module
-    Config Broker    rrd
-    Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
     Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
     Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    10
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1

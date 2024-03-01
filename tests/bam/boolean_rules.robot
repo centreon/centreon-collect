@@ -15,9 +15,9 @@ BABOO
     [Tags]    broker    engine    bam    boolean_expression
     Clear Commands Status
     Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    bam    trace
     Ctn Broker Config Log    central    sql    error
@@ -87,9 +87,9 @@ BABOOOR
     [Tags]    broker    engine    bam    boolean_expression
     Clear Commands Status
     Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    bam    trace
     Ctn Broker Config Log    central    sql    error
@@ -134,9 +134,9 @@ BABOOAND
     [Tags]    broker    engine    bam    boolean_expression
     Clear Commands Status
     Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    bam    trace
     Ctn Broker Config Log    central    sql    error
@@ -181,9 +181,9 @@ BABOOORREL
     [Tags]    broker    engine    bam    boolean_expression
     Clear Commands Status
     Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    bam    trace
     Ctn Broker Config Log    central    sql    error
@@ -276,9 +276,9 @@ BABOOCOMPL
     [Tags]    broker    engine    bam    boolean_expression
     Clear Commands Status
     Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    bam    trace
     Ctn Broker Config Log    central    sql    error
@@ -332,9 +332,9 @@ BABOOCOMPL_RESTART
     [Tags]    broker    engine    bam    boolean_expression    MON-34246
     Clear Commands Status
     Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    bam    trace
     Ctn Broker Config Log    central    sql    error
@@ -426,9 +426,9 @@ BABOOCOMPL_RELOAD
     [Tags]    broker    engine    bam    boolean_expression    MON-34246
     Clear Commands Status
     Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    bam    trace
     Ctn Broker Config Log    central    sql    error

@@ -14,11 +14,11 @@ STUPID_FILTER
     [Documentation]    Unified SQL is configured with only the bbdo category as filter. An error is raised by broker and broker should run correctly.
     [Tags]    broker    engine    filter
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    central
-    Config Broker    module    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Output Set Json    central    central-broker-unified-sql    filters    {"category": ["bbdo"]}
 
@@ -40,11 +40,11 @@ STORAGE_ON_LUA
     Remove File    /tmp/all_lua_event.log
 
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    central
-    Config Broker    module    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Add Lua Output    central    test-filter    ${SCRIPTS}test-log-all-event.lua
     Ctn Broker Config Output Set Json    central    test-filter    filters    {"category": [ "storage"]}
@@ -70,11 +70,11 @@ FILTER_ON_LUA_EVENT
     Remove File    /tmp/all_lua_event.log
 
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    central
-    Config Broker    module    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Add Lua Output
     ...    central
@@ -114,9 +114,9 @@ BAM_STREAM_FILTER
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. we watch its events
     [Tags]    broker    engine    bam    filter
     Clear Commands Status
-    Config Broker    module    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    central    config    trace
     Ctn Config BBDO3    ${1}
@@ -207,9 +207,9 @@ UNIFIED_SQL_FILTER
     [Documentation]    With bbdo version 3.0.1, we watch events written or rejected in unified_sql
     [Tags]    broker    engine    bam    filter
     Clear Retention
-    Config Broker    module    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    core    trace
     Ctn Config BBDO3    ${1}
     Config Engine    ${1}
@@ -244,9 +244,9 @@ CBD_RELOAD_AND_FILTERS
     [Tags]    broker    engine    filter
 
     Clear Retention
-    Config Broker    module    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    config    trace
     Ctn Broker Config Log    rrd    rrd    debug
     Ctn Config BBDO3    ${1}
@@ -344,9 +344,9 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     [Tags]    broker    engine    filter
 
     Clear Retention
-    Config Broker    module    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Ctn Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
     Ctn Broker Config Input Set    rrd    central-rrd-master-input    host    localhost
@@ -448,11 +448,11 @@ SEVERAL_FILTERS_ON_LUA_EVENT
     Remove File    /tmp/all_lua_event-bis.log
 
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    central
-    Config Broker    module    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Add Lua Output
     ...    central

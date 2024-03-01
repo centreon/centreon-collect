@@ -17,9 +17,9 @@ BEDTMASS1
     Engine Config Set Value    ${0}    log_level_functions    trace
     Engine Config Set Value    ${1}    log_level_functions    trace
     Engine Config Set Value    ${2}    log_level_functions    trace
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
@@ -27,7 +27,7 @@ BEDTMASS1
 
     Ctn Config BBDO3    3
     Ctn Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -67,9 +67,9 @@ BEDTMASS2
     Engine Config Set Value    ${0}    log_level_functions    trace
     Engine Config Set Value    ${1}    log_level_functions    trace
     Engine Config Set Value    ${2}    log_level_functions    trace
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
@@ -113,9 +113,9 @@ BEDTSVCREN1
     [Tags]    broker    engine    services    downtime
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_level_functions    trace
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    debug
 
@@ -156,9 +156,9 @@ BEDTSVCFIXED
     [Tags]    broker    engine    downtime
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_level_functions    trace
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    debug
 
@@ -190,12 +190,12 @@ BEDTHOSTFIXED
     [Tags]    broker    engine    downtime
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_level_functions    trace
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
 
     Clear Retention
     ${start}    Get Current Date
@@ -280,9 +280,9 @@ DTIM
     Engine Config Set Value    ${2}    log_level_functions    trace
     Engine Config Set Value    ${3}    log_level_functions    trace
     Engine Config Set Value    ${4}    log_level_functions    trace
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${5}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${5}
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.1
     Ctn Broker Config Add Item    module1    bbdo_version    3.0.1
     Ctn Broker Config Add Item    module2    bbdo_version    3.0.1
@@ -290,7 +290,7 @@ DTIM
     Ctn Broker Config Add Item    module4    bbdo_version    3.0.1
     Ctn Broker Config Add Item    central    bbdo_version    3.0.1
     Ctn Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
 
     ${start}    Get Current Date

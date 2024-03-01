@@ -16,15 +16,15 @@ BERD1
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Config Broker    central
+    Ctn Config Broker    central
     Ctn Broker Config Clear Outputs Except    central    ["ipv4"]
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
     Ctn Broker Config Flush Log    central    0
-    Config Broker    module
+    Ctn Config Broker    module
     Ctn Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Ctn Broker Config Log    module0    lua    debug
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -56,16 +56,16 @@ BERD2
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_level_runtime    info
-    Config Broker    central
+    Ctn Config Broker    central
     Ctn Broker Config Clear Outputs Except    central    ["ipv4"]
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
     Ctn Broker Config Flush Log    central    0
-    Config Broker    module
+    Ctn Config Broker    module
     Ctn Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Ctn Broker Config Log    module0    lua    debug
     Ctn Broker Config Log    module0    neb    debug
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -94,18 +94,18 @@ BERDUC1
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Config Broker    central
+    Ctn Config Broker    central
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
     Ctn Broker Config Log    central    perfdata    debug
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Flush Log    central    0
 
-    Config Broker    module
+    Ctn Config Broker    module
     Ctn Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Ctn Broker Config Log    module0    lua    debug
     Ctn Broker Config Log    module0    neb    debug
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -134,17 +134,17 @@ BERDUCU1
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Config Broker    central
+    Ctn Config Broker    central
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
     Ctn Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Ctn Broker Config Log    module0    lua    debug
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
     Ctn Broker Config Flush Log    module0    0
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -172,15 +172,15 @@ BERDUC2
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Config Broker    central
+    Ctn Config Broker    central
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
-    Config Broker    module
+    Ctn Config Broker    module
     Ctn Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Ctn Broker Config Log    module0    lua    debug
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    module0    0
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -209,17 +209,17 @@ BERDUCU2
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
     Ctn Broker Config Log    central    sql    trace
-    Config Broker    module
+    Ctn Config Broker    module
     Ctn Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Ctn Broker Config Log    module0    lua    debug
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    module0    0
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -247,15 +247,15 @@ BERDUC3U1
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Config Broker    central
+    Ctn Config Broker    central
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
     Ctn Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    module0    0
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    1
     Clear Retention
     ${start}    Get Current Date
@@ -286,17 +286,17 @@ BERDUC3U2
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
     Ctn Broker Config Log    central    sql    trace
-    Config Broker    module
+    Ctn Config Broker    module
     Ctn Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Ctn Broker Config Log    module0    lua    debug
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    module0    0
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    1
     ${start}    Get Current Date
     Ctn Start Broker
@@ -339,19 +339,19 @@ BERDUCA300
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    bbdo    trace
     Ctn Broker Config Log    central    tcp    trace
-    Config Broker    module
+    Ctn Config Broker    module
     Ctn Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Ctn Broker Config Log    module0    config    debug
     Ctn Broker Config Log    module0    bbdo    trace
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    module0    0
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
     Ctn Broker Config Add Item    central    bbdo_version    3.0.0
     Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
@@ -392,19 +392,19 @@ BERDUCA301
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    bbdo    trace
     Ctn Broker Config Log    central    tcp    trace
-    Config Broker    module
+    Ctn Config Broker    module
     Ctn Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Ctn Broker Config Log    module0    config    debug
     Ctn Broker Config Log    module0    bbdo    trace
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    module0    0
-    Config Broker    rrd
+    Ctn Config Broker    rrd
 
     Ctn Config BBDO3    1
     ${start}    Get Current Date

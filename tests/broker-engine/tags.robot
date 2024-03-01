@@ -16,9 +16,9 @@ BETAG1
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
     Clear Retention
@@ -42,9 +42,9 @@ BETAG2
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
     Clear Retention
@@ -69,10 +69,10 @@ BEUTAG1
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
@@ -97,10 +97,10 @@ BEUTAG2
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    1
     Ctn Broker Config Output Set    central    central-broker-unified-sql    queries_per_transaction    1
@@ -140,10 +140,10 @@ BEUTAG3
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
@@ -172,10 +172,10 @@ BEUTAG4
     Config Engine Add Cfg File    ${0}    tags.cfg
     Add Tags To Services    ${0}    group_tags    4,5    [1, 3]
     Add Tags To Services    ${0}    category_tags    2,4    [3, 5, 6]
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
@@ -208,10 +208,10 @@ BEUTAG5
     Config Engine Add Cfg File    ${0}    tags.cfg
     Add Tags To Hosts    ${0}    group_tags    2,3    [1, 2]
     Add Tags To Hosts    ${0}    category_tags    2,3    [2, 3, 4]
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
@@ -246,10 +246,10 @@ BEUTAG6
     Add Tags To Hosts    ${0}    category_tags    1,5    [1, 2, 3, 4]
     Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
@@ -287,10 +287,10 @@ BEUTAG7
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
     Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]
     Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 503, 504]
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${2}
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${2}
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
@@ -358,10 +358,10 @@ BEUTAG8
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2]
     Add Tags To Services    ${1}    group_tags    1,4    [501, 502]
 
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${2}
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${2}
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
@@ -410,10 +410,10 @@ BEUTAG9
     Add Template To Hosts    0    host_template_2    [11, 12]
     Add Template To Hosts    1    host_template_1    [30, 31]
     Add Template To Hosts    1    host_template_2    [32, 33]
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${2}
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${2}
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
@@ -468,10 +468,10 @@ BEUTAG10
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
     Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]
     Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 503, 504]
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${2}
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${2}
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
@@ -534,10 +534,10 @@ BEUTAG11
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
     Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]
     Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 503, 504]
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${2}
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${2}
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
@@ -595,10 +595,10 @@ BEUTAG12
     Config Engine Add Cfg File    ${0}    tags.cfg
     Add Tags To Hosts    ${0}    group_tags    2,3    [1, 2]
     Add Tags To Hosts    ${0}    category_tags    2,3    [2, 3, 4]
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
@@ -650,10 +650,10 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Config Engine Add Cfg File    ${0}    tags.cfg
     Add Tags To Hosts    ${0}    group_tags    2    1
     Add Tags To Hosts    ${0}    group_tags    1    4
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    trace

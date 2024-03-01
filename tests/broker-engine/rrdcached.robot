@@ -14,10 +14,10 @@ BRRDCDDM1
     [Documentation]    RRD metrics deletion from metric ids with rrdcached.
     [Tags]    rrd    metric    deletion    rrdcached
     Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    rrd    rrd    trace
     Ctn Broker Config Log    rrd    core    error
@@ -50,10 +50,10 @@ BRRDCDDID1
     [Documentation]    RRD metrics deletion from index ids with rrdcached.
     [Tags]    rrd    metric    deletion    rrdcached
     Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    rrd    rrd    trace
     Ctn Broker Config Log    rrd    core    error
@@ -90,10 +90,10 @@ BRRDCDDMID1
     [Documentation]    RRD deletion of non existing metrics and indexes with rrdcached
     [Tags]    rrd    metric    deletion    rrdcached
     Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    rrd    rrd    trace
     Ctn Broker Config Log    rrd    core    error
@@ -121,11 +121,11 @@ BRRDCDDMU1
     [Documentation]    RRD metric deletion on table metric with unified sql output with rrdcached
     [Tags]    rrd    metric    deletion unified_sql    rrdcached
     Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
     Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    rrd    rrd    trace
     Ctn Broker Config Log    rrd    core    error
@@ -158,11 +158,11 @@ BRRDCDDIDU1
     [Documentation]    RRD metrics deletion from index ids with unified sql output with rrdcached.
     [Tags]    rrd    metric    deletion    unified_sql    rrdcached
     Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
     Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    rrd    rrd    trace
     Ctn Broker Config Log    rrd    core    error
@@ -198,11 +198,11 @@ BRRDCDDMIDU1
     [Documentation]    RRD deletion of non existing metrics and indexes with rrdcached
     [Tags]    rrd    metric    deletion    unified_sql    rrdcached
     Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
     Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    rrd    rrd    trace
     Ctn Broker Config Log    rrd    core    error
@@ -230,10 +230,10 @@ BRRDCDRB1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output and rrdcached.
     [Tags]    rrd    metric    rebuild    grpc    rrdcached
     Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
-    Config Broker    central
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Broker Config Log    rrd    rrd    trace
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Flush Log    central    0
@@ -287,11 +287,11 @@ BRRDCDRBU1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output and rrdcached.
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
     Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
-    Config Broker    central
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Log    rrd    rrd    trace
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Flush Log    central    0

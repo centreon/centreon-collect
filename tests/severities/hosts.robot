@@ -17,10 +17,10 @@ BEUHSEV1
     Create Severities File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    severities.cfg
     Add Severity To Hosts    0    10    [1, 2, 3, 4]
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    trace
@@ -60,10 +60,10 @@ BEUHSEV2
     Add Severity To Hosts    0    16    [3, 5]
     Add Severity To Hosts    1    18    [26, 27]
     Add Severity To Hosts    1    16    [28]
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${2}
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${2}
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug
@@ -136,10 +136,10 @@ BETUHSEV1
     Add Template To Hosts    0    host_template_2    [5, 6, 7, 8]
     Add Template To Hosts    1    host_template_1    [31, 32]
     Add Template To Hosts    1    host_template_2    [33, 34]
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${2}
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${2}
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    module1    neb    debug

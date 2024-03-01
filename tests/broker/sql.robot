@@ -13,9 +13,9 @@ Test Teardown       Save Logs If failed
 BDB1
     [Documentation]    Access denied when database name exists but is not the good one for sql output
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Output Set    central    central-broker-master-sql    db_name    centreon
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
@@ -31,10 +31,10 @@ BDB1
 BDB2
     [Documentation]    Access denied when database name exists but is not the good one for storage output
     [Tags]    broker    sql
-    Config Broker    central
+    Ctn Config Broker    central
     Ctn Broker Config Log    central    sql    info
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_name    centreon
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
@@ -50,9 +50,9 @@ BDB2
 BDB3
     [Documentation]    Access denied when database name does not exist for sql output
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Output Set    central    central-broker-master-sql    db_name    centreon1
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
@@ -66,9 +66,9 @@ BDB3
 BDB4
     [Documentation]    Access denied when database name does not exist for storage and sql outputs
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_name    centreon1
     Ctn Broker Config Output Set    central    central-broker-master-sql    db_name    centreon1
     FOR    ${i}    IN RANGE    0    5
@@ -85,9 +85,9 @@ BDB4
 BDB5
     [Documentation]    cbd does not crash if the storage/sql db_host is wrong
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    1.2.3.4
     Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    1.2.3.4
     FOR    ${i}    IN RANGE    0    5
@@ -102,9 +102,9 @@ BDB5
 BDB6
     [Documentation]    cbd does not crash if the sql db_host is wrong
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    1.2.3.4
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
@@ -118,9 +118,9 @@ BDB6
 BDB7
     [Documentation]    access denied when database user password is wrong for perfdata/sql
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Output Set    central    central-broker-master-sql    db_password    centreon1
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_password    centreon1
     ${start}    Get Current Date
@@ -133,9 +133,9 @@ BDB7
 BDB8
     [Documentation]    access denied when database user password is wrong for perfdata/sql
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_password    centreon1
     Ctn Broker Config Output Set    central    central-broker-master-sql    db_password    centreon1
     ${start}    Get Current Date
@@ -148,9 +148,9 @@ BDB8
 BDB9
     [Documentation]    access denied when database user password is wrong for sql
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Output Set    central    central-broker-master-sql    db_password    centreon1
     ${start}    Get Current Date
     Ctn Start Broker
@@ -162,9 +162,9 @@ BDB9
 BDB10
     [Documentation]    connection should be established when user password is good for sql/perfdata
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date
     Ctn Start Broker
@@ -176,9 +176,9 @@ BDB10
 BEDB2
     [Documentation]    start broker/engine and then start MariaDB => connection is established
     [Tags]    broker    sql    start-stop
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Config Engine    ${1}
     ${start}    Get Current Date
     Stop Mysql
@@ -196,9 +196,9 @@ BEDB2
 BEDB3
     [Documentation]    start broker/engine, then stop MariaDB and then start it again. The gRPC API should give informations about SQL connections.
     [Tags]    broker    sql    start-stop    grpc
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Config Engine    ${1}
     ${start}    Get Current Date
     Start Mysql
@@ -228,9 +228,9 @@ BEDB3
 BEDB4
     [Documentation]    start broker/engine, then stop MariaDB and then start it again. The gRPC API should give informations about SQL connections.
     [Tags]    broker    sql    start-stop    grpc
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Config Engine    ${1}
     ${start}    Get Current Date
     Stop Mysql
@@ -256,11 +256,11 @@ BDBM1
     [Tags]    broker    sql    start-stop
     @{lst}    Create List    1    6
     FOR    ${c}    IN    @{lst}
-        Config Broker    central
+        Ctn Config Broker    central
         Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    ${c}
         Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    ${c}
-        Config Broker    rrd
-        Config Broker    module
+        Ctn Config Broker    rrd
+        Ctn Config Broker    module
         Config Engine    ${1}
         ${start}    Get Round Current Date
         Stop Mysql
@@ -281,9 +281,9 @@ BDBM1
 BDBU1
     [Documentation]    Access denied when database name exists but is not the good one for unified sql output
     [Tags]    broker    sql    unified_sql
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    rrd
     # We replace the usual centreon_storage database by centreon to make the wanted error
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_name    centreon
     Ctn Broker Config Log    central    sql    trace
@@ -300,10 +300,10 @@ BDBU1
 BDBU3
     [Documentation]    Access denied when database name does not exist for unified sql output
     [Tags]    broker    sql    unified_sql
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_name    centreon1
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
@@ -317,10 +317,10 @@ BDBU3
 BDBU5
     [Documentation]    cbd does not crash if the unified sql db_host is wrong
     [Tags]    broker    sql    unified_sql
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    1.2.3.4
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
@@ -334,10 +334,10 @@ BDBU5
 BDBU7
     [Documentation]    Access denied when database user password is wrong for unified sql
     [Tags]    broker    sql    unified_sql
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_password    centreon1
     ${start}    Get Current Date
     Ctn Start Broker
@@ -349,10 +349,10 @@ BDBU7
 BDBU10
     [Documentation]    Connection should be established when user password is good for unified sql
     [Tags]    broker    sql    unified_sql
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    rrd
-    Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    sql    debug
     ${start}    Get Current Date
@@ -367,12 +367,12 @@ BDBMU1
     [Tags]    broker    sql    start-stop    unified_sql
     @{lst}    Create List    1    3
     FOR    ${c}    IN    @{lst}
-        Config Broker    central
-        Config Broker Sql Output    central    unified_sql
+        Ctn Config Broker    central
+        Ctn Config Broker Sql Output    central    unified_sql
         Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${c}
         Ctn Broker Config Output Set    central    central-broker-unified-sql    retry_interval    5
-        Config Broker    rrd
-        Config Broker    module
+        Ctn Config Broker    rrd
+        Ctn Config Broker    module
         Config Engine    ${1}
         ${start}    Get Current Date
         Stop Mysql

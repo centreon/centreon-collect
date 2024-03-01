@@ -14,7 +14,7 @@ TestBadUser
     [Documentation]    test unknown user
     [Tags]    connector    engine
     Clear Retention
-    Config Broker    module    ${1}
+    Ctn Config Broker    module    ${1}
     Config Engine    ${1}
 
     Engine Config Set Value    ${0}    log_level_commands    trace
@@ -48,7 +48,7 @@ TestBadPwd
     [Documentation]    test bad password
     [Tags]    connector    engine
     Clear Retention
-    Config Broker    module    ${1}
+    Ctn Config Broker    module    ${1}
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_level_commands    trace
     Engine Config Set Value In Hosts    ${0}    host_1    _USER    testconnssh
@@ -85,7 +85,7 @@ Test6Hosts
     # Run    chown testconnssh: ~testconnssh/.ssh/authorized_keys
     # Run    chmod 600 ~testconnssh/.ssh/authorized_keys
     Clear Retention
-    Config Broker    module    ${1}
+    Ctn Config Broker    module    ${1}
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_level_commands    trace
     Engine Config Add Command
@@ -150,7 +150,7 @@ TestWhiteList
     # Run    chown testconnssh: ~testconnssh/.ssh/authorized_keys
     # Run    chmod 600 ~testconnssh/.ssh/authorized_keys
     Clear Retention
-    Config Broker    module    ${1}
+    Ctn Config Broker    module    ${1}
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_level_commands    trace
     Engine Config Add Command

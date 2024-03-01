@@ -404,7 +404,7 @@ def _apply_conf(name, callback):
         f.write(json.dumps(conf, indent=2))
 
 
-def config_broker(name: str, poller_inst: int = 1):
+def ctn_config_broker(name: str, poller_inst: int = 1):
     """
     Configure a broker instance for test. Write the configuration files.
 
@@ -459,7 +459,7 @@ def config_broker(name: str, poller_inst: int = 1):
                 ctn_broker_config_add_item(
                     f"{name}{i}", "bbdo_version", default_bbdo_version)
             if default_transport == "grpc":
-                config_broker_bbdo_output(
+                ctn_config_broker_bbdo_output(
                     f"{name}{i}", "bbdo_client", "5669", "grpc", "localhost")
 
     else:
@@ -468,17 +468,17 @@ def config_broker(name: str, poller_inst: int = 1):
                                         DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT))
         if default_bbdo_version is not None:
             if default_bbdo_version >= "3.0.0" and (name == "central" or name == "central_map"):
-                config_broker_sql_output(name, 'unified_sql')
+                ctn_config_broker_sql_output(name, 'unified_sql')
             ctn_broker_config_add_item(
                 name, "bbdo_version", default_bbdo_version)
         if default_transport == "grpc":
             if name == "central" or name == "central_map":
-                config_broker_bbdo_input(
+                ctn_config_broker_bbdo_input(
                     name, "bbdo_server", "5669", "grpc")
-                config_broker_bbdo_output(
+                ctn_config_broker_bbdo_output(
                     name, "bbdo_client", "5670", "grpc", "localhost")
             else:
-                config_broker_bbdo_input(
+                ctn_config_broker_bbdo_input(
                     name, "bbdo_server", "5670", "grpc")
 
 
@@ -724,7 +724,7 @@ def change_broker_compression_input(config_name: str, input_name: str, compressi
     _apply_conf(config_name, compression_modifier)
 
 
-def config_broker_remove_rrd_output(name):
+def ctn_config_broker_remove_rrd_output(name):
     """
     Remove rrd output from  a broker configuration
 
@@ -733,7 +733,7 @@ def config_broker_remove_rrd_output(name):
 
     *Example:*
 
-    | Config Broker Remove Rrd Output | central |
+    | Ctn Config Broker Remove Rrd Output | central |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -755,7 +755,7 @@ def config_broker_remove_rrd_output(name):
         f.write(json.dumps(conf, indent=2))
 
 
-def config_broker_bbdo_input(name, stream, port, proto, host=None):
+def ctn_config_broker_bbdo_input(name, stream, port, proto, host=None):
     """
     Configure Broker BBDO input. It can be a client or a server. We provide a
     port number and a protocol that is grpc or tcp.
@@ -770,12 +770,12 @@ def config_broker_bbdo_input(name, stream, port, proto, host=None):
 
     *Example:*
 
-    | Config Broker Bbdo Input | central | bbdo_server | 5669 | grpc | |
-    | Config Broker Bbdo Input | rrd | bbdo_client | 5670 | tcp | localhost |
+    | Ctn Config Broker Bbdo Input | central | bbdo_server | 5669 | grpc | |
+    | Ctn Config Broker Bbdo Input | rrd | bbdo_client | 5670 | tcp | localhost |
     """
     if stream != "bbdo_server" and stream != "bbdo_client":
         raise Exception(
-            "config_broker_bbdo_input_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
+            "ctn_config_broker_bbdo_input_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
     if stream == "bbdo_client" and host is None:
         raise Exception("A bbdo_client must specify a host to connect to")
 
@@ -809,7 +809,7 @@ def config_broker_bbdo_input(name, stream, port, proto, host=None):
         f.write(json.dumps(conf, indent=2))
 
 
-def config_broker_bbdo_output(name, stream, port, proto, host=None):
+def ctn_config_broker_bbdo_output(name, stream, port, proto, host=None):
     """
     Configure Broker BBDO output. It can be a client or a server. We provide a
     port number and a protocol that is grpc or tcp.
@@ -824,11 +824,11 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
 
     *Example:*
 
-    | Config Broker Bbdo Output | central | bbdo_client | 5670 | tcp | localhost |
+    | Ctn Config Broker Bbdo Output | central | bbdo_client | 5670 | tcp | localhost |
     """
     if stream != "bbdo_server" and stream != "bbdo_client":
         raise Exception(
-            "config_broker_bbdo_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
+            "ctn_config_broker_bbdo_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
     if stream == "bbdo_client" and host is None:
         raise Exception("A bbdo_client must specify a host to connect to")
 
@@ -863,7 +863,7 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
         f.write(json.dumps(conf, indent=2))
 
 
-def config_broker_sql_output(name, output, queries_per_transaction: int = 20000):
+def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20000):
     """
     Configure the broker sql output.
 
@@ -980,14 +980,14 @@ def ctn_broker_config_clear_outputs_except(name, ex: list):
         f.write(json.dumps(conf, indent=2))
 
 
-def config_broker_victoria_output():
+def ctn_config_broker_victoria_output():
     """
     Configure broker to add a Victoria output. If some old VictoriaMetrics
     outputs exist, they are removed.
 
     *Example:*
 
-    | Config Broker Victoria Output |
+    | Ctn Config Broker Victoria Output |
     """
     filename = "central-broker.json"
 

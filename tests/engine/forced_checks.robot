@@ -15,9 +15,9 @@ EFHC1
     Config Engine    ${1}
     # We force the check command of host_1 to return 2 as status.
     Config Host Command Status    ${0}    checkh1    2
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_level_events    info
@@ -64,9 +64,9 @@ EFHC2
 
     # We force the check command of host_1 to return 2 as status.
     Config Host Command Status    ${0}    checkh1    2
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
 
@@ -107,13 +107,13 @@ EFHCU1
 
     # We force the check command of host_1 to return 2 as status.
     Config Host Command Status    ${0}    checkh1    2
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Broker Config Log    module0    neb    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Log    central    sql    debug
     Ctn Config BBDO3    1
 
@@ -157,13 +157,13 @@ EFHCU2
 
     # We force the check command of host_1 to return 2 as status.
     Config Host Command Status    ${0}    checkh1    2
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Broker Config Log    module0    neb    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Log    central    sql    debug
     Ctn Config BBDO3    1
 
@@ -203,9 +203,9 @@ EMACROS
     [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in check outputs
     [Tags]    engine    external_cmd    macros
     Config Engine    ${1}
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    0    log_level_checks    trace    True
@@ -238,9 +238,9 @@ EMACROS_NOTIF
     [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in notification commands
     [Tags]    engine    external_cmd    macros
     Config Engine    ${1}
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    0    log_level_checks    trace    True
@@ -284,9 +284,9 @@ EMACROS_SEMICOLON
     [Documentation]    Macros with a semicolon are used even if they contain a semicolon.
     [Tags]    engine    external_cmd    macros    MON-15765
     Config Engine    ${1}
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    0    log_level_checks    trace    True

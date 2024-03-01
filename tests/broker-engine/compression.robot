@@ -19,12 +19,12 @@ BECC1
     [Documentation]    Broker/Engine communication with compression between central and poller
     [Tags]    broker    engine    compression    tcp
     Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     FOR    ${comp1}    IN    @{choices}
         FOR    ${comp2}    IN    @{choices}
             Log To Console    Compression set to ${comp1} on central and to ${comp2} on module
-            Config Broker    central
-            Config Broker    module
+            Ctn Config Broker    central
+            Ctn Config Broker    module
             Ctn Broker Config Input Set    central    central-broker-master-input    compression    ${comp1}
             Ctn Broker Config Output Set    module0    central-module-master-output    compression    ${comp2}
             Ctn Broker Config Log    central    bbdo    info

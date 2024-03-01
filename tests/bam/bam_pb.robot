@@ -1141,9 +1141,9 @@ BAM Init
     Clear Commands Status
     Clear Retention
     Clear Db Conf    mod_bam
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    bam    trace
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    config    trace
@@ -1153,7 +1153,7 @@ BAM Init
     # This is to avoid parasite status.
     Set Services Passive    ${0}    service_30.
 
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clone Engine Config To DB
     Add Bam Config To Engine
     Add Bam Config To Broker    central

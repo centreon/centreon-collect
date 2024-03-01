@@ -15,9 +15,9 @@ MIGRATION
 
     Log To Console    Pure legacy mode
     Config Engine    ${3}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    rrd    rrd    trace
@@ -33,7 +33,7 @@ MIGRATION
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    60
     Should Be True    ${result}    No metric sent to rrd cbd for 30s
 
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
 
     Log To Console    Move to BBDO 2.0.0 with unified_sql
@@ -89,7 +89,7 @@ MIGRATION
     Should Be True    ${result}    No metric sent to rrd cbd by unified_sql for 30s
 
     Log To Console    Move back to BBDO 2.0.0 with sql/storage
-    Config Broker Sql Output    central    sql/perfdata
+    Ctn Config Broker Sql Output    central    sql/perfdata
     Ctn Kindly Stop Broker
     Ctn Start Broker
     Ctn Stop Engine

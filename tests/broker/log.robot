@@ -12,8 +12,8 @@ Test Setup          Stop Processes
 BLDIS1
     [Documentation]    Start broker with core logs 'disabled'
     [Tags]    broker    start-stop    log-v2
-    Config Broker    rrd
-    Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
     Ctn Broker Config Log    central    core    disabled
     Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date
@@ -30,8 +30,8 @@ BLDIS1
 BLEC1
     [Documentation]    Change live the core level log from trace to debug
     [Tags]    broker    log-v2    grpc
-    Config Broker    rrd
-    Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date
@@ -45,8 +45,8 @@ BLEC1
 BLEC2
     [Documentation]    Change live the core level log from trace to foo raises an error
     [Tags]    broker    log-v2    grpc
-    Config Broker    rrd
-    Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date
@@ -59,8 +59,8 @@ BLEC2
 BLEC3
     [Documentation]    Change live the foo level log to trace raises an error
     [Tags]    broker    log-v2    grpc
-    Config Broker    rrd
-    Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date

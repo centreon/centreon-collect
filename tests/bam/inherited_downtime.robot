@@ -14,10 +14,10 @@ BEBAMIDT1
     [Documentation]    A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
     [Tags]    broker    downtime    engine    bam
     Clear Commands Status
-    Config Broker    module
-    Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    central
     Ctn Broker Config Log    central    bam    trace
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -74,10 +74,10 @@ BEBAMIDT2
     [Documentation]    A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
     [Tags]    broker    downtime    engine    bam    start    stop
     Clear Commands Status
-    Config Broker    module
-    Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    central
     Ctn Broker Config Log    central    bam    trace
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -162,14 +162,14 @@ BEBAMIGNDT1
     [Documentation]    A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
     [Tags]    broker    downtime    engine    bam
     Clear Commands Status
-    Config Broker    module
-    Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    central
     Ctn Broker Config Log    central    bam    trace
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Source Log    central    true
     Ctn Broker Config Flush Log    module0    0
     Ctn Broker Config Log    module0    neb    trace
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
@@ -272,11 +272,11 @@ BEBAMIGNDT2
     [Documentation]    A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
     [Tags]    broker    downtime    engine    bam
     Clear Commands Status
-    Config Broker    module
-    Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    central
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    bam    trace
-    Config Broker    rrd
+    Ctn Config Broker    rrd
     Config Engine    ${1}
 
     Clone Engine Config To DB

@@ -14,9 +14,9 @@ BEEXTCMD30
     [Documentation]    external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
@@ -63,14 +63,14 @@ BEEXTCMD31
     [Documentation]    external command DISABLE_HOST_SVC_CHECKS and ENABLE_HOST_SVC_CHECKS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
@@ -156,9 +156,9 @@ BEEXTCMD32
     [Documentation]    external command DISABLE_HOST_SVC_CHECKS and ENABLE_HOST_SVC_CHECKS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Clear Retention
@@ -229,14 +229,14 @@ BEEXTCMD33
     [Documentation]    external command DISABLE_HOST_SVC_NOTIFICATIONS and ENABLE_HOST_SVC_NOTIFICATIONS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
@@ -283,9 +283,9 @@ BEEXTCMD34
     [Documentation]    external command DISABLE_HOST_SVC_NOTIFICATIONS and ENABLE_HOST_SVC_NOTIFICATIONS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Clear Retention
@@ -334,14 +334,14 @@ BEEXTCMD35
     [Documentation]    external command DISABLE_PASSIVE_HOST_CHECKS and ENABLE_PASSIVE_HOST_CHECKS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
@@ -402,9 +402,9 @@ BEEXTCMD36
     [Documentation]    external command DISABLE_PASSIVE_HOST_CHECKS and ENABLE_PASSIVE_HOST_CHECKS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Clear Retention
@@ -449,14 +449,14 @@ BEEXTCMD37
     [Documentation]    external command DISABLE_PASSIVE_SVC_CHECKS and ENABLE_PASSIVE_SVC_CHECKS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
@@ -521,9 +521,9 @@ BEEXTCMD38
     [Documentation]    external command DISABLE_PASSIVE_SVC_CHECKS and ENABLE_PASSIVE_SVC_CHECKS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Clear Retention
@@ -572,14 +572,14 @@ BEEXTCMD39
     [Documentation]    external command START_OBSESSING_OVER_HOST and STOP_OBSESSING_OVER_HOST on bbdo3.0
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
@@ -622,9 +622,9 @@ BEEXTCMD40
     [Documentation]    external command START_OBSESSING_OVER_HOST and STOP_OBSESSING_OVER_HOST on bbdo2.0
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Clear Retention
@@ -669,14 +669,14 @@ BEEXTCMD41
     [Documentation]    external command START_OBSESSING_OVER_SVC and STOP_OBSESSING_OVER_SVC on bbdo3.0
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
@@ -723,9 +723,9 @@ BEEXTCMD42
     [Documentation]    external command START_OBSESSING_OVER_SVC and STOP_OBSESSING_OVER_SVC on bbdo2.0
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Clear Retention
@@ -774,14 +774,14 @@ BEEXTCMD_GRPC1
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and grpc
     [Tags]    broker    engine    services    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Change Broker tcp output to grpc    module0
     Change Broker tcp input to grpc    central
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
@@ -815,9 +815,9 @@ BEEXTCMD_GRPC2
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc
     [Tags]    broker    engine    services    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
     Ctn Broker Config Log    central    sql    debug
@@ -854,16 +854,16 @@ BEEXTCMD_GRPC3
     [Documentation]    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
@@ -895,9 +895,9 @@ BEEXTCMD_GRPC4
     [Documentation]    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
     Ctn Broker Config Log    central    core    error
@@ -933,9 +933,9 @@ BEEXTCMD_REVERSE_GRPC1
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and reversed gRPC
     [Tags]    broker    engine    services    extcmd    bbdo3
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
     Ctn Broker Config Output Remove    module0    central-module-master-output    host
@@ -944,7 +944,7 @@ BEEXTCMD_REVERSE_GRPC1
     Ctn Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
@@ -979,9 +979,9 @@ BEEXTCMD_REVERSE_GRPC2
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc reversed
     [Tags]    broker    engine    services    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
     Ctn Broker Config Output Remove    module0    central-module-master-output    host
@@ -1022,9 +1022,9 @@ BEEXTCMD_REVERSE_GRPC3
     [Documentation]    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc reversed
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
     Ctn Config BBDO3    1
@@ -1035,7 +1035,7 @@ BEEXTCMD_REVERSE_GRPC3
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc} reversed
         Clear Retention
@@ -1067,9 +1067,9 @@ BEEXTCMD_REVERSE_GRPC4
     [Documentation]    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc reversed
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
     Ctn Broker Config Output Remove    module0    central-module-master-output    host
@@ -1110,16 +1110,16 @@ BEEXTCMD_COMPRESS_GRPC1
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and compressed grpc
     [Tags]    broker    engine    services    extcmd
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
     Change Broker Compression Output    module0    central-module-master-output    yes
     Change Broker Compression Input    central    centreon-broker-master-input    yes
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
@@ -1153,9 +1153,9 @@ BEATOI11
     [Documentation]    external command SEND_CUSTOM_HOST_NOTIFICATION with option_number=1 should work
     [Tags]    broker    engine    host    extcmd    notification    atoi
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date
@@ -1175,9 +1175,9 @@ BEATOI12
     [Documentation]    external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
     [Tags]    broker    engine    host    extcmd    notification    atoi
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date
@@ -1198,9 +1198,9 @@ BEATOI13
     [Documentation]    external command Schedule Service Downtime with duration<0 should fail
     [Tags]    broker    engine    host    extcmd    atoi
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date
@@ -1221,9 +1221,9 @@ BEATOI21
     [Documentation]    external command ADD_HOST_COMMENT and DEL_HOST_COMMENT should work
     [Tags]    broker    engine    host    extcmd    atoi
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date    exclude_millis=True
@@ -1248,9 +1248,9 @@ BEATOI22
     [Documentation]    external command DEL_HOST_COMMENT with comment_id<0 should fail
     [Tags]    broker    engine    host    extcmd    atoi
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date
@@ -1278,9 +1278,9 @@ BEATOI23
     [Documentation]    external command ADD_SVC_COMMENT with persistent=0 should work
     [Tags]    broker    engine    host    extcmd    atoi
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    error
     ${start}    Get Current Date
@@ -1301,11 +1301,11 @@ BECUSTOMHOSTVAR
     [Documentation]    external command CHANGE_CUSTOM_HOST_VAR on SNMPVERSION
     [Tags]    broker    engine    host    extcmd    atoi
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -1335,11 +1335,11 @@ BECUSTOMSVCVAR
     [Documentation]    external command CHANGE_CUSTOM_SVC_VAR on CRITICAL
     [Tags]    broker    engine    host    extcmd    atoi
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -1369,11 +1369,11 @@ BESERVCHECK
     [Documentation]    external command CHECK_SERVICE_RESULT
     [Tags]    broker    engine    host    extcmd    atoi
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -1395,11 +1395,11 @@ BEHOSTCHECK
     [Documentation]    external command CHECK_HOST_RESULT
     [Tags]    broker    engine    host    extcmd    atoi
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    central
-    Config Broker    module    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
