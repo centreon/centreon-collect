@@ -636,7 +636,7 @@ def ctn_add_host_to_broker_input(name: str, input_name: str, host_ip: str):
     _apply_conf(name, modifier)
 
 
-def remove_host_from_broker_output(name: str, output_name: str):
+def ctn_remove_host_from_broker_output(name: str, output_name: str):
     """
     Remove the host entry from a broker output given by its name.
 
@@ -646,7 +646,7 @@ def remove_host_from_broker_output(name: str, output_name: str):
 
     *Example:*
 
-    | Remove Host From Broker Output | module0 | central-module-master-output |
+    | Ctn Remove Host From Broker Output | module0 | central-module-master-output |
     """
 
     def modifier(conf):
@@ -658,7 +658,7 @@ def remove_host_from_broker_output(name: str, output_name: str):
     _apply_conf(name, modifier)
 
 
-def remove_host_from_broker_input(name: str, input_name: str):
+def ctn_remove_host_from_broker_input(name: str, input_name: str):
     """
     Remove the host entry from a broker input given by its name.
 
@@ -668,7 +668,7 @@ def remove_host_from_broker_input(name: str, input_name: str):
 
     *Example:*
 
-    | Remove Host From Broker Input | central | central-broker-master-input |
+    | Ctn Remove Host From Broker Input | central | central-broker-master-input |
     """
 
     def modifier(conf):
