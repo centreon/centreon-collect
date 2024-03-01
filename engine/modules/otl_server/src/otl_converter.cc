@@ -144,6 +144,11 @@ std::shared_ptr<otl_converter> otl_converter::create(
   }
 }
 
+void otl_converter::dump(std::string& output) const {
+  output = fmt::format("host:{}, service:{}, cmdline: \"{}\"", _host_serv.first,
+                       _host_serv.second, _cmd_line);
+}
+
 constexpr std::array<std::string_view, 4> state_str{"OK", "WARNING", "CRITICAL",
                                                     "UNKNOWN"};
 

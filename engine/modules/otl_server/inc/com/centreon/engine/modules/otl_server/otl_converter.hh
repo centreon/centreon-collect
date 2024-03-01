@@ -77,6 +77,8 @@ class otl_converter : public std::enable_shared_from_this<otl_converter> {
   bool async_build_result_from_metrics(data_point_container& data_pts);
   void async_time_out();
 
+  virtual void dump(std::string& output) const;
+
   static std::shared_ptr<otl_converter> create(
       const std::string& cmd_line,
       uint64_t command_id,
@@ -111,19 +113,15 @@ class otl_nagios_telegraf_converter : public otl_converter {
 namespace fmt {
 
 template <>
-struct formatter<com::centreon::engine::modules::otl_server::otl_converter> {
-  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) {
-    return ctx.begin();
-  }
-
-  // Formats the point p using the parsed format specification (presentation)
-  // stored in this formatter.
+struct formatter<com::centreon::engine::modules::otl_server::otl_converter>
+    : formatter<std::string> {
   template <typename FormatContext>
   auto format(
-      const com::centreon::engine::modules::otl_server::otl_converter& conv,
+      const com::centreon::engine::modules::otl_server::otl_converter& cont,
       FormatContext& ctx) const -> decltype(ctx.out()) {
-    return format_to(ctx.out(), "command_id:{}, cmd_line: {}",
-                     conv.get_command_id(), conv.get_cmd_line());
+    std::string output;
+    (&cont)->dump(output);
+    return formatter<std::string>::format(output, ctx);
   }
 };
 

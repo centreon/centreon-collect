@@ -27,6 +27,8 @@
 
 namespace com::centreon::engine::modules::otl_server {
 
+using host_serv_metric = commands::otel::host_serv_metric;
+
 class otl_server;
 
 /**
@@ -117,7 +119,8 @@ class open_telemetry : public commands::otel::open_telemetry_base {
              commands::otel::result_callback&& handler) override;
 
   std::shared_ptr<commands::otel::host_serv_extractor> create_extractor(
-      const std::string& cmdline) override;
+      const std::string& cmdline,
+      const commands::otel::host_serv_list::pointer& host_serv_list) override;
 };
 
 }  // namespace com::centreon::engine::modules::otl_server

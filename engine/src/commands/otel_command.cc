@@ -22,12 +22,27 @@
 
 using namespace com::centreon::engine::commands;
 
+/**
+ * @brief singleton used to make the bridge between engine and otel module
+ *
+ */
 std::shared_ptr<com::centreon::engine::commands::otel::open_telemetry_base>
     com::centreon::engine::commands::otel::open_telemetry_base::_instance;
 
+/**
+ * @brief list of all otel_command
+ *
+ */
 absl::flat_hash_map<std::string, std::shared_ptr<otel_command>>
     otel_command::_commands;
 
+/**
+ * @brief create an otel_command
+ *
+ * @param connector_name
+ * @param cmd_line
+ * @param listener
+ */
 void otel_command::create(const std::string& connector_name,
                           const std::string& cmd_line,
                           commands::command_listener* listener) {
@@ -43,6 +58,14 @@ bool otel_command::remove(const std::string& connector_name) {
   return _commands.erase(connector_name);
 }
 
+/**
+ * @brief update open telemetry extractor
+ *
+ * @param connector_name
+ * @param cmd_line new command line
+ * @return true the otel command was found and hist update method was called
+ * @return false the otel command doesn't exist
+ */
 bool otel_command::update(const std::string& connector_name,
                           const std::string& cmd_line) {
   auto search = _commands.find(connector_name);
@@ -53,6 +76,12 @@ bool otel_command::update(const std::string& connector_name,
   return true;
 }
 
+/**
+ * @brief get otel command from connector name
+ *
+ * @param connector_name
+ * @return std::shared_ptr<otel_command>
+ */
 std::shared_ptr<otel_command> otel_command::get_otel_command(
     const std::string& connector_name) {
   auto search = _commands.find(connector_name);
@@ -60,6 +89,10 @@ std::shared_ptr<otel_command> otel_command::get_otel_command(
                                    : std::shared_ptr<otel_command>();
 }
 
+/**
+ * @brief erase all otel commands
+ *
+ */
 void otel_command::clear() {
   _commands.clear();
 }
@@ -96,7 +129,8 @@ void otel_command::reset_all_extractor() {
 otel_command::otel_command(const std::string& connector_name,
                            const std::string& cmd_line,
                            commands::command_listener* listener)
-    : command(connector_name, cmd_line, listener) {
+    : command(connector_name, cmd_line, listener),
+      _host_serv_list(std::make_shared<otel::host_serv_list>()) {
   init();
 }
 
@@ -226,10 +260,12 @@ void otel_command::run(const std::string& processed_cmd,
  *
  */
 void otel_command::init() {
-  std::shared_ptr<otel::open_telemetry_base> otel =
-      otel::open_telemetry_base::instance();
-  if (otel) {
-    _extractor = otel->create_extractor(get_command_line());
+  if (!_extractor) {
+    std::shared_ptr<otel::open_telemetry_base> otel =
+        otel::open_telemetry_base::instance();
+    if (otel) {
+      _extractor = otel->create_extractor(get_command_line(), _host_serv_list);
+    }
   }
 }
 
@@ -249,10 +285,7 @@ void otel_command::reset_extractor() {
  */
 void otel_command::register_host_serv(const std::string& host,
                                       const std::string& service_description) {
-  std::shared_ptr<otel::host_serv_extractor> extract = _extractor;
-  if (extract) {
-    extract->register_host_serv(host, service_description);
-  }
+  _host_serv_list->register_host_serv(host, service_description);
 }
 
 /**
@@ -265,8 +298,5 @@ void otel_command::register_host_serv(const std::string& host,
 void otel_command::unregister_host_serv(
     const std::string& host,
     const std::string& service_description) {
-  std::shared_ptr<otel::host_serv_extractor> extract = _extractor;
-  if (extract) {
-    extract->unregister_host_serv(host, service_description);
-  }
+  _host_serv_list->unregister_host_serv(host, service_description);
 }
