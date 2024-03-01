@@ -181,8 +181,20 @@ def find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
     return False, c
 
 
-def find_in_log_with_timeout(log: str, date, content, timeout: int):
+def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int):
+    """
+    Find in the log file from the given date the strings in content. When
+    timeout is reached, the function returns.
 
+    Args:
+        log: The log file.
+        date: A date or a timestamp.
+        content: A list of strings.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True on success.
+    """
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
@@ -194,13 +206,20 @@ def find_in_log_with_timeout(log: str, date, content, timeout: int):
     return False
 
 
-def find_in_log_with_timeout_with_line(log: str, date, content, timeout: int):
-    """! search a pattern in log from date param
-    @param log: path of the log file
-    @param date: date from witch it begins search
-    @param content: array of pattern to search
-    @param timeout: time out in second
-    @return  True/False, array of lines found for each pattern
+def ctn_find_in_log_with_timeout_with_matches(log: str, date, content, timeout: int):
+    """
+    Find in the log file from the given date the strings in content. When
+    timeout is reached, the function returns.
+
+    Args:
+        log: The log file.
+        date: A date or a timestamp.
+        content: A list of patterns.
+        timeout: A timeout in seconds.
+
+    Returns:
+        A tuple (boolean, list[string]), The boolean is True on success. The
+        list contains the lines found for each pattern.
     """
     limit = time.time() + timeout
     c = ""

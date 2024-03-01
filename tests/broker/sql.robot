@@ -21,7 +21,7 @@ BDB1
         ${start}    Get Current Date
         Start Broker
         ${content}    Create List    storage and sql streams do not have the same database configuration
-        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
         Should Be True
         ...    ${result}
         ...    A message should tell that sql and storage outputs do not have the same configuration.
@@ -40,7 +40,7 @@ BDB2
         ${start}    Get Current Date
         Start Broker
         ${content}    Create List    storage and sql streams do not have the same database configuration
-        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True
         ...    ${result}
         ...    A log telling the impossibility to establish a connection between the storage stream and the database should appear.
@@ -58,7 +58,7 @@ BDB3
         ${start}    Get Current Date
         Start Broker
         ${content}    Create List    global error: mysql_connection: error while starting connection
-        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
         Should Be True    ${result}    No message about the database not connected.
         Ctn Kindly Stop Broker
     END
@@ -75,7 +75,7 @@ BDB4
         ${start}    Get Current Date
         Start Broker
         ${content}    Create List    error while starting connection
-        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True
         ...    ${result}
         ...    No message about the fact that cbd is not correctly connected to the database.
@@ -94,7 +94,7 @@ BDB5
         ${start}    Get Current Date
         Start Broker
         ${content}    Create List    error while starting connection
-        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    50
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    50
         Should Be True    ${result}    No message about the disconnection between cbd and the database
         Ctn Kindly Stop Broker
     END
@@ -110,7 +110,7 @@ BDB6
         ${start}    Get Current Date
         Start Broker
         ${content}    Create List    error while starting connection
-        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True    ${result}    No message about the disconnection between cbd and the database
         Ctn Kindly Stop Broker
     END
@@ -126,7 +126,7 @@ BDB7
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    mysql_connection: error while starting connection
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -141,7 +141,7 @@ BDB8
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    mysql_connection: error while starting connection
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -155,7 +155,7 @@ BDB9
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    mysql_connection: error while starting connection
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -169,7 +169,7 @@ BDB10
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    sql stream initialization    storage stream initialization
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -185,7 +185,7 @@ BEDB2
     Start Broker
     Ctn Start Engine
     ${content}    Create List    error while starting connection
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
     Start Mysql
     ${result}    Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    60
@@ -267,7 +267,7 @@ BDBM1
         Start Broker
         Ctn Start Engine
         ${content}    Create List    error while starting connection
-        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
         Start Mysql
         ${result}    Get Broker Stats Size    central    mysql manager
@@ -309,7 +309,7 @@ BDBU3
         ${start}    Get Current Date
         Start Broker
         ${content}    Create List    global error: mysql_connection: error while starting connection
-        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
         Should Be True    ${result}
         Ctn Kindly Stop Broker
     END
@@ -326,7 +326,7 @@ BDBU5
         ${start}    Get Current Date
         Start Broker
         ${content}    Create List    error while starting connection
-        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    50
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    50
         Should Be True    ${result}    Cannot find the message telling cbd is not connected to the database.
         Ctn Kindly Stop Broker
     END
@@ -342,7 +342,7 @@ BDBU7
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    mysql_connection: error while starting connection
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
     Should Be True    ${result}    Error concerning cbd not connected to the database is missing.
     Ctn Kindly Stop Broker
 
@@ -379,7 +379,7 @@ BDBMU1
         Start Broker
         Ctn Start Engine
         ${content}    Create List    mysql_connection: error while starting connection
-        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True    ${result}    Broker does not see any issue with the db while it is switched off
         Start Mysql
         ${result}    Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    80

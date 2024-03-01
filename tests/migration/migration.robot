@@ -27,10 +27,10 @@ MIGRATION
     Ctn Start Engine
 
     ${contentCentral}    Create List    SQL: processing service status event
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${contentCentral}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${contentCentral}    60
     Should Be True    ${result}    No service status processed by the sql output for 60s
     ${contentRRD}    Create List    RRD: output::write
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    60
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    60
     Should Be True    ${result}    No metric sent to rrd cbd for 30s
 
     Config Broker Sql Output    central    unified_sql
@@ -44,10 +44,10 @@ MIGRATION
     Sleep    2s
 
     ${contentCentral}    Create List    SQL: processing service status event
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${contentCentral}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${contentCentral}    60
     Should Be True    ${result}    No service status processed by the unified_sql output for 60s
     ${contentRRD}    Create List    RRD: output::write
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    30
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    30
     Should Be True    ${result}    No metric sent to rrd cbd by unified_sql for 30s
 
     Ctn Config BBDO3    3
@@ -61,10 +61,10 @@ MIGRATION
     Sleep    2s
 
     ${contentCentral}    Create List    status check result output:
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${contentCentral}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${contentCentral}    60
     Should Be True    ${result}    No pb service status processed by the unified_sql output with BBDO3 for 60s
     ${contentRRD}    Create List    RRD: output::write
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    30
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    30
     Should Be True    ${result}    No metric sent to rrd cbd by unified_sql for 30s
 
     Broker Config Remove Item    module0    bbdo_version
@@ -82,10 +82,10 @@ MIGRATION
     Sleep    2s
 
     ${contentCentral}    Create List    SQL: processing service status event
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${contentCentral}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${contentCentral}    60
     Should Be True    ${result}    No service status processed by the unified_sql output for 60s
     ${contentRRD}    Create List    RRD: output::write
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    30
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    30
     Should Be True    ${result}    No metric sent to rrd cbd by unified_sql for 30s
 
     Log To Console    Move back to BBDO 2.0.0 with sql/storage
@@ -97,10 +97,10 @@ MIGRATION
     Sleep    2s
 
     ${contentCentral}    Create List    SQL: processing service status event
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${contentCentral}    200
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${contentCentral}    200
     Should Be True    ${result}    No service status processed by the sql output for 200s
     ${contentRRD}    Create List    RRD: output::write
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    30
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    30
     Should Be True    ${result}    No metric sent to rrd cbd for 30s
 
     [Teardown]    Stop Engine Broker And Save Logs

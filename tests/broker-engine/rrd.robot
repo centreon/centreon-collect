@@ -76,7 +76,7 @@ BRRDWM1
 
     ${content}    Create List    RRD: new pb data for metric
 
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    120
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    120
     Should Be True    ${result}    No protobuf metric sent to cbd RRD for 60s.
 
 BRRDDID1
@@ -151,7 +151,7 @@ BRRDDMID1
 
     Remove Graphs    51001    ${indexes}    ${metrics}
     ${content}    Create List    do not appear in the storage database
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
     ...    A message telling indexes nor metrics appear in the storage database should appear.
@@ -273,7 +273,7 @@ BRRDDMIDU1
 
     Remove Graphs    51001    ${indexes}    ${metrics}
     ${content}    Create List    do not appear in the storage database
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
     ...    A message telling indexes nor metrics appear in the storage database should appear.
@@ -305,19 +305,19 @@ BRRDRM1
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
     ${content}    Create List    Metric rebuild: metric    is sent to rebuild
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Central did not send metrics to rebuild
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild START
 
     ${content1}    Create List    RRD: Rebuilding metric
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild DATA
 
     ${content1}    Create List    RRD: Finishing to rebuild metrics
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
     FOR    ${m}    IN    @{metrics}
         ${value}    Evaluate    ${m} / 2
@@ -364,19 +364,19 @@ BRRDRMU1
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
     ${content}    Create List    Metric rebuild: metric    is sent to rebuild
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Central did not send metrics to rebuild
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild START
 
     ${content1}    Create List    RRD: Rebuilding metric
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild DATA
 
     ${content1}    Create List    RRD: Finishing to rebuild metrics
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
     FOR    ${m}    IN    @{metrics}
         ${value}    Evaluate    ${m} / 2
@@ -425,11 +425,11 @@ RRD1
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
     ${content}    Create List    Metrics rebuild: metrics don't exist
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Central did not send metrics to rebuild
 
     ${content1}    Create List    mysql_connection: You have an error in your SQL syntax
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Not Be True    ${result}    Database did not receive command to rebuild metrics
 
 

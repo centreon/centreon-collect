@@ -106,7 +106,7 @@ BSCSST1
     ${start}    Get Current Date
     Repeat Keyword    5 times    Start Stop Service    0
     ${content}    Create List    TLS: successful handshake
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
 
 BSCSST2
@@ -142,7 +142,7 @@ BSCSST2
     ${start}    Get Current Date
     Repeat Keyword    5 times    Start Stop Service    0
     ${content}    Create List    TLS: successful handshake
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
 
 BSCSSTG1
@@ -168,7 +168,7 @@ BSCSSTG1
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    Handshake failed
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
 
 BSCSSTG2
@@ -216,7 +216,7 @@ BSCSSTG2
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    encrypted connection    write: buff:    write done: buff:
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
     Ctn Kindly Stop Broker
 
@@ -270,7 +270,7 @@ BSCSSTG3
     Start Broker
     ${content}    Create List
     ...    Cannot open file '/tmp/etc/centreon-broker/missing-client.key': No such file or directory
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about the missing private key on server.
 
 BSCSSC1
@@ -289,7 +289,7 @@ BSCSSC1
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    compression: writing
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
     Ctn Kindly Stop Broker
 
@@ -310,7 +310,7 @@ BSCSSC2
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    BBDO: we have extensions '' and peer has 'COMPRESSION'
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Compression enabled but should not.
     Ctn Kindly Stop Broker
 
@@ -333,7 +333,7 @@ BSCSSCG1
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    activate compression deflate
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
     Ctn Kindly Stop Broker
 
@@ -356,7 +356,7 @@ BSCSSGA1
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    Wrong client authorization token
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
     Should Be True    ${result}    An error message about the authorization token should be raised.
     Ctn Kindly Stop Broker
 
@@ -382,7 +382,7 @@ BSCSSGA2
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    receive: buff
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
     Should Be True    ${result}    If the authorization token is the same on both side, no issue
     Ctn Kindly Stop Broker
 

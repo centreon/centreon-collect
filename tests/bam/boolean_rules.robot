@@ -48,7 +48,7 @@ BABOO
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # 393 is set to ok.
@@ -116,7 +116,7 @@ BABOOOR
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     # 303 is unknown but since the boolean operator is OR, if 302 result is true, we should have already a result.
 
@@ -163,7 +163,7 @@ BABOOAND
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     # 303 is unknown but since the boolean operator is AND, if 302 result is false, we should have already a result.
 
@@ -211,7 +211,7 @@ BABOOORREL
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     # 302 is set to critical => {host_16 service_302} {IS} {OK} is then False
     Process Service Result Hard    host_16    service_302    2    output critical for service_302
@@ -241,7 +241,7 @@ BABOOORREL
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     Process Service Result Hard    host_16    service_302    2    output ok for service_302
@@ -263,7 +263,7 @@ BABOOORREL
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
     Dump Ba On Error    ${result}    ${id_ba__sid[0]}
@@ -307,7 +307,7 @@ BABOOCOMPL
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     FOR    ${i}    IN RANGE    ${1}    ${21}
         Process Service Result Hard    host_1    service_${i}    2    output critical for service_${i}
@@ -363,7 +363,7 @@ BABOOCOMPL_RESTART
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     Log To Console    Services from 1 to 20 are set to CRITICAL.
     FOR    ${i}    IN RANGE    ${1}    ${21}
@@ -401,7 +401,7 @@ BABOOCOMPL_RESTART
 	# A restart of cbd should not alter the boolean rules content.
 	Restart Broker
 	${content}    Create List    Inherited downtimes and BA states restored
-        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
 	Should Be True    ${result}    It seems that no cache has been restored into BAM.
 
         Broker Get Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_2.dot
@@ -457,7 +457,7 @@ BABOOCOMPL_RELOAD
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     Log To Console    Services from 1 to 20 are set to CRITICAL.
     FOR    ${i}    IN RANGE    ${1}    ${21}
@@ -495,7 +495,7 @@ BABOOCOMPL_RELOAD
 	# A restart of cbd should not alter the boolean rules content.
 	Reload Broker
 	${content}    Create List    Inherited downtimes and BA states restored
-        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
 	Should Be True    ${result}    It seems that no cache has been restored into BAM.
 
         Broker Get Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_2.dot

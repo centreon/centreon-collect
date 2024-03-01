@@ -38,7 +38,7 @@ EBNSG1
     ...    enabling membership of service (1, 2) to service group 1 on instance 1
     ...    enabling membership of service (1, 1) to service group 1 on instance 1
 
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new service groups not found in logs.
 
 EBNSGU1
@@ -69,7 +69,7 @@ EBNSGU1
     ...    enabling membership of service (1, 2) to service group 1 on instance 1
     ...    enabling membership of service (1, 1) to service group 1 on instance 1
 
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new service groups not found in logs.
 
 EBNSGU2

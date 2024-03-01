@@ -35,7 +35,7 @@ BEBAMIDT1
     Ctn Start Engine
     # Let's wait for Engine to be ready
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    A message about checking for external commands should have raised.
@@ -95,7 +95,7 @@ BEBAMIDT2
     Ctn Start Engine
     # Let's wait for Engine to be ready
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    A message about checking for external commands should have raised.
@@ -127,7 +127,7 @@ BEBAMIDT2
         Ctn Start Engine
         # Let's wait for Engine to be ready
         ${content}    Create List    check_for_external_commands()
-        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    A message about checking for external commands should have raised.
@@ -198,7 +198,7 @@ BEBAMIGNDT1
     Ctn Start Engine
     # Let's wait for the initial service states.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
@@ -297,7 +297,7 @@ BEBAMIGNDT2
     Ctn Start Engine
     # Let's wait for the initial service states.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.

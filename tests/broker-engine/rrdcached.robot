@@ -39,7 +39,7 @@ BRRDCDDM1
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics ${metrics_str} erased from database
 
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No log message telling about metrics ${metrics_str} deletion.
     FOR    ${m}    IN    @{metrics}
         Log To Console    Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
@@ -75,7 +75,7 @@ BRRDCDDID1
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes ${indexes_str} erased from database
 
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No log message telling about indexes ${indexes_str} deletion.
     FOR    ${i}    IN    @{indexes}
         Log To Console    Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
@@ -112,7 +112,7 @@ BRRDCDDMID1
 
     Remove Graphs    51001    ${indexes}    ${metrics}
     ${content}    Create List    do not appear in the storage database
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
     ...    A message telling indexes nor metrics appear in the storage database should appear.
@@ -148,7 +148,7 @@ BRRDCDDMU1
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics ${metrics_str} erased from database
 
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    50
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    50
     Should Be True    ${result}    No log message telling about metrics ${metrics_str} deletion.
     FOR    ${m}    IN    @{metrics}
         Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    20s
@@ -185,7 +185,7 @@ BRRDCDDIDU1
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes ${indexes_str} erased from database
 
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No log message telling about indexes ${indexes_str} deletion.
     FOR    ${i}    IN    @{indexes}
         Wait Until Removed    ${VarRoot}/lib/centreon/status/${i}.rrd    20s
@@ -221,7 +221,7 @@ BRRDCDDMIDU1
 
     Remove Graphs    51001    ${indexes}    ${metrics}
     ${content}    Create List    do not appear in the storage database
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
     ...    A message telling indexes nor metrics appear in the storage database should appear.
@@ -253,19 +253,19 @@ BRRDCDRB1
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
     ${content}    Create List    Metric rebuild: metric    is sent to rebuild
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Central did not send metrics to rebuild
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild START
 
     ${content1}    Create List    RRD: Rebuilding metric
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild DATA
 
     ${content1}    Create List    RRD: Finishing to rebuild metrics
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
     FOR    ${m}    IN    @{metrics}
         ${value}    Evaluate    ${m} / 2
@@ -313,19 +313,19 @@ BRRDCDRBU1
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
     ${content}    Create List    Metric rebuild: metric    is sent to rebuild
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Central did not send metrics to rebuild
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild START
 
     ${content1}    Create List    RRD: Rebuilding metric
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild DATA
 
     ${content1}    Create List    RRD: Finishing to rebuild metrics
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
     FOR    ${m}    IN    @{metrics}
         ${value}    Evaluate    ${m} / 2

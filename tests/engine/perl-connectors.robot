@@ -19,11 +19,11 @@ EPC1
 
     Ctn Start Engine
     ${content}    Create List    connector::run: connector='Perl Connector'
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Missing a message talking about 'Perl Connector'
 
     ${content}    Create List    connector::data_is_available
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    Missing a message telling data is available from the Perl connector
 
     Ctn Stop Engine

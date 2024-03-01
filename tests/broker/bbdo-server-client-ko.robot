@@ -29,7 +29,7 @@ BSCSSK1
 
     # Client cannot connect. It returns an error
     ${content}    Create List    peer tcp://localhost:5670 is sending corrupted data
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the bad connection.
 
     Ctn Kindly Stop Broker
@@ -55,7 +55,7 @@ BSCSSK2
     # Client cannot connect. It returns an error
     ${content}    Create List
     ...    BBDO: invalid protocol header, aborting connection: waiting for message of type 'version_response' but nothing received
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the bad connection.
 
     Ctn Kindly Stop Broker

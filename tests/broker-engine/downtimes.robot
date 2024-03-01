@@ -34,7 +34,7 @@ BEDTMASS1
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # It's time to schedule downtimes
@@ -82,7 +82,7 @@ BEDTMASS2
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # It's time to schedule downtimes
@@ -125,7 +125,7 @@ BEDTSVCREN1
     Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # It's time to schedule a downtime
@@ -140,7 +140,7 @@ BEDTSVCREN1
     Reload Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     Delete Service Downtime Full    ${0}    host_1    toto_1
@@ -168,7 +168,7 @@ BEDTSVCFIXED
     Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # It's time to schedule a downtime
@@ -203,7 +203,7 @@ BEDTHOSTFIXED
     Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     log to console    step1
@@ -231,7 +231,7 @@ BEDTHOSTFIXED
     ...    SERVICE DOWNTIME ALERT: host_1;service_18;STARTED; Service has entered a period of scheduled downtime
     ...    SERVICE DOWNTIME ALERT: host_1;service_19;STARTED; Service has entered a period of scheduled downtime
     ...    SERVICE DOWNTIME ALERT: host_1;service_20;STARTED; Service has entered a period of scheduled downtime
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    We should have 1 host downtime and 20 service downtimes on engine side.
 
     ${result}    Check Number Of Downtimes    ${21}    ${start}    ${60}
@@ -262,7 +262,7 @@ BEDTHOSTFIXED
     ...    SERVICE DOWNTIME ALERT: host_1;service_18;CANCELLED; Scheduled downtime for service has been cancelled.
     ...    SERVICE DOWNTIME ALERT: host_1;service_19;CANCELLED; Scheduled downtime for service has been cancelled.
     ...    SERVICE DOWNTIME ALERT: host_1;service_20;CANCELLED; Scheduled downtime for service has been cancelled.
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    We should have 1 host downtime and 20 service downtimes on engine side.
 
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
@@ -299,7 +299,7 @@ DTIM
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog4}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog4}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # It's time to schedule downtimes

@@ -52,13 +52,13 @@ NetworkDBFail6
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    No SELECT done by broker in the DB
     Disable Eth Connection On Port    port=3306
     Sleep    1m
     Reset Eth Connection
     ${content}    Create List    0 events acknowledged
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
@@ -80,7 +80,7 @@ NetworkDBFailU6
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    No SELECT done by broker in the DB
     Disable Eth Connection On Port    port=3306
     Log To Console    Waiting for 1m while the connection to the DB is cut.
@@ -88,7 +88,7 @@ NetworkDBFailU6
     Log To Console    Reestablishing the connection and test last steps.
     Reset Eth Connection
     ${content}    Create List    0 events acknowledged
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
@@ -111,7 +111,7 @@ NetworkDBFail7
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    No SELECT done by broker in the DB
     FOR    ${i}    IN    0    5
         Disable Eth Connection On Port    port=3306
@@ -120,7 +120,7 @@ NetworkDBFail7
         Sleep    10s
     END
     ${content}    Create List    0 events acknowledged
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    There are still events in the queue.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -143,7 +143,7 @@ NetworkDBFailU7
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    No SELECT done by broker in the DB
     FOR    ${i}    IN    0    5
         Disable Eth Connection On Port    port=3306
@@ -152,7 +152,7 @@ NetworkDBFailU7
         Sleep    10s
     END
     ${content}    Create List    0 events acknowledged
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    There are still events in the queue.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -182,7 +182,7 @@ Network Failure
     Start Broker
     Ctn Start Engine
     ${content}    Create List    SQL: performing mysql_ping
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
     Should Be True    ${result}    We should have a call to mysql_ping every 30s on inactive connections.
     Disable Sleep Enable    ${interval}
     ${end}    Get Current Date

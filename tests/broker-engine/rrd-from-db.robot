@@ -42,7 +42,7 @@ BRRDDMDB1
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics ${metrics_str} erased from database
 
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No log message telling about metrics ${metrics_str} deletion.
     FOR    ${m}    IN    @{metrics}
         Log To Console    Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
@@ -84,7 +84,7 @@ BRRDDIDDB1
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes ${indexes_str} erased from database
 
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No log message telling about indexes ${indexes_str} deletion.
     FOR    ${i}    IN    @{indexes}
         Log To Console    Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
@@ -124,15 +124,15 @@ BRRDRBDB1
     Reload Broker
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild START
 
     ${content1}    Create List    RRD: Rebuilding metric
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild DATA
 
     ${content1}    Create List    RRD: Finishing to rebuild metrics
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
     FOR    ${m}    IN    @{metrics}
         ${value}    Evaluate    ${m} / 2
@@ -171,15 +171,15 @@ BRRDRBUDB1
     ${metrics}    Get Metrics Matching Indexes    ${index}
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild START
 
     ${content1}    Create List    RRD: Rebuilding metric
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild DATA
 
     ${content1}    Create List    RRD: Finishing to rebuild metrics
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
     FOR    ${m}    IN    @{metrics}
         ${value}    Evaluate    ${m} / 2
@@ -219,15 +219,15 @@ BRRDUPLICATE
     Reload Broker
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild START
 
     ${content1}    Create List    RRD: Rebuilding metric
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild DATA
 
     ${content1}    Create List    RRD: Finishing to rebuild metrics
-    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
 
     ${result}    Check For Nan Metric    ${duplicates}

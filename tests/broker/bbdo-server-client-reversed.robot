@@ -34,7 +34,7 @@ BSCSSRR1
     ${start}    Get Round Current Date
     Repeat Keyword    5 times    Start Stop Service    0
     ${content}    Create List    failover 'centreon-broker-master-rrd' construction.
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
 
 BSCSSPRR1
@@ -73,7 +73,7 @@ BSCSSGRR1
     ${content}    Create List
     ...    endpoint applier: creating new failover 'centreon-broker-master-rrd'
     ...    failover 'centreon-broker-master-rrd' construction.
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
 
 BSCSSTRR1
@@ -92,7 +92,7 @@ BSCSSTRR1
     ${start}    Get Round Current Date
     Repeat Keyword    5 times    Start Stop Service    0
     ${content}    Create List    TLS: successful handshake
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
 
 BSCSSTRR2
@@ -128,7 +128,7 @@ BSCSSTRR2
     ${start}    Get Round Current Date
     Repeat Keyword    5 times    Start Stop Service    0
     ${content}    Create List    TLS: successful handshake
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
 
 BSCSSTGRR2
@@ -177,7 +177,7 @@ BSCSSTGRR2
     ${start}    Get Round Current Date
     Start Broker
     ${content}    Create List    write: buff:    write done: buff:
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
     Ctn Kindly Stop Broker
 
@@ -197,7 +197,7 @@ BSCSSCRR1
     ${start}    Get Round Current Date
     Start Broker
     ${content}    Create List    compression: writing
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
     Ctn Kindly Stop Broker
 
@@ -218,7 +218,7 @@ BSCSSCRR2
     ${start}    Get Round Current Date
     Start Broker
     ${content}    Create List    BBDO: we have extensions '' and peer has 'COMPRESSION'
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Compression enabled but should not.
     Ctn Kindly Stop Broker
 
@@ -240,7 +240,7 @@ BSCSSCGRR1
     ${start}    Get Round Current Date
     Start Broker
     ${content}    Create List    server default compression deflate
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
     Ctn Kindly Stop Broker
 
@@ -262,7 +262,7 @@ BSCSSCGRR2
     ${start}    Get Round Current Date
     Start Broker
     ${content}    Create List    server default compression deflate
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    15
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    15
     Should Be True    not ${result}    No compression enabled
     Ctn Kindly Stop Broker
 

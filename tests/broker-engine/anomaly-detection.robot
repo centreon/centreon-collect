@@ -193,7 +193,7 @@ AOUTLU1
     Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
@@ -227,7 +227,7 @@ ANO_DT1
     Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # create dependent service downtime
@@ -262,7 +262,7 @@ ANO_DT2
     Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # create dependent service downtime
@@ -301,7 +301,7 @@ ANO_DT3
     Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # create dependent service downtime
@@ -341,7 +341,7 @@ ANO_DT4
     Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # create dependent service downtime

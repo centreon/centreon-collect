@@ -32,7 +32,7 @@ EFHC1
     Should Be True    ${result}    host_1 should be pending
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -49,7 +49,7 @@ EFHC1
     ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
     ...    HOST ALERT: host_1;DOWN;HARD;3;
 
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
     ${result}    Check Host Status    host_1    1    1    False
@@ -75,7 +75,7 @@ EFHC2
     Ctn Start Engine
     Start Broker
     ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -92,7 +92,7 @@ EFHC2
     ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
     ...    HOST ALERT: host_1;DOWN;HARD;3;
 
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
     ${result}    Check Host Status    host_1    1    1    False
@@ -125,7 +125,7 @@ EFHCU1
     ${result}    Check Host Status    host_1    4    1    True
     Should Be True    ${result}    host_1 should be pending
     ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -142,7 +142,7 @@ EFHCU1
     ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
     ...    HOST ALERT: host_1;DOWN;HARD;3;
 
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
     ${result}    Check Host Status    host_1    1    1    True
@@ -174,7 +174,7 @@ EFHCU2
     ${result}    Check Host Status    host_1    4    1    True
     Should Be True    ${result}    host_1 should be pending
     ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -191,7 +191,7 @@ EFHCU2
     ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
     ...    HOST ALERT: host_1;DOWN;HARD;3;
 
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
     ${result}    Check Host Status    host_1    1    1    True
@@ -219,7 +219,7 @@ EMACROS
     Start Broker
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -228,7 +228,7 @@ EMACROS
 
     ${content}    Create List
     ...    ResourceFile: /tmp/etc/centreon-engine/config0/resource.cfg - LogFile: /tmp/var/log/centreon-engine/config0/centengine.log - AdminEmail: titus@bidibule.com - AdminPager: admin
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    AdminEmail: titus@bidibule.com - AdminPager: admin not found in log.
 
     Ctn Stop Engine
@@ -262,7 +262,7 @@ EMACROS_NOTIF
     Start Broker
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -301,7 +301,7 @@ EMACROS_SEMICOLON
     Start Broker
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -309,7 +309,7 @@ EMACROS_SEMICOLON
     Sleep    5s
 
     ${content}    Create List    KEY2=VAL1;val3;
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    VAL1;val3; not found in log.
 
     Ctn Stop Engine

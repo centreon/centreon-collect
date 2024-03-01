@@ -381,7 +381,7 @@ BESS_ENGINE_DELETE_HOST
     Start Broker    True
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -414,7 +414,7 @@ BESSBQ1
     Ctn Start Engine
     ${content}    Create List    execute statement 306524174
 
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
     Should Be True    ${result}    Services should be updated after the ingestion of the queue file
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -440,7 +440,7 @@ Start_Stop_Engine_Broker_${id}
     Start Broker
     Ctn Start Engine
     ${content}    Create List    create feeder central-broker-master-input
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    create feeder not found
     ${result}    Check Connections
     Should Be True    ${result}    no connection between engine and cbd
@@ -448,7 +448,7 @@ Start_Stop_Engine_Broker_${id}
     ${start_stop}    Get Current Date
     Ctn Stop Engine
     ${content}    Create List    feeder 'central-broker-master-input-1', connection closed
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start_stop}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start_stop}    ${content}    60
     Should Be True    ${result}    connection closed not found
 
     Examples:    id    grpc    --
@@ -477,7 +477,7 @@ Start_Stop_Broker_Engine_${id}
     Start Broker
     Ctn Start Engine
     ${content}    Create List    create feeder central-broker-master-input
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    create feeder not found
     ${result}    Check Connections
     Should Be True    ${result}    no connection between engine and cbd
@@ -485,7 +485,7 @@ Start_Stop_Broker_Engine_${id}
     ${stop_broker}    Get Current Date
     Ctn Kindly Stop Broker
     ${content}    Create List    failover central-module-master-output: connection closed
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${stop_broker}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${stop_broker}    ${content}    60
     Should Be True    ${result}    connection closed not found
     Examples:    id    grpc    --
     ...    1    False
