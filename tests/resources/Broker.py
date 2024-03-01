@@ -482,7 +482,7 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
                     name, "bbdo_server", "5670", "grpc")
 
 
-def change_broker_tcp_output_to_grpc(name: str):
+def ctn_change_broker_tcp_output_to_grpc(name: str):
     """
     Update broker configuration to use a gRPC output instead of a TCP one.
 
@@ -500,7 +500,7 @@ def change_broker_tcp_output_to_grpc(name: str):
     _apply_conf(name, output_to_grpc)
 
 
-def add_path_to_rrd_output(name: str, path: str):
+def ctn_add_path_to_rrd_output(name: str, path: str):
     """
     Set the path for the rrd output. If no rrd output is defined, this function
     does nothing.
@@ -518,7 +518,7 @@ def add_path_to_rrd_output(name: str, path: str):
     _apply_conf(name, rrd_output)
 
 
-def change_broker_tcp_input_to_grpc(name: str):
+def ctn_change_broker_tcp_input_to_grpc(name: str):
     """
     Update the broker configuration to use gRPC input instead of a TCP one.
     If no tcp input is found, no replacement is done.

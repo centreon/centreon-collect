@@ -818,8 +818,8 @@ BEEXTCMD_GRPC2
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
@@ -857,8 +857,8 @@ BEEXTCMD_GRPC3
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
@@ -898,8 +898,8 @@ BEEXTCMD_GRPC4
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
@@ -936,8 +936,8 @@ BEEXTCMD_REVERSE_GRPC1
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
     Ctn Broker Config Output Remove    module0    central-module-master-output    host
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Ctn Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
@@ -982,8 +982,8 @@ BEEXTCMD_REVERSE_GRPC2
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
     Ctn Broker Config Output Remove    module0    central-module-master-output    host
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Ctn Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
@@ -1025,8 +1025,8 @@ BEEXTCMD_REVERSE_GRPC3
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
     Ctn Config BBDO3    1
     Ctn Broker Config Output Remove    module0    central-module-master-output    host
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
@@ -1070,8 +1070,8 @@ BEEXTCMD_REVERSE_GRPC4
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
     Ctn Broker Config Output Remove    module0    central-module-master-output    host
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Ctn Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
@@ -1113,8 +1113,8 @@ BEEXTCMD_COMPRESS_GRPC1
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
     Change Broker Compression Output    module0    central-module-master-output    yes
     Change Broker Compression Input    central    centreon-broker-master-input    yes
     Ctn Config BBDO3    1

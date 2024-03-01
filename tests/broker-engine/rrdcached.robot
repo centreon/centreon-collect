@@ -15,7 +15,7 @@ BRRDCDDM1
     [Tags]    rrd    metric    deletion    rrdcached
     Config Engine    ${1}
     Ctn Config Broker    rrd
-    Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
+    Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Broker Config Log    central    sql    info
@@ -51,7 +51,7 @@ BRRDCDDID1
     [Tags]    rrd    metric    deletion    rrdcached
     Config Engine    ${1}
     Ctn Config Broker    rrd
-    Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
+    Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Broker Config Log    central    sql    info
@@ -91,7 +91,7 @@ BRRDCDDMID1
     [Tags]    rrd    metric    deletion    rrdcached
     Config Engine    ${1}
     Ctn Config Broker    rrd
-    Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
+    Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Broker Config Log    central    sql    info
@@ -122,7 +122,7 @@ BRRDCDDMU1
     [Tags]    rrd    metric    deletion unified_sql    rrdcached
     Config Engine    ${1}
     Ctn Config Broker    rrd
-    Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
+    Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker    module
@@ -159,7 +159,7 @@ BRRDCDDIDU1
     [Tags]    rrd    metric    deletion    unified_sql    rrdcached
     Config Engine    ${1}
     Ctn Config Broker    rrd
-    Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
+    Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker    module
@@ -199,7 +199,7 @@ BRRDCDDMIDU1
     [Tags]    rrd    metric    deletion    unified_sql    rrdcached
     Config Engine    ${1}
     Ctn Config Broker    rrd
-    Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
+    Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker    module
@@ -231,7 +231,7 @@ BRRDCDRB1
     [Tags]    rrd    metric    rebuild    grpc    rrdcached
     Config Engine    ${1}
     Ctn Config Broker    rrd
-    Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
+    Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Broker Config Log    rrd    rrd    trace
@@ -288,7 +288,7 @@ BRRDCDRBU1
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
     Config Engine    ${1}
     Ctn Config Broker    rrd
-    Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
+    Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker Sql Output    central    unified_sql

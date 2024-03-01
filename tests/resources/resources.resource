@@ -80,7 +80,7 @@ Ctn Start Broker
 
 Restart Broker
     [Arguments]    ${only_central}=False
-    Kindly Stop Broker    ${only_central}
+    Ctn Kindly Stop Broker    ${only_central}
     Ctn Start Broker    ${only_central}
 
 Reload Broker
@@ -88,7 +88,7 @@ Reload Broker
     Send Signal To Process    SIGHUP    b1
     IF    not ${only_central}    Send Signal To Process    SIGHUP    b2
 
-Kindly Stop Broker
+Ctn Kindly Stop Broker
     [Arguments]    ${only_central}=False
     Send Signal To Process    SIGTERM    b1
     IF    not ${only_central}    Send Signal To Process    SIGTERM    b2
@@ -205,7 +205,7 @@ Stop Engine Broker And Save Logs
         Log    can't kindly stop engine
     END
     TRY
-        Kindly Stop Broker    only_central=${only_central}
+        Ctn Kindly Stop Broker    only_central=${only_central}
     EXCEPT
         Log    Can't kindly stop Broker
     END

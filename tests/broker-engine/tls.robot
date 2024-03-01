@@ -274,8 +274,8 @@ BECT_GRPC1
             Ctn Broker Config Log    module0    bbdo    info
             Ctn Broker Config Log    central    grpc    debug
             Ctn Broker Config Log    module0    grpc    debug
-            Change Broker Tcp Output To Grpc    module0
-            Change Broker Tcp Input To Grpc    central
+            Ctn Change Broker Tcp Output To Grpc    module0
+            Ctn Change Broker Tcp Input To Grpc    central
             ${start}    Get Current Date
             Ctn Start Broker
             Ctn Start Engine
@@ -356,8 +356,8 @@ BECT_GRPC2
     Ctn Broker Config Log    module0    bbdo    info
     Ctn Broker Config Input Set    central    central-broker-master-input    tls    yes
     Ctn Broker Config Output Set    module0    central-module-master-output    tls    yes
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -402,8 +402,8 @@ BECT_GRPC3
     Ctn Broker Config Log    module0    tls    debug
     Ctn Broker Config Log    central    bbdo    info
     Ctn Broker Config Log    module0    bbdo    info
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
     Ctn Broker Config Input Set    central    central-broker-master-input    tls    yes
     Ctn Broker Config Output Set    module0    central-module-master-output    tls    yes
     # We get the current date just before starting broker
@@ -457,8 +457,8 @@ BECT_GRPC4
     Ctn Broker Config Log    module0    tls    debug
     Ctn Broker Config Log    central    bbdo    info
     Ctn Broker Config Log    module0    bbdo    info
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
     Ctn Broker Config Input Set    central    central-broker-master-input    tls    yes
     Ctn Broker Config Input Set
     ...    central

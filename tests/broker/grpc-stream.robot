@@ -15,36 +15,36 @@ BGRPCSS1
     [Tags]    broker    start-stop    grpc
     Ctn Config Broker    central
     Ctn Config Broker    rrd
-    Change Broker Tcp Output To Grpc    central
-    Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
     Repeat Keyword    5 times    Start Stop Service    100ms
 
 BGRPCSS2
     [Documentation]    Start/Stop 10 times broker configured with grpc stream with 300ms interval and no coredump
     [Tags]    broker    start-stop    grpc
     Ctn Config Broker    central
-    Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    central
     Repeat Keyword    10 times    Start Stop Instance    300ms
 
 BGRPCSS3
     [Documentation]    Start-Stop one instance of broker configured with grpc stream and no coredump
     [Tags]    broker    start-stop    grpc
     Ctn Config Broker    central
-    Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    central
     Repeat Keyword    5 times    Start Stop Instance    100ms
 
 BGRPCSS4
     [Documentation]    Start/Stop 10 times broker configured with grpc stream with 1sec interval and no coredump
     [Tags]    broker    start-stop    grpc
     Ctn Config Broker    central
-    Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    central
     Repeat Keyword    10 times    Start Stop Instance    1s
 
 BGRPCSS5
     [Documentation]    Start-Stop with reversed connection on grpc acceptor with only one instance and no deadlock
     [Tags]    broker    start-stop    grpc
     Ctn Config Broker    central
-    Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    central
     Ctn Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Repeat Keyword    5 times    Start Stop Instance    1s
@@ -55,8 +55,8 @@ BGRPCSSU1
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker Sql Output    central    unified_sql
-    Change Broker Tcp Output To Grpc    central
-    Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
     Repeat Keyword    5 times    Start Stop Service    100ms
 
 BGRPCSSU2
@@ -64,14 +64,14 @@ BGRPCSSU2
     [Tags]    broker    start-stop    unified_sql    grpc
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
-    Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    central
     Repeat Keyword    10 times    Start Stop Instance    300ms
 
 BGRPCSSU3
     [Documentation]    Start-Stop with unified_sql one instance of broker configured with grpc and no coredump
     [Tags]    broker    start-stop    unified_sql    grpc
     Ctn Config Broker    central
-    Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    central
     Ctn Config Broker Sql Output    central    unified_sql
     Repeat Keyword    5 times    Start Stop Instance    100ms
 
@@ -79,7 +79,7 @@ BGRPCSSU4
     [Documentation]    Start/Stop with unified_sql 10 times broker configured with grpc stream with 1sec interval and no coredump
     [Tags]    broker    start-stop    unified_sql    grpc
     Ctn Config Broker    central
-    Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    central
     Ctn Config Broker Sql Output    central    unified_sql
     Repeat Keyword    10 times    Start Stop Instance    1s
 
@@ -90,7 +90,7 @@ BGRPCSSU5
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
-    Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    central
     Repeat Keyword    5 times    Start Stop Instance    1s
 
 
