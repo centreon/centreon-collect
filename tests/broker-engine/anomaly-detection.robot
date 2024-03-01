@@ -27,7 +27,7 @@ ANO_NOFILE
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Stop Broker    True
-    Stop Engine
+    Ctn Stop Engine
 
 ANO_NOFILE_VERIF_CONFIG_NO_ERROR
     [Documentation]    an anomaly detection without threshold file doesn't display error on config check
@@ -67,7 +67,7 @@ ANO_TOO_OLD_FILE
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Stop Broker    True
-    Stop Engine
+    Ctn Stop Engine
 
 ANO_OUT_LOWER_THAN_LIMIT
     [Documentation]    an anomaly detection with a perfdata lower than lower limit make a critical state
@@ -87,7 +87,7 @@ ANO_OUT_LOWER_THAN_LIMIT
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Stop Broker    True
-    Stop Engine
+    Ctn Stop Engine
 
 ANO_OUT_UPPER_THAN_LIMIT
     [Documentation]    an anomaly detection with a perfdata upper than upper limit make a critical state
@@ -107,7 +107,7 @@ ANO_OUT_UPPER_THAN_LIMIT
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Stop Broker    True
-    Stop Engine
+    Ctn Stop Engine
 
 ANO_JSON_SENSITIVITY_NOT_SAVED
     [Documentation]    json sensitivity not saved in retention
@@ -125,7 +125,7 @@ ANO_JSON_SENSITIVITY_NOT_SAVED
     Clear Retention
     Ctn Start Engine
     Sleep    5s
-    Stop Engine
+    Ctn Stop Engine
     ${retention_sensitivity}    Grep Retention    ${0}    sensitivity=0.00
     Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=0.00
 
@@ -145,7 +145,7 @@ ANO_CFG_SENSITIVITY_SAVED
     Clear Retention
     Ctn Start Engine
     Sleep    5s
-    Stop Engine
+    Ctn Stop Engine
     ${retention_sensitivity}    Grep Retention    ${0}    sensitivity=4.00
     Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=4.00
 
@@ -168,7 +168,7 @@ ANO_EXTCMD_SENSITIVITY_SAVED
         Sleep    5s
         Update Ano Sensitivity    ${use_grpc}    host_1    anomaly_1001    4.55
         Sleep    1s
-        Stop Engine
+        Ctn Stop Engine
         ${retention_sensitivity}    Grep Retention    ${0}    sensitivity=4.55
         Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=4.55
     END
@@ -198,7 +198,7 @@ AOUTLU1
 
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${lst}    Create List    1    0    4
     ${result}    Check Types In Resources    ${lst}
@@ -238,7 +238,7 @@ ANO_DT1
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in downtime
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 ANO_DT2
@@ -277,7 +277,7 @@ ANO_DT2
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0    60
     Should Be True    ${result}    anomaly service must be in downtime
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 ANO_DT3
@@ -317,7 +317,7 @@ ANO_DT3
     ${result}    Check Service Downtime With Timeout    host_1    service_1    1    60
     Should Be True    ${result}    dependent service must be in downtime
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 ANO_DT4
@@ -357,5 +357,5 @@ ANO_DT4
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in simple downtime
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker

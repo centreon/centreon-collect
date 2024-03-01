@@ -67,7 +67,7 @@ BEBAMIDT1
     ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEBAMIDT2
@@ -122,7 +122,7 @@ BEBAMIDT2
 
     FOR    ${i}    IN RANGE    2
         # Engine is restarted
-        Stop Engine
+        Ctn Stop Engine
         ${start}    Get Current Date
         Ctn Start Engine
         # Let's wait for Engine to be ready
@@ -155,7 +155,7 @@ BEBAMIDT2
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
     Log To Console    Broker is stopped (end of BEBAMIDT2)
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEBAMIGNDT1
@@ -265,7 +265,7 @@ BEBAMIGNDT1
     Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
     Log To Console    The BA is now critical (no more downtime)
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEBAMIGNDT2
@@ -356,7 +356,7 @@ BEBAMIGNDT2
     Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
     Log To Console    The BA is now critical (no more downtime)
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 

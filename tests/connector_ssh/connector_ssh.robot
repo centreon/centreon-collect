@@ -42,7 +42,7 @@ TestBadUser
     ${content}    Create List    fail to connect to toto@127.0.0.10
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message fail to connect to toto@127.0.0.10 should be available.
-    Stop Engine
+    Ctn Stop Engine
 
 TestBadPwd
     [Documentation]    test bad password
@@ -75,7 +75,7 @@ TestBadPwd
     ${content}    Create List    fail to connect to testconnssh@127.0.0.11
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message fail to connect to testconnssh@127.0.0.11 should be available.
-    Stop Engine
+    Ctn Stop Engine
 
 Test6Hosts
     [Documentation]    as 127.0.0.x point to the localhost address we will simulate check on 6 hosts
@@ -140,7 +140,7 @@ Test6Hosts
         Should Be True    ${result}    A message output='toto=127.0.0.${idx}' should be available.
     END
 
-    Stop Engine
+    Ctn Stop Engine
 
 TestWhiteList
     [Documentation]    as 127.0.0.x point to the localhost address we will simulate check on 6 hosts
@@ -212,7 +212,7 @@ TestWhiteList
         Should Be True    ${result}    A message 'toto=::1' should be available.
     END
 
-    Stop Engine
+    Ctn Stop Engine
 
 
 *** Keywords ***

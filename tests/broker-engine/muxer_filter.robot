@@ -31,7 +31,7 @@ STUPID_FILTER
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling bad filter should be available.
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 STORAGE_ON_LUA
@@ -61,7 +61,7 @@ STORAGE_ON_LUA
     ${grep_res}    Grep File    /tmp/all_lua_event.log    "category":[^3]    regexp=True
     Should Be Empty    ${grep_res}    Events of category different than 'storage' found.
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 FILTER_ON_LUA_EVENT
@@ -107,7 +107,7 @@ FILTER_ON_LUA_EVENT
         ...    All the lines in all_lua_event.log should contain "_type":196620
     END
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 BAM_STREAM_FILTER
@@ -200,7 +200,7 @@ BAM_STREAM_FILTER
     ...    centreon-bam-reporting event of type 1[0-9a-f]{4} rejected by write filter    regexp=True
     Should Not Be Empty    ${grep_res}    no rejected neb event
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 UNIFIED_SQL_FILTER
@@ -236,7 +236,7 @@ UNIFIED_SQL_FILTER
         Should Not Be Empty    ${grep_res}
     END
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 CBD_RELOAD_AND_FILTERS
@@ -336,7 +336,7 @@ CBD_RELOAD_AND_FILTERS
     ...    False
     ...    Some events are rejected by the rrd output whereas all categories are enabled.
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 CBD_RELOAD_AND_FILTERS_WITH_OPR
@@ -438,7 +438,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     ...    False
     ...    Some events are rejected by the rrd output whereas all categories are enabled.
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 SEVERAL_FILTERS_ON_LUA_EVENT
@@ -510,5 +510,5 @@ SEVERAL_FILTERS_ON_LUA_EVENT
         ...    "_type":65565
         ...    All the lines in all_lua_event-bis.log should contain "_type":65565
     END
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True

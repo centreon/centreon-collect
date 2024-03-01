@@ -43,4 +43,4 @@ Start Stop Instances
     [Arguments]    ${interval}
     Ctn Start Engine
     Sleep    ${interval}
-    Stop Engine
+    Ctn Stop Engine

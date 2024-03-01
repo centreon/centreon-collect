@@ -158,7 +158,7 @@ Ctn Start Engine
     END
 
 Restart Engine
-    Stop Engine
+    Ctn Stop Engine
     Ctn Start Engine
 
 Start Custom Engine
@@ -172,7 +172,7 @@ Stop Custom Engine
     ...    ${result.rc} == -15 or ${result.rc} == 0
     ...    Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
-Stop Engine
+Ctn Stop Engine
     ${count}    Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -200,7 +200,7 @@ Stop Engine
 Stop Engine Broker And Save Logs
     [Arguments]    ${only_central}=False
     TRY
-        Stop Engine
+        Ctn Stop Engine
     EXCEPT
         Log    can't kindly stop engine
     END

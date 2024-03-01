@@ -54,7 +54,7 @@ EFHC1
 
     ${result}    Check Host Status    host_1    1    1    False
     Should Be True    ${result}    host_1 should be down/hard
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EFHC2
@@ -97,7 +97,7 @@ EFHC2
 
     ${result}    Check Host Status    host_1    1    1    False
     Should Be True    ${result}    host_1 should be down/hard
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EFHCU1
@@ -147,7 +147,7 @@ EFHCU1
 
     ${result}    Check Host Status    host_1    1    1    True
     Should Be True    ${result}    host_1 should be down/hard
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EFHCU2
@@ -196,7 +196,7 @@ EFHCU2
 
     ${result}    Check Host Status    host_1    1    1    True
     Should Be True    ${result}    host_1 should be down/hard
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EMACROS
@@ -231,7 +231,7 @@ EMACROS
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    AdminEmail: titus@bidibule.com - AdminPager: admin not found in log.
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EMACROS_NOTIF
@@ -277,7 +277,7 @@ EMACROS_NOTIF
     ...    /tmp/notif_toto.txt
     ...    ResourceFile: /tmp/etc/centreon-engine/resource.cfg - LogFile: /tmp/var/log/centreon-engine/centengine.log - AdminEmail: titus@bidibule.com - AdminPager: admin
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EMACROS_SEMICOLON
@@ -312,5 +312,5 @@ EMACROS_SEMICOLON
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    VAL1;val3; not found in log.
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker

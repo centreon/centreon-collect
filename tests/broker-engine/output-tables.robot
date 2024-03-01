@@ -39,7 +39,7 @@ BERES1
         ${result}    Find In Log    ${centralLog}    ${start}    ${content_not_present}
         Should Not Be True    ${result[0]}    There are updates of hosts/services table(s).
     END
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEHS1
@@ -72,7 +72,7 @@ BEHS1
         ${result}    Find In Log    ${centralLog}    ${start}    ${content_not_present}
         Should Not Be True    ${result[0]}    There are updates of the resources table.
     END
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEINSTANCESTATUS
@@ -135,7 +135,7 @@ BEINSTANCESTATUS
     Should Be True    ${result}    passive_host_checks not updated.
     ${result}    Check Field Db Value    SELECT passive_service_checks FROM instances WHERE instance_id=1    ${0}    3
     Should Be True    ${result}    passive_service_checks not updated.
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEINSTANCE
@@ -206,7 +206,7 @@ BE_NOTIF_OVERFLOW
     ...    SELECT s.notification_number FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_16' AND s.description='service_314'
     Should Be True    ${output[0][0]} == None    notification_number is not null
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BE_TIME_NULL_SERVICE_RESOURCE
@@ -240,7 +240,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Should Be Equal As Strings
     ...    ${output}
     ...    ((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
@@ -270,5 +270,5 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
         IF    "${output}" == "((0.0, 0.0),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0.0, 0.0),)
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker

@@ -31,7 +31,7 @@ BRGC1
     Run Reverse Bam    ${50}    ${0.2}
 
     Ctn Kindly Stop Broker
-    Stop Engine
+    Ctn Stop Engine
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
@@ -63,7 +63,7 @@ BRCTS1
     Run Reverse Bam    ${150}    ${10}
 
     Ctn Kindly Stop Broker
-    Stop Engine
+    Ctn Stop Engine
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
@@ -95,7 +95,7 @@ BRCS1
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     Ctn Kindly Stop Broker
-    Stop Engine
+    Ctn Stop Engine
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
@@ -149,7 +149,7 @@ BRCTSMN
     ${ret}    Get Line Count    ${ret}
     Should Be True    ${ret} >= 50
 
-    Stop Engine
+    Ctn Stop Engine
 
 BRCTSMNS
     [Documentation]    Broker connected to map with neb and storage filters
@@ -213,4 +213,4 @@ BRCTSMNS
 
     Ctn Kindly Stop Broker
     Stop Map
-    Stop Engine
+    Ctn Stop Engine

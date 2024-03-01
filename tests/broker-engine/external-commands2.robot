@@ -55,7 +55,7 @@ BEEXTCMD30
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -148,7 +148,7 @@ BEEXTCMD31
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -221,7 +221,7 @@ BEEXTCMD32
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -275,7 +275,7 @@ BEEXTCMD33
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -326,7 +326,7 @@ BEEXTCMD34
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -394,7 +394,7 @@ BEEXTCMD35
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -441,7 +441,7 @@ BEEXTCMD36
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -513,7 +513,7 @@ BEEXTCMD37
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -564,7 +564,7 @@ BEEXTCMD38
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -614,7 +614,7 @@ BEEXTCMD39
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -661,7 +661,7 @@ BEEXTCMD40
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -715,7 +715,7 @@ BEEXTCMD41
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -766,7 +766,7 @@ BEEXTCMD42
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -807,7 +807,7 @@ BEEXTCMD_GRPC1
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -846,7 +846,7 @@ BEEXTCMD_GRPC2
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -887,7 +887,7 @@ BEEXTCMD_GRPC3
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -925,7 +925,7 @@ BEEXTCMD_GRPC4
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -971,7 +971,7 @@ BEEXTCMD_REVERSE_GRPC1
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1014,7 +1014,7 @@ BEEXTCMD_REVERSE_GRPC2
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1059,7 +1059,7 @@ BEEXTCMD_REVERSE_GRPC3
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1102,7 +1102,7 @@ BEEXTCMD_REVERSE_GRPC4
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1145,7 +1145,7 @@ BEEXTCMD_COMPRESS_GRPC1
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1168,7 +1168,7 @@ BEATOI11
     ${content}    Create List    EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;foobar
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEATOI12
@@ -1191,7 +1191,7 @@ BEATOI12
     ...    Error: could not send custom host notification: '8' must be an integer between 0 and 7
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEATOI13
@@ -1214,7 +1214,7 @@ BEATOI13
     ${content}    Create List    Error: could not schedule downtime : duration
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument duration must be an integer >= 0.
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEATOI21
@@ -1241,7 +1241,7 @@ BEATOI21
     DEL HOST COMMENT    ${com_id}
     ${result}    Find Internal Id    ${start}    False    30
     Should Be True    ${result}    the comment with id:${com_id} was not deleted.
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEATOI22
@@ -1271,7 +1271,7 @@ BEATOI22
     Should Be True    ${result}    comment_id must be an unsigned integer.
     ${result}    Find Internal Id    ${start}    True    30
     Should Be True    ${result}    comment with id:-1 was deleted.
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEATOI23
@@ -1294,7 +1294,7 @@ BEATOI23
     ${content}    Create List    ADD_SVC_COMMENT
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument persistent_flag must be 0 or 1.
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BECUSTOMHOSTVAR
@@ -1328,7 +1328,7 @@ BECUSTOMHOSTVAR
     END
     Should Be Equal As Strings    ${output}    (('789456',),)
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BECUSTOMSVCVAR
@@ -1362,7 +1362,7 @@ BECUSTOMSVCVAR
     END
     Should Be Equal As Strings    ${output}    (('456123',),)
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BESERVCHECK

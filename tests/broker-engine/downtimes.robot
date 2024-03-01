@@ -57,7 +57,7 @@ BEDTMASS1
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEDTMASS2
@@ -105,7 +105,7 @@ BEDTMASS2
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEDTSVCREN1
@@ -148,7 +148,7 @@ BEDTSVCREN1
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEDTSVCFIXED
@@ -182,7 +182,7 @@ BEDTSVCFIXED
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEDTHOSTFIXED
@@ -268,7 +268,7 @@ BEDTHOSTFIXED
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 DTIM
@@ -326,7 +326,7 @@ DTIM
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    There are still some downtimes enabled.
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 

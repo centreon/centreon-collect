@@ -39,7 +39,7 @@ MIGRATION
     Log To Console    Move to BBDO 2.0.0 with unified_sql
     Ctn Kindly Stop Broker
     Start Broker
-    Stop Engine
+    Ctn Stop Engine
     Ctn Start Engine
     Sleep    2s
 
@@ -56,7 +56,7 @@ MIGRATION
     Log To Console    Move to BBDO 3.0.0 with unified_sql
     Ctn Kindly Stop Broker
     Start Broker
-    Stop Engine
+    Ctn Stop Engine
     Ctn Start Engine
     Sleep    2s
 
@@ -77,7 +77,7 @@ MIGRATION
     Log To Console    Move back to BBDO 2.0.0 with unified_sql
     Ctn Kindly Stop Broker
     Start Broker
-    Stop Engine
+    Ctn Stop Engine
     Ctn Start Engine
     Sleep    2s
 
@@ -92,7 +92,7 @@ MIGRATION
     Config Broker Sql Output    central    sql/perfdata
     Ctn Kindly Stop Broker
     Start Broker
-    Stop Engine
+    Ctn Stop Engine
     Ctn Start Engine
     Sleep    2s
 

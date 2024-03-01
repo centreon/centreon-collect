@@ -120,7 +120,7 @@ START_STOP_CBD
         Should Be Equal    "${output}"    "()"    at least one host state is null
     END
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Stop Broker
 
 
 *** Keywords ***

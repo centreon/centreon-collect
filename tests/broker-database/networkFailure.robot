@@ -59,7 +59,7 @@ NetworkDBFail6
     Reset Eth Connection
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 NetworkDBFailU6
@@ -89,7 +89,7 @@ NetworkDBFailU6
     Reset Eth Connection
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 NetworkDBFail7
@@ -122,7 +122,7 @@ NetworkDBFail7
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    There are still events in the queue.
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 NetworkDBFailU7
@@ -154,7 +154,7 @@ NetworkDBFailU7
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    There are still events in the queue.
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 
@@ -192,4 +192,4 @@ Network Failure
     ...    ${result[0]}
     ...    timeout after network to be restablished (network failure duration : ${interval})
     Ctn Kindly Stop Broker
-    Stop Engine
+    Ctn Stop Engine

@@ -45,7 +45,7 @@ BEEXTCMD1
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -82,7 +82,7 @@ BEEXTCMD2
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -121,7 +121,7 @@ BEEXTCMD3
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -157,7 +157,7 @@ BEEXTCMD4
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -196,7 +196,7 @@ BEEXTCMD5
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -233,7 +233,7 @@ BEEXTCMD6
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -272,7 +272,7 @@ BEEXTCMD7
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -308,7 +308,7 @@ BEEXTCMD8
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -357,7 +357,7 @@ BEEXTCMD9
             IF    "${output}" == "((15,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -394,7 +394,7 @@ BEEXTCMD10
             IF    "${output}" == "((10,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -442,7 +442,7 @@ BEEXTCMD11
             IF    "${output}" == "((15,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -479,7 +479,7 @@ BEEXTCMD12
         END
         Should Be Equal As Strings    ${output}    ((10,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -519,7 +519,7 @@ BEEXTCMD13
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -556,7 +556,7 @@ BEEXTCMD14
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -596,7 +596,7 @@ BEEXTCMD15
         END
         Should Be Equal As Strings    ${output}    (('24x7',),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -633,7 +633,7 @@ BEEXTCMD16
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -675,7 +675,7 @@ BEEXTCMD17
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -714,7 +714,7 @@ BEEXTCMD18
         END
         Should Be Equal As Strings    ${output}    (('24x7',),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -756,7 +756,7 @@ BEEXTCMD19
         END
         Should Be Equal As Strings    ${output}    (('24x7',),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -795,7 +795,7 @@ BEEXTCMD20
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -865,7 +865,7 @@ BEEXTCMD21
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -914,7 +914,7 @@ BEEXTCMD22
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -999,7 +999,7 @@ BEEXTCMD23
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1064,7 +1064,7 @@ BEEXTCMD24
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1114,7 +1114,7 @@ BEEXTCMD25
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1161,7 +1161,7 @@ BEEXTCMD26
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1211,7 +1211,7 @@ BEEXTCMD27
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1258,7 +1258,7 @@ BEEXTCMD28
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1328,6 +1328,6 @@ BEEXTCMD29
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END

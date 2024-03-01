@@ -30,7 +30,7 @@ BECCC1
         Sleep    1s
     END
     Should Be Equal As Strings    ${content.strip()}    You must specify a port for the connection to the gRPC server
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
@@ -63,7 +63,7 @@ BECCC2
     ${version}    Common.Get Collect Version
     ${expected}    Catenate    Connected to a Centreon Broker    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
@@ -95,7 +95,7 @@ BECCC3
     ${version}    Common.Get Collect Version
     ${expected}    Catenate    Connected to a Centreon Engine    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
@@ -126,7 +126,7 @@ BECCC4
     END
     ${contains}    Evaluate    "GetVersion" in """${content}""" and "RemovePoller" in """${content}"""
     Should Be True    ${contains}    The list of methods should contain GetVersion(Empty)
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
@@ -157,7 +157,7 @@ BECCC5
     END
     ${contains}    Evaluate    "The list argument expects no command" in """${content}"""
     Should Be True    ${contains}    When -l option is applied, we can't call a command.
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
@@ -202,7 +202,7 @@ BECCC6
         ...    {\n \"major\": ${mm},\n \"minor\": ${m},\n \"patch\": ${p}\n}
         ...    A version as json string should be returned
     END
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
@@ -235,7 +235,7 @@ BECCC7
     ...    ${content}
     ...    Error during the execution of '/com.centreon.broker.Broker/GetVersion' method:
     ...    GetVersion{"idx":1} should return an error because the input message is incompatible with the expected one.
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
@@ -269,6 +269,6 @@ BECCC8
         Sleep    1s
     END
     Should Contain    ${content}    {}
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt

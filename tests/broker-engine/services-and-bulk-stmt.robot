@@ -258,7 +258,7 @@ EBPS2
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that statements are available should be displayed
     Stop mysql
-    Stop Engine
+    Ctn Stop Engine
     Start mysql
 
 RLCode
@@ -328,7 +328,7 @@ RLCode
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    The Lua virtual machine is not correctly initialized
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 metric_mapping
@@ -441,6 +441,6 @@ Services_and_bulks_${id}
 
 *** Keywords ***
 Test Clean
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Ctn Save Logs If Failed

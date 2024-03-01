@@ -30,7 +30,7 @@ BESEV1
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BESEV2
@@ -54,7 +54,7 @@ BESEV2
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEUSEV1
@@ -79,7 +79,7 @@ BEUSEV1
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEUSEV2
@@ -105,7 +105,7 @@ BEUSEV2
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEUSEV3
@@ -142,7 +142,7 @@ BEUSEV3
     ${result}    Check Service Severity With Timeout    1    1    None    60
     Should Be True    ${result}    Service (1, 1) should have no severity
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEUSEV4
@@ -212,7 +212,7 @@ BEUSEV4
     ${result}    Check Service Severity With Timeout    1    5    None    60
     Should Be True    ${result}    Second step: Service (1, 5) should have severity_id=17
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BETUSEV1
@@ -262,5 +262,5 @@ BETUSEV1
     ${result}    Check Service Severity With Timeout    26    503    5    60
     Should Be True    ${result}    First step: Service (26, 503) should have severity_id=5
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker

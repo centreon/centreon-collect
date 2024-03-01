@@ -42,7 +42,7 @@ BERD1
     Clear Cache
     Start Broker
     Sleep    25s
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
@@ -78,10 +78,10 @@ BERD2
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    15s
-    Stop Engine
+    Ctn Stop Engine
     Ctn Start Engine
     Sleep    25s
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
@@ -123,7 +123,7 @@ BERDUC1
     Clear Cache
     Start Broker
     Sleep    25s
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
@@ -160,7 +160,7 @@ BERDUCU1
     Clear Cache
     Start Broker
     Sleep    25s
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
@@ -192,12 +192,12 @@ BERDUC2
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Stop Engine
+    Ctn Stop Engine
     Sleep    5s
     Clear Cache
     Ctn Start Engine
     Sleep    25s
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
@@ -231,12 +231,12 @@ BERDUCU2
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Stop Engine
+    Ctn Stop Engine
     Sleep    5s
     Clear Cache
     Ctn Start Engine
     Sleep    25s
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
@@ -274,7 +274,7 @@ BERDUC3U1
     Clear Cache
     Start Broker
     Sleep    25s
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
@@ -322,12 +322,12 @@ BERDUC3U2
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Stop Engine
+    Ctn Stop Engine
     Sleep    5s
     Clear Cache
     Ctn Start Engine
     Sleep    25s
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
@@ -366,7 +366,7 @@ BERDUCA300
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
 
-    Stop Engine
+    Ctn Stop Engine
     ${content}    Create List    BBDO: sending pb stop packet to peer
     ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Engine should send a pb stop message to cbd.
@@ -419,7 +419,7 @@ BERDUCA301
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
 
-    Stop Engine
+    Ctn Stop Engine
     ${content}    Create List    BBDO: sending pb stop packet to peer
     ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Engine should send a pb stop message to cbd.

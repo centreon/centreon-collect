@@ -50,7 +50,7 @@ BEPBBEE2
     ...    Configuration check error: bbdo versions >= 3.0.0 need the unified_sql module to be configured.
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Message about a missing config of unified_sql not available.
-    Stop Engine
+    Ctn Stop Engine
 
 BEPBBEE3
     [Documentation]    bbdo_version 3 generates new bbdo protobuf service status messages.
@@ -136,7 +136,7 @@ BEPBRI1
     ${grep_res}    Grep File    /tmp/pbresponsiveinstance.log    "_type":65582, "category":1, "element":46,
     ${grep_res}    Get Lines Containing String    ${grep_res}    "poller_id":1, "responsive":true
     Should Not Be Empty    ${grep_res}    "responsive":true not found
-    Stop Engine
+    Ctn Stop Engine
     FOR    ${index}    IN RANGE    60
         Sleep    1s
         ${grep_res}    Grep File    /tmp/pbresponsiveinstance.log    "_type":65582, "category":1, "element":46,

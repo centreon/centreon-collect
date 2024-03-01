@@ -121,7 +121,7 @@ BEUTAG2
     ${svc}    Create Service    ${0}    1    1
     Add Tags To Services    ${0}    group_tags    4    [${svc}]
 
-    Stop Engine
+    Ctn Stop Engine
     ${start}    Get Current Date
     Ctn Start Engine
     Reload Broker

@@ -43,7 +43,7 @@ BEUHSEV1
     ${result}    Check Host Severity With Timeout    1    None    60
     Should Be True    ${result}    Host 1 should have no severity
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEUHSEV2
@@ -114,7 +114,7 @@ BEUHSEV2
     ${result}    Check Host Severity With Timeout    5    None    60
     Should Be True    ${result}    Second step: Host 5 should have severity_id=17
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BETUHSEV1
@@ -165,5 +165,5 @@ BETUHSEV1
     ${result}    Check Host Severity With Timeout    33    10    60
     Should Be True    ${result}    First step: Host 33 should have severity_id=10
 
-    Stop Engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
