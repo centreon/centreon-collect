@@ -43,6 +43,7 @@ add_custom_command(
 # Set sources.
 set(SOURCES 
   ${SRC_DIR}/hex_dump.cc
+  ${SRC_DIR}/pool.cc 
   ${SRC_DIR}/process_stat.cc 
   ${SRC_DIR}/process_stat.pb.cc
   ${SRC_DIR}/process_stat.grpc.pb.cc

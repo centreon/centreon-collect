@@ -193,7 +193,9 @@ void applier::command::resolve_object(configuration::command const& obj) {
   if (!obj.connector().empty()) {
     connector_map::iterator found{
         commands::connector::connectors.find(obj.connector())};
-    if (found == commands::connector::connectors.end() || !found->second)
-      throw engine_error() << "unknow command " << obj.connector();
+    if (found == commands::connector::connectors.end() || !found->second) {
+      if (!commands::otel_command::get_otel_command(obj.connector()))
+        throw engine_error() << "unknow command " << obj.connector();
+    }
   }
 }

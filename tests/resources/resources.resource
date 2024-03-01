@@ -298,6 +298,7 @@ Ctn Dump Process
         ${gdb_output}    Catenate    SEPARATOR=    ${failDir}    /core-    ${name}    .txt
         # Log To Console    Creation of core ${output}.${pid} to debug
         # Run Process    gcore    -o    ${output}    ${pid}
+        Log To Console    Creation of core ${gdb_output}
         Run Process
         ...    gdb
         ...    -batch
