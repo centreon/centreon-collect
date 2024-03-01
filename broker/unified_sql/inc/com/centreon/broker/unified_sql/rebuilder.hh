@@ -21,9 +21,9 @@
 
 #include <memory>
 
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/broker/sql/mysql.hh"
+#include "com/centreon/common/pool.hh"
 
 namespace com::centreon::broker {
 
@@ -75,6 +75,6 @@ class rebuilder {
 };
 }  // namespace unified_sql
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_UNIFIED_SQL_REBUILDER_HH

@@ -121,9 +121,9 @@ host_serv_metric host_serv_extractor::is_allowed(
 class host_serv_attributes_extractor : public host_serv_extractor {
   enum class attribute_owner { resource, scope, data_point };
   attribute_owner _host_path;
-  std::string _host_tag;
+  std::string _host_key;
   attribute_owner _serv_path;
-  std::string _serv_tag;
+  std::string _serv_key;
 
  public:
   host_serv_attributes_extractor(const std::string& command_line);

@@ -81,8 +81,6 @@ class open_telemetry
 };
 
 class open_telemetry_test : public TestEngine {
-  std::thread _io_context_thread;
-
  public:
   static void SetUpTestSuite();
   void SetUp() override;
@@ -123,14 +121,10 @@ void open_telemetry_test::SetUp() {
   hst_aply.resolve_object(hst);
   svc_aply.resolve_object(svc);
   data_point_fifo::update_fifo_limit(std::numeric_limits<time_t>::max(), 10);
-  g_io_context->restart();
-  _io_context_thread = std::thread([]() { g_io_context->run(); });
 }
 
 void open_telemetry_test::TearDown() {
   deinit_config_state();
-  g_io_context->stop();
-  _io_context_thread.join();
 }
 
 TEST_F(open_telemetry_test, data_available) {

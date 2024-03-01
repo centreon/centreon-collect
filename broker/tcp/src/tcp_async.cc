@@ -1,24 +1,24 @@
 /**
-* Copyright 2020-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2020-2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #include "com/centreon/broker/tcp/tcp_async.hh"
 
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -166,7 +166,7 @@ std::shared_ptr<asio::ip::tcp::acceptor> tcp_async::create_acceptor(
   else {
     asio::ip::tcp::resolver::query query(conf->get_host(),
                                          std::to_string(conf->get_port()));
-    asio::ip::tcp::resolver resolver(pool::io_context());
+    asio::ip::tcp::resolver resolver(com::centreon::common::pool::io_context());
     boost::system::error_code ec;
     asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec), end;
     if (ec) {
@@ -184,8 +184,8 @@ std::shared_ptr<asio::ip::tcp::acceptor> tcp_async::create_acceptor(
       }
     }
   }
-  auto retval{std::make_shared<asio::ip::tcp::acceptor>(pool::io_context(),
-                                                        listen_endpoint)};
+  auto retval{std::make_shared<asio::ip::tcp::acceptor>(
+      com::centreon::common::pool::io_context(), listen_endpoint)};
 
   asio::ip::tcp::acceptor::reuse_address option(true);
   retval->set_option(option);
@@ -238,8 +238,8 @@ void tcp_async::start_acceptor(
   log_v2::tcp()->trace("Start acceptor");
   std::lock_guard<std::mutex> l(_acceptor_available_con_m);
   if (!_timer)
-    _timer =
-        std::make_unique<asio::steady_timer>(pool::instance().io_context());
+    _timer = std::make_unique<asio::steady_timer>(
+        com::centreon::common::pool::instance().io_context());
 
   if (!_clear_available_con_running)
     _clear_available_con_running = true;
@@ -251,8 +251,8 @@ void tcp_async::start_acceptor(
         me->_clear_available_con(err);
       });
 
-  tcp_connection::pointer new_connection =
-      std::make_shared<tcp_connection>(pool::io_context());
+  tcp_connection::pointer new_connection = std::make_shared<tcp_connection>(
+      com::centreon::common::pool::io_context());
 
   log_v2::tcp()->debug("Waiting for a connection");
   acceptor->async_accept(new_connection->socket(),
@@ -328,10 +328,11 @@ tcp_connection::pointer tcp_async::create_connection(
   log_v2::tcp()->trace("create connection to host {}:{}", conf->get_host(),
                        conf->get_port());
   tcp_connection::pointer conn = std::make_shared<tcp_connection>(
-      pool::io_context(), conf->get_host(), conf->get_port());
+      com::centreon::common::pool::io_context(), conf->get_host(),
+      conf->get_port());
   asio::ip::tcp::socket& sock = conn->socket();
 
-  asio::ip::tcp::resolver resolver(pool::io_context());
+  asio::ip::tcp::resolver resolver(com::centreon::common::pool::io_context());
   asio::ip::tcp::resolver::query query(conf->get_host(),
                                        std::to_string(conf->get_port()));
   asio::ip::tcp::resolver::iterator it = resolver.resolve(query), end;

@@ -26,9 +26,9 @@
 
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/tcp/acceptor.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
@@ -57,8 +57,8 @@ stream::stream(const tcp_config::pointer& conf)
                        _conf->get_port());
   log_v2::tcp()->info(
       "{} TCP streams are configured on a thread pool of {} threads",
-      static_cast<uint32_t>(_total_tcp_count),
-      pool::instance().get_pool_size());
+      _total_tcp_count,
+      com::centreon::common::pool::instance().get_pool_size());
 }
 
 /**
@@ -77,8 +77,8 @@ stream::stream(const tcp_connection::pointer& conn,
                       _conf->get_port());
   log_v2::tcp()->info(
       "{} TCP streams are configured on a thread pool of {} threads",
-      static_cast<uint32_t>(_total_tcp_count),
-      pool::instance().get_pool_size());
+      _total_tcp_count,
+      com::centreon::common::pool::instance().get_pool_size());
 }
 
 /**
@@ -89,8 +89,8 @@ stream::~stream() noexcept {
   log_v2::tcp()->info(
       "TCP stream destroyed. Still {} configured on a thread pool of {} "
       "threads",
-      static_cast<uint32_t>(_total_tcp_count),
-      pool::instance().get_pool_size());
+      _total_tcp_count,
+      com::centreon::common::pool::instance().get_pool_size());
   log_v2::tcp()->trace("stream closed");
   if (_connection->socket().is_open())
     _connection->close();

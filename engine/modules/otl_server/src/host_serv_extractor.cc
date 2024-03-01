@@ -93,7 +93,7 @@ host_serv_attributes_extractor_config_options::
                 "Where to find host attribute allowed values: resource, scope, "
                 "data_point",
                 true, true, "data_point");
-  _add_argument("host_tag", 'i',
+  _add_argument("host_key", 'i',
                 "the key of attributes where we can find host name", true, true,
                 "host");
   _add_argument(
@@ -101,7 +101,7 @@ host_serv_attributes_extractor_config_options::
       "Where to find service attribute allowed values: resource, scope, "
       "data_point",
       true, true, "data_point");
-  _add_argument("service_tag", 't',
+  _add_argument("service_key", 't',
                 "the key of attributes where we can find the name of service",
                 true, true, "service");
 }
@@ -138,7 +138,7 @@ host_serv_attributes_extractor::host_serv_attributes_extractor(
   auto parse_param =
       [&args](
           const std::string& attribute,
-          const std::string& tag) -> std::pair<attribute_owner, std::string> {
+          const std::string& key) -> std::pair<attribute_owner, std::string> {
     const std::string& path = args.get_argument(attribute).get_value();
     attribute_owner owner;
     if (path == "resource") {
@@ -149,22 +149,22 @@ host_serv_attributes_extractor::host_serv_attributes_extractor(
       owner = attribute_owner::data_point;
     }
 
-    std::string ret_tag = args.get_argument(tag).get_value();
-    return std::make_pair(owner, ret_tag);
+    std::string ret_key = args.get_argument(key).get_value();
+    return std::make_pair(owner, ret_key);
   };
 
   try {
-    std::tie(_host_path, _host_tag) = parse_param("host_attribute", "host_tag");
+    std::tie(_host_path, _host_key) = parse_param("host_attribute", "host_key");
   } catch (const std::exception&) {  // default configuration
     _host_path = attribute_owner::data_point;
-    _host_tag = "host";
+    _host_key = "host";
   }
   try {
-    std::tie(_serv_path, _serv_tag) =
-        parse_param("service_attribute", "service_tag");
+    std::tie(_serv_path, _serv_key) =
+        parse_param("service_attribute", "service_key");
   } catch (const std::exception&) {  // default configuration
     _serv_path = attribute_owner::data_point;
-    _serv_tag = "service";
+    _serv_key = "service";
   }
 }
 
@@ -172,7 +172,7 @@ host_serv_metric host_serv_attributes_extractor::extract_host_serv_metric(
     const data_point& data_pt) const {
   auto extract =
       [](const data_point& data_pt, attribute_owner owner,
-         const std::string& tag) -> absl::flat_hash_set<std::string_view> {
+         const std::string& key) -> absl::flat_hash_set<std::string_view> {
     absl::flat_hash_set<std::string_view> ret;
     const ::google::protobuf::RepeatedPtrField<
         ::opentelemetry::proto::common::v1::KeyValue>* attributes = nullptr;
@@ -190,7 +190,7 @@ host_serv_metric host_serv_attributes_extractor::extract_host_serv_metric(
         return ret;
     }
     for (const auto& key_val : *attributes) {
-      if (key_val.key() == tag && key_val.value().has_string_value()) {
+      if (key_val.key() == key && key_val.value().has_string_value()) {
         ret.insert(key_val.value().string_value());
       }
     }
@@ -200,11 +200,11 @@ host_serv_metric host_serv_attributes_extractor::extract_host_serv_metric(
   host_serv_metric ret;
 
   absl::flat_hash_set<std::string_view> hosts =
-      extract(data_pt, _host_path, _host_tag);
+      extract(data_pt, _host_path, _host_key);
 
   if (!hosts.empty()) {
     absl::flat_hash_set<std::string_view> services =
-        extract(data_pt, _serv_path, _serv_tag);
+        extract(data_pt, _serv_path, _serv_key);
     ret = is_allowed(hosts, services);
     if (!ret.host.empty()) {
       ret.metric = data_pt.get_metric().name();

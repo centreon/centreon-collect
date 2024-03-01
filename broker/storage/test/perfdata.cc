@@ -29,8 +29,6 @@
 
 using namespace com::centreon::broker;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 /**
  *  Check that the perfdata assignment operator works properly.
  */
@@ -199,7 +197,6 @@ TEST(StoragePerfdata, DefaultCtor) {
 class StorageParserParsePerfdata : public testing::Test {
  public:
   void SetUp() override {
-    g_io_context->restart();
     config::applier::init(0, "test_broker", 0);
   }
   void TearDown() override { config::applier::deinit(); };

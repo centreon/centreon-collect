@@ -25,7 +25,6 @@
 #include <nlohmann/json.hpp>
 
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/tcp/connector.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -33,21 +32,14 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
 
 const static std::string test_addr("127.0.0.1");
 constexpr static uint16_t test_port(4444);
 
 class TcpAcceptor : public ::testing::Test {
  public:
-  void SetUp() override {
-    g_io_context->restart();
-    pool::load(g_io_context >, 0);
-  }
-
   void TearDown() override {
     tcp::tcp_async::instance().stop_timer();
-    pool::unload();
   }
 };
 

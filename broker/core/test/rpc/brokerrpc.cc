@@ -18,7 +18,6 @@
  */
 
 #include "com/centreon/broker/brokerrpc.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/stats/center.hh"
 
 #include <gtest/gtest.h>
@@ -33,13 +32,9 @@
 using namespace com::centreon;
 using namespace com::centreon::broker;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 class BrokerRpc : public ::testing::Test {
  public:
   void SetUp() override {
-    g_io_context->restart();
-    pool::load(g_io_context, 0);
     stats::center::load();
     io::protocols::load();
     io::events::load();
@@ -49,7 +44,6 @@ class BrokerRpc : public ::testing::Test {
     io::events::unload();
     io::protocols::unload();
     stats::center::unload();
-    pool::pool::unload();
   }
 
   std::list<std::string> execute(const std::string& command) {
