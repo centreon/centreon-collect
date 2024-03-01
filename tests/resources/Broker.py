@@ -590,7 +590,7 @@ def ctn_add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: b
     _apply_conf(name, _crypto_modifier)
 
 
-def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
+def ctn_add_host_to_broker_output(name: str, output_name: str, host_ip: str):
     """
     Add a host to some broker output. This is useful for a grpc or tcp client
     where we want where to connect to.
@@ -602,7 +602,7 @@ def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
 
     *Example:*
 
-    | Add Host To Broker Output | module0 | central-module-master-output | localhost |
+    | Ctn Add Host To Broker Output | module0 | central-module-master-output | localhost |
     """
     def modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
@@ -613,7 +613,7 @@ def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
     _apply_conf(name, modifier)
 
 
-def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
+def ctn_add_host_to_broker_input(name: str, input_name: str, host_ip: str):
     """
     Add host to some broker input. This is useful for a grpc or tcp client
     where we want to set where to connect to.
@@ -625,7 +625,7 @@ def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
 
     *Example:*
 
-    | Add Host To Broker Input | central | central-broker-master-input | localhost |
+    | Ctn Add Host To Broker Input | central | central-broker-master-input | localhost |
     """
     def modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
