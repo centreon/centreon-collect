@@ -14,8 +14,8 @@ BLDIS1
     [Tags]    broker    start-stop    log-v2
     Config Broker    rrd
     Config Broker    central
-    Broker Config Log    central    core    disabled
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    disabled
+    Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date
     Ctn Start Broker
     ${content}    Create List    [sql]
@@ -32,8 +32,8 @@ BLEC1
     [Tags]    broker    log-v2    grpc
     Config Broker    rrd
     Config Broker    central
-    Broker Config Log    central    core    trace
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date
     Ctn Start Broker
     ${result}    Get Broker Log Level    51001    core
@@ -47,8 +47,8 @@ BLEC2
     [Tags]    broker    log-v2    grpc
     Config Broker    rrd
     Config Broker    central
-    Broker Config Log    central    core    trace
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date
     Ctn Start Broker
     ${result}    Get Broker Log Level    51001    core
@@ -61,8 +61,8 @@ BLEC3
     [Tags]    broker    log-v2    grpc
     Config Broker    rrd
     Config Broker    central
-    Broker Config Log    central    core    trace
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date
     Ctn Start Broker
     ${result}    Set Broker Log Level    51001    foo    trace

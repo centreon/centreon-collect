@@ -18,9 +18,9 @@ EBNHG1
     Config Broker    central
     Config Broker    module    ${3}
 
-    Broker Config Log    central    sql    info
-    Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
+    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -46,9 +46,9 @@ EBNHGU1
     Config Broker    central
     Config Broker    module    ${3}
 
-    Broker Config Log    central    sql    info
+    Ctn Broker Config Log    central    sql    info
     Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -74,9 +74,9 @@ EBNHGU2
     Config Broker    central
     Config Broker    module    ${3}
 
-    Broker Config Log    central    sql    info
+    Ctn Broker Config Log    central    sql    info
     Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Config BBDO3    3
     ${start}    Get Current Date
     Ctn Start Broker
@@ -102,11 +102,11 @@ EBNHGU3
     Config Broker    central
     Config Broker    module    ${4}
 
-    Broker Config Log    central    sql    info
+    Ctn Broker Config Log    central    sql    info
     Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Config BBDO3    4
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -139,9 +139,9 @@ EBNHG4
     Config Broker    central
     Config Broker    module    ${3}
 
-    Broker Config Log    central    sql    info
-    Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
+    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -187,13 +187,13 @@ EBNHGU4_${test_label}
     Config Broker    central
     Config Broker    module    ${3}
 
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    lua    trace
-    Broker Config Source Log    central    1
-    Broker Config Source Log    module0    1
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    lua    trace
+    Ctn Broker Config Source Log    central    1
+    Ctn Broker Config Source Log    module0    1
     Config Broker Sql Output    central    unified_sql    5
-    Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
-    Broker Config Add Lua Output    central    test-cache    ${SCRIPTS}test-dump-groups.lua
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
+    Ctn Broker Config Add Lua Output    central    test-cache    ${SCRIPTS}test-dump-groups.lua
     Clear Retention
 
     Create File    /tmp/lua-engine.log

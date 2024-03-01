@@ -401,11 +401,11 @@ BESSBQ1
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    bbdo    debug
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    core    debug
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    core    debug
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     Create Bad Queue    central-broker-master.queue.central-broker-master-sql
@@ -426,9 +426,9 @@ Start_Stop_Engine_Broker_${id}
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    debug
-    Broker Config Log    central    processing    info
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Log    central    core    debug
+    Ctn Broker Config Log    central    processing    info
     Config Broker Sql Output    central    unified_sql
     IF    ${grpc}
         Change Broker Tcp Output To Grpc    central
@@ -463,8 +463,8 @@ Start_Stop_Broker_Engine_${id}
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    debug
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Log    central    core    debug
     IF    ${grpc}
         Change Broker Tcp Output To Grpc    central
         Change Broker Tcp Output To Grpc    module0

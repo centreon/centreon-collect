@@ -112,9 +112,9 @@ EFHCU1
     Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module0    neb    debug
     Config Broker Sql Output    central    unified_sql
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config BBDO3    1
 
     Clear Retention
@@ -162,9 +162,9 @@ EFHCU2
     Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module0    neb    debug
     Config Broker Sql Output    central    unified_sql
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config BBDO3    1
 
     Clear Retention

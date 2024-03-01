@@ -16,7 +16,7 @@ ANO_NOFILE
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     Remove File    /tmp/anomaly_threshold.json
@@ -55,7 +55,7 @@ ANO_TOO_OLD_FILE
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,0,2],[1648812678,0,3]]
@@ -75,7 +75,7 @@ ANO_OUT_LOWER_THAN_LIMIT
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
@@ -95,7 +95,7 @@ ANO_OUT_UPPER_THAN_LIMIT
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
@@ -180,7 +180,7 @@ AOUTLU1
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
@@ -213,7 +213,7 @@ ANO_DT1
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
@@ -248,7 +248,7 @@ ANO_DT2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
@@ -287,7 +287,7 @@ ANO_DT3
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
@@ -327,7 +327,7 @@ ANO_DT4
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric

@@ -17,9 +17,9 @@ BEPBBEE1
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Log    module0    bbdo    debug
-    Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Log    module0    bbdo    debug
+    Ctn Broker Config Log    central    bbdo    debug
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -37,11 +37,11 @@ BEPBBEE2
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    sql    debug
-    Broker Config Flush Log    central    0
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Flush Log    central    0
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -61,9 +61,9 @@ BEPBBEE3
     Config Broker    module
     Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservicestatus.lua
+    Ctn Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservicestatus.lua
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -81,9 +81,9 @@ BEPBBEE4
     Config Broker    module
     Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbhoststatus.lua
+    Ctn Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbhoststatus.lua
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -101,9 +101,9 @@ BEPBBEE5
     Config Broker    module
     Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservice.lua
+    Ctn Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservice.lua
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -120,12 +120,12 @@ BEPBRI1
     Config Broker    central
     Config Broker    module
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    read_timeout    2
-    Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    2
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    read_timeout    2
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    2
 
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-responsiveinstance.lua
+    Ctn Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-responsiveinstance.lua
     Clear Retention
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM instances
@@ -153,7 +153,7 @@ BEPBCVS
     Config Engine    ${1}
     Config Broker    central
     Ctn Config BBDO3    ${1}
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
@@ -184,7 +184,7 @@ BEPB_HOST_DEPENDENCY
     Config Broker    central                                                    
     Config Broker    module                                                     
     Ctn Config BBDO3    ${1}                                                        
-    Broker Config Log    central    sql    trace                                
+    Ctn Broker Config Log    central    sql    trace                                
     Config Broker Sql Output    central    unified_sql                          
     Clear Retention                                                             
     ${start}    Get Current Date                                                
@@ -211,7 +211,7 @@ BEPB_SERVICE_DEPENDENCY
     Config Broker    central
     Config Broker    module
     Ctn Config BBDO3    ${1}
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
@@ -254,7 +254,7 @@ BEPBHostParent
     Add Parent To Host    0    host_1    host_2
     Config Broker    central
     Ctn Config BBDO3    ${1}
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date

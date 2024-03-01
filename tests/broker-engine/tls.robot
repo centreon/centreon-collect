@@ -26,10 +26,10 @@ BECT1
             Log To Console    TLS set to ${comp1} on central and to ${comp2} on module
             Config Broker    central
             Config Broker    module
-            Broker Config Input Set    central    central-broker-master-input    tls    ${comp1}
-            Broker Config Output Set    module0    central-module-master-output    tls    ${comp2}
-            Broker Config Log    central    bbdo    info
-            Broker Config Log    module0    bbdo    info
+            Ctn Broker Config Input Set    central    central-broker-master-input    tls    ${comp1}
+            Ctn Broker Config Output Set    module0    central-module-master-output    tls    ${comp2}
+            Ctn Broker Config Log    central    bbdo    info
+            Ctn Broker Config Log    module0    bbdo    info
             ${start}    Get Current Date
             Ctn Start Broker
             Ctn Start Engine
@@ -75,42 +75,42 @@ BECT2
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
 
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/client.key
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    public_cert
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    public_cert
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Log    central    tls    debug
-    Broker Config Log    module0    tls    debug
-    Broker Config Log    central    bbdo    info
-    Broker Config Log    module0    bbdo    info
-    Broker Config Input Set    central    central-broker-master-input    tls    yes
-    Broker Config Output Set    module0    central-module-master-output    tls    yes
+    Ctn Broker Config Log    central    tls    debug
+    Ctn Broker Config Log    module0    tls    debug
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    module0    bbdo    info
+    Ctn Broker Config Input Set    central    central-broker-master-input    tls    yes
+    Ctn Broker Config Output Set    module0    central-module-master-output    tls    yes
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -139,22 +139,22 @@ BECT3
     Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/server.crt
     Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/client.crt
 
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Log    central    tls    debug
-    Broker Config Log    module0    tls    debug
-    Broker Config Log    central    bbdo    info
-    Broker Config Log    module0    bbdo    info
-    Broker Config Input Set    central    central-broker-master-input    tls    yes
-    Broker Config Output Set    module0    central-module-master-output    tls    yes
+    Ctn Broker Config Log    central    tls    debug
+    Ctn Broker Config Log    module0    tls    debug
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    module0    bbdo    info
+    Ctn Broker Config Input Set    central    central-broker-master-input    tls    yes
+    Ctn Broker Config Output Set    module0    central-module-master-output    tls    yes
     # We get the current date just before starting broker
     ${start}    Get Current Date
     Ctn Start Broker
@@ -192,49 +192,49 @@ BECT4
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
 
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Log    central    tls    debug
-    Broker Config Log    module0    tls    debug
-    Broker Config Log    central    bbdo    info
-    Broker Config Log    module0    bbdo    info
-    Broker Config Input Set    central    central-broker-master-input    tls    yes
-    Broker Config Input Set
+    Ctn Broker Config Log    central    tls    debug
+    Ctn Broker Config Log    module0    tls    debug
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    module0    bbdo    info
+    Ctn Broker Config Input Set    central    central-broker-master-input    tls    yes
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/client.key
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    public_cert
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Input Set    central    central-broker-master-input    tls_hostname    centreon
-    Broker Config Output Set    module0    central-module-master-output    tls    yes
-    Broker Config Output Set
+    Ctn Broker Config Input Set    central    central-broker-master-input    tls_hostname    centreon
+    Ctn Broker Config Output Set    module0    central-module-master-output    tls    yes
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    public_cert
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    ca_certificate
@@ -268,12 +268,12 @@ BECT_GRPC1
             Log To Console    TLS set to ${comp1} on central and to ${comp2} on module
             Config Broker    central
             Config Broker    module
-            Broker Config Input Set    central    central-broker-master-input    tls    ${comp1}
-            Broker Config Output Set    module0    central-module-master-output    tls    ${comp2}
-            Broker Config Log    central    bbdo    info
-            Broker Config Log    module0    bbdo    info
-            Broker Config Log    central    grpc    debug
-            Broker Config Log    module0    grpc    debug
+            Ctn Broker Config Input Set    central    central-broker-master-input    tls    ${comp1}
+            Ctn Broker Config Output Set    module0    central-module-master-output    tls    ${comp2}
+            Ctn Broker Config Log    central    bbdo    info
+            Ctn Broker Config Log    module0    bbdo    info
+            Ctn Broker Config Log    central    grpc    debug
+            Ctn Broker Config Log    module0    grpc    debug
             Change Broker Tcp Output To Grpc    module0
             Change Broker Tcp Input To Grpc    central
             ${start}    Get Current Date
@@ -320,42 +320,42 @@ BECT_GRPC2
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
 
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/client.key
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    public_cert
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    public_cert
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Log    central    tls    debug
-    Broker Config Log    module0    tls    debug
-    Broker Config Log    central    bbdo    info
-    Broker Config Log    module0    bbdo    info
-    Broker Config Input Set    central    central-broker-master-input    tls    yes
-    Broker Config Output Set    module0    central-module-master-output    tls    yes
+    Ctn Broker Config Log    central    tls    debug
+    Ctn Broker Config Log    module0    tls    debug
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    module0    bbdo    info
+    Ctn Broker Config Input Set    central    central-broker-master-input    tls    yes
+    Ctn Broker Config Output Set    module0    central-module-master-output    tls    yes
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
     ${start}    Get Current Date
@@ -388,24 +388,24 @@ BECT_GRPC3
     Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/server.crt
     Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/client.crt
 
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Log    central    tls    debug
-    Broker Config Log    module0    tls    debug
-    Broker Config Log    central    bbdo    info
-    Broker Config Log    module0    bbdo    info
+    Ctn Broker Config Log    central    tls    debug
+    Ctn Broker Config Log    module0    tls    debug
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    module0    bbdo    info
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
-    Broker Config Input Set    central    central-broker-master-input    tls    yes
-    Broker Config Output Set    module0    central-module-master-output    tls    yes
+    Ctn Broker Config Input Set    central    central-broker-master-input    tls    yes
+    Ctn Broker Config Output Set    module0    central-module-master-output    tls    yes
     # We get the current date just before starting broker
     ${start}    Get Current Date
     Ctn Start Broker
@@ -443,51 +443,51 @@ BECT_GRPC4
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
 
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Log    central    tls    debug
-    Broker Config Log    module0    tls    debug
-    Broker Config Log    central    bbdo    info
-    Broker Config Log    module0    bbdo    info
+    Ctn Broker Config Log    central    tls    debug
+    Ctn Broker Config Log    module0    tls    debug
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    module0    bbdo    info
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
-    Broker Config Input Set    central    central-broker-master-input    tls    yes
-    Broker Config Input Set
+    Ctn Broker Config Input Set    central    central-broker-master-input    tls    yes
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/client.key
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    public_cert
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Input Set
+    Ctn Broker Config Input Set
     ...    central
     ...    central-broker-master-input
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Input Set    central    central-broker-master-input    tls_hostname    centreon
-    Broker Config Output Set    module0    central-module-master-output    tls    yes
-    Broker Config Output Set
+    Ctn Broker Config Input Set    central    central-broker-master-input    tls_hostname    centreon
+    Ctn Broker Config Output Set    module0    central-module-master-output    tls    yes
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    public_cert
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output Set
+    Ctn Broker Config Output Set
     ...    module0
     ...    central-module-master-output
     ...    ca_certificate

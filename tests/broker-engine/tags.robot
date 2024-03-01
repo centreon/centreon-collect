@@ -19,8 +19,8 @@ BETAG1
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     Ctn Start Broker
     ${start}    Get Current Date
@@ -45,8 +45,8 @@ BETAG2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     Sleep    1s
     ${start}    Get Current Date
@@ -74,8 +74,8 @@ BEUTAG1
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     Ctn Start Broker
     ${start}    Get Current Date
@@ -102,12 +102,12 @@ BEUTAG2
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Output Set    central    central-broker-unified-sql    connections_count    1
-    Broker Config Output Set    central    central-broker-unified-sql    queries_per_transaction    1
-    Broker Config Output Set    central    central-broker-unified-sql    read_timeout    1
-    Broker Config Output Set    central    central-broker-unified-sql    retry_interval    5
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    error
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    1
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    queries_per_transaction    1
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    read_timeout    1
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    retry_interval    5
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    error
     Clear Retention
     Ctn Start Broker
     ${start}    Get Current Date
@@ -145,8 +145,8 @@ BEUTAG3
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     Sleep    1s
     ${start}    Get Current Date
@@ -177,8 +177,8 @@ BEUTAG4
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
@@ -213,8 +213,8 @@ BEUTAG5
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     Sleep    1s
     ${start}    Get Current Date
@@ -251,8 +251,8 @@ BEUTAG6
     Config Broker    module    ${1}
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     Sleep    1s
     ${start}    Get Current Date
@@ -292,9 +292,9 @@ BEUTAG7
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    module1    neb    debug
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module1    neb    debug
+    Ctn Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
@@ -363,9 +363,9 @@ BEUTAG8
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    module1    neb    debug
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module1    neb    debug
+    Ctn Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
@@ -415,9 +415,9 @@ BEUTAG9
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    module1    neb    debug
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module1    neb    debug
+    Ctn Broker Config Log    central    sql    trace
     Clear Retention
     Sleep    1s
     ${start}    Get Current Date
@@ -473,9 +473,9 @@ BEUTAG10
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    module1    neb    debug
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module1    neb    debug
+    Ctn Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
@@ -539,9 +539,9 @@ BEUTAG11
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    module1    neb    debug
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module1    neb    debug
+    Ctn Broker Config Log    central    sql    trace
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
@@ -600,8 +600,8 @@ BEUTAG12
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
     Clear Retention
     Sleep    1s
     ${start}    Get Current Date
@@ -655,8 +655,8 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    trace
     Clear Retention
     Sleep    1s
     ${start}    Get Current Date

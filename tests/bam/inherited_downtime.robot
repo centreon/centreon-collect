@@ -16,7 +16,7 @@ BEBAMIDT1
     Clear Commands Status
     Config Broker    module
     Config Broker    central
-    Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    bam    trace
     Config Broker    rrd
     Config Engine    ${1}
 
@@ -76,7 +76,7 @@ BEBAMIDT2
     Clear Commands Status
     Config Broker    module
     Config Broker    central
-    Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    bam    trace
     Config Broker    rrd
     Config Engine    ${1}
 
@@ -164,11 +164,11 @@ BEBAMIGNDT1
     Clear Commands Status
     Config Broker    module
     Config Broker    central
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Source Log    central    true
-    Broker Config Flush Log    module0    0
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Source Log    central    true
+    Ctn Broker Config Flush Log    module0    0
+    Ctn Broker Config Log    module0    neb    trace
     Config Broker    rrd
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
@@ -274,8 +274,8 @@ BEBAMIGNDT2
     Clear Commands Status
     Config Broker    module
     Config Broker    central
-    Broker Config Log    central    core    error
-    Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    bam    trace
     Config Broker    rrd
     Config Engine    ${1}
 

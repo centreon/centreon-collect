@@ -704,13 +704,13 @@ Config Notifications
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.1
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.1
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    error
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention

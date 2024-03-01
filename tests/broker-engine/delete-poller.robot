@@ -18,7 +18,7 @@ EBDP1
     Config Broker    central
     Config Broker    module    ${4}
     Ctn Config BBDO3    ${4}
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -70,8 +70,8 @@ EBDP2
     Config Broker    central
     Config Broker    module    ${3}
     Ctn Config BBDO3    ${3}
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    processing    info
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    processing    info
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -141,9 +141,9 @@ EBDP_GRPC2
     Config Broker BBDO Output    module0    bbdo_client    5669    grpc    localhost
     Config Broker BBDO Output    module1    bbdo_client    5669    grpc    localhost
     Config Broker BBDO Output    module2    bbdo_client    5669    grpc    localhost
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    processing    info
-    Broker Config Log    central    grpc    info
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    processing    info
+    Ctn Broker Config Log    central    grpc    info
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -210,7 +210,7 @@ EBDP3
     Config Broker    central
     Config Broker    module    ${3}
     Ctn Config BBDO3    ${3}
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -270,10 +270,10 @@ EBDP4
     Config Broker    central
     Config Broker    module    ${4}
     Ctn Config BBDO3    ${4}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    trace
-    Broker Config Log    module3    neb    trace
-    Broker Config Flush Log    central    0
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module3    neb    trace
+    Ctn Broker Config Flush Log    central    0
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -359,7 +359,7 @@ EBDP5
     Config Broker    central
     Config Broker    module    ${4}
     Ctn Config BBDO3    ${4}
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -416,7 +416,7 @@ EBDP6
     Config Broker    central
     Config Broker    module    ${3}
     Ctn Config BBDO3    ${3}
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -484,7 +484,7 @@ EBDP7
     Config Broker    central
     Config Broker    module    ${3}
     Ctn Config BBDO3    ${3}
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -550,10 +550,10 @@ EBDP8
     Config Broker    central
     Config Broker    module    ${4}
     Ctn Config BBDO3    ${4}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    trace
-    Broker Config Log    module3    neb    trace
-    Broker Config Flush Log    central    0
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module3    neb    trace
+    Ctn Broker Config Flush Log    central    0
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine

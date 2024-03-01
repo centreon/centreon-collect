@@ -18,9 +18,9 @@ MIGRATION
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Broker Config Log    central    sql    debug
-    Broker Config Log    central    core    error
-    Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    rrd    rrd    trace
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -67,11 +67,11 @@ MIGRATION
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    30
     Should Be True    ${result}    No metric sent to rrd cbd by unified_sql for 30s
 
-    Broker Config Remove Item    module0    bbdo_version
-    Broker Config Remove Item    module1    bbdo_version
-    Broker Config Remove Item    module2    bbdo_version
-    Broker Config Remove Item    central    bbdo_version
-    Broker Config Remove Item    rrd    bbdo_version
+    Ctn Broker Config Remove Item    module0    bbdo_version
+    Ctn Broker Config Remove Item    module1    bbdo_version
+    Ctn Broker Config Remove Item    module2    bbdo_version
+    Ctn Broker Config Remove Item    central    bbdo_version
+    Ctn Broker Config Remove Item    rrd    bbdo_version
     ${start}    Get Current Date
 
     Log To Console    Move back to BBDO 2.0.0 with unified_sql

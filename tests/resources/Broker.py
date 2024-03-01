@@ -456,7 +456,7 @@ def config_broker(name: str, poller_inst: int = 1):
             with open(broker_name, "w") as f:
                 f.write(json.dumps(conf, indent=2))
             if default_bbdo_version is not None:
-                broker_config_add_item(
+                ctn_broker_config_add_item(
                     f"{name}{i}", "bbdo_version", default_bbdo_version)
             if default_transport == "grpc":
                 config_broker_bbdo_output(
@@ -469,7 +469,7 @@ def config_broker(name: str, poller_inst: int = 1):
         if default_bbdo_version is not None:
             if default_bbdo_version >= "3.0.0" and (name == "central" or name == "central_map"):
                 config_broker_sql_output(name, 'unified_sql')
-            broker_config_add_item(
+            ctn_broker_config_add_item(
                 name, "bbdo_version", default_bbdo_version)
         if default_transport == "grpc":
             if name == "central" or name == "central_map":
@@ -948,7 +948,7 @@ def config_broker_sql_output(name, output, queries_per_transaction: int = 20000)
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_clear_outputs_except(name, ex: list):
+def ctn_broker_config_clear_outputs_except(name, ex: list):
     """
     Remove all the outputs of the broker configuration except those of types given
     in the ex list.
@@ -959,7 +959,7 @@ def broker_config_clear_outputs_except(name, ex: list):
 
     *Example:*
 
-    | Broker Config Clear Outputs Except | central | ["sql", "storage"] |
+    | Ctn Broker Config Clear Outputs Except | central | ["sql", "storage"] |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1011,7 +1011,7 @@ def config_broker_victoria_output():
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_add_item(name, key, value):
+def ctn_broker_config_add_item(name, key, value):
     """
     Add an item to the broker configuration
 
@@ -1022,7 +1022,7 @@ def broker_config_add_item(name, key, value):
 
     *Example:*
 
-    | Broker Config Add Item | module0 | bbdo_version | 3.0.1 |
+    | Ctn Broker Config Add Item | module0 | bbdo_version | 3.0.1 |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1039,7 +1039,7 @@ def broker_config_add_item(name, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_remove_item(name, key):
+def ctn_broker_config_remove_item(name, key):
     """
     Remove an item from the broker configuration
 
@@ -1049,7 +1049,7 @@ def broker_config_remove_item(name, key):
 
     *Example:*
 
-    | Broker Config Remove Item | module0 | bbdo_version |
+    | Ctn Broker Config Remove Item | module0 | bbdo_version |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1066,7 +1066,7 @@ def broker_config_remove_item(name, key):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_add_lua_output(name, output, luafile):
+def ctn_broker_config_add_lua_output(name, output, luafile):
     """
     Add a lua output to the broker configuration.
 
@@ -1077,7 +1077,7 @@ def broker_config_add_lua_output(name, output, luafile):
 
     *Example:*
 
-    | Broker Config Add Lua Output | central | test-protobuf | /tmp/lua.lua |
+    | Ctn Broker Config Add Lua Output | central | test-protobuf | /tmp/lua.lua |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1099,7 +1099,7 @@ def broker_config_add_lua_output(name, output, luafile):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_output_set(name, output, key, value):
+def ctn_broker_config_output_set(name, output, key, value):
     """
     Set an attribute value in a broker output.
 
@@ -1111,7 +1111,7 @@ def broker_config_output_set(name, output, key, value):
 
     *Example:*
 
-    | Broker Config Output Set | central | central-broker-master-sql | host | localhost |
+    | Ctn Broker Config Output Set | central | central-broker-master-sql | host | localhost |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1129,7 +1129,7 @@ def broker_config_output_set(name, output, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_output_set_json(name, output, key, value):
+def ctn_broker_config_output_set_json(name, output, key, value):
     """
     Set an attribute value in a broker output. The value is given as a json string.
 
@@ -1141,7 +1141,7 @@ def broker_config_output_set_json(name, output, key, value):
 
     *Example:*
 
-    | Broker Config Output Set Json | central | central-broker-master-sql | filters | {"category": ["neb", "foo", "bar"]} |
+    | Ctn Broker Config Output Set Json | central | central-broker-master-sql | filters | {"category": ["neb", "foo", "bar"]} |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1160,7 +1160,7 @@ def broker_config_output_set_json(name, output, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_output_remove(name, output, key):
+def ctn_broker_config_output_remove(name, output, key):
     """
     Remove a key from an output of the broker configuration.
 
@@ -1171,7 +1171,7 @@ def broker_config_output_remove(name, output, key):
 
     *Example:*
 
-    | Broker Config Output Remove | central | centreon-broker-master-rrd | host |
+    | Ctn Broker Config Output Remove | central | centreon-broker-master-rrd | host |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1193,7 +1193,7 @@ def broker_config_output_remove(name, output, key):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_input_set(name, inp, key, value):
+def ctn_broker_config_input_set(name, inp, key, value):
     """
     Set an attribute in an input of a broker configuration.
 
@@ -1205,7 +1205,7 @@ def broker_config_input_set(name, inp, key, value):
 
     *Example:*
 
-    | Broker Config Input Set | rrd | rrd-broker-master-input | encryption | yes |
+    | Ctn Broker Config Input Set | rrd | rrd-broker-master-input | encryption | yes |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1226,7 +1226,7 @@ def broker_config_input_set(name, inp, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_input_remove(name, inp, key):
+def ctn_broker_config_input_remove(name, inp, key):
     """
     Remove a key from an input of the broker configuration.
 
@@ -1252,7 +1252,7 @@ def broker_config_input_remove(name, inp, key):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_log(name, key, value):
+def ctn_broker_config_log(name, key, value):
     """
     Configure broker log level.
 
@@ -1263,7 +1263,7 @@ def broker_config_log(name, key, value):
 
     *Example:*
 
-    | Broker Config Log | central | bam | trace |
+    | Ctn Broker Config Log | central | bam | trace |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1280,7 +1280,7 @@ def broker_config_log(name, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_flush_log(name, value):
+def ctn_broker_config_flush_log(name, value):
     """
     Configure the flush interval of the broker loggers. This value is in seconds, with 0, every logs are flushed.
 
@@ -1290,7 +1290,7 @@ def broker_config_flush_log(name, value):
 
     *Example:*
 
-    | Broker Config Flush Log | central | 1 |
+    | Ctn Broker Config Flush Log | central | 1 |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1307,7 +1307,7 @@ def broker_config_flush_log(name, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_source_log(name, value):
+def ctn_broker_config_source_log(name, value):
     """
     Configure if logs should contain the source file and its line number.
 
@@ -1317,7 +1317,7 @@ def broker_config_source_log(name, value):
 
     *Example:*
 
-    | Broker Config Source Log | central | 1 |
+    | Ctn Broker Config Source Log | central | 1 |
     """
     if name == 'central':
         filename = "central-broker.json"

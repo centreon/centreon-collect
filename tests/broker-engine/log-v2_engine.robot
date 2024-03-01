@@ -17,7 +17,7 @@ LOGV2EB1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Broker Config Flush Log    module0    0
+    Ctn Broker Config Flush Log    module0    0
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_level_config    trace
@@ -62,9 +62,9 @@ LOGV2EBU1
     Config Broker    central
     Config Broker    module
     Ctn Config BBDO3    ${1}
-    Broker Config Flush Log    module0    0
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Flush Log    module0    0
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Log    central    sql    trace
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_level_config    trace
@@ -108,8 +108,8 @@ LOGV2DB1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Broker Config Flush Log    module0    0
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Flush Log    module0    0
+    Ctn Broker Config Log    central    sql    trace
     Engine Config Set Value    ${0}    log_legacy_enabled    ${1}
     Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Engine Config Set Value    ${0}    log_flush_period    0    True
@@ -155,7 +155,7 @@ LOGV2DB2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Broker Config Flush Log    module0    0
+    Ctn Broker Config Flush Log    module0    0
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Engine Config Set Value    ${0}    log_flush_period    0    True
@@ -200,7 +200,7 @@ LOGV2EB2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Broker Config Flush Log    module0    0
+    Ctn Broker Config Flush Log    module0    0
     Engine Config Set Value    ${0}    log_legacy_enabled    ${1}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_flush_period    0    True
@@ -247,7 +247,7 @@ LOGV2EBU2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Broker Config Flush Log    module0    0
+    Ctn Broker Config Flush Log    module0    0
     Ctn Config BBDO3    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${1}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
@@ -295,7 +295,7 @@ LOGV2EF1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Broker Config Flush Log    module0    0
+    Ctn Broker Config Flush Log    module0    0
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_flush_period    0    True
@@ -320,7 +320,7 @@ LOGV2DF1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Broker Config Flush Log    module0    0
+    Ctn Broker Config Flush Log    module0    0
     Engine Config Set Value    ${0}    log_legacy_enabled    ${1}
     Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Engine Config Set Value    ${0}    log_flush_period    0    True
@@ -348,7 +348,7 @@ LOGV2DF2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Broker Config Flush Log    module0    0
+    Ctn Broker Config Flush Log    module0    0
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Engine Config Set Value    ${0}    log_flush_period    0    True
@@ -376,7 +376,7 @@ LOGV2EF2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Broker Config Flush Log    module0    0
+    Ctn Broker Config Flush Log    module0    0
     Engine Config Set Value    ${0}    log_legacy_enabled    ${1}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_flush_period    0    True
@@ -404,7 +404,7 @@ LOGV2FE2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Broker Config Flush Log    module0    0
+    Ctn Broker Config Flush Log    module0    0
     Engine Config Set Value    ${0}    log_legacy_enabled    ${1}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_flush_period    0    True

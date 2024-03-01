@@ -18,10 +18,10 @@ BERES1
     Config Broker    module
     Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
@@ -50,10 +50,10 @@ BEHS1
     Config Broker    module
     Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    no
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    yes
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    no
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    yes
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -93,7 +93,7 @@ BEINSTANCESTATUS
 
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
@@ -145,7 +145,7 @@ BEINSTANCE
 
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -178,11 +178,11 @@ BE_NOTIF_OVERFLOW
     Config Engine    ${1}
     Config Broker    central
     Config Broker    module
-    Broker Config Add Item    module0    bbdo_version    2.0.0
-    Broker Config Add Item    central    bbdo_version    2.0.0
+    Ctn Broker Config Add Item    module0    bbdo_version    2.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    2.0.0
     Config Broker Sql Output    central    unified_sql
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    perfdata    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    perfdata    trace
 
     Clear Retention
 

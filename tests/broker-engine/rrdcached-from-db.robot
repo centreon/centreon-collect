@@ -19,13 +19,13 @@ BRRDCDDMDB1
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
     Config Broker    module
-    Broker Config Log    central    grpc    error
-    Broker Config Log    central    sql    info
-    Broker Config Log    central    core    error
-    Broker Config Log    rrd    rrd    debug
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    central    grpc    error
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Create Metrics    3
     ${start}    Get Current Date    exclude_millis=True
     Ctn Start Broker
@@ -59,11 +59,11 @@ BRRDCDDIDDB1
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
     Config Broker    module
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    debug
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Create Metrics    3
 
     ${start}    Get Current Date
@@ -106,10 +106,10 @@ BRRDCDRBDB1
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
     Config Broker    module
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Create Metrics    3
 
     ${start}    Get Current Date
@@ -154,10 +154,10 @@ BRRDCDRBUDB1
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
     Config Broker    module
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Ctn Config BBDO3    1
     Create Metrics    3
 

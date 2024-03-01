@@ -42,10 +42,10 @@ BECCC2
     Config Broker    module
     Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
@@ -75,10 +75,10 @@ BECCC3
     Config Broker    module
     Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
@@ -107,10 +107,10 @@ BECCC4
     Config Broker    module
     Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
@@ -138,10 +138,10 @@ BECCC5
     Config Broker    module
     Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
@@ -169,10 +169,10 @@ BECCC6
     Config Broker    module
     Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
@@ -214,10 +214,10 @@ BECCC7
     Config Broker    module
     Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
@@ -247,10 +247,10 @@ BECCC8
     Config Broker    module
     Config Broker    rrd
     Ctn Config BBDO3    1
-    Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s

@@ -17,7 +17,7 @@ BEBAMIDTU1
     Config Broker    module
     Config Broker    central
     Config Broker    rrd
-    Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    bam    trace
     Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
@@ -77,7 +77,7 @@ BEBAMIDTU2
     Config Broker    module
     Config Broker    central
     Config Broker    rrd
-    Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    bam    trace
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Config Engine    ${1}
@@ -162,10 +162,10 @@ BEBAMIGNDTU1
     Clear Commands Status
     Config Broker    module
     Config Broker    central
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Flush Log    module0    0
-    Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Flush Log    module0    0
+    Ctn Broker Config Log    module0    neb    trace
     Config Broker    rrd
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
@@ -273,8 +273,8 @@ BEBAMIGNDTU2
     Clear Commands Status
     Config Broker    module
     Config Broker    central
-    Broker Config Log    central    core    error
-    Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    bam    trace
     Config Broker    rrd
     Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1

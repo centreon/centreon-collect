@@ -23,9 +23,9 @@ BENCH_${nb_check}STATUS
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    core    info
-    Broker Config Log    central    processing    error
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    processing    error
     Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
@@ -89,12 +89,12 @@ BENCH_${nb_check}STATUS_TRACES
     Config Broker    rrd
     Config Broker    module    ${1}
     FOR    ${name}    IN    @{CONFIG_NAME}
-        Broker Config Log    central    ${name}    trace
+        Ctn Broker Config Log    central    ${name}    trace
     END
 
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
@@ -158,12 +158,12 @@ BENCH_1000STATUS_100${suffixe}
         Set Services Passive    ${poller_index}    service_.*
     END
     Config Broker    rrd
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    core    info
-    Broker Config Log    central    processing    error
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    processing    error
     Ctn Config BBDO3    ${100}
     Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine

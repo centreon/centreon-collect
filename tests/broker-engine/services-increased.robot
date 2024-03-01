@@ -18,7 +18,7 @@ EBNSVC1
     Config Broker    central
     Config Broker    module    ${3}
     Ctn Config BBDO3    3
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
@@ -52,14 +52,14 @@ Service_increased_huge_check_interval
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Source Log    central    1
+    Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    1
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    central    sql    debug
-    Broker Config Log    rrd    core    error
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    rrd    core    error
     Config Broker Sql Output    central    unified_sql    10
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
     Clear Retention
     Clear Db    services
     Clear Db    index_data

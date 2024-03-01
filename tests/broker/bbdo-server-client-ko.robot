@@ -17,12 +17,12 @@ BSCSSK1
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
-    Broker Config Log    central    grpc    debug
-    Broker Config Log    central    tcp    debug
-    Broker Config Log    rrd    grpc    debug
-    Broker Config Log    rrd    tcp    debug
-    Broker Config Log    central    core    error
-    Broker Config Log    rrd    core    error
+    Ctn Broker Config Log    central    grpc    debug
+    Ctn Broker Config Log    central    tcp    debug
+    Ctn Broker Config Log    rrd    grpc    debug
+    Ctn Broker Config Log    rrd    tcp    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    rrd    core    error
     ${start}    Get Current Date    exclude_millis=True
     Sleep    1s
     Ctn Start Broker
@@ -42,12 +42,12 @@ BSCSSK2
     Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
-    Broker Config Log    central    grpc    debug
-    Broker Config Log    central    tcp    debug
-    Broker Config Log    rrd    grpc    debug
-    Broker Config Log    rrd    tcp    debug
-    Broker Config Log    central    core    error
-    Broker Config Log    rrd    core    error
+    Ctn Broker Config Log    central    grpc    debug
+    Ctn Broker Config Log    central    tcp    debug
+    Ctn Broker Config Log    rrd    grpc    debug
+    Ctn Broker Config Log    rrd    tcp    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    rrd    core    error
     ${start}    Get Current Date    exclude_millis=True
     Sleep    1s
     Ctn Start Broker

@@ -702,7 +702,7 @@ BEPB_DIMENSION_BV_EVENT
 
     Remove File    /tmp/all_lua_event.log
 
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
+    Ctn Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM mod_bam_ba_groups
@@ -734,7 +734,7 @@ BEPB_DIMENSION_BA_EVENT
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     ${id_ba__sid}    Create Ba With Services    test    worst    ${svc}
 
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
+    Ctn Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    SET FOREIGN_KEY_CHECKS=0
@@ -768,7 +768,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
 
     ${id_ba__sid}    Create Ba With Services    test    worst    ${svc}
 
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
+    Ctn Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Delete All Rows From Table    mod_bam_bagroup_ba_relation
@@ -804,7 +804,7 @@ BEPB_DIMENSION_TIMEPERIOD
 
     Remove File    /tmp/all_lua_event.log
 
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
+    Ctn Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String
@@ -979,9 +979,9 @@ BEPB_DIMENSION_TRUNCATE_TABLE
     Create Ba With Services    test    worst    ${svc}
 
     Remove File    /tmp/all_lua_event.log
-    Broker Config Log    central    lua    trace
+    Ctn Broker Config Log    central    lua    trace
 
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
+    Ctn Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
     Ctn Start Broker    True
     Ctn Start Engine
@@ -1144,10 +1144,10 @@ BAM Init
     Config Broker    module
     Config Broker    central
     Config Broker    rrd
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    config    trace
-    Broker Config Source Log    central    1
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    config    trace
+    Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
     Config Engine    ${1}
     # This is to avoid parasite status.

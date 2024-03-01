@@ -18,11 +18,11 @@ BABOO
     Config Broker    module
     Config Broker    central
     Config Broker    rrd
-    Broker Config Log    central    core    error
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    error
-    Broker Config Flush Log    central    0
-    Broker Config Source Log    central    1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
@@ -90,11 +90,11 @@ BABOOOR
     Config Broker    module
     Config Broker    central
     Config Broker    rrd
-    Broker Config Log    central    core    error
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    error
-    Broker Config Flush Log    central    0
-    Broker Config Source Log    central    1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
@@ -137,11 +137,11 @@ BABOOAND
     Config Broker    module
     Config Broker    central
     Config Broker    rrd
-    Broker Config Log    central    core    error
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    error
-    Broker Config Flush Log    central    0
-    Broker Config Source Log    central    1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
@@ -184,11 +184,11 @@ BABOOORREL
     Config Broker    module
     Config Broker    central
     Config Broker    rrd
-    Broker Config Log    central    core    error
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    error
-    Broker Config Flush Log    central    0
-    Broker Config Source Log    central    1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
@@ -279,11 +279,11 @@ BABOOCOMPL
     Config Broker    module
     Config Broker    central
     Config Broker    rrd
-    Broker Config Log    central    core    error
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    error
-    Broker Config Flush Log    central    0
-    Broker Config Source Log    central    1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
@@ -335,11 +335,11 @@ BABOOCOMPL_RESTART
     Config Broker    module
     Config Broker    central
     Config Broker    rrd
-    Broker Config Log    central    core    error
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    error
-    Broker Config Flush Log    central    0
-    Broker Config Source Log    central    1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
@@ -429,11 +429,11 @@ BABOOCOMPL_RELOAD
     Config Broker    module
     Config Broker    central
     Config Broker    rrd
-    Broker Config Log    central    core    error
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    error
-    Broker Config Flush Log    central    0
-    Broker Config Source Log    central    1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 

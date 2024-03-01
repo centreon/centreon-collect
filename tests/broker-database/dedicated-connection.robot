@@ -14,12 +14,12 @@ DEDICATED_DB_CONNECTION_${nb_conn}_${store_in_data_bin}
     [Documentation]    count database connection
     [Tags]    broker    database
     Config Broker    central
-    Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
 
-    Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
-    Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_data_bin    ${store_in_data_bin}
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_data_bin    ${store_in_data_bin}
 
     ${start}    Get Current Date
     Ctn Start Broker    only_central=${True}
