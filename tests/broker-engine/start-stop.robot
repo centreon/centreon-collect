@@ -17,7 +17,7 @@ BESS1
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}
@@ -31,7 +31,7 @@ BESS2
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}
@@ -50,7 +50,7 @@ BESS3
     Config Broker    module
     Config Broker    rrd
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     ${result}    Check Connections
     Should Be True    ${result}
     ${result}    Check Poller Enabled In Database    1    10
@@ -68,7 +68,7 @@ BESS4
     Config Broker    module
     Config Broker    rrd
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     ${result}    Check Connections
     Should Be True    ${result}
     ${result}    Check Poller Enabled In Database    1    10
@@ -84,7 +84,7 @@ BESS5
     Config Broker    module
     Config Broker    rrd
     Engine Config Set Value    ${0}    debug_level    ${-1}
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine seem not connected
@@ -101,7 +101,7 @@ BESS_GRPC1
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
     Change Broker Tcp Input To Grpc    rrd
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}
@@ -119,7 +119,7 @@ BESS_GRPC2
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
     Change Broker Tcp Input To Grpc    rrd
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}
@@ -142,7 +142,7 @@ BESS_GRPC3
     Change Broker Tcp Input To Grpc    central
     Change Broker Tcp Input To Grpc    rrd
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     ${result}    Check Connections
     Should Be True    ${result}
     ${result}    Check Poller Enabled In Database    1    10
@@ -164,7 +164,7 @@ BESS_GRPC4
     Change Broker Tcp Input To Grpc    central
     Change Broker Tcp Input To Grpc    rrd
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     ${result}    Check Connections
     Should Be True    ${result}
     Ctn Kindly Stop Broker
@@ -182,7 +182,7 @@ BESS_GRPC5
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
     Change Broker Tcp Input To Grpc    rrd
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}
@@ -206,7 +206,7 @@ BESS_GRPC_COMPRESS1
     Change Broker Tcp Input To Grpc    rrd
     Change Broker Compression Output    module0    central-module-master-output    yes
     Change Broker Compression Input    central    centreon-broker-master-input    yes
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}
@@ -236,7 +236,7 @@ BESS_CRYPTED_GRPC1
     Remove Host From Broker Output    module0    central-module-master-output
     Add Host To Broker Output    module0    central-module-master-output    localhost
     FOR    ${i}    IN RANGE    0    5
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${result}    Check Connections
         Should Be True    ${result}
@@ -264,7 +264,7 @@ BESS_CRYPTED_GRPC2
     Change Broker Tcp Input To Grpc    rrd
     Add Broker Tcp Input Grpc Crypto    central    True    False
     FOR    ${i}    IN RANGE    0    5
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         Sleep    2s
         Ctn Kindly Stop Broker
@@ -287,7 +287,7 @@ BESS_CRYPTED_GRPC3
     Change Broker Tcp Input To Grpc    rrd
     Add Broker Tcp Output Grpc Crypto    module0    True    False
     FOR    ${i}    IN RANGE    0    5
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         Sleep    2s
         Ctn Kindly Stop Broker
@@ -313,7 +313,7 @@ BESS_CRYPTED_REVERSED_GRPC1
     Add Host To Broker Input    central    central-broker-master-input    localhost
     Remove Host From Broker Output    module0    central-module-master-output
     FOR    ${i}    IN RANGE    0    5
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${result}    Check Connections
         Should Be True    ${result}
@@ -340,7 +340,7 @@ BESS_CRYPTED_REVERSED_GRPC2
     Add Host To Broker Input    central    central-broker-master-input    localhost
     Remove Host From Broker Output    module0    central-module-master-output
     FOR    ${i}    IN RANGE    0    5
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         Sleep    5s
         Ctn Kindly Stop Broker
@@ -363,7 +363,7 @@ BESS_CRYPTED_REVERSED_GRPC3
     Add Host To Broker Input    central    central-broker-master-input    localhost
     Remove Host From Broker Output    module0    central-module-master-output
     FOR    ${i}    IN RANGE    0    5
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         Sleep    5s
         Ctn Kindly Stop Broker
@@ -378,7 +378,7 @@ BESS_ENGINE_DELETE_HOST
     Config Broker    module
     Clear Retention
     ${start}    Get Current Date
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -386,7 +386,7 @@ BESS_ENGINE_DELETE_HOST
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
     Ctn Kindly Stop Broker    True
-    Start Broker    True
+    Ctn Start Broker    True
     Engine Config Remove Service Host    ${0}    host_16
     Engine Config Remove Host    ${0}    host_16
     Reload Engine
@@ -410,7 +410,7 @@ BESSBQ1
     Clear Retention
     Create Bad Queue    central-broker-master.queue.central-broker-master-sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    execute statement 306524174
 
@@ -437,7 +437,7 @@ Start_Stop_Engine_Broker_${id}
         Change Broker Tcp Input To Grpc    rrd
     END
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    create feeder central-broker-master-input
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
@@ -474,7 +474,7 @@ Start_Stop_Broker_Engine_${id}
     ${start}    Get Current Date
 
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    create feeder central-broker-master-input
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60

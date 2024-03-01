@@ -27,7 +27,7 @@ BRRDDMDB1
     Broker Config Flush Log    rrd    0
     Create Metrics    3
     ${start}    Get Current Date    exclude_millis=True
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -66,7 +66,7 @@ BRRDDIDDB1
 
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -110,7 +110,7 @@ BRRDRBDB1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -158,7 +158,7 @@ BRRDRBUDB1
     Create Metrics    3
 
     ${start}    Get Current Date    exclude_millis=True
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -204,7 +204,7 @@ BRRDUPLICATE
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected

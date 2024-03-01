@@ -19,7 +19,7 @@ BECCC1
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
     Start Process    /usr/bin/ccc    stderr=/tmp/output.txt
@@ -49,7 +49,7 @@ BECCC2
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
     Start Process    /usr/bin/ccc    -p 51001    stderr=/tmp/output.txt
@@ -82,7 +82,7 @@ BECCC3
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
     Start Process    /usr/bin/ccc    -p 50001    stderr=/tmp/output.txt
@@ -114,7 +114,7 @@ BECCC4
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
     Start Process    /usr/bin/ccc    -p 51001    -l    stdout=/tmp/output.txt
@@ -145,7 +145,7 @@ BECCC5
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
     Start Process    /usr/bin/ccc    -p 51001    -l    GetVersion    stderr=/tmp/output.txt
@@ -176,7 +176,7 @@ BECCC6
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
     Start Process    /usr/bin/ccc    -p 51001    GetVersion{}    stdout=/tmp/output.txt
@@ -221,7 +221,7 @@ BECCC7
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
     Start Process    /usr/bin/ccc    -p 51001    GetVersion{"idx":1}    stderr=/tmp/output.txt
@@ -254,7 +254,7 @@ BECCC8
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
     Start Process

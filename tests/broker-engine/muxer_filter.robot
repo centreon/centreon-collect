@@ -23,7 +23,7 @@ STUPID_FILTER
     Broker Config Output Set Json    central    central-broker-unified-sql    filters    {"category": ["bbdo"]}
 
     ${start}    Get Current Date
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     ${content}    Create List
@@ -49,7 +49,7 @@ STORAGE_ON_LUA
     Broker Config Add Lua Output    central    test-filter    ${SCRIPTS}test-log-all-event.lua
     Broker Config Output Set Json    central    test-filter    filters    {"category": [ "storage"]}
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log
@@ -88,7 +88,7 @@ FILTER_ON_LUA_EVENT
     ...    filters
     ...    {"category": [ "storage:pb_metric_mapping"]}
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log
@@ -132,7 +132,7 @@ BAM_STREAM_FILTER
     ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    2
-    Start Broker    True
+    Ctn Start Broker    True
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -215,7 +215,7 @@ UNIFIED_SQL_FILTER
     Config Engine    ${1}
 
     ${start}    Get Current Date
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -254,7 +254,7 @@ CBD_RELOAD_AND_FILTERS
 
     Log To Console    First configuration: all events are sent to rrd.
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -357,7 +357,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     Log To Console    First configuration: all events are sent to rrd.
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -476,7 +476,7 @@ SEVERAL_FILTERS_ON_LUA_EVENT
     ...    filters
     ...    {"category": [ "neb:ServiceStatus"]}
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log

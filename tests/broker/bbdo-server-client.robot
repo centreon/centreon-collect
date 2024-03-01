@@ -166,7 +166,7 @@ BSCSSTG1
     Broker Config Flush Log    rrd    0
     Broker Config Source Log    rrd    1
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    Handshake failed
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
@@ -214,7 +214,7 @@ BSCSSTG2
     Broker Config Input Set    rrd    central-rrd-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
     Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    encrypted connection    write: buff:    write done: buff:
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
@@ -267,7 +267,7 @@ BSCSSTG3
     ...    ${EtcRoot}/centreon-broker/missing-client.key
     Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List
     ...    Cannot open file '/tmp/etc/centreon-broker/missing-client.key': No such file or directory
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
@@ -287,7 +287,7 @@ BSCSSC1
     Broker Config Log    rrd    core    trace
     Broker Config Flush Log    central    0
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    compression: writing
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
@@ -308,7 +308,7 @@ BSCSSC2
     Broker Config Log    central    bbdo    trace
     Broker Config Flush Log    central    0
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    BBDO: we have extensions '' and peer has 'COMPRESSION'
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Compression enabled but should not.
@@ -331,7 +331,7 @@ BSCSSCG1
     Broker Config Log    central    grpc    debug
     Broker Config Flush Log    central    0
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    activate compression deflate
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
@@ -354,7 +354,7 @@ BSCSSGA1
     Broker Config Flush Log    central    0
     Broker Config Flush Log    rrd    0
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    Wrong client authorization token
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
     Should Be True    ${result}    An error message about the authorization token should be raised.
@@ -380,7 +380,7 @@ BSCSSGA2
     Broker Config Flush Log    rrd    0
     Broker Config Source Log    rrd    1
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    receive: buff
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
     Should Be True    ${result}    If the authorization token is the same on both side, no issue

@@ -22,7 +22,7 @@ BRGC1
     Broker Config Log    central    bbdo    info
     Broker Config Log    module0    bbdo    info
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -54,7 +54,7 @@ BRCTS1
     Broker Config Log    central    bbdo    info
     Broker Config Log    module0    bbdo    info
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -88,7 +88,7 @@ BRCS1
     Broker Config Log    central    bbdo    info
     Broker Config Log    module0    bbdo    info
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -122,7 +122,7 @@ BRCTSMN
     Broker Config Log    central    processing    trace
     Broker Config Log    module0    bbdo    info
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     Start Map
     Sleep    5s
 
@@ -171,7 +171,7 @@ BRCTSMNS
     Broker Config Log    central    processing    trace
     Broker Config Log    module0    bbdo    info
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     Start Map
     Sleep    5s
 

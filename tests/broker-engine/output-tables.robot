@@ -25,7 +25,7 @@ BERES1
     Clear Retention
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content_not_present}    Create List
     ...    processing host status event (host:
@@ -56,7 +56,7 @@ BEHS1
     Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    yes
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content_present}    Create List    UPDATE hosts SET checked=    UPDATE services SET checked=
     ${content_not_present}    Create List
@@ -97,7 +97,7 @@ BEINSTANCESTATUS
     Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -153,7 +153,7 @@ BEINSTANCE
 
     # as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${engine_pid}    Get Engine Pid    e0
     ${result}    Check Field Db Value    SELECT pid FROM instances WHERE instance_id=1    ${engine_pid}    30
@@ -186,7 +186,7 @@ BE_NOTIF_OVERFLOW
 
     Clear Retention
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${start}    Get Current Date
@@ -225,7 +225,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
 
     Clear Retention
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     FOR    ${index}    IN RANGE    300
@@ -259,7 +259,7 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
 
     Clear Retention
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     FOR    ${index}    IN RANGE    300

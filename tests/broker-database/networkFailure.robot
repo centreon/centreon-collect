@@ -47,7 +47,7 @@ NetworkDBFail6
     Config Broker    rrd
     Config Broker    module
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
@@ -75,7 +75,7 @@ NetworkDBFailU6
     Config Broker    rrd
     Config Broker    module
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
@@ -106,7 +106,7 @@ NetworkDBFail7
     Config Broker    rrd
     Config Broker    module
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
@@ -138,7 +138,7 @@ NetworkDBFailU7
     Config Broker    rrd
     Config Broker    module
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
@@ -179,7 +179,7 @@ Network Failure
     Broker Config Log    central    sql    trace
     Broker Config Source Log    central    true
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    SQL: performing mysql_ping
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120

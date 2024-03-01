@@ -22,7 +22,7 @@ SDER
     Broker Config Log    module0    neb    trace
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start

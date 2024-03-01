@@ -20,7 +20,7 @@ EBDP1
     Ctn Config BBDO3    ${4}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
@@ -41,7 +41,7 @@ EBDP1
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${3}    ${50}    ${20}
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the initial service states.
@@ -73,7 +73,7 @@ EBDP2
     Broker Config Log    central    sql    trace
     Broker Config Log    central    processing    info
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
@@ -109,7 +109,7 @@ EBDP2
     Ctn Kindly Stop Broker
     Clear Engine Logs
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -145,7 +145,7 @@ EBDP_GRPC2
     Broker Config Log    central    processing    info
     Broker Config Log    central    grpc    info
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
@@ -182,7 +182,7 @@ EBDP_GRPC2
     Ctn Kindly Stop Broker
     Clear Engine Logs
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -212,7 +212,7 @@ EBDP3
     Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
@@ -275,7 +275,7 @@ EBDP4
     Broker Config Log    module3    neb    trace
     Broker Config Flush Log    central    0
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
@@ -323,7 +323,7 @@ EBDP4
     Config Engine    ${3}    ${39}    ${20}
 
     # Restart Broker
-    Start Broker
+    Ctn Start Broker
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -361,7 +361,7 @@ EBDP5
     Ctn Config BBDO3    ${4}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait until engine listens to external_commands
@@ -382,7 +382,7 @@ EBDP5
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${3}    ${50}    ${20}
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait until engine listens to external_commands
@@ -418,7 +418,7 @@ EBDP6
     Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
@@ -450,7 +450,7 @@ EBDP6
     Ctn Kindly Stop Broker
     Clear Engine Logs
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -486,7 +486,7 @@ EBDP7
     Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
@@ -555,7 +555,7 @@ EBDP8
     Broker Config Log    module3    neb    trace
     Broker Config Flush Log    central    0
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
@@ -603,7 +603,7 @@ EBDP8
     Config Engine    ${3}    ${39}    ${20}
 
     # Restart Broker
-    Start Broker
+    Ctn Start Broker
     Remove Poller By Id    51001    ${4}
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'

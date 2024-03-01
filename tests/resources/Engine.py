@@ -1725,7 +1725,7 @@ def enable_host_flap_detection(use_grpc: int, hst: str):
             f.write(cmd)
 
 
-def disable_host_notifications(use_grpc: int, hst: str):
+def ctn_disable_host_notifications(use_grpc: int, hst: str):
     """
     Disable the notifications on a host.
 

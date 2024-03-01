@@ -24,7 +24,7 @@ BESEV1
     Broker Config Log    central    sql    debug
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
@@ -49,7 +49,7 @@ BESEV2
     ${start}    Get Current Date
     Ctn Start Engine
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     ${result}    Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Check Severity With Timeout    severity1    1    5    30
@@ -73,7 +73,7 @@ BEUSEV1
     Broker Config Log    central    sql    debug
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
@@ -100,7 +100,7 @@ BEUSEV2
     ${start}    Get Current Date
     Ctn Start Engine
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     ${result}    Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Check Severity With Timeout    severity1    1    5    30
@@ -126,7 +126,7 @@ BEUSEV3
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     Sleep    2s
 
     ${result}    Check Service Severity With Timeout    1    1    11    60
@@ -169,7 +169,7 @@ BEUSEV4
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
     ${result}    Check Service Severity With Timeout    1    2    19    60
@@ -244,7 +244,7 @@ BETUSEV1
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
     ${result}    Check Service Severity With Timeout    1    2    1    60

@@ -17,7 +17,7 @@ BLDIS1
     Broker Config Log    central    core    disabled
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    [sql]
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    "No sql logs produced"
@@ -35,7 +35,7 @@ BLEC1
     Broker Config Log    central    core    trace
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${result}    Get Broker Log Level    51001    core
     Should Be Equal    ${result}    trace
     Set Broker Log Level    51001    core    debug
@@ -50,7 +50,7 @@ BLEC2
     Broker Config Log    central    core    trace
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${result}    Get Broker Log Level    51001    core
     Should Be Equal    ${result}    trace
     ${result}    Set Broker Log Level    51001    core    foo
@@ -64,6 +64,6 @@ BLEC3
     Broker Config Log    central    core    trace
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     ${result}    Set Broker Log Level    51001    foo    trace
     Should Be Equal    ${result}    The 'foo' logger does not exist

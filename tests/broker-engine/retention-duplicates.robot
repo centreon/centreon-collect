@@ -27,7 +27,7 @@ BERD1
     Config Broker    rrd
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -40,7 +40,7 @@ BERD1
     Ctn Kindly Stop Broker
     Sleep    5s
     Clear Cache
-    Start Broker
+    Ctn Start Broker
     Sleep    25s
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -68,7 +68,7 @@ BERD2
     Config Broker    rrd
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -108,7 +108,7 @@ BERDUC1
     Config Broker    rrd
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -121,7 +121,7 @@ BERDUC1
     Ctn Kindly Stop Broker
     Sleep    5s
     Clear Cache
-    Start Broker
+    Ctn Start Broker
     Sleep    25s
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -147,7 +147,7 @@ BERDUCU1
     Config Broker    rrd
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -158,7 +158,7 @@ BERDUCU1
     Ctn Kindly Stop Broker
     Sleep    5s
     Clear Cache
-    Start Broker
+    Ctn Start Broker
     Sleep    25s
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -182,7 +182,7 @@ BERDUC2
     Broker Config Flush Log    module0    0
     Config Broker    rrd
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -221,7 +221,7 @@ BERDUCU2
     Broker Config Flush Log    module0    0
     Config Broker    rrd
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -259,7 +259,7 @@ BERDUC3U1
     Ctn Config BBDO3    1
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -272,7 +272,7 @@ BERDUC3U1
     Ctn Kindly Stop Broker
     Sleep    5s
     Clear Cache
-    Start Broker
+    Ctn Start Broker
     Sleep    25s
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -299,7 +299,7 @@ BERDUC3U2
     Config Broker    rrd
     Ctn Config BBDO3    1
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the lua to be correctly initialized
@@ -356,7 +356,7 @@ BERDUCA300
     Broker Config Add Item    central    bbdo_version    3.0.0
     Broker Config Add Item    rrd    bbdo_version    3.0.0
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${result}    Check Connections
@@ -409,7 +409,7 @@ BERDUCA301
     Ctn Config BBDO3    1
     ${start}    Get Current Date
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${result}    Check Connections

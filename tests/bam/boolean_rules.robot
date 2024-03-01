@@ -43,7 +43,7 @@ BABOO
     ...    True
     ...    100
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -111,7 +111,7 @@ BABOOOR
     ...    True
     ...    100
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -158,7 +158,7 @@ BABOOAND
     ...    False
     ...    100
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -206,7 +206,7 @@ BABOOORREL
     ...    False
     ...    100
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -302,7 +302,7 @@ BABOOCOMPL
     ...    False
     ...    100
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -358,7 +358,7 @@ BABOOCOMPL_RESTART
     ...    False
     ...    100
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -452,7 +452,7 @@ BABOOCOMPL_RELOAD
     ...    False
     ...    100
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start

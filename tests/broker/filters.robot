@@ -23,7 +23,7 @@ BFC1
     ...    filters
     ...    {"category": ["neb", "foo", "bar"]}
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List
     ...    'foo' is not a known category: cannot find event category 'foo'
     ...    'bar' is not a known category: cannot find event category 'bar'
@@ -47,7 +47,7 @@ BFC2
     ...    filters
     ...    {"category": ["doe", "foo", "bar"]}
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List
     ...    'doe' is not a known category: cannot find event category 'doe'
     ...    'bar' is not a known category: cannot find event category 'bar'

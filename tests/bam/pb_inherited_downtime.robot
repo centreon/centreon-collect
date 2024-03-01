@@ -31,7 +31,7 @@ BEBAMIDTU1
     ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    2
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the initial service states.
@@ -92,7 +92,7 @@ BEBAMIDTU2
     ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    2
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the initial service states.
@@ -134,7 +134,7 @@ BEBAMIDTU2
         Log To Console    Broker is stopped (step ${i})
         Ctn Kindly Stop Broker
         Log To Console    Broker is started
-        Start Broker
+        Ctn Start Broker
     END
 
     # There are still two downtimes: the one on the ba and the one on the kpi.
@@ -192,7 +192,7 @@ BEBAMIGNDTU1
     Log To Console    service_314 has command id ${cmd_2}
     Set Command Status    ${cmd_2}    2
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the initial service states.
@@ -293,7 +293,7 @@ BEBAMIGNDTU2
     ${cmd_2}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_2}
     Set Command Status    ${cmd_2}    2
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the initial service states.

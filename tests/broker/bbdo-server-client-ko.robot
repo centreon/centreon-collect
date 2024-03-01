@@ -25,7 +25,7 @@ BSCSSK1
     Broker Config Log    rrd    core    error
     ${start}    Get Current Date    exclude_millis=True
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
 
     # Client cannot connect. It returns an error
     ${content}    Create List    peer tcp://localhost:5670 is sending corrupted data
@@ -50,7 +50,7 @@ BSCSSK2
     Broker Config Log    rrd    core    error
     ${start}    Get Current Date    exclude_millis=True
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
 
     # Client cannot connect. It returns an error
     ${content}    Create List

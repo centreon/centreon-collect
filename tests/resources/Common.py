@@ -965,7 +965,18 @@ def check_service_check_with_timeout(hostname: str, service_desc: str,  timeout:
     return False
 
 
-def check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
+def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
+    """
+    Check the host check command line is well the given in argument.
+
+    Args:
+        hostname: The host name of the host to check.
+        timeout: A timeout in seconds.
+        command_line: The command line to check.
+
+    Returns:
+        True on success.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,

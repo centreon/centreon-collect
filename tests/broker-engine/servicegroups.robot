@@ -24,7 +24,7 @@ EBNSG1
 
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Config Engine Add Cfg File    ${0}    servicegroups.cfg
@@ -55,7 +55,7 @@ EBNSGU1
 
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Config Engine Add Cfg File    ${0}    servicegroups.cfg
@@ -87,7 +87,7 @@ EBNSGU2
     Broker Config Log    central    sql    debug
 
     Clear Retention
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Add Service Group    ${1}    ${1}    ["host_14","service_261", "host_14","service_262","host_14", "service_263"]
@@ -135,7 +135,7 @@ EBNSGU3_${test_label}
     Ctn Config BBDO3    ${3}
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
     Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]

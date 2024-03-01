@@ -96,7 +96,7 @@ START_STOP_CBD
     ${start}    Get Current Date
 
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
 
     # wait engine start
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
@@ -107,7 +107,7 @@ START_STOP_CBD
 
     # restart central broker
     Stop Broker
-    Start Broker
+    Ctn Start Broker
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 

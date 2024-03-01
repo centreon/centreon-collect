@@ -24,14 +24,14 @@ BEEXTCMD30
         ...    external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Notifications    ${use_grpc}    host_1
+        Ctn Disable Host Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -74,7 +74,7 @@ BEEXTCMD31
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -164,7 +164,7 @@ BEEXTCMD32
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -240,7 +240,7 @@ BEEXTCMD33
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -291,7 +291,7 @@ BEEXTCMD34
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -345,7 +345,7 @@ BEEXTCMD35
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -410,7 +410,7 @@ BEEXTCMD36
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -460,7 +460,7 @@ BEEXTCMD37
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -529,7 +529,7 @@ BEEXTCMD38
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -583,7 +583,7 @@ BEEXTCMD39
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -630,7 +630,7 @@ BEEXTCMD40
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -680,7 +680,7 @@ BEEXTCMD41
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -731,7 +731,7 @@ BEEXTCMD42
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -786,7 +786,7 @@ BEEXTCMD_GRPC1
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -825,7 +825,7 @@ BEEXTCMD_GRPC2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -868,7 +868,7 @@ BEEXTCMD_GRPC3
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -906,7 +906,7 @@ BEEXTCMD_GRPC4
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -950,7 +950,7 @@ BEEXTCMD_REVERSE_GRPC1
         Clear Retention
         ${start}    Get Current Date
         Sleep    1s
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -993,7 +993,7 @@ BEEXTCMD_REVERSE_GRPC2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc} reversed
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1040,7 +1040,7 @@ BEEXTCMD_REVERSE_GRPC3
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc} reversed
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1082,7 +1082,7 @@ BEEXTCMD_REVERSE_GRPC4
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc} reversed
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1124,7 +1124,7 @@ BEEXTCMD_COMPRESS_GRPC1
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
         ${start}    Get Current Date
-        Start Broker
+        Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1159,7 +1159,7 @@ BEATOI11
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1181,7 +1181,7 @@ BEATOI12
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1204,7 +1204,7 @@ BEATOI13
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1227,7 +1227,7 @@ BEATOI21
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date    exclude_millis=True
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1255,7 +1255,7 @@ BEATOI22
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1284,7 +1284,7 @@ BEATOI23
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    error
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1307,7 +1307,7 @@ BECUSTOMHOSTVAR
     Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1341,7 +1341,7 @@ BECUSTOMSVCVAR
     Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1375,7 +1375,7 @@ BESERVCHECK
     Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1401,7 +1401,7 @@ BEHOSTCHECK
     Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1410,5 +1410,5 @@ BEHOSTCHECK
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    UPDATE hosts SET command_line='toto' WHERE name='host_1'
     Schedule Forced Host Check    host_1
-    ${result}    Check Host Check With Timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl --id 0
+    ${result}    Ctn Check Host Check With Timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl --id 0
     Should Be True    ${result}    hosts table not updated

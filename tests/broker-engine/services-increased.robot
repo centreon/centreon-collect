@@ -22,7 +22,7 @@ EBNSVC1
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     FOR    ${i}    IN RANGE    ${3}
         Sleep    10s
@@ -68,7 +68,7 @@ Service_increased_huge_check_interval
     Delete All Rrd Metrics
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     # Start Checkers
     ${result}    Check Host Status    host_1    4    1    False

@@ -26,7 +26,7 @@ not1
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -66,7 +66,7 @@ not2
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -121,7 +121,7 @@ not3
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -172,7 +172,7 @@ not4
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -234,7 +234,7 @@ not5
     Engine Config Set Value In Contacts    0    U2    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -284,7 +284,7 @@ not6
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -339,7 +339,7 @@ not7
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -380,7 +380,7 @@ not8
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -421,7 +421,7 @@ not9
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -462,7 +462,7 @@ not10
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -515,7 +515,7 @@ not11
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -576,7 +576,7 @@ not12
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
@@ -635,7 +635,7 @@ not13
     Engine Config Set Value In Escalations    0    esc2    notification_interval    1
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
   # Let's wait for the external command check start

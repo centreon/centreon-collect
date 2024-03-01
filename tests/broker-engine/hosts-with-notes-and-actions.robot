@@ -23,7 +23,7 @@ EBSNU1
     ${nu}    Evaluate    2000*"X"
     Engine Config Set Value In Hosts    0    host_1    notes_url    ${nu}
     Clear Retention
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -55,7 +55,7 @@ EBSAU2
     ${au}    Evaluate    2000*"Y"
     Engine Config Set Value In Hosts    0    host_2    action_url    ${au}
     Clear Retention
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -87,7 +87,7 @@ EBSN3
     ${n}    Evaluate    500*"Z"
     Engine Config Set Value In Hosts    0    host_3    notes    ${n}
     Clear Retention
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}

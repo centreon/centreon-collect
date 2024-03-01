@@ -27,7 +27,7 @@ BEUHSEV1
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     Sleep    2s
 
     ${result}    Check Host Severity With Timeout    1    10    60
@@ -71,7 +71,7 @@ BEUHSEV2
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
     ${result}    Check Host Severity With Timeout    2    18    60
@@ -147,7 +147,7 @@ BETUHSEV1
     Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
-    Start Broker
+    Ctn Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
     ${result}    Check Host Severity With Timeout    2    2    60

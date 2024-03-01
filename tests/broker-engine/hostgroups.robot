@@ -22,7 +22,7 @@ EBNHG1
     Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
@@ -50,7 +50,7 @@ EBNHGU1
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
@@ -79,7 +79,7 @@ EBNHGU2
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Config BBDO3    3
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
@@ -109,7 +109,7 @@ EBNHGU3
     Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
     Add Host Group    ${1}    ${1}    ["host_21", "host_22", "host_23"]
@@ -143,7 +143,7 @@ EBNHG4
     Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
@@ -201,7 +201,7 @@ EBNHGU4_${test_label}
     IF    ${Use_BBDO3}    Ctn Config BBDO3    ${3}
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]

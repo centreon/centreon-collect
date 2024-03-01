@@ -25,7 +25,7 @@ BRRDCDDM1
     Broker Config Flush Log    rrd    0
     Create Metrics    3
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -61,7 +61,7 @@ BRRDCDDID1
 
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -101,7 +101,7 @@ BRRDCDDMID1
     Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -134,7 +134,7 @@ BRRDCDDMU1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -171,7 +171,7 @@ BRRDCDDIDU1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -210,7 +210,7 @@ BRRDCDDMIDU1
     Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -241,7 +241,7 @@ BRRDCDRB1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -301,7 +301,7 @@ BRRDCDRBU1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected

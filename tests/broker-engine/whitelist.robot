@@ -78,7 +78,7 @@ Whitelist_Host
     Engine Config Replace Value In Hosts    0    host_1    check_command    command_1
 
     ${start}    Get Current Date
-    Start Broker    only_central=${True}
+    Ctn Start Broker    only_central=${True}
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -135,7 +135,7 @@ Whitelist_Service
     Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/check.pl 0 $HOSTADDRESS$
 
     ${start}    Get Current Date
-    Start Broker    only_central=${True}
+    Ctn Start Broker    only_central=${True}
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -196,7 +196,7 @@ Whitelist_Perl_Connector
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
 
     ${start}    Get Current Date
-    Start Broker    only_central=${True}
+    Ctn Start Broker    only_central=${True}
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

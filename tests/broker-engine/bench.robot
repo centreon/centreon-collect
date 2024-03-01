@@ -29,7 +29,7 @@ BENCH_${nb_check}STATUS
     Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -97,7 +97,7 @@ BENCH_${nb_check}STATUS_TRACES
     Broker Config Add Item    rrd    bbdo_version    3.0.0
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -165,7 +165,7 @@ BENCH_1000STATUS_100${suffixe}
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${connected}    Wait For Connections    5669    100
     Should Be True    ${connected}    100 engines should be connected to broker

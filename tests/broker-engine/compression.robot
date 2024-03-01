@@ -30,7 +30,7 @@ BECC1
             Broker Config Log    central    bbdo    info
             Broker Config Log    module0    bbdo    info
             ${start}    Get Current Date
-            Start Broker
+            Ctn Start Broker
             Ctn Start Engine
             ${result}    Check Connections
             Should Be True    ${result}    Engine and Broker not connected

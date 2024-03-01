@@ -28,7 +28,7 @@ EBBPS1
     Clear Retention
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
@@ -72,7 +72,7 @@ EBBPS1
             Sleep    5s
             Log To Console    Restarting Broker
             ${start_broker}    Get Current Date
-            Start Broker
+            Ctn Start Broker
         END
     END
     ${content}    Create List
@@ -111,7 +111,7 @@ EBBPS2
     Clear Retention
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
@@ -154,7 +154,7 @@ EBBPS2
             Sleep    5s
             Log To Console    Restarting Broker
             ${start_broker}    Get Current Date
-            Start Broker
+            Ctn Start Broker
         END
     END
     ${content}    Create List
@@ -193,7 +193,7 @@ EBMSSM
     Config Broker Remove Rrd Output    central
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Broker Set Sql Manager Stats    51001    5    5
 
@@ -242,7 +242,7 @@ EBPS2
     Clear Retention
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -296,7 +296,7 @@ RLCode
     # Start the engine/broker
     ${start}    Get Current Date
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${content}    Create List    check_for_external_commands()
@@ -366,7 +366,7 @@ metric_mapping
 
     ${start}    Get Current Date
 
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${content}    Create List    check_for_external_commands()
@@ -406,7 +406,7 @@ Services_and_bulks_${id}
     Clear Db    metrics
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Broker Set Sql Manager Stats    51001    5    5
 

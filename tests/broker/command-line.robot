@@ -13,7 +13,7 @@ BCL1
     [Documentation]    Starting broker with option '-s foobar' should return an error
     [Tags]    broker    start-stop
     Config Broker    central
-    Start Broker With Args    -s foobar
+    Ctn Start Broker With Args    -s foobar
     ${result}    Wait For Broker
     ${expected}    Evaluate    "The option -s expects a positive integer" in """${result}"""
     Should Be True    ${expected}    expected error 'The option -s expects a positive integer'
@@ -24,7 +24,7 @@ BCL2
     Config Broker    central
     ${start}    Get Current Date    exclude_millis=True
     Sleep    1s
-    Start Broker With Args    -s5    ${EtcRoot}/centreon-broker/central-broker.json
+    Ctn Start Broker With Args    -s5    ${EtcRoot}/centreon-broker/central-broker.json
     ${table}    Create List    Starting the TCP thread pool of 5 threads
     ${logger_res}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${table}    30
     Should Be True
@@ -38,7 +38,7 @@ BCL3
     Config Broker    central
     ${start}    Get Current Date    exclude_millis=True
     Sleep    1s
-    Start Broker With Args    -D    ${EtcRoot}/centreon-broker/central-broker.json
+    Ctn Start Broker With Args    -D    ${EtcRoot}/centreon-broker/central-broker.json
     ${result}    Wait For Broker
     ${expected}    Evaluate    "diagnostic:" in """${result}"""
     Should Be True    ${expected}    diagnostic mode didn't launch
@@ -47,14 +47,14 @@ BCL4
     [Documentation]    Starting broker with options '-s2' and '-D' should work.
     [Tags]    broker    start-stop
     Config Broker    central
-    Start Broker With Args    -s2    -D    ${EtcRoot}/centreon-broker/central-broker.json
+    Ctn Start Broker With Args    -s2    -D    ${EtcRoot}/centreon-broker/central-broker.json
     ${result}    Wait For Broker
     ${expected}    Evaluate    "diagnostic:" in """${result}"""
     Should Be True    ${expected}    diagnostic mode didn't launch
 
 
 *** Keywords ***
-Start Broker With Args
+Ctn Start Broker With Args
     [Arguments]    @{options}
     Log To Console    @{options}
     Start Process    /usr/sbin/cbd    @{options}    alias=b1    stdout=/tmp/output.txt

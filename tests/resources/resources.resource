@@ -71,7 +71,7 @@ Clear Broker Logs
     Remove Directory    ${BROKER_LOG}    Recursive=True
     Create Directory    ${BROKER_LOG}
 
-Start Broker
+Ctn Start Broker
     [Arguments]    ${only_central}=False
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
     IF    not ${only_central}
@@ -81,7 +81,7 @@ Start Broker
 Restart Broker
     [Arguments]    ${only_central}=False
     Kindly Stop Broker    ${only_central}
-    Start Broker    ${only_central}
+    Ctn Start Broker    ${only_central}
 
 Reload Broker
     [Arguments]    ${only_central}=False

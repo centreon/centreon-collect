@@ -21,7 +21,7 @@ BEACK1
     Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -63,7 +63,7 @@ BEACK2
     Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -103,7 +103,7 @@ BEACK3
     Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -142,7 +142,7 @@ BEACK4
     Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -183,7 +183,7 @@ BEACK5
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -231,7 +231,7 @@ BEACK6
     Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

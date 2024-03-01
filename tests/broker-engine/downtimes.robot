@@ -30,7 +30,7 @@ BEDTMASS1
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -78,7 +78,7 @@ BEDTMASS2
     Broker Config Log    central    sql    debug
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -121,7 +121,7 @@ BEDTSVCREN1
 
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
@@ -164,7 +164,7 @@ BEDTSVCFIXED
 
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
@@ -199,7 +199,7 @@ BEDTHOSTFIXED
 
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
@@ -294,7 +294,7 @@ DTIM
     Clear Retention
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start

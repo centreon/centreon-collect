@@ -22,7 +22,7 @@ BEPBBEE1
     Broker Config Log    central    bbdo    debug
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    BBDO: peer is using protocol version 3.0.0 whereas we're using protocol version 2.0.0
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -44,7 +44,7 @@ BEPBBEE2
     Broker Config Flush Log    central    0
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List
     ...    Configuration check error: bbdo versions >= 3.0.0 need the unified_sql module to be configured.
@@ -66,7 +66,7 @@ BEPBBEE3
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservicestatus.lua
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Wait Until Created    /tmp/pbservicestatus.log    1m
 
@@ -86,7 +86,7 @@ BEPBBEE4
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbhoststatus.lua
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Wait Until Created    /tmp/pbhoststatus.log    1m
 
@@ -106,7 +106,7 @@ BEPBBEE5
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservice.lua
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     Wait Until Created    /tmp/pbservice.log    1m
 
@@ -130,7 +130,7 @@ BEPBRI1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM instances
     ${start}    Get Current Date
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Wait Until Created    /tmp/pbresponsiveinstance.log    30s
     ${grep_res}    Grep File    /tmp/pbresponsiveinstance.log    "_type":65582, "category":1, "element":46,
@@ -157,7 +157,7 @@ BEPBCVS
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -188,7 +188,7 @@ BEPB_HOST_DEPENDENCY
     Config Broker Sql Output    central    unified_sql                          
     Clear Retention                                                             
     ${start}    Get Current Date                                                
-    Start Broker    True                                                        
+    Ctn Start Broker    True                                                        
     Ctn Start Engine                                                                
                                                                                 
     ${result}    Common.Check Host Dependencies    2    1        24x7    1   ou    dp    30
@@ -215,7 +215,7 @@ BEPB_SERVICE_DEPENDENCY
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -258,7 +258,7 @@ BEPBHostParent
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}    Get Current Date
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 

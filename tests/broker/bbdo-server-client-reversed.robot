@@ -175,7 +175,7 @@ BSCSSTGRR2
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    write: buff:    write done: buff:
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
@@ -195,7 +195,7 @@ BSCSSCRR1
     Broker Config Log    rrd    core    trace
     Broker Config Flush Log    central    0
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    compression: writing
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
@@ -216,7 +216,7 @@ BSCSSCRR2
     Broker Config Log    central    bbdo    trace
     Broker Config Flush Log    central    0
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    BBDO: we have extensions '' and peer has 'COMPRESSION'
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Compression enabled but should not.
@@ -238,7 +238,7 @@ BSCSSCGRR1
     Broker Config Log    central    grpc    debug
     Broker Config Flush Log    central    0
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    server default compression deflate
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
@@ -260,7 +260,7 @@ BSCSSCGRR2
     Broker Config Log    central    grpc    debug
     Broker Config Flush Log    central    0
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     ${content}    Create List    server default compression deflate
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    15
     Should Be True    not ${result}    No compression enabled

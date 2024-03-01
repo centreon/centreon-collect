@@ -22,7 +22,7 @@ ANO_NOFILE
     Remove File    /tmp/anomaly_threshold.json
     Clear Retention
     Clear Db    services
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
@@ -62,7 +62,7 @@ ANO_TOO_OLD_FILE
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Clear Retention
     Clear Db    services
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
@@ -82,7 +82,7 @@ ANO_OUT_LOWER_THAN_LIMIT
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Clear Retention
     Clear Db    services
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
@@ -102,7 +102,7 @@ ANO_OUT_UPPER_THAN_LIMIT
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Clear Retention
     Clear Db    services
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
@@ -188,7 +188,7 @@ AOUTLU1
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Clear Retention
     Clear Db    services
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the check of external commands
@@ -222,7 +222,7 @@ ANO_DT1
     Clear Retention
     Clear Db    services
     Clear Db    downtimes
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the check of external commands
@@ -257,7 +257,7 @@ ANO_DT2
     Clear Retention
     Clear Db    services
     Clear Db    downtimes
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the check of external commands
@@ -296,7 +296,7 @@ ANO_DT3
     Clear Retention
     Clear Db    services
     Clear Db    downtimes
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the check of external commands
@@ -336,7 +336,7 @@ ANO_DT4
     Clear Retention
     Clear Db    services
     Clear Db    downtimes
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the check of external commands

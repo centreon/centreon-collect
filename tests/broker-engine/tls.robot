@@ -31,7 +31,7 @@ BECT1
             Broker Config Log    central    bbdo    info
             Broker Config Log    module0    bbdo    info
             ${start}    Get Current Date
-            Start Broker
+            Ctn Start Broker
             Ctn Start Engine
             ${result}    Check Connections
             Should Be True    ${result}    Engine and Broker not connected
@@ -112,7 +112,7 @@ BECT2
     Broker Config Input Set    central    central-broker-master-input    tls    yes
     Broker Config Output Set    module0    central-module-master-output    tls    yes
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -157,7 +157,7 @@ BECT3
     Broker Config Output Set    module0    central-module-master-output    tls    yes
     # We get the current date just before starting broker
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -241,7 +241,7 @@ BECT4
     ...    ${EtcRoot}/centreon-broker/client.crt
     # We get the current date just before starting broker
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -277,7 +277,7 @@ BECT_GRPC1
             Change Broker Tcp Output To Grpc    module0
             Change Broker Tcp Input To Grpc    central
             ${start}    Get Current Date
-            Start Broker
+            Ctn Start Broker
             Ctn Start Engine
             ${result}    Check Connections
             Should Be True    ${result}    Engine and Broker not connected
@@ -359,7 +359,7 @@ BECT_GRPC2
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -408,7 +408,7 @@ BECT_GRPC3
     Broker Config Output Set    module0    central-module-master-output    tls    yes
     # We get the current date just before starting broker
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -494,7 +494,7 @@ BECT_GRPC4
     ...    ${EtcRoot}/centreon-broker/client.crt
     # We get the current date just before starting broker
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected

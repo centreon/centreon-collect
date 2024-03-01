@@ -25,7 +25,7 @@ BRRDDM1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -69,7 +69,7 @@ BRRDWM1
     Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -93,7 +93,7 @@ BRRDDID1
 
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -140,7 +140,7 @@ BRRDDMID1
     Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -172,7 +172,7 @@ BRRDDMU1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -216,7 +216,7 @@ BRRDDIDU1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -262,7 +262,7 @@ BRRDDMIDU1
     Broker Config Flush Log    rrd    0
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -293,7 +293,7 @@ BRRDRM1
     Create Metrics    3
 
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
@@ -352,7 +352,7 @@ BRRDRMU1
     Create Metrics    3
 
     ${start}    Get Round Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected

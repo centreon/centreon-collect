@@ -17,7 +17,7 @@ BAWORST
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
     ${ba__svc}    Create Ba With Services    test    worst    ${svc}
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
 
@@ -148,7 +148,7 @@ BAWORST2
     ${id_ba__sid__child}    Create Ba With Services    test_child    worst    ${svc}
     Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -235,7 +235,7 @@ BABEST_SERVICE_CRITICAL
     ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    2
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -340,7 +340,7 @@ BA_IMPACT_2KPI_SERVICES
     Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
     Add Service KPI    host_16    service_303    ${id_ba__sid[0]}    40    30    20
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -447,7 +447,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     ${id_ba__sid__child}    Create Ba With Services    test_child    worst    ${svc}
     Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -551,7 +551,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     ${id_ba__sid__child}    Create Ba With Services    test_child    worst    ${svc}
     Add BA KPI    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -659,7 +659,7 @@ BA_BOOL_KPI
     ...    False
     ...    100
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -709,7 +709,7 @@ BEPB_DIMENSION_BV_EVENT
     Execute SQL String
     ...    INSERT INTO mod_bam_ba_groups (id_ba_group, ba_group_name, ba_group_description) VALUES (574, 'virsgtr', 'description_grtmxzo')
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
@@ -741,7 +741,7 @@ BEPB_DIMENSION_BA_EVENT
     Execute SQL String
     ...    UPDATE mod_bam set description='fdpgvo75', sla_month_percent_warn=1.23, sla_month_percent_crit=4.56, sla_month_duration_warn=852, sla_month_duration_crit=789, id_reporting_period=741
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
@@ -774,7 +774,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     Delete All Rows From Table    mod_bam_bagroup_ba_relation
     Execute SQL String    INSERT INTO mod_bam_bagroup_ba_relation (id_ba, id_ba_group) VALUES (1, 456)
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
@@ -810,7 +810,7 @@ BEPB_DIMENSION_TIMEPERIOD
     Execute SQL String
     ...    INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "sunday_value", "monday_value", "tuesday_value", "wednesday_value", "thursday_value", "friday_value", "saturday_value")
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
@@ -835,7 +835,7 @@ BEPB_DIMENSION_KPI_EVENT
 
     Add Boolean Kpi    ${baid_svcid[0]}    {host_16 service_302} {IS} {OK}    False    100
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -866,7 +866,7 @@ BEPB_KPI_STATUS
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     Create Ba With Services    test    worst    ${svc}
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     ${start}    Get Current Date    result_format=epoch
@@ -907,7 +907,7 @@ BEPB_BA_DURATION_EVENT
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events_durations
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     # KPI set to critical
@@ -953,7 +953,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     Execute SQL String    DELETE FROM mod_bam_relations_ba_timeperiods
     Execute SQL String    INSERT INTO mod_bam_relations_ba_timeperiods (ba_id, tp_id) VALUES (1,732)
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -983,7 +983,7 @@ BEPB_DIMENSION_TRUNCATE_TABLE
 
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
@@ -1013,7 +1013,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Add Service KPI    host_16    service_304    ${id_ba__sid[0]}    40    30    20
     Add Service KPI    host_16    service_304    ${id_ba__sid[0]}    40    30    20
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start
@@ -1074,7 +1074,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Add Service KPI    host_16    service_304    ${id_ba__sid[0]}    40    30    20
     Add Service KPI    host_16    service_305    ${id_ba__sid[0]}    40    30    20
 
-    Start Broker
+    Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
     # Let's wait for the external command check start

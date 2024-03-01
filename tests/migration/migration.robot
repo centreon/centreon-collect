@@ -23,7 +23,7 @@ MIGRATION
     Broker Config Log    rrd    rrd    trace
     Clear Retention
     ${start}    Get Current Date
-    Start Broker
+    Ctn Start Broker
     Ctn Start Engine
 
     ${contentCentral}    Create List    SQL: processing service status event
@@ -38,7 +38,7 @@ MIGRATION
 
     Log To Console    Move to BBDO 2.0.0 with unified_sql
     Ctn Kindly Stop Broker
-    Start Broker
+    Ctn Start Broker
     Ctn Stop Engine
     Ctn Start Engine
     Sleep    2s
@@ -55,7 +55,7 @@ MIGRATION
 
     Log To Console    Move to BBDO 3.0.0 with unified_sql
     Ctn Kindly Stop Broker
-    Start Broker
+    Ctn Start Broker
     Ctn Stop Engine
     Ctn Start Engine
     Sleep    2s
@@ -76,7 +76,7 @@ MIGRATION
 
     Log To Console    Move back to BBDO 2.0.0 with unified_sql
     Ctn Kindly Stop Broker
-    Start Broker
+    Ctn Start Broker
     Ctn Stop Engine
     Ctn Start Engine
     Sleep    2s
@@ -91,7 +91,7 @@ MIGRATION
     Log To Console    Move back to BBDO 2.0.0 with sql/storage
     Config Broker Sql Output    central    sql/perfdata
     Ctn Kindly Stop Broker
-    Start Broker
+    Ctn Start Broker
     Ctn Stop Engine
     Ctn Start Engine
     Sleep    2s
