@@ -25,7 +25,7 @@ BLDIS1
     ${content}    Create List    [core]
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be Equal    ${result}    ${False}    "We should not have core logs"
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BLEC1
     [Documentation]    Change live the core level log from trace to debug

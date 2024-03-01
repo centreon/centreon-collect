@@ -145,7 +145,7 @@ BEPBRI1
     END
 
     Should Not Be Empty    ${grep_res}    "responsive":false not found
-    Kindly Stop Broker    True
+    Ctn Kindly Stop Broker    True
 
 BEPBCVS
     [Documentation]    bbdo_version 3 communication of custom variables.

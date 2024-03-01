@@ -31,7 +31,7 @@ BFC1
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    "Only neb filter should be applied on sql output"
 
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BFC2
     [Documentation]    Start broker with only invalid filters on an output
@@ -55,4 +55,4 @@ BFC2
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    "Only neb filter should be applied on sql output"
 
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker

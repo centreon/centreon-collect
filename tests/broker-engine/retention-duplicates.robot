@@ -37,13 +37,13 @@ BERD1
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Sleep    5s
     Clear Cache
     Start Broker
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     ${result}    Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
@@ -82,7 +82,7 @@ BERD2
     Ctn Start Engine
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     ${result}    Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
@@ -118,13 +118,13 @@ BERDUC1
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Sleep    5s
     Clear Cache
     Start Broker
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -155,13 +155,13 @@ BERDUCU1
     ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     Sleep    5s
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Sleep    5s
     Clear Cache
     Start Broker
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -198,7 +198,7 @@ BERDUC2
     Ctn Start Engine
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -237,7 +237,7 @@ BERDUCU2
     Ctn Start Engine
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -269,13 +269,13 @@ BERDUC3U1
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Sleep    5s
     Clear Cache
     Start Broker
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -328,7 +328,7 @@ BERDUC3U2
     Ctn Start Engine
     Sleep    25s
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -383,7 +383,7 @@ BERDUCA300
     ${result}    Find Regex In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result[0]}    Engine should receive an ack for handled events from broker.
 
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BERDUCA301
     [Documentation]    Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker with bbdo 3.0.1.
@@ -436,4 +436,4 @@ BERDUCA301
     ${result}    Find Regex In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result[0]}    Engine should receive an ack for handled events from broker.
 
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker

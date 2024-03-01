@@ -40,7 +40,7 @@ BERES1
         Should Not Be True    ${result[0]}    There are updates of hosts/services table(s).
     END
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEHS1
     [Documentation]    store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
@@ -73,7 +73,7 @@ BEHS1
         Should Not Be True    ${result[0]}    There are updates of the resources table.
     END
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEINSTANCESTATUS
     [Documentation]    Instance status to bdd
@@ -136,7 +136,7 @@ BEINSTANCESTATUS
     ${result}    Check Field Db Value    SELECT passive_service_checks FROM instances WHERE instance_id=1    ${0}    3
     Should Be True    ${result}    passive_service_checks not updated.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEINSTANCE
     [Documentation]    Instance to bdd
@@ -207,7 +207,7 @@ BE_NOTIF_OVERFLOW
     Should Be True    ${output[0][0]} == None    notification_number is not null
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BE_TIME_NULL_SERVICE_RESOURCE
     [Documentation]    With BBDO 3, notification_interval time must be set to NULL on 0 in services, hosts and resources tables.
@@ -241,7 +241,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
     ...    ${output}
     ...    ((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     [Documentation]    default notification_interval must be set to NULL in services, hosts and resources tables.
@@ -271,4 +271,4 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     END
     Should Be Equal As Strings    ${output}    ((0.0, 0.0),)
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker

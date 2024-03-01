@@ -199,7 +199,7 @@ AOUTLU1
     Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     ${lst}    Create List    1    0    4
     ${result}    Check Types In Resources    ${lst}
     Should Be True
@@ -239,7 +239,7 @@ ANO_DT1
     Should Be True    ${result}    anomaly service must be in downtime
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 ANO_DT2
     [Documentation]    delete downtime on dependent service delete one on ano serv
@@ -278,7 +278,7 @@ ANO_DT2
     Should Be True    ${result}    anomaly service must be in downtime
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 ANO_DT3
     [Documentation]    delete downtime on anomaly don t delete dependent service one
@@ -318,7 +318,7 @@ ANO_DT3
     Should Be True    ${result}    dependent service must be in downtime
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 ANO_DT4
     [Documentation]    set dt on anomaly and on dependent service, delete last one don t delete first one
@@ -358,4 +358,4 @@ ANO_DT4
     Should Be True    ${result}    anomaly service must be in simple downtime
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker

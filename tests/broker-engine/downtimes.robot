@@ -58,7 +58,7 @@ BEDTMASS1
     Should Be True    ${result}    We should have no downtime enabled.
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEDTMASS2
     [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 2.0
@@ -106,7 +106,7 @@ BEDTMASS2
     Should Be True    ${result}    We should have no downtime enabled.
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEDTSVCREN1
     [Documentation]    A downtime is set on a service then the service is renamed. The downtime is still active on the renamed service. The downtime is removed from the renamed service and it is well removed.
@@ -149,7 +149,7 @@ BEDTSVCREN1
     Should Be True    ${result}    We should have no downtime enabled.
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEDTSVCFIXED
     [Documentation]    A downtime is set on a service, the total number of downtimes is really 1 then we delete this downtime and the number of downtime is 0.
@@ -183,7 +183,7 @@ BEDTSVCFIXED
     Should Be True    ${result}    We should have no downtime enabled.
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEDTHOSTFIXED
     [Documentation]    A downtime is set on a host, the total number of downtimes is really 21 (1 for the host and 20 for its 20 services) then we delete this downtime and the number is 0.
@@ -269,7 +269,7 @@ BEDTHOSTFIXED
     Should Be True    ${result}    We should have no downtime enabled.
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 DTIM
     [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 5250 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.1
@@ -327,7 +327,7 @@ DTIM
     Should Be True    ${result}    There are still some downtimes enabled.
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 
 *** Keywords ***

@@ -35,7 +35,7 @@ BECT1
             Ctn Start Engine
             ${result}    Check Connections
             Should Be True    ${result}    Engine and Broker not connected
-            Kindly Stop Broker
+            Ctn Kindly Stop Broker
             Stop Engine
             ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
             ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
@@ -116,7 +116,7 @@ BECT2
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
@@ -161,7 +161,7 @@ BECT3
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous server credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous client credentials
@@ -245,7 +245,7 @@ BECT4
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
@@ -281,7 +281,7 @@ BECT_GRPC1
             Ctn Start Engine
             ${result}    Check Connections
             Should Be True    ${result}    Engine and Broker not connected
-            Kindly Stop Broker
+            Ctn Kindly Stop Broker
             Stop Engine
             ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
             ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
@@ -363,7 +363,7 @@ BECT_GRPC2
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
@@ -412,7 +412,7 @@ BECT_GRPC3
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous server credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous client credentials
@@ -498,7 +498,7 @@ BECT_GRPC4
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials

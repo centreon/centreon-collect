@@ -21,7 +21,7 @@ BESS1
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Engine
 
 BESS2
@@ -40,7 +40,7 @@ BESS2
     Stop Engine
     ${result}    Check Poller Disabled In Database    1    10
     Should Be True    ${result}
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BESS3
     [Documentation]    Start-Stop Broker/Engine - Engine started first - Engine stopped first
@@ -58,7 +58,7 @@ BESS3
     Stop Engine
     ${result}    Check Poller Disabled In Database    1    10
     Should Be True    ${result}
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BESS4
     [Documentation]    Start-Stop Broker/Engine - Engine started first - Broker stopped first
@@ -73,7 +73,7 @@ BESS4
     Should Be True    ${result}
     ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Engine
 
 BESS5
@@ -105,7 +105,7 @@ BESS_GRPC1
     Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Engine
 
 BESS_GRPC2
@@ -128,7 +128,7 @@ BESS_GRPC2
     Stop Engine
     ${result}    Check Poller Disabled In Database    1    10
     Should Be True    ${result}
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BESS_GRPC3
     [Documentation]    Start-Stop grpc version Broker/Engine - Engine started first - Engine stopped first
@@ -150,7 +150,7 @@ BESS_GRPC3
     Stop Engine
     ${result}    Check Poller Disabled In Database    1    10
     Should Be True    ${result}
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BESS_GRPC4
     [Documentation]    Start-Stop grpc version Broker/Engine - Engine started first - Broker stopped first
@@ -167,7 +167,7 @@ BESS_GRPC4
     Start Broker
     ${result}    Check Connections
     Should Be True    ${result}
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Engine
 
 BESS_GRPC5
@@ -191,7 +191,7 @@ BESS_GRPC5
     Stop Engine
     ${result}    Check Poller Disabled In Database    1    10
     Should Be True    ${result}
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BESS_GRPC_COMPRESS1
     [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
@@ -215,7 +215,7 @@ BESS_GRPC_COMPRESS1
     Stop Engine
     ${result}    Check Poller Disabled In Database    1    10
     Should Be True    ${result}
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BESS_CRYPTED_GRPC1
     [Documentation]    Start-Stop grpc version Broker/Engine - well configured
@@ -245,7 +245,7 @@ BESS_CRYPTED_GRPC1
         Stop Engine
         ${result}    Check Poller Disabled In Database    1    10
         Should Be True    ${result}
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BESS_CRYPTED_GRPC2
@@ -267,7 +267,7 @@ BESS_CRYPTED_GRPC2
         Start Broker
         Ctn Start Engine
         Sleep    2s
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
         Stop Engine
     END
 
@@ -290,7 +290,7 @@ BESS_CRYPTED_GRPC3
         Start Broker
         Ctn Start Engine
         Sleep    2s
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
         Stop Engine
     END
 
@@ -318,7 +318,7 @@ BESS_CRYPTED_REVERSED_GRPC1
         ${result}    Check Connections
         Should Be True    ${result}
         Sleep    2s
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
         Stop Engine
     END
 
@@ -343,7 +343,7 @@ BESS_CRYPTED_REVERSED_GRPC2
         Start Broker
         Ctn Start Engine
         Sleep    5s
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
         Stop Engine
     END
 
@@ -366,7 +366,7 @@ BESS_CRYPTED_REVERSED_GRPC3
         Start Broker
         Ctn Start Engine
         Sleep    5s
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
         Stop Engine
     END
 
@@ -385,13 +385,13 @@ BESS_ENGINE_DELETE_HOST
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
-    Kindly Stop Broker    True
+    Ctn Kindly Stop Broker    True
     Start Broker    True
     Engine Config Remove Service Host    ${0}    host_16
     Engine Config Remove Host    ${0}    host_16
     Reload Engine
     Sleep    2s
-    Kindly Stop Broker    True
+    Ctn Kindly Stop Broker    True
     Stop Engine
 
 BESSBQ1
@@ -417,7 +417,7 @@ BESSBQ1
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
     Should Be True    ${result}    Services should be updated after the ingestion of the queue file
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 Start_Stop_Engine_Broker_${id}
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Broker stopped first
@@ -454,7 +454,7 @@ Start_Stop_Engine_Broker_${id}
     Examples:    id    grpc    --
     ...    1    False
     ...    2    True
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 Start_Stop_Broker_Engine_${id}
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
@@ -483,7 +483,7 @@ Start_Stop_Broker_Engine_${id}
     Should Be True    ${result}    no connection between engine and cbd
     Sleep    5s
     ${stop_broker}    Get Current Date
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     ${content}    Create List    failover central-module-master-output: connection closed
     ${result}    Find In Log With Timeout    ${moduleLog0}    ${stop_broker}    ${content}    60
     Should Be True    ${result}    connection closed not found

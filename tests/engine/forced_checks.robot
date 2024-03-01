@@ -55,7 +55,7 @@ EFHC1
     ${result}    Check Host Status    host_1    1    1    False
     Should Be True    ${result}    host_1 should be down/hard
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 EFHC2
     [Documentation]    Engine is configured with hosts and we force check on one 5 times on bbdo2
@@ -98,7 +98,7 @@ EFHC2
     ${result}    Check Host Status    host_1    1    1    False
     Should Be True    ${result}    host_1 should be down/hard
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 EFHCU1
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
@@ -148,7 +148,7 @@ EFHCU1
     ${result}    Check Host Status    host_1    1    1    True
     Should Be True    ${result}    host_1 should be down/hard
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 EFHCU2
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior.
@@ -197,7 +197,7 @@ EFHCU2
     ${result}    Check Host Status    host_1    1    1    True
     Should Be True    ${result}    host_1 should be down/hard
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 EMACROS
     [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in check outputs
@@ -232,7 +232,7 @@ EMACROS
     Should Be True    ${result}    AdminEmail: titus@bidibule.com - AdminPager: admin not found in log.
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 EMACROS_NOTIF
     [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in notification commands
@@ -278,7 +278,7 @@ EMACROS_NOTIF
     ...    ResourceFile: /tmp/etc/centreon-engine/resource.cfg - LogFile: /tmp/var/log/centreon-engine/centengine.log - AdminEmail: titus@bidibule.com - AdminPager: admin
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 EMACROS_SEMICOLON
     [Documentation]    Macros with a semicolon are used even if they contain a semicolon.
@@ -313,4 +313,4 @@ EMACROS_SEMICOLON
     Should Be True    ${result}    VAL1;val3; not found in log.
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker

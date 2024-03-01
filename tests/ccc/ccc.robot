@@ -31,7 +31,7 @@ BECCC1
     END
     Should Be Equal As Strings    ${content.strip()}    You must specify a port for the connection to the gRPC server
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
 BECCC2
@@ -64,7 +64,7 @@ BECCC2
     ${expected}    Catenate    Connected to a Centreon Broker    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
 BECCC3
@@ -96,7 +96,7 @@ BECCC3
     ${expected}    Catenate    Connected to a Centreon Engine    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
 BECCC4
@@ -127,7 +127,7 @@ BECCC4
     ${contains}    Evaluate    "GetVersion" in """${content}""" and "RemovePoller" in """${content}"""
     Should Be True    ${contains}    The list of methods should contain GetVersion(Empty)
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
 BECCC5
@@ -158,7 +158,7 @@ BECCC5
     ${contains}    Evaluate    "The list argument expects no command" in """${content}"""
     Should Be True    ${contains}    When -l option is applied, we can't call a command.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
 BECCC6
@@ -203,7 +203,7 @@ BECCC6
         ...    A version as json string should be returned
     END
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
 BECCC7
@@ -236,7 +236,7 @@ BECCC7
     ...    Error during the execution of '/com.centreon.broker.Broker/GetVersion' method:
     ...    GetVersion{"idx":1} should return an error because the input message is incompatible with the expected one.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
 BECCC8
@@ -270,5 +270,5 @@ BECCC8
     END
     Should Contain    ${content}    {}
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt

@@ -56,7 +56,7 @@ BEEXTCMD30
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD31
@@ -149,7 +149,7 @@ BEEXTCMD31
         END
         Should Be Equal As Strings    ${output}    ((1,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD32
@@ -222,7 +222,7 @@ BEEXTCMD32
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD33
@@ -276,7 +276,7 @@ BEEXTCMD33
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD34
@@ -327,7 +327,7 @@ BEEXTCMD34
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD35
@@ -395,7 +395,7 @@ BEEXTCMD35
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD36
@@ -442,7 +442,7 @@ BEEXTCMD36
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD37
@@ -514,7 +514,7 @@ BEEXTCMD37
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD38
@@ -565,7 +565,7 @@ BEEXTCMD38
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD39
@@ -615,7 +615,7 @@ BEEXTCMD39
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD40
@@ -662,7 +662,7 @@ BEEXTCMD40
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD41
@@ -716,7 +716,7 @@ BEEXTCMD41
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD42
@@ -767,7 +767,7 @@ BEEXTCMD42
         Should Be Equal As Strings    ${output}    ((1,),)
 
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_GRPC1
@@ -808,7 +808,7 @@ BEEXTCMD_GRPC1
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_GRPC2
@@ -847,7 +847,7 @@ BEEXTCMD_GRPC2
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_GRPC3
@@ -888,7 +888,7 @@ BEEXTCMD_GRPC3
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_GRPC4
@@ -926,7 +926,7 @@ BEEXTCMD_GRPC4
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC1
@@ -972,7 +972,7 @@ BEEXTCMD_REVERSE_GRPC1
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC2
@@ -1015,7 +1015,7 @@ BEEXTCMD_REVERSE_GRPC2
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC3
@@ -1060,7 +1060,7 @@ BEEXTCMD_REVERSE_GRPC3
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC4
@@ -1103,7 +1103,7 @@ BEEXTCMD_REVERSE_GRPC4
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_COMPRESS_GRPC1
@@ -1146,7 +1146,7 @@ BEEXTCMD_COMPRESS_GRPC1
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
         Stop Engine
-        Kindly Stop Broker
+        Ctn Kindly Stop Broker
     END
 
 BEATOI11
@@ -1169,7 +1169,7 @@ BEATOI11
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEATOI12
     [Documentation]    external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
@@ -1192,7 +1192,7 @@ BEATOI12
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEATOI13
     [Documentation]    external command Schedule Service Downtime with duration<0 should fail
@@ -1215,7 +1215,7 @@ BEATOI13
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument duration must be an integer >= 0.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEATOI21
     [Documentation]    external command ADD_HOST_COMMENT and DEL_HOST_COMMENT should work
@@ -1242,7 +1242,7 @@ BEATOI21
     ${result}    Find Internal Id    ${start}    False    30
     Should Be True    ${result}    the comment with id:${com_id} was not deleted.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEATOI22
     [Documentation]    external command DEL_HOST_COMMENT with comment_id<0 should fail
@@ -1272,7 +1272,7 @@ BEATOI22
     ${result}    Find Internal Id    ${start}    True    30
     Should Be True    ${result}    comment with id:-1 was deleted.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEATOI23
     [Documentation]    external command ADD_SVC_COMMENT with persistent=0 should work
@@ -1295,7 +1295,7 @@ BEATOI23
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument persistent_flag must be 0 or 1.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BECUSTOMHOSTVAR
     [Documentation]    external command CHANGE_CUSTOM_HOST_VAR on SNMPVERSION
@@ -1329,7 +1329,7 @@ BECUSTOMHOSTVAR
     Should Be Equal As Strings    ${output}    (('789456',),)
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BECUSTOMSVCVAR
     [Documentation]    external command CHANGE_CUSTOM_SVC_VAR on CRITICAL
@@ -1363,7 +1363,7 @@ BECUSTOMSVCVAR
     Should Be Equal As Strings    ${output}    (('456123',),)
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BESERVCHECK
     [Documentation]    external command CHECK_SERVICE_RESULT

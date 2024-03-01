@@ -41,7 +41,7 @@ EBSNU1
     END
     Should Be Equal As Strings    ${output}    (('${nu}',),)
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 EBSAU2
     [Documentation]    New services with action_url with more than 2000 characters
@@ -74,7 +74,7 @@ EBSAU2
     END
     Should Be Equal As Strings    ${output}    (('${au}',),)
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 EBSN3
     [Documentation]    New services with notes with more than 500 characters
@@ -107,4 +107,4 @@ EBSN3
     END
     Should Be Equal As Strings    ${output}    (('${n}',),)
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker

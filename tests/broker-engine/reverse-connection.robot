@@ -30,7 +30,7 @@ BRGC1
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     Run Reverse Bam    ${50}    ${0.2}
 
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Engine
 
     ${content}    Create List
@@ -62,7 +62,7 @@ BRCTS1
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     Run Reverse Bam    ${150}    ${10}
 
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Engine
 
     ${content}    Create List
@@ -94,7 +94,7 @@ BRCS1
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Engine
 
     ${content}    Create List
@@ -135,7 +135,7 @@ BRCTSMN
     ${expected_events}    Create List    65563    65566    65565    65568
     ${categories}    Create List    1
     ${output}    Check Map Output    ${categories}    ${expected_events}    120
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Map
     Should Be True    ${output}    Filters badly applied in Broker
 
@@ -211,6 +211,6 @@ BRCTSMNS
     ${output}    Check Map Output    ${categories}    ${expected_events}    120
     Should Be True    ${output}    Filters badly applied in Broker
 
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Map
     Stop Engine

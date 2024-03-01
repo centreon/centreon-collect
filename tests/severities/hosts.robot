@@ -44,7 +44,7 @@ BEUHSEV1
     Should Be True    ${result}    Host 1 should have no severity
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEUHSEV2
     [Documentation]    Seven hosts are configured with a severity on two pollers. Then we remove severities from the first and second hosts of the first poller but only the severity from the first host of the second poller.
@@ -115,7 +115,7 @@ BEUHSEV2
     Should Be True    ${result}    Second step: Host 5 should have severity_id=17
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BETUHSEV1
     [Documentation]    Hosts have severities provided by templates.
@@ -166,4 +166,4 @@ BETUHSEV1
     Should Be True    ${result}    First step: Host 33 should have severity_id=10
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker

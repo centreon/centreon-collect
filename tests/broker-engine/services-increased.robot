@@ -43,7 +43,7 @@ EBNSVC1
         Should Be True    ${result}    Poller 3 should monitor ${nb_srv} services and 16 hosts.
     END
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 Service_increased_huge_check_interval
     [Documentation]    New services with high check interval at creation time.
@@ -144,4 +144,4 @@ Service_increased_huge_check_interval
         ...    rra[0].pdp_per_row must be equal to 5400 for metric ${m}
     END
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Run Keywords    Stop Engine    AND    Ctn Kindly Stop Broker

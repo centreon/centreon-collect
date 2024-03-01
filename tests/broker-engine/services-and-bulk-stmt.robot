@@ -67,7 +67,7 @@ EBBPS1
             ...    30
             Should Be True    ${result}    No service_status processing found.
             Log To Console    Stopping Broker
-            Kindly Stop Broker
+            Ctn Kindly Stop Broker
             Log To Console    Waiting for 5s
             Sleep    5s
             Log To Console    Restarting Broker
@@ -149,7 +149,7 @@ EBBPS2
             ...    ${first_service_status_content}
             ...    30
             Should Be True    ${result}    No service_status processing found.
-            Kindly Stop Broker
+            Ctn Kindly Stop Broker
             Log To Console    Waiting for 5s
             Sleep    5s
             Log To Console    Restarting Broker
@@ -329,7 +329,7 @@ RLCode
     Should Be True    ${result}    The Lua virtual machine is not correctly initialized
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 metric_mapping
     [Documentation]    Check if metric name exists using a stream connector
@@ -442,5 +442,5 @@ Services_and_bulks_${id}
 *** Keywords ***
 Test Clean
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Ctn Save Logs If Failed

@@ -32,7 +32,7 @@ BSCSSK1
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the bad connection.
 
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BSCSSK2
     [Documentation]    Start-Stop two instances of broker, server configured with tcp and client with grpc. No connection established and error raised on client side.
@@ -58,7 +58,7 @@ BSCSSK2
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the bad connection.
 
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 
 *** Keywords ***

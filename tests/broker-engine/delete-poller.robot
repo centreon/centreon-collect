@@ -37,7 +37,7 @@ EBDP1
     Should Be Equal As Strings    ${output}    ((4,),)
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${3}    ${50}    ${20}
     ${start}    Get Current Date
@@ -53,7 +53,7 @@ EBDP1
     Sleep    6s
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
@@ -106,7 +106,7 @@ EBDP2
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Clear Engine Logs
     Ctn Start Engine
     Start Broker
@@ -119,7 +119,7 @@ EBDP2
     Remove Poller    51001    Poller2
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -179,7 +179,7 @@ EBDP_GRPC2
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Clear Engine Logs
     Ctn Start Engine
     Start Broker
@@ -192,7 +192,7 @@ EBDP_GRPC2
     Remove Poller    51001    Poller2
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -252,7 +252,7 @@ EBDP3
     Remove Poller    51001    Poller2
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -295,7 +295,7 @@ EBDP4
     ${content}    Create List    processing poller event (id: 4, name: Poller3, running:
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    We want the poller 4 event before stopping broker
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Remove Files    ${centralLog}    ${rrdLog}
 
     # Generation of many service status but kept in memory on poller3.
@@ -349,7 +349,7 @@ EBDP4
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about these two wrong service status.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 EBDP5
     [Documentation]    Four new pollers are started and then we remove Poller3.
@@ -378,7 +378,7 @@ EBDP5
     Should Be Equal As Strings    ${output}    ((4,),)
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${3}    ${50}    ${20}
     ${start}    Get Current Date
@@ -399,7 +399,7 @@ EBDP5
     Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
@@ -447,7 +447,7 @@ EBDP6
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Clear Engine Logs
     Ctn Start Engine
     Start Broker
@@ -466,7 +466,7 @@ EBDP6
     Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -532,7 +532,7 @@ EBDP7
     Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -575,7 +575,7 @@ EBDP8
     ${content}    Create List    processing poller event (id: 4, name: Poller3, running:
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    We want the poller 4 event before stopping broker
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Remove Files    ${centralLog}    ${rrdLog}
 
     # Generation of many service status but kept in memory on poller3.
@@ -623,4 +623,4 @@ EBDP8
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about these two wrong service status.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker

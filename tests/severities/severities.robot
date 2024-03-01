@@ -31,7 +31,7 @@ BESEV1
     ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BESEV2
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
@@ -55,7 +55,7 @@ BESEV2
     ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEUSEV1
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
@@ -80,7 +80,7 @@ BEUSEV1
     ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEUSEV2
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
@@ -106,7 +106,7 @@ BEUSEV2
     ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEUSEV3
     [Documentation]    Four services have a severity added. Then we remove the severity from service 1. Then we change severity 11 to severity7 for service 3.
@@ -143,7 +143,7 @@ BEUSEV3
     Should Be True    ${result}    Service (1, 1) should have no severity
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BEUSEV4
     [Documentation]    Seven services are configured with a severity on two pollers. Then we remove severities from the first and second services of the first poller but only the severity from the first service of the second poller. Then only severities no more used should be removed from the database.
@@ -213,7 +213,7 @@ BEUSEV4
     Should Be True    ${result}    Second step: Service (1, 5) should have severity_id=17
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 BETUSEV1
     [Documentation]    Services have severities provided by templates.
@@ -263,4 +263,4 @@ BETUSEV1
     Should Be True    ${result}    First step: Service (26, 503) should have severity_id=5
 
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker

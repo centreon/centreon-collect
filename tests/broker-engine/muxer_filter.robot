@@ -32,7 +32,7 @@ STUPID_FILTER
     Should Be True    ${result}    A message telling bad filter should be available.
 
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Stop Broker    True
 
 STORAGE_ON_LUA
     [Documentation]    The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
@@ -62,7 +62,7 @@ STORAGE_ON_LUA
     Should Be Empty    ${grep_res}    Events of category different than 'storage' found.
 
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Stop Broker    True
 
 FILTER_ON_LUA_EVENT
     [Documentation]    stream connector with a bad configured filter generate a log error message
@@ -108,7 +108,7 @@ FILTER_ON_LUA_EVENT
     END
 
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Stop Broker    True
 
 BAM_STREAM_FILTER
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. we watch its events
@@ -201,7 +201,7 @@ BAM_STREAM_FILTER
     Should Not Be Empty    ${grep_res}    no rejected neb event
 
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Stop Broker    True
 
 UNIFIED_SQL_FILTER
     [Documentation]    With bbdo version 3.0.1, we watch events written or rejected in unified_sql
@@ -237,7 +237,7 @@ UNIFIED_SQL_FILTER
     END
 
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Stop Broker    True
 
 CBD_RELOAD_AND_FILTERS
     [Documentation]    We start engine/broker with a classical configuration. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
@@ -337,7 +337,7 @@ CBD_RELOAD_AND_FILTERS
     ...    Some events are rejected by the rrd output whereas all categories are enabled.
 
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Stop Broker    True
 
 CBD_RELOAD_AND_FILTERS_WITH_OPR
     [Documentation]    We start engine/broker with an almost classical configuration, just the connection between cbd central and cbd rrd is reversed with one peer retention. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
@@ -439,7 +439,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     ...    Some events are rejected by the rrd output whereas all categories are enabled.
 
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Stop Broker    True
 
 SEVERAL_FILTERS_ON_LUA_EVENT
     [Documentation]    Two stream connectors with different filters are configured.
@@ -511,4 +511,4 @@ SEVERAL_FILTERS_ON_LUA_EVENT
         ...    All the lines in all_lua_event-bis.log should contain "_type":65565
     END
     Stop Engine
-    Kindly Stop Broker    True
+    Ctn Kindly Stop Broker    True

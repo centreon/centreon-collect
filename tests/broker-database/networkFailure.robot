@@ -60,7 +60,7 @@ NetworkDBFail6
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 NetworkDBFailU6
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
@@ -90,7 +90,7 @@ NetworkDBFailU6
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 NetworkDBFail7
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s
@@ -123,7 +123,7 @@ NetworkDBFail7
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    There are still events in the queue.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 NetworkDBFailU7
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
@@ -155,7 +155,7 @@ NetworkDBFailU7
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    There are still events in the queue.
     Stop Engine
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
 
 
 *** Keywords ***
@@ -191,5 +191,5 @@ Network Failure
     Should Be True
     ...    ${result[0]}
     ...    timeout after network to be restablished (network failure duration : ${interval})
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Stop Engine

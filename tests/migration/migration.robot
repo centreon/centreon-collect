@@ -37,7 +37,7 @@ MIGRATION
     ${start}    Get Current Date
 
     Log To Console    Move to BBDO 2.0.0 with unified_sql
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Start Broker
     Stop Engine
     Ctn Start Engine
@@ -54,7 +54,7 @@ MIGRATION
     ${start}    Get Current Date
 
     Log To Console    Move to BBDO 3.0.0 with unified_sql
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Start Broker
     Stop Engine
     Ctn Start Engine
@@ -75,7 +75,7 @@ MIGRATION
     ${start}    Get Current Date
 
     Log To Console    Move back to BBDO 2.0.0 with unified_sql
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Start Broker
     Stop Engine
     Ctn Start Engine
@@ -90,7 +90,7 @@ MIGRATION
 
     Log To Console    Move back to BBDO 2.0.0 with sql/storage
     Config Broker Sql Output    central    sql/perfdata
-    Kindly Stop Broker
+    Ctn Kindly Stop Broker
     Start Broker
     Stop Engine
     Ctn Start Engine
