@@ -1746,7 +1746,7 @@ def disable_host_notifications(use_grpc: int, hst: str):
             f.write(cmd)
 
 
-def enable_host_notifications(use_grpc: int, hst: str):
+def ctn_enable_host_notifications(use_grpc: int, hst: str):
     """
     Enable notifications on a host.
 

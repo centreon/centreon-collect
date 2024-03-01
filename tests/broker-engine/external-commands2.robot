@@ -44,7 +44,7 @@ BEEXTCMD30
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Notifications    ${use_grpc}    host_1
+        Ctn Enable Host Notifications    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
@@ -116,7 +116,7 @@ BEEXTCMD31
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Svc Checks    ${use_grpc}    host_1
+        Ctn Enable Host Svc Checks    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console
