@@ -546,7 +546,7 @@ def _add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
             json_dict["private_key"] = "/tmp/server_1234.key"
 
 
-def add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
+def ctn_add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
     """
     Add some crypto to broker gRPC input.
 
@@ -557,7 +557,7 @@ def add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
 
     *Example:*
 
-    | Add Broker Tcp Input Grpc Crypto | central | ${True} | ${False} |
+    | Ctn Add Broker Tcp Input Grpc Crypto | central | ${True} | ${False} |
     """
     def _crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
@@ -568,7 +568,7 @@ def add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
     _apply_conf(name, _crypto_modifier)
 
 
-def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool):
+def ctn_add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool):
     """
     Add grpc crypto to broker tcp output
 
@@ -579,7 +579,7 @@ def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool)
 
      *Example:*
 
-    | Add Broker Tcp Output Grpc Crypto | module0 | ${True} | ${False} |
+    | Ctn Add Broker Tcp Output Grpc Crypto | module0 | ${True} | ${False} |
     """
     def _crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["output"]

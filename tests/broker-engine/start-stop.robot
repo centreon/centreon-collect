@@ -231,8 +231,8 @@ BESS_CRYPTED_GRPC1
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Add Broker Tcp Output Grpc Crypto    module0    True    False
-    Add Broker Tcp Input Grpc Crypto    central    True    False
+    Ctn Add Broker Tcp Output Grpc Crypto    module0    True    False
+    Ctn Add Broker Tcp Input Grpc Crypto    central    True    False
     Remove Host From Broker Output    module0    central-module-master-output
     Add Host To Broker Output    module0    central-module-master-output    localhost
     FOR    ${i}    IN RANGE    0    5
@@ -262,7 +262,7 @@ BESS_CRYPTED_GRPC2
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Add Broker Tcp Input Grpc Crypto    central    True    False
+    Ctn Add Broker Tcp Input Grpc Crypto    central    True    False
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -285,7 +285,7 @@ BESS_CRYPTED_GRPC3
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Add Broker Tcp Output Grpc Crypto    module0    True    False
+    Ctn Add Broker Tcp Output Grpc Crypto    module0    True    False
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -308,8 +308,8 @@ BESS_CRYPTED_REVERSED_GRPC1
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Add Broker Tcp Output Grpc Crypto    module0    True    True
-    Add Broker Tcp Input Grpc Crypto    central    True    True
+    Ctn Add Broker Tcp Output Grpc Crypto    module0    True    True
+    Ctn Add Broker Tcp Input Grpc Crypto    central    True    True
     Add Host To Broker Input    central    central-broker-master-input    localhost
     Remove Host From Broker Output    module0    central-module-master-output
     FOR    ${i}    IN RANGE    0    5
@@ -336,7 +336,7 @@ BESS_CRYPTED_REVERSED_GRPC2
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Add Broker Tcp Output Grpc Crypto    module0    True    True
+    Ctn Add Broker Tcp Output Grpc Crypto    module0    True    True
     Add Host To Broker Input    central    central-broker-master-input    localhost
     Remove Host From Broker Output    module0    central-module-master-output
     FOR    ${i}    IN RANGE    0    5
@@ -359,7 +359,7 @@ BESS_CRYPTED_REVERSED_GRPC3
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Add Broker Tcp Input Grpc Crypto    central    True    True
+    Ctn Add Broker Tcp Input Grpc Crypto    central    True    True
     Add Host To Broker Input    central    central-broker-master-input    localhost
     Remove Host From Broker Output    module0    central-module-master-output
     FOR    ${i}    IN RANGE    0    5
