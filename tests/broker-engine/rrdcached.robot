@@ -66,7 +66,7 @@ BRRDCDDID1
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
-    ${indexes}    Get Indexes To Delete    2
+    ${indexes}    Ctn Get Indexes To Delete    2
     ${metrics}    Get Metrics Matching Indexes    ${indexes}
     Log To Console    indexes ${indexes} to delete with their metrics
 
@@ -176,7 +176,7 @@ BRRDCDDIDU1
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
-    ${indexes}    Get Indexes To Delete    2
+    ${indexes}    Ctn Get Indexes To Delete    2
     ${metrics}    Get Metrics Matching Indexes    ${indexes}
     Log To Console    indexes ${indexes} to delete with their metrics
 
@@ -247,7 +247,7 @@ BRRDCDRB1
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
-    ${index}    Get Indexes To Rebuild    3
+    ${index}    Ctn Get Indexes To Rebuild    3
     Rebuild Rrd Graphs    51001    ${index}    1
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
@@ -307,7 +307,7 @@ BRRDCDRBU1
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
-    ${index}    Get Indexes To Rebuild    3
+    ${index}    Ctn Get Indexes To Rebuild    3
     Rebuild Rrd Graphs    51001    ${index}    1
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}

@@ -1518,7 +1518,7 @@ def ctn_get_not_existing_indexes(count: int):
     return ids_db
 
 
-def get_indexes_to_delete(count: int):
+def ctn_get_indexes_to_delete(count: int):
     """
     Gets count indexes from centreon_storage.index_data that really exist.
 
@@ -1901,7 +1901,7 @@ def stop_map():
     logger.console("map_client_type stopped")
 
 
-def get_indexes_to_rebuild(count: int, nb_day=180):
+def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
     """
     Get count indexes that are available to rebuild.
 

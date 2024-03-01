@@ -84,7 +84,7 @@ Service_increased_huge_check_interval
     ${content}    Create List    new pb data for metric
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
 
-    ${index}    Get Indexes To Rebuild    2
+    ${index}    Ctn Get Indexes To Rebuild    2
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics: ${metrics}
 

@@ -72,7 +72,7 @@ BRRDDIDDB1
     Should Be True    ${result}    Engine and Broker not connected
 
     Log To Console    STEP1
-    ${indexes}    Get Indexes To Delete    2
+    ${indexes}    Ctn Get Indexes To Delete    2
     Log To Console    STEP2
     ${metrics}    Get Metrics Matching Indexes    ${indexes}
     Log To Console    STEP3
@@ -116,7 +116,7 @@ BRRDRBDB1
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
-    ${index}    Get Indexes To Rebuild    3
+    ${index}    Ctn Get Indexes To Rebuild    3
     Rebuild Rrd Graphs From Db    ${index}
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
@@ -164,7 +164,7 @@ BRRDRBUDB1
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
-    ${index}    Get Indexes To Rebuild    3
+    ${index}    Ctn Get Indexes To Rebuild    3
     Rebuild Rrd Graphs From Db    ${index}
     Reload Broker
     Log To Console    Indexes to rebuild: ${index}
@@ -210,7 +210,7 @@ BRRDUPLICATE
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
-    ${index}    Get Indexes To Rebuild    3    2
+    ${index}    Ctn Get Indexes To Rebuild    3    2
     ${duplicates}    Add Duplicate Metrics
     Rebuild Rrd Graphs From Db    ${index}
     Log To Console    Indexes to rebuild: ${index}
