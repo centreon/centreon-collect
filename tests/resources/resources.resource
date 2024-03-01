@@ -209,7 +209,7 @@ Stop Engine Broker And Save Logs
     EXCEPT
         Log    Can't kindly stop Broker
     END
-    Save Logs If Failed
+    Ctn Save Logs If Failed
 
 Get Engine Pid
     [Arguments]    ${process_alias}
@@ -248,7 +248,7 @@ Reset Eth Connection
     Run    iptables -F
     Run    iptables -X
 
-Save Logs If Failed
+Ctn Save Logs If Failed
     Run Keyword If Test Failed    Save Logs
 
 Save Logs

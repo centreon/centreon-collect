@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Clean Before Suite With rrdcached
 Suite Teardown      Clean After Suite With rrdcached
 Test Setup          Stop Processes
-Test Teardown       Save Logs If Failed
+Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
