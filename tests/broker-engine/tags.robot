@@ -73,7 +73,7 @@ BEUTAG1
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -101,7 +101,7 @@ BEUTAG2
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    1
     Broker Config Output Set    central    central-broker-unified-sql    queries_per_transaction    1
     Broker Config Output Set    central    central-broker-unified-sql    read_timeout    1
@@ -144,7 +144,7 @@ BEUTAG3
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -176,7 +176,7 @@ BEUTAG4
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -212,7 +212,7 @@ BEUTAG5
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -250,7 +250,7 @@ BEUTAG6
     Config Broker    rrd
     Config Broker    module    ${1}
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -291,7 +291,7 @@ BEUTAG7
     Config Broker    rrd
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    2
+    Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
@@ -362,7 +362,7 @@ BEUTAG8
     Config Broker    rrd
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    2
+    Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
@@ -414,7 +414,7 @@ BEUTAG9
     Config Broker    rrd
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    2
+    Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
@@ -472,7 +472,7 @@ BEUTAG10
     Config Broker    rrd
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    2
+    Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
@@ -538,7 +538,7 @@ BEUTAG11
     Config Broker    rrd
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    2
+    Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
@@ -599,7 +599,7 @@ BEUTAG12
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -654,7 +654,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention

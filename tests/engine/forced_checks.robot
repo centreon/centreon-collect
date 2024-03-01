@@ -115,7 +115,7 @@ EFHCU1
     Broker Config Log    module0    neb    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Log    central    sql    debug
-    Config BBDO3    1
+    Ctn Config BBDO3    1
 
     Clear Retention
     Clear Db    resources
@@ -165,7 +165,7 @@ EFHCU2
     Broker Config Log    module0    neb    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Log    central    sql    debug
-    Config BBDO3    1
+    Ctn Config BBDO3    1
 
     Clear Retention
     ${start}    Get Current Date

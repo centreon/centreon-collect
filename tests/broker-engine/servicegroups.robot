@@ -83,7 +83,7 @@ EBNSGU2
     Broker Config Log    central    sql    info
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
-    Config BBDO3    4
+    Ctn Config BBDO3    4
     Broker Config Log    central    sql    debug
 
     Clear Retention
@@ -130,9 +130,9 @@ EBNSGU3_${test_label}
 
     Create File    /tmp/lua-engine.log
 
-    IF    ${Use_BBDO3}    Config BBDO3    ${3}
+    IF    ${Use_BBDO3}    Ctn Config BBDO3    ${3}
 
-    Config BBDO3    ${3}
+    Ctn Config BBDO3    ${3}
 
     ${start}    Get Current Date
     Start Broker

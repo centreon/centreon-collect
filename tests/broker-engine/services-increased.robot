@@ -17,7 +17,7 @@ EBNSVC1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Config BBDO3    3
+    Ctn Config BBDO3    3
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Clear Retention
@@ -53,7 +53,7 @@ Service_increased_huge_check_interval
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Source Log    central    1
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    debug
     Broker Config Log    rrd    core    error

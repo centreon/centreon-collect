@@ -114,7 +114,7 @@ BRCTSMN
     Config Broker    rrd
     Config Broker    central_map
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
 
     Broker Config Output Set Json    central    centreon-broker-master-map    filters    {"category": ["neb"]}
     Broker Config Log    central    bbdo    trace
@@ -159,7 +159,7 @@ BRCTSMNS
     Config Broker    rrd
     Config Broker    central_map
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
 
     Broker Config Output Set Json
     ...    central

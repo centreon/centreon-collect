@@ -26,7 +26,7 @@ BENCH_${nb_check}STATUS
     Broker Config Log    central    sql    trace
     Broker Config Log    central    core    info
     Broker Config Log    central    processing    error
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
@@ -161,7 +161,7 @@ BENCH_1000STATUS_100${suffixe}
     Broker Config Log    central    sql    trace
     Broker Config Log    central    core    info
     Broker Config Log    central    processing    error
-    Config BBDO3    ${100}
+    Ctn Config BBDO3    ${100}
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
     ${start}    Get Current Date

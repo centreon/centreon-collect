@@ -68,7 +68,7 @@ BEUSEV1
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -93,7 +93,7 @@ BEUSEV2
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
@@ -120,7 +120,7 @@ BEUSEV3
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention
@@ -163,7 +163,7 @@ BEUSEV4
     Config Broker    rrd
     Config Broker    module    2
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    2
+    Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention
@@ -238,7 +238,7 @@ BETUSEV1
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    2
+    Ctn Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention

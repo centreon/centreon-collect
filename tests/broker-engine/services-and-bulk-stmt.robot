@@ -19,7 +19,7 @@ EBBPS1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    core    info
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
@@ -102,7 +102,7 @@ EBBPS2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    core    info
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
@@ -185,7 +185,7 @@ EBMSSM
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    debug
@@ -231,7 +231,7 @@ EBPS2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
@@ -272,7 +272,7 @@ RLCode
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    error
     Broker Config Log    central    lua    debug

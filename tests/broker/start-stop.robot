@@ -87,7 +87,7 @@ START_STOP_CBD
     Config Broker    module
     Config Broker    rrd
     Config Broker    module    ${1}
-    Config BBDO3    nbEngine=1
+    Ctn Config BBDO3    nbEngine=1
     Config Engine    ${1}    ${50}    ${20}
     Config Broker Sql Output    central    unified_sql
 

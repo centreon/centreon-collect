@@ -18,7 +18,7 @@ BEBAMIDTU1
     Config Broker    central
     Config Broker    rrd
     Broker Config Log    central    bam    trace
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -79,7 +79,7 @@ BEBAMIDTU2
     Config Broker    rrd
     Broker Config Log    central    bam    trace
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -168,7 +168,7 @@ BEBAMIGNDTU1
     Broker Config Log    module0    neb    trace
     Config Broker    rrd
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Config Engine    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
@@ -277,7 +277,7 @@ BEBAMIGNDTU2
     Broker Config Log    central    bam    trace
     Config Broker    rrd
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Config Engine    ${1}
 
     Clone Engine Config To DB

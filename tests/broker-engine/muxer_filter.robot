@@ -19,7 +19,7 @@ STUPID_FILTER
     Config Broker    rrd
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Output Set Json    central    central-broker-unified-sql    filters    {"category": ["bbdo"]}
 
     ${start}    Get Current Date
@@ -45,7 +45,7 @@ STORAGE_ON_LUA
     Config Broker    rrd
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Add Lua Output    central    test-filter    ${SCRIPTS}test-log-all-event.lua
     Broker Config Output Set Json    central    test-filter    filters    {"category": [ "storage"]}
 
@@ -75,7 +75,7 @@ FILTER_ON_LUA_EVENT
     Config Broker    rrd
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Add Lua Output
     ...    central
     ...    test-filter
@@ -119,7 +119,7 @@ BAM_STREAM_FILTER
     Config Broker    rrd
     Broker Config Log    central    core    trace
     Broker Config Log    central    config    trace
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -211,7 +211,7 @@ UNIFIED_SQL_FILTER
     Config Broker    central
     Config Broker    rrd
     Broker Config Log    central    core    trace
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
     ${start}    Get Current Date
@@ -249,7 +249,7 @@ CBD_RELOAD_AND_FILTERS
     Config Broker    rrd
     Broker Config Log    central    config    trace
     Broker Config Log    rrd    rrd    debug
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
     Log To Console    First configuration: all events are sent to rrd.
@@ -352,7 +352,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Broker Config Input Set    rrd    central-rrd-master-input    host    localhost
     Broker Config Log    central    config    trace
     Broker Config Log    rrd    rrd    debug
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
     Log To Console    First configuration: all events are sent to rrd.
@@ -453,7 +453,7 @@ SEVERAL_FILTERS_ON_LUA_EVENT
     Config Broker    rrd
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Add Lua Output
     ...    central
     ...    test-filter

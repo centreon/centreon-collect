@@ -25,7 +25,7 @@ BEDTMASS1
     Broker Config Log    module1    neb    debug
     Broker Config Log    module2    neb    debug
 
-    Config BBDO3    3
+    Ctn Config BBDO3    3
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Clear Retention

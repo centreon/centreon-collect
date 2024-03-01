@@ -182,7 +182,7 @@ AOUTLU1
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
@@ -215,7 +215,7 @@ ANO_DT1
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
@@ -250,7 +250,7 @@ ANO_DT2
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
@@ -289,7 +289,7 @@ ANO_DT3
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
@@ -329,7 +329,7 @@ ANO_DT4
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}

@@ -60,7 +60,7 @@ BEPBBEE3
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservicestatus.lua
@@ -80,7 +80,7 @@ BEPBBEE4
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbhoststatus.lua
@@ -100,7 +100,7 @@ BEPBBEE5
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservice.lua
@@ -119,7 +119,7 @@ BEPBRI1
     Config Engine    ${1}
     Config Broker    central
     Config Broker    module
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    read_timeout    2
@@ -152,7 +152,7 @@ BEPBCVS
     [Tags]    broker    engine    protobuf    bbdo
     Config Engine    ${1}
     Config Broker    central
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Clear Retention
@@ -183,7 +183,7 @@ BEPB_HOST_DEPENDENCY
     Add Host Dependency    0    host_1    host_2                                
     Config Broker    central                                                    
     Config Broker    module                                                     
-    Config BBDO3    ${1}                                                        
+    Ctn Config BBDO3    ${1}                                                        
     Broker Config Log    central    sql    trace                                
     Config Broker Sql Output    central    unified_sql                          
     Clear Retention                                                             
@@ -210,7 +210,7 @@ BEPB_SERVICE_DEPENDENCY
     Add Service Dependency    0    host_1    host_2    service_1    service_21
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Clear Retention
@@ -253,7 +253,7 @@ BEPBHostParent
     Config Engine    ${1}
     Add Parent To Host    0    host_1    host_2
     Config Broker    central
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Clear Retention

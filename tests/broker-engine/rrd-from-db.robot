@@ -154,7 +154,7 @@ BRRDRBUDB1
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
     Broker Config Flush Log    rrd    0
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Create Metrics    3
 
     ${start}    Get Current Date    exclude_millis=True

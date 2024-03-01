@@ -58,7 +58,7 @@ BEACK2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
 
@@ -137,7 +137,7 @@ BEACK4
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
 
@@ -226,7 +226,7 @@ BEACK6
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
 

@@ -17,7 +17,7 @@ VICT_ONE_CHECK_METRIC
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Clear Retention
     Broker Config Log    central    victoria_metrics    trace
     Broker Config Log    central    perfdata    trace
@@ -76,7 +76,7 @@ VICT_ONE_CHECK_STATUS
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Clear Retention
     Broker Config Log    central    victoria_metrics    trace
     Broker Config Log    central    perfdata    trace
@@ -199,7 +199,7 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Clear Retention
     Broker Config Log    central    victoria_metrics    trace
     Broker Config Log    central    perfdata    trace

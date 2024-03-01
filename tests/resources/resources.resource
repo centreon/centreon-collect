@@ -25,7 +25,7 @@ ${engineLog4}       ${ENGINE_LOG}/config4/centengine.log
 
 
 *** Keywords ***
-Config BBDO3
+Ctn Config BBDO3
     [Arguments]    ${nbEngine}    ${version}=3.0.1
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    rrd    bbdo_version    ${version}

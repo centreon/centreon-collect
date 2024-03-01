@@ -17,7 +17,7 @@ EBDP1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${4}
-    Config BBDO3    ${4}
+    Ctn Config BBDO3    ${4}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Start Broker
@@ -69,7 +69,7 @@ EBDP2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Config BBDO3    ${3}
+    Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     Broker Config Log    central    processing    info
     ${start}    Get Current Date
@@ -136,7 +136,7 @@ EBDP_GRPC2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Config BBDO3    ${3}
+    Ctn Config BBDO3    ${3}
     Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Config Broker BBDO Output    module0    bbdo_client    5669    grpc    localhost
     Config Broker BBDO Output    module1    bbdo_client    5669    grpc    localhost
@@ -209,7 +209,7 @@ EBDP3
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Config BBDO3    ${3}
+    Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Start Broker
@@ -269,7 +269,7 @@ EBDP4
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${4}
-    Config BBDO3    ${4}
+    Ctn Config BBDO3    ${4}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    trace
     Broker Config Log    module3    neb    trace
@@ -358,7 +358,7 @@ EBDP5
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${4}
-    Config BBDO3    ${4}
+    Ctn Config BBDO3    ${4}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Start Broker
@@ -415,7 +415,7 @@ EBDP6
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Config BBDO3    ${3}
+    Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Start Broker
@@ -483,7 +483,7 @@ EBDP7
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Config BBDO3    ${3}
+    Ctn Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Start Broker
@@ -549,7 +549,7 @@ EBDP8
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${4}
-    Config BBDO3    ${4}
+    Ctn Config BBDO3    ${4}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    trace
     Broker Config Log    module3    neb    trace

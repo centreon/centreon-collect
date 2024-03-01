@@ -50,7 +50,7 @@ MIGRATION
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    30
     Should Be True    ${result}    No metric sent to rrd cbd by unified_sql for 30s
 
-    Config BBDO3    3
+    Ctn Config BBDO3    3
     ${start}    Get Current Date
 
     Log To Console    Move to BBDO 3.0.0 with unified_sql

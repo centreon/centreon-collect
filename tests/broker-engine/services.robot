@@ -17,7 +17,7 @@ SDER
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
     Config Broker Sql Output    central    unified_sql

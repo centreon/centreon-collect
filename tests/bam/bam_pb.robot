@@ -1148,7 +1148,7 @@ BAM Init
     Broker Config Log    central    sql    trace
     Broker Config Log    central    config    trace
     Broker Config Source Log    central    1
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Config Engine    ${1}
     # This is to avoid parasite status.
     Set Services Passive    ${0}    service_30.

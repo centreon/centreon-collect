@@ -61,7 +61,7 @@ LOGV2EBU1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Flush Log    module0    0
     Broker Config Flush Log    central    0
     Broker Config Log    central    sql    trace
@@ -248,7 +248,7 @@ LOGV2EBU2
     Config Broker    central
     Config Broker    module
     Broker Config Flush Log    module0    0
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${1}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_flush_period    0    True

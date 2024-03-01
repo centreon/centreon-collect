@@ -17,7 +17,7 @@ BERES1
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -49,7 +49,7 @@ BEHS1
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    no
@@ -94,7 +94,7 @@ BEINSTANCESTATUS
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
@@ -146,7 +146,7 @@ BEINSTANCE
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
-    Config BBDO3    1
+    Ctn Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM instances
@@ -216,7 +216,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Config Broker    central
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM services
@@ -250,7 +250,7 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     Config Broker    central
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config BBDO3    1
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM services

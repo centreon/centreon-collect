@@ -23,7 +23,7 @@ BABOO
     Broker Config Log    central    sql    error
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -95,7 +95,7 @@ BABOOOR
     Broker Config Log    central    sql    error
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -142,7 +142,7 @@ BABOOAND
     Broker Config Log    central    sql    error
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -189,7 +189,7 @@ BABOOORREL
     Broker Config Log    central    sql    error
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -284,7 +284,7 @@ BABOOCOMPL
     Broker Config Log    central    sql    error
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -340,7 +340,7 @@ BABOOCOMPL_RESTART
     Broker Config Log    central    sql    error
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
     Clone Engine Config To DB
@@ -434,7 +434,7 @@ BABOOCOMPL_RELOAD
     Broker Config Log    central    sql    error
     Broker Config Flush Log    central    0
     Broker Config Source Log    central    1
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Config Engine    ${1}
 
     Clone Engine Config To DB

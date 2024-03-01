@@ -61,7 +61,7 @@ BRRDWM1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
     Broker Config Log    rrd    core    error
@@ -163,7 +163,7 @@ BRRDDMU1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
     Broker Config Log    rrd    core    error
@@ -207,7 +207,7 @@ BRRDDIDU1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
     Broker Config Log    rrd    core    error
@@ -254,7 +254,7 @@ BRRDDMIDU1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    central    sql    info
     Broker Config Log    rrd    rrd    debug
     Broker Config Log    rrd    core    error
@@ -342,7 +342,7 @@ BRRDRMU1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
@@ -404,7 +404,7 @@ RRD1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
