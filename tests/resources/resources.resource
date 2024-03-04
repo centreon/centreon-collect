@@ -96,7 +96,7 @@ Ctn Kindly Stop Broker
     # In case of process not stopping
     IF    "${result}" == "${None}"
         Ctn Save Logs
-        Dump Process    b1    /usr/sbin/cbd    broker-central
+        Ctn Dump Process    b1    /usr/sbin/cbd    broker-central
         Send Signal To Process    SIGKILL    b1
         Fail    Central Broker not correctly stopped (coredump generated)
     ELSE
@@ -318,7 +318,7 @@ Ctn Wait Or Dump And Kill Process
     ${test_none}    Set Variable If    $result is None    "not killed"    "killed"
     IF    ${test_none} == "not killed"
         ${pid}    Get Process Id    ${process_name}
-        Dump Process    ${process_name}    ${binary_path}    ${process_name}
+        Ctn Dump Process    ${process_name}    ${binary_path}    ${process_name}
         ${result}    Wait For Process    ${process_name}    timeout=1s    on_timeout=kill
     END
     RETURN    ${result}
