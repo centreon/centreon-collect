@@ -3,8 +3,8 @@ Documentation       Engine/Broker tests on tags.
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
 Test Setup          Init Test
 Test Teardown       Stop Engine Broker And Save Logs
 
@@ -124,7 +124,7 @@ BEUTAG2
     Ctn Stop Engine
     ${start}    Get Current Date
     Ctn Start Engine
-    Reload Broker
+    Ctn Reload Broker
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -322,8 +322,8 @@ BEUTAG7
     Ctn Create Tags File    ${1}    ${18}
     Ctn Add Tags To Services    ${1}    group_tags    3,5    [505, 506, 507, 508]
     ${start}    Get Round Current Date
-    Reload Engine
-    Reload Broker
+    Ctn Reload Engine
+    Ctn Reload Broker
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -506,8 +506,8 @@ BEUTAG10
     Ctn Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 4]
     Ctn Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503]
     Ctn Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 504]
-    Reload Engine
-    Reload Broker
+    Ctn Reload Engine
+    Ctn Reload Broker
     ${result}    Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60    False
     Should Be True    ${result}    Second step: Service (1, 4) should not have servicegroup tags 2 and 4
 
@@ -572,8 +572,8 @@ BEUTAG11
     Ctn Add Tags To Services    ${0}    category_tags    3    [1, 2, 3, 4]
     Ctn Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503]
     Ctn Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 504]
-    Reload Engine
-    Reload Broker
+    Ctn Reload Engine
+    Ctn Reload Broker
     ${result}    Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
     Should Be True    ${result}    Second step: Service (1, 4) should not have servicegroup tags 2 and 4
 
@@ -627,8 +627,8 @@ BEUTAG12
     Ctn Create Tags File    ${0}    ${5}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
 
-    Reload Engine
-    Reload Broker
+    Ctn Reload Engine
+    Ctn Reload Broker
 
     ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2,3]    60    False
     Should Be True    ${result}    Host 1 should not have hostgroup tags 2 nor 3
@@ -678,7 +678,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Ctn Engine Config Remove Service Host    ${0}    host_1
     Ctn Engine Config Remove Host    0    host_1
     Ctn Engine Config Remove Tag    0    2
-    Reload Engine
+    Ctn Reload Engine
 
     ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    False
     Should Be True    ${result}    Host 1 should not have hostgroup tags 2
@@ -693,7 +693,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
 
     Ctn Create Tags File    ${0}    ${3}    ${0}    hostgroup
     Ctn Add Tags To Hosts    ${0}    group_tags    2    [2,3]
-    Reload Engine
+    Ctn Reload Engine
 
     ${result}    Check Resources Tags With Timeout    0    2    hostgroup    [2]    60    True
     Should Be True    ${result}    Host 2 should have hostgroup tags 2
@@ -704,5 +704,5 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
 
 *** Keywords ***
 Init Test
-    Stop Processes
+    Ctn Stop Processes
     Ctn Truncate Resource Host Service

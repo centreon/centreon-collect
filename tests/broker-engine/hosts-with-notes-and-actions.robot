@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine Creation of hosts with long actio
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
 

@@ -3,9 +3,9 @@ Documentation       Engine/Broker tests on severities.
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
 
@@ -135,8 +135,8 @@ BEUSEV3
     Ctn Remove Severities From Services    ${0}
     Ctn Add Severity To Services    0    11    [2, 4]
     Ctn Add Severity To Services    0    7    [3]
-    Reload Engine
-    Reload Broker
+    Ctn Reload Engine
+    Ctn Reload Broker
     ${result}    Check Service Severity With Timeout    1    3    7    60
     Should Be True    ${result}    Service (1, 3) should have severity_id=7
     ${result}    Check Service Severity With Timeout    1    1    None    60
@@ -197,8 +197,8 @@ BEUSEV4
     Ctn Create Severities File    ${0}    ${18}
     Ctn Create Severities File    ${1}    ${18}
     Ctn Add Severity To Services    1    17    [503]
-    Reload Engine
-    Reload Broker
+    Ctn Reload Engine
+    Ctn Reload Broker
     Sleep    3s
     ${result}    Check Service Severity With Timeout    26    503    17    60
     Should Be True    ${result}    Second step: Service (26, 503) should have severity_id=17

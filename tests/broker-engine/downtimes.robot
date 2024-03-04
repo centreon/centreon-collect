@@ -4,8 +4,8 @@ Documentation       Centreon Broker and Engine progressively add services
 Resource            ../resources/import.resource
 
 Suite Setup         Clean Downtimes Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
 
@@ -137,7 +137,7 @@ BEDTSVCREN1
     # Let's rename the service service_1
     Ctn Rename Service    ${0}    host_1    service_1    toto_1
 
-    Reload Engine
+    Ctn Reload Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -332,7 +332,7 @@ DTIM
 
 *** Keywords ***
 Clean Downtimes Before Suite
-    Clean Before Suite
+    Ctn Clean Before Suite
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${output}    Execute SQL String    DELETE FROM downtimes WHERE deletion_time IS NULL

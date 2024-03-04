@@ -3,8 +3,8 @@ Documentation       Centreon Broker and BAM with bbdo version 3.0.1
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
 Test Setup          BAM Setup
 Test Teardown       Ctn Save Logs If Failed
 
@@ -21,14 +21,14 @@ BEBAMIDTU1
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
 
-    Clone Engine Config To DB
+    Ctn Clone Engine Config To DB
     Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     Ctn Create Ba With Services    test    worst    ${svc}
     Ctn Add Bam Config To Broker    central
     # Command of service_314 is set to critical
-    ${cmd_1}    Get Command Id    314
+    ${cmd_1}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker
@@ -42,12 +42,12 @@ BEBAMIDTU1
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
     # KPI set to critical
-    Process Service Result Hard    host_16    service_314    2    output critical for 314
-    ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
-    ${result}    Check Ba Status With Timeout    test    2    60
+    ${result}    Ctn Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
 
     # A downtime is put on service_314
@@ -82,14 +82,14 @@ BEBAMIDTU2
     Ctn Config BBDO3    1
     Ctn Config Engine    ${1}
 
-    Clone Engine Config To DB
+    Ctn Clone Engine Config To DB
     Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     Ctn Create Ba With Services    test    worst    ${svc}
     Ctn Add Bam Config To Broker    central
     # Command of service_314 is set to critical
-    ${cmd_1}    Get Command Id    314
+    ${cmd_1}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker
@@ -103,12 +103,12 @@ BEBAMIDTU2
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
     # KPI set to critical
-    Process Service Result Hard    host_16    service_314    2    output critical for 314
-    ${result}    Check Service Status With Timeout    host_16    service_314    2    60
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
-    ${result}    Check Ba Status With Timeout    test    2    60
+    ${result}    Ctn Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
 
     # A downtime is put on service_314
@@ -175,7 +175,7 @@ BEBAMIGNDTU1
     Ctn Engine Config Set Value    ${0}    log_level_functions    trace
     Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    Clone Engine Config To DB
+    Ctn Clone Engine Config To DB
     Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
@@ -183,12 +183,12 @@ BEBAMIGNDTU1
     Ctn Add Bam Config To Broker    central
 
     # Command of service_313 is set to ok
-    ${cmd_1}    Get Command Id    313
+    ${cmd_1}    Ctn Get Command Id    313
     Log To Console    service_313 has command id ${cmd_1}
     Ctn Set Command Status    ${cmd_1}    0
 
     # Command of service_314 is set to critical
-    ${cmd_2}    Get Command Id    314
+    ${cmd_2}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_2}
     Ctn Set Command Status    ${cmd_2}    2
 
@@ -203,17 +203,17 @@ BEBAMIGNDTU1
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
     # KPI set to ok
-    Process Service Result Hard    host_16    service_313    0    output critical for 313
-    ${result}    Check Service Status With Timeout    host_16    service_313    0    60
+    Ctn Process Service Result Hard    host_16    service_313    0    output critical for 313
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_313    0    60
     Should Be True    ${result}    The service (host_16,service_313) is not OK as expected
 
     # KPI set to critical
-    Process Service Result Hard    host_16    service_314    2    output critical for 314
-    ${result}    Check Service Status With Timeout    host_16    service_314    2    60
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
-    ${result}    Check Ba Status With Timeout    test    2    60
+    ${result}    Ctn Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
     Log To Console    The BA is critical.
 
@@ -232,7 +232,7 @@ BEBAMIGNDTU1
     Should Be True    ${result}    The BA ba_1 is in downtime but should not
     Log To Console    The BA is configured to ignore kpis in downtime
 
-    ${result}    Check Ba Status With Timeout    test    0    60
+    ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Should Be True    ${result}    The service in downtime should be ignored while computing the state of this BA.
     Log To Console    The BA is OK, since the critical service is in downtime.
 
@@ -243,7 +243,7 @@ BEBAMIGNDTU1
     Should Be True    ${result}    The service (host_16, service_314) does not contain 1 downtime as it should
     Log To Console    Still one downtime applied to service_314.
 
-    ${result}    Check Ba Status With Timeout    test    0    60
+    ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Should Be True    ${result}    The BA is not OK whereas the service_314 is still in downtime.
     Log To Console    The BA is still OK
 
@@ -260,7 +260,7 @@ BEBAMIGNDTU1
     ${result}    Check Downtimes With Timeout    0    60
     Should Be True    ${result}    We should have no more running downtimes
 
-    ${result}    Check Ba Status With Timeout    test    2    60
+    ${result}    Ctn Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
     Log To Console    The BA is now critical (no more downtime)
 
@@ -280,17 +280,17 @@ BEBAMIGNDTU2
     Ctn Config BBDO3    1
     Ctn Config Engine    ${1}
 
-    Clone Engine Config To DB
+    Ctn Clone Engine Config To DB
     Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
     Ctn Create Ba With Services    test    worst    ${svc}    ignore
     Ctn Add Bam Config To Broker    central
     # Command of service_314 is set to critical
-    ${cmd_1}    Get Command Id    313
+    ${cmd_1}    Ctn Get Command Id    313
     Log To Console    service_314 has command id ${cmd_1}
     Ctn Set Command Status    ${cmd_1}    0
-    ${cmd_2}    Get Command Id    314
+    ${cmd_2}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_2}
     Ctn Set Command Status    ${cmd_2}    2
     Ctn Start Broker
@@ -304,17 +304,17 @@ BEBAMIGNDTU2
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
     # KPI set to ok
-    Process Service Result Hard    host_16    service_313    0    output critical for 313
-    ${result}    Check Service Status With Timeout    host_16    service_313    0    60
+    Ctn Process Service Result Hard    host_16    service_313    0    output critical for 313
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_313    0    60
     Should Be True    ${result}    The service (host_16,service_313) is not OK as expected
 
     # KPI set to critical
-    Process Service Result Hard    host_16    service_314    2    output critical for 314
-    ${result}    Check Service Status With Timeout    host_16    service_314    2    60
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
-    ${result}    Check Ba Status With Timeout    test    2    60
+    ${result}    Ctn Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
     Log To Console    The BA is critical.
 
@@ -333,7 +333,7 @@ BEBAMIGNDTU2
     Should Be True    ${result}    The BA ba_1 is in downtime but should not
     Log To Console    The BA is configured to ignore kpis in downtime
 
-    ${result}    Check Ba Status With Timeout    test    0    60
+    ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Should Be True    ${result}    The service in downtime should be ignored while computing the state of this BA.
     Log To Console    The BA is OK, since the critical service is in downtime.
 
@@ -345,12 +345,12 @@ BEBAMIGNDTU2
     Log To Console    Still one downtime applied to service_314.
 
     Log To Console    After 30s, the second downtime should be finished.
-    ${result}    Check Ba Status With Timeout    test    0    60
+    ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Should Be True    ${result}    The BA is not OK whereas the service_314 is still in downtime.
     Log To Console    The BA is still OK
 
     # The second downtime finishes
-    ${result}    Check Ba Status With Timeout    test    2    90
+    ${result}    Ctn Check Ba Status With Timeout    test    2    90
     Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
     Log To Console    The BA is now critical (no more downtime)
 
@@ -360,7 +360,7 @@ BEBAMIGNDTU2
 
 *** Keywords ***
 BAM Setup
-    Stop Processes
+    Ctn Stop Processes
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}    Get Current Date    result_format=epoch
     Log To Console    Cleaning downtimes at date=${date}

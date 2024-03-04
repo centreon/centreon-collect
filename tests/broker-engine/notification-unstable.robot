@@ -3,9 +3,9 @@ Documentation       Centreon notification
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
 
@@ -36,11 +36,11 @@ not1
 
     ## Time to set the service to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
@@ -77,11 +77,11 @@ not2
     ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
@@ -91,11 +91,11 @@ not2
     ## Time to set the service to UP  hard
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    0    ok
+        Ctn Process Service Check Result    host_1    service_1    0    ok
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
@@ -138,7 +138,7 @@ not3
      ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    10s
     END
 
@@ -182,11 +182,11 @@ not4
 
     # Time to set the service to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     # Acknowledge the service with critical status
@@ -199,7 +199,7 @@ not4
 
     Ctn Process Service Check Result    host_1    service_1    0    ok
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
@@ -245,16 +245,16 @@ not5
     ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
-        Process Service Check Result    host_2    service_2    2    critical
+        Ctn Process Service Check Result    host_2    service_2    2    critical
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
-    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    70    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_2    service_2    ${2}    70    HARD
     Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
@@ -294,11 +294,11 @@ not6
 
     ## Time to set the service to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
@@ -309,13 +309,13 @@ not6
     Sleep    5s
 
     ${start}    Get Current Date
-    Reload Broker
-    Reload Engine
+    Ctn Reload Broker
+    Ctn Reload Engine
 
     ## Time to set the service to UP  hard
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    0    ok
+        Ctn Process Service Check Result    host_1    service_1    0    ok
         Sleep    1s
     END
 
@@ -587,11 +587,11 @@ not12
     ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;1;critical
@@ -752,17 +752,17 @@ Config Escalations
 
 Service Check
     FOR   ${i}    IN RANGE    ${4}
-        Process Service Check Result    host_1    service_1    2    critical
+        Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     FOR   ${i}    IN RANGE    ${4}
-        Process Service Check Result    host_2    service_2    2    critical
+        Ctn Process Service Check Result    host_2    service_2    2    critical
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
     Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD

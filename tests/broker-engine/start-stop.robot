@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine start/stop tests
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Save logs If Failed
 
 
@@ -389,7 +389,7 @@ BESS_ENGINE_DELETE_HOST
     Ctn Start Broker    True
     Ctn Engine Config Remove Service Host    ${0}    host_16
     Ctn Engine Config Remove Host    ${0}    host_16
-    Reload Engine
+    Ctn Reload Engine
     Sleep    2s
     Ctn Kindly Stop Broker    True
     Ctn Stop Engine

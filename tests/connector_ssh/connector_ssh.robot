@@ -5,7 +5,7 @@ Resource            ../resources/import.resource
 
 Suite Setup         Prepare ssh
 Suite Teardown      Clean Whitelist
-Test Setup          Stop Processes
+Test Setup          Ctn Stop Processes
 Test Teardown       Save SSH Logs If Failed
 
 
@@ -195,7 +195,7 @@ TestWhiteList
     ${whitelist_content}    Catenate
     ...    {"whitelist":{"regex":["/usr/lib64/nagios/plugins/check_by_ssh .+"]}}
     Create File    /etc/centreon-engine-whitelist/test2    ${whitelist_content}
-    Reload Engine
+    Ctn Reload Engine
     ${start}    Get Current Date
     Ctn Schedule Forced Host Check    host_1
 
@@ -227,7 +227,7 @@ Prepare ssh
     Run    echo testconnssh:passwd | chpasswd
     Run    su testconnssh -c "ssh-keygen -q -t rsa -N '' -f ~testconnssh/.ssh/id_rsa"
     Run    ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa
-    Clean Before Suite
+    Ctn Clean Before Suite
 
 Save SSH Logs If Failed
     Run Keyword If Test Failed    Save SSH Logs
@@ -238,5 +238,5 @@ Save SSH Logs
     Copy File    ${ENGINE_LOG}/config0/connector_ssh.log    ${failDir}
 
 Clean Whitelist
-    Clean After Suite
+    Ctn Clean After Suite
     Remove File    /etc/centreon-engine-whitelist/test

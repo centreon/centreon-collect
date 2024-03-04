@@ -4,8 +4,8 @@ Documentation       Centreon Broker start/stop tests with bbdo_server and bbdo_c
 Resource            ../resources/import.resource
 
 Suite Setup         Prepare Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 
 
 *** Test Cases ***
@@ -414,7 +414,7 @@ Start Stop Instance
     Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Broker instance badly stopped
 
 Prepare Suite
-    Clean Before Suite
+    Ctn Clean Before Suite
     Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key

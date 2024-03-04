@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine add servicegroup
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Stop Engine Broker And Save Logs
 
 
@@ -30,8 +30,8 @@ EBNSG1
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Sleep    3s
 
-    Reload Broker
-    Reload Engine
+    Ctn Reload Broker
+    Ctn Reload Engine
 
     ${content}    Create List
     ...    enabling membership of service (1, 3) to service group 1 on instance 1
@@ -61,8 +61,8 @@ EBNSGU1
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Sleep    3s
 
-    Reload Broker
-    Reload Engine
+    Ctn Reload Broker
+    Ctn Reload Engine
 
     ${content}    Create List
     ...    enabling membership of service (1, 3) to service group 1 on instance 1
@@ -98,15 +98,15 @@ EBNSGU2
     Ctn Config Engine Add Cfg File    ${2}    servicegroups.cfg
     Ctn Config Engine Add Cfg File    ${3}    servicegroups.cfg
     Sleep    3s
-    Reload Broker
-    Reload Engine
+    Ctn Reload Broker
+    Ctn Reload Engine
     Sleep    3s
 
     ${result}    Check Number Of Relations Between Servicegroup And Services    1    12    30
     Should Be True    ${result}    We should get 12 relations between the servicegroup 1 and services.
     Ctn Config Engine Remove Cfg File    ${0}    servicegroups.cfg
-    Reload Broker
-    Reload Engine
+    Ctn Reload Broker
+    Ctn Reload Engine
 
     ${result}    Check Number Of Relations Between Servicegroup And Services    1    9    30
     Should Be True    ${result}    We should get 9 relations between the servicegroup 1 and services.
@@ -145,8 +145,8 @@ EBNSGU3_${test_label}
     Ctn Config Engine Add Cfg File    ${1}    servicegroups.cfg
     Ctn Config Engine Add Cfg File    ${2}    servicegroups.cfg
 
-    Reload Broker
-    Reload Engine
+    Ctn Reload Broker
+    Ctn Reload Engine
 
     ${result}    Check Number Of Relations Between Servicegroup And Services    1    9    30
     Should Be True    ${result}    We should get 9 relations between the servicegroup 1 and services.
@@ -163,8 +163,8 @@ EBNSGU3_${test_label}
     Ctn Rename Service Group    ${1}    servicegroup_1    servicegroup_test
     Ctn Rename Service Group    ${2}    servicegroup_1    servicegroup_test
 
-    Reload Engine
-    Reload Broker
+    Ctn Reload Engine
+    Ctn Reload Broker
     ${result}    Check Number Of Relations Between Servicegroup And Services    1    9    30    servicegroup_test
     Should Be True    ${result}    We should get 9 relations between the servicegroup 1 and services.
 
@@ -180,8 +180,8 @@ EBNSGU3_${test_label}
 
     # remove servicegroup
     Ctn Config Engine    ${3}
-    Reload Engine
-    Reload Broker
+    Ctn Reload Engine
+    Ctn Reload Broker
 
     Log To Console    \nremove servicegroup
 

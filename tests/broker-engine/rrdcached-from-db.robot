@@ -3,9 +3,9 @@ Documentation       Centreon Broker RRD metric deletion from the legacy query ma
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite With rrdcached
-Suite Teardown      Clean After Suite With rrdcached
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite With rrdcached
+Suite Teardown      Ctn Clean After Suite With rrdcached
+Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
 
@@ -39,7 +39,7 @@ BRRDCDDMDB1
 
     ${empty}    Create List
     Ctn Remove Graphs From Db    ${empty}    ${metrics}
-    Reload Broker
+    Ctn Reload Broker
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics ${metrics_str} erased from database
 
@@ -82,7 +82,7 @@ BRRDCDDIDDB1
 
     ${empty}    Create List
     Ctn Remove Graphs From Db    ${indexes}    ${empty}
-    Reload Broker
+    Ctn Reload Broker
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes ${indexes_str} erased from database
 
@@ -124,7 +124,7 @@ BRRDCDRBDB1
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
-    Reload Broker
+    Ctn Reload Broker
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
@@ -170,7 +170,7 @@ BRRDCDRBUDB1
     # We get 3 indexes to rebuild
     ${index}    Ctn Get Indexes To Rebuild    3
     Ctn Rebuild Rrd Graphs From Db    ${index}
-    Reload Broker
+    Ctn Reload Broker
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
 

@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine add Hostgroup
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Stop Engine Broker And Save Logs
 
 
@@ -27,8 +27,8 @@ EBNHG1
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
-    Reload Broker
-    Reload Engine
+    Ctn Reload Broker
+    Ctn Reload Engine
 
     ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
@@ -55,8 +55,8 @@ EBNHGU1
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
-    Reload Broker
-    Reload Engine
+    Ctn Reload Broker
+    Ctn Reload Engine
 
     ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
@@ -84,8 +84,8 @@ EBNHGU2
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
-    Reload Broker
-    Reload Engine
+    Ctn Reload Broker
+    Ctn Reload Engine
 
     ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
@@ -117,8 +117,8 @@ EBNHGU3
     Ctn Add Host Group    ${3}    ${1}    ["host_41", "host_42", "host_43"]
 
     Sleep    3s
-    Reload Broker
-    Reload Engine
+    Ctn Reload Broker
+    Ctn Reload Engine
 
     ${result}    Check Number Of Relations Between Hostgroup And Hosts    1    12    30
     Should Be True    ${result}    We should have 12 hosts members of host 1.
@@ -126,8 +126,8 @@ EBNHGU3
     Ctn Config Engine Remove Cfg File    ${0}    hostgroups.cfg
 
     Sleep    3s
-    Reload Broker
-    Reload Engine
+    Ctn Reload Broker
+    Ctn Reload Engine
     ${result}    Check Number Of Relations Between Hostgroup And Hosts    1    9    30
     Should Be True    ${result}    We should have 12 hosts members of host 1.
 
@@ -148,8 +148,8 @@ EBNHG4
     Sleep    3s
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
-    Reload Broker
-    Reload Engine
+    Ctn Reload Broker
+    Ctn Reload Engine
 
     ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
@@ -163,9 +163,9 @@ EBNHG4
     Sleep    10s
     ${start}    Get Current Date
     Log To Console    Step-1
-    Reload Broker
+    Ctn Reload Broker
     Log To Console    Step0
-    Reload Engine
+    Ctn Reload Engine
 
     Log To Console    Step1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -206,8 +206,8 @@ EBNHGU4_${test_label}
     Sleep    3s
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
-    Reload Broker
-    Reload Engine
+    Ctn Reload Broker
+    Ctn Reload Engine
 
     ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
@@ -243,8 +243,8 @@ EBNHGU4_${test_label}
     Ctn Rename Host Group    ${0}    ${1}    test    ["host_1", "host_2", "host_3"]
 
     Sleep    10s
-    Reload Engine
-    Reload Broker
+    Ctn Reload Engine
+    Ctn Reload Broker
 
     Log To Console    hostgroup_1 renamed to hostgroup_test
 
@@ -272,8 +272,8 @@ EBNHGU4_${test_label}
 
     # remove hostgroup
     Ctn Config Engine    ${3}
-    Reload Engine
-    Reload Broker
+    Ctn Reload Engine
+    Ctn Reload Broker
 
     Log To Console    remove hostgroup
 

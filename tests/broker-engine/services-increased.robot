@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine progressively add services
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
 
@@ -29,8 +29,8 @@ EBNSVC1
         ${srv_by_host}    Evaluate    20 + 4 * $i
         Log To Console    ${srv_by_host} services by host with 50 hosts among 3 pollers.
         Config Engine    ${3}    ${50}    ${srv_by_host}
-        Reload Engine
-        Reload Broker
+        Ctn Reload Engine
+        Ctn Reload Broker
         ${nb_srv}    Evaluate    17 * (20 + 4 * $i)
         ${nb_res}    Evaluate    $nb_srv + 17
         ${result}    Check Number Of Resources Monitored by Poller is    ${1}    ${nb_res}    30
@@ -112,7 +112,7 @@ Service_increased_huge_check_interval
 
     ${start}    Get Current Date
 
-    Reload Engine
+    Ctn Reload Engine
 
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_${new_service_id};
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine communication with or without com
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
 
@@ -202,8 +202,8 @@ BRCTSMNS
     Log To Console    Second configuration with one more service per host
     # For each host, one service is added (20 -> 21)
     Ctn Config Engine    ${1}    ${50}    ${21}
-    Reload Engine
-    Reload Broker
+    Ctn Reload Engine
+    Ctn Reload Broker
 
     # pb_service we changed services 50 added and others moved...
     ${expected_events}    Create List    65563

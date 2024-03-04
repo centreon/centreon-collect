@@ -3,9 +3,9 @@ Documentation       Engine/Broker tests on bbdo_version 3.0.0 and protobuf bbdo 
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
 
@@ -197,8 +197,8 @@ BE_NOTIF_OVERFLOW
     ...    An Initial host state on host_16 should be raised before we can start our external commands.
 
     Ctn Set Svc Notification Number    host_16    service_314    40000
-    Process Service Result Hard    host_16    service_314    2    output critical for 314
-    ${result}    Check Service Status With Timeout    host_16    service_314    2    30
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    30
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}

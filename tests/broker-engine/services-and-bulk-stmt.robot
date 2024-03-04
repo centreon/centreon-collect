@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine progressively add services
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Test Clean
 
 
@@ -36,7 +36,7 @@ EBBPS1
     ...    ${result}
     ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check Result    host_1    service_${i+1}    1    warning${i}
+        Ctn Process Service Check Result    host_1    service_${i+1}    1    warning${i}
     END
     ${content}    Create List
     ...    connected to 'MariaDB' Server
@@ -57,7 +57,7 @@ EBBPS1
     Should Be Equal As Strings    ${output}    ((0,),)
 
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check Result    host_1    service_${i+1}    2    warning${i}
+        Ctn Process Service Check Result    host_1    service_${i+1}    2    warning${i}
         IF    ${i} % 200 == 0
             ${first_service_status_content}    Create List    unified_sql service_status processing
             ${result}    Ctn Find In Log With Timeout
@@ -119,7 +119,7 @@ EBBPS2
     ...    ${result}
     ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check Result    host_1    service_${i+1}    1    warning${i}
+        Ctn Process Service Check Result    host_1    service_${i+1}    1    warning${i}
     END
     ${content}    Create List
     ...    connected to 'MariaDB' Server
@@ -140,7 +140,7 @@ EBBPS2
     Should Be Equal As Strings    ${output}    ((0,),)
 
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check Result    host_1    service_${i+1}    2    critical${i}
+        Ctn Process Service Check Result    host_1    service_${i+1}    2    critical${i}
         IF    ${i} % 200 == 0
             ${first_service_status_content}    Create List    unified_sql service_status processing
             ${result}    Ctn Find In Log With Timeout
@@ -205,7 +205,7 @@ EBMSSM
     ${start}    Get Round Current Date
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    100
+        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    100
     END
 
     ${duration}    Broker Get Sql Manager Stats    51001    INSERT INTO data_bin    300
@@ -251,7 +251,7 @@ EBPS2
 
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
+        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
     END
     ${start}    Get Current Date
     ${content}    Create List    Check if some statements are ready,    sscr_bind connections
@@ -322,7 +322,7 @@ RLCode
     Create File    /tmp/toto.lua    ${new_content}
     ${start}    Get Current Date
 
-    Reload Broker
+    Ctn Reload Broker
 
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -375,7 +375,7 @@ metric_mapping
 
     # We force several checks with metrics
     FOR    ${i}    IN RANGE    ${10}
-        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
+        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
     END
 
     Wait Until Created    /tmp/test.log    30s

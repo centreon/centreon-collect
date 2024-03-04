@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine anomaly detection
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
 
@@ -122,14 +122,14 @@ BAM_STREAM_FILTER
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
 
-    Clone Engine Config To DB
+    Ctn Clone Engine Config To DB
     Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     Ctn Create Ba With Services    test    worst    ${svc}
     Ctn Add Bam Config To Broker    central
     # Command of service_314 is set to critical
-    ${cmd_1}    Get Command Id    314
+    ${cmd_1}    Ctn Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker    True
@@ -141,13 +141,13 @@ BAM_STREAM_FILTER
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # KPI set to critical
-    Process Service Result Hard    host_16    service_314    2    output critical for 314
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
 
-    ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
-    ${result}    Check Ba Status With Timeout    test    2    60
+    ${result}    Ctn Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
 
     # monitoring
@@ -224,9 +224,9 @@ UNIFIED_SQL_FILTER
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # one service set to critical in order to have some events
-    Process Service Result Hard    host_16    service_314    2    output critical for 314
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
 
-    ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # de_pb_service de_pb_service_status de_pb_host de_pb_custom_variable de_pb_log_entry de_pb_host_check
@@ -279,7 +279,7 @@ CBD_RELOAD_AND_FILTERS
     Log To Console    Second configuration: only storage events are sent.
     ${start}    Get Current Date
     Restart Engine
-    Reload Broker
+    Ctn Reload Broker
     #wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
@@ -309,7 +309,7 @@ CBD_RELOAD_AND_FILTERS
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    filters
     ${start}    Get Current Date
     Restart Engine
-    Reload Broker
+    Ctn Reload Broker
     # wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
@@ -382,7 +382,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Log To Console    Second configuration: only storage events are sent.
     ${start}    Get Current Date
     Restart Engine
-    Reload Broker
+    Ctn Reload Broker
     #wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
@@ -412,7 +412,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    filters
     ${start}    Get Current Date
     Restart Engine
-    Reload Broker
+    Ctn Reload Broker
     #wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60

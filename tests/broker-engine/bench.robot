@@ -3,9 +3,9 @@ Documentation       Centreon Broker and Engine benchmark
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Stop Engine Broker And Save Logs
 
 
@@ -183,7 +183,7 @@ BENCH_1000STATUS_100${suffixe}
         ${host_id}    Evaluate    ${poller_index} + 1
         FOR    ${serv_index}    IN RANGE    20
             ${serv_id}    Evaluate    1 + ${serv_index} + ${poller_index} * 20
-            Process Service Check Result
+            Ctn Process Service Check Result
             ...    host_${host_id}
             ...    service_${serv_id}
             ...    1

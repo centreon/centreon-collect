@@ -3,9 +3,9 @@ Documentation       Engine/Broker tests on bbdo_version 3.0.0 and protobuf bbdo 
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
 
@@ -195,7 +195,7 @@ BEPB_HOST_DEPENDENCY
     Should Be True    ${result}    No notification dependency from 2 to 1 with timeperiod 24x7 on 'ou'
                                                                                 
     Ctn Config Engine    ${1}                                                       
-    Reload Engine                                                               
+    Ctn Reload Engine                                                               
                                                                                 
     ${result}    Common.Check No Host Dependencies    30                               
     Should Be True    ${result}    No host dependency should be defined         
@@ -234,7 +234,7 @@ BEPB_SERVICE_DEPENDENCY
     ...    host dependency not found in database
 
     Ctn Config Engine    ${1}
-    Reload Engine
+    Ctn Reload Engine
 
     FOR    ${index}    IN RANGE    30
         ${output}    Query
@@ -273,8 +273,8 @@ BEPBHostParent
 
     # remove host
     Ctn Config Engine    ${1}
-    Reload Broker    True
-    Reload Engine
+    Ctn Reload Broker    True
+    Ctn Reload Engine
 
     FOR    ${index}    IN RANGE    30
         ${output}    Query

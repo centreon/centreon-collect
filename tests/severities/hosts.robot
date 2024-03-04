@@ -3,9 +3,9 @@ Documentation       Engine/Broker tests on severities.
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 
 
 *** Test Cases ***
@@ -36,8 +36,8 @@ BEUHSEV1
     Ctn Remove Severities From Hosts    ${0}
     Ctn Add Severity To Hosts    0    10    [2, 4]
     Ctn Add Severity To Hosts    0    8    [3]
-    Reload Engine
-    Reload Broker
+    Ctn Reload Engine
+    Ctn Reload Broker
     ${result}    Check Host Severity With Timeout    3    8    60
     Should Be True    ${result}    Host 3 should have severity_id=8
     ${result}    Check Host Severity With Timeout    1    None    60
@@ -99,8 +99,8 @@ BEUHSEV2
     Ctn Create Severities File    ${0}    ${18}
     Ctn Create Severities File    ${1}    ${18}
     Ctn Add Severity To Hosts    1    17    [28]
-    Reload Engine
-    Reload Broker
+    Ctn Reload Engine
+    Ctn Reload Broker
     Sleep    3s
     ${result}    Check Host Severity With Timeout    28    16    60
     Should Be True    ${result}    Second step: Host 28 should have severity_id=16

@@ -3,9 +3,9 @@ Documentation       Centreon Broker RRD metric rebuild/deletion with rrdcached
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite With rrdcached
-Suite Teardown      Clean After Suite With rrdcached
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite With rrdcached
+Suite Teardown      Ctn Clean After Suite With rrdcached
+Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
 

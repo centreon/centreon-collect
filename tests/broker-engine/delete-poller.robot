@@ -3,9 +3,9 @@ Documentation       Creation of 4 pollers and then deletion of Poller3.
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
 
@@ -300,8 +300,8 @@ EBDP4
 
     # Generation of many service status but kept in memory on poller3.
     FOR    ${i}    IN RANGE    200
-        Process Service Check Result    host_40    service_781    2    service_781 should fail    config3
-        Process Service Check Result    host_40    service_782    1    service_782 should fail    config3
+        Ctn Process Service Check Result    host_40    service_781    2    service_781 should fail    config3
+        Ctn Process Service Check Result    host_40    service_782    1    service_782 should fail    config3
     END
     ${content}    Create List
     ...    SERVICE ALERT: host_40;service_781;CRITICAL
@@ -580,8 +580,8 @@ EBDP8
 
     # Generation of many service status but kept in memory on poller3.
     FOR    ${i}    IN RANGE    200
-        Process Service Check Result    host_40    service_781    2    service_781 should fail    config3
-        Process Service Check Result    host_40    service_782    1    service_782 should fail    config3
+        Ctn Process Service Check Result    host_40    service_781    2    service_781 should fail    config3
+        Ctn Process Service Check Result    host_40    service_782    1    service_782 should fail    config3
     END
     ${content}    Create List
     ...    SERVICE ALERT: host_40;service_781;CRITICAL
