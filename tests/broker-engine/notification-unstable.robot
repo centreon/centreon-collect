@@ -132,7 +132,7 @@ not3
     # It's time to schedule a downtime
     Ctn Schedule Service Downtime    host_1    service_1    ${60}
 
-    ${result}    Check Number Of Downtimes    ${1}    ${start}    ${60}
+    ${result}    Ctn Check Number Of Downtimes    ${1}    ${start}    ${60}
     Should Be True    ${result}    We should have 1 downtime enabled.
 
      ## Time to set the service to CRITICAL HARD.
