@@ -351,7 +351,7 @@ BRRDRMU1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Create Metrics    3
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Check Connections
@@ -413,7 +413,7 @@ RRD1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Create Metrics    3
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Run Keywords    Start Broker    AND    Ctn Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected

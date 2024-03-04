@@ -31,7 +31,7 @@ BSCSSRR1
     Ctn Broker Config Output Set    central    centreon-broker-master-rrd    retention    yes
     Ctn Config Broker BBDO Input    rrd    bbdo_client    5670    tcp    localhost
     Ctn Broker Config Log    central    config    debug
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Repeat Keyword    5 times    Start Stop Service    0
     ${content}    Create List    failover 'centreon-broker-master-rrd' construction.
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -68,7 +68,7 @@ BSCSSGRR1
     Ctn Broker Config Output Set    central    centreon-broker-master-rrd    retention    yes
     Ctn Config Broker BBDO Input    rrd    bbdo_client    5670    grpc    localhost
     Ctn Broker Config Log    central    config    info
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Repeat Keyword    5 times    Start Stop Service    0
     ${content}    Create List
     ...    endpoint applier: creating new failover 'centreon-broker-master-rrd'
@@ -89,7 +89,7 @@ BSCSSTRR1
     Ctn Broker Config Log    central    config    off
     Ctn Broker Config Log    central    core    off
     Ctn Broker Config Log    central    tls    debug
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Repeat Keyword    5 times    Start Stop Service    0
     ${content}    Create List    TLS: successful handshake
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -125,7 +125,7 @@ BSCSSTRR2
     ...    ${EtcRoot}/centreon-broker/client.crt
     Ctn Broker Config Input Set    rrd    central-rrd-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
     Ctn Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Repeat Keyword    5 times    Start Stop Service    0
     ${content}    Create List    TLS: successful handshake
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -174,7 +174,7 @@ BSCSSTGRR2
     ...    central-rrd-master-input
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     ${content}    Create List    write: buff:    write done: buff:
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -194,7 +194,7 @@ BSCSSCRR1
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    rrd    core    trace
     Ctn Broker Config Flush Log    central    0
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     ${content}    Create List    compression: writing
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -215,7 +215,7 @@ BSCSSCRR2
     Ctn Broker Config Log    rrd    core    trace
     Ctn Broker Config Log    central    bbdo    trace
     Ctn Broker Config Flush Log    central    0
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     ${content}    Create List    BBDO: we have extensions '' and peer has 'COMPRESSION'
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -237,7 +237,7 @@ BSCSSCGRR1
     Ctn Broker Config Log    central    tls    debug
     Ctn Broker Config Log    central    grpc    debug
     Ctn Broker Config Flush Log    central    0
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     ${content}    Create List    server default compression deflate
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -259,7 +259,7 @@ BSCSSCGRR2
     Ctn Broker Config Log    central    tls    debug
     Ctn Broker Config Log    central    grpc    debug
     Ctn Broker Config Flush Log    central    0
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     ${content}    Create List    server default compression deflate
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    15

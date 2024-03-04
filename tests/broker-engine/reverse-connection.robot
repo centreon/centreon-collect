@@ -121,7 +121,7 @@ BRCTSMN
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    central    processing    trace
     Ctn Broker Config Log    module0    bbdo    info
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Map
     Sleep    5s
@@ -170,7 +170,7 @@ BRCTSMNS
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    central    processing    trace
     Ctn Broker Config Log    module0    bbdo    info
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Map
     Sleep    5s

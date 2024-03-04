@@ -321,7 +321,7 @@ BEUTAG7
     Ctn Create Tags File    ${0}    ${18}
     Ctn Create Tags File    ${1}    ${18}
     Ctn Add Tags To Services    ${1}    group_tags    3,5    [505, 506, 507, 508]
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
     Ctn Reload Broker
     # Let's wait for the external command check start

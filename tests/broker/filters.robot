@@ -22,7 +22,7 @@ BFC1
     ...    central-broker-master-sql
     ...    filters
     ...    {"category": ["neb", "foo", "bar"]}
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     ${content}    Create List
     ...    'foo' is not a known category: cannot find event category 'foo'
@@ -46,7 +46,7 @@ BFC2
     ...    central-broker-master-sql
     ...    filters
     ...    {"category": ["doe", "foo", "bar"]}
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     ${content}    Create List
     ...    'doe' is not a known category: cannot find event category 'doe'

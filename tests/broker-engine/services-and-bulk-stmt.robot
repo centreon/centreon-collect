@@ -202,7 +202,7 @@ EBMSSM
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
     FOR    ${i}    IN RANGE    ${1000}
         Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    100
@@ -415,7 +415,7 @@ Services_and_bulks_${id}
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${start_1}    Get Round Current Date
+    ${start_1}    Ctn Get Round Current Date
 
     Process Service Check result with metrics
     ...    host_1
