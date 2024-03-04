@@ -292,7 +292,7 @@ BABOOCOMPL
     Ctn Add Bam Config To Broker    central
     # Services 1 to 21 are passive now.
     FOR    ${i}    IN RANGE    ${1}    ${21}
-        Set Services Passive    ${0}    service_${i}
+        Ctn Set Services Passive    ${0}    service_${i}
     END
 
     ${id_ba__sid}    Ctn Create Ba    boolean-ba    impact    70    80
@@ -348,7 +348,7 @@ BABOOCOMPL_RESTART
     Ctn Add Bam Config To Broker    central
     # Services 1 to 21 are passive now.
     FOR    ${i}    IN RANGE    ${1}    ${21}
-        Set Services Passive    ${0}    service_${i}
+        Ctn Set Services Passive    ${0}    service_${i}
     END
 
     ${id_ba__sid}    Ctn Create Ba    boolean-ba    impact    70    80
@@ -442,7 +442,7 @@ BABOOCOMPL_RELOAD
     Ctn Add Bam Config To Broker    central
     # Services 1 to 21 are passive now.
     FOR    ${i}    IN RANGE    ${1}    ${21}
-        Set Services Passive    ${0}    service_${i}
+        Ctn Set Services Passive    ${0}    service_${i}
     END
 
     ${id_ba__sid}    Ctn Create Ba    boolean-ba    impact    70    80

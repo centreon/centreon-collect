@@ -36,12 +36,12 @@ BENCH_${nb_check}STATUS
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     ${broker_stat_before}    Ctn Get Broker Process Stat    51001
-    ${engine_stat_before}    Get Engine Process Stat    50001
+    ${engine_stat_before}    Ctn Get Engine Process Stat    50001
     Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
     Ctn Send Bench    1    50001
     ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
     ${broker_stat_after}    Ctn Get Broker Process Stat    51001
-    ${engine_stat_after}    Get Engine Process Stat    50001
+    ${engine_stat_after}    Ctn Get Engine Process Stat    50001
     ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
     ${diff_engine}    Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
 
@@ -104,12 +104,12 @@ BENCH_${nb_check}STATUS_TRACES
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     ${broker_stat_before}    Ctn Get Broker Process Stat    51001
-    ${engine_stat_before}    Get Engine Process Stat    50001
+    ${engine_stat_before}    Ctn Get Engine Process Stat    50001
     Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
     Ctn Send Bench    1    50001
     ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
     ${broker_stat_after}    Ctn Get Broker Process Stat    51001
-    ${engine_stat_after}    Get Engine Process Stat    50001
+    ${engine_stat_after}    Ctn Get Engine Process Stat    50001
     ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
     ${diff_engine}    Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
 
@@ -155,7 +155,7 @@ BENCH_1000STATUS_100${suffixe}
     Ctn Config Broker    central
     FOR    ${poller_index}    IN RANGE    100
         # We want all the services to be passive to avoid parasite checks during our test.
-        Set Services Passive    ${poller_index}    service_.*
+        Ctn Set Services Passive    ${poller_index}    service_.*
     END
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    sql    trace
@@ -175,7 +175,7 @@ BENCH_1000STATUS_100${suffixe}
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     ${broker_stat_before}    Ctn Get Broker Process Stat    51001
-    ${engine_stat_before}    Get Engine Process Stat    50001
+    ${engine_stat_before}    Ctn Get Engine Process Stat    50001
 
     ${start_check}    Get Current Date
     # one host per poller
@@ -197,7 +197,7 @@ BENCH_1000STATUS_100${suffixe}
 
     ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
     ${broker_stat_after}    Ctn Get Broker Process Stat    51001
-    ${engine_stat_after}    Get Engine Process Stat    50001
+    ${engine_stat_after}    Ctn Get Engine Process Stat    50001
     ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
     ${diff_engine}    Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
 
