@@ -88,11 +88,11 @@ START_STOP_CBD
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    nbEngine=1
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker Sql Output    central    unified_sql
 
-    Clear Db    services
-    Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    hosts
     ${start}    Get Current Date
 
     Ctn Start Engine

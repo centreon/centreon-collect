@@ -13,7 +13,7 @@ Test Teardown       Ctn Save Logs If Failed
 SDER
     [Documentation]    The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then engine and broker are started and broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that broker doesn't crash anymore.
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${1}    ${25}
+    Ctn Config Engine    ${1}    ${1}    ${25}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -32,13 +32,13 @@ SDER
 
     Ctn Stop Engine
 
-    Modify Retention Dat    0    host_1    service_1    current_attempt    280
+    Ctn Modify Retention Dat    0    host_1    service_1    current_attempt    280
     # modified attributes is a bit field. We must set the bit corresponding to MAX_ATTEMPTS to be allowed to change max_attempts. Otherwise it will be set to 3.
-    Modify Retention Dat    0    host_1    service_1    modified_attributes    65535
-    Modify Retention Dat    0    host_1    service_1    max_attempts    280
+    Ctn Modify Retention Dat    0    host_1    service_1    modified_attributes    65535
+    Ctn Modify Retention Dat    0    host_1    service_1    max_attempts    280
 
-    Modify Retention Dat    0    host_1    service_1    current_state    2
-    Modify Retention Dat    0    host_1    service_1    state_type    1
+    Ctn Modify Retention Dat    0    host_1    service_1    current_state    2
+    Ctn Modify Retention Dat    0    host_1    service_1    state_type    1
     Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}

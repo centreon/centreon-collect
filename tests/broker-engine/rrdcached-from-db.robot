@@ -13,7 +13,7 @@ Test Teardown       Ctn Save Logs If Failed
 BRRDCDDMDB1
     [Documentation]    RRD metrics deletion from metric ids with a query in centreon_storage and rrdcached.
     [Tags]    rrd    metric    deletion    unified_sql    mysql    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
@@ -26,7 +26,7 @@ BRRDCDDMDB1
     Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
     ${start}    Get Current Date    exclude_millis=True
     Ctn Start Broker
     Ctn Start Engine
@@ -38,7 +38,7 @@ BRRDCDDMDB1
     Log To Console    Metrics to delete ${metrics}
 
     ${empty}    Create List
-    Remove Graphs From Db    ${empty}    ${metrics}
+    Ctn Remove Graphs From Db    ${empty}    ${metrics}
     Reload Broker
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics ${metrics_str} erased from database
@@ -53,7 +53,7 @@ BRRDCDDMDB1
 BRRDCDDIDDB1
     [Documentation]    RRD metrics deletion from index ids with a query in centreon_storage with rrdcached.
     [Tags]    rrd    metric    deletion    unified_sql    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
@@ -64,7 +64,7 @@ BRRDCDDIDDB1
     Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date
     Sleep    1s
@@ -81,7 +81,7 @@ BRRDCDDIDDB1
     Log To Console    indexes ${indexes} to delete with their metrics
 
     ${empty}    Create List
-    Remove Graphs From Db    ${indexes}    ${empty}
+    Ctn Remove Graphs From Db    ${indexes}    ${empty}
     Reload Broker
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes ${indexes_str} erased from database
@@ -100,7 +100,7 @@ BRRDCDDIDDB1
 BRRDCDRBDB1
     [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql with rrdcached
     [Tags]    rrd    metric    rebuild    unified_sql    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
@@ -110,7 +110,7 @@ BRRDCDRBDB1
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -120,7 +120,7 @@ BRRDCDRBDB1
 
     # We get 3 indexes to rebuild
     ${index}    Ctn Get Indexes To Rebuild    3
-    Rebuild Rrd Graphs From Db    ${index}
+    Ctn Rebuild Rrd Graphs From Db    ${index}
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
@@ -148,7 +148,7 @@ BRRDCDRBDB1
 BRRDCDRBUDB1
     [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql with rrdcached
     [Tags]    rrd    metric    rebuild    unified_sql    grpc    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
@@ -159,7 +159,7 @@ BRRDCDRBUDB1
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
     Ctn Config BBDO3    1
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date    exclude_millis=True
     Ctn Start Broker
@@ -169,7 +169,7 @@ BRRDCDRBUDB1
 
     # We get 3 indexes to rebuild
     ${index}    Ctn Get Indexes To Rebuild    3
-    Rebuild Rrd Graphs From Db    ${index}
+    Ctn Rebuild Rrd Graphs From Db    ${index}
     Reload Broker
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}

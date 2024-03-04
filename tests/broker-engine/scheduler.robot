@@ -13,14 +13,14 @@ Test Teardown       Ctn Save Logs If Failed
 ENRSCHE1
     [Documentation]    Verify that next check of a rescheduled host is made at last_check + interval_check
     [Tags]    broker    engine    scheduler
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_level_checks    debug
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_checks    debug
+    Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date
 
@@ -32,7 +32,7 @@ ENRSCHE1
     ${content}    Set Variable    Rescheduling next check of host: host_14
 
     # We check a retry check rescheduling
-    Process Host Check Result    host_14    1    host_14 is down
+    Ctn Process Host Check Result    host_14    1    host_14 is down
 
     ${result}    Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    True    240
     Should Be True    ${result}    The delta between last_check and next_check is not equal to 60 as expected for a retry check

@@ -37,7 +37,7 @@ NetworkDbFail5
 NetworkDBFail6
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s
     [Tags]    broker    database    network    unstable
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
     Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
@@ -66,7 +66,7 @@ NetworkDBFailU6
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
     [Tags]    broker    database    network    unified_sql    unstable
     Reset Eth Connection
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
@@ -95,7 +95,7 @@ NetworkDBFailU6
 NetworkDBFail7
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s
     [Tags]    broker    database    network
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Reset Eth Connection
     Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
@@ -129,7 +129,7 @@ NetworkDBFailU7
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
     [Tags]    broker    database    network    unified_sql
     Reset Eth Connection
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
@@ -168,7 +168,7 @@ Disable Sleep Enable
 Network Failure
     [Arguments]    ${interval}
     Reset Eth Connection
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config Broker    central

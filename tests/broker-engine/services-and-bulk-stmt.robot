@@ -13,9 +13,9 @@ Test Teardown       Test Clean
 EBBPS1
     [Documentation]    1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table resources.
     [Tags]    broker    engine    services    unified_sql
-    Config Engine    ${1}    ${1}    ${1000}
+    Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services Passive    ${0}    service_.*
+    Ctn Set Services Passive    ${0}    service_.*
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -25,7 +25,7 @@ EBBPS1
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    perfdata    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
     Ctn Start Broker
@@ -96,9 +96,9 @@ EBBPS1
 EBBPS2
     [Documentation]    1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table services.
     [Tags]    broker    engine    services    unified_sql
-    Config Engine    ${1}    ${1}    ${1000}
+    Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services Passive    ${0}    service_.*
+    Ctn Set Services Passive    ${0}    service_.*
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -108,7 +108,7 @@ EBBPS2
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    perfdata    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
     Ctn Start Broker
@@ -179,9 +179,9 @@ EBMSSM
     [Documentation]    1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. GetSqlManagerStats is called to measure writes into data_bin.
     [Tags]    broker    engine    services    unified_sql    benchmark
     Clear Metrics
-    Config Engine    ${1}    ${1}    ${1000}
+    Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services Passive    ${0}    service_.*
+    Ctn Set Services Passive    ${0}    service_.*
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
@@ -191,11 +191,11 @@ EBMSSM
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker Remove Rrd Output    central
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Broker Set Sql Manager Stats    51001    5    5
+    Ctn Broker Set Sql Manager Stats    51001    5    5
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -225,9 +225,9 @@ EBPS2
     [Documentation]    1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
     [Tags]    broker    engine    services    unified_sql    benchmark
     Clear Metrics
-    Config Engine    ${1}    ${1}    ${1000}
+    Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services Passive    ${0}    service_.*
+    Ctn Set Services Passive    ${0}    service_.*
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
@@ -239,7 +239,7 @@ EBPS2
     Ctn Broker Config Log    central    perfdata    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker Remove Rrd Output    central
-    Clear Retention
+    Ctn Clear Retention
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -264,11 +264,11 @@ EBPS2
 RLCode
     [Documentation]    Test if reloading LUA code in a stream connector applies the changes
     [Tags]    lua    stream connector
-    Clear Commands Status
-    Clear Retention
+    Ctn Clear Commands Status
+    Ctn Clear Retention
 
     Remove File    /tmp/toto.lua
-    Config Engine    ${1}    ${1}    ${10}
+    Ctn Config Engine    ${1}    ${1}    ${10}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -334,11 +334,11 @@ RLCode
 metric_mapping
     [Documentation]    Check if metric name exists using a stream connector
     [Tags]    broker    engine    bbdo    unified_sql    metric
-    Clear Commands Status
-    Clear Retention
+    Ctn Clear Commands Status
+    Ctn Clear Retention
 
     Remove File    /tmp/test.log
-    Config Engine    ${1}    ${1}    ${10}
+    Ctn Config Engine    ${1}    ${1}    ${10}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Broker Config Add Item    central    bbdo_version    3.0.1
@@ -386,7 +386,7 @@ Services_and_bulks_${id}
     [Documentation]    One service is configured with one metric with a name of 150 to 1021 characters.
     [Tags]    broker    engine    services    unified_sql    benchmark
     Clear Metrics
-    Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Engine    ${1}    ${1}    ${1}
     # We want all the services to be passive to avoid parasite checks during our test.
     ${random_string}    Generate Random String    ${metric_num_char}    [LOWER]
     Set Services passive    ${0}    service_.*
@@ -402,13 +402,13 @@ Services_and_bulks_${id}
     Ctn Broker Config Source Log    central    1
 
     Ctn Config Broker Remove Rrd Output    central
-    Clear Retention
-    Clear Db    metrics
+    Ctn Clear Retention
+    Ctn Clear Db    metrics
 
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Broker Set Sql Manager Stats    51001    5    5
+    Ctn Broker Set Sql Manager Stats    51001    5    5
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()

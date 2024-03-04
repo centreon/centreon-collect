@@ -13,7 +13,7 @@ Test Teardown       Ctn Save Logs If Failed
 EBDP1
     [Documentation]    Four new pollers are started and then we remove Poller3.
     [Tags]    broker    engine    grpc
-    Config Engine    ${4}    ${50}    ${20}
+    Ctn Config Engine    ${4}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${4}
@@ -39,7 +39,7 @@ EBDP1
     Ctn Stop Engine
     Ctn Kindly Stop Broker
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
-    Config Engine    ${3}    ${50}    ${20}
+    Ctn Config Engine    ${3}    ${50}    ${20}
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -49,7 +49,7 @@ EBDP1
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Remove Poller    51001    Poller3
+    Ctn Remove Poller    51001    Poller3
     Sleep    6s
 
     Ctn Stop Engine
@@ -65,7 +65,7 @@ EBDP1
 EBDP2
     [Documentation]    Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
     [Tags]    broker    engine    grpc
-    Config Engine    ${3}    ${50}    ${20}
+    Ctn Config Engine    ${3}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
@@ -104,7 +104,7 @@ EBDP2
 
     Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
-    Config Engine    ${2}    ${50}    ${20}
+    Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
     Ctn Kindly Stop Broker
     Clear Engine Logs
@@ -116,7 +116,7 @@ EBDP2
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Remove Poller    51001    Poller2
+    Ctn Remove Poller    51001    Poller2
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -132,7 +132,7 @@ EBDP2
 EBDP_GRPC2
     [Documentation]    Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
     [Tags]    broker    engine    grpc
-    Config Engine    ${3}    ${50}    ${20}
+    Ctn Config Engine    ${3}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
@@ -177,7 +177,7 @@ EBDP_GRPC2
 
     Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
-    Config Engine    ${2}    ${50}    ${20}
+    Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
     Ctn Kindly Stop Broker
     Clear Engine Logs
@@ -189,7 +189,7 @@ EBDP_GRPC2
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Remove Poller    51001    Poller2
+    Ctn Remove Poller    51001    Poller2
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -205,7 +205,7 @@ EBDP_GRPC2
 EBDP3
     [Documentation]    Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
     [Tags]    broker    engine    grpc
-    Config Engine    ${3}    ${50}    ${20}
+    Ctn Config Engine    ${3}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
@@ -239,7 +239,7 @@ EBDP3
 
     Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
-    Config Engine    ${2}    ${50}    ${20}
+    Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
     Clear Engine Logs
     Ctn Start Engine
@@ -249,7 +249,7 @@ EBDP3
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Remove Poller    51001    Poller2
+    Ctn Remove Poller    51001    Poller2
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -265,7 +265,7 @@ EBDP3
 EBDP4
     [Documentation]    Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by broker.
     [Tags]    broker    engine    grpc
-    Config Engine    ${4}    ${50}    ${20}
+    Ctn Config Engine    ${4}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${4}
@@ -320,7 +320,7 @@ EBDP4
     ...    ${VarRoot}/lib/centreon-engine/central-module-master0.memory.central-module-master-output
 
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
-    Config Engine    ${3}    ${39}    ${20}
+    Ctn Config Engine    ${3}    ${39}    ${20}
 
     # Restart Broker
     Ctn Start Broker
@@ -330,7 +330,7 @@ EBDP4
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Remove Poller    51001    Poller3
+    Ctn Remove Poller    51001    Poller3
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
@@ -354,7 +354,7 @@ EBDP4
 EBDP5
     [Documentation]    Four new pollers are started and then we remove Poller3.
     [Tags]    broker    engine    grpc
-    Config Engine    ${4}    ${50}    ${20}
+    Ctn Config Engine    ${4}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${4}
@@ -380,7 +380,7 @@ EBDP5
     Ctn Stop Engine
     Ctn Kindly Stop Broker
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
-    Config Engine    ${3}    ${50}    ${20}
+    Ctn Config Engine    ${3}    ${50}    ${20}
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -391,7 +391,7 @@ EBDP5
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
-    Remove Poller By Id    51001    ${4}
+    Ctn Remove Poller By Id    51001    ${4}
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
@@ -411,7 +411,7 @@ EBDP5
 EBDP6
     [Documentation]    Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
     [Tags]    broker    engine    grpc
-    Config Engine    ${3}    ${50}    ${20}
+    Ctn Config Engine    ${3}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
@@ -445,7 +445,7 @@ EBDP6
 
     Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
-    Config Engine    ${2}    ${50}    ${20}
+    Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
     Ctn Kindly Stop Broker
     Clear Engine Logs
@@ -458,7 +458,7 @@ EBDP6
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
-    Remove Poller By Id    51001    ${3}
+    Ctn Remove Poller By Id    51001    ${3}
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
@@ -479,7 +479,7 @@ EBDP6
 EBDP7
     [Documentation]    Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
     [Tags]    broker    engine    grpc
-    Config Engine    ${3}    ${50}    ${20}
+    Ctn Config Engine    ${3}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
@@ -513,7 +513,7 @@ EBDP7
 
     Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
-    Config Engine    ${2}    ${50}    ${20}
+    Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
     Clear Engine Logs
     Ctn Start Engine
@@ -524,7 +524,7 @@ EBDP7
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
-    Remove Poller By Id    51001    ${3}
+    Ctn Remove Poller By Id    51001    ${3}
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
@@ -545,7 +545,7 @@ EBDP7
 EBDP8
     [Documentation]    Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by broker.
     [Tags]    broker    engine    grpc
-    Config Engine    ${4}    ${50}    ${20}
+    Ctn Config Engine    ${4}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${4}
@@ -600,11 +600,11 @@ EBDP8
     ...    ${VarRoot}/lib/centreon-engine/central-module-master0.memory.central-module-master-output
 
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
-    Config Engine    ${3}    ${39}    ${20}
+    Ctn Config Engine    ${3}    ${39}    ${20}
 
     # Restart Broker
     Ctn Start Broker
-    Remove Poller By Id    51001    ${4}
+    Ctn Remove Poller By Id    51001    ${4}
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s

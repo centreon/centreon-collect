@@ -13,14 +13,14 @@ Test Teardown       Ctn Save Logs If Failed
 EBNSVC1
     [Documentation]    New services with several pollers
     [Tags]    broker    engine    services    protobuf
-    Config Engine    ${3}    ${50}    ${20}
+    Ctn Config Engine    ${3}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
     Ctn Config BBDO3    3
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -48,7 +48,7 @@ EBNSVC1
 Service_increased_huge_check_interval
     [Documentation]    New services with high check interval at creation time.
     [Tags]    broker    engine    services    protobuf
-    Config Engine    ${1}    ${10}    ${10}
+    Ctn Config Engine    ${1}    ${10}    ${10}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -60,12 +60,12 @@ Service_increased_huge_check_interval
     Ctn Config Broker Sql Output    central    unified_sql    10
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Clear Retention
-    Clear Db    services
-    Clear Db    index_data
-    Clear Db    metrics
+    Ctn Clear Retention
+    Ctn Clear Db    services
+    Ctn Clear Db    index_data
+    Ctn Clear Db    metrics
 
-    Delete All Rrd Metrics
+    Ctn Delete All Rrd Metrics
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -79,7 +79,7 @@ Service_increased_huge_check_interval
     Should Be True    ${result}    "host_1 init not found in log"
     # End Checkers
 
-    Process Service Check Result With Metrics    host_1    service_1    1    warning0    1
+    Ctn Process Service Check Result With Metrics    host_1    service_1    1    warning0    1
 
     ${content}    Create List    new pb data for metric
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
@@ -108,7 +108,7 @@ Service_increased_huge_check_interval
     Execute Sql String
     ...    INSERT INTO index_data (host_id, service_id, host_name, service_description) VALUES (1, ${new_service_id}, 'host1', 'service_${new_service_id}')
 
-    Engine Config Replace Value In Services    0    service_${new_service_id}    check_interval    90
+    Ctn Engine Config Replace Value In Services    0    service_${new_service_id}    check_interval    90
 
     ${start}    Get Current Date
 
@@ -122,7 +122,7 @@ Service_increased_huge_check_interval
 
     Sleep    5
 
-    Process Service Check Result With Metrics    host_1    service_${new_service_id}    1    warning0    1
+    Ctn Process Service Check Result With Metrics    host_1    service_${new_service_id}    1    warning0    1
 
     ${metrics}    Get Metrics For Service    ${new_service_id}
 

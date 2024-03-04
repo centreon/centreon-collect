@@ -13,7 +13,7 @@ Test Teardown       Ctn Save Logs If Failed
 BRGC1
     [Documentation]    Broker good reverse connection
     [Tags]    broker    map    reverse connection
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central_map
     Ctn Config Broker    module
@@ -28,7 +28,7 @@ BRGC1
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    Run Reverse Bam    ${50}    ${0.2}
+    Ctn Run Reverse Bam    ${50}    ${0.2}
 
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -46,7 +46,7 @@ BRGC1
 BRCTS1
     [Documentation]    Broker reverse connection too slow
     [Tags]    broker    map    reverse connection
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central_map
     Ctn Config Broker    module
@@ -60,7 +60,7 @@ BRCTS1
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    Run Reverse Bam    ${150}    ${10}
+    Ctn Run Reverse Bam    ${150}    ${10}
 
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -80,7 +80,7 @@ BRCTS1
 BRCS1
     [Documentation]    Broker reverse connection stopped
     [Tags]    broker    map    reversed
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central_map
     Ctn Config Broker    module
@@ -110,7 +110,7 @@ BRCS1
 BRCTSMN
     [Documentation]    Broker connected to map with neb filter
     [Tags]    broker    map    reverse connection
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central_map
     Ctn Config Broker    module
@@ -123,7 +123,7 @@ BRCTSMN
     Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Round Current Date
     Ctn Start Broker
-    Start Map
+    Ctn Start Map
     Sleep    5s
 
     Ctn Start Engine
@@ -136,7 +136,7 @@ BRCTSMN
     ${categories}    Create List    1
     ${output}    Check Map Output    ${categories}    ${expected_events}    120
     Ctn Kindly Stop Broker
-    Stop Map
+    Ctn Stop Map
     Should Be True    ${output}    Filters badly applied in Broker
 
     # We should have exactly 1000 pb_service
@@ -155,7 +155,7 @@ BRCTSMNS
     [Documentation]    Broker connected to map with neb and storage filters
     [Tags]    broker    map    reverse connection
     Clear Metrics
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central_map
     Ctn Config Broker    module
@@ -172,7 +172,7 @@ BRCTSMNS
     Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Round Current Date
     Ctn Start Broker
-    Start Map
+    Ctn Start Map
     Sleep    5s
 
     Ctn Start Engine
@@ -201,7 +201,7 @@ BRCTSMNS
 
     Log To Console    Second configuration with one more service per host
     # For each host, one service is added (20 -> 21)
-    Config Engine    ${1}    ${50}    ${21}
+    Ctn Config Engine    ${1}    ${50}    ${21}
     Reload Engine
     Reload Broker
 
@@ -212,5 +212,5 @@ BRCTSMNS
     Should Be True    ${output}    Filters badly applied in Broker
 
     Ctn Kindly Stop Broker
-    Stop Map
+    Ctn Stop Map
     Ctn Stop Engine

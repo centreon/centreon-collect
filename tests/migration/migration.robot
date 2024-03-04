@@ -14,14 +14,14 @@ MIGRATION
     [Tags]    broker    engine    services    protobuf
 
     Log To Console    Pure legacy mode
-    Config Engine    ${3}    ${50}    ${20}
+    Ctn Config Engine    ${3}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    rrd    rrd    trace
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine

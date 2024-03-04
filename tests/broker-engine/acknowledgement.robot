@@ -13,7 +13,7 @@ Test Teardown       Ctn Save Logs If Failed
 BEACK1
     [Documentation]    Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to OK. And the acknowledgement in database is deleted from engine but still open on the database.
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -30,7 +30,7 @@ BEACK1
     ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
 
     # Time to set the service to CRITICAL HARD.
-    Process Service Check Result    host_1    service_1    2    (1;1) is critical
+    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
     Repeat Keyword    2 times    Process Service Check Result    host_1    service_1    2    (1;1) is critical
@@ -38,7 +38,7 @@ BEACK1
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
-    Acknowledge Service Problem    host_1    service_1
+    Ctn Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
@@ -54,7 +54,7 @@ BEACK1
 BEACK2
     [Documentation]    Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to OK. And the acknowledgement in database is deleted.
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -71,7 +71,7 @@ BEACK2
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # Time to set the service to CRITICAL HARD.
-    Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
+    Ctn Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
     Repeat Keyword    2 times    Process Service Check Result    host_1    service_1    2    (1;1) is critical
@@ -79,7 +79,7 @@ BEACK2
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
-    Acknowledge Service Problem    host_1    service_1
+    Ctn Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    600    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
@@ -95,7 +95,7 @@ BEACK2
 BEACK3
     [Documentation]    Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The acknowledgement is removed and the comment in the comments table has its deletion_time column updated.
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -112,7 +112,7 @@ BEACK3
     ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
 
     # Time to set the service to CRITICAL HARD.
-    Process Service Check Result    host_1    service_1    2    (1;1) is critical
+    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
     Repeat Keyword    2 times    Process Service Check Result    host_1    service_1    2    (1;1) is critical
@@ -120,11 +120,11 @@ BEACK3
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
-    Acknowledge Service Problem    host_1    service_1
+    Ctn Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
-    Remove Service Acknowledgement    host_1    service_1
+    Ctn Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
     ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
@@ -133,7 +133,7 @@ BEACK3
 BEACK4
     [Documentation]    Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The acknowledgement is removed and the comment in the comments table has its deletion_time column updated.
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -151,7 +151,7 @@ BEACK4
     ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
 
     # Time to set the service to CRITICAL HARD.
-    Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
+    Ctn Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
     Repeat Keyword    2 times    Process Service Check Result    host_1    service_1    2    (1;1) is critical
@@ -159,11 +159,11 @@ BEACK4
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
-    Acknowledge Service Problem    host_1    service_1
+    Ctn Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    600    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
-    Remove Service Acknowledgement    host_1    service_1
+    Ctn Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
     ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
@@ -172,15 +172,15 @@ BEACK4
 BEACK5
     [Documentation]    Engine has a critical service. An external command is sent to acknowledge it ; the acknowledgement is sticky. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to WARNING. And the acknowledgement in database is still there.
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    module0    neb    trace
     Ctn Broker Config Log    central    sql    debug
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_level_external_command    trace
-    Engine Config Set Value    ${0}    log_flush_period    0    True
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_external_command    trace
+    Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -192,7 +192,7 @@ BEACK5
     ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
 
     # Time to set the service to CRITICAL HARD.
-    Process Service Check Result    host_1    service_1    2    (1;1) is critical
+    Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
     Repeat Keyword    2 times    Process Service Check Result    host_1    service_1    2    (1;1) is critical
@@ -200,7 +200,7 @@ BEACK5
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
-    Acknowledge Service Problem    host_1    service_1    STICKY
+    Ctn Acknowledge Service Problem    host_1    service_1    STICKY
     ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
@@ -213,7 +213,7 @@ BEACK5
     ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    10
     Should Be True    ${result}==${False}    Acknowledgement ${ack_id} should not be deleted.
 
-    Remove Service Acknowledgement    host_1    service_1
+    Ctn Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
     ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
@@ -222,7 +222,7 @@ BEACK5
 BEACK6
     [Documentation]    Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it ; the acknowledgement is sticky. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to WARNING. And the acknowledgement in database is still there.
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -240,7 +240,7 @@ BEACK6
     ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
 
     # Time to set the service to CRITICAL HARD.
-    Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
+    Ctn Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    SOFT
     Should Be True    ${result}    Service (1;1) should be critical
     Repeat Keyword    2 times    Process Service Check Result    host_1    service_1    2    (1;1) is critical
@@ -248,7 +248,7 @@ BEACK6
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    600    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
-    Acknowledge Service Problem    host_1    service_1    STICKY
+    Ctn Acknowledge Service Problem    host_1    service_1    STICKY
     ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    600    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
@@ -261,7 +261,7 @@ BEACK6
     ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    10
     Should Be True    ${result}==${False}    Acknowledgement ${ack_id} should not be deleted.
 
-    Remove Service Acknowledgement    host_1    service_1
+    Ctn Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
     ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH

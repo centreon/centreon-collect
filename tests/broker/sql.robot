@@ -179,15 +179,15 @@ BEDB2
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     ${start}    Get Current Date
-    Stop Mysql
+    Ctn Stop Mysql
     Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    error while starting connection
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
-    Start Mysql
+    Ctn Start Mysql
     ${result}    Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    60
     Should Be True    ${result}    Message about the connection to the database is missing.
     Ctn Kindly Stop Broker
@@ -199,9 +199,9 @@ BEDB3
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     ${start}    Get Current Date
-    Start Mysql
+    Ctn Start Mysql
     Ctn Start Broker
     Ctn Start Engine
     FOR    ${t}    IN RANGE    60
@@ -209,14 +209,14 @@ BEDB3
         IF    ${result}    BREAK
     END
     Should Be True    ${result}    gRPC does not return 3 connections as expected
-    Stop Mysql
+    Ctn Stop Mysql
     FOR    ${t}    IN RANGE    60
         ${result}    Check All Sql connections Down With Grpc    51001
         IF    ${result}    BREAK
     END
     Should Be True    ${result}    Connections are not all down.
 
-    Start Mysql
+    Ctn Start Mysql
     FOR    ${t}    IN RANGE    60
         ${result}    Check Sql Connections Count With Grpc    51001    ${3}
         IF    ${result}    BREAK
@@ -231,9 +231,9 @@ BEDB4
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     ${start}    Get Current Date
-    Stop Mysql
+    Ctn Stop Mysql
     Ctn Start Broker
     Ctn Start Engine
     FOR    ${t}    IN RANGE    60
@@ -242,7 +242,7 @@ BEDB4
     END
     Should Be True    ${result}    Connections are not all down.
 
-    Start Mysql
+    Ctn Start Mysql
     FOR    ${t}    IN RANGE    60
         ${result}    Check Sql Connections Count With Grpc    51001    ${3}
         IF    ${result}    BREAK

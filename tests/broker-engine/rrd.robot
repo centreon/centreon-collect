@@ -13,7 +13,7 @@ Test Teardown       Stop Engine Broker And Save Logs
 BRRDDM1
     [Documentation]    RRD metrics deletion from metric ids.
     [Tags]    rrd    metric    deletion
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -22,7 +22,7 @@ BRRDDM1
     Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -35,7 +35,7 @@ BRRDDM1
     Log To Console    Metrics to delete ${metrics}
 
     ${empty}    Create List
-    Remove Graphs    51001    ${empty}    ${metrics}
+    Ctn Remove Graphs    51001    ${empty}    ${metrics}
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics .* erased from database
 
@@ -57,7 +57,7 @@ BRRDDM1
 BRRDWM1
     [Documentation]    We are working with BBDO3. This test checks protobuf metrics and status are sent to cbd RRD.
     [Tags]    rrd    metric    bbdo3    unified_sql
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -82,14 +82,14 @@ BRRDWM1
 BRRDDID1
     [Documentation]    RRD metrics deletion from index ids.
     [Tags]    rrd    metric    deletion
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    rrd    rrd    debug
     Ctn Broker Config Log    rrd    core    error
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date
     Sleep    1s
@@ -103,7 +103,7 @@ BRRDDID1
     Log To Console    indexes ${indexes} to delete with their metrics
 
     ${empty}    Create List
-    Remove Graphs    51001    ${indexes}    ${empty}
+    Ctn Remove Graphs    51001    ${indexes}    ${empty}
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes .* erased from database
 
@@ -129,7 +129,7 @@ BRRDDID1
 BRRDDMID1
     [Documentation]    RRD deletion of non existing metrics and indexes
     [Tags]    rrd    metric    deletion
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -149,7 +149,7 @@ BRRDDMID1
     ${metrics}    Ctn Get Not Existing Metrics    2
     Log To Console    indexes ${indexes} and metrics ${metrics} to delete but they do not exist.
 
-    Remove Graphs    51001    ${indexes}    ${metrics}
+    Ctn Remove Graphs    51001    ${indexes}    ${metrics}
     ${content}    Create List    do not appear in the storage database
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True
@@ -159,7 +159,7 @@ BRRDDMID1
 BRRDDMU1
     [Documentation]    RRD metric deletion on table metric with unified sql output
     [Tags]    rrd    metric    deletion unified_sql
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -169,7 +169,7 @@ BRRDDMU1
     Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -182,7 +182,7 @@ BRRDDMU1
     Log To Console    metrics to delete ${metrics}
 
     ${empty}    Create List
-    Remove Graphs    51001    ${empty}    ${metrics}
+    Ctn Remove Graphs    51001    ${empty}    ${metrics}
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics .* erased from database
 
@@ -203,7 +203,7 @@ BRRDDMU1
 BRRDDIDU1
     [Documentation]    RRD metrics deletion from index ids with unified sql output.
     [Tags]    rrd    metric    deletion    unified_sql
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -213,7 +213,7 @@ BRRDDIDU1
     Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -226,7 +226,7 @@ BRRDDIDU1
     Log To Console    indexes ${indexes} to delete with their metrics
 
     ${empty}    Create List
-    Remove Graphs    51001    ${indexes}    ${empty}
+    Ctn Remove Graphs    51001    ${indexes}    ${empty}
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes .* erased from database
 
@@ -250,7 +250,7 @@ BRRDDIDU1
 BRRDDMIDU1
     [Documentation]    RRD deletion of non existing metrics and indexes
     [Tags]    rrd    metric    deletion    unified_sql
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -271,7 +271,7 @@ BRRDDMIDU1
     ${metrics}    Ctn Get Not Existing Metrics    2
     Log To Console    indexes ${indexes} and metrics ${metrics} to delete but they do not exist.
 
-    Remove Graphs    51001    ${indexes}    ${metrics}
+    Ctn Remove Graphs    51001    ${indexes}    ${metrics}
     ${content}    Create List    do not appear in the storage database
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True
@@ -281,7 +281,7 @@ BRRDDMIDU1
 BRRDRM1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output.
     [Tags]    rrd    metric    rebuild    grpc
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -290,7 +290,7 @@ BRRDRM1
     Ctn Broker Config Log    rrd    perfdata    trace
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -300,7 +300,7 @@ BRRDRM1
 
     # We get 3 indexes to rebuild
     ${index}    Ctn Get Indexes To Rebuild    3
-    Rebuild Rrd Graphs    51001    ${index}    1
+    Ctn Rebuild Rrd Graphs    51001    ${index}    1
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
@@ -338,7 +338,7 @@ BRRDRM1
 BRRDRMU1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output.
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -349,7 +349,7 @@ BRRDRMU1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Round Current Date
     Ctn Start Broker
@@ -359,7 +359,7 @@ BRRDRMU1
 
     # We get 3 indexes to rebuild
     ${index}    Ctn Get Indexes To Rebuild    3
-    Rebuild Rrd Graphs    51001    ${index}    1
+    Ctn Rebuild Rrd Graphs    51001    ${index}    1
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
@@ -400,7 +400,7 @@ BRRDRMU1
 RRD1
     [Documentation]    RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -411,7 +411,7 @@ RRD1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Round Current Date
     Run Keywords    Start Broker    AND    Ctn Start Engine
@@ -420,7 +420,7 @@ RRD1
 
     # We get 3 indexes to rebuild
     ${index}    Ctn Get Not Existing Indexes    3
-    Rebuild Rrd Graphs    51001    ${index}    1
+    Ctn Rebuild Rrd Graphs    51001    ${index}    1
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}

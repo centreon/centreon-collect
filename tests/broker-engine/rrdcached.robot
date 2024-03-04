@@ -13,7 +13,7 @@ Test Teardown       Ctn Save Logs If Failed
 BRRDCDDM1
     [Documentation]    RRD metrics deletion from metric ids with rrdcached.
     [Tags]    rrd    metric    deletion    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
@@ -23,7 +23,7 @@ BRRDCDDM1
     Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -35,7 +35,7 @@ BRRDCDDM1
     Log To Console    Metrics to delete ${metrics}
 
     ${empty}    Create List
-    Remove Graphs    51001    ${empty}    ${metrics}
+    Ctn Remove Graphs    51001    ${empty}    ${metrics}
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics ${metrics_str} erased from database
 
@@ -49,7 +49,7 @@ BRRDCDDM1
 BRRDCDDID1
     [Documentation]    RRD metrics deletion from index ids with rrdcached.
     [Tags]    rrd    metric    deletion    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
@@ -57,7 +57,7 @@ BRRDCDDID1
     Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    rrd    rrd    trace
     Ctn Broker Config Log    rrd    core    error
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date
     Sleep    1s
@@ -71,7 +71,7 @@ BRRDCDDID1
     Log To Console    indexes ${indexes} to delete with their metrics
 
     ${empty}    Create List
-    Remove Graphs    51001    ${indexes}    ${empty}
+    Ctn Remove Graphs    51001    ${indexes}    ${empty}
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes ${indexes_str} erased from database
 
@@ -89,7 +89,7 @@ BRRDCDDID1
 BRRDCDDMID1
     [Documentation]    RRD deletion of non existing metrics and indexes with rrdcached
     [Tags]    rrd    metric    deletion    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
@@ -110,7 +110,7 @@ BRRDCDDMID1
     ${metrics}    Ctn Get Not Existing Metrics    2
     Log To Console    indexes ${indexes} and metrics ${metrics} to delete but they do not exist.
 
-    Remove Graphs    51001    ${indexes}    ${metrics}
+    Ctn Remove Graphs    51001    ${indexes}    ${metrics}
     ${content}    Create List    do not appear in the storage database
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True
@@ -120,7 +120,7 @@ BRRDCDDMID1
 BRRDCDDMU1
     [Documentation]    RRD metric deletion on table metric with unified sql output with rrdcached
     [Tags]    rrd    metric    deletion unified_sql    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
@@ -131,7 +131,7 @@ BRRDCDDMU1
     Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -144,7 +144,7 @@ BRRDCDDMU1
     Log To Console    metrics to delete ${metrics}
 
     ${empty}    Create List
-    Remove Graphs    51001    ${empty}    ${metrics}
+    Ctn Remove Graphs    51001    ${empty}    ${metrics}
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics ${metrics_str} erased from database
 
@@ -157,7 +157,7 @@ BRRDCDDMU1
 BRRDCDDIDU1
     [Documentation]    RRD metrics deletion from index ids with unified sql output with rrdcached.
     [Tags]    rrd    metric    deletion    unified_sql    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
@@ -168,7 +168,7 @@ BRRDCDDIDU1
     Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -181,7 +181,7 @@ BRRDCDDIDU1
     Log To Console    indexes ${indexes} to delete with their metrics
 
     ${empty}    Create List
-    Remove Graphs    51001    ${indexes}    ${empty}
+    Ctn Remove Graphs    51001    ${indexes}    ${empty}
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes ${indexes_str} erased from database
 
@@ -197,7 +197,7 @@ BRRDCDDIDU1
 BRRDCDDMIDU1
     [Documentation]    RRD deletion of non existing metrics and indexes with rrdcached
     [Tags]    rrd    metric    deletion    unified_sql    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
@@ -219,7 +219,7 @@ BRRDCDDMIDU1
     ${metrics}    Ctn Get Not Existing Metrics    2
     Log To Console    indexes ${indexes} and metrics ${metrics} to delete but they do not exist.
 
-    Remove Graphs    51001    ${indexes}    ${metrics}
+    Ctn Remove Graphs    51001    ${indexes}    ${metrics}
     ${content}    Create List    do not appear in the storage database
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True
@@ -229,7 +229,7 @@ BRRDCDDMIDU1
 BRRDCDRB1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output and rrdcached.
     [Tags]    rrd    metric    rebuild    grpc    rrdcached
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
@@ -238,7 +238,7 @@ BRRDCDRB1
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -248,7 +248,7 @@ BRRDCDRB1
 
     # We get 3 indexes to rebuild
     ${index}    Ctn Get Indexes To Rebuild    3
-    Rebuild Rrd Graphs    51001    ${index}    1
+    Ctn Rebuild Rrd Graphs    51001    ${index}    1
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
@@ -286,7 +286,7 @@ BRRDCDRB1
 BRRDCDRBU1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output and rrdcached.
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Add Path To RRD Output    rrd    ${BROKER_LIB}/rrdcached.sock
     Ctn Config Broker    central
@@ -298,7 +298,7 @@ BRRDCDRBU1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Create Metrics    3
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -308,7 +308,7 @@ BRRDCDRBU1
 
     # We get 3 indexes to rebuild
     ${index}    Ctn Get Indexes To Rebuild    3
-    Rebuild Rrd Graphs    51001    ${index}    1
+    Ctn Rebuild Rrd Graphs    51001    ${index}    1
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}

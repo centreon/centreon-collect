@@ -13,9 +13,9 @@ Test Teardown       Ctn Save Logs If Failed
 BERD1
     [Documentation]    Starting/stopping Broker does not create duplicated events.
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Config Broker    central
     Ctn Broker Config Clear Outputs Except    central    ["ipv4"]
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -25,7 +25,7 @@ BERD1
     Ctn Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Ctn Broker Config Log    module0    lua    debug
     Ctn Config Broker    rrd
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -39,7 +39,7 @@ BERD1
     Sleep    5s
     Ctn Kindly Stop Broker
     Sleep    5s
-    Clear Cache
+    Ctn Clear Cache
     Ctn Start Broker
     Sleep    25s
     Ctn Stop Engine
@@ -52,10 +52,10 @@ BERD1
 BERD2
     [Documentation]    Starting/stopping Engine does not create duplicated events.
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_level_runtime    info
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_runtime    info
     Ctn Config Broker    central
     Ctn Broker Config Clear Outputs Except    central    ["ipv4"]
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -66,7 +66,7 @@ BERD2
     Ctn Broker Config Log    module0    lua    debug
     Ctn Broker Config Log    module0    neb    debug
     Ctn Config Broker    rrd
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -91,9 +91,9 @@ BERD2
 BERDUC1
     [Documentation]    Starting/stopping Broker does not create duplicated events in usual cases
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Config Broker    central
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
@@ -106,7 +106,7 @@ BERDUC1
     Ctn Broker Config Log    module0    lua    debug
     Ctn Broker Config Log    module0    neb    debug
     Ctn Config Broker    rrd
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -120,7 +120,7 @@ BERDUC1
     Sleep    5s
     Ctn Kindly Stop Broker
     Sleep    5s
-    Clear Cache
+    Ctn Clear Cache
     Ctn Start Broker
     Sleep    25s
     Ctn Stop Engine
@@ -131,9 +131,9 @@ BERDUC1
 BERDUCU1
     [Documentation]    Starting/stopping Broker does not create duplicated events in usual cases with unified_sql
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Config Broker    central
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
@@ -145,7 +145,7 @@ BERDUCU1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Broker Config Flush Log    module0    0
     Ctn Config Broker    rrd
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -157,7 +157,7 @@ BERDUCU1
     Sleep    5s
     Ctn Kindly Stop Broker
     Sleep    5s
-    Clear Cache
+    Ctn Clear Cache
     Ctn Start Broker
     Sleep    25s
     Ctn Stop Engine
@@ -168,10 +168,10 @@ BERDUCU1
 BERDUC2
     [Documentation]    Starting/stopping Engine does not create duplicated events in usual cases
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Clear Retention
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Clear Retention
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Config Broker    central
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
@@ -194,7 +194,7 @@ BERDUC2
     Sleep    5s
     Ctn Stop Engine
     Sleep    5s
-    Clear Cache
+    Ctn Clear Cache
     Ctn Start Engine
     Sleep    25s
     Ctn Stop Engine
@@ -205,10 +205,10 @@ BERDUC2
 BERDUCU2
     [Documentation]    Starting/stopping Engine does not create duplicated events in usual cases with unified_sql
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Clear Retention
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Clear Retention
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -233,7 +233,7 @@ BERDUCU2
     Sleep    5s
     Ctn Stop Engine
     Sleep    5s
-    Clear Cache
+    Ctn Clear Cache
     Ctn Start Engine
     Sleep    25s
     Ctn Stop Engine
@@ -244,9 +244,9 @@ BERDUCU2
 BERDUC3U1
     [Documentation]    Starting/stopping Broker does not create duplicated events in usual cases with unified_sql and BBDO 3.0
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Config Broker    central
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
@@ -257,7 +257,7 @@ BERDUC3U1
     Ctn Broker Config Flush Log    module0    0
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -271,7 +271,7 @@ BERDUC3U1
     Sleep    5s
     Ctn Kindly Stop Broker
     Sleep    5s
-    Clear Cache
+    Ctn Clear Cache
     Ctn Start Broker
     Sleep    25s
     Ctn Stop Engine
@@ -282,10 +282,10 @@ BERDUC3U1
 BERDUC3U2
     [Documentation]    Starting/stopping Engine does not create duplicated events in usual cases with unified_sql and BBDO 3.0
     [Tags]    broker    engine    start-stop    duplicate    retention
-    Clear Retention
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Clear Retention
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -324,7 +324,7 @@ BERDUC3U2
     Sleep    5s
     Ctn Stop Engine
     Sleep    5s
-    Clear Cache
+    Ctn Clear Cache
     Ctn Start Engine
     Sleep    25s
     Ctn Stop Engine
@@ -335,10 +335,10 @@ BERDUC3U2
 BERDUCA300
     [Documentation]    Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker.
     [Tags]    broker    engine    start-stop    duplicate    retention    unified_sql
-    Clear Retention
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Clear Retention
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -388,10 +388,10 @@ BERDUCA300
 BERDUCA301
     [Documentation]    Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker with bbdo 3.0.1.
     [Tags]    broker    engine    start-stop    duplicate    retention    unified_sql
-    Clear Retention
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Clear Retention
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua

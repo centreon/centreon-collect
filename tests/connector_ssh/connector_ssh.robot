@@ -13,15 +13,15 @@ Test Teardown       Save SSH Logs If Failed
 TestBadUser
     [Documentation]    test unknown user
     [Tags]    connector    engine
-    Clear Retention
+    Ctn Clear Retention
     Ctn Config Broker    module    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
-    Engine Config Set Value    ${0}    log_level_commands    trace
-    Engine Config Set Value In Hosts    ${0}    host_1    _USER    toto
-    Engine Config Replace Value In Hosts    ${0}    host_1    check_command    ssh_linux_snmp
-    Engine Config Replace Value In Hosts    ${0}    host_1    address    127.0.0.10
-    Engine Config Set Value In Hosts    ${0}    host_1    _PASSWORD    titi
+    Ctn Engine Config Set Value    ${0}    log_level_commands    trace
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    _USER    toto
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    ssh_linux_snmp
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    address    127.0.0.10
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    _PASSWORD    titi
     Engine Config Add Command
     ...    ${0}
     ...    ssh_linux_snmp
@@ -37,7 +37,7 @@ TestBadUser
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     ${start}    Get Current Date
-    Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+    Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
     ${content}    Create List    fail to connect to toto@127.0.0.10
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -47,14 +47,14 @@ TestBadUser
 TestBadPwd
     [Documentation]    test bad password
     [Tags]    connector    engine
-    Clear Retention
+    Ctn Clear Retention
     Ctn Config Broker    module    ${1}
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_level_commands    trace
-    Engine Config Set Value In Hosts    ${0}    host_1    _USER    testconnssh
-    Engine Config Replace Value In Hosts    ${0}    host_1    check_command    ssh_linux_snmp
-    Engine Config Replace Value In Hosts    ${0}    host_1    address    127.0.0.11
-    Engine Config Set Value In Hosts    ${0}    host_1    _PASSWORD    titi
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_commands    trace
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    _USER    testconnssh
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    ssh_linux_snmp
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    address    127.0.0.11
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    _PASSWORD    titi
     Engine Config Add Command
     ...    ${0}
     ...    ssh_linux_snmp
@@ -70,7 +70,7 @@ TestBadPwd
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     ${start}    Get Current Date
-    Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+    Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
     ${content}    Create List    fail to connect to testconnssh@127.0.0.11
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -84,20 +84,20 @@ Test6Hosts
     Run    cat ~testconnssh/.ssh/id_rsa.pub ~root/.ssh/id_rsa.pub > ~testconnssh/.ssh/authorized_keys
     # Run    chown testconnssh: ~testconnssh/.ssh/authorized_keys
     # Run    chmod 600 ~testconnssh/.ssh/authorized_keys
-    Clear Retention
+    Ctn Clear Retention
     Ctn Config Broker    module    ${1}
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_level_commands    trace
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_commands    trace
     Engine Config Add Command
     ...    ${0}
     ...    ssh_linux_snmp
     ...    $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"
     ...    SSH Connector
     ${run_env}    Run Env
-    Engine Config Set Value In Hosts    ${0}    host_1    _USER    testconnssh
-    Engine Config Replace Value In Hosts    ${0}    host_1    check_command    ssh_linux_snmp
-    Engine Config Set Value In Hosts    ${0}    host_1    _IDENTITYFILE    /home/testconnssh/.ssh/id_rsa
-    Engine Config Set Value In Hosts    ${0}    host_1    _PASSWORD    passwd
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    _USER    testconnssh
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    ssh_linux_snmp
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    _IDENTITYFILE    /home/testconnssh/.ssh/id_rsa
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    _PASSWORD    passwd
     IF    "${run_env}" == "docker"
         Engine Config Replace Value In Hosts    ${0}    host_1    address    127.0.0.1
     ELSE
@@ -149,20 +149,20 @@ TestWhiteList
     Run    cat ~testconnssh/.ssh/id_rsa.pub ~root/.ssh/id_rsa.pub > ~testconnssh/.ssh/authorized_keys
     # Run    chown testconnssh: ~testconnssh/.ssh/authorized_keys
     # Run    chmod 600 ~testconnssh/.ssh/authorized_keys
-    Clear Retention
+    Ctn Clear Retention
     Ctn Config Broker    module    ${1}
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_level_commands    trace
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_commands    trace
     Engine Config Add Command
     ...    ${0}
     ...    ssh_linux_snmp
     ...    $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"
     ...    SSH Connector
     ${run_env}    Run Env
-    Engine Config Set Value In Hosts    ${0}    host_1    _USER    testconnssh
-    Engine Config Replace Value In Hosts    ${0}    host_1    check_command    ssh_linux_snmp
-    Engine Config Set Value In Hosts    ${0}    host_1    _IDENTITYFILE    /home/testconnssh/.ssh/id_rsa
-    Engine Config Set Value In Hosts    ${0}    host_1    _PASSWORD    passwd
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    _USER    testconnssh
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    ssh_linux_snmp
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    _IDENTITYFILE    /home/testconnssh/.ssh/id_rsa
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    _PASSWORD    passwd
     IF    "${run_env}" == "docker"
         Engine Config Replace Value In Hosts    ${0}    host_1    address    127.0.0.1
     ELSE
@@ -184,7 +184,7 @@ TestWhiteList
 
     # ssh_linux_snmp forbidden
     ${start}    Get Current Date
-    Schedule Forced Host Check    host_1
+    Ctn Schedule Forced Host Check    host_1
 
     ${content}    Create List
     ...    host_1: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
@@ -197,7 +197,7 @@ TestWhiteList
     Create File    /etc/centreon-engine-whitelist/test2    ${whitelist_content}
     Reload Engine
     ${start}    Get Current Date
-    Schedule Forced Host Check    host_1
+    Ctn Schedule Forced Host Check    host_1
 
     ${content}    Create List    'toto=127.0.0.1'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

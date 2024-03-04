@@ -13,10 +13,10 @@ Test Teardown       Ctn Save Logs If Failed
 BEDTMASS1
     [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.0
     [Tags]    broker    engine    services    protobuf
-    Config Engine    ${3}    ${50}    ${20}
-    Engine Config Set Value    ${0}    log_level_functions    trace
-    Engine Config Set Value    ${1}    log_level_functions    trace
-    Engine Config Set Value    ${2}    log_level_functions    trace
+    Ctn Config Engine    ${3}    ${50}    ${20}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
+    Ctn Engine Config Set Value    ${1}    log_level_functions    trace
+    Ctn Engine Config Set Value    ${2}    log_level_functions    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
@@ -28,7 +28,7 @@ BEDTMASS1
     Ctn Config BBDO3    3
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -63,10 +63,10 @@ BEDTMASS1
 BEDTMASS2
     [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 2.0
     [Tags]    broker    engine    services    protobuf
-    Config Engine    ${3}    ${50}    ${20}
-    Engine Config Set Value    ${0}    log_level_functions    trace
-    Engine Config Set Value    ${1}    log_level_functions    trace
-    Engine Config Set Value    ${2}    log_level_functions    trace
+    Ctn Config Engine    ${3}    ${50}    ${20}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
+    Ctn Engine Config Set Value    ${1}    log_level_functions    trace
+    Ctn Engine Config Set Value    ${2}    log_level_functions    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
@@ -76,7 +76,7 @@ BEDTMASS2
     Ctn Broker Config Log    module2    neb    debug
 
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -111,15 +111,15 @@ BEDTMASS2
 BEDTSVCREN1
     [Documentation]    A downtime is set on a service then the service is renamed. The downtime is still active on the renamed service. The downtime is removed from the renamed service and it is well removed.
     [Tags]    broker    engine    services    downtime
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_level_functions    trace
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    debug
 
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -129,13 +129,13 @@ BEDTSVCREN1
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # It's time to schedule a downtime
-    Schedule Service Downtime    host_1    service_1    ${3600}
+    Ctn Schedule Service Downtime    host_1    service_1    ${3600}
 
     ${result}    Check Number Of Downtimes    ${1}    ${start}    ${60}
     Should Be True    ${result}    We should have 1 downtime enabled.
 
     # Let's rename the service service_1
-    Rename Service    ${0}    host_1    service_1    toto_1
+    Ctn Rename Service    ${0}    host_1    service_1    toto_1
 
     Reload Engine
     # Let's wait for the check of external commands
@@ -143,7 +143,7 @@ BEDTSVCREN1
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    Delete Service Downtime Full    ${0}    host_1    toto_1
+    Ctn Delete Service Downtime Full    ${0}    host_1    toto_1
 
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
@@ -154,15 +154,15 @@ BEDTSVCREN1
 BEDTSVCFIXED
     [Documentation]    A downtime is set on a service, the total number of downtimes is really 1 then we delete this downtime and the number of downtime is 0.
     [Tags]    broker    engine    downtime
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_level_functions    trace
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    debug
 
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -172,12 +172,12 @@ BEDTSVCFIXED
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # It's time to schedule a downtime
-    Schedule Service Downtime    host_1    service_1    ${3600}
+    Ctn Schedule Service Downtime    host_1    service_1    ${3600}
 
     ${result}    Check Number Of Downtimes    ${1}    ${start}    ${60}
     Should Be True    ${result}    We should have 1 downtime enabled.
 
-    Delete Service Downtime Full    ${0}    host_1    service_1
+    Ctn Delete Service Downtime Full    ${0}    host_1    service_1
 
     ${result}    Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
@@ -188,8 +188,8 @@ BEDTSVCFIXED
 BEDTHOSTFIXED
     [Documentation]    A downtime is set on a host, the total number of downtimes is really 21 (1 for the host and 20 for its 20 services) then we delete this downtime and the number is 0.
     [Tags]    broker    engine    downtime
-    Config Engine    ${1}
-    Engine Config Set Value    ${0}    log_level_functions    trace
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -197,7 +197,7 @@ BEDTHOSTFIXED
     Ctn Broker Config Log    module0    neb    debug
     Ctn Config Broker Sql Output    central    unified_sql
 
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -208,7 +208,7 @@ BEDTHOSTFIXED
 
     log to console    step1
     # It's time to schedule downtimes
-    Schedule Host Fixed Downtime    ${0}    host_1    ${3600}
+    Ctn Schedule Host Fixed Downtime    ${0}    host_1    ${3600}
     log to console    step2
     ${content}    Create List    HOST DOWNTIME ALERT: host_1;STARTED; Host has entered a period of scheduled downtime
     ...    SERVICE DOWNTIME ALERT: host_1;service_1;STARTED; Service has entered a period of scheduled downtime
@@ -240,7 +240,7 @@ BEDTHOSTFIXED
     log to console    step4
 
     # It's time to delete downtimes
-    Delete Host Downtimes    ${0}    host_1
+    Ctn Delete Host Downtimes    ${0}    host_1
     ${content}    Create List    HOST DOWNTIME ALERT: host_1;CANCELLED; Scheduled downtime for host has been cancelled.
     ...    SERVICE DOWNTIME ALERT: host_1;service_1;CANCELLED; Scheduled downtime for service has been cancelled.
     ...    SERVICE DOWNTIME ALERT: host_1;service_2;CANCELLED; Scheduled downtime for service has been cancelled.
@@ -274,12 +274,12 @@ BEDTHOSTFIXED
 DTIM
     [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 5250 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.1
     [Tags]    broker    engine    services    host    downtimes    MON-19339
-    Config Engine    ${5}    ${250}    ${20}
-    Engine Config Set Value    ${0}    log_level_functions    trace
-    Engine Config Set Value    ${1}    log_level_functions    trace
-    Engine Config Set Value    ${2}    log_level_functions    trace
-    Engine Config Set Value    ${3}    log_level_functions    trace
-    Engine Config Set Value    ${4}    log_level_functions    trace
+    Ctn Config Engine    ${5}    ${250}    ${20}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
+    Ctn Engine Config Set Value    ${1}    log_level_functions    trace
+    Ctn Engine Config Set Value    ${2}    log_level_functions    trace
+    Ctn Engine Config Set Value    ${3}    log_level_functions    trace
+    Ctn Engine Config Set Value    ${4}    log_level_functions    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${5}
@@ -291,7 +291,7 @@ DTIM
     Ctn Broker Config Add Item    central    bbdo_version    3.0.1
     Ctn Broker Config Add Item    rrd    bbdo_version    3.0.1
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear Retention
 
     ${start}    Get Current Date
     Ctn Start Broker

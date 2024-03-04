@@ -124,7 +124,7 @@ BAWORST
     # Little check of the GetBa gRPC command
     ${result}    Run Keyword And Return Status    File Should Exist    /tmp/output
     Run Keyword If    ${result} is True    Remove File    /tmp/output
-    Broker Get Ba    51001    1    /tmp/output
+    Ctn Broker Get Ba    51001    1    /tmp/output
     Wait Until Created    /tmp/output
     ${result}    Grep File    /tmp/output    digraph
     Should Not Be Empty    ${result}    /tmp/output does not contain the word 'digraph'
@@ -146,7 +146,7 @@ BAWORST2
     # ba kpi
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     ${id_ba__sid__child}    Create Ba With Services    test_child    worst    ${svc}
-    Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
+    Ctn Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
     ${start}    Get Current Date
@@ -234,7 +234,7 @@ BABEST_SERVICE_CRITICAL
     # Command of service_314 is set to critical
     ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
-    Set Command Status    ${cmd_1}    2
+    Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker
     ${start}    Get Current Date
     Ctn Start Engine
@@ -319,7 +319,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to OK
-    Process Service Check Result    host_16    service_314    0    output ok for 314
+    Ctn Process Service Check Result    host_16    service_314    0    output ok for 314
 
     ${result}    Check Service Status With Timeout    host_16    service_314    0    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not OK as expected
@@ -396,7 +396,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test has not the expected output
 
     # service_302 ok => ba ok
-    Process Service Check Result    host_16    service_302    0    output ok for service_302
+    Ctn Process Service Check Result    host_16    service_302    0    output ok for service_302
     ${result}    Check Service Status With Timeout    host_16    service_302    0    60    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    60
@@ -445,7 +445,7 @@ BA_RATIO_PERCENT_BA_SERVICE
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     ${id_ba__sid__child}    Create Ba With Services    test_child    worst    ${svc}
-    Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
+    Ctn Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
     ${start}    Get Current Date
@@ -678,7 +678,7 @@ BA_BOOL_KPI
     ...    service_303
     ...    2
     ...    output critical for service_303
-    Process Service Check Result    host_16    service_314    0    output OK for service_314
+    Ctn Process Service Check Result    host_16    service_314    0    output OK for service_314
     ${result}    Check Service Status With Timeout    host_16    service_302    1    30    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not WARNING as expected
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
@@ -763,7 +763,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
 
     Remove File    /tmp/all_lua_event.log
 
-    Clear Db    mod_bam_reporting_relations_ba_bv
+    Ctn Clear Db    mod_bam_reporting_relations_ba_bv
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
 
     ${id_ba__sid}    Create Ba With Services    test    worst    ${svc}
@@ -833,7 +833,7 @@ BEPB_DIMENSION_KPI_EVENT
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     ${baid_svcid}    Create Ba With Services    test    worst    ${svc}
 
-    Add Boolean Kpi    ${baid_svcid[0]}    {host_16 service_302} {IS} {OK}    False    100
+    Ctn Add Boolean Kpi    ${baid_svcid[0]}    {host_16 service_302} {IS} {OK}    False    100
 
     Ctn Start Broker    True
     Ctn Start Engine
@@ -864,7 +864,7 @@ BEPB_KPI_STATUS
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}
+    Ctn Create Ba With Services    test    worst    ${svc}
 
     Ctn Start Broker    True
     Ctn Start Engine
@@ -899,7 +899,7 @@ BEPB_BA_DURATION_EVENT
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}
+    Ctn Create Ba With Services    test    worst    ${svc}
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM mod_bam_relations_ba_timeperiods
@@ -917,7 +917,7 @@ BEPB_BA_DURATION_EVENT
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
     Sleep    2s
-    Process Service Check Result    host_16    service_314    0    output ok for 314
+    Ctn Process Service Check Result    host_16    service_314    0    output ok for 314
     ${result}    Check Service Status With Timeout    host_16    service_314    0    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not OK as expected
     ${end_event}    Get Current Date    result_format=epoch
@@ -945,7 +945,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}
+    Ctn Create Ba With Services    test    worst    ${svc}
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String
@@ -976,7 +976,7 @@ BEPB_DIMENSION_TRUNCATE_TABLE
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}
+    Ctn Create Ba With Services    test    worst    ${svc}
 
     Remove File    /tmp/all_lua_event.log
     Ctn Broker Config Log    central    lua    trace
@@ -1051,10 +1051,10 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     # all serv ok => ba ok
-    Process Service Check Result    host_16    service_302    0    output ok for service_302
+    Ctn Process Service Check Result    host_16    service_302    0    output ok for service_302
     ${result}    Check Service Status With Timeout    host_16    service_302    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not OK as expected
-    Process Service Check Result    host_16    service_303    0    output ok for service_303
+    Ctn Process Service Check Result    host_16    service_303    0    output ok for service_303
     ${result}    Check Service Status With Timeout    host_16    service_303    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    30
@@ -1112,10 +1112,10 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     # all serv ok => ba ok
-    Process Service Check Result    host_16    service_302    0    output ok for service_302
+    Ctn Process Service Check Result    host_16    service_302    0    output ok for service_302
     ${result}    Check Service Status With Timeout    host_16    service_302    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not OK as expected
-    Process Service Check Result    host_16    service_303    0    output ok for service_303
+    Ctn Process Service Check Result    host_16    service_303    0    output ok for service_303
     ${result}    Check Service Status With Timeout    host_16    service_303    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    30
@@ -1138,9 +1138,9 @@ BAM Setup
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
 
 BAM Init
-    Clear Commands Status
-    Clear Retention
-    Clear Db Conf    mod_bam
+    Ctn Clear Commands Status
+    Ctn Clear Retention
+    Ctn Clear Db Conf    mod_bam
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -1149,11 +1149,11 @@ BAM Init
     Ctn Broker Config Log    central    config    trace
     Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     # This is to avoid parasite status.
-    Set Services Passive    ${0}    service_30.
+    Ctn Set Services Passive    ${0}    service_30.
 
     Ctn Config Broker Sql Output    central    unified_sql
     Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    Ctn Add Bam Config To Engine
+    Ctn Add Bam Config To Broker    central

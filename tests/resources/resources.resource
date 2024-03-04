@@ -36,10 +36,10 @@ Ctn Config BBDO3
     END
 
 Clean Before Suite
-    Clear Db    resources
-    Clear Db    hosts
-    Clear Db    services
-    Clear Db    tags
+    Ctn Clear Db    resources
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    tags
     Stop Processes
     Clear Engine Logs
     Clear Broker Logs
@@ -137,8 +137,8 @@ Stop Broker
 
 Stop Processes
     Terminate All Processes    kill=True
-    Kill Broker
-    Kill Engine
+    Ctn Kill Broker
+    Ctn Kill Engine
 
 Ctn Start Engine
     ${count}    Get Engines Count

@@ -13,12 +13,12 @@ Test Teardown       Ctn Save Logs If Failed
 VICT_ONE_CHECK_METRIC
     [Documentation]    victoria metrics metric output
     [Tags]    broker    engine    victoria_metrics
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Clear Retention
+    Ctn Clear Retention
     Ctn Broker Config Log    central    victoria_metrics    trace
     Ctn Broker Config Log    central    perfdata    trace
     Ctn Broker Config Source Log    central    1
@@ -35,7 +35,7 @@ VICT_ONE_CHECK_METRIC
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
-    Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
+    Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
 
     ${start}    Get Round Current Date
     ${timeout}    Get Current Date    result_format=epoch    increment=00:01:00
@@ -72,12 +72,12 @@ VICT_ONE_CHECK_METRIC
 VICT_ONE_CHECK_STATUS
     [Documentation]    victoria metrics status output
     [Tags]    broker    engine    victoria_metrics
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Clear Retention
+    Ctn Clear Retention
     Ctn Broker Config Log    central    victoria_metrics    trace
     Ctn Broker Config Log    central    perfdata    trace
     Ctn Broker Config Source Log    central    1
@@ -96,7 +96,7 @@ VICT_ONE_CHECK_STATUS
 
     # service ok
     ${start}    Get Round Current Date
-    Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
+    Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
 
     ${timeout}    Get Current Date    result_format=epoch    increment=00:01:00
     ${now}    Get Current Date    result_format=epoch
@@ -195,12 +195,12 @@ VICT_ONE_CHECK_STATUS
 VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     [Documentation]    victoria metrics metric output after victoria shutdown
     [Tags]    broker    engine    victoria_metrics
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Clear Retention
+    Ctn Clear Retention
     Ctn Broker Config Log    central    victoria_metrics    trace
     Ctn Broker Config Log    central    perfdata    trace
     Ctn Broker Config Source Log    central    1
@@ -216,7 +216,7 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
-    Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
+    Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
     ${start}    Get Round Current Date
 
     ${content}    Create List    [victoria_metrics]    name: "metric_taratata"

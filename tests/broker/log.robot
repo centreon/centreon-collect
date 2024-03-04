@@ -38,7 +38,7 @@ BLEC1
     Ctn Start Broker
     ${result}    Ctn Get Broker Log Level    51001    core
     Should Be Equal    ${result}    trace
-    Set Broker Log Level    51001    core    debug
+    Ctn Set Broker Log Level    51001    core    debug
     ${result}    Ctn Get Broker Log Level    51001    core
     Should Be Equal    ${result}    debug
 

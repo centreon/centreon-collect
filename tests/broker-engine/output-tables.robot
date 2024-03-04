@@ -13,7 +13,7 @@ Test Teardown       Ctn Save Logs If Failed
 BERES1
     [Documentation]    store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -22,7 +22,7 @@ BERES1
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
@@ -45,7 +45,7 @@ BERES1
 BEHS1
     [Documentation]    store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -54,7 +54,7 @@ BEHS1
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    no
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    yes
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -78,18 +78,18 @@ BEHS1
 BEINSTANCESTATUS
     [Documentation]    Instance status to bdd
     [Tags]    broker    engine
-    Config Engine    ${1}    ${50}    ${20}
-    Engine Config Set Value    0    enable_flap_detection    1    True
-    Engine Config Set Value    0    enable_notifications    0    True
-    Engine Config Set Value    0    execute_host_checks    0    True
-    Engine Config Set Value    0    execute_service_checks    0    True
-    Engine Config Set Value    0    global_host_event_handler    command_1    True
-    Engine Config Set Value    0    global_service_event_handler    command_2    True
-    Engine Config Set Value    0    instance_heartbeat_interval    1    True
-    Engine Config Set Value    0    obsess_over_hosts    1    True
-    Engine Config Set Value    0    obsess_over_services    1    True
-    Engine Config Set Value    0    accept_passive_host_checks    0    True
-    Engine Config Set Value    0    accept_passive_service_checks    0    True
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Engine Config Set Value    0    enable_flap_detection    1    True
+    Ctn Engine Config Set Value    0    enable_notifications    0    True
+    Ctn Engine Config Set Value    0    execute_host_checks    0    True
+    Ctn Engine Config Set Value    0    execute_service_checks    0    True
+    Ctn Engine Config Set Value    0    global_host_event_handler    command_1    True
+    Ctn Engine Config Set Value    0    global_service_event_handler    command_2    True
+    Ctn Engine Config Set Value    0    instance_heartbeat_interval    1    True
+    Ctn Engine Config Set Value    0    obsess_over_hosts    1    True
+    Ctn Engine Config Set Value    0    obsess_over_services    1    True
+    Ctn Engine Config Set Value    0    accept_passive_host_checks    0    True
+    Ctn Engine Config Set Value    0    accept_passive_service_checks    0    True
 
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -141,7 +141,7 @@ BEINSTANCESTATUS
 BEINSTANCE
     [Documentation]    Instance to bdd
     [Tags]    broker    engine
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
 
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -175,7 +175,7 @@ BEINSTANCE
 BE_NOTIF_OVERFLOW
     [Documentation]    bbdo 2.0 notification number =40000. make an overflow => notification_number null in db
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Broker Config Add Item    module0    bbdo_version    2.0.0
@@ -184,7 +184,7 @@ BE_NOTIF_OVERFLOW
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    perfdata    trace
 
-    Clear Retention
+    Ctn Clear Retention
 
     Ctn Start Broker
     Ctn Start Engine
@@ -196,7 +196,7 @@ BE_NOTIF_OVERFLOW
     ...    ${result}
     ...    An Initial host state on host_16 should be raised before we can start our external commands.
 
-    Set Svc Notification Number    host_16    service_314    40000
+    Ctn Set Svc Notification Number    host_16    service_314    40000
     Process Service Result Hard    host_16    service_314    2    output critical for 314
     ${result}    Check Service Status With Timeout    host_16    service_314    2    30
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
@@ -212,7 +212,7 @@ BE_NOTIF_OVERFLOW
 BE_TIME_NULL_SERVICE_RESOURCE
     [Documentation]    With BBDO 3, notification_interval time must be set to NULL on 0 in services, hosts and resources tables.
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker Sql Output    central    unified_sql
@@ -223,7 +223,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Execute SQL String    DELETE FROM resources
     Execute SQL String    DELETE FROM hosts
 
-    Clear Retention
+    Ctn Clear Retention
 
     Ctn Start Broker
     Ctn Start Engine
@@ -246,7 +246,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
 BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     [Documentation]    default notification_interval must be set to NULL in services, hosts and resources tables.
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker Sql Output    central    unified_sql
@@ -257,7 +257,7 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     Execute SQL String    DELETE FROM resources
     Execute SQL String    DELETE FROM hosts
 
-    Clear Retention
+    Ctn Clear Retention
 
     Ctn Start Broker
     Ctn Start Engine

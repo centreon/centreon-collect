@@ -18,7 +18,7 @@ Test Teardown       Ctn Save Logs If Failed
 BECC1
     [Documentation]    Broker/Engine communication with compression between central and poller
     [Tags]    broker    engine    compression    tcp
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     FOR    ${comp1}    IN    @{choices}
         FOR    ${comp2}    IN    @{choices}

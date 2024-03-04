@@ -13,7 +13,7 @@ Test Teardown       Ctn Save Logs If Failed
 EBSNU1
     [Documentation]    New hosts with notes_url with more than 2000 characters
     [Tags]    broker    engine    hosts    protobuf
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -21,8 +21,8 @@ EBSNU1
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     ${nu}    Evaluate    2000*"X"
-    Engine Config Set Value In Hosts    0    host_1    notes_url    ${nu}
-    Clear Retention
+    Ctn Engine Config Set Value In Hosts    0    host_1    notes_url    ${nu}
+    Ctn Clear Retention
     Ctn Start Broker
     Ctn Start Engine
 
@@ -45,7 +45,7 @@ EBSNU1
 EBSAU2
     [Documentation]    New hosts with action_url with more than 2000 characters
     [Tags]    broker    engine    hosts    protobuf
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -53,8 +53,8 @@ EBSAU2
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     ${au}    Evaluate    2000*"Y"
-    Engine Config Set Value In Hosts    0    host_2    action_url    ${au}
-    Clear Retention
+    Ctn Engine Config Set Value In Hosts    0    host_2    action_url    ${au}
+    Ctn Clear Retention
     Ctn Start Broker
     Ctn Start Engine
 
@@ -77,7 +77,7 @@ EBSAU2
 EBSN3
     [Documentation]    New hosts with notes with more than 500 characters
     [Tags]    broker    engine    hosts    protobuf
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -85,8 +85,8 @@ EBSN3
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     ${n}    Evaluate    500*"Z"
-    Engine Config Set Value In Hosts    0    host_3    notes    ${n}
-    Clear Retention
+    Ctn Engine Config Set Value In Hosts    0    host_3    notes    ${n}
+    Ctn Clear Retention
     Ctn Start Broker
     Ctn Start Engine
 

@@ -13,7 +13,7 @@ Test Teardown       Stop Engine Broker And Save Logs
 EBNHG1
     [Documentation]    New host group with several pollers and connections to DB
     [Tags]    broker    engine    hostgroup
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
@@ -24,7 +24,7 @@ EBNHG1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
     Reload Broker
@@ -41,7 +41,7 @@ EBNHG1
 EBNHGU1
     [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    hostgroup    unified_sql
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
@@ -52,7 +52,7 @@ EBNHGU1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
     Reload Broker
@@ -69,7 +69,7 @@ EBNHGU1
 EBNHGU2
     [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    hostgroup    unified_sql
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
@@ -81,7 +81,7 @@ EBNHGU2
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
     Reload Broker
@@ -97,7 +97,7 @@ EBNHGU2
 EBNHGU3
     [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    hostgroup    unified_sql
-    Config Engine    ${4}
+    Ctn Config Engine    ${4}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${4}
@@ -111,10 +111,10 @@ EBNHGU3
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
-    Add Host Group    ${1}    ${1}    ["host_21", "host_22", "host_23"]
-    Add Host Group    ${2}    ${1}    ["host_31", "host_32", "host_33"]
-    Add Host Group    ${3}    ${1}    ["host_41", "host_42", "host_43"]
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
+    Ctn Add Host Group    ${1}    ${1}    ["host_21", "host_22", "host_23"]
+    Ctn Add Host Group    ${2}    ${1}    ["host_31", "host_32", "host_33"]
+    Ctn Add Host Group    ${3}    ${1}    ["host_41", "host_42", "host_43"]
 
     Sleep    3s
     Reload Broker
@@ -123,7 +123,7 @@ EBNHGU3
     ${result}    Check Number Of Relations Between Hostgroup And Hosts    1    12    30
     Should Be True    ${result}    We should have 12 hosts members of host 1.
 
-    Config Engine Remove Cfg File    ${0}    hostgroups.cfg
+    Ctn Config Engine Remove Cfg File    ${0}    hostgroups.cfg
 
     Sleep    3s
     Reload Broker
@@ -134,7 +134,7 @@ EBNHGU3
 EBNHG4
     [Documentation]    New host group with several pollers and connections to DB with broker and rename this hostgroup
     [Tags]    broker    engine    hostgroup
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
@@ -146,7 +146,7 @@ EBNHG4
     Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
-    Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Reload Broker
     Reload Engine
@@ -158,7 +158,7 @@ EBNHG4
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
 
-    Rename Host Group    ${0}    ${1}    test    ["host_1", "host_2", "host_3"]
+    Ctn Rename Host Group    ${0}    ${1}    test    ["host_1", "host_2", "host_3"]
 
     Sleep    10s
     ${start}    Get Current Date
@@ -182,7 +182,7 @@ EBNHG4
 EBNHGU4_${test_label}
     [Documentation]    New host group with several pollers and connections to DB with broker and rename this hostgroup
     [Tags]    broker    engine    hostgroup
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
@@ -194,7 +194,7 @@ EBNHGU4_${test_label}
     Ctn Config Broker Sql Output    central    unified_sql    5
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Broker Config Add Lua Output    central    test-cache    ${SCRIPTS}test-dump-groups.lua
-    Clear Retention
+    Ctn Clear Retention
 
     Create File    /tmp/lua-engine.log
 
@@ -204,7 +204,7 @@ EBNHGU4_${test_label}
     Ctn Start Broker
     Ctn Start Engine
     Sleep    3s
-    Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Reload Broker
     Reload Engine
@@ -240,7 +240,7 @@ EBNHGU4_${test_label}
 
     Should Be True    len("""${grep_result}""") > 10    hostgroup_1 not found in /tmp/lua-engine.log
 
-    Rename Host Group    ${0}    ${1}    test    ["host_1", "host_2", "host_3"]
+    Ctn Rename Host Group    ${0}    ${1}    test    ["host_1", "host_2", "host_3"]
 
     Sleep    10s
     Reload Engine
@@ -271,7 +271,7 @@ EBNHGU4_${test_label}
     Should Be True    len("""${grep_result}""") > 10    hostgroup_1 not found in /tmp/lua-engine.log
 
     # remove hostgroup
-    Config Engine    ${3}
+    Ctn Config Engine    ${3}
     Reload Engine
     Reload Broker
 

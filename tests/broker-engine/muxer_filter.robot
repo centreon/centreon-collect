@@ -13,7 +13,7 @@ Test Teardown       Ctn Save Logs If Failed
 STUPID_FILTER
     [Documentation]    Unified SQL is configured with only the bbdo category as filter. An error is raised by broker and broker should run correctly.
     [Tags]    broker    engine    filter
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    rrd
@@ -39,7 +39,7 @@ STORAGE_ON_LUA
     [Tags]    broker    engine    filter
     Remove File    /tmp/all_lua_event.log
 
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    rrd
@@ -69,7 +69,7 @@ FILTER_ON_LUA_EVENT
     [Tags]    broker    engine    filter
     Remove File    /tmp/all_lua_event.log
 
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    rrd
@@ -113,25 +113,25 @@ FILTER_ON_LUA_EVENT
 BAM_STREAM_FILTER
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. we watch its events
     [Tags]    broker    engine    bam    filter
-    Clear Commands Status
+    Ctn Clear Commands Status
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    central    config    trace
     Ctn Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
-    Add Bam Config To Engine
+    Ctn Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}
-    Add Bam Config To Broker    central
+    Ctn Create Ba With Services    test    worst    ${svc}
+    Ctn Add Bam Config To Broker    central
     # Command of service_314 is set to critical
     ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
-    Set Command Status    ${cmd_1}    2
+    Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker    True
     ${start}    Get Current Date
     Ctn Start Engine
@@ -206,13 +206,13 @@ BAM_STREAM_FILTER
 UNIFIED_SQL_FILTER
     [Documentation]    With bbdo version 3.0.1, we watch events written or rejected in unified_sql
     [Tags]    broker    engine    bam    filter
-    Clear Retention
+    Ctn Clear Retention
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    core    trace
     Ctn Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     ${start}    Get Current Date
     Ctn Start Broker    True
@@ -243,14 +243,14 @@ CBD_RELOAD_AND_FILTERS
     [Documentation]    We start engine/broker with a classical configuration. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
     [Tags]    broker    engine    filter
 
-    Clear Retention
+    Ctn Clear Retention
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    config    trace
     Ctn Broker Config Log    rrd    rrd    debug
     Ctn Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Log To Console    First configuration: all events are sent to rrd.
     ${start}    Get Current Date
@@ -343,7 +343,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     [Documentation]    We start engine/broker with an almost classical configuration, just the connection between cbd central and cbd rrd is reversed with one peer retention. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
     [Tags]    broker    engine    filter
 
-    Clear Retention
+    Ctn Clear Retention
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -353,7 +353,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Ctn Broker Config Log    central    config    trace
     Ctn Broker Config Log    rrd    rrd    debug
     Ctn Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Log To Console    First configuration: all events are sent to rrd.
     ${start}    Get Current Date
@@ -447,7 +447,7 @@ SEVERAL_FILTERS_ON_LUA_EVENT
     Remove File    /tmp/all_lua_event.log
     Remove File    /tmp/all_lua_event-bis.log
 
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    rrd

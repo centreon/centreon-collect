@@ -13,8 +13,8 @@ Test Teardown       Ctn Save Logs If Failed
 BABOO
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
     [Tags]    broker    engine    bam    boolean_expression
-    Clear Commands Status
-    Clear Retention
+    Ctn Clear Commands Status
+    Ctn Clear Retention
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -24,13 +24,13 @@ BABOO
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
-    Set Services Passive    ${0}    service_302
-    Set Services Passive    ${0}    service_303
+    Ctn Add Bam Config To Engine
+    Ctn Add Bam Config To Broker    central
+    Ctn Set Services Passive    ${0}    service_302
+    Ctn Set Services Passive    ${0}    service_303
 
     ${id_ba_worst__sid}    Create Ba    ba-worst    worst    70    80
     Add Service KPI    host_16    service_302    ${id_ba_worst__sid[0]}    40    30    20
@@ -52,7 +52,7 @@ BABOO
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # 393 is set to ok.
-    Process Service Check Result    host_16    service_303    0    output ok for service_303
+    Ctn Process Service Check Result    host_16    service_303    0    output ok for service_303
 
     FOR    ${i}    IN RANGE    10
         Log To Console    @@@@@@@@@@@@@@ Step ${i} @@@@@@@@@@@@@@
@@ -85,8 +85,8 @@ BABOO
 BABOOOR
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
     [Tags]    broker    engine    bam    boolean_expression
-    Clear Commands Status
-    Clear Retention
+    Ctn Clear Commands Status
+    Ctn Clear Retention
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -96,13 +96,13 @@ BABOOOR
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
-    Set Services Passive    ${0}    service_302
-    Set Services Passive    ${0}    service_303
+    Ctn Add Bam Config To Engine
+    Ctn Add Bam Config To Broker    central
+    Ctn Set Services Passive    ${0}    service_302
+    Ctn Set Services Passive    ${0}    service_303
 
     ${id_ba__sid}    Create Ba    boolean-ba    impact    70    80
     Add Boolean Kpi
@@ -132,8 +132,8 @@ BABOOOR
 BABOOAND
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if both of its two services are ok is created. When one condition is false, the and operator returns false as a result even if the other child is unknown.
     [Tags]    broker    engine    bam    boolean_expression
-    Clear Commands Status
-    Clear Retention
+    Ctn Clear Commands Status
+    Ctn Clear Retention
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -143,13 +143,13 @@ BABOOAND
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
-    Set Services Passive    ${0}    service_302
-    Set Services Passive    ${0}    service_303
+    Ctn Add Bam Config To Engine
+    Ctn Add Bam Config To Broker    central
+    Ctn Set Services Passive    ${0}    service_302
+    Ctn Set Services Passive    ${0}    service_303
 
     ${id_ba__sid}    Create Ba    boolean-ba    impact    70    80
     Add Boolean Kpi
@@ -179,8 +179,8 @@ BABOOAND
 BABOOORREL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if one of its two services is ok is created. One of the two underlying services must change of state to change the ba state. For this purpose, we change the service state and reload cbd. So the rule is something like "False OR True" which is equal to True. And to pass from True to False, we change the second service.
     [Tags]    broker    engine    bam    boolean_expression
-    Clear Commands Status
-    Clear Retention
+    Ctn Clear Commands Status
+    Ctn Clear Retention
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -190,14 +190,14 @@ BABOOORREL
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
-    Set Services Passive    ${0}    service_302
-    Set Services Passive    ${0}    service_303
-    Set Services Passive    ${0}    service_304
+    Ctn Add Bam Config To Engine
+    Ctn Add Bam Config To Broker    central
+    Ctn Set Services Passive    ${0}    service_302
+    Ctn Set Services Passive    ${0}    service_303
+    Ctn Set Services Passive    ${0}    service_304
 
     ${id_ba__sid}    Create Ba    boolean-ba    impact    70    80
     ${id_bool}    Add Boolean Kpi
@@ -274,8 +274,8 @@ BABOOORREL
 BABOOCOMPL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
     [Tags]    broker    engine    bam    boolean_expression
-    Clear Commands Status
-    Clear Retention
+    Ctn Clear Commands Status
+    Ctn Clear Retention
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -285,11 +285,11 @@ BABOOCOMPL
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    Ctn Add Bam Config To Engine
+    Ctn Add Bam Config To Broker    central
     # Services 1 to 21 are passive now.
     FOR    ${i}    IN RANGE    ${1}    ${21}
         Set Services Passive    ${0}    service_${i}
@@ -330,8 +330,8 @@ BABOOCOMPL
 BABOOCOMPL_RESTART
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
     [Tags]    broker    engine    bam    boolean_expression    MON-34246
-    Clear Commands Status
-    Clear Retention
+    Ctn Clear Commands Status
+    Ctn Clear Retention
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -341,11 +341,11 @@ BABOOCOMPL_RESTART
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    Ctn Add Bam Config To Engine
+    Ctn Add Bam Config To Broker    central
     # Services 1 to 21 are passive now.
     FOR    ${i}    IN RANGE    ${1}    ${21}
         Set Services Passive    ${0}    service_${i}
@@ -424,8 +424,8 @@ BABOOCOMPL_RESTART
 BABOOCOMPL_RELOAD
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
     [Tags]    broker    engine    bam    boolean_expression    MON-34246
-    Clear Commands Status
-    Clear Retention
+    Ctn Clear Commands Status
+    Ctn Clear Retention
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -435,11 +435,11 @@ BABOOCOMPL_RELOAD
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    Ctn Add Bam Config To Engine
+    Ctn Add Bam Config To Broker    central
     # Services 1 to 21 are passive now.
     FOR    ${i}    IN RANGE    ${1}    ${21}
         Set Services Passive    ${0}    service_${i}

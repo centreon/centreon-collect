@@ -12,19 +12,19 @@ Test Setup          Stop Processes
 EFHC1
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo2
     [Tags]    engine    external_cmd    log-v2
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     # We force the check command of host_1 to return 2 as status.
-    Config Host Command Status    ${0}    checkh1    2
+    Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    ${0}    log_level_events    info
-    Engine Config Set Value    ${0}    log_flush_period    0
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_events    info
+    Ctn Engine Config Set Value    ${0}    log_flush_period    0
 
-    Clear Retention
-    Clear Db    hosts
+    Ctn Clear Retention
+    Ctn Clear Db    hosts
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -36,7 +36,7 @@ EFHC1
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
-    Process Host Check Result    host_1    0    host_1 UP
+    Ctn Process Host Check Result    host_1    0    host_1 UP
     FOR    ${i}    IN RANGE    ${4}
         Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
@@ -60,17 +60,17 @@ EFHC1
 EFHC2
     [Documentation]    Engine is configured with hosts and we force check on one 5 times on bbdo2
     [Tags]    engine    external_cmd    log-v2
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     # We force the check command of host_1 to return 2 as status.
-    Config Host Command Status    ${0}    checkh1    2
+    Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
 
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -79,7 +79,7 @@ EFHC2
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
-    Process Host Check Result    host_1    0    host_1 UP
+    Ctn Process Host Check Result    host_1    0    host_1 UP
     FOR    ${i}    IN RANGE    ${4}
         Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
@@ -103,22 +103,22 @@ EFHC2
 EFHCU1
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
     [Tags]    engine    external_cmd
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     # We force the check command of host_1 to return 2 as status.
-    Config Host Command Status    ${0}    checkh1    2
+    Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Broker Config Log    module0    neb    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Log    central    sql    debug
     Ctn Config BBDO3    1
 
-    Clear Retention
-    Clear Db    resources
+    Ctn Clear Retention
+    Ctn Clear Db    resources
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -129,7 +129,7 @@ EFHCU1
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
-    Process Host Check Result    host_1    0    host_1 UP
+    Ctn Process Host Check Result    host_1    0    host_1 UP
     FOR    ${i}    IN RANGE    ${4}
         Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
@@ -153,21 +153,21 @@ EFHCU1
 EFHCU2
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior.
     [Tags]    engine    external_cmd
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
 
     # We force the check command of host_1 to return 2 as status.
-    Config Host Command Status    ${0}    checkh1    2
+    Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Broker Config Log    module0    neb    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Log    central    sql    debug
     Ctn Config BBDO3    1
 
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -178,7 +178,7 @@ EFHCU2
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
-    Process Host Check Result    host_1    0    host_1 UP
+    Ctn Process Host Check Result    host_1    0    host_1 UP
     FOR    ${i}    IN RANGE    ${4}
         Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
@@ -202,18 +202,18 @@ EFHCU2
 EMACROS
     [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in check outputs
     [Tags]    engine    external_cmd    macros
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    0    log_level_checks    trace    True
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    0    log_level_checks    trace    True
     Engine Config Change Command
     ...    0
     ...    \\d+
     ...    /bin/echo "ResourceFile: $RESOURCEFILE$ - LogFile: $LOGFILE$ - AdminEmail: $ADMINEMAIL$ - AdminPager: $ADMINPAGER$"
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -223,7 +223,7 @@ EMACROS
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
-    Schedule Forced Svc Check    host_1    service_1
+    Ctn Schedule Forced Svc Check    host_1    service_1
     Sleep    5s
 
     ${content}    Create List
@@ -237,26 +237,26 @@ EMACROS
 EMACROS_NOTIF
     [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in notification commands
     [Tags]    engine    external_cmd    macros
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    0    log_level_checks    trace    True
-    Engine Config Add Value    0    cfg_file    ${EtcRoot}/centreon-engine/config0/contacts.cfg
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    0    log_level_checks    trace    True
+    Ctn Engine Config Add Value    0    cfg_file    ${EtcRoot}/centreon-engine/config0/contacts.cfg
     Engine Config Add Command
     ...    0
     ...    command_notif
     ...    /bin/sh -c '/bin/echo "ResourceFile: $RESOURCEFILE$ - LogFile: $LOGFILE$ - AdminEmail: $ADMINEMAIL$ - AdminPager: $ADMINPAGER$" >> /tmp/notif_toto.txt'
-    Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     Remove File    /tmp/notif_toto.txt
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -283,19 +283,19 @@ EMACROS_NOTIF
 EMACROS_SEMICOLON
     [Documentation]    Macros with a semicolon are used even if they contain a semicolon.
     [Tags]    engine    external_cmd    macros    MON-15765
-    Config Engine    ${1}
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
-    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
-    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Engine Config Set Value    0    log_level_checks    trace    True
-    Engine Config Set Value In Hosts    0    host_1    _KEY2    VAL1;val3;
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    0    log_level_checks    trace    True
+    Ctn Engine Config Set Value In Hosts    0    host_1    _KEY2    VAL1;val3;
     Engine Config Change Command
     ...    0
     ...    \\d+
     ...    /bin/echo "KEY2=$_HOSTKEY2$"
-    Clear Retention
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -305,7 +305,7 @@ EMACROS_SEMICOLON
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
-    Schedule Forced Svc Check    host_1    service_1
+    Ctn Schedule Forced Svc Check    host_1    service_1
     Sleep    5s
 
     ${content}    Create List    KEY2=VAL1;val3;

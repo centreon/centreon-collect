@@ -13,7 +13,7 @@ Test Teardown       Ctn Save Logs If Failed
 BEEXTCMD1
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -52,7 +52,7 @@ BEEXTCMD1
 BEEXTCMD2
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -89,7 +89,7 @@ BEEXTCMD2
 BEEXTCMD3
     [Documentation]    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -128,7 +128,7 @@ BEEXTCMD3
 BEEXTCMD4
     [Documentation]    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -164,7 +164,7 @@ BEEXTCMD4
 BEEXTCMD5
     [Documentation]    external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo3.0
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -203,7 +203,7 @@ BEEXTCMD5
 BEEXTCMD6
     [Documentation]    external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo2.0
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -240,7 +240,7 @@ BEEXTCMD6
 BEEXTCMD7
     [Documentation]    external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -279,7 +279,7 @@ BEEXTCMD7
 BEEXTCMD8
     [Documentation]    external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -315,7 +315,7 @@ BEEXTCMD8
 BEEXTCMD9
     [Documentation]    external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo3.0
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -364,7 +364,7 @@ BEEXTCMD9
 BEEXTCMD10
     [Documentation]    external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo2.0
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -401,7 +401,7 @@ BEEXTCMD10
 BEEXTCMD11
     [Documentation]    external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -449,7 +449,7 @@ BEEXTCMD11
 BEEXTCMD12
     [Documentation]    external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -486,7 +486,7 @@ BEEXTCMD12
 BEEXTCMD13
     [Documentation]    external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -526,7 +526,7 @@ BEEXTCMD13
 BEEXTCMD14
     [Documentation]    external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -563,7 +563,7 @@ BEEXTCMD14
 BEEXTCMD15
     [Documentation]    external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -603,7 +603,7 @@ BEEXTCMD15
 BEEXTCMD16
     [Documentation]    external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -640,7 +640,7 @@ BEEXTCMD16
 BEEXTCMD17
     [Documentation]    external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -682,7 +682,7 @@ BEEXTCMD17
 BEEXTCMD18
     [Documentation]    external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -721,7 +721,7 @@ BEEXTCMD18
 BEEXTCMD19
     [Documentation]    external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -763,7 +763,7 @@ BEEXTCMD19
 BEEXTCMD20
     [Documentation]    external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -802,7 +802,7 @@ BEEXTCMD20
 BEEXTCMD21
     [Documentation]    external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -811,7 +811,7 @@ BEEXTCMD21
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console
         ...    external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo3.0 use_grpc=${use_grpc}
@@ -872,13 +872,13 @@ BEEXTCMD21
 BEEXTCMD22
     [Documentation]    external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console
         ...    external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo2.0 use_grpc=${use_grpc}
@@ -921,7 +921,7 @@ BEEXTCMD22
 BEEXTCMD23
     [Documentation]    external command DISABLE_HOST_CHECK and ENABLE_HOST_CHECK on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -930,7 +930,7 @@ BEEXTCMD23
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -1006,13 +1006,13 @@ BEEXTCMD23
 BEEXTCMD24
     [Documentation]    external command DISABLE_HOST_CHECK and ENABLE_HOST_CHECK on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -1071,7 +1071,7 @@ BEEXTCMD24
 BEEXTCMD25
     [Documentation]    external command DISABLE_HOST_EVENT_HANDLER and ENABLE_HOST_EVENT_HANDLER on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -1121,13 +1121,13 @@ BEEXTCMD25
 BEEXTCMD26
     [Documentation]    external command DISABLE_HOST_EVENT_HANDLER and ENABLE_HOST_EVENT_HANDLER on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -1168,7 +1168,7 @@ BEEXTCMD26
 BEEXTCMD27
     [Documentation]    external command DISABLE_HOST_FLAP_DETECTION and ENABLE_HOST_FLAP_DETECTION on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -1177,7 +1177,7 @@ BEEXTCMD27
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -1218,13 +1218,13 @@ BEEXTCMD27
 BEEXTCMD28
     [Documentation]    external command DISABLE_HOST_FLAP_DETECTION and ENABLE_HOST_FLAP_DETECTION on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
@@ -1265,7 +1265,7 @@ BEEXTCMD28
 BEEXTCMD29
     [Documentation]    external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
