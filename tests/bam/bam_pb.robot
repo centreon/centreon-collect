@@ -549,7 +549,7 @@ BA_RATIO_NUMBER_BA_SERVICE
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     ${id_ba__sid__child}    Ctn Create Ba With Services    test_child    worst    ${svc}
-    Add BA KPI    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
+    Ctn Add BA KPI    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
     ${start}    Get Current Date
