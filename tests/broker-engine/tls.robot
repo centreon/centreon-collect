@@ -33,7 +33,7 @@ BECT1
             ${start}    Get Current Date
             Ctn Start Broker
             Ctn Start Engine
-            ${result}    Check Connections
+            ${result}    Ctn Check Connections
             Should Be True    ${result}    Engine and Broker not connected
             Ctn Kindly Stop Broker
             Ctn Stop Engine
@@ -114,7 +114,7 @@ BECT2
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -159,7 +159,7 @@ BECT3
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -243,7 +243,7 @@ BECT4
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -279,7 +279,7 @@ BECT_GRPC1
             ${start}    Get Current Date
             Ctn Start Broker
             Ctn Start Engine
-            ${result}    Check Connections
+            ${result}    Ctn Check Connections
             Should Be True    ${result}    Engine and Broker not connected
             Ctn Kindly Stop Broker
             Ctn Stop Engine
@@ -361,7 +361,7 @@ BECT_GRPC2
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -410,7 +410,7 @@ BECT_GRPC3
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -496,7 +496,7 @@ BECT_GRPC4
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Ctn Kindly Stop Broker
     Ctn Stop Engine

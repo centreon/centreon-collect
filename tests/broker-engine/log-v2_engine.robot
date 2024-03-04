@@ -30,7 +30,7 @@ LOGV2EB1
 
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
@@ -77,7 +77,7 @@ LOGV2EBU1
 
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
@@ -121,7 +121,7 @@ LOGV2DB1
 
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
@@ -166,7 +166,7 @@ LOGV2DB2
     Sleep    1s
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
@@ -212,7 +212,7 @@ LOGV2EB2
 
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
@@ -260,7 +260,7 @@ LOGV2EBU2
 
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
@@ -303,7 +303,7 @@ LOGV2EF1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
     ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
@@ -328,7 +328,7 @@ LOGV2DF1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
     ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
@@ -356,7 +356,7 @@ LOGV2DF2
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
     ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
@@ -384,7 +384,7 @@ LOGV2EF2
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
     ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
@@ -414,7 +414,7 @@ LOGV2FE2
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
     ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.

@@ -32,7 +32,7 @@ BECC1
             ${start}    Get Current Date
             Ctn Start Broker
             Ctn Start Engine
-            ${result}    Check Connections
+            ${result}    Ctn Check Connections
             Should Be True    ${result}    Engine and Broker not connected
             Ctn Kindly Stop Broker
             Ctn Stop Engine

@@ -30,7 +30,7 @@ BRRDCDDMDB1
     ${start}    Get Current Date    exclude_millis=True
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     # We choose 3 metrics to remove.
@@ -70,7 +70,7 @@ BRRDCDDIDDB1
     Sleep    1s
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     Log To Console    STEP1
@@ -115,7 +115,7 @@ BRRDCDRBDB1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
@@ -164,7 +164,7 @@ BRRDCDRBUDB1
     ${start}    Get Current Date    exclude_millis=True
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild

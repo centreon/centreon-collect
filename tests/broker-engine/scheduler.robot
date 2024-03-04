@@ -26,7 +26,7 @@ ENRSCHE1
 
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     ${content}    Set Variable    Rescheduling next check of host: host_14

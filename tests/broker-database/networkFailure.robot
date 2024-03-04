@@ -49,7 +49,7 @@ NetworkDBFail6
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
@@ -77,7 +77,7 @@ NetworkDBFailU6
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
@@ -108,7 +108,7 @@ NetworkDBFail7
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
@@ -140,7 +140,7 @@ NetworkDBFailU7
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40

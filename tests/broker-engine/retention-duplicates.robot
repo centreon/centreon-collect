@@ -34,7 +34,7 @@ BERD1
     Should Be True    ${result}    Lua not started in cbd
     ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
     Ctn Kindly Stop Broker
@@ -75,7 +75,7 @@ BERD2
     Should Be True    ${result}    Lua not started in cbd
     ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    15s
     Ctn Stop Engine
@@ -115,7 +115,7 @@ BERDUC1
     Should Be True    ${result}    Lua not started in cbd
     ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
     Ctn Kindly Stop Broker
@@ -189,7 +189,7 @@ BERDUC2
     Should Be True    ${result}    Lua not started in cbd
     ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
     Ctn Stop Engine
@@ -228,7 +228,7 @@ BERDUCU2
     Should Be True    ${result}    Lua not started in cbd
     ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
     Ctn Stop Engine
@@ -266,7 +266,7 @@ BERDUC3U1
     Should Be True    ${result}    Lua not started in cbd
     ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
     Ctn Kindly Stop Broker
@@ -319,7 +319,7 @@ BERDUC3U2
     ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result[0]}    We did not get any pb service status for 60s
 
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
     Ctn Stop Engine
@@ -359,7 +359,7 @@ BERDUCA300
     Ctn Start Broker
     Ctn Start Engine
 
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
 
     # Let's wait for all the services configuration.
@@ -412,7 +412,7 @@ BERDUCA301
     Ctn Start Broker
     Ctn Start Engine
 
-    ${result}    Check Connections
+    ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
 
     # Let's wait for all the services configuration.
