@@ -39,9 +39,9 @@ BEDTMASS1
 
     # It's time to schedule downtimes
     FOR    ${i}    IN RANGE    ${17}
-        Schedule Host Downtime    ${0}    host_${i + 1}    ${3600}
-        Schedule Host Downtime    ${1}    host_${i + 18}    ${3600}
-        Schedule Host Downtime    ${2}    host_${i + 35}    ${3600}
+        Ctn Schedule Host Downtime    ${0}    host_${i + 1}    ${3600}
+        Ctn Schedule Host Downtime    ${1}    host_${i + 18}    ${3600}
+        Ctn Schedule Host Downtime    ${2}    host_${i + 35}    ${3600}
     END
 
     ${result}    Check Number Of Downtimes    ${1050}    ${start}    ${60}
@@ -87,9 +87,9 @@ BEDTMASS2
 
     # It's time to schedule downtimes
     FOR    ${i}    IN RANGE    ${17}
-        Schedule Host Downtime    ${0}    host_${i + 1}    ${3600}
-        Schedule Host Downtime    ${1}    host_${i + 18}    ${3600}
-        Schedule Host Downtime    ${2}    host_${i + 35}    ${3600}
+        Ctn Schedule Host Downtime    ${0}    host_${i + 1}    ${3600}
+        Ctn Schedule Host Downtime    ${1}    host_${i + 18}    ${3600}
+        Ctn Schedule Host Downtime    ${2}    host_${i + 35}    ${3600}
     END
 
     ${result}    Check Number Of Downtimes    ${1050}    ${start}    ${60}
