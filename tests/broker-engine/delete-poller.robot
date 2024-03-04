@@ -107,7 +107,7 @@ EBDP2
     Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
     Ctn Kindly Stop Broker
-    Clear Engine Logs
+    Ctn Clear Engine Logs
     Ctn Start Engine
     Ctn Start Broker
 
@@ -180,7 +180,7 @@ EBDP_GRPC2
     Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
     Ctn Kindly Stop Broker
-    Clear Engine Logs
+    Ctn Clear Engine Logs
     Ctn Start Engine
     Ctn Start Broker
 
@@ -241,7 +241,7 @@ EBDP3
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
-    Clear Engine Logs
+    Ctn Clear Engine Logs
     Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.
@@ -448,7 +448,7 @@ EBDP6
     Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
     Ctn Kindly Stop Broker
-    Clear Engine Logs
+    Ctn Clear Engine Logs
     Ctn Start Engine
     Ctn Start Broker
 
@@ -515,7 +515,7 @@ EBDP7
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Ctn Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
-    Clear Engine Logs
+    Ctn Clear Engine Logs
     Ctn Start Engine
 
     # Let's wait until engine listens to external_commands.

@@ -409,7 +409,7 @@ LOGV2FE2
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    Clear Engine Logs
+    Ctn Clear Engine Logs
 
     ${start}    Get Current Date
     Ctn Start Broker
