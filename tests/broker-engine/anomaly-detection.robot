@@ -153,7 +153,7 @@ ANO_EXTCMD_SENSITIVITY_SAVED
     [Documentation]    extcmd sensitivity saved in retention
     [Tags]    engine    anomaly    retention    extcmd
     FOR    ${use_grpc}    IN RANGE    1    2
-        Config Engine    ${1}    ${50}    ${20}
+        Ctn Config Engine    ${1}    ${50}    ${20}
         ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
         ${predict_data}    Evaluate    [[0,50,2, 10],[2648812678,25,-5,6]]
         Ctn Create Anomaly Threshold File V2
@@ -163,7 +163,7 @@ ANO_EXTCMD_SENSITIVITY_SAVED
         ...    metric
         ...    55.0
         ...    ${predict_data}
-        Clear Retention
+        Ctn Clear Retention
         Ctn Start Engine
         Sleep    5s
         Update Ano Sensitivity    ${use_grpc}    host_1    anomaly_1001    4.55

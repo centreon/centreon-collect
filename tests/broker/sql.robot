@@ -261,9 +261,9 @@ BDBM1
         Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    ${c}
         Ctn Config Broker    rrd
         Ctn Config Broker    module
-        Config Engine    ${1}
+        Ctn Config Engine    ${1}
         ${start}    Ctn Get Round Current Date
-        Stop Mysql
+        Ctn Stop Mysql
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    error while starting connection
@@ -373,9 +373,9 @@ BDBMU1
         Ctn Broker Config Output Set    central    central-broker-unified-sql    retry_interval    5
         Ctn Config Broker    rrd
         Ctn Config Broker    module
-        Config Engine    ${1}
+        Ctn Config Engine    ${1}
         ${start}    Get Current Date
-        Stop Mysql
+        Ctn Stop Mysql
         Ctn Start Broker
         Ctn Start Engine
         ${content}    Create List    mysql_connection: error while starting connection

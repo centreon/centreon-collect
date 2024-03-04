@@ -22,7 +22,7 @@ BEEXTCMD1
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -59,7 +59,7 @@ BEEXTCMD2
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -100,7 +100,7 @@ BEEXTCMD3
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -136,7 +136,7 @@ BEEXTCMD4
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -173,7 +173,7 @@ BEEXTCMD5
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -210,7 +210,7 @@ BEEXTCMD6
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -251,7 +251,7 @@ BEEXTCMD7
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -287,7 +287,7 @@ BEEXTCMD8
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -324,7 +324,7 @@ BEEXTCMD9
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -371,7 +371,7 @@ BEEXTCMD10
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -412,7 +412,7 @@ BEEXTCMD11
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -457,7 +457,7 @@ BEEXTCMD12
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -497,7 +497,7 @@ BEEXTCMD13
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -534,7 +534,7 @@ BEEXTCMD14
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -574,7 +574,7 @@ BEEXTCMD15
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -611,7 +611,7 @@ BEEXTCMD16
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -651,7 +651,7 @@ BEEXTCMD17
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -690,7 +690,7 @@ BEEXTCMD18
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -732,7 +732,7 @@ BEEXTCMD19
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -771,7 +771,7 @@ BEEXTCMD20
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -1081,7 +1081,7 @@ BEEXTCMD25
     Ctn Broker Config Log    module0    neb    trace
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    1
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
@@ -1277,7 +1277,7 @@ BEEXTCMD29
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console
         ...    external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
+        Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine

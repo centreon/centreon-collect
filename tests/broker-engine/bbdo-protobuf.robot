@@ -186,7 +186,7 @@ BEPB_HOST_DEPENDENCY
     Ctn Config BBDO3    ${1}                                                        
     Ctn Broker Config Log    central    sql    trace                                
     Ctn Config Broker Sql Output    central    unified_sql                          
-    Clear Retention                                                             
+    Ctn Clear Retention                                                             
     ${start}    Get Current Date                                                
     Ctn Start Broker    True                                                        
     Ctn Start Engine                                                                

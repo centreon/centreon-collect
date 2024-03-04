@@ -28,7 +28,7 @@ EBNSVC1
         Sleep    10s
         ${srv_by_host}    Evaluate    20 + 4 * $i
         Log To Console    ${srv_by_host} services by host with 50 hosts among 3 pollers.
-        Config Engine    ${3}    ${50}    ${srv_by_host}
+        Ctn Config Engine    ${3}    ${50}    ${srv_by_host}
         Ctn Reload Engine
         Ctn Reload Broker
         ${nb_srv}    Evaluate    17 * (20 + 4 * $i)
