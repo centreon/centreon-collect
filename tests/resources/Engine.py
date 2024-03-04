@@ -208,7 +208,7 @@ class EngineInstance:
         """
             Create an anomaly detection service.
             Example:
-            | `Create Anomaly Detection` | 1 | 2 | cpu | 0.0 |
+            | `Ctn Create Anomaly Detection` | 1 | 2 | cpu | 0.0 |
         """
         self.last_service_id += 1
         service_id = self.last_service_id
@@ -2843,7 +2843,7 @@ def ctn_create_anomaly_threshold_file(path: string, host_id: int, service_id: in
 
     *Example:*
 
-    | `Create Anomaly Threshold File` | /tmp/anomaly_threshold.json | 1 | 1 | metric_1 | ${values} |
+    | `Ctn Create Anomaly Threshold File` | /tmp/anomaly_threshold.json | 1 | 1 | metric_1 | ${values} |
     """
     with open(path, "w") as f:
         f.write(f"""[
@@ -2884,7 +2884,7 @@ def ctn_create_anomaly_threshold_file_V2(path: string, host_id: int, service_id:
 
     *Example:*
 
-    | `Create Anomaly Threshold File V2` | /tmp/anomaly_threshold.json | 1 | 1 | metric_1 | 0.5 | ${values} |
+    | `Ctn Create Anomaly Threshold File V2` | /tmp/anomaly_threshold.json | 1 | 1 | metric_1 | 0.5 | ${values} |
     """
     with open(path, "w") as f:
         f.write("""[
