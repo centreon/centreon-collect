@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Clean Whitelist
 Test Setup          Whitelist Setup
-Test Teardown       Stop Engine Broker And Save Logs    only_central=${True}
+Test Teardown       Ctn Stop Engine Broker And Save Logs    only_central=${True}
 
 
 *** Test Cases ***

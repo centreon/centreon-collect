@@ -28,7 +28,7 @@ BEPBBEE1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Message about not matching bbdo versions not available
 
-    [Teardown]    Stop Engine Broker And Save Logs
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BEPBBEE2
     [Documentation]    bbdo_version 3 not compatible with sql/storage
@@ -70,7 +70,7 @@ BEPBBEE3
     Ctn Start Engine
     Wait Until Created    /tmp/pbservicestatus.log    1m
 
-    [Teardown]    Stop Engine Broker And Save Logs
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BEPBBEE4
     [Documentation]    bbdo_version 3 generates new bbdo protobuf host status messages.
@@ -90,7 +90,7 @@ BEPBBEE4
     Ctn Start Engine
     Wait Until Created    /tmp/pbhoststatus.log    1m
 
-    [Teardown]    Stop Engine Broker And Save Logs
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BEPBBEE5
     [Documentation]    bbdo_version 3 generates new bbdo protobuf service messages.
@@ -110,7 +110,7 @@ BEPBBEE5
     Ctn Start Engine
     Wait Until Created    /tmp/pbservice.log    1m
 
-    [Teardown]    Stop Engine Broker And Save Logs
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BEPBRI1
     [Documentation]    bbdo_version 3 use pb_resource new bbdo protobuf ResponsiveInstance message.
@@ -173,7 +173,7 @@ BEPBCVS
     END
     Should Be Equal As Strings    ${output}    (('VAL1',), ('VAL_SERV1',))
 
-    [Teardown]    Stop Engine Broker And Save Logs    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    True
 
 BEPB_HOST_DEPENDENCY                                                            
     [Documentation]    BBDO 3 communication of host dependencies.       
@@ -200,7 +200,7 @@ BEPB_HOST_DEPENDENCY
     ${result}    Common.Check No Host Dependencies    30                               
     Should Be True    ${result}    No host dependency should be defined         
                                                                                 
-    [Teardown]    Stop Engine Broker And Save Logs    True                      
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    True                      
 
 BEPB_SERVICE_DEPENDENCY
     [Documentation]    bbdo_version 3 communication of host dependencies.
@@ -245,7 +245,7 @@ BEPB_SERVICE_DEPENDENCY
     END
     Should Be Equal As Strings    ${output}    ()    host dependency not deleted from database
 
-    [Teardown]    Stop Engine Broker And Save Logs    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    True
 
 BEPBHostParent
     [Documentation]    bbdo_version 3 communication of host parent relations
@@ -285,4 +285,4 @@ BEPBHostParent
     END
     Should Be Equal As Strings    ${output}    ()    host parent not deleted
 
-    [Teardown]    Stop Engine Broker And Save Logs    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    True

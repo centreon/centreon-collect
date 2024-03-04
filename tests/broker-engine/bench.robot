@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
-Test Teardown       Stop Engine Broker And Save Logs
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Variables ***
@@ -167,9 +167,9 @@ BENCH_1000STATUS_100${suffixe}
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${connected}    Wait For Connections    5669    100
+    ${connected}    Ctn Wait For Connections    5669    100
     Should Be True    ${connected}    100 engines should be connected to broker
-    ${result}    Wait For Listen On Range    50001    50100    centengine    60
+    ${result}    Ctn Wait For Listen On Range    50001    50100    centengine    60
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${ENGINE_LOG}/config99/centengine.log    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.

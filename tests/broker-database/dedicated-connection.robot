@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
-Test Teardown       Stop Engine Broker And Save Logs    only_central=True
+Test Teardown       Ctn Stop Engine Broker And Save Logs    only_central=True
 
 
 *** Test Cases ***
@@ -34,7 +34,7 @@ DEDICATED_DB_CONNECTION_${nb_conn}_${store_in_data_bin}
         Should Be True    ${result}    No dedicated message
     END
 
-    ${connected}    Wait For Connections    3306    ${nb_conn_expected}
+    ${connected}    Ctn Wait For Connections    3306    ${nb_conn_expected}
     Should Be True    ${connected}    no ${nb_conn_expected} connections found
 
     Examples:    nb_conn    nb_conn_expected    store_in_data_bin    --
