@@ -3,10 +3,10 @@ Documentation       Centreon Broker and Engine communication with or without com
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
-Test Teardown       Save Logs If Failed
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Save Logs If Failed
 
 
 *** Variables ***
@@ -18,24 +18,24 @@ Test Teardown       Save Logs If Failed
 BECC1
     [Documentation]    Broker/Engine communication with compression between central and poller
     [Tags]    broker    engine    compression    tcp
-    Config Engine    ${1}
-    Config Broker    rrd
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
     FOR    ${comp1}    IN    @{choices}
         FOR    ${comp2}    IN    @{choices}
             Log To Console    Compression set to ${comp1} on central and to ${comp2} on module
-            Config Broker    central
-            Config Broker    module
-            Broker Config Input Set    central    central-broker-master-input    compression    ${comp1}
-            Broker Config Output Set    module0    central-module-master-output    compression    ${comp2}
-            Broker Config Log    central    bbdo    info
-            Broker Config Log    module0    bbdo    info
+            Ctn Config Broker    central
+            Ctn Config Broker    module
+            Ctn Broker Config Input Set    central    central-broker-master-input    compression    ${comp1}
+            Ctn Broker Config Output Set    module0    central-module-master-output    compression    ${comp2}
+            Ctn Broker Config Log    central    bbdo    info
+            Ctn Broker Config Log    module0    bbdo    info
             ${start}    Get Current Date
-            Start Broker
-            Start Engine
-            ${result}    Check Connections
+            Ctn Start Broker
+            Ctn Start engine
+            ${result}    Ctn Check Connections
             Should Be True    ${result}    Engine and Broker not connected
-            Kindly Stop Broker
-            Stop Engine
+            Ctn Kindly Stop Broker
+            Ctn Stop engine
             ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
             ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
             IF    "${comp1}" == "yes" and "${comp2}" == "no"
@@ -50,10 +50,10 @@ BECC1
                 ...    extension 'COMPRESSION' is set to 'yes' in the configuration but cannot be activated because of peer configuration
             END
             ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-            ${result}    Find In Log    ${log}    ${start}    ${content1}
+            ${result}    Ctn Find In Log    ${log}    ${start}    ${content1}
             Should Be True    ${result}
             ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
-            ${result}    Find In Log    ${log}    ${start}    ${content2}
+            ${result}    Ctn Find In Log    ${log}    ${start}    ${content2}
             Should Be True    ${result}
         END
     END
