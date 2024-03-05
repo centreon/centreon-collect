@@ -44,9 +44,9 @@ BERD1
     Sleep    25s
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-    ${result}    Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
+    ${result}    Ctn Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
-    ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
+    ${result}    Ctn Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERD2
@@ -83,9 +83,9 @@ BERD2
     Sleep    25s
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-    ${result}    Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
+    ${result}    Ctn Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
-    ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
+    ${result}    Ctn Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUC1
@@ -125,7 +125,7 @@ BERDUC1
     Sleep    25s
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-    ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
+    ${result}    Ctn Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUCU1
@@ -162,7 +162,7 @@ BERDUCU1
     Sleep    25s
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-    ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
+    ${result}    Ctn Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUC2
@@ -199,7 +199,7 @@ BERDUC2
     Sleep    25s
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-    ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
+    ${result}    Ctn Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUCU2
@@ -238,7 +238,7 @@ BERDUCU2
     Sleep    25s
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-    ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
+    ${result}    Ctn Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUC3U1
@@ -276,7 +276,7 @@ BERDUC3U1
     Sleep    25s
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-    ${result}    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
+    ${result}    Ctn Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUC3U2
@@ -329,7 +329,7 @@ BERDUC3U2
     Sleep    25s
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-    ${result}    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
+    ${result}    Ctn Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUCA300

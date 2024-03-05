@@ -31,7 +31,7 @@ BRRDCDDM1
     Should Be True    ${result}    Engine and Broker not connected
 
     # We choose 3 metrics to remove.
-    ${metrics}    Get Metrics To Delete    3
+    ${metrics}    Ctn Get Metrics To Delete    3
     Log To Console    Metrics to delete ${metrics}
 
     ${empty}    Create List
@@ -67,7 +67,7 @@ BRRDCDDID1
     Should Be True    ${result}    Engine and Broker not connected
 
     ${indexes}    Ctn Get Indexes To Delete    2
-    ${metrics}    Get Metrics Matching Indexes    ${indexes}
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${indexes}
     Log To Console    indexes ${indexes} to delete with their metrics
 
     ${empty}    Create List
@@ -140,7 +140,7 @@ BRRDCDDMU1
     Should Be True    ${result}    Engine and Broker not connected
 
     # We choose 3 metrics to remove.
-    ${metrics}    Get Metrics To Delete    3
+    ${metrics}    Ctn Get Metrics To Delete    3
     Log To Console    metrics to delete ${metrics}
 
     ${empty}    Create List
@@ -177,7 +177,7 @@ BRRDCDDIDU1
     Should Be True    ${result}    Engine and Broker not connected
 
     ${indexes}    Ctn Get Indexes To Delete    2
-    ${metrics}    Get Metrics Matching Indexes    ${indexes}
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${indexes}
     Log To Console    indexes ${indexes} to delete with their metrics
 
     ${empty}    Create List
@@ -250,7 +250,7 @@ BRRDCDRB1
     ${index}    Ctn Get Indexes To Rebuild    3
     Ctn Rebuild Rrd Graphs    51001    ${index}    1
     Log To Console    Indexes to rebuild: ${index}
-    ${metrics}    Get Metrics Matching Indexes    ${index}
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
     ${content}    Create List    Metric rebuild: metric    is sent to rebuild
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -310,7 +310,7 @@ BRRDCDRBU1
     ${index}    Ctn Get Indexes To Rebuild    3
     Ctn Rebuild Rrd Graphs    51001    ${index}    1
     Log To Console    Indexes to rebuild: ${index}
-    ${metrics}    Get Metrics Matching Indexes    ${index}
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
     ${content}    Create List    Metric rebuild: metric    is sent to rebuild
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30

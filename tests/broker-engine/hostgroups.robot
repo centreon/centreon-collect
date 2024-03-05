@@ -120,7 +120,7 @@ EBNHGU3
     Ctn Reload Broker
     Ctn Reload Engine
 
-    ${result}    Check Number Of Relations Between Hostgroup And Hosts    1    12    30
+    ${result}    Ctn Check Number Of Relations Between Hostgroup And Hosts    1    12    30
     Should Be True    ${result}    We should have 12 hosts members of host 1.
 
     Ctn Config Engine Remove Cfg File    ${0}    hostgroups.cfg
@@ -128,7 +128,7 @@ EBNHGU3
     Sleep    3s
     Ctn Reload Broker
     Ctn Reload Engine
-    ${result}    Check Number Of Relations Between Hostgroup And Hosts    1    9    30
+    ${result}    Ctn Check Number Of Relations Between Hostgroup And Hosts    1    9    30
     Should Be True    ${result}    We should have 12 hosts members of host 1.
 
 EBNHG4

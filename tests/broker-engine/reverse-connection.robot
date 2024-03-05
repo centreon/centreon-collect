@@ -134,7 +134,7 @@ BRCTSMN
     # pb_service pb_host pb_service_status pb_host_status
     ${expected_events}    Create List    65563    65566    65565    65568
     ${categories}    Create List    1
-    ${output}    Check Map Output    ${categories}    ${expected_events}    120
+    ${output}    Ctn Check Map Output    ${categories}    ${expected_events}    120
     Ctn Kindly Stop Broker
     Ctn Stop Map
     Should Be True    ${output}    Filters badly applied in Broker
@@ -154,7 +154,7 @@ BRCTSMN
 BRCTSMNS
     [Documentation]    Broker connected to map with neb and storage filters
     [Tags]    broker    map    reverse connection
-    Clear Metrics
+    Ctn Clear Metrics
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central_map
@@ -183,7 +183,7 @@ BRCTSMNS
     # pb_service pb_host pb_service_status pb_host_status pb_metric pb_status pb_index_mapping
     ${expected_events}    Create List    65563    65566    65565    65568    196617    196618    196619
     ${categories}    Create List    1    3
-    ${output}    Check Map Output    ${categories}    ${expected_events}    120
+    ${output}    Ctn Check Map Output    ${categories}    ${expected_events}    120
     Should Be True    ${output}    Filters badly applied in Broker
 
     # We should have 1000 pb_service with maybe some BAs
@@ -208,7 +208,7 @@ BRCTSMNS
     # pb_service we changed services 50 added and others moved...
     ${expected_events}    Create List    65563
     ${categories}    Create List    1    3
-    ${output}    Check Map Output    ${categories}    ${expected_events}    120
+    ${output}    Ctn Check Map Output    ${categories}    ${expected_events}    120
     Should Be True    ${output}    Filters badly applied in Broker
 
     Ctn Kindly Stop Broker

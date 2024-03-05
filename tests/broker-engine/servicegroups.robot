@@ -102,13 +102,13 @@ EBNSGU2
     Ctn Reload Engine
     Sleep    3s
 
-    ${result}    Check Number Of Relations Between Servicegroup And Services    1    12    30
+    ${result}    Ctn Check Number Of Relations Between Servicegroup And Services    1    12    30
     Should Be True    ${result}    We should get 12 relations between the servicegroup 1 and services.
     Ctn Config Engine Remove Cfg File    ${0}    servicegroups.cfg
     Ctn Reload Broker
     Ctn Reload Engine
 
-    ${result}    Check Number Of Relations Between Servicegroup And Services    1    9    30
+    ${result}    Ctn Check Number Of Relations Between Servicegroup And Services    1    9    30
     Should Be True    ${result}    We should get 9 relations between the servicegroup 1 and services.
 
 EBNSGU3_${test_label}
@@ -148,7 +148,7 @@ EBNSGU3_${test_label}
     Ctn Reload Broker
     Ctn Reload Engine
 
-    ${result}    Check Number Of Relations Between Servicegroup And Services    1    9    30
+    ${result}    Ctn Check Number Of Relations Between Servicegroup And Services    1    9    30
     Should Be True    ${result}    We should get 9 relations between the servicegroup 1 and services.
 
     FOR    ${loop_index}    IN RANGE    30
@@ -165,7 +165,7 @@ EBNSGU3_${test_label}
 
     Ctn Reload Engine
     Ctn Reload Broker
-    ${result}    Check Number Of Relations Between Servicegroup And Services    1    9    30    servicegroup_test
+    ${result}    Ctn Check Number Of Relations Between Servicegroup And Services    1    9    30    servicegroup_test
     Should Be True    ${result}    We should get 9 relations between the servicegroup 1 and services.
 
     Log To Console    \nservicegroup_1 renamed to servicegroup_test
@@ -185,7 +185,7 @@ EBNSGU3_${test_label}
 
     Log To Console    \nremove servicegroup
 
-    ${result}    Check Number Of Relations Between Servicegroup And Services    1    0    30
+    ${result}    Ctn Check Number Of Relations Between Servicegroup And Services    1    0    30
     Should Be True    ${result}    still a relation between the servicegroup 1 and services.
 
     # clear lua file

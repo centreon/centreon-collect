@@ -34,7 +34,7 @@ BRRDCDDMDB1
     Should Be True    ${result}    Engine and Broker not connected
 
     # We choose 3 metrics to remove.
-    ${metrics}    Get Metrics To Delete    3
+    ${metrics}    Ctn Get Metrics To Delete    3
     Log To Console    Metrics to delete ${metrics}
 
     ${empty}    Create List
@@ -76,7 +76,7 @@ BRRDCDDIDDB1
     Log To Console    STEP1
     ${indexes}    Ctn Get Indexes To Delete    2
     Log To Console    STEP2
-    ${metrics}    Get Metrics Matching Indexes    ${indexes}
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${indexes}
     Log To Console    STEP3
     Log To Console    indexes ${indexes} to delete with their metrics
 
@@ -122,7 +122,7 @@ BRRDCDRBDB1
     ${index}    Ctn Get Indexes To Rebuild    3
     Ctn Rebuild Rrd Graphs From Db    ${index}
     Log To Console    Indexes to rebuild: ${index}
-    ${metrics}    Get Metrics Matching Indexes    ${index}
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
     Ctn Reload Broker
 
@@ -172,7 +172,7 @@ BRRDCDRBUDB1
     Ctn Rebuild Rrd Graphs From Db    ${index}
     Ctn Reload Broker
     Log To Console    Indexes to rebuild: ${index}
-    ${metrics}    Get Metrics Matching Indexes    ${index}
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30

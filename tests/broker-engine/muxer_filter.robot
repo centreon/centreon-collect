@@ -278,7 +278,7 @@ CBD_RELOAD_AND_FILTERS
 
     Log To Console    Second configuration: only storage events are sent.
     ${start}    Get Current Date
-    Restart Engine
+    Ctn Restart Engine
     Ctn Reload Broker
     #wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
@@ -308,7 +308,7 @@ CBD_RELOAD_AND_FILTERS
     # New configuration
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    filters
     ${start}    Get Current Date
-    Restart Engine
+    Ctn Restart Engine
     Ctn Reload Broker
     # wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
@@ -381,7 +381,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     Log To Console    Second configuration: only storage events are sent.
     ${start}    Get Current Date
-    Restart Engine
+    Ctn Restart Engine
     Ctn Reload Broker
     #wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
@@ -411,7 +411,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     # New configuration
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    filters
     ${start}    Get Current Date
-    Restart Engine
+    Ctn Restart Engine
     Ctn Reload Broker
     #wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
