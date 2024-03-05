@@ -392,22 +392,22 @@ BABOOCOMPL_RESTART
     ...               And in each step, Broker is restarted to check that the BA states
     ...               did not change during the restart.
     FOR    ${i}    IN RANGE    ${15}    ${21}    ${2}
-	Remove Files    /tmp/ba${id_ba__sid[0]}_*.dot
+        Remove Files    /tmp/ba${id_ba__sid[0]}_*.dot
         ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
         Ctn Broker Get Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_1.dot
         Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
         ${start}    Get Current Date
 
-	# A restart of cbd should not alter the boolean rules content.
-	Restart Broker
-	${content}    Create List    Inherited downtimes and BA states restored
+        # A restart of cbd should not alter the boolean rules content.
+        Ctn Restart Broker
+        ${content}    Create List    Inherited downtimes and BA states restored
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-	Should Be True    ${result}    It seems that no cache has been restored into BAM.
+        Should Be True    ${result}    It seems that no cache has been restored into BAM.
 
         Ctn Broker Get Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_2.dot
 
-	Wait Until Created    /tmp/ba${id_ba__sid[0]}_2.dot
-	${result}    Ctn Compare Dot Files    /tmp/ba${id_ba__sid[0]}_1.dot    /tmp/ba${id_ba__sid[0]}_2.dot
+        Wait Until Created    /tmp/ba${id_ba__sid[0]}_2.dot
+        ${result}    Ctn Compare Dot Files    /tmp/ba${id_ba__sid[0]}_1.dot    /tmp/ba${id_ba__sid[0]}_2.dot
         Should Be True    ${result}    Known and values in files /tmp/ba${id_ba__sid[0]}_1.dot and /tmp/ba${id_ba__sid[0]}_2.dot should be the same.
         Ctn Process Service Result Hard    host_1    service_${i}    0    output ok for service_${i}
         ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_${i}    0    30    HARD
@@ -486,22 +486,22 @@ BABOOCOMPL_RELOAD
     ...               And in each step, Broker is restarted to check that the BA states
     ...               did not change during the restart.
     FOR    ${i}    IN RANGE    ${15}    ${21}    ${2}
-	Remove Files    /tmp/ba${id_ba__sid[0]}_*.dot
+        Remove Files    /tmp/ba${id_ba__sid[0]}_*.dot
         ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
         Ctn Broker Get Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_1.dot
         Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
         ${start}    Get Current Date
 
-	# A restart of cbd should not alter the boolean rules content.
-	Reload Broker
-	${content}    Create List    Inherited downtimes and BA states restored
+        # A restart of cbd should not alter the boolean rules content.
+        Ctn Reload Broker
+        ${content}    Create List    Inherited downtimes and BA states restored
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-	Should Be True    ${result}    It seems that no cache has been restored into BAM.
+        Should Be True    ${result}    It seems that no cache has been restored into BAM.
 
         Ctn Broker Get Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_2.dot
 
-	Wait Until Created    /tmp/ba${id_ba__sid[0]}_2.dot
-	${result}    Ctn Compare Dot Files    /tmp/ba${id_ba__sid[0]}_1.dot    /tmp/ba${id_ba__sid[0]}_2.dot
+        Wait Until Created    /tmp/ba${id_ba__sid[0]}_2.dot
+        ${result}    Ctn Compare Dot Files    /tmp/ba${id_ba__sid[0]}_1.dot    /tmp/ba${id_ba__sid[0]}_2.dot
         Should Be True    ${result}    Known and values in files /tmp/ba${id_ba__sid[0]}_1.dot and /tmp/ba${id_ba__sid[0]}_2.dot should be the same.
         Ctn Process Service Result Hard    host_1    service_${i}    0    output ok for service_${i}
         ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_${i}    0    30    HARD

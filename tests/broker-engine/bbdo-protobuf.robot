@@ -191,13 +191,13 @@ BEPB_HOST_DEPENDENCY
     Ctn Start Broker    True                                                        
     Ctn Start engine                                                                
                                                                                 
-    ${result}    Common.Check Host Dependencies    2    1        24x7    1   ou    dp    30
+    ${result}    Common.Ctn Check Host Dependencies    2    1        24x7    1   ou    dp    30
     Should Be True    ${result}    No notification dependency from 2 to 1 with timeperiod 24x7 on 'ou'
                                                                                 
     Ctn Config Engine    ${1}                                                       
     Ctn Reload Engine                                                               
                                                                                 
-    ${result}    Common.Check No Host Dependencies    30                               
+    ${result}    Common.Ctn Check No Host Dependencies    30                               
     Should Be True    ${result}    No host dependency should be defined         
                                                                                 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    True                      
