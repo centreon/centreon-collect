@@ -26,7 +26,7 @@ ANO_NOFILE
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
     Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
-    Stop Broker    True
+    Ctn Stop Broker    True
     Ctn Stop Engine
 
 ANO_NOFILE_VERIF_CONFIG_NO_ERROR
@@ -66,7 +66,7 @@ ANO_TOO_OLD_FILE
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
     Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
-    Stop Broker    True
+    Ctn Stop Broker    True
     Ctn Stop Engine
 
 ANO_OUT_LOWER_THAN_LIMIT
@@ -86,7 +86,7 @@ ANO_OUT_LOWER_THAN_LIMIT
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
     Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
-    Stop Broker    True
+    Ctn Stop Broker    True
     Ctn Stop Engine
 
 ANO_OUT_UPPER_THAN_LIMIT
@@ -106,7 +106,7 @@ ANO_OUT_UPPER_THAN_LIMIT
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
-    Stop Broker    True
+    Ctn Stop Broker    True
     Ctn Stop Engine
 
 ANO_JSON_SENSITIVITY_NOT_SAVED
@@ -126,7 +126,7 @@ ANO_JSON_SENSITIVITY_NOT_SAVED
     Ctn Start Engine
     Sleep    5s
     Ctn Stop Engine
-    ${retention_sensitivity}    Grep Retention    ${0}    sensitivity=0.00
+    ${retention_sensitivity}    Ctn Grep Retention    ${0}    sensitivity=0.00
     Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=0.00
 
 ANO_CFG_SENSITIVITY_SAVED
@@ -146,7 +146,7 @@ ANO_CFG_SENSITIVITY_SAVED
     Ctn Start Engine
     Sleep    5s
     Ctn Stop Engine
-    ${retention_sensitivity}    Grep Retention    ${0}    sensitivity=4.00
+    ${retention_sensitivity}    Ctn Grep Retention    ${0}    sensitivity=4.00
     Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=4.00
 
 ANO_EXTCMD_SENSITIVITY_SAVED
@@ -166,10 +166,10 @@ ANO_EXTCMD_SENSITIVITY_SAVED
         Ctn Clear Retention
         Ctn Start Engine
         Sleep    5s
-        Update Ano Sensitivity    ${use_grpc}    host_1    anomaly_1001    4.55
+        Ctn Update Ano Sensitivity    ${use_grpc}    host_1    anomaly_1001    4.55
         Sleep    1s
         Ctn Stop Engine
-        ${retention_sensitivity}    Grep Retention    ${0}    sensitivity=4.55
+        ${retention_sensitivity}    Ctn Grep Retention    ${0}    sensitivity=4.55
         Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=4.55
     END
 
@@ -201,7 +201,7 @@ AOUTLU1
     Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${lst}    Create List    1    0    4
-    ${result}    Check Types In Resources    ${lst}
+    ${result}    Ctn Check Types In Resources    ${lst}
     Should Be True
     ...    ${result}
     ...    The table 'resources' should contain rows of types SERVICE, HOST and ANOMALY_DETECTION.
@@ -233,9 +233,9 @@ ANO_DT1
     # create dependent service downtime
     Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
 
-    ${result}    Check Service Downtime With Timeout    host_1    service_1    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    1    60
     Should Be True    ${result}    dependent service must be in downtime
-    ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in downtime
 
     Ctn Stop Engine
@@ -268,13 +268,13 @@ ANO_DT2
     # create dependent service downtime
     Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
 
-    ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in downtime
 
     DELETE SERVICE DOWNTIME    host_1    service_1
-    ${result}    Check Service Downtime With Timeout    host_1    service_1    0    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    0    60
     Should Be True    ${result}    dependent service must be in downtime
-    ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0    60
     Should Be True    ${result}    anomaly service must be in downtime
 
     Ctn Stop Engine
@@ -307,14 +307,14 @@ ANO_DT3
     # create dependent service downtime
     Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
 
-    ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in downtime
 
     DELETE SERVICE DOWNTIME    host_1    anomaly_${serv_id}
-    ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0    60
     Should Be True    ${result}    anomaly service must be in downtime
 
-    ${result}    Check Service Downtime With Timeout    host_1    service_1    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    1    60
     Should Be True    ${result}    dependent service must be in downtime
 
     Ctn Stop Engine
@@ -348,13 +348,13 @@ ANO_DT4
     Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
     Ctn Schedule Service Fixed Downtime    host_1    anomaly_${serv_id}    3600
 
-    ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    2    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    2    60
     Should Be True    ${result}    anomaly service must be in double downtime
 
     DELETE SERVICE DOWNTIME    host_1    service_1
-    ${result}    Check Service Downtime With Timeout    host_1    service_1    0    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    0    60
     Should Be True    ${result}    dependent service mustn t be in downtime
-    ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in simple downtime
 
     Ctn Stop Engine

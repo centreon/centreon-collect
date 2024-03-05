@@ -30,7 +30,7 @@ BCL2
     Should Be True
     ...    ${logger_res}
     ...    Didn't found 5 threads in ${VarRoot}/log/centreon-broker/central-broker-master.log
-    Stop Broker With Args
+    Ctn Stop Broker With Args
 
 BCL3
     [Documentation]    Starting broker with options '-D' should work and activate diagnose mode

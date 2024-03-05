@@ -52,19 +52,19 @@ BEBAMIDTU1
 
     # A downtime is put on service_314
     Ctn Schedule Service Downtime    host_16    service_314    3600
-    ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
-    ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
     Should Be True    ${result}    The BA ba_1 is not in downtime as it should
 
     # The downtime is deleted
     Ctn Delete Service Downtime    host_16    service_314
-    ${result}    Check Service Downtime With Timeout    host_16    service_314    0    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    0    60
     Should Be True    ${result}    The service (host_16, service_314) is in downtime and should not.
 
     ${result}    Check Downtimes With Timeout    0    60
     Should Be True    ${result}    No downtime should still be running.
-    ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
+    ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
     Ctn Stop Engine
@@ -113,9 +113,9 @@ BEBAMIDTU2
 
     # A downtime is put on service_314
     Ctn Schedule Service Downtime    host_16    service_314    3600
-    ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
-    ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
     Should Be True    ${result}    The BA ba_1 is not in downtime as it should
 
     FOR    ${i}    IN RANGE    2
@@ -143,9 +143,9 @@ BEBAMIDTU2
 
     # The downtime is deleted
     Ctn Delete Service Downtime    host_16    service_314
-    ${result}    Check Service Downtime With Timeout    host_16    service_314    0    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    0    60
     Should Be True    ${result}    The service (host_16, service_314) is in downtime and should not.
-    ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
+    ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
     # We should have no more downtime
@@ -219,16 +219,16 @@ BEBAMIGNDTU1
 
     # Two downtimes are applied on service_314
     Ctn Schedule Service Downtime    host_16    service_314    3600
-    ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
     Log To Console    One downtime applied to service_314.
 
     Ctn Schedule Service Downtime    host_16    service_314    1800
-    ${result}    Check Service Downtime With Timeout    host_16    service_314    2    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    2    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
     Log To Console    Two downtimes applied to service_314.
 
-    ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
+    ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime but should not
     Log To Console    The BA is configured to ignore kpis in downtime
 
@@ -239,7 +239,7 @@ BEBAMIGNDTU1
     # The first downtime is deleted
     Ctn Delete Service Downtime    host_16    service_314
 
-    ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) does not contain 1 downtime as it should
     Log To Console    Still one downtime applied to service_314.
 
@@ -253,7 +253,7 @@ BEBAMIGNDTU1
     # The second downtime is deleted
     Ctn Delete Service Downtime    host_16    service_314
 
-    ${result}    Check Service Downtime With Timeout    host_16    service_314    0    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    0    60
     Should Be True    ${result}    The service (host_16, service_314) does not contain 0 downtime as it should
     Log To Console    No more downtime applied to service_314.
 
@@ -320,16 +320,16 @@ BEBAMIGNDTU2
 
     # Two downtimes are applied on service_314
     Ctn Schedule Service Downtime    host_16    service_314    90
-    ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
     Log To Console    One downtime applied to service_314.
 
     Ctn Schedule Service Downtime    host_16    service_314    30
-    ${result}    Check Service Downtime With Timeout    host_16    service_314    2    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    2    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
     Log To Console    Two downtimes applied to service_314.
 
-    ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
+    ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime but should not
     Log To Console    The BA is configured to ignore kpis in downtime
 
@@ -340,7 +340,7 @@ BEBAMIGNDTU2
     # The first downtime should reach its end
 
     Log To Console    After 30s, the first downtime should be finished.
-    ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) does not contain 1 downtime as it should
     Log To Console    Still one downtime applied to service_314.
 

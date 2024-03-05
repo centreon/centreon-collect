@@ -81,7 +81,7 @@ BEEXTCMD31
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Svc Checks    ${use_grpc}    host_1
+        Ctn Disable Host Svc Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -171,7 +171,7 @@ BEEXTCMD32
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Svc Checks    ${use_grpc}    host_1
+        Ctn Disable Host Svc Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -247,7 +247,7 @@ BEEXTCMD33
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Svc Notifications    ${use_grpc}    host_1
+        Ctn Disable Host Svc Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -298,7 +298,7 @@ BEEXTCMD34
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Svc Notifications    ${use_grpc}    host_1
+        Ctn Disable Host Svc Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -352,7 +352,7 @@ BEEXTCMD35
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Passive Host Checks    ${use_grpc}    host_1
+        Ctn Disable Passive Host Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -417,7 +417,7 @@ BEEXTCMD36
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Passive Host Checks    ${use_grpc}    host_1
+        Ctn Disable Passive Host Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -467,7 +467,7 @@ BEEXTCMD37
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
+        Ctn Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -536,7 +536,7 @@ BEEXTCMD38
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
+        Ctn Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -590,7 +590,7 @@ BEEXTCMD39
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Stop Obsessing Over Host    ${use_grpc}    host_1
+        Ctn Stop Obsessing Over Host    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -637,7 +637,7 @@ BEEXTCMD40
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Stop Obsessing Over Host    ${use_grpc}    host_1
+        Ctn Stop Obsessing Over Host    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -687,7 +687,7 @@ BEEXTCMD41
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
+        Ctn Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -738,7 +738,7 @@ BEEXTCMD42
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
+        Ctn Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -777,8 +777,8 @@ BEEXTCMD_GRPC1
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
+    Ctn Change Broker tcp output to grpc    module0
+    Ctn Change Broker tcp input to grpc    central
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
@@ -793,7 +793,7 @@ BEEXTCMD_GRPC1
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
+        Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -832,7 +832,7 @@ BEEXTCMD_GRPC2
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
+        Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -957,7 +957,7 @@ BEEXTCMD_REVERSE_GRPC1
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
+        Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1000,7 +1000,7 @@ BEEXTCMD_REVERSE_GRPC2
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
+        Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1131,7 +1131,7 @@ BEEXTCMD_COMPRESS_GRPC1
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
+        Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1164,7 +1164,7 @@ BEATOI11
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-    SEND CUSTOM HOST NOTIFICATION    host_1    1    admin    foobar
+    Ctn Send Custom Host Notification    host_1    1    admin    foobar
     ${content}    Create List    EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;foobar
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
@@ -1186,7 +1186,7 @@ BEATOI12
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-    SEND CUSTOM HOST NOTIFICATION    host_1    8    admin    foobar
+    Ctn Send Custom Host Notification    host_1    8    admin    foobar
     ${content}    Create List
     ...    Error: could not send custom host notification: '8' must be an integer between 0 and 7
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1232,7 +1232,7 @@ BEATOI21
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-    ADD HOST COMMENT    host_1    1    user    comment
+    Ctn Add Host Comment    host_1    1    user    comment
     ${content}    Create List    ADD_HOST_COMMENT
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    the comment with id:1 was not added.
@@ -1260,7 +1260,7 @@ BEATOI22
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-    ADD HOST COMMENT    host_1    1    user    comment
+    Ctn Add Host Comment    host_1    1    user    comment
     ${content}    Create List    ADD_HOST_COMMENT
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    the comment with id:1 was not added.
@@ -1290,7 +1290,7 @@ BEATOI23
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}    Get Current Date    result_format=epoch
-    ADD SVC COMMENT    host_1    service_1    0    user    comment
+    Ctn Add Svc Comment    host_1    service_1    0    user    comment
     ${content}    Create List    ADD_SVC_COMMENT
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument persistent_flag must be 0 or 1.
@@ -1313,7 +1313,7 @@ BECUSTOMHOSTVAR
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}    Get Current Date    result_format=epoch
-    CHANGE CUSTOM HOST VAR COMMAND    host_1    SNMPVERSION    789456
+    Ctn Change Custom Host Var Command    host_1    SNMPVERSION    789456
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1347,7 +1347,7 @@ BECUSTOMSVCVAR
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}    Get Current Date    result_format=epoch
-    CHANGE CUSTOM SVC VAR COMMAND    host_1    service_1    CRITICAL    456123
+    Ctn Change Custom Svc Var Command    host_1    service_1    CRITICAL    456123
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 

@@ -131,7 +131,7 @@ BEUTAG2
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    Check Resources Tags With Timeout    1    ${svc}    servicegroup    [4]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    ${svc}    servicegroup    [4]    60
     Should Be True    ${result}    New service should have a service group tag of id 4.
 
 BEUTAG3
@@ -190,13 +190,13 @@ BEUTAG4
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    Check Resources Tags With Timeout    1    1    servicegroup    [4, 5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    1    servicegroup    [4, 5]    60
     Should Be True    ${result}    Service (1, 1) should have servicegroup tag ids 4 and 5
-    ${result}    Check Resources Tags With Timeout    1    3    servicegroup    [4, 5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    3    servicegroup    [4, 5]    60
     Should Be True    ${result}    Service (1, 3) should have servicegroup tag ids 4, 5
-    ${result}    Check Resources Tags With Timeout    1    3    servicecategory    [2, 4]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    3    servicecategory    [2, 4]    60
     Should Be True    ${result}    Service (1, 3) should have servicecategory tag ids 2, 4
-    ${result}    Check Resources Tags With Timeout    1    5    servicecategory    [2, 4]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    5    servicecategory    [2, 4]    60
     Should Be True    ${result}    Service (1, 5) should have servicecategory tag ids 2, 4
 
 BEUTAG5
@@ -226,13 +226,13 @@ BEUTAG5
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2,3]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [2,3]    60
     Should Be True    ${result}    Host 1 should have hostgroup tags 2 and 3
-    ${result}    Check Resources Tags With Timeout    0    2    hostgroup    [2,3]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    2    hostgroup    [2,3]    60
     Should Be True    ${result}    Host 2 should have hostgroup tags 2 and 3
-    ${result}    Check Resources Tags With Timeout    0    2    hostcategory    [2, 3]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    2    hostcategory    [2, 3]    60
     Should Be True    ${result}    Host 2 should have hostcategory tags 2 and 3
-    ${result}    Check Resources Tags With Timeout    0    3    hostcategory    [2, 3]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    3    hostcategory    [2, 3]    60
     Should Be True    ${result}    Host 3 should have hostcategory tags 2 and 3
 
 BEUTAG6
@@ -264,13 +264,13 @@ BEUTAG6
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2,4]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [2,4]    60
     Should Be True    ${result}    Host 1 should have hostgroup tag_id 2 and 4
-    ${result}    Check Resources Tags With Timeout    0    1    hostcategory    [1,5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    1    hostcategory    [1,5]    60
     Should Be True    ${result}    Host 1 should have hostcategory tag_id 1 and 5
-    ${result}    Check Resources Tags With Timeout    1    1    servicegroup    [2,4]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    1    servicegroup    [2,4]    60
     Should Be True    ${result}    Service (1, 1) should have servicegroup tag_id 2 and 4.
-    ${result}    Check Resources Tags With Timeout    1    1    servicecategory    [3,5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    1    servicecategory    [3,5]    60
     Should Be True    ${result}    Service (1, 1) should have servicecategory tag_id 3 and 5.
 
 BEUTAG7
@@ -306,12 +306,12 @@ BEUTAG7
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # We check in the DB if the service (1,1) has well its servicegroup tags configured.
-    ${result}    Check Resources Tags With Timeout    1    1    servicegroup    [2,4]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    1    servicegroup    [2,4]    60
     Should Be True    ${result}    First step: Service (1, 1) should have servicegroup tags 2 and 4
 
-    ${result}    Check Resources Tags With Timeout    26    502    servicecategory    [2,4]    60
+    ${result}    Ctn Check Resources Tags With Timeout    26    502    servicecategory    [2,4]    60
     Should Be True    ${result}    First step: Service (26, 502) should have servicecategory tags 13, 9, 3 and 11.
-    ${result}    Check Resources Tags With Timeout    26    502    servicegroup    [3,5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    26    502    servicegroup    [3,5]    60
     Should Be True    ${result}    First step: Service (26, 502) should have servicegroup tags 3 and 5.
 
     Ctn Remove Tags From Services    ${0}    group_tags
@@ -329,10 +329,10 @@ BEUTAG7
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    Check Resources Tags With Timeout    26    507    servicegroup    [3,5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    26    507    servicegroup    [3,5]    60
     Should Be True    ${result}    Second step: Service (26, 507) should have servicegroup tags 3 and 5
 
-    ${result}    Check Resources Tags With Timeout    26    508    servicegroup    [3,5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    26    508    servicegroup    [3,5]    60
     Should Be True    ${result}    Second step: Service (26, 508) should have servicegroup tags 3 and 5
 
 BEUTAG8
@@ -377,18 +377,18 @@ BEUTAG8
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # We need to wait a little before reloading Engine
-    ${result}    Check Resources Tags With Timeout    1    2    servicecategory    [3,5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    2    servicecategory    [3,5]    60
     Should Be True    ${result}    First step: Service (1, 2) should have servicecategory tags 3 and 5.
-    ${result}    Check Resources Tags With Timeout    1    2    servicegroup    [1]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    2    servicegroup    [1]    60
     Should Be True    ${result}    First step: Service (1, 2) should have servicegroup tag 1.
 
-    ${result}    Check Resources Tags With Timeout    1    5    servicegroup    [9]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    5    servicegroup    [9]    60
     Should Be True    ${result}    First step: Service (1, 5) should have servicegroup tag 9
 
-    ${result}    Check Resources Tags With Timeout    26    502    servicegroup    [1,4,5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    26    502    servicegroup    [1,4,5]    60
     Should Be True    ${result}    First step: Service (26, 502) should have tags 1, 4 and 5
 
-    ${result}    Check Resources Tags With Timeout    26    503    servicegroup    [7]    60
+    ${result}    Ctn Check Resources Tags With Timeout    26    503    servicegroup    [7]    60
     Should Be True    ${result}    First step: Service (26, 503) should have servicegroup tag 7
 
 BEUTAG9
@@ -430,28 +430,28 @@ BEUTAG9
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # We need to wait a little before reloading Engine
-    ${result}    Check Resources Tags With Timeout    0    9    hostgroup    [2]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    9    hostgroup    [2]    60
     Should Be True    ${result}    First step: resource 9 should have hostgroup tag with id=2
 
-    ${result}    Check Resources Tags With Timeout    0    10    hostgroup    [2]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    10    hostgroup    [2]    60
     Should Be True    ${result}    First step: resource 10 should have hostgroup tag with id=2
 
-    ${result}    Check Resources Tags With Timeout    0    11    hostgroup    [6]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    11    hostgroup    [6]    60
     Should Be True    ${result}    First step: resource 11 should have hostgroup tag with id=6
 
-    ${result}    Check Resources Tags With Timeout    0    12    hostgroup    [6]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    12    hostgroup    [6]    60
     Should Be True    ${result}    First step: resource 12 should have hostgroup tag with id=6
 
-    ${result}    Check Resources Tags With Timeout    0    30    hostgroup    [8]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    30    hostgroup    [8]    60
     Should Be True    ${result}    First step: resource 30 should have hostgroup tag with id=10
 
-    ${result}    Check Resources Tags With Timeout    0    31    hostgroup    [8]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    31    hostgroup    [8]    60
     Should Be True    ${result}    First step: resource 31 should have hostgroup tag with id=10
 
-    ${result}    Check Resources Tags With Timeout    0    32    hostgroup    [9]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    32    hostgroup    [9]    60
     Should Be True    ${result}    First step: resource 32 should have hostgroup tag with id=14
 
-    ${result}    Check Resources Tags With Timeout    0    33    hostgroup    [9]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    33    hostgroup    [9]    60
     Should Be True    ${result}    First step: host 33 should have hostgroup tag with id=14
 
 BEUTAG10
@@ -486,14 +486,14 @@ BEUTAG10
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
     Should Be True    ${result}    First step: Service (1, 4) should have servicegroup tags 2 and 4
-    ${result}    Check Resources Tags With Timeout    1    3    servicecategory    [3,5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    3    servicecategory    [3,5]    60
     Should Be True    ${result}    First step: Service (1, 3) should have servicecategory tags 3 and 5
 
-    ${result}    Check Resources Tags With Timeout    26    504    servicegroup    [3,5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    26    504    servicegroup    [3,5]    60
     Should Be True    ${result}    First step: Service (26, 504) should have servicegroup tags 3 and 5.
-    ${result}    Check Resources Tags With Timeout    26    503    servicecategory    [2,4]    60
+    ${result}    Ctn Check Resources Tags With Timeout    26    503    servicecategory    [2,4]    60
     Should Be True    ${result}    First step: Service (26, 503) should have servicecategory tags 2 and 4.
 
     Ctn Remove Tags From Services    ${0}    group_tags
@@ -508,16 +508,16 @@ BEUTAG10
     Ctn Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 504]
     Ctn Reload Engine
     Ctn Reload Broker
-    ${result}    Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60    False
+    ${result}    Ctn Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60    False
     Should Be True    ${result}    Second step: Service (1, 4) should not have servicegroup tags 2 and 4
 
-    ${result}    Check Resources Tags With Timeout    1    3    servicecategory    [3,5]    60    False
+    ${result}    Ctn Check Resources Tags With Timeout    1    3    servicecategory    [3,5]    60    False
     Should Be True    ${result}    Second step: Service (1, 3) should not have servicecategory tags 3 and 5
 
-    ${result}    Check Resources Tags With Timeout    26    504    servicegroup    [3,5]    60    False
+    ${result}    Ctn Check Resources Tags With Timeout    26    504    servicegroup    [3,5]    60    False
     Should Be True    ${result}    Second step: Service (26, 504) should not have servicegroup tags 3 and 5
 
-    ${result}    Check Resources Tags With Timeout    26    503    servicecategory    [3,5]    60    False
+    ${result}    Ctn Check Resources Tags With Timeout    26    503    servicecategory    [3,5]    60    False
     Should Be True    ${result}    Second step: Service (26, 503) should not have servicecategory tags 3 and 5
 
 BEUTAG11
@@ -552,14 +552,14 @@ BEUTAG11
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
     Should Be True    ${result}    First step: Service (1, 4) should have servicegroup tags 2 and 4
-    ${result}    Check Resources Tags With Timeout    1    3    servicecategory    [3,5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    3    servicecategory    [3,5]    60
     Should Be True    ${result}    First step: Service (1, 3) should have servicecategory tags 3 and 5
 
-    ${result}    Check Resources Tags With Timeout    26    504    servicegroup    [3,5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    26    504    servicegroup    [3,5]    60
     Should Be True    ${result}    First step: Service (26, 504) should have servicegroup tags 3 and 5.
-    ${result}    Check Resources Tags With Timeout    26    503    servicecategory    [2,4]    60
+    ${result}    Ctn Check Resources Tags With Timeout    26    503    servicecategory    [2,4]    60
     Should Be True    ${result}    First step: Service (26, 503) should have servicecategory tags 2 and 4.
 
     Ctn Remove Tags From Services    ${0}    group_tags
@@ -574,16 +574,16 @@ BEUTAG11
     Ctn Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 504]
     Ctn Reload Engine
     Ctn Reload Broker
-    ${result}    Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
+    ${result}    Ctn Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
     Should Be True    ${result}    Second step: Service (1, 4) should not have servicegroup tags 2 and 4
 
-    ${result}    Check Resources Tags With Timeout    1    3    servicecategory    [5]    60    False
+    ${result}    Ctn Check Resources Tags With Timeout    1    3    servicecategory    [5]    60    False
     Should Be True    ${result}    Second step: Service (1, 3) should not have servicecategory tags 5
 
-    ${result}    Check Resources Tags With Timeout    26    504    servicegroup    [3,5]    60    False
+    ${result}    Ctn Check Resources Tags With Timeout    26    504    servicegroup    [3,5]    60    False
     Should Be True    ${result}    Second step: Service (26, 504) should not have servicegroup tags 3 and 5
 
-    ${result}    Check Resources Tags With Timeout    26    503    servicecategory    [3,5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    26    503    servicecategory    [3,5]    60
     Should Be True    ${result}    Second step: Service (26, 503) should not have servicecategory tags 3 and 5
 
 BEUTAG12
@@ -613,13 +613,13 @@ BEUTAG12
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2,3]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [2,3]    60
     Should Be True    ${result}    Host 1 should have hostgroup tags 2 and 3
-    ${result}    Check Resources Tags With Timeout    0    2    hostgroup    [2,3]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    2    hostgroup    [2,3]    60
     Should Be True    ${result}    Host 2 should have hostgroup tags 2 and 3
-    ${result}    Check Resources Tags With Timeout    0    2    hostcategory    [2, 3]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    2    hostcategory    [2, 3]    60
     Should Be True    ${result}    Host 2 should have hostcategory tags 2 and 3
-    ${result}    Check Resources Tags With Timeout    0    3    hostcategory    [2, 3]    60
+    ${result}    Ctn Check Resources Tags With Timeout    0    3    hostcategory    [2, 3]    60
     Should Be True    ${result}    Host 3 should have hostcategory tags 2 and 3
 
     Ctn Remove Tags From Hosts    ${0}    group_tags
@@ -630,15 +630,15 @@ BEUTAG12
     Ctn Reload Engine
     Ctn Reload Broker
 
-    ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2,3]    60    False
+    ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [2,3]    60    False
     Should Be True    ${result}    Host 1 should not have hostgroup tags 2 nor 3
-    ${result}    Check Resources Tags With Timeout    0    2    hostgroup    [2,3]    60    False
+    ${result}    Ctn Check Resources Tags With Timeout    0    2    hostgroup    [2,3]    60    False
     Should Be True    ${result}    Host 2 should not have hostgroup tags 2 nor 3
-    ${result}    Check Resources Tags With Timeout    0    2    hostcategory    [2,3]    60    False
+    ${result}    Ctn Check Resources Tags With Timeout    0    2    hostcategory    [2,3]    60    False
     Should Be True    ${result}    Host 2 should not have hostgroup tags 2 nor 3
-    ${result}    Check Resources Tags With Timeout    0    3    hostcategory    [2,3]    60    False
+    ${result}    Ctn Check Resources Tags With Timeout    0    3    hostcategory    [2,3]    60    False
     Should Be True    ${result}    Host 3 should not have hostgroup tags 2 nor 3
-    ${result}    Check Resources Tags With Timeout    0    4    hostcategory    [2,3]    60    False
+    ${result}    Ctn Check Resources Tags With Timeout    0    4    hostcategory    [2,3]    60    False
     Should Be True    ${result}    Host 4 should not have hostgroup tags 2 nor 3
 
 BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
@@ -668,7 +668,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    True
+    ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    True
     Should Be True    ${result}    Host 1 should not have hostgroup tags 2
 
     ${content}    Create List    unified_sql:_check_queues
@@ -680,7 +680,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Ctn Engine Config Remove Tag    0    2
     Ctn Reload Engine
 
-    ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    False
+    ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    False
     Should Be True    ${result}    Host 1 should not have hostgroup tags 2
 
     # wait for commits
@@ -695,10 +695,10 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Ctn Add Tags To Hosts    ${0}    group_tags    2    [2,3]
     Ctn Reload Engine
 
-    ${result}    Check Resources Tags With Timeout    0    2    hostgroup    [2]    60    True
+    ${result}    Ctn Check Resources Tags With Timeout    0    2    hostgroup    [2]    60    True
     Should Be True    ${result}    Host 2 should have hostgroup tags 2
 
-    ${result}    Check Resources Tags With Timeout    0    3    hostgroup    [2]    60    True
+    ${result}    Ctn Check Resources Tags With Timeout    0    3    hostgroup    [2]    60    True
     Should Be True    ${result}    Host 3 should have hostgroup tags 2
 
 

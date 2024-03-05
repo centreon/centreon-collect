@@ -49,9 +49,9 @@ BEDTMASS1
 
     # It's time to delete downtimes
     FOR    ${i}    IN RANGE    ${17}
-        Delete Host Downtimes    ${0}    host_${i + 1}
-        Delete Host Downtimes    ${1}    host_${i + 18}
-        Delete Host Downtimes    ${2}    host_${i + 35}
+        Ctn Delete Host Downtimes    ${0}    host_${i + 1}
+        Ctn Delete Host Downtimes    ${1}    host_${i + 18}
+        Ctn Delete Host Downtimes    ${2}    host_${i + 35}
     END
 
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
@@ -97,9 +97,9 @@ BEDTMASS2
 
     # It's time to delete downtimes
     FOR    ${i}    IN RANGE    ${17}
-        Delete Host Downtimes    ${0}    host_${i + 1}
-        Delete Host Downtimes    ${1}    host_${i + 18}
-        Delete Host Downtimes    ${2}    host_${i + 35}
+        Ctn Delete Host Downtimes    ${0}    host_${i + 1}
+        Ctn Delete Host Downtimes    ${1}    host_${i + 18}
+        Ctn Delete Host Downtimes    ${2}    host_${i + 35}
     END
 
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
@@ -316,11 +316,11 @@ DTIM
 
     # It's time to delete downtimes
     FOR    ${i}    IN RANGE    ${50}
-        Delete Host Downtimes    ${0}    host_${i + 1}
-        Delete Host Downtimes    ${1}    host_${i + 51}
-        Delete Host Downtimes    ${2}    host_${i + 101}
-        Delete Host Downtimes    ${3}    host_${i + 151}
-        Delete Host Downtimes    ${4}    host_${i + 201}
+        Ctn Delete Host Downtimes    ${0}    host_${i + 1}
+        Ctn Delete Host Downtimes    ${1}    host_${i + 51}
+        Ctn Delete Host Downtimes    ${2}    host_${i + 101}
+        Ctn Delete Host Downtimes    ${3}    host_${i + 151}
+        Ctn Delete Host Downtimes    ${4}    host_${i + 201}
     END
 
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}

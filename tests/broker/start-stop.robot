@@ -106,7 +106,7 @@ START_STOP_CBD
     ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
 
     # restart central broker
-    Stop Broker
+    Ctn Stop Broker
     Ctn Start Broker
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -120,7 +120,7 @@ START_STOP_CBD
         Should Be Equal    "${output}"    "()"    at least one host state is null
     END
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Stop Broker
 
 
 *** Keywords ***

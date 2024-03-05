@@ -36,7 +36,7 @@ BERES1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content_present}    60
     Should Be True    ${result}    no updates concerning resources available.
     FOR    ${l}    IN    ${content_not_present}
-        ${result}    Find In Log    ${centralLog}    ${start}    ${content_not_present}
+        ${result}    Ctn Find In Log    ${centralLog}    ${start}    ${content_not_present}
         Should Not Be True    ${result[0]}    There are updates of hosts/services table(s).
     END
     Ctn Stop Engine
@@ -69,7 +69,7 @@ BEHS1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content_present}    60
     Should Be True    ${result}    no updates concerning hosts/services available.
     FOR    ${l}    IN    ${content_not_present}
-        ${result}    Find In Log    ${centralLog}    ${start}    ${content_not_present}
+        ${result}    Ctn Find In Log    ${centralLog}    ${start}    ${content_not_present}
         Should Not Be True    ${result[0]}    There are updates of the resources table.
     END
     Ctn Stop Engine

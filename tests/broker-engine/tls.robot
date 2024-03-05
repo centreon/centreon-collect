@@ -50,9 +50,9 @@ BECT1
                 ...    ${-1}
                 ...    extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration
             END
-            ${result}    Find In Log    ${centralLog}    ${start}    ${content1}
+            ${result}    Ctn Find In Log    ${centralLog}    ${start}    ${content1}
             Should Be True    ${result}
-            ${result}    Find In Log    ${moduleLog0}    ${start}    ${content2}
+            ${result}    Ctn Find In Log    ${moduleLog0}    ${start}    ${content2}
             Should Be True    ${result}
         END
     END
@@ -122,9 +122,9 @@ BECT2
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
     ${content2}    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
-    ${result}    Find In Log    ${centralLog}    ${start}    ${content1}
+    ${result}    Ctn Find In Log    ${centralLog}    ${start}    ${content1}
     Should Be True    ${result}
-    ${result}    Find In Log    ${moduleLog0}    ${start}    ${content2}
+    ${result}    Ctn Find In Log    ${moduleLog0}    ${start}    ${content2}
     Should Be True    ${result}
 
 BECT3
@@ -168,10 +168,10 @@ BECT3
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
     ${content2}    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}    Find In Log    ${log}    ${start}    ${content1}
+    ${result}    Ctn Find In Log    ${log}    ${start}    ${content1}
     Should Be True    ${result}
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
-    ${result}    Find In Log    ${log}    ${start}    ${content2}
+    ${result}    Ctn Find In Log    ${log}    ${start}    ${content2}
     Should Be True    ${result}
 
 BECT4
@@ -252,10 +252,10 @@ BECT4
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
     ${content2}    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}    Find In Log    ${log}    ${start}    ${content1}
+    ${result}    Ctn Find In Log    ${log}    ${start}    ${content1}
     Should Be True    ${result}
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
-    ${result}    Find In Log    ${log}    ${start}    ${content2}
+    ${result}    Ctn Find In Log    ${log}    ${start}    ${content2}
     Should Be True    ${result}
 
 BECT_GRPC1
@@ -296,9 +296,9 @@ BECT_GRPC1
                 ...    ${-1}
                 ...    extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration
             END
-            ${result}    Find In Log    ${centralLog}    ${start}    ${content1}
+            ${result}    Ctn Find In Log    ${centralLog}    ${start}    ${content1}
             Should Be True    ${result}
-            ${result}    Find In Log    ${moduleLog0}    ${start}    ${content2}
+            ${result}    Ctn Find In Log    ${moduleLog0}    ${start}    ${content2}
             Should Be True    ${result}
         END
     END
@@ -370,10 +370,10 @@ BECT_GRPC2
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
     ${content2}    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}    Find In Log    ${log}    ${start}    ${content1}
+    ${result}    Ctn Find In Log    ${log}    ${start}    ${content1}
     Should Be True    ${result}
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
-    ${result}    Find In Log    ${log}    ${start}    ${content2}
+    ${result}    Ctn Find In Log    ${log}    ${start}    ${content2}
     Should Be True    ${result}
 
 BECT_GRPC3
@@ -419,10 +419,10 @@ BECT_GRPC3
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
     ${content2}    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}    Find In Log    ${log}    ${start}    ${content1}
+    ${result}    Ctn Find In Log    ${log}    ${start}    ${content1}
     Should Be True    ${result}
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
-    ${result}    Find In Log    ${log}    ${start}    ${content2}
+    ${result}    Ctn Find In Log    ${log}    ${start}    ${content2}
     Should Be True    ${result}
 
 BECT_GRPC4
@@ -505,8 +505,8 @@ BECT_GRPC4
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
     ${content2}    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}    Find In Log    ${log}    ${start}    ${content1}
+    ${result}    Ctn Find In Log    ${log}    ${start}    ${content1}
     Should Be True    ${result}
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
-    ${result}    Find In Log    ${log}    ${start}    ${content2}
+    ${result}    Ctn Find In Log    ${log}    ${start}    ${content2}
     Should Be True    ${result}
