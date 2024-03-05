@@ -1,5 +1,5 @@
-/*
- * Copyright 2021-2023 Centreon
+/**
+ * Copyright 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,10 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::unified_sql;
+
+static const std::string _insert_or_update_tags =
+    "INSERT INTO tags (id,type,name) VALUES(?,?,?) ON DUPLICATE "
+    "KEY UPDATE tag_id=LAST_INSERT_ID(tag_id),  name=VALUES(name)";
 
 /**
  *  @brief Clean tables with data associated to the instance.
