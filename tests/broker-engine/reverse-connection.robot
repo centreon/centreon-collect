@@ -12,41 +12,41 @@ Library             ../resources/Engine.py
 Library             ../resources/Broker.py
 Library             ../resources/Common.py
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
-Test Teardown       Save Logs If Failed
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
 BRGC1
     [Documentation]    Broker good reverse connection
     [Tags]    broker    map    reverse connection
-    Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central_map
-    Config Broker    module
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central_map
+    Ctn Config Broker    module
 
     Log To Console    Compression set to
-    Broker Config Log    central    bbdo    info
-    Broker Config Log    module0    bbdo    info
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Current Date
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    Run Reverse Bam    ${50}    ${0.2}
+    Ctn Run Reverse Bam    ${50}    ${0.2}
 
-    Kindly Stop Broker
-    Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
     ...    file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}    Find In Log With Timeout    ${log}    ${start}    ${content}    40
+    ${result}    Ctn Find In Log With Timeout    ${log}    ${start}    ${content}    40
     Should Be True    ${result}    Connection to map has failed.
     File Should Not Exist
     ...    ${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*
@@ -55,30 +55,30 @@ BRGC1
 BRCTS1
     [Documentation]    Broker reverse connection too slow
     [Tags]    broker    map    reverse connection
-    Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central_map
-    Config Broker    module
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central_map
+    Ctn Config Broker    module
 
-    Broker Config Log    central    bbdo    info
-    Broker Config Log    module0    bbdo    info
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Current Date
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    Run Reverse Bam    ${150}    ${10}
+    Ctn Run Reverse Bam    ${150}    ${10}
 
-    Kindly Stop Broker
-    Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
     ...    file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}    Find In Log With Timeout    ${log}    ${start}    ${content}    40
+    ${result}    Ctn Find In Log With Timeout    ${log}    ${start}    ${content}    40
     Should Be True    ${result}    Connection to map has failed
     File Should Not Exist
     ...    ${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*
@@ -87,28 +87,28 @@ BRCTS1
 BRCS1
     [Documentation]    Broker reverse connection stopped
     [Tags]    broker    map    reversed
-    Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central_map
-    Config Broker    module
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central_map
+    Ctn Config Broker    module
 
-    Broker Config Log    central    bbdo    info
-    Broker Config Log    module0    bbdo    info
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Current Date
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    Kindly Stop Broker
-    Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
     ...    file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}    Find In Log With Timeout    ${log}    ${start}    ${content}    40
+    ${result}    Ctn Find In Log With Timeout    ${log}    ${start}    ${content}    40
     Should Not Be True    ${result}    Connection to map has failed
     File Should Not Exist
     ...    ${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map-2
@@ -117,33 +117,33 @@ BRCS1
 BRCTSMN
     [Documentation]    Broker connected to map with neb filter
     [Tags]    broker    map    reverse connection
-    Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central_map
-    Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central_map
+    Ctn Config Broker    module
+    Ctn Config BBDO3    ${1}
 
-    Broker Config Output Set Json    central    centreon-broker-master-map    filters    {"category": ["neb"]}
-    Broker Config Log    central    bbdo    trace
-    Broker Config Log    central    core    trace
-    Broker Config Log    central    processing    trace
-    Broker Config Log    module0    bbdo    info
-    ${start}    Get Round Current Date
-    Start Broker
-    Start Map
+    Ctn Broker Config Output Set Json    central    centreon-broker-master-map    filters    {"category": ["neb"]}
+    Ctn Broker Config Log    central    bbdo    trace
+    Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    central    processing    trace
+    Ctn Broker Config Log    module0    bbdo    info
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Map
     Sleep    5s
 
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     # pb_service pb_host pb_service_status pb_host_status
     ${expected_events}    Create List    65563    65566    65565    65568
     ${categories}    Create List    1
-    ${output}    Check Map Output    ${categories}    ${expected_events}    120
-    Kindly Stop Broker
-    Stop Map
+    ${output}    Ctn Check Map Output    ${categories}    ${expected_events}    120
+    Ctn Kindly Stop Broker
+    Ctn Stop Map
     Should Be True    ${output}    Filters badly applied in Broker
 
     # We should have exactly 1000 pb_service
@@ -156,41 +156,41 @@ BRCTSMN
     ${ret}    Get Line Count    ${ret}
     Should Be True    ${ret} >= 50
 
-    Stop Engine
+    Ctn Stop Engine
 
 BRCTSMNS
     [Documentation]    Broker connected to map with neb and storage filters
     [Tags]    broker    map    reverse connection
-    Clear Metrics
-    Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central_map
-    Config Broker    module
-    Config BBDO3    ${1}
+    Ctn Clear Metrics
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central_map
+    Ctn Config Broker    module
+    Ctn Config BBDO3    ${1}
 
-    Broker Config Output Set Json
+    Ctn Broker Config Output Set Json
     ...    central
     ...    centreon-broker-master-map
     ...    filters
     ...    {"category": ["neb", "storage"]}
-    Broker Config Log    central    bbdo    trace
-    Broker Config Log    central    core    trace
-    Broker Config Log    central    processing    trace
-    Broker Config Log    module0    bbdo    info
-    ${start}    Get Round Current Date
-    Start Broker
-    Start Map
+    Ctn Broker Config Log    central    bbdo    trace
+    Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    central    processing    trace
+    Ctn Broker Config Log    module0    bbdo    info
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Map
     Sleep    5s
 
-    Start Engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message about check_for_external_commands() should be available.
     # pb_service pb_host pb_service_status pb_host_status pb_metric pb_status pb_index_mapping
     ${expected_events}    Create List    65563    65566    65565    65568    196617    196618    196619
     ${categories}    Create List    1    3
-    ${output}    Check Map Output    ${categories}    ${expected_events}    120
+    ${output}    Ctn Check Map Output    ${categories}    ${expected_events}    120
     Should Be True    ${output}    Filters badly applied in Broker
 
     # We should have 1000 pb_service with maybe some BAs
@@ -208,16 +208,16 @@ BRCTSMNS
 
     Log To Console    Second configuration with one more service per host
     # For each host, one service is added (20 -> 21)
-    Config Engine    ${1}    ${50}    ${21}
-    Reload Engine
-    Reload Broker
+    Ctn Config Engine    ${1}    ${50}    ${21}
+    Ctn Reload Engine
+    Ctn Reload Broker
 
     # pb_service we changed services 50 added and others moved...
     ${expected_events}    Create List    65563
     ${categories}    Create List    1    3
-    ${output}    Check Map Output    ${categories}    ${expected_events}    120
+    ${output}    Ctn Check Map Output    ${categories}    ${expected_events}    120
     Should Be True    ${output}    Filters badly applied in Broker
 
-    Kindly Stop Broker
-    Stop Map
-    Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Stop Map
+    Ctn Stop Engine
