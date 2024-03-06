@@ -3173,7 +3173,7 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
     otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx}/otl_server.json"
     with open(filename, "a+") as f:
-        f.write(f"broker_module=/usr/lib64/centreon-engine/libotl_server.so {otl_server_config_path}")
+        f.write(f"broker_module=/usr/lib64/centreon-engine/libopentelemetry.so {otl_server_config_path}")
     
     with open(otl_server_config_path, "w") as f:
         f.write(otl_server_config_json_content)
