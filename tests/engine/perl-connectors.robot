@@ -1,8 +1,8 @@
 *** Settings ***
 Resource	../resources/resources.robot
-Suite Setup	Clean Before Suite
-Suite Teardown    Clean After Suite
-Test Setup	Stop Processes
+Suite Setup	Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup	Ctn Stop Processes
 
 Documentation	Centreon Engine test perl connectors
 Library	Process
@@ -16,18 +16,18 @@ Library	../resources/Common.py
 EPC1
 	[Documentation]	Check with perl connector
 	[Tags]	Engine	start-stop
-	Config Engine	${1}
+	Ctn Config Engine	${1}
 	Config Broker  module 
-	Engine Config Set Value	${0}	log_level_commands	trace
+	Ctn Engine Config Set Value	${0}	log_level_commands	trace
 	${start}=	Get Current Date
 
-	Start Engine
+	Ctn Start Engine
 	${content}=	Create List	connector::run: connector='Perl Connector'
-	${result}=	Find In Log with timeout	${engineLog0}	${start}	${content}	60
+	${result}=	Ctn Find In Log With Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=Missing a message talking about 'Perl Connector'
 
 	${content}=	Create List	connector::data_is_available
-	${result}=	Find In Log with timeout	${engineLog0}	${start}	${content}	20
+	${result}=	Ctn Find In Log With Timeout	${engineLog0}	${start}	${content}	20
 	Should Be True	${result}	msg=Missing a message telling data is available from the Perl connector
 
-	Stop Engine
+	Ctn Stop Engine
