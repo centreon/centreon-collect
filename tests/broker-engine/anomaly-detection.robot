@@ -25,7 +25,7 @@ ANO_NOFILE
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
-    ${serv_id}    Create Anomaly Detection  ${0}  ${1}  ${1}  metric
+    ${serv_id}    Ctn Create Anomaly Detection    ${0}  ${1}  ${1}  metric
     Remove File  /tmp/anomaly_threshold.json
     Ctn Clear Retention
     Clear Db  services
@@ -44,7 +44,7 @@ ANO_TOO_OLD_FILE
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
-    ${serv_id}    Create Anomaly Detection  ${0}  ${1}  ${1}  metric
+    ${serv_id}    Ctn Create Anomaly Detection    ${0}  ${1}  ${1}  metric
     ${predict_data}    Evaluate  [[0,0,2],[1648812678,0,3]]
     Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
     Ctn Clear Retention
@@ -65,7 +65,7 @@ ANO_OUT_LOWER_THAN_LIMIT
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
-    ${serv_id}    Create Anomaly Detection  ${0}  ${1}  ${1}  metric
+    ${serv_id}    Ctn Create Anomaly Detection    ${0}  ${1}  ${1}  metric
     ${predict_data}    Evaluate  [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
     Ctn Clear Retention
@@ -85,7 +85,7 @@ ANO_OUT_UPPER_THAN_LIMIT
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
-    ${serv_id}    Create Anomaly Detection  ${0}  ${1}  ${1}  metric
+    ${serv_id}    Ctn Create Anomaly Detection    ${0}  ${1}  ${1}  metric
     ${predict_data}    Evaluate  [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
     Ctn Clear Retention
@@ -101,7 +101,7 @@ ANO_JSON_SENSITIVITY_NOT_SAVED
     [Documentation]    json sensitivity not saved in retention
     [Tags]  Engine  Anomaly  Retention
     Ctn Config Engine    ${1}    ${50}    ${20}
-    ${serv_id}    Create Anomaly Detection  ${0}  ${1}  ${1}  metric
+    ${serv_id}    Ctn Create Anomaly Detection    ${0}  ${1}  ${1}  metric
     ${predict_data}    Evaluate  [[0,50,2, 10],[2648812678,25,-5,6]]
     Create Anomaly Threshold File V2  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  55.0  ${predict_data}
     Ctn Clear Retention
@@ -115,7 +115,7 @@ ANO_CFG_SENSITIVITY_SAVED
     [Documentation]    cfg sensitivity saved in retention
     [Tags]  Engine  Anomaly  Retention
     Ctn Config Engine    ${1}    ${50}    ${20}
-    ${serv_id}    Create Anomaly Detection  ${0}  ${1}  ${1}  metric  4.00
+    ${serv_id}    Ctn Create Anomaly Detection    ${0}  ${1}  ${1}  metric  4.00
     ${predict_data}    Evaluate  [[0,50,2, 10],[2648812678,25,-5,6]]
     Create Anomaly Threshold File V2  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  55.0  ${predict_data}
     Ctn Clear Retention
@@ -130,7 +130,7 @@ ANO_EXTCMD_SENSITIVITY_SAVED
     [Tags]  Engine  Anomaly  Retention  extcmd
       FOR  ${use_grpc}  IN RANGE  1  2
         Ctn Config Engine    ${1}    ${50}    ${20}
-        ${serv_id}    Create Anomaly Detection  ${0}  ${1}  ${1}  metric
+        ${serv_id}    Ctn Create Anomaly Detection    ${0}  ${1}  ${1}  metric
         ${predict_data}    Evaluate  [[0,50,2, 10],[2648812678,25,-5,6]]
         Create Anomaly Threshold File V2  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  55.0  ${predict_data}
         Ctn Clear Retention
@@ -155,7 +155,7 @@ AOUTLU1
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.1
     Ctn Broker Config Add Item    rrd    bbdo_version    3.0.1
     Ctn Broker Config Add Item    central    bbdo_version    3.0.1
-    ${serv_id}    Create Anomaly Detection  ${0}  ${1}  ${1}  metric
+    ${serv_id}    Ctn Create Anomaly Detection    ${0}  ${1}  ${1}  metric
     ${predict_data}    Evaluate  [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
     Ctn Clear Retention
@@ -188,7 +188,7 @@ ANO_DT1
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.1
     Ctn Broker Config Add Item    rrd    bbdo_version    3.0.1
     Ctn Broker Config Add Item    central    bbdo_version    3.0.1
-    ${serv_id}    Create Anomaly Detection  ${0}  ${1}  ${1}  metric
+    ${serv_id}    Ctn Create Anomaly Detection    ${0}  ${1}  ${1}  metric
     ${predict_data}     Evaluate  [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
     Ctn Clear Retention

@@ -123,7 +123,7 @@ BEBAMIDTU2
 
 	FOR	${i}	IN RANGE	2
 	  # Engine is restarted
-	  Stop Engine
+	  Ctn Stop Engine
 	  ${start}=	Get Current Date
 	  Start Engine
 	  # Let's wait for the initial service states.
