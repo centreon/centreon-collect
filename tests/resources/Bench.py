@@ -12,7 +12,7 @@ from google.protobuf import duration_pb2 as google_dot_protobuf_dot_duration__pb
 from cpuinfo import get_cpu_info
 from robot.api import logger
 from dateutil import parser as date_parser
-from Common import get_version
+from Common import ctn_get_version
 
 
 class delta_process_stat:
@@ -49,16 +49,16 @@ class delta_process_stat:
         return ret
 
 
-def diff_process_stat(process_stat1, process_stat2):
+def ctn_diff_process_stat(process_stat1, process_stat2):
     return delta_process_stat(process_stat1, process_stat2)
 
 
-def add_value_to_delta_process_stat(delta, key, value):
+def ctn_add_value_to_delta_process_stat(delta, key, value):
     """! add an attribute to an object"""
     setattr(delta, key, value)
 
 
-def get_last_bench_result(log: str, id: int, name_to_find: str):
+def ctn_get_last_bench_result(log: str, id: int, name_to_find: str):
     """! extract last bench trace in broker log file
     @log  path of the log file
     @param id id field of the bench event
@@ -86,7 +86,7 @@ def get_last_bench_result(log: str, id: int, name_to_find: str):
         return None
 
 
-def get_last_bench_result_with_timeout(log: str, id: int, name_to_find: str, timeout: int):
+def ctn_get_last_bench_result_with_timeout(log: str, id: int, name_to_find: str, timeout: int):
     """! extract last bench trace in broker log file
     @log  path of the log file
     @param id id field of the bench event
@@ -96,7 +96,7 @@ def get_last_bench_result_with_timeout(log: str, id: int, name_to_find: str, tim
     """
     limit = time.time() + timeout
     while time.time() < limit:
-        json_obj = get_last_bench_result(log, id, name_to_find)
+        json_obj = ctn_get_last_bench_result(log, id, name_to_find)
         if json_obj is not None:
             return json_obj
         time.sleep(5)
@@ -104,7 +104,7 @@ def get_last_bench_result_with_timeout(log: str, id: int, name_to_find: str, tim
     return None
 
 
-def calc_bench_delay(bench_event_result, bench_muxer_begin: str, bench_muxer_begin_function: str, bench_muxer_end: str, bench_muxer_end_function: str):
+def ctn_calc_bench_delay(bench_event_result, bench_muxer_begin: str, bench_muxer_begin_function: str, bench_muxer_end: str, bench_muxer_end_function: str):
     """! calc a duration between two time points of a bench event json object
     @param bench_event_result bench result json object
     @param bench_muxer_begin name of the muxer owned to the first time point (accepts regexp)
@@ -124,7 +124,7 @@ def calc_bench_delay(bench_event_result, bench_muxer_begin: str, bench_muxer_beg
     return time_end - time_begin
 
 
-def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: str, resources_consumed: delta_process_stat, end_process_stat, bench_event_result, bench_muxer_begin: str, bench_muxer_begin_function: str, bench_muxer_end: str, bench_muxer_end_function: str, other_bench_data: dict = None):
+def ctn_store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: str, resources_consumed: delta_process_stat, end_process_stat, bench_event_result, bench_muxer_begin: str, bench_muxer_begin_function: str, bench_muxer_end: str, bench_muxer_end_function: str, other_bench_data: dict = None):
     """! store a bench result and process stat difference in an unqlite file
     it also stores git information
     @param file_path  path of the unqlite file
@@ -154,14 +154,14 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
     row['nb_core'] = info["count"]
     row['memory_size'] = psutil.virtual_memory().total
     row['memory_used'] = end_process_stat.vm_size
-    row['event_propagation_delay'] = calc_bench_delay(
+    row['event_propagation_delay'] = ctn_calc_bench_delay(
         bench_event_result, bench_muxer_begin, bench_muxer_begin_function, bench_muxer_end, bench_muxer_end_function).total_seconds()
 
     if other_bench_data is not None:
         for key, value in other_bench_data.items():
             row[key] = value
 
-    version = get_version()
+    version = ctn_get_version()
     version = version[0:version.rfind(".")] + ".x"
     row['origin'] = version
 
@@ -189,7 +189,7 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
     return True
 
 
-def upload_database_to_s3(file_path: str):
+def ctn_upload_database_to_s3(file_path: str):
     """! upload a file to s3
     @param file_path path of the file on the disk
     """
@@ -210,7 +210,7 @@ def upload_database_to_s3(file_path: str):
         return False
 
 
-def download_database_from_s3(file_path: str):
+def ctn_download_database_from_s3(file_path: str):
     """! upload a file to s3
     @param file_path path of the file on the disk
     @bucket s3 bucket

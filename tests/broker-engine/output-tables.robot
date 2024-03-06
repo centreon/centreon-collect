@@ -12,65 +12,65 @@ Library             ../resources/Broker.py
 Library             ../resources/Common.py
 Library             ../resources/specific-duplication.py
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
-Test Teardown       Save Logs If Failed
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
 BERES1
     [Documentation]    store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
-    Clear Retention
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
+    Ctn Clear Retention
     ${start}    Get Current Date
     Sleep    1s
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
     ${content_not_present}    Create List
     ...    processing host status event (host:
     ...    UPDATE hosts SET checked=i
     ...    processing service status event (host:
     ...    UPDATE services SET checked=
     ${content_present}    Create List    UPDATE resources SET status=
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content_present}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content_present}    60
     Should Be True    ${result}    no updates concerning resources available.
     FOR    ${l}    IN    ${content_not_present}
-        ${result}    Find In Log    ${centralLog}    ${start}    ${content_not_present}
+        ${result}    Ctn Find In Log    ${centralLog}    ${start}    ${content_not_present}
         Should Not Be True    ${result[0]}    There are updates of hosts/services table(s).
     END
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEHS1
     [Documentation]    store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    no
-    Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    yes
-    Clear Retention
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    no
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    yes
+    Ctn Clear Retention
     ${start}    Get Current Date
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
     ${content_present}    Create List    UPDATE hosts SET checked=    UPDATE services SET checked=
     ${content_not_present}    Create List
     ...    INSERT INTO resources
@@ -79,110 +79,110 @@ BEHS1
     ...    INSERT INTO tags
     ...    UPDATE severities
     ...    INSERT INTO severities
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content_present}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content_present}    60
     Should Be True    ${result}    no updates concerning hosts/services available.
     FOR    ${l}    IN    ${content_not_present}
-        ${result}    Find In Log    ${centralLog}    ${start}    ${content_not_present}
+        ${result}    Ctn Find In Log    ${centralLog}    ${start}    ${content_not_present}
         Should Not Be True    ${result[0]}    There are updates of the resources table.
     END
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEINSTANCESTATUS
     [Documentation]    Instance status to bdd
     [Tags]    broker    engine
-    Config Engine    ${1}    ${50}    ${20}
-    Engine Config Set Value    0    enable_flap_detection    1    True
-    Engine Config Set Value    0    enable_notifications    0    True
-    Engine Config Set Value    0    execute_host_checks    0    True
-    Engine Config Set Value    0    execute_service_checks    0    True
-    Engine Config Set Value    0    global_host_event_handler    command_1    True
-    Engine Config Set Value    0    global_service_event_handler    command_2    True
-    Engine Config Set Value    0    instance_heartbeat_interval    1    True
-    Engine Config Set Value    0    obsess_over_hosts    1    True
-    Engine Config Set Value    0    obsess_over_services    1    True
-    Engine Config Set Value    0    accept_passive_host_checks    0    True
-    Engine Config Set Value    0    accept_passive_service_checks    0    True
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Engine Config Set Value    0    enable_flap_detection    1    True
+    Ctn Engine Config Set Value    0    enable_notifications    0    True
+    Ctn Engine Config Set Value    0    execute_host_checks    0    True
+    Ctn Engine Config Set Value    0    execute_service_checks    0    True
+    Ctn Engine Config Set Value    0    global_host_event_handler    command_1    True
+    Ctn Engine Config Set Value    0    global_service_event_handler    command_2    True
+    Ctn Engine Config Set Value    0    instance_heartbeat_interval    1    True
+    Ctn Engine Config Set Value    0    obsess_over_hosts    1    True
+    Ctn Engine Config Set Value    0    obsess_over_services    1    True
+    Ctn Engine Config Set Value    0    accept_passive_host_checks    0    True
+    Ctn Engine Config Set Value    0    accept_passive_service_checks    0    True
 
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    sql    trace
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-    ${result}    Check Field Db Value
+    ${result}    Ctn Check Field Db Value
     ...    SELECT global_host_event_handler FROM instances WHERE instance_id=1
     ...    command_1
     ...    30
     Should Be True    ${result}    global_host_event_handler not updated.
-    ${result}    Check Field Db Value
+    ${result}    Ctn Check Field Db Value
     ...    SELECT global_service_event_handler FROM instances WHERE instance_id=1
     ...    command_2
     ...    2
     Should Be True    ${result}    global_service_event_handler not updated.
-    ${result}    Check Field Db Value    SELECT flap_detection FROM instances WHERE instance_id=1    ${1}    3
+    ${result}    Ctn Check Field Db Value    SELECT flap_detection FROM instances WHERE instance_id=1    ${1}    3
     Should Be True    ${result}    flap_detection not updated.
-    ${result}    Check Field Db Value    SELECT notifications FROM instances WHERE instance_id=1    ${0}    3
+    ${result}    Ctn Check Field Db Value    SELECT notifications FROM instances WHERE instance_id=1    ${0}    3
     Should Be True    ${result}    notifications not updated.
-    ${result}    Check Field Db Value    SELECT active_host_checks FROM instances WHERE instance_id=1    ${0}    3
+    ${result}    Ctn Check Field Db Value    SELECT active_host_checks FROM instances WHERE instance_id=1    ${0}    3
     Should Be True    ${result}    active_host_checks not updated.
-    ${result}    Check Field Db Value    SELECT active_service_checks FROM instances WHERE instance_id=1    ${0}    3
+    ${result}    Ctn Check Field Db Value    SELECT active_service_checks FROM instances WHERE instance_id=1    ${0}    3
     Should Be True    ${result}    active_service_checks not updated.
-    ${result}    Check Field Db Value    SELECT check_hosts_freshness FROM instances WHERE instance_id=1    ${0}    3
+    ${result}    Ctn Check Field Db Value    SELECT check_hosts_freshness FROM instances WHERE instance_id=1    ${0}    3
     Should Be True    ${result}    check_hosts_freshness not updated.
-    ${result}    Check Field Db Value
+    ${result}    Ctn Check Field Db Value
     ...    SELECT check_services_freshness FROM instances WHERE instance_id=1
     ...    ${1}
     ...    3
     Should Be True    ${result}    check_services_freshness not updated.
-    ${result}    Check Field Db Value    SELECT obsess_over_hosts FROM instances WHERE instance_id=1    ${1}    3
+    ${result}    Ctn Check Field Db Value    SELECT obsess_over_hosts FROM instances WHERE instance_id=1    ${1}    3
     Should Be True    ${result}    obsess_over_hosts not updated.
-    ${result}    Check Field Db Value    SELECT obsess_over_services FROM instances WHERE instance_id=1    ${1}    3
+    ${result}    Ctn Check Field Db Value    SELECT obsess_over_services FROM instances WHERE instance_id=1    ${1}    3
     Should Be True    ${result}    obsess_over_services not updated.
-    ${result}    Check Field Db Value    SELECT passive_host_checks FROM instances WHERE instance_id=1    ${0}    3
+    ${result}    Ctn Check Field Db Value    SELECT passive_host_checks FROM instances WHERE instance_id=1    ${0}    3
     Should Be True    ${result}    passive_host_checks not updated.
-    ${result}    Check Field Db Value    SELECT passive_service_checks FROM instances WHERE instance_id=1    ${0}    3
+    ${result}    Ctn Check Field Db Value    SELECT passive_service_checks FROM instances WHERE instance_id=1    ${0}    3
     Should Be True    ${result}    passive_service_checks not updated.
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEINSTANCE
     [Documentation]    Instance to bdd
     [Tags]    broker    engine
-    Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}
 
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    sql    trace
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Config Broker Sql Output    central    unified_sql
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM instances
 
     #as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
-    ${start}    Get Round Current Date
-    Start Broker
-    Start Engine
-    ${engine_pid}    Get Engine Pid    e0
-    ${result}    Check Field Db Value    SELECT pid FROM instances WHERE instance_id=1    ${engine_pid}    30
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    ${engine_pid}    Ctn Get Engine Pid    e0
+    ${result}    Ctn Check Field Db Value    SELECT pid FROM instances WHERE instance_id=1    ${engine_pid}    30
     Should Be True    ${result}    no correct engine pid in instances table.
-    ${result}    Check Field Db Value    SELECT engine FROM instances WHERE instance_id=1    Centreon Engine    3
+    ${result}    Ctn Check Field Db Value    SELECT engine FROM instances WHERE instance_id=1    Centreon Engine    3
     Should Be True    ${result}    no correct engine in instances table.
-    ${result}    Check Field Db Value    SELECT running FROM instances WHERE instance_id=1    ${1}    3
+    ${result}    Ctn Check Field Db Value    SELECT running FROM instances WHERE instance_id=1    ${1}    3
     Should Be True    ${result}    no correct running in instances table.
-    ${result}    Check Field Db Value    SELECT name FROM instances WHERE instance_id=1    Poller0    3
+    ${result}    Ctn Check Field Db Value    SELECT name FROM instances WHERE instance_id=1    Poller0    3
     Should Be True    ${result}    no correct name in instances table.
-    ${result}    Check Field Db Value    SELECT end_time FROM instances WHERE instance_id=1    ${0}    3
+    ${result}    Ctn Check Field Db Value    SELECT end_time FROM instances WHERE instance_id=1    ${0}    3
     Should Be True    ${result}    no correct end_time in instances table.
     @{bdd_start_time}    Query    SELECT start_time FROM instances WHERE instance_id=1
-    ${now}    Get Round Current Date
+    ${now}    Ctn Get Round Current Date
     Should Be True
     ...    ${start} <= ${bdd_start_time[0][0]} and ${bdd_start_time[0][0]} <= ${now}
     ...    sg=no correct start_time in instances table.
@@ -190,30 +190,30 @@ BEINSTANCE
 BE_NOTIF_OVERFLOW
     [Documentation]    bbdo 2.0 notification number =40000. make an overflow => notification_number null in db
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Broker Config Add Item    module0    bbdo_version    2.0.0
-    Broker Config Add Item    central    bbdo_version    2.0.0
-    Config Broker Sql Output    central    unified_sql
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    perfdata    trace
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Broker Config Add Item    module0    bbdo_version    2.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    2.0.0
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    perfdata    trace
 
-    Clear Retention
+    Ctn Clear Retention
 
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
 
     ${start}    Get Current Date
     ${content}    Create List    INITIAL SERVICE STATE: host_16;service_314;
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_16 should be raised before we can start our external commands.
 
-    Set Svc Notification Number    host_16    service_314    40000
-    Process Service Result Hard    host_16    service_314    2    output critical for 314
-    ${result}    Check Service Status With Timeout    host_16    service_314    2    30
+    Ctn Set Svc Notification Number    host_16    service_314    40000
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    30
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -221,27 +221,27 @@ BE_NOTIF_OVERFLOW
     ...    SELECT s.notification_number FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_16' AND s.description='service_314'
     Should Be True    ${output[0][0]} == None    notification_number is not null
 
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BE_TIME_NULL_SERVICE_RESOURCE
     [Documentation]    With BBDO 3, notification_interval time must be set to NULL on 0 in services, hosts and resources tables.
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config BBDO3    1
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM services
     Execute SQL String    DELETE FROM resources
     Execute SQL String    DELETE FROM hosts
 
-    Clear Retention
+    Ctn Clear Retention
 
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
 
     FOR    ${index}    IN RANGE    300
         ${output}    Query
@@ -255,27 +255,27 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Should Be Equal As Strings
     ...    ${output}
     ...    ((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     [Documentation]    default notification_interval must be set to NULL in services, hosts and resources tables.
     [Tags]    broker    engine    protobuf    bbdo
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config BBDO3    1
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM services
     Execute SQL String    DELETE FROM resources
     Execute SQL String    DELETE FROM hosts
 
-    Clear Retention
+    Ctn Clear Retention
 
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
 
     FOR    ${index}    IN RANGE    300
         ${output}    Query
@@ -285,5 +285,5 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
         IF    "${output}" == "((0.0, 0.0),)"            BREAK
     END
     Should Be Equal As Strings    ${output}    ((0.0, 0.0),)
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
