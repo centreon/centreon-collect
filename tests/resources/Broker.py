@@ -1,14 +1,10 @@
 from os import makedirs
-from os.path import exists, dirname
+from os.path import exists
 import pymysql.cursors
 import time
 import re
 import shutil
 import psutil
-import socket
-import sys
-import time
-from datetime import datetime
 from subprocess import getoutput
 import subprocess as subp
 from robot.api import logger
@@ -500,7 +496,7 @@ def add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
     json_dict["encryption"] = "yes"
     if (add_cert):
         json_dict["ca_certificate"] = "/tmp/ca_1234.crt"
-        if (only_ca_cert == False):
+        if not only_ca_cert:
             json_dict["public_cert"] = "/tmp/server_1234.crt"
             json_dict["private_key"] = "/tmp/server_1234.key"
 
@@ -1195,7 +1191,7 @@ def get_not_existing_metrics(count: int):
     index = 1
     retval = []
     while len(retval) < count:
-        if not index in inter:
+        if index not in inter:
             retval.append(index)
         index += 1
     return retval
@@ -1581,7 +1577,6 @@ def remove_graphs_from_db(indexes, metrics, timeout=10):
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
-    ids_db = []
     with connection:
         with connection.cursor() as cursor:
             if len(indexes) > 0:
@@ -1613,7 +1608,6 @@ def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
         time.sleep(1)
         with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
-            k = 0.0
             idx = broker_pb2.IndexIds()
             idx.index_ids.extend(indexes)
             try:
@@ -1636,7 +1630,6 @@ def rebuild_rrd_graphs_from_db(indexes):
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
-    ids_db = []
     with connection:
         with connection.cursor() as cursor:
             if len(indexes) > 0:
@@ -1685,9 +1678,9 @@ def compare_rrd_average_value_with_grpc(metric, key, value: float):
     )
     lst = res.split('\n')
     if len(lst) >= 2:
-        for l in lst:
-            if key in l:
-                last_update = int(l.split('=')[1])
+        for line in lst:
+            if key in line:
+                last_update = int(line.split('=')[1])
                 logger.console(f"{key}: {last_update}")
                 return last_update == value*60
     else:
@@ -2006,3 +1999,50 @@ def broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
             except:
                 logger.console("gRPC server not ready")
     return res
+
+def get_broker_stats(name: str, expected:str, timeout: int, *keys):
+    """!
+    read a value from broker stats
+    @param name central, module or rrd
+    @param expected: value expected (regexp)
+    @timeout delay to find key in stats
+    @param keys  keys in json stats output
+    @return True if value found and matches expected
+    """
+
+    def json_get(json_dict, keys: tuple, index: int):
+        try:
+            key = keys[index]
+            if index == len(keys) -1:
+                return json_dict[key]
+            else:
+                return json_get(json_dict[key], keys, index + 1)
+        except:
+            return None
+    limit = time.time() + timeout
+    if name == 'central':
+        filename = "central-broker-master-stats.json"
+    elif name == 'module':
+        filename = "central-module-master-stats.json"
+    else:
+        filename = "central-rrd-master-stats.json"
+    r_expected = re.compile(expected)
+    while time.time() < limit:
+        retry = True
+        while retry and time.time() < limit:
+            retry = False
+            with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", "r") as f:
+                buf = f.read()
+                try:
+                    conf = json.loads(buf)
+                except:
+                    retry = True
+                    time.sleep(1)
+        if conf is None:
+            continue
+        value = json_get(conf, keys, 0)
+        if value is not None and r_expected.match(value):
+            return True
+        time.sleep(5)
+    logger.console(f"key:{keys} value not expected: {value}")
+    return False

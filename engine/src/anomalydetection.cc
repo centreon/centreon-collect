@@ -1120,9 +1120,11 @@ void anomalydetection::init_thresholds() {
   try {
     t.open(_thresholds_file);
   } catch (const std::system_error& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "Fail to read thresholds file '{}' : {}",
-                        _thresholds_file, e.code().message());
+    if (!verify_config) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(),
+                          "Fail to read thresholds file '{}' : {}",
+                          _thresholds_file, e.code().message());
+    }
     return;
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(log_v2::config(),

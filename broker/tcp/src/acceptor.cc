@@ -1,5 +1,5 @@
-/*
- * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
+/**
+ * Copyright 2011 - 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ acceptor::~acceptor() noexcept {
  */
 void acceptor::add_child(std::string const& child) {
   std::lock_guard<std::mutex> lock(_childrenm);
-  _children.push_back(child);
+  _children.insert(child);
 }
 
 /**
@@ -74,6 +74,7 @@ std::unique_ptr<io::stream> acceptor::open() {
   if (conn) {
     assert(conn->port());
     log_v2::tcp()->info("acceptor gets a new connection from {}", conn->peer());
+    add_child(conn->peer());
     return std::make_unique<stream>(conn, _conf);
   }
   return nullptr;
@@ -91,7 +92,7 @@ bool acceptor::is_ready() const {
  */
 void acceptor::remove_child(std::string const& child) {
   std::lock_guard<std::mutex> lock(_childrenm);
-  _children.remove(child);
+  _children.erase(child);
 }
 
 /**

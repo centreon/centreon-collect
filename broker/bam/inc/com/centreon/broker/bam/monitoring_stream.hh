@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2014-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,18 +21,11 @@
 
 #include <absl/hash/hash.h>
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
-#include "com/centreon/broker/database/mysql_stmt.hh"
-#include "com/centreon/broker/database_config.hh"
-#include "com/centreon/broker/io/stream.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/mysql.hh"
-#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
-namespace extcmd {
-using pb_ba_info =
-    io::protobuf<BaInfo, make_type(io::extcmd, extcmd::de_ba_info)>;
-}
 namespace bam {
 /**
  *  @class monitoring_stream monitoring_stream.hh
