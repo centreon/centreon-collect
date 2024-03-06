@@ -949,6 +949,44 @@ def ctn_check_service_check_with_timeout(hostname: str, service_desc: str,  time
     return False
 
 
+def ctn_check_service_check_status_with_timeout(hostname: str, service_desc: str,  timeout: int,  min_last_check: int, state: int, output: str):
+    """
+    check_service_check_status_with_timeout
+
+    check if service checks infos have been updated
+
+    Args:
+        host_name:
+        service_desc:
+        timeout: time to wait expected check in seconds
+        min_last_check: time point after last_check will be accepted
+        state: expected service state
+        output: expected output
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT s.last_check, s.state, s.output FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    logger.console(
+                        f"last_check={result[0]['last_check']} state={result[0]['state']} output={result[0]['output']} ")
+                    if result[0]['last_check'] is not None and result[0]['last_check'] >= min_last_check and output in result[0]['output'] and result[0]['state'] == state:
+                        return True
+        time.sleep(1)
+    return False
+
+
 def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -969,6 +1007,42 @@ def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line:
                     logger.console(
                         f"command_line={result[0]['command_line']} ")
                     if result[0]['command_line'] is not None and command_line in result[0]['command_line']:
+                        return True
+        time.sleep(1)
+    return False
+
+def check_host_check_status_with_timeout(hostname: str, timeout: int, min_last_check: int, state: int, output: str):
+    """
+    check_host_check_status_with_timeout
+
+    check if host checks infos have been updated
+
+    Args:
+        hostname:
+        timeout: time to wait expected check in seconds
+        min_last_check: time point after last_check will be accepted
+        state: expected host state
+        output: expected output
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT last_check, state, output FROM hosts WHERE name='{hostname}'")
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    logger.console(
+                        f"last_check={result[0]['last_check']} state={result[0]['state']} output={result[0]['output']} ")
+                    if result[0]['last_check'] is not None and result[0]['last_check'] >= min_last_check and output in result[0]['output'] and result[0]['state'] == state:
                         return True
         time.sleep(1)
     return False

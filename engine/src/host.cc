@@ -1226,7 +1226,8 @@ int host::handle_async_check_result_3x(
 
   engine_logger(dbg_functions, basic) << "handle_async_host_check_result_3x()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(),
-                      "handle_async_host_check_result_3x()");
+                      "handle_async_host_check_result_3x() host {} res:{}",
+                      name(), queued_check_result);
 
   /* get the current time */
   time_t current_time = std::time(nullptr);

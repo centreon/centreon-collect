@@ -39,6 +39,7 @@ namespace asio = boost::asio;
 #include <boost/multi_index_container.hpp>
 #include <boost/optional.hpp>
 
+#include <fmt/chrono.h>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 

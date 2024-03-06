@@ -19,6 +19,8 @@
 
 #include <grpcpp/server_builder.h>
 
+#include <spdlog/fmt/ostr.h>
+
 #include "com/centreon/engine/host.hh"
 
 #include "com/centreon/engine/enginerpc.hh"

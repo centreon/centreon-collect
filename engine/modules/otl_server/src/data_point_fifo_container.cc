@@ -28,9 +28,33 @@ metric_name_to_fifo data_point_container::_empty;
  */
 void data_point_container::clean() {
   std::lock_guard l(_data_m);
-  for (auto& serv_to_fifos : _data) {
-    for (auto& fifo : serv_to_fifos.second) {
+  for (auto serv_to_fifo_iter = _data.begin();
+       !_data.empty() && serv_to_fifo_iter != _data.end();) {
+    for (auto& fifo : serv_to_fifo_iter->second) {
       fifo.second.clean();
+    }
+    if (serv_to_fifo_iter->second.empty()) {
+      auto to_erase = serv_to_fifo_iter++;
+      _data.erase(to_erase);
+    } else {
+      ++serv_to_fifo_iter;
+    }
+  }
+}
+
+/**
+ * @brief erase empty fifos
+ *
+ * @param to_clean
+ */
+void data_point_container::clean_empty_fifos(metric_name_to_fifo& to_clean) {
+  for (auto to_clean_iter = to_clean.begin();
+       !to_clean.empty() && to_clean_iter != to_clean.end();) {
+    if (to_clean_iter->second.empty()) {
+      auto to_erase = to_clean_iter++;
+      to_clean.erase(to_erase);
+    } else {
+      ++to_clean_iter;
     }
   }
 }

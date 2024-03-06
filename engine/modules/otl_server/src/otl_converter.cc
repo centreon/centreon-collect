@@ -97,6 +97,7 @@ bool otl_converter::async_build_result_from_metrics(
 void otl_converter::async_time_out() {
   commands::result res;
   res.exit_status = process::timeout;
+  res.command_id = _command_id;
   _callback(res);
 }
 
@@ -130,14 +131,9 @@ std::shared_ptr<otl_converter> otl_converter::create(
   std::string conf_type =
       sep_pos == std::string::npos ? cmd_line : cmd_line.substr(0, sep_pos);
   boost::trim(conf_type);
-  std::string params =
-      sep_pos == std::string::npos ? "" : cmd_line.substr(sep_pos + 1);
-
-  boost::trim(params);
-
   if (conf_type == "nagios_telegraf") {
     return std::make_shared<otl_nagios_telegraf_converter>(
-        params, command_id, host, service, timeout, std::move(handler));
+        cmd_line, command_id, host, service, timeout, std::move(handler));
   } else {
     SPDLOG_LOGGER_ERROR(log_v2::otl(), "unknown converter type:{}", conf_type);
     throw exceptions::msg_fmt("unknown converter type:{}", conf_type);
@@ -145,8 +141,9 @@ std::shared_ptr<otl_converter> otl_converter::create(
 }
 
 void otl_converter::dump(std::string& output) const {
-  output = fmt::format("host:{}, service:{}, cmdline: \"{}\"", _host_serv.first,
-                       _host_serv.second, _cmd_line);
+  output = fmt::format(
+      "host:{}, service:{}, command_id={}, timeout:{} cmdline: \"{}\"",
+      _host_serv.first, _host_serv.second, _command_id, _timeout, _cmd_line);
 }
 
 constexpr std::array<std::string_view, 4> state_str{"OK", "WARNING", "CRITICAL",
@@ -292,7 +289,7 @@ bool otl_nagios_telegraf_converter::_build_result_from_metrics(
         const auto& last_sample = *fifo.rbegin();
         last_time = last_sample.get_nano_timestamp();
         res.exit_code = last_sample.get_value();
-        metric_to_fifo.second.clear();
+        metric_to_fifo.second.clean_oldest(last_time);
       }
       break;
     }
@@ -339,6 +336,8 @@ bool otl_nagios_telegraf_converter::_build_result_from_metrics(
     }
     metric_to_fifo.second.clean_oldest(last_time);
   }
+
+  data_point_container::clean_empty_fifos(fifos);
 
   // then format all in a string with format:
   // 'label'=value[UOM];[warn];[crit];[min];[max]
@@ -391,4 +390,19 @@ bool otl_nagios_telegraf_converter::_build_result_from_metrics(
   // remove last space
   res.output.pop_back();
   return true;
+}
+
+/**
+ * @brief remove converter_type from command_line
+ *
+ * @param cmd_line exemple nagios_telegraf
+ * @return std::string
+ */
+std::string otl_converter::remove_converter_type(const std::string& cmd_line) {
+  size_t sep_pos = cmd_line.find(' ');
+  std::string params =
+      sep_pos == std::string::npos ? "" : cmd_line.substr(sep_pos + 1);
+
+  boost::trim(params);
+  return params;
 }

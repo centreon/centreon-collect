@@ -54,6 +54,8 @@ class otl_converter : public std::enable_shared_from_this<otl_converter> {
 
   virtual ~otl_converter() = default;
 
+  static std::string remove_converter_type(const std::string & cmd_line);
+
   const std::string& get_cmd_line() const { return _cmd_line; }
 
   uint64_t get_command_id() const { return _command_id; }
