@@ -39,6 +39,9 @@ class data_point_container {
 
  public:
   void clean();
+
+  static void clean_empty_fifos(metric_name_to_fifo& to_clean);
+
   void add_data_point(const std::string_view& host,
                       const std::string_view& service,
                       const std::string_view& metric,

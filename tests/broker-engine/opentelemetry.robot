@@ -78,7 +78,7 @@ BEOTEL1
 BEOTEL_TELEGRAF_CHECK_HOST
     [Documentation]    we send nagios telegraf formated datas and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    mon-34004
-    Config Engine    ${1}
+    Config Engine    ${1}    ${2}    ${2}
     Add Otl ServerModule    0    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
     Config Add Otl Connector
     ...    0
@@ -90,6 +90,88 @@ BEOTEL_TELEGRAF_CHECK_HOST
     ...    otel_check_icmp
     ...    nagios_telegraf
     ...    OTEL connector
+
+    Engine Config Set Value    0    log_level_checks    trace
+
+    Config Broker    central
+    Config Broker    module
+    Config Broker    rrd
+    Broker Config Log    central    sql    trace
+
+    Config BBDO3    1
+    Clear Retention
+
+    ${start}    Get Current Date
+    Start Broker
+    Start Engine
+
+    # Let's wait for the otel server start
+    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+    Sleep    1
+
+    ${resources_list}    Create Otl Request    ${0}    host_1
+
+    Log To Console    export metrics
+    Send Otl To Engine    4317    ${resources_list}
+
+    Sleep    5
+
+    # feed and check
+    ${start}    Get Round Current Date
+    Schedule Forced Host Check    host_1
+
+    ${result}    Check Host Check Status With Timeout    host_1    30    ${start}    0    OK
+    Should Be True    ${result}    hosts table not updated
+
+    # check without feed
+
+    ${start}    Get Round Current Date
+    Schedule Forced Host Check    host_1
+    ${result}    Check Host Check Status With Timeout
+    ...    host_1
+    ...    35
+    ...    ${start}
+    ...    0
+    ...    (No output returned from host check)
+    Should Be True    ${result}    hosts table not updated
+
+    # check then feed, three times to modify hard state
+    ${start}    Get Round Current Date
+    Schedule Forced Host Check    host_1
+    Sleep    2
+    ${resources_list}    Create Otl Request    ${2}    host_1
+    Send Otl To Engine    4317    ${resources_list}
+    Schedule Forced Host Check    host_1
+    Sleep    2
+    ${resources_list}    Create Otl Request    ${2}    host_1
+    Send Otl To Engine    4317    ${resources_list}
+    Schedule Forced Host Check    host_1
+    Sleep    2
+    ${resources_list}    Create Otl Request    ${2}    host_1
+    Send Otl To Engine    4317    ${resources_list}
+    ${result}    Check Host Check Status With Timeout    host_1    30    ${start}    1    CRITICAL
+
+    Should Be True    ${result}    hosts table not updated
+
+BEOTEL_TELEGRAF_CHECK_SERVICE
+    [Documentation]    we send nagios telegraf formated datas and we expect to get it in check result
+    [Tags]    broker    engine    opentelemetry    mon-34004
+    Config Engine    ${1}    ${2}    ${2}
+    Add Otl ServerModule    0    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
+    Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    open_telemetry attributes --host_attribute=data_point --host_key=host --service_attribute=data_point --service_key=service
+    Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check_icmp
+    Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp
+    ...    nagios_telegraf
+    ...    OTEL connector
+
+    Engine Config Set Value    0    log_level_checks    trace
 
     Config Broker    central
     Config Broker    module
@@ -109,13 +191,63 @@ BEOTEL_TELEGRAF_CHECK_HOST
     Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
     Sleep    1
 
-    ${state_attrib}    Create Dictionary    host=host_1
-    ${rta_attrib}    Create Dictionary    host=host_1    perfdata=rta    unit=ms
-    ${rtmax_attrib}    Create Dictionary    host=host_1    perfdata=rtmax    unit=ms
-    ${pl_attrib}    Create Dictionary    host=host_1    perfdata=pl    unit=%
+    ${resources_list}    Create Otl Request    ${0}    host_1    service_1
 
-    # ok state
-    ${state_metric}    Create Otl Metric    check_icmp_state    1    ${state_attrib}    ${0}
+    Log To Console    export metrics
+    Send Otl To Engine    4317    ${resources_list}
+
+    Sleep    5
+
+    # feed and check
+    ${start}    Get Round Current Date
+    Schedule Forced Svc Check    host_1    service_1
+
+    ${result}    Check Service Check Status With Timeout    host_1    service_1    30    ${start}    0    OK
+    Should Be True    ${result}    services table not updated
+
+    # check without feed
+
+    ${start}    Get Round Current Date
+    Schedule Forced Svc Check    host_1    service_1
+    ${result}    Check Service Check Status With Timeout
+    ...    host_1
+    ...    service_1
+    ...    35
+    ...    ${start}
+    ...    0
+    ...    (No output returned from plugin)
+    Should Be True    ${result}    services table not updated
+
+    # check then feed, three times to modify hard state
+    ${start}    Get Round Current Date
+    Schedule Forced Svc Check    host_1    service_1
+    Sleep    2
+    ${resources_list}    Create Otl Request    ${2}    host_1    service_1
+    Send Otl To Engine    4317    ${resources_list}
+    Schedule Forced Svc Check    host_1    service_1
+    Sleep    2
+    ${resources_list}    Create Otl Request    ${2}    host_1    service_1
+    Send Otl To Engine    4317    ${resources_list}
+    Schedule Forced Svc Check    host_1    service_1
+    Sleep    2
+    ${resources_list}    Create Otl Request    ${2}    host_1    service_1
+    Send Otl To Engine    4317    ${resources_list}
+    ${result}    Check Service Check Status With Timeout    host_1    service_1    30    ${start}    2    CRITICAL
+
+    Should Be True    ${result}    services table not updated
+
+
+*** Keywords ***
+Create Otl Request
+    [Documentation]    create an otl request with nagios telegraf style
+    [Arguments]    ${state}    ${host}    ${service}=
+    ${state_attrib}    Create Dictionary    host=${host}    service=${service}
+    ${rta_attrib}    Create Dictionary    host=${host}    service=${service}    perfdata=rta    unit=ms
+    ${rtmax_attrib}    Create Dictionary    host=${host}    service=${service}    perfdata=rtmax    unit=ms
+    ${pl_attrib}    Create Dictionary    host=${host}    service=${service}    perfdata=pl    unit=%
+
+    # state
+    ${state_metric}    Create Otl Metric    check_icmp_state    1    ${state_attrib}    ${state}
     # value
     ${value_metric}    Create Otl Metric    check_icmp_value    1    ${rta_attrib}    ${0.022}
     Add Data Point To Metric    ${value_metric}    ${rtmax_attrib}    ${0.071}
@@ -141,7 +273,4 @@ BEOTEL_TELEGRAF_CHECK_HOST
     ${resource_metrics}    Create Otl Resource Metrics    ${resource_attrib}    ${scope_metrics_list}
     ${resources_list}    Create List    ${resource_metrics}
 
-    Log To Console    export metrics
-    Send Otl To Engine    4317    ${resources_list}
-
-    Sleep    5
+    RETURN    ${resources_list}

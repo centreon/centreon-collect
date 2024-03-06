@@ -23,17 +23,33 @@ using namespace com::centreon::engine::modules::otl_server;
 time_t data_point_fifo::_second_datapoint_expiry = 600;
 size_t data_point_fifo::_max_size = 2;
 
+/**
+ * @brief opentelemetry fifo limits share a same value
+ * The goal of this isto fix these limits
+ * 
+ * @param second_datapoint_expiry 
+ * @param max_size 
+ */
 void data_point_fifo::update_fifo_limit(time_t second_datapoint_expiry,
                                         size_t max_size) {
   _second_datapoint_expiry = second_datapoint_expiry;
   _max_size = max_size;
 }
 
+/**
+ * @brief add one data point to fifo
+ * 
+ * @param data_pt 
+ */
 void data_point_fifo::add_data_point(const data_point& data_pt) {
   clean();
   _fifo.insert(data_pt);
 }
 
+/**
+ * @brief erase to older data points
+ * 
+ */
 void data_point_fifo::clean() {
   if (!_fifo.empty()) {
     auto first = _fifo.begin();
@@ -59,7 +75,7 @@ void data_point_fifo::clean() {
  * @param expiry  data points oldest than this nano timestamp are erased
  */
 void data_point_fifo::clean_oldest(uint64_t expiry) {
-  while (!_fifo.empty() && _fifo.begin()->get_nano_timestamp() < expiry) {
+  while (!_fifo.empty() && _fifo.begin()->get_nano_timestamp() <= expiry) {
     _fifo.erase(_fifo.begin());
   }
 }

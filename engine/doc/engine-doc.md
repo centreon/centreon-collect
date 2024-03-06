@@ -154,6 +154,7 @@ The proto is organized like that
 * otel_command: a fake connector that is used to make the link between engine and otel module
 * otl_server: a grpc server that accept otel collector incoming connections
 * otl_converter: This short lived object is created each time engine wants to do a check. His final class as his configuration is done from the command line of the check. His job is to create a check result from data_point fifo container datas. It's destroyed when he achieved to create a check result or when timeout expires.
+* host_serv_list: in order to extract host and service, an host_serv extractor must known allowed host service pairs. As otel_command may be notified of host service using it by register_host_serv method while otel module is not yet loaded. This object shared between otel_command and host_serv_extractor is actualized from otel_command::register_host_serv.
 
 ### How engine access to otl object
 In otel_interface.hh, otel object interface are defined in engine commands namespace.

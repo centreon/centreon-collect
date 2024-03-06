@@ -142,19 +142,6 @@ void otel_command::update(const std::string& cmd_line) {
   init();
 }
 
-static const char* status_to_string(com::centreon::process::status status) {
-  switch (status) {
-    case com::centreon::process::status::normal:
-      return "normal";
-    case com::centreon::process::status::crash:
-      return "crash";
-    case com::centreon::process::status::timeout:
-      return "timeout";
-    default:
-      return "unknown status";
-  }
-}
-
 uint64_t otel_command::run(const std::string& processed_cmd,
                            nagios_macros& macros,
                            uint32_t timeout,
@@ -186,10 +173,9 @@ uint64_t otel_command::run(const std::string& processed_cmd,
   bool res_available = otel->check(
       processed_cmd, command_id, macros, timeout, res,
       [me = shared_from_this(), command_id](const result& async_res) {
-        SPDLOG_LOGGER_TRACE(log_v2::otl(),
-                            "otel_command::end async_run: connector='{}', "
-                            " status='{}'",
-                            me->_name, status_to_string(async_res.exit_status));
+        SPDLOG_LOGGER_TRACE(
+            log_v2::otl(), "otel_command async_run callback: connector='{}' {}",
+            me->_name, async_res);
         me->update_result_cache(command_id, async_res);
         if (me->_listener) {
           (me->_listener->finished)(async_res);
@@ -197,11 +183,10 @@ uint64_t otel_command::run(const std::string& processed_cmd,
       });
 
   if (res_available) {
-    SPDLOG_LOGGER_TRACE(
-        log_v2::otl(),
-        "otel_command::end async_run: connector='{}', cmd='{}', "
-        "status='{}'",
-        _name, processed_cmd, status_to_string(res.exit_status));
+    SPDLOG_LOGGER_TRACE(log_v2::otl(),
+                        "otel_command data available : connector='{}', "
+                        "cmd='{}', {}",
+                        _name, processed_cmd, res);
     update_result_cache(command_id, res);
     if (_listener) {
       (_listener->finished)(res);
@@ -225,12 +210,12 @@ void otel_command::run(const std::string& processed_cmd,
         "open telemetry module not loaded for connector: {}", get_name());
   }
 
-  SPDLOG_LOGGER_TRACE(
-      log_v2::otl(),
-      "otel_command::sync_run: connector='{}', cmd='{}', timeout={}", _name,
-      processed_cmd, timeout);
-
   uint64_t command_id(get_uniq_id());
+
+  SPDLOG_LOGGER_TRACE(log_v2::otl(),
+                      "otel_command::sync_run: connector='{}', cmd='{}', "
+                      "command_id={}, timeout={}",
+                      _name, processed_cmd, command_id, timeout);
 
   std::condition_variable cv;
   std::mutex cv_m;
@@ -247,9 +232,8 @@ void otel_command::run(const std::string& processed_cmd,
     cv.wait(l);
   }
   SPDLOG_LOGGER_TRACE(log_v2::otl(),
-                      "otel_command::end sync_run: connector='{}', cmd='{}', "
-                      "status='{}'",
-                      _name, processed_cmd, status_to_string(res.exit_status));
+                      "otel_command::end sync_run: connector='{}', cmd='{}', {}",
+                      _name, processed_cmd, res);
 }
 
 /**

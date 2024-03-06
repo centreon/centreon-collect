@@ -372,8 +372,7 @@ checker::~checker() noexcept {
 void checker::finished(commands::result const& res) noexcept {
   // Debug message.
   engine_logger(dbg_functions, basic) << "checker::finished: res=" << &res;
-  SPDLOG_LOGGER_TRACE(log_v2::functions(), "checker::finished: res={:p}",
-                      (void*)&res);
+  SPDLOG_LOGGER_TRACE(log_v2::functions(), "checker::finished: res={}", res);
 
   std::unique_lock<std::mutex> lock(_mut_reap);
   auto it_id = _waiting_check_result.find(res.command_id);
@@ -400,6 +399,7 @@ void checker::finished(commands::result const& res) noexcept {
   result->set_exited_ok(res.exit_status == process::normal ||
                         res.exit_status == process::timeout);
   result->set_output(res.output);
+  result->set_command_id(res.command_id);
 
   // Queue check result.
   lock.lock();

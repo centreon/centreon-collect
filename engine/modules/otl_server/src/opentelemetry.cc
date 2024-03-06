@@ -304,6 +304,7 @@ void open_telemetry::_on_metric(const metric_request_ptr& metrics) {
           unknown.push_back(data_pt);  // unknown metric => forward to broker
         }
       });
+      SPDLOG_LOGGER_TRACE(log_v2::otl(), "fifos:{}", _fifo);
       // we wait that all request datas have been computed to give us more
       // chance of converter success
       for (auto to_callback : to_notify) {
