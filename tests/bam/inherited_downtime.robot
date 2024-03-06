@@ -164,7 +164,7 @@ BEBAMIGNDT1
 	Ctn Config Broker	central
 	Ctn Broker Config Log	central	bam	trace
 	Ctn Broker Config Log	central	sql	trace
-	broker_config_source_log  central  true
+	Broker Config Source Log  central  true
         Ctn Broker Config Flush Log	module0	0
 	Ctn Broker Config Log	module0	neb	trace
 	Ctn Config Broker	rrd
