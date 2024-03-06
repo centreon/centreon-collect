@@ -35,7 +35,7 @@ Checkable class inherited by service and host classes keeps the last result of w
 ## Open-telemetry
 ### Principe
 Engine can receive open telemetry data on a grpc server
-A new module is added otl_server
+A new module is added opentelemetry
 It works like that:
 * metrics are received
 * extractors tries to extract host name and service description for each data_point. On success, data_point are pushed on fifos indexed by host, service
@@ -175,6 +175,6 @@ In open_telemetry object, a second timer is also used to call async_time_out of 
 
 ### other configuration
 other configuration parameters are stored in a dedicated json file. The path of this file is passed as argument in centengine.cfg
-Example: broker_module=lib/libotl_server.so /etc/centreon_engine/otl_server.json
+Example: broker_module=lib/libopentelemetry.so /etc/centreon_engine/otl_server.json
 In this file there are grpc server parameters and some other parameters.
 

@@ -20,7 +20,7 @@
 if(WITH_TESTING)
   # Tests directory. Add root inclusion direction.
   set(MODULE_DIR "${PROJECT_SOURCE_DIR}/modules/external_commands")
-  set(MODULE_DIR_OTL "${PROJECT_SOURCE_DIR}/modules/otl_server")
+  set(MODULE_DIR_OTL "${PROJECT_SOURCE_DIR}/modules/opentelemetry")
   include_directories(${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc
                       ${MODULE_DIR_OTL}/inc)
 
@@ -102,11 +102,11 @@ if(WITH_TESTING)
       "${TESTS_DIR}/notifications/service_timeperiod_notification.cc"
       "${TESTS_DIR}/notifications/service_flapping_notification.cc"
       "${TESTS_DIR}/notifications/service_downtime_notification_test.cc"
-      "${TESTS_DIR}/otl_server/grpc_config_test.cc"
-      "${TESTS_DIR}/otl_server/host_serv_extractor_test.cc"
-      "${TESTS_DIR}/otl_server/opentelemetry_test.cc"
-      "${TESTS_DIR}/otl_server/otl_converter_test.cc"
-      "${TESTS_DIR}/otl_server/otl_server_test.cc"
+      "${TESTS_DIR}/opentelemetry/grpc_config_test.cc"
+      "${TESTS_DIR}/opentelemetry/host_serv_extractor_test.cc"
+      "${TESTS_DIR}/opentelemetry/otl_server_test.cc"
+      "${TESTS_DIR}/opentelemetry/otl_converter_test.cc"
+      "${TESTS_DIR}/opentelemetry/opentelemetry_test.cc"
       "${TESTS_DIR}/perfdata/perfdata.cc"
       "${TESTS_DIR}/retention/host.cc"
       "${TESTS_DIR}/retention/service.cc"
@@ -178,7 +178,7 @@ if(WITH_TESTING)
     ${ENGINERPC}
     ut_engine_utils
     cce_core
-    otl_server
+    opentelemetry
     enginelog
     pthread
     ${GCOV}

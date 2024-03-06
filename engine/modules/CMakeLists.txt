@@ -25,4 +25,4 @@ set(EXTERNALCMD_MODULE
 add_subdirectory("bench")
 
 # opentelemetry module
-add_subdirectory("otl_server")
+add_subdirectory("opentelemetry")
