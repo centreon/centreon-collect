@@ -183,7 +183,7 @@ BEDTSVCFIXED
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # It's time to schedule a downtime
-    Schedule service downtime  host_1  service_1  ${3600}
+    Ctn Schedule service downtime    host_1    service_1    ${3600}
 
     ${result}    Ctn Check Number Of Downtimes    ${1}    ${start}    ${60}
     Should be true    ${result}    We should have 1 downtime enabled.
