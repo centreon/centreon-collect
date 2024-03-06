@@ -1,21 +1,21 @@
-/*
-** Copyright 2020-2021 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2020-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/anomalydetection.hh"
 
@@ -1120,9 +1120,11 @@ void anomalydetection::init_thresholds() {
   try {
     t.open(_thresholds_file);
   } catch (const std::system_error& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "Fail to read thresholds file '{}' : {}",
-                        _thresholds_file, e.code().message());
+    if (!verify_config) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(),
+                          "Fail to read thresholds file '{}' : {}",
+                          _thresholds_file, e.code().message());
+    }
     return;
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(log_v2::config(),
