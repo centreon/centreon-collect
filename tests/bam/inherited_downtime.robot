@@ -125,7 +125,7 @@ BEBAMIDT2
 	  # Engine is restarted
 	  Ctn Stop Engine
 	  ${start}=	Get Current Date
-	  Start Engine
+	  Ctn Start Engine
 	  # Let's wait for the initial service states.
           ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
           ${result}=	Ctn Find In Log With Timeout	${engineLog0}	${start}	${content}	60
@@ -164,7 +164,7 @@ BEBAMIGNDT1
 	Ctn Config Broker	central
 	Ctn Broker Config Log	central	bam	trace
 	Ctn Broker Config Log	central	sql	trace
-	Broker Config Source Log  central  true
+	Ctn Broker Config Source Log  central  true
         Ctn Broker Config Flush Log	module0	0
 	Ctn Broker Config Log	module0	neb	trace
 	Ctn Config Broker	rrd

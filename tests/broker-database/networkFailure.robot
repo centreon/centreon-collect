@@ -180,7 +180,7 @@ Ctn Network Failure
 	Ctn Broker Config Output Set	central	central-broker-master-perfdata	db_host	127.0.0.1
 	Ctn Broker Config Output Set	central	central-broker-master-perfdata	connections_count	10
 	Ctn Broker Config Log	central	sql	trace
-	Broker Config Source Log  central  true
+	Ctn Broker Config Source Log  central  true
 	${start}=	Get Current Date
 	Ctn Start Broker
 	Ctn Start Engine

@@ -125,7 +125,7 @@ BEBAMIDTU2
 	  # Engine is restarted
 	  Ctn Stop Engine
 	  ${start}=	Get Current Date
-	  Start Engine
+	  Ctn Start Engine
 	  # Let's wait for the initial service states.
           ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
           ${result}=	Ctn Find In Log With Timeout	${engineLog0}	${start}	${content}	60
