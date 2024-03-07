@@ -245,7 +245,7 @@ ANO_DT2
     ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1  60
     Should Be True    ${result}    msg=anomaly service must be in downtime
 
-    DELETE SERVICE DOWNTIME    host_1    service_1
+    Ctn Delete Service Downtime    host_1    service_1
     ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    0  60
     Should Be True    ${result}    msg=dependent service must be in downtime
     ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0  60
@@ -287,7 +287,7 @@ ANO_DT3
     ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1  60
     Should Be True    ${result}    msg=anomaly service must be in downtime
 
-    DELETE SERVICE DOWNTIME    host_1    anomaly_${serv_id}
+    Ctn Delete Service Downtime    host_1    anomaly_${serv_id}
     ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0  60
     Should Be True    ${result}    msg=anomaly service must be in downtime
     Sleep    2s
@@ -332,12 +332,11 @@ ANO_DT4
     ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    2  60
     Should Be True    ${result}    msg=anomaly service must be in double downtime
 
-    DELETE SERVICE DOWNTIME    host_1    service_1
+    Ctn Delete Service Downtime    host_1    service_1
     ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    0  60
     Should Be True    ${result}    msg=dependent service mustn t be in downtime
     ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1  60
     Should Be True    ${result}    msg=anomaly service must be in simple downtime
-
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -351,7 +350,7 @@ ANO_NOFILE_VERIF_CONFIG_NO_ERROR
     Remove File    /tmp/anomaly_threshold.json
     Ctn Clear Retention
     Create Directory    ${ENGINE_LOG}/config0
-    Ctn Start Process
+    Start Process
     ...    /usr/sbin/centengine
     ...    -v
     ...    ${EtcRoot}/centreon-engine/config0/centengine.cfg
