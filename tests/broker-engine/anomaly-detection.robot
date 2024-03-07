@@ -29,7 +29,7 @@ ANO_NOFILE
     Remove File    /tmp/anomaly_threshold.json
     Ctn Clear Retention
     Ctn Clear Db    services
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3  30
@@ -49,7 +49,7 @@ ANO_TOO_OLD_FILE
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Ctn Clear Retention
     Ctn Clear Db    services
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3  30
@@ -70,7 +70,7 @@ ANO_OUT_LOWER_THAN_LIMIT
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Ctn Clear Retention
     Ctn Clear Db    services
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2  30
@@ -90,7 +90,7 @@ ANO_OUT_UPPER_THAN_LIMIT
     Ctn Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Ctn Clear Retention
     Ctn Clear Db    services
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2  30
@@ -351,7 +351,7 @@ ANO_NOFILE_VERIF_CONFIG_NO_ERROR
     Remove File    /tmp/anomaly_threshold.json
     Ctn Clear Retention
     Create Directory    ${ENGINE_LOG}/config0
-    Start Process
+    Ctn Start Process
     ...    /usr/sbin/centengine
     ...    -v
     ...    ${EtcRoot}/centreon-engine/config0/centengine.cfg

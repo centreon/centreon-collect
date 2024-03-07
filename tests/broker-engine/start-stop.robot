@@ -385,7 +385,7 @@ BESS_ENGINE_DELETE_HOST
     Ctn Config Broker    module
     Ctn Clear Retention
     ${start}=    Get Current Date
-    Start Broker    True
+    Ctn Start Broker    True
     Ctn Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
