@@ -80,7 +80,7 @@ class incomming_outgoing
                const shared_array&,
                size_t nb_recv);
 
-  void on_sent(const boost::system::error_code& err, tcp::socket& sock);
+  void on_sent(const boost::system::error_code& err);
 
   void on_error();
 
@@ -196,16 +196,14 @@ void incomming_outgoing::on_recv(const boost::system::error_code& err,
     return;
   }
 
-  asio::async_write(sender, asio::buffer(*buff, nb_recv),
-                    [me = shared_from_this(), buff, &sender](
-                        const boost::system::error_code& err, size_t) {
-                      me->on_sent(err, sender);
-                    });
+  asio::async_write(
+      sender, asio::buffer(*buff, nb_recv),
+      [me = shared_from_this(), buff, &sender](
+          const boost::system::error_code& err, size_t) { me->on_sent(err); });
   start_relaying(receiver, sender);
 }
 
-void incomming_outgoing::on_sent(const boost::system::error_code& err,
-                                 tcp::socket& sock) {
+void incomming_outgoing::on_sent(const boost::system::error_code& err) {
   if (err) {
     on_error();
     return;

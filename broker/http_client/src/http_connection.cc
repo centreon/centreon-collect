@@ -260,8 +260,9 @@ void http_connection::send(request_ptr request, send_callback_type&& callback) {
   boost::beast::http::async_write(
       _socket, *request,
       [me = shared_from_this(), request, cb = std::move(callback)](
-          const boost::beast::error_code& err,
-          size_t bytes_transfered) mutable { me->on_sent(err, request, cb); });
+          const boost::beast::error_code& err, size_t) mutable {
+        me->on_sent(err, request, cb);
+      });
 }
 
 /**

@@ -67,9 +67,12 @@ target_precompile_headers(opentelemetry PRIVATE precomp_inc/precomp.hh)
 # set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
 target_link_libraries(opentelemetry 
   centreon_common
-  spdlog::spdlog
+  spdlog::spdlog)
+
+add_dependencies(opentelemetry 
   pb_open_telemetry_lib
-  )
+  pb_neb_lib
+  pb_tag_lib)
 
 target_include_directories(opentelemetry PRIVATE ${INC_DIR} ${CMAKE_SOURCE_DIR}/common/inc src )
 

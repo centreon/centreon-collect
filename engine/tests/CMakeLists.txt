@@ -180,6 +180,7 @@ if(WITH_TESTING)
     ut_engine_utils
     cce_core
     opentelemetry
+    pb_open_telemetry_lib
     enginelog
     pthread
     ${GCOV}
