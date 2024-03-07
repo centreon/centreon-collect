@@ -22,13 +22,13 @@ Ctn Start Engine
     Sleep    5 seconds    we wait engine start
 
 Ctn Stop Engine
-    Stop Custom Engine    engine_alias
+    Ctn Stop Custom Engine    engine_alias
 
 *** Test Cases ***
 Ctn test use connector perl exist script
     [Documentation]    test exist script
     [Tags]	Connector	Engine
-    schedule forced host check    local_host_test_machine    /tmp/test_connector_perl/rw/centengine.cmd
+    Ctn Schedule Forced Host Check    local_host_test_machine    /tmp/test_connector_perl/rw/centengine.cmd
     Sleep    5 seconds    we wait engine forced checks
     ${search_result}=    check search    /tmp/test_connector_perl/log/centengine.debug    test.pl
     Should Contain    ${search_result}    a dummy check    check not found
@@ -36,7 +36,7 @@ Ctn test use connector perl exist script
 Ctn test use connector perl unknown script
     [Documentation]    test unknown script
     [Tags]	Connector	Engine
-    schedule forced host check    local_host_test_machine_bad_test    /tmp/test_connector_perl/rw/centengine.cmd
+    Ctn Schedule Forced Host Check    local_host_test_machine_bad_test    /tmp/test_connector_perl/rw/centengine.cmd
     Sleep    5 seconds    we wait engine forced checks
     ${search_result}=    check search    /tmp/test_connector_perl/log/centengine.debug    test_titi.pl
     Should Contain    ${search_result}    Embedded Perl error: failed to open Perl file '/tmp/test_connector_perl/test_titi.pl'    check not found
@@ -46,7 +46,7 @@ Ctn test use connector perl multiple script
     [Tags]	Connector	Engine
     FOR	${idx}	IN RANGE	2    12
         ${host}=	Catenate	SEPARATOR=	local_host_test_machine.	${idx}
-        schedule forced host check    ${host}    /tmp/test_connector_perl/rw/centengine.cmd
+        Ctn Schedule Forced Host Check    ${host}    /tmp/test_connector_perl/rw/centengine.cmd
     END
     Sleep    10 seconds    we wait engine forced checks
     FOR	${idx}	IN RANGE	2	12

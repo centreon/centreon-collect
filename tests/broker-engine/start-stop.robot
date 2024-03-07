@@ -43,7 +43,7 @@ BESS2
     ${result}=    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Ctn Stop Engine
-    ${result}=    Check Poller Disabled In Database    1    10
+    ${result}=    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -61,7 +61,7 @@ BESS3
     ${result}=    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Ctn Stop Engine
-    ${result}=    Check Poller Disabled In Database    1    10
+    ${result}=    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -132,7 +132,7 @@ BESS_GRPC2
     ${result}=    Ctn Check Poller Enabled In Database    1  10
     Should Be True    ${result}
     Ctn Stop Engine
-    ${result}=    Check Poller Disabled In Database    1  10
+    ${result}=    Ctn Check Poller Disabled In Database    1  10
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -154,7 +154,7 @@ BESS_GRPC3
     ${result}=    Ctn Check Poller Enabled In Database    1  10
     Should Be True    ${result}
     Ctn Stop Engine
-    ${result}=    Check Poller Disabled In Database    1  10
+    ${result}=    Ctn Check Poller Disabled In Database    1  10
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -195,7 +195,7 @@ BESS_GRPC5
     ${result}=    Ctn Check Poller Enabled In Database    1  10
     Should Be True    ${result}
     Ctn Stop Engine
-    ${result}=    Check Poller Disabled In Database    1  10
+    ${result}=    Ctn Check Poller Disabled In Database    1  10
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -219,7 +219,7 @@ BESS_GRPC_COMPRESS1
     ${result}=    Ctn Check Poller Enabled In Database    1  10
     Should Be True    ${result}
     Ctn Stop Engine
-    ${result}=    Check Poller Disabled In Database    1  10
+    ${result}=    Ctn Check Poller Disabled In Database    1  10
     Should Be True    ${result}
     Ctn Kindly Stop Broker
 
@@ -250,7 +250,7 @@ BESS_CRYPTED_GRPC1
         ${result}=    Ctn Check Poller Enabled In Database    1  10
         Should Be True    ${result}
         Ctn Stop Engine
-        ${result}=    Check Poller Disabled In Database    1  10
+        ${result}=    Ctn Check Poller Disabled In Database    1  10
         Should Be True    ${result}
         Ctn Kindly Stop Broker
     END
