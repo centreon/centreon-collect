@@ -286,7 +286,7 @@ BDBU1
     Ctn Broker Config Flush Log    central    0
     FOR    ${i}    IN RANGE    0    5
      ${start}=    Get Current Date
-     Start Broker
+     Ctn Start Broker
      ${content}=    Create List    Table 'centreon\..*' doesn't exist
      ${result}=    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
      Should Be True    ${result}    A message about that 'centreon.hosts' does not exist should appear
@@ -303,7 +303,7 @@ BDBU3
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_name    centreon1
     FOR    ${i}    IN RANGE    0    5
      ${start}=    Get Current Date
-     Start Broker
+     Ctn Start Broker
      ${content}=    Create List    global error: mysql_connection: error while starting connection
      ${result}=    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
      Should Be True    ${result}
@@ -320,7 +320,7 @@ BDBU5
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    1.2.3.4
     FOR    ${i}    IN RANGE    0    5
      ${start}=    Get Current Date
-     Start Broker
+     Ctn Start Broker
      ${content}=    Create List    error while starting connection
      ${result}=    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    50
      Should Be True    ${result}    Cannot find the message telling cbd is not connected to the database.
@@ -363,12 +363,12 @@ BDBMU1
     [Tags]    Broker    sql    start-stop    unified_sql
     @{lst}=    Create List    1    6
     FOR    ${c}    IN    @{lst}
-     Config Broker    central
-     Config Broker Sql Output    central    unified_sql
+     Ctn Config Broker    central
+     Ctn Config Broker Sql Output    central    unified_sql
      Broker Config Output set    central    central-broker-unified-sql    connections_count    ${c}
      Broker Config Output set    central    central-broker-unified-sql    retry_interval    5
-     Config Broker    rrd
-     Config Broker    module
+     Ctn Config Broker    rrd
+     Ctn Config Broker    module
      Config Engine    ${1}
      ${start}    Get Current Date
      Stop Mysql
