@@ -883,8 +883,8 @@ BEEXTCMD_REVERSE_GRPC1
     Ctn Change Broker Tcp Input To Grpc     central
     Ctn Broker Config Output Remove    module0    central-module-master-output    host
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
-    Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
-    Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
+    Ctn Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
     Ctn Broker Config Add Item    central    bbdo_version    3.0.0
     Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
@@ -927,8 +927,8 @@ BEEXTCMD_REVERSE_GRPC2
     Ctn Change Broker Tcp Input To Grpc     central
     Ctn Broker Config Output Remove    module0    central-module-master-output    host
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
-    Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
-    Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
+    Ctn Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0  2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc} reversed
@@ -969,8 +969,8 @@ BEEXTCMD_REVERSE_GRPC3
     Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
     Ctn Broker Config Output Remove    module0    central-module-master-output    host
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
-    Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
-    Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
+    Ctn Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
