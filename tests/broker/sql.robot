@@ -254,8 +254,8 @@ BDBM1
     @{lst}=    Create List    1    6
     FOR    ${c}    IN    @{lst}
      Ctn Config Broker    central
-     Broker Config Output set    central    central-broker-master-sql    connections_count    ${c}
-     Broker Config Output set    central    central-broker-master-perfdata    connections_count    ${c}
+     Ctn Broker Config Output set    central    central-broker-master-sql    connections_count    ${c}
+     Ctn Broker Config Output set    central    central-broker-master-perfdata    connections_count    ${c}
      Ctn Config Broker    rrd
      Ctn Config Broker    module
      Config Engine    ${1}
@@ -365,8 +365,8 @@ BDBMU1
     FOR    ${c}    IN    @{lst}
      Ctn Config Broker    central
      Ctn Config Broker Sql Output    central    unified_sql
-     Broker Config Output set    central    central-broker-unified-sql    connections_count    ${c}
-     Broker Config Output set    central    central-broker-unified-sql    retry_interval    5
+     Ctn Broker Config Output set    central    central-broker-unified-sql    connections_count    ${c}
+     Ctn Broker Config Output set    central    central-broker-unified-sql    retry_interval    5
      Ctn Config Broker    rrd
      Ctn Config Broker    module
      Config Engine    ${1}

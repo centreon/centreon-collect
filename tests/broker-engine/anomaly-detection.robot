@@ -32,8 +32,8 @@ ANO_NOFILE
     Ctn Start Broker    True
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
-    Check Service Status With Timeout    host_1    anomaly_${serv_id}    3  30
-    Stop Broker    True
+    Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    3  30
+    Ctn Stop Broker    True
     Ctn Stop Engine
 
 ANO_TOO_OLD_FILE
@@ -52,8 +52,8 @@ ANO_TOO_OLD_FILE
     Ctn Start Broker    True
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
-    Check Service Status With Timeout    host_1    anomaly_${serv_id}    3  30
-    Stop Broker    True
+    Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    3  30
+    Ctn Stop Broker    True
     Ctn Stop Engine
 
 
@@ -73,8 +73,8 @@ ANO_OUT_LOWER_THAN_LIMIT
     Ctn Start Broker    True
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
-    Check Service Status With Timeout    host_1    anomaly_${serv_id}    2  30
-    Stop Broker    True
+    Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    2  30
+    Ctn Stop Broker    True
     Ctn Stop Engine
 
 ANO_OUT_UPPER_THAN_LIMIT
@@ -93,8 +93,8 @@ ANO_OUT_UPPER_THAN_LIMIT
     Ctn Start Broker    True
     Ctn Start Engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
-    Check Service Status With Timeout    host_1    anomaly_${serv_id}    2  30
-    Stop Broker    True
+    Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    2  30
+    Ctn Stop Broker    True
     Ctn Stop Engine
 
 ANO_JSON_SENSITIVITY_NOT_SAVED
@@ -169,7 +169,7 @@ AOUTLU1
     Should Be True    ${result}    msg=No check for external commands executed for 1mn.
 
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
-    Check Service Status With Timeout    host_1    anomaly_${serv_id}    2  30
+    Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    2  30
     Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${lst}    Create List    1    0    4
@@ -205,9 +205,9 @@ ANO_DT1
     #create dependent service downtime
     Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
 
-    ${result}    Check Service Downtime With Timeout    host_1    service_1    1  60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    1  60
     Should Be True    ${result}    msg=dependent service must be in downtime
-    ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1  60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1  60
     Should Be True    ${result}    msg=anomaly service must be in downtime
 
     Ctn Stop Engine
@@ -242,13 +242,13 @@ ANO_DT2
     #create dependent service downtime
     Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
 
-    ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1  60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1  60
     Should Be True    ${result}    msg=anomaly service must be in downtime
 
     DELETE SERVICE DOWNTIME    host_1    service_1
-    ${result}    Check Service Downtime With Timeout    host_1    service_1    0  60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    0  60
     Should Be True    ${result}    msg=dependent service must be in downtime
-    ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0  60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0  60
     Should Be True    ${result}    msg=anomaly service must be in downtime
 
 
@@ -284,14 +284,14 @@ ANO_DT3
     #create dependent service downtime
     Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
 
-    ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1  60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1  60
     Should Be True    ${result}    msg=anomaly service must be in downtime
 
     DELETE SERVICE DOWNTIME    host_1    anomaly_${serv_id}
-    ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0  60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0  60
     Should Be True    ${result}    msg=anomaly service must be in downtime
     Sleep    2s
-    ${result}    Check Service Downtime With Timeout    host_1    service_1    1  60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    1  60
     Should Be True    ${result}    msg=dependent service must be in downtime
 
 
@@ -329,13 +329,13 @@ ANO_DT4
     Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
     Ctn Schedule Service Fixed Downtime    host_1    anomaly_${serv_id}    3600
 
-    ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    2  60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    2  60
     Should Be True    ${result}    msg=anomaly service must be in double downtime
 
     DELETE SERVICE DOWNTIME    host_1    service_1
-    ${result}    Check Service Downtime With Timeout    host_1    service_1    0  60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    0  60
     Should Be True    ${result}    msg=dependent service mustn t be in downtime
-    ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1  60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1  60
     Should Be True    ${result}    msg=anomaly service must be in simple downtime
 
 

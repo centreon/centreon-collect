@@ -1033,7 +1033,7 @@ def ctn_broker_config_output_set(name, output, key, value):
 
     *Example:*
 
-    | Broker Config Output Set | central | central-broker-master-sql | host | localhost |
+    | Ctn Broker Config Output Set | central | central-broker-master-sql | host | localhost |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1065,7 +1065,7 @@ def ctn_broker_config_output_set_json(name, output, key, value):
 
     *Example:*
 
-    | Broker Config Output Set Json | central | central-broker-master-sql | filters | {"category": ["neb", "foo", "bar"]} |
+    | Ctn Broker Config Output Set Json | central | central-broker-master-sql | filters | {"category": ["neb", "foo", "bar"]} |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1097,7 +1097,7 @@ def ctn_broker_config_output_remove(name, output, key):
 
     *Example:*
 
-    | Broker Config Output Remove | central | centreon-broker-master-rrd | host |
+    | Ctn Broker Config Output Remove | central | centreon-broker-master-rrd | host |
     """
     if name == 'central':
         filename = "central-broker.json"

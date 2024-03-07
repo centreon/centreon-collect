@@ -881,8 +881,8 @@ BEEXTCMD_REVERSE_GRPC1
     Ctn Config Broker    module    ${1}
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc     central
-    Broker Config Output Remove    module0    central-module-master-output    host
-    Broker Config Output Remove    central    centreon-broker-master-rrd    host
+    Ctn Broker Config Output Remove    module0    central-module-master-output    host
+    Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
     Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
@@ -925,8 +925,8 @@ BEEXTCMD_REVERSE_GRPC2
     Ctn Config Broker    module    ${1}
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc     central
-    Broker Config Output Remove    module0    central-module-master-output    host
-    Broker Config Output Remove    central    centreon-broker-master-rrd    host
+    Ctn Broker Config Output Remove    module0    central-module-master-output    host
+    Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
     Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
     Ctn Broker Config Log    central    sql    debug
@@ -967,8 +967,8 @@ BEEXTCMD_REVERSE_GRPC3
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
     Ctn Broker Config Add Item    central    bbdo_version    3.0.0
     Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Output Remove    module0    central-module-master-output    host
-    Broker Config Output Remove    central    centreon-broker-master-rrd    host
+    Ctn Broker Config Output Remove    module0    central-module-master-output    host
+    Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
     Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
     Ctn Broker Config Log    central    core    error
