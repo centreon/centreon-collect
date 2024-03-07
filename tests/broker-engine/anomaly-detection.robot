@@ -108,7 +108,7 @@ ANO_JSON_SENSITIVITY_NOT_SAVED
     Ctn Start Engine
     Sleep    5s
     Ctn Stop Engine
-    ${retention_sensitivity}    Grep Retention    ${0}    sensitivity=0.00
+    ${retention_sensitivity}    Ctn Grep Retention    ${0}    sensitivity=0.00
     Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=0.00 
 
 ANO_CFG_SENSITIVITY_SAVED
@@ -122,7 +122,7 @@ ANO_CFG_SENSITIVITY_SAVED
     Ctn Start Engine
     Sleep    5s
     Ctn Stop Engine
-    ${retention_sensitivity}    Grep Retention    ${0}    sensitivity=4.00
+    ${retention_sensitivity}    Ctn Grep Retention    ${0}    sensitivity=4.00
     Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=4.00
 
 ANO_EXTCMD_SENSITIVITY_SAVED
@@ -136,10 +136,10 @@ ANO_EXTCMD_SENSITIVITY_SAVED
         Ctn Clear Retention
         Ctn Start Engine
         Sleep    5s
-        Update Ano Sensitivity    ${use_grpc}    host_1    anomaly_1001    4.55
+        Ctn Update Ano Sensitivity    ${use_grpc}    host_1    anomaly_1001    4.55
         Sleep    1s
         Ctn Stop Engine
-        ${retention_sensitivity}    Grep Retention    ${0}    sensitivity=4.55
+        ${retention_sensitivity}    Ctn Grep Retention    ${0}    sensitivity=4.55
         Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=4.55
     END
 
