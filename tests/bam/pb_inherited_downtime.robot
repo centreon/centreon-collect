@@ -133,7 +133,7 @@ BEBAMIDTU2
 
 	  # Broker is restarted
           log to console	Broker is stopped (step ${i})
-	  Kindly Stop Broker
+	  Ctn Kindly Stop Broker
           log to console	Broker is started
 	  Ctn Start Broker
 	END

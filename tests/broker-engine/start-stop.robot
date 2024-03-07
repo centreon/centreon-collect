@@ -390,13 +390,13 @@ BESS_ENGINE_DELETE_HOST
     ${content}=    Create List    check_for_external_commands
     ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
-    Kindly Stop Broker    True
-    Start Broker    True
+    Ctn Kindly Stop Broker    True
+    Ctn Start Broker    True
     engine_config_remove_service_host    ${0}    host_16
     engine_config_remove_host    ${0}    host_16
     Ctn Reload Engine
     Sleep    2s
-    Kindly Stop Broker    True
+    Ctn Kindly Stop Broker    True
     Ctn Stop Engine
 
 BESSBQ1
