@@ -1320,7 +1320,7 @@ BESERVCHECK
     Execute SQL String    UPDATE services set command_line='toto', next_check=0 where service_id=1 and host_id=1
     Ctn Schedule Forced Svc Check    host_1    service_1
     ${command_param}=    Ctn Get Command Service Param    1
-    ${result}=    check_service_check_with_timeout    host_1    service_1    30    ${VarRoot}/lib/centreon-engine/check.pl --id ${command_param}
+    ${result}=    Ctn Check Service Check With Timeout    host_1    service_1    30    ${VarRoot}/lib/centreon-engine/check.pl --id ${command_param}
     Should Be True    ${result}    msg=service table not updated
 
 BEHOSTCHECK

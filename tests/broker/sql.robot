@@ -201,24 +201,24 @@ BEDB3
     Ctn Start Mysql
     Ctn Start Broker
     Ctn Start Engine
-        FOR    ${t}    IN RANGE    60
-          ${result}=    Ctn Check Sql Connections Count With Grpc    51001    ${3}
-          Exit For Loop If    ${result}
-        END
-        Should Be True    ${result}    gRPC does not return 3 connections as expected
+    FOR    ${t}    IN RANGE    60
+      ${result}=    Ctn Check Sql Connections Count With Grpc    51001    ${3}
+      Exit For Loop If    ${result}
+    END
+    Should Be True    ${result}    gRPC does not return 3 connections as expected
     Ctn Stop Mysql
-        FOR    ${t}    IN RANGE    60
-          ${result}=    Ctn Check All Sql Connections Down With Grpc    51001
-          Exit For Loop If    ${result}
-        END
-        Should Be True    ${result}    Connections are not all down.
+    FOR    ${t}    IN RANGE    60
+      ${result}=    Ctn Check All Sql Connections Down With Grpc    51001
+      Exit For Loop If    ${result}
+    END
+    Should Be True    ${result}    Connections are not all down.
 
-        Ctn Start Mysql
-        FOR    ${t}    IN RANGE    60
-          ${result}=    Ctn Check Sql Connections Count With Grpc    51001    ${3}
-          Exit For Loop If    ${result}
-        END
-        Should Be True    ${result}    gRPC does not return 3 connections as expected
+    Ctn Start Mysql
+    FOR    ${t}    IN RANGE    60
+      ${result}=    Ctn Check Sql Connections Count With Grpc    51001    ${3}
+      Exit For Loop If    ${result}
+    END
+    Should Be True    ${result}    gRPC does not return 3 connections as expected
     Ctn Kindly Stop Broker
     Ctn Stop Engine
 
@@ -266,7 +266,7 @@ BDBM1
      ${content}=    Create List    error while starting connection
      ${result}=    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
      Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
-     Start Mysql
+     Ctn Start Mysql
      ${result}=    Ctn Get Broker Stats Size    central    mysql manager
      Should Be True    ${result} >= ${c} + 1    The stats file should contain at less ${c} + 1 connections to the database.
      Ctn Kindly Stop Broker
@@ -377,7 +377,7 @@ BDBMU1
      ${content}    Create List    mysql_connection: error while starting connection
      ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
      Should Be True    ${result}    Broker does not see any issue with the db while it is switched off
-     Start Mysql
+     Ctn Start Mysql
      ${result}    Ctn Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    80
      Should Be True    ${result}    No stats on mysql manager found
      ${result}    Ctn Get Broker Stats Size    central    mysql manager    ${60}
