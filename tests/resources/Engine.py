@@ -2933,7 +2933,7 @@ def ctn_grep_retention(poller: int, pattern: str):
 
 def ctn_config_add_otl_connector(poller: int, connector_name: str, command_line:str):
     """
-    config_add_otl_connector
+    ctn_config_add_otl_connector
 
      add a connector entry to connectors.cfg
 
@@ -3178,7 +3178,7 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str):
     with open(otl_server_config_path, "w") as f:
         f.write(otl_server_config_json_content)
 
-def randomword(length):
+def ctn_randomword(length):
    letters = string.ascii_lowercase
    return ''.join(random.choice(letters) for i in range(length))
 
@@ -3256,10 +3256,10 @@ def randomword(length):
 # }
 
 
-def add_data_point_to_metric(metric, attrib:dict, metric_value = None):
+def ctn_add_data_point_to_metric(metric, attrib:dict, metric_value = None):
     """
     
-    add_data_point_to_metric
+    ctn_add_data_point_to_metric
 
     add a data point to metric
     Args:
@@ -3280,7 +3280,7 @@ def add_data_point_to_metric(metric, attrib:dict, metric_value = None):
         attr.value.string_value = value
 
 
-def create_otl_metric(name:str, nb_datapoints:int, attrib:dict, metric_value = None):
+def ctn_create_otl_metric(name:str, nb_datapoints:int, attrib:dict, metric_value = None):
     """
 
     create_otl_metric
@@ -3296,7 +3296,7 @@ def create_otl_metric(name:str, nb_datapoints:int, attrib:dict, metric_value = N
     metric = opentelemetry.proto.metrics.v1.metrics_pb2.Metric()
     metric.name = name
     for i in range(nb_datapoints):
-        add_data_point_to_metric(metric, attrib, metric_value)
+        ctn_add_data_point_to_metric(metric, attrib, metric_value)
     return metric
     
 

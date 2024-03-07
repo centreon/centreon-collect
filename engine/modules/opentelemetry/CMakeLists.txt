@@ -34,13 +34,14 @@ foreach(name IN LISTS service_files)
   add_custom_command(
     OUTPUT "${SRC_DIR}/${name}.grpc.pb.cc"
     COMMENT "Generating grpc files of the otl service file ${proto_file}"
-    DEPENDS ${CONAN_RES_DIRS_OPENTELEMETRY-PROTO}/${proto_file}
+    DEPENDS opentelemetry-proto-files
     COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin
-    --proto_path=${CONAN_RES_DIRS_OPENTELEMETRY-PROTO} 
+    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto 
     --grpc_out=${SRC_DIR} ${proto_file}
-    VERBATIM)
+    VERBATIM
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 endforeach()
 
@@ -66,8 +67,7 @@ target_precompile_headers(opentelemetry PRIVATE precomp_inc/precomp.hh)
 # set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
 target_link_libraries(opentelemetry 
   centreon_common
-  CONAN_PKG::spdlog
-  CONAN_PKG::rapidjson
+  spdlog::spdlog
   pb_open_telemetry_lib
   )
 
