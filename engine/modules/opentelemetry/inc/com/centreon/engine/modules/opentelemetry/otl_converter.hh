@@ -90,25 +90,6 @@ class otl_converter : public std::enable_shared_from_this<otl_converter> {
       commands::otel::result_callback&& handler);
 };
 
-class otl_nagios_telegraf_converter : public otl_converter {
- protected:
-  bool _build_result_from_metrics(metric_name_to_fifo& fifos,
-                                  commands::result& res) override;
-
- public:
-  otl_nagios_telegraf_converter(const std::string& cmd_line,
-                                uint64_t command_id,
-                                const host& host,
-                                const service* service,
-                                std::chrono::system_clock::time_point timeout,
-                                commands::otel::result_callback&& handler)
-      : otl_converter(cmd_line,
-                      command_id,
-                      host,
-                      service,
-                      timeout,
-                      std::move(handler)) {}
-};
 
 }  // namespace com::centreon::engine::modules::opentelemetry
 
