@@ -240,8 +240,8 @@ BESS_CRYPTED_GRPC1
     Ctn Change Broker Tcp Input To Grpc     rrd
     Ctn Add Broker tcp output grpc crypto    module0    True    False
     Ctn Add Broker tcp input grpc crypto    central    True    False
-    Remove Host from broker output    module0    central-module-master-output
-    Add Host to broker output    module0    central-module-master-output    localhost
+    Ctn Remove Host From Broker Output    module0    central-module-master-output
+    Ctn Add Host To Broker Output    module0    central-module-master-output    localhost
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -317,8 +317,8 @@ BESS_CRYPTED_REVERSED_GRPC1
     Ctn Change Broker Tcp Input To Grpc     rrd
     Ctn Add Broker tcp output grpc crypto    module0    True    True
     Ctn Add Broker tcp input grpc crypto    central    True    True
-    Add Host to broker input    central    central-broker-master-input    localhost
-    Remove Host from broker output    module0    central-module-master-output
+    Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
+    Ctn Remove Host From Broker Output    module0    central-module-master-output
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -344,8 +344,8 @@ BESS_CRYPTED_REVERSED_GRPC2
     Ctn Change Broker Tcp Input To Grpc     central
     Ctn Change Broker Tcp Input To Grpc     rrd
     Ctn Add Broker tcp output grpc crypto    module0    True    True
-    Add Host to broker input    central    central-broker-master-input    localhost
-    Remove Host from broker output    module0    central-module-master-output
+    Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
+    Ctn Remove Host From Broker Output    module0    central-module-master-output
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -367,8 +367,8 @@ BESS_CRYPTED_REVERSED_GRPC3
     Ctn Change Broker Tcp Input To Grpc     central
     Ctn Change Broker Tcp Input To Grpc     rrd
     Ctn Add Broker tcp input grpc crypto    central    True    True
-    Add Host to broker input    central    central-broker-master-input    localhost
-    Remove Host from broker output    module0    central-module-master-output
+    Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
+    Ctn Remove Host From Broker Output    module0    central-module-master-output
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -392,8 +392,8 @@ BESS_ENGINE_DELETE_HOST
     Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
     Ctn Kindly Stop Broker    True
     Ctn Start Broker    True
-    engine_config_remove_service_host    ${0}    host_16
-    engine_config_remove_host    ${0}    host_16
+    Ctn Engine Config Remove Service Host    ${0}    host_16
+    Ctn Engine Config Remove Host    ${0}    host_16
     Ctn Reload Engine
     Sleep    2s
     Ctn Kindly Stop Broker    True
