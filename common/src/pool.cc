@@ -127,6 +127,12 @@ void pool::_set_pool_size(size_t pool_size) {
                         : pool_size;
 
   std::lock_guard<std::mutex> lock(_pool_m);
+  if (new_size <= _pool_size) {
+    return;
+  }
+
+  SPDLOG_LOGGER_INFO(_logger, "Starting the TCP thread pool of {} threads",
+                     new_size - _pool_size);
 
   for (; _pool_size < new_size; ++_pool_size) {
     auto& new_thread = _pool.emplace_front([ctx = _io_context,

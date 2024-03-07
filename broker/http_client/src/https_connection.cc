@@ -309,7 +309,7 @@ void https_connection::send(request_ptr request,
   beast::http::async_write(
       *_stream, *request,
       [me = shared_from_this(), request, cb = std::move(callback)](
-          const beast::error_code& err, size_t bytes_transfered) mutable {
+          const beast::error_code& err, size_t) mutable {
         me->on_sent(err, request, cb);
       });
 }
