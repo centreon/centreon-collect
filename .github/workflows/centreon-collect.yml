@@ -248,6 +248,33 @@ jobs:
           minor_version: ${{ needs.get-version.outputs.patch }}
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
+  delivery-rpm:
+    needs: [rpm-packaging, create-version, get-version]
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    env:
+      version: ${{ needs.create-version.outputs.version }}
+    environment: ${{ needs.get-version.outputs.environment }}
+    runs-on: [self-hosted, common]
+    name: Delivery
+    strategy:
+      matrix:
+        distrib: [el7, el8]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Publish RPM packages
+        uses: ./.github/actions/delivery
+        with:
+          distrib: ${{ matrix.distrib }}
+          version: ${{ env.version }}
+          module_name: collect
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+          stability: ${{ needs.get-version.outputs.stability }}
+          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
+
   delivery-debian:
     needs: [rpm-packaging, create-version, get-version]
     if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
@@ -272,30 +299,6 @@ jobs:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
-  delivery-centos:
-    needs: [rpm-packaging, create-version, get-version]
-    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
-    env:
-      version: ${{ needs.create-version.outputs.version }}
-    environment: ${{ needs.get-version.outputs.environment }}
-    runs-on: [self-hosted, common]
-    name: Delivery
-    strategy:
-      matrix:
-        distrib: [el7, el8]
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-
-      - name: Publish RPM packages
-        uses: ./.github/actions/delivery
-        with:
-          distrib: ${{ matrix.distrib }}
-          version: ${{ env.version }}
-          module_name: collect
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
-
   promote:
     needs: [get-version]
     if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
@@ -318,3 +321,6 @@ jobs:
           minor_version: ${{ needs.get-version.outputs.patch }}
           stability: ${{ needs.get-version.outputs.stability }}
           repository_name: standard
+          github_base_ref: ${{ github.base_ref }}
+          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
