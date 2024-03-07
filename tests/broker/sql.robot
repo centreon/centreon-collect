@@ -260,9 +260,9 @@ BDBM1
      Ctn Config Broker    module
      Config Engine    ${1}
      ${start}=    Ctn Get Round Current Date
-     Stop Mysql
-     Start Broker
-     Start Engine
+     Ctn Stop Mysql
+     Ctn Start Broker
+     Ctn Start Engine
      ${content}=    Create List    error while starting connection
      ${result}=    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
      Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
@@ -370,18 +370,18 @@ BDBMU1
      Config Broker    rrd
      Config Broker    module
      Config Engine    ${1}
-     ${start}=    Get Current Date
+     ${start}    Get Current Date
      Stop Mysql
-     Start Broker
-     Start Engine
-     ${content}=    Create List    mysql_connection: error while starting connection
-     ${result}=    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
+     Ctn Start Broker
+     Ctn Start Engine
+     ${content}    Create List    mysql_connection: error while starting connection
+     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
      Should Be True    ${result}    Broker does not see any issue with the db while it is switched off
      Start Mysql
-     ${result}=    Ctn Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    80
+     ${result}    Ctn Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    80
      Should Be True    ${result}    No stats on mysql manager found
-     ${result}=    Ctn Get Broker Stats Size    central    mysql manager    ${60}
+     ${result}    Ctn Get Broker Stats Size    central    mysql manager    ${60}
      Should Be True    ${result} >= ${c} + 1    Broker mysql manager stats do not show the ${c} connections
      Kindly Stop Broker
-     Stop Engine
+     Ctn Stop Engine
     END
