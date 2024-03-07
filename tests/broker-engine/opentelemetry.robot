@@ -3,10 +3,10 @@ Documentation       Engine/Broker tests on opentelemetry engine server
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
-Test Teardown       Stop Engine Broker And Save Logs
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -14,7 +14,7 @@ Test Teardown       Stop Engine Broker And Save Logs
 # BEOTEL1
 #    [Documentation]    store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
 #    [Tags]    broker    engine    opentelemetry    mon-34074
-#    Config Engine    ${1}
+#    Ctn Config Engine    ${1}
 #    Add Otl ServerModule    0    {"server":{"host": "0.0.0.0","port": 4317}}
 #    Config Broker    central
 #    Config Broker    module
@@ -22,15 +22,15 @@ Test Teardown       Stop Engine Broker And Save Logs
 #    Broker Config Source Log    central    True
 #    Broker Config Add Lua Output    central    dump-otl-event    ${SCRIPTS}dump-otl-event.lua
 
-#    Config BBDO3    1
+#    Ctn ConfigBBDO3    1
 #    Config Broker Sql Output    central    unified_sql
-#    Clear Retention
+#    Ctn Clear Retention
 
 #    Remove File    /tmp/lua.log
 
 #    ${start}    Get Current Date
-#    Start Broker
-#    Start Engine
+#    Ctn Start Broker
+#    Ctn Start Engine
 
 #    # Let's wait for the otel server start
 #    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
@@ -79,58 +79,58 @@ Test Teardown       Stop Engine Broker And Save Logs
 BEOTEL_TELEGRAF_CHECK_HOST
     [Documentation]    we send nagios telegraf formated datas and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    mon-34004
-    Config Engine    ${1}    ${2}    ${2}
-    Add Otl ServerModule    0    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
-    Config Add Otl Connector
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule    0    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
+    Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    open_telemetry attributes --host_attribute=data_point --host_key=host --service_attribute=data_point --service_key=service
-    Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
-    Engine Config Add Command
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp
     ...    nagios_telegraf
     ...    OTEL connector
 
-    Engine Config Set Value    0    log_level_checks    trace
+    Ctn Engine Config Set Value    0    log_level_checks    trace
 
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
-    Broker Config Log    central    sql    trace
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    sql    trace
 
-    Config BBDO3    1
-    Clear Retention
+    Ctn ConfigBBDO3    1
+    Ctn Clear Retention
 
     ${start}    Get Current Date
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
 
     # Let's wait for the otel server start
     ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
     Sleep    1
 
-    ${resources_list}    Create Otl Request    ${0}    host_1
+    ${resources_list}    Ctn Create Otl Request    ${0}    host_1
 
     Log To Console    export metrics
-    Send Otl To Engine    4317    ${resources_list}
+    Ctn Send Otl To Engine    4317    ${resources_list}
 
     Sleep    5
 
     # feed and check
-    ${start}    Get Round Current Date
-    Schedule Forced Host Check    host_1
+    ${start}    Ctn Get Round Current Date
+    Ctn Schedule Forced Host Check    host_1
 
-    ${result}    Check Host Check Status With Timeout    host_1    30    ${start}    0    OK
+    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK
     Should Be True    ${result}    hosts table not updated
 
     # check without feed
 
-    ${start}    Get Round Current Date
-    Schedule Forced Host Check    host_1
-    ${result}    Check Host Check Status With Timeout
+    ${start}    Ctn Get Round Current Date
+    Ctn Schedule Forced Host Check    host_1
+    ${result}    Ctn Check Host Check Status With Timeout
     ...    host_1
     ...    35
     ...    ${start}
@@ -139,78 +139,78 @@ BEOTEL_TELEGRAF_CHECK_HOST
     Should Be True    ${result}    hosts table not updated
 
     # check then feed, three times to modify hard state
-    ${start}    Get Round Current Date
-    Schedule Forced Host Check    host_1
+    ${start}    Ctn Get Round Current Date
+    Ctn Schedule Forced Host Check    host_1
     Sleep    2
-    ${resources_list}    Create Otl Request    ${2}    host_1
-    Send Otl To Engine    4317    ${resources_list}
-    Schedule Forced Host Check    host_1
+    ${resources_list}    Ctn Create Otl Request    ${2}    host_1
+    Ctn Send Otl To Engine    4317    ${resources_list}
+    Ctn Schedule Forced Host Check    host_1
     Sleep    2
-    ${resources_list}    Create Otl Request    ${2}    host_1
-    Send Otl To Engine    4317    ${resources_list}
-    Schedule Forced Host Check    host_1
+    ${resources_list}    Ctn Create Otl Request    ${2}    host_1
+    Ctn Send Otl To Engine    4317    ${resources_list}
+    Ctn Schedule Forced Host Check    host_1
     Sleep    2
-    ${resources_list}    Create Otl Request    ${2}    host_1
-    Send Otl To Engine    4317    ${resources_list}
-    ${result}    Check Host Check Status With Timeout    host_1    30    ${start}    1    CRITICAL
+    ${resources_list}    Ctn Create Otl Request    ${2}    host_1
+    Ctn Send Otl To Engine    4317    ${resources_list}
+    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    1    CRITICAL
 
     Should Be True    ${result}    hosts table not updated
 
 BEOTEL_TELEGRAF_CHECK_SERVICE
     [Documentation]    we send nagios telegraf formated datas and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    mon-34004
-    Config Engine    ${1}    ${2}    ${2}
-    Add Otl ServerModule    0    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
-    Config Add Otl Connector
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule    0    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
+    Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    open_telemetry attributes --host_attribute=data_point --host_key=host --service_attribute=data_point --service_key=service
-    Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check_icmp
-    Engine Config Add Command
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check_icmp
+    Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp
     ...    nagios_telegraf
     ...    OTEL connector
 
-    Engine Config Set Value    0    log_level_checks    trace
+    Ctn Engine Config Set Value    0    log_level_checks    trace
 
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
 
-    Config BBDO3    1
-    Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn ConfigBBDO3    1
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
 
     ${start}    Get Current Date
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
 
     # Let's wait for the otel server start
     ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
     Sleep    1
 
-    ${resources_list}    Create Otl Request    ${0}    host_1    service_1
+    ${resources_list}    Ctn Create Otl Request    ${0}    host_1    service_1
 
     Log To Console    export metrics
-    Send Otl To Engine    4317    ${resources_list}
+    Ctn Send Otl To Engine    4317    ${resources_list}
 
     Sleep    5
 
     # feed and check
-    ${start}    Get Round Current Date
-    Schedule Forced Svc Check    host_1    service_1
+    ${start}    Ctn Get Round Current Date
+    Ctn Schedule Forced Svc Check    host_1    service_1
 
-    ${result}    Check Service Check Status With Timeout    host_1    service_1    30    ${start}    0    OK
+    ${result}    Ctn Check Service Check Status With Timeout    host_1    service_1    30    ${start}    0    OK
     Should Be True    ${result}    services table not updated
 
     # check without feed
 
-    ${start}    Get Round Current Date
-    Schedule Forced Svc Check    host_1    service_1
-    ${result}    Check Service Check Status With Timeout
+    ${start}    Ctn Get Round Current Date
+    Ctn Schedule Forced Svc Check    host_1    service_1
+    ${result}    Ctn Check Service Check Status With Timeout
     ...    host_1
     ...    service_1
     ...    35
@@ -220,26 +220,26 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     Should Be True    ${result}    services table not updated
 
     # check then feed, three times to modify hard state
-    ${start}    Get Round Current Date
-    Schedule Forced Svc Check    host_1    service_1
+    ${start}    Ctn Get Round Current Date
+    Ctn Schedule Forced Svc Check    host_1    service_1
     Sleep    2
-    ${resources_list}    Create Otl Request    ${2}    host_1    service_1
-    Send Otl To Engine    4317    ${resources_list}
-    Schedule Forced Svc Check    host_1    service_1
+    ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
+    Ctn Send Otl To Engine    4317    ${resources_list}
+    Ctn Schedule Forced Svc Check    host_1    service_1
     Sleep    2
-    ${resources_list}    Create Otl Request    ${2}    host_1    service_1
-    Send Otl To Engine    4317    ${resources_list}
-    Schedule Forced Svc Check    host_1    service_1
+    ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
+    Ctn Send Otl To Engine    4317    ${resources_list}
+    Ctn Schedule Forced Svc Check    host_1    service_1
     Sleep    2
-    ${resources_list}    Create Otl Request    ${2}    host_1    service_1
-    Send Otl To Engine    4317    ${resources_list}
-    ${result}    Check Service Check Status With Timeout    host_1    service_1    30    ${start}    2    CRITICAL
+    ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
+    Ctn Send Otl To Engine    4317    ${resources_list}
+    ${result}    Ctn Check Service Check Status With Timeout    host_1    service_1    30    ${start}    2    CRITICAL
 
     Should Be True    ${result}    services table not updated
 
 
 *** Keywords ***
-Create Otl Request
+Ctn Create Otl Request
     [Documentation]    create an otl request with nagios telegraf style
     [Arguments]    ${state}    ${host}    ${service}=
     ${state_attrib}    Create Dictionary    host=${host}    service=${service}
@@ -248,16 +248,16 @@ Create Otl Request
     ${pl_attrib}    Create Dictionary    host=${host}    service=${service}    perfdata=pl    unit=%
 
     # state
-    ${state_metric}    Create Otl Metric    check_icmp_state    1    ${state_attrib}    ${state}
+    ${state_metric}    Ctn Create Otl Metric    check_icmp_state    1    ${state_attrib}    ${state}
     # value
-    ${value_metric}    Create Otl Metric    check_icmp_value    1    ${rta_attrib}    ${0.022}
-    Add Data Point To Metric    ${value_metric}    ${rtmax_attrib}    ${0.071}
-    Add Data Point To Metric    ${value_metric}    ${pl_attrib}    ${0.001}
+    ${value_metric}    Ctn Create Otl Metric    check_icmp_value    1    ${rta_attrib}    ${0.022}
+    Ctn Add Data Point To Metric    ${value_metric}    ${rtmax_attrib}    ${0.071}
+    Ctn Add Data Point To Metric    ${value_metric}    ${pl_attrib}    ${0.001}
 
-    ${critical_gt_metric}    Create Otl Metric    check_icmp_critical_gt    1    ${rta_attrib}    ${500}
-    Add Data Point To Metric    ${critical_gt_metric}    ${pl_attrib}    ${80}
-    ${critical_lt_metric}    Create Otl Metric    check_icmp_critical_lt    1    ${rta_attrib}    ${1}
-    Add Data Point To Metric    ${critical_gt_metric}    ${pl_attrib}    ${0.00001}
+    ${critical_gt_metric}    Ctn Create Otl Metric    check_icmp_critical_gt    1    ${rta_attrib}    ${500}
+    Ctn Add Data Point To Metric    ${critical_gt_metric}    ${pl_attrib}    ${80}
+    ${critical_lt_metric}    Ctn Create Otl Metric    check_icmp_critical_lt    1    ${rta_attrib}    ${1}
+    Ctn Add Data Point To Metric    ${critical_gt_metric}    ${pl_attrib}    ${0.00001}
 
     ${metrics_list}    Create List
     ...    ${state_metric}
@@ -266,12 +266,12 @@ Create Otl Request
     ...    ${critical_lt_metric}
 
     ${scope_attrib}    Create Dictionary
-    ${scope_metric}    Create Otl Scope Metrics    ${scope_attrib}    ${metrics_list}
+    ${scope_metric}    Ctn Create Otl Scope Metrics    ${scope_attrib}    ${metrics_list}
 
     ${scope_metrics_list}    Create List    ${scope_metric}
 
     ${resource_attrib}    Create Dictionary
-    ${resource_metrics}    Create Otl Resource Metrics    ${resource_attrib}    ${scope_metrics_list}
+    ${resource_metrics}    Ctn Create Otl Resource Metrics    ${resource_attrib}    ${scope_metrics_list}
     ${resources_list}    Create List    ${resource_metrics}
 
     RETURN    ${resources_list}

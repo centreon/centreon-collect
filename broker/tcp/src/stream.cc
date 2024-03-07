@@ -57,7 +57,7 @@ stream::stream(const tcp_config::pointer& conf)
                        _conf->get_port());
   log_v2::tcp()->info(
       "{} TCP streams are configured on a thread pool of {} threads",
-      _total_tcp_count,
+      _total_tcp_count.load(),
       com::centreon::common::pool::instance().get_pool_size());
 }
 
@@ -77,7 +77,7 @@ stream::stream(const tcp_connection::pointer& conn,
                       _conf->get_port());
   log_v2::tcp()->info(
       "{} TCP streams are configured on a thread pool of {} threads",
-      _total_tcp_count,
+      _total_tcp_count.load(),
       com::centreon::common::pool::instance().get_pool_size());
 }
 
@@ -89,7 +89,7 @@ stream::~stream() noexcept {
   log_v2::tcp()->info(
       "TCP stream destroyed. Still {} configured on a thread pool of {} "
       "threads",
-      _total_tcp_count,
+      _total_tcp_count.load(),
       com::centreon::common::pool::instance().get_pool_size());
   log_v2::tcp()->trace("stream closed");
   if (_connection->socket().is_open())

@@ -510,7 +510,6 @@ target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 # Link target with required libraries.
 target_link_libraries(
   cce_core
-  rapidjson::rapidjson
   ${MATH_LIBRARIES}
   ${PTHREAD_LIBRARIES}
   ${SOCKET_LIBRARIES}

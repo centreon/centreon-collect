@@ -1011,9 +1011,9 @@ def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line:
         time.sleep(1)
     return False
 
-def check_host_check_status_with_timeout(hostname: str, timeout: int, min_last_check: int, state: int, output: str):
+def ctn_check_host_check_status_with_timeout(hostname: str, timeout: int, min_last_check: int, state: int, output: str):
     """
-    check_host_check_status_with_timeout
+    ctn_check_host_check_status_with_timeout
 
     check if host checks infos have been updated
 
@@ -1683,7 +1683,7 @@ def ctn_compare_dot_files(file1: str, file2: str):
             return False
     return True
 
-def create_random_string(length:int):
+def ctn_create_random_string(length:int):
     """
     create_random_string
 
@@ -1696,7 +1696,7 @@ def create_random_string(length:int):
     return ''.join(random.choice(letters) for i in range(length))
 
 
-def create_random_dictionary(nb_entries: int):
+def ctn_create_random_dictionary(nb_entries: int):
     """
     create_random_dictionary
 
@@ -1713,7 +1713,7 @@ def create_random_dictionary(nb_entries: int):
     return dict_ret;
 
 
-def extract_event_from_lua_log(file_path:str, field_name: str):
+def ctn_extract_event_from_lua_log(file_path:str, field_name: str):
     """
     extract_event_from_lua_log
 
@@ -1754,7 +1754,7 @@ def extract_event_from_lua_log(file_path:str, field_name: str):
 
 
 
-def protobuf_to_json(protobuf_obj):
+def ctn_protobuf_to_json(protobuf_obj):
     """
     protobuf_to_json
 

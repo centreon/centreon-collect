@@ -110,7 +110,8 @@ add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc"
                                                   "${SRC_DIR}/broker.pb.h")
 
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
-                    ${CMAKE_SOURCE_DIR}/common/inc)
+                    ${CMAKE_SOURCE_DIR}/common/inc
+                    ${CMAKE_SOURCE_DIR}/bbdo)
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
@@ -508,7 +509,7 @@ add_subdirectory(core/sql)
 # Generator module.
 add_broker_module(GENERATOR OFF)
 add_broker_module(STATS ON)
-#add_broker_module(STATS_EXPORTER ON)
+add_broker_module(STATS_EXPORTER OFF)
 add_broker_module(NEB ON)
 add_broker_module(RRD ON)
 add_broker_module(UNIFIED_SQL ON)

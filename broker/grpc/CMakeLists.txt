@@ -96,7 +96,7 @@ add_custom_command(
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${CONAN_RES_DIRS_OPENTELEMETRY-PROTO}
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     grpc_stream.proto
   VERBATIM)
 
@@ -108,7 +108,7 @@ add_custom_command(
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --grpc_out=${SRC_DIR}
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${CONAN_RES_DIRS_OPENTELEMETRY-PROTO}
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     grpc_stream.proto
   VERBATIM
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
