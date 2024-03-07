@@ -135,7 +135,7 @@ BEBAMIDTU2
           log to console	Broker is stopped (step ${i})
 	  Kindly Stop Broker
           log to console	Broker is started
-	  Start Broker
+	  Ctn Start Broker
 	END
 
 	# There are still two downtimes: the one on the ba and the one on the kpi.
