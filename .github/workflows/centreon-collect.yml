@@ -145,6 +145,8 @@ jobs:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-version.outputs.stability }}
+          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   deliver-deb:
     if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
@@ -178,6 +180,8 @@ jobs:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-version.outputs.stability }}
+          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   promote:
     needs: [get-version]
@@ -202,3 +206,5 @@ jobs:
           stability: ${{ needs.get-version.outputs.stability }}
           repository_name: standard
           github_base_ref: ${{ github.base_ref }}
+          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
