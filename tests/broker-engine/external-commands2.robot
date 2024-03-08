@@ -33,7 +33,7 @@ BEEXTCMD30
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Host Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -83,7 +83,7 @@ BEEXTCMD31
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Host Svc Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -163,7 +163,7 @@ BEEXTCMD32
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Host Svc Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -231,7 +231,7 @@ BEEXTCMD33
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Host Svc Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -276,7 +276,7 @@ BEEXTCMD34
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Host Svc Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -326,7 +326,7 @@ BEEXTCMD35
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Passive Host Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -389,7 +389,7 @@ BEEXTCMD36
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Passive Host Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -439,7 +439,7 @@ BEEXTCMD37
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -502,7 +502,7 @@ BEEXTCMD38
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -552,7 +552,7 @@ BEEXTCMD39
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Stop Obsessing Over Host    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -597,7 +597,7 @@ BEEXTCMD40
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Stop Obsessing Over Host    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -647,7 +647,7 @@ BEEXTCMD41
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -692,7 +692,7 @@ BEEXTCMD42
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -743,7 +743,7 @@ BEEXTCMD_GRPC1
         Ctn Start Engine
             ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
             ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-            Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+            Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -778,7 +778,7 @@ BEEXTCMD_GRPC2
         Ctn Start Engine
             ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;
             ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-            Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+            Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -819,7 +819,7 @@ BEEXTCMD_GRPC3
         Ctn Start Engine
             ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;
             ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-            Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+            Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -855,7 +855,7 @@ BEEXTCMD_GRPC4
         Ctn Start Engine
             ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;
             ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-            Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+            Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -899,7 +899,7 @@ BEEXTCMD_REVERSE_GRPC1
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -938,7 +938,7 @@ BEEXTCMD_REVERSE_GRPC2
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -983,7 +983,7 @@ BEEXTCMD_REVERSE_GRPC3
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1023,7 +1023,7 @@ BEEXTCMD_REVERSE_GRPC4
         Ctn Start Engine
         ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
                 Sleep    1s
         Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    15
 
@@ -1066,7 +1066,7 @@ BEEXTCMD_COMPRESS_GRPC1
         Ctn Start Engine
             ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
             ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-            Should Be True    ${result}    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+            Should Be True    ${result}    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1092,16 +1092,16 @@ BEATOI11
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    ${content}    Create List    check_for_external_commands
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     Ctn Send Custom Host Notification    host_1    1    admin    foobar
-    ${content}=    Create List    EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;foobar
-    ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=command argument notification_option must be an integer between 0 and 7.
+    ${content}    Create List    EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;foobar
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
@@ -1119,11 +1119,11 @@ BEATOI12
     Ctn Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     Ctn Send Custom Host Notification    host_1    8    admin    foobar
     ${content}=    Create List    Error: could not send custom host notification: '8' must be an integer between 0 and 7
     ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=command argument notification_option must be an integer between 0 and 7.
+    Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
@@ -1142,12 +1142,12 @@ BEATOI13
     Ctn Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}=    Get Current Date    result_format=epoch
     Ctn Schedule Service Downtime    host_1    service_1    -1
     ${content}=    Create List    Error: could not schedule downtime : duration
     ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=command argument duration must be an integer >= 0.
+    Should Be True    ${result}    command argument duration must be an integer >= 0.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
@@ -1161,21 +1161,21 @@ BEATOI21
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date    exclude_millis=True
+    ${start}    Get Current Date    exclude_millis=True
     Ctn Start Broker
     Ctn Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    ${content}    Create List    check_for_external_commands
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     Ctn Add Host Comment    host_1    1    user    comment
-    ${content}=    Create List    Ctn Add Host Comment
-    ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=the comment with id:1 was not added.
-    ${com_id}=    Ctn Find Internal Id    ${start}    True    30
-    Should Be True    ${com_id}>0    msg=Comment id should be a positive integer.
+    ${content}    Create List    CTN_ADD_HOST_COMMENT
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    the comment with id:1 was not added.
+    ${com_id}    Ctn Find Internal Id    ${start}    True    30
+    Should Be True    ${com_id}>0    Comment id should be a positive integer.
     Ctn Del Host Comment    ${com_id}
-    ${result}=    Ctn Find Internal Id    ${start}    False    30
-    Should Be True    ${result}    msg=the comment with id:${com_id} was not deleted.
+    ${result}    Ctn Find Internal Id    ${start}    False    30
+    Should Be True    ${result}    the comment with id:${com_id} was not deleted.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
@@ -1193,20 +1193,20 @@ BEATOI22
     Sleep    1s
     Ctn Start Broker
     Ctn Start Engine
-    ${content}=    Create List    check_for_external_commands
+    ${content}    Create List    check_for_external_commands
     ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     Ctn Add Host Comment    host_1    1    user    comment
-    ${content}=    Create List    Ctn Add Host Comment
-    ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=the comment with id:1 was not added.
-    ${com_id}=    Ctn Find Internal Id        ${start}    True    30
+    ${content}    Create List    ADD_HOST_COMMENT
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    the comment with id:1 was not added.
+    ${com_id}    Ctn Find Internal Id        ${start}    True    30
     Ctn Del Host Comment    -1
     ${content}=    Create List    Error: could not delete comment : comment_id
     ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=comment_id must be an unsigned integer.
+    Should Be True    ${result}    comment_id must be an unsigned integer.
     ${result}=    Ctn Find Internal Id    ${start}    True    30
-    Should Be True    ${result}    msg=comment with id:-1 was deleted.
+    Should Be True    ${result}    comment with id:-1 was deleted.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
@@ -1223,14 +1223,14 @@ BEATOI23
     ${start}=    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
-    ${date}=    Get Current Date    result_format=epoch
+    ${content}    Create List    check_for_external_commands
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No check for external commands executed for 1mn.
+    ${date}    Get Current Date    result_format=epoch
     Ctn Add Svc Comment    host_1    service_1    0    user    comment
-    ${content}=    Create List    Ctn Add Svc Comment
-    ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=command argument persistent_flag must be 0 or 1.
+    ${content}    Create List    ADD_SVC_COMMENT
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    command argument persistent_flag must be 0 or 1.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
@@ -1249,7 +1249,7 @@ BECUSTOMHOSTVAR
     Ctn Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}=    Get Current Date    result_format=epoch
     Ctn Change Custom Host Var Command    host_1    SNMPVERSION    789456
 
@@ -1282,7 +1282,7 @@ BECUSTOMSVCVAR
     Ctn Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}=    Get Current Date    result_format=epoch
     Ctn Change Custom Svc Var Command    host_1    service_1    CRITICAL    456123
 
@@ -1315,13 +1315,13 @@ BESERVCHECK
     Ctn Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    UPDATE services set command_line='toto', next_check=0 where service_id=1 and host_id=1
     Ctn Schedule Forced Svc Check    host_1    service_1
     ${command_param}=    Ctn Get Command Service Param    1
     ${result}=    Ctn Check Service Check With Timeout    host_1    service_1    30    ${VarRoot}/lib/centreon-engine/check.pl --id ${command_param}
-    Should Be True    ${result}    msg=service table not updated
+    Should Be True    ${result}    service table not updated
 
 BEHOSTCHECK
     [Documentation]    external command CHECK_SERVICE_RESULT
@@ -1338,9 +1338,9 @@ BEHOSTCHECK
     Ctn Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    UPDATE hosts set command_line='toto' where name='host_1'
     Ctn Schedule Forced Host Check    host_1
     ${result}=    Ctn Check Host Check With Timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl --id 0
-    Should Be True    ${result}    msg=hosts table not updated
+    Should Be True    ${result}    hosts table not updated
