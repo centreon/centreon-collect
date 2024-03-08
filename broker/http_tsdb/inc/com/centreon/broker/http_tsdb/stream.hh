@@ -19,20 +19,20 @@
 #ifndef CCB_HTTP_TSDB_STREAM_HH
 #define CCB_HTTP_TSDB_STREAM_HH
 
-#include "com/centreon/broker/http_client/http_client.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/persistent_cache.hh"
+#include "com/centreon/common/http/http_client.hh"
 #include "http_tsdb_config.hh"
 #include "internal.hh"
 #include "line_protocol_query.hh"
 
-namespace http_client = com::centreon::broker::http_client;
+namespace http = com::centreon::common::http;
 
 namespace com::centreon::broker {
 
 namespace http_tsdb {
 
-class request : public http_client::request_base {
+class request : public http::request_base {
  protected:
   unsigned _nb_metric;
   unsigned _nb_status;
@@ -43,9 +43,8 @@ class request : public http_client::request_base {
   request() : _nb_metric(0), _nb_status(0) {}
   request(boost::beast::http::verb method,
           const std::string& server_name,
-          boost::beast::string_view target,
-          unsigned version = 11)
-      : http_client::request_base(method, server_name, target),
+          boost::beast::string_view target)
+      : http::request_base(method, server_name, target),
         _nb_metric(0),
         _nb_status(0) {}
 
@@ -82,7 +81,7 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   // Database and http parameters
   std::shared_ptr<http_tsdb_config> _conf;
 
-  http_client::client::pointer _http_client;
+  http::client::pointer _http_client;
 
   // number of metric and status sent to tsdb and acknowledged by a 20x response
   unsigned _acknowledged;
@@ -129,8 +128,8 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
          const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const std::shared_ptr<http_tsdb_config>& conf,
-         http_client::client::connection_creator conn_creator =
-             http_client::http_connection::load);
+         http::client::connection_creator conn_creator =
+             http::http_connection::load);
 
   virtual request::pointer create_request() const = 0;
 
@@ -139,7 +138,7 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   void send_handler(const boost::beast::error_code& err,
                     const std::string& detail,
                     const request::pointer& request,
-                    const http_client::response_ptr& response);
+                    const http::response_ptr& response);
 
   void add_to_stat(stat& to_maj, unsigned to_add);
 
@@ -155,6 +154,6 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
 };
 }  // namespace http_tsdb
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_HTTP_TSDB_STREAM_HH

@@ -34,6 +34,7 @@ using duration = system_clock::duration;
 #include "com/centreon/broker/victoria_metrics/stream.hh"
 
 using namespace com::centreon::broker;
+using namespace com::centreon::common;
 using namespace com::centreon::broker::victoria_metrics;
 using namespace nlohmann;
 
@@ -49,7 +50,7 @@ class victoria_stream_test : public ::testing::Test {
 };
 
 TEST_F(victoria_stream_test, Authorization) {
-  http_client::http_config dummy;
+  http::http_config dummy;
   std::vector<http_tsdb::column> dummy2;
   auto cfg = std::make_shared<http_tsdb::http_tsdb_config>(
       dummy, "/write", "Aladdin", "open sesame", 1, dummy2, dummy2);

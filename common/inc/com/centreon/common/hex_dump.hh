@@ -19,10 +19,10 @@
 #ifndef CCCM_HEX_DUMP_HH
 #define CCCM_HEX_DUMP_HH
 
-
 namespace com::centreon::common {
 
-std::string hex_dump(const unsigned char* buffer, size_t buff_len,
+std::string hex_dump(const unsigned char* buffer,
+                     size_t buff_len,
                      uint32_t nb_char_per_line);
 
 inline std::string hex_dump(const std::string& buffer,

@@ -19,9 +19,8 @@
 #ifndef CCB_HTTP_CLIENT_CONFIG_HH__
 #define CCB_HTTP_CLIENT_CONFIG_HH__
 
-namespace com::centreon::broker {
+namespace com::centreon::common::http {
 
-namespace http_client {
 /**
  * @brief this class is a bean that contains all config parameters
  *
@@ -99,13 +98,11 @@ class http_config {
   const std::string& get_certificate_path() const { return _certificate_path; }
 };
 
-};  // namespace http_client
-
-}
+}  // namespace com::centreon::common::http
 
 namespace fmt {
 template <>
-struct formatter<com::centreon::broker::http_client::http_config> {
+struct formatter<com::centreon::common::http::http_config> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) {
     return ctx.begin();
   }
@@ -113,7 +110,7 @@ struct formatter<com::centreon::broker::http_client::http_config> {
   // Formats the point p using the parsed format specification (presentation)
   // stored in this formatter.
   template <typename FormatContext>
-  auto format(const com::centreon::broker::http_client::http_config& conf,
+  auto format(const com::centreon::common::http::http_config& conf,
               FormatContext& ctx) const -> decltype(ctx.out()) {
     std::ostringstream s;
     s << conf.get_endpoint();

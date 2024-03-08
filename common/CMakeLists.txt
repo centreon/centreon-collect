@@ -21,6 +21,7 @@ project("Centreon common" C CXX)
 
 # Set directories.
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/common")
+set (HTTP_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/http/inc/com/centreon/common/http")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/test")
 
@@ -52,6 +53,7 @@ set(SOURCES
 
 # Include directories.
 include_directories("${INCLUDE_DIR}"
+  ${HTTP_INCLUDE_DIR}
 	${VCPKG_INCLUDE_DIR}
   )
 
@@ -61,6 +63,8 @@ target_include_directories(centreon_common PRIVATE ${INCLUDE_DIR})
 set_property(TARGET centreon_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_precompile_headers(centreon_common PRIVATE precomp_inc/precomp.hh)
+
+add_subdirectory(http)
 
 if(WITH_TESTING)
   add_subdirectory(test)

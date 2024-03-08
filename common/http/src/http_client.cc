@@ -17,12 +17,11 @@
  *
  */
 
-#include "com/centreon/common/defer.hh"
+#include "defer.hh"
 
 #include "http_client.hh"
 
-using namespace com::centreon::broker;
-using namespace com::centreon::broker::http_client;
+using namespace com::centreon::common::http;
 
 using lock_guard = std::lock_guard<std::mutex>;
 

@@ -21,9 +21,8 @@
 
 #include "http_connection.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::common::http {
 
-namespace http_client {
 /**
  * @brief https version of http_connection
  * interface is the same
@@ -78,8 +77,6 @@ class https_connection : public connection_base {
   void send(request_ptr request, send_callback_type&& callback) override;
 };
 
-}  // namespace http_client
-
-}
+}  // namespace com::centreon::common::http
 
 #endif  // CCB_HTTPS_CLIENT_CONNEXION_HH__

@@ -42,8 +42,8 @@ class stream : public http_tsdb::stream {
   stream(const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
          const std::string& account_id,
-         http_client::client::connection_creator conn_creator =
-             http_client::http_connection::load);
+         common::http::client::connection_creator conn_creator =
+             common::http::http_connection::load);
 
   http_tsdb::request::pointer create_request() const override;
 
@@ -54,14 +54,14 @@ class stream : public http_tsdb::stream {
       const std::shared_ptr<asio::io_context>& io_context,
       const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
       const std::string& account_id,
-      http_client::client::connection_creator conn_creator =
-          http_client::http_connection::load);
+      common::http::client::connection_creator conn_creator =
+          common::http::http_connection::load);
 
   const std::string& get_authorization() const { return _authorization; }
 };
 
 };  // namespace victoria_metrics
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_VICTORIA_METRICS_STREAM_HH

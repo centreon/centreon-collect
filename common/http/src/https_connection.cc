@@ -23,15 +23,13 @@
 
 #include "https_connection.hh"
 
-using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
-using namespace com::centreon::broker::http_client;
+using namespace com::centreon::common::http;
 
 namespace beast = boost::beast;
 
-namespace com::centreon::broker {
+namespace com::centreon::common::http::detail {
 
-namespace http_client::detail {
 /**
  * @brief to avoid read certificate on each request, this singleton do the job
  * it maintains a certificate cache
@@ -119,9 +117,7 @@ void certificate_cache::clean() {
   }
 }
 
-};  // namespace http_client::detail
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::common::http::detail
 
 /**
  * @brief Construct a new https connection::https connection object

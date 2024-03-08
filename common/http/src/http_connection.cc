@@ -19,8 +19,7 @@
 
 #include "http_connection.hh"
 
-using namespace com::centreon::broker;
-using namespace com::centreon::broker::http_client;
+using namespace com::centreon::common::http;
 
 std::string connection_base::state_to_str(unsigned state) {
   switch (state) {

@@ -21,9 +21,8 @@
 
 #include "http_config.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::common::http {
 
-namespace http_client {
 /**
  * @brief we use a std::string body
  *
@@ -207,22 +206,20 @@ class http_connection : public connection_base {
   void send(request_ptr request, send_callback_type&& callback) override;
 };
 
-}  // namespace http_client
-
-}
+}  // namespace com::centreon::common::http
 
 namespace fmt {
 
 template <>
-struct formatter<com::centreon::broker::http_client::request_type>
+struct formatter<com::centreon::common::http::request_type>
     : ostream_formatter {};
 
 template <>
-struct formatter<com::centreon::broker::http_client::request_base>
+struct formatter<com::centreon::common::http::request_base>
     : ostream_formatter {};
 
 template <>
-struct formatter<com::centreon::broker::http_client::response_type>
+struct formatter<com::centreon::common::http::response_type>
     : ostream_formatter {};
 
 }  // namespace fmt
