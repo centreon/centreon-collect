@@ -406,7 +406,7 @@ BABOOCOMPL_RESTART
         ${start}    Get Current Date
 
 	# A restart of cbd should not alter the boolean rules content.
-	Restart Broker
+	Ctn Restart Broker
 	${content}    Create List    Inherited downtimes and BA states restored
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
 	Should Be True    ${result}    It seems that no cache has been restored into BAM.
@@ -500,7 +500,7 @@ BABOOCOMPL_RELOAD
         ${start}    Get Current Date
 
 	# A restart of cbd should not alter the boolean rules content.
-	Reload Broker
+	Ctn Reload Broker
 	${content}    Create List    Inherited downtimes and BA states restored
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
 	Should Be True    ${result}    It seems that no cache has been restored into BAM.
