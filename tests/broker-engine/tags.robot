@@ -712,67 +712,67 @@ BEUTAG12
 
 
 BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
-    [Documentation]    remove a host from hostgroup, reload, insert 2 host in the hostgroup must not make sql error
+    [Documentation]    Remove a host from hostgroup, reload, insert 2 host in the hostgroup must not make sql error
     [Tags]    broker    engine    tags
-    Clear Db    tags
-    Config Engine    ${1}
-    Create Tags File    ${0}    ${3}    ${0}    hostgroup
-    Config Engine Add Cfg File    ${0}    tags.cfg
-    Add Tags To Hosts    ${0}    group_tags    2    1
-    Add Tags To Hosts    ${0}    group_tags    1    4
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module
-    Config Broker Sql Output    central    unified_sql
-    Config BBDO3    1
-    Broker Config Log    module0    neb    debug
-    Broker Config Log    central    sql    trace
-    Clear Retention
+    Ctn Clear Db    tags
+    Ctn Config Engine    ${1}
+    Ctn Create Tags File    ${0}    ${3}    ${0}    hostgroup
+    Ctn Config Engine Add Cfg File    ${0}    tags.cfg
+    Ctn Add Tags To Hosts    ${0}    group_tags    2    1
+    Ctn Add Tags To Hosts    ${0}    group_tags    1    4
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Clear Retention
     Sleep    1s
     ${start}    Get Current Date
-    Start Engine
-    Start Broker
+    Ctn Start Engine
+    Ctn Start Broker
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    True
+    ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    True
     Should Be True    ${result}    Host 1 should not have hostgroup tags 2
 
     ${content}    Create List    unified_sql:_check_queues
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message unified_sql:_check_queues should be available.
 
-    Engine Config Remove Service Host    ${0}    host_1
-    Engine Config Remove Host    0    host_1
-    Engine Config Remove Tag    0    2
-    Reload Engine
+    Ctn Engine Config Remove Service Host    ${0}    host_1
+    Ctn Engine Config Remove Host    0    host_1
+    Ctn Engine Config Remove Tag    0    2
+    Ctn Reload Engine
 
-    ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    False
+    ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    False
     Should Be True    ${result}    Host 1 should not have hostgroup tags 2
 
     # wait for commits
     ${start}    Get Current Date
     ${content}    Create List    unified_sql:_check_queues
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message unified_sql:_check_queues should be available.
 
     Sleep    5
 
-    Create Tags File    ${0}    ${3}    ${0}    hostgroup
-    Add Tags To Hosts    ${0}    group_tags    2    [2,3]
-    Reload Engine
+    Ctn Create Tags File    ${0}    ${3}    ${0}    hostgroup
+    Ctn Add Tags To Hosts    ${0}    group_tags    2    [2,3]
+    Ctn Reload Engine
 
-    ${result}    Check Resources Tags With Timeout    0    2    hostgroup    [2]    60    True
+    ${result}    Ctn Check Resources Tags With Timeout    0    2    hostgroup    [2]    60    True
     Should Be True    ${result}    Host 2 should have hostgroup tags 2
 
-    ${result}    Check Resources Tags With Timeout    0    3    hostgroup    [2]    60    True
+    ${result}    Ctn Check Resources Tags With Timeout    0    3    hostgroup    [2]    60    True
     Should Be True    ${result}    Host 3 should have hostgroup tags 2
 
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 *** Keywords ***
 Ctn Init Test
