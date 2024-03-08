@@ -182,6 +182,44 @@ class rapidjson_helper {
    * @param type_name type that will be described in exception message
    * @param original_type_tester Value method like IsString
    * @param original_getter  Value getter like GetString
+   * @param default_value value returned if field is missing
+   * @return * template <typename return_type>  value returned by original
+   * getter
+   */
+  template <typename return_type, typename type_tester>
+  return_type get_or_default(const char* field_name,
+                             const char* type_name,
+                             const type_tester& original_type_tester,
+                             return_type (rapidjson::Value::*original_getter)()
+                                 const,
+                             const return_type& default_value) const {
+    if (!_val.IsObject()) {
+      throw exceptions::msg_fmt("not an object parent of field {}", field_name);
+    }
+    auto member = _val.FindMember(field_name);
+    if (member == _val.MemberEnd()) {
+      return default_value;
+    }
+    if (!(member->value.*original_type_tester)()) {
+      throw exceptions::msg_fmt("field {} is not a {}", field_name, type_name);
+    }
+
+    return (member->value.*original_getter)();
+  }
+
+  /**
+   * @brief this method simplify access to rapid json value
+   * if field is not found it returns default
+   * if has not the correct type, it throws an exception
+   * this method is used by the following getters
+   * It also allows number contained in string "456"
+   * The conversion param for string is passed in last param
+   *
+   * @tparam return_type double, uint64_t
+   * @param field_name member field name
+   * @param type_name type that will be described in exception message
+   * @param original_type_tester Value method like IsString
+   * @param original_getter  Value getter like GetString
    * @param simple_ato  absl::SimpleAtoi Atod.....
    * @param default_value value returned if field is missing
    * @return * template <typename return_type>  value returned by original
@@ -219,13 +257,15 @@ class rapidjson_helper {
   }
 
   const char* get_string(const char* field_name) const;
+  const char* get_string(const char* field_name,
+                         const char* default_value) const;
 
   double get_double(const char* field_name) const;
 
   uint64_t get_uint64_t(const char* field_name) const;
 
   unsigned get_unsigned(const char* field_name) const;
-  unsigned get_unsigned(const char* field_name, unsigned dafault) const;
+  unsigned get_unsigned(const char* field_name, unsigned default_value) const;
 
   int get_int(const char* field_name) const;
 

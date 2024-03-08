@@ -57,6 +57,10 @@ static constexpr std::string_view _grpc_config_schema(R"(
         "server": {
             "description": "otel grpc config",
             "type": "object"
+        },
+        "telegraf_conf_server": {
+            "description": "http(s) telegraf config server",
+            "type": "object"
         }
     },
     "required": [
@@ -85,15 +89,32 @@ otl_config::otl_config(const std::string_view& file_path) {
   _second_fifo_expiry = file_content.get_unsigned("second_fifo_expiry", 600);
   _max_fifo_size = file_content.get_unsigned("max_fifo_size", 5);
   _grpc_conf = std::make_shared<grpc_config>(file_content.get_member("server"));
+  if (file_content.has_member("telegraf_conf_server")) {
+    _telegraf_conf_server_config =
+        std::make_shared<telegraf::conf_server_config>(
+            file_content.get_member("server"));
+  }
 }
 
+/**
+ * @brief compare two otl_config
+ *
+ * @param right
+ * @return true
+ * @return false
+ */
 bool otl_config::operator==(const otl_config& right) const {
   if (!_grpc_conf || !right._grpc_conf) {
     return false;
   }
-  return *_grpc_conf == *right._grpc_conf &&
-         _max_length_grpc_log == right._max_length_grpc_log &&
-         _json_grpc_log == right._json_grpc_log &&
-         _second_fifo_expiry == right._second_fifo_expiry &&
-         _max_fifo_size == right._max_fifo_size;
+  bool ret = *_grpc_conf == *right._grpc_conf &&
+             _max_length_grpc_log == right._max_length_grpc_log &&
+             _json_grpc_log == right._json_grpc_log &&
+             _second_fifo_expiry == right._second_fifo_expiry &&
+             _max_fifo_size == right._max_fifo_size;
+
+  if (_telegraf_conf_server_config && right._telegraf_conf_server_config) {
+    return *_telegraf_conf_server_config == *right._telegraf_conf_server_config;
+  }
+  return !_telegraf_conf_server_config && !right._telegraf_conf_server_config;
 }

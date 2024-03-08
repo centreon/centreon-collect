@@ -90,6 +90,13 @@ const char* rapidjson_helper::get_string(const char* field_name) const {
                           &rapidjson::Value::GetString);
 }
 
+const char* rapidjson_helper::get_string(const char* field_name,
+                                         const char* default_value) const {
+  return get_or_default<const char*>(
+      field_name, "string", &rapidjson::Value::IsString,
+      &rapidjson::Value::GetString, default_value);
+}
+
 /**
  * @brief read a double field
  *
