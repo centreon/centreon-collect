@@ -994,10 +994,9 @@ def ctn_engine_config_remove_host(idx: int, host: str):
         idx (int): Index of the configuration (from 0)
         host (str): name of the host wanted to be removed
     """
-    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
 
     host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
     host_begin = re.compile(r"^define host {$")
