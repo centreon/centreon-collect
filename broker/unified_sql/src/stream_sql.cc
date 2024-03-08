@@ -255,7 +255,8 @@ void stream::_update_hosts_and_services_of_unresponsive_instances() {
       _instance_timeout);
 
   /* Don't do anything if timeout is deactivated. */
-  if (_instance_timeout == 0) return;
+  if (_instance_timeout == 0)
+    return;
 
   if (_stored_timestamps.size() == 0 ||
       std::difftime(std::time(nullptr), _oldest_timestamp) <= _instance_timeout)
@@ -1484,7 +1485,8 @@ void stream::_process_host_parent(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
-  if (!_store_in_hosts_services) return;
+  if (!_store_in_hosts_services)
+    return;
 
   _finish_action(-1, actions::instances | actions::downtimes |
                          actions::comments | actions::custom_variables |
@@ -1928,21 +1930,19 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
         SPDLOG_LOGGER_ERROR(
             log_v2::sql(),
             "SQL: could not find in cache the tag ({}, {}) for host "
-            "'{}': "
-            "trying to add it.",
+            "'{}': trying to add it.",
             tag.id(), tag.type(), h.host_id());
-        if (!_tag_insert.prepared())
-          _tag_insert = _mysql.prepare_query(
-              "INSERT INTO tags (id,type,name) VALUES(?,?,?)");
-        _tag_insert.bind_value_as_u64(0, tag.id());
-        _tag_insert.bind_value_as_u32(1, tag.type());
-        _tag_insert.bind_value_as_str(2, "(unknown)");
+        if (!_tag_insert_update.prepared())
+          _tag_insert_update = _mysql.prepare_query(_insert_or_update_tags);
+        _tag_insert_update.bind_value_as_u64(0, tag.id());
+        _tag_insert_update.bind_value_as_u32(1, tag.type());
+        _tag_insert_update.bind_value_as_str(2, "(unknown)");
         std::promise<uint64_t> p;
         std::future<uint64_t> future = p.get_future();
 
         _mysql.run_statement_and_get_int<uint64_t>(
-            _tag_insert, std::move(p), database::mysql_task::LAST_INSERT_ID,
-            conn);
+            _tag_insert_update, std::move(p),
+            database::mysql_task::LAST_INSERT_ID, conn);
         try {
           uint64_t tag_id = future.get();
           it_tags_cache =
@@ -2141,7 +2141,8 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
           _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
       if (_bulk_prepared_statement) {
         std::lock_guard<bulk_bind> lck(*_hscr_bind);
-        if (!_hscr_bind->bind(conn)) _hscr_bind->init_from_stmt(conn);
+        if (!_hscr_bind->bind(conn))
+          _hscr_bind->init_from_stmt(conn);
         auto* b = _hscr_bind->bind(conn).get();
         b->set_value_as_bool(0, hscr.checked());
         b->set_value_as_i32(1, hscr.check_type());
@@ -3472,17 +3473,16 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
             "SQL: could not find in cache the tag ({}, {}) for service "
             "({},{}): trying to add it.",
             tag.id(), tag.type(), s.host_id(), s.service_id());
-        if (!_tag_insert.prepared())
-          _tag_insert = _mysql.prepare_query(
-              "INSERT INTO tags (id,type,name) VALUES(?,?,?)");
-        _tag_insert.bind_value_as_u64(0, tag.id());
-        _tag_insert.bind_value_as_u32(1, tag.type());
-        _tag_insert.bind_value_as_str(2, "(unknown)");
+        if (!_tag_insert_update.prepared())
+          _tag_insert_update = _mysql.prepare_query(_insert_or_update_tags);
+        _tag_insert_update.bind_value_as_u64(0, tag.id());
+        _tag_insert_update.bind_value_as_u32(1, tag.type());
+        _tag_insert_update.bind_value_as_str(2, "(unknown)");
         std::promise<uint64_t> p;
         std::future<uint64_t> future = p.get_future();
         _mysql.run_statement_and_get_int<uint64_t>(
-            _tag_insert, std::move(p), database::mysql_task::LAST_INSERT_ID,
-            conn);
+            _tag_insert_update, std::move(p),
+            database::mysql_task::LAST_INSERT_ID, conn);
         try {
           uint64_t tag_id = future.get();
           it_tags_cache =
@@ -3771,7 +3771,8 @@ void stream::_check_and_update_index_cache(const Service& ss) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
-  if (!_store_in_hosts_services) return;
+  if (!_store_in_hosts_services)
+    return;
 
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
@@ -3887,7 +3888,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
           _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
       if (_bulk_prepared_statement) {
         std::lock_guard<bulk_bind> lck(*_sscr_bind);
-        if (!_sscr_bind->bind(conn)) _sscr_bind->init_from_stmt(conn);
+        if (!_sscr_bind->bind(conn))
+          _sscr_bind->init_from_stmt(conn);
         auto* b = _sscr_bind->bind(conn).get();
         b->set_value_as_bool(0, sscr.checked());
         b->set_value_as_i32(1, sscr.check_type());
@@ -4074,7 +4076,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 }
 
 void stream::_process_severity(const std::shared_ptr<io::data>& d) {
-  if (!_store_in_resources) return;
+  if (!_store_in_resources)
+    return;
 
   SPDLOG_LOGGER_DEBUG(log_v2::sql(), "SQL: processing severity");
   _finish_action(-1, actions::resources);
@@ -4168,7 +4171,8 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
 }
 
 void stream::_process_tag(const std::shared_ptr<io::data>& d) {
-  if (!_store_in_resources) return;
+  if (!_store_in_resources)
+    return;
 
   SPDLOG_LOGGER_INFO(log_v2::sql(), "SQL: processing tag");
   _finish_action(-1, actions::tags);
