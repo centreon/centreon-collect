@@ -1168,7 +1168,7 @@ BEATOI21
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     Ctn Add Host Comment    host_1    1    user    comment
-    ${content}    Create List    CTN_ADD_HOST_COMMENT
+    ${content}    Create List    ADD_HOST_COMMENT
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    the comment with id:1 was not added.
     ${com_id}    Ctn Find Internal Id    ${start}    True    30
