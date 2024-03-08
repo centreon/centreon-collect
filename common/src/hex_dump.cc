@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include <fmt/format.h>
 
 #include "hex_dump.hh"
 

@@ -17,16 +17,10 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <mutex>
-
-#include <absl/strings/numbers.h>
-
 #include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
-
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 #include "rapidjson_helper.hh"
 

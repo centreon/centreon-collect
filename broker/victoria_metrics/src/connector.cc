@@ -17,8 +17,8 @@
  */
 
 #include "com/centreon/broker/victoria_metrics/connector.hh"
-#include "com/centreon/broker/http_client/https_connection.hh"
 #include "com/centreon/broker/victoria_metrics/stream.hh"
+#include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/common/pool.hh"
 
 using namespace com::centreon::broker;
@@ -37,9 +37,9 @@ connector::connector(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
 std::shared_ptr<io::stream> connector::open() {
   if (!_conf->is_crypted()) {
     return stream::load(com::centreon::common::pool::io_context_ptr(), _conf,
-                        _account_id, http_client::http_connection::load);
+                        _account_id, common::http::http_connection::load);
   } else {
     return stream::load(com::centreon::common::pool::io_context_ptr(), _conf,
-                        _account_id, http_client::https_connection::load);
+                        _account_id, common::http::https_connection::load);
   }
 }

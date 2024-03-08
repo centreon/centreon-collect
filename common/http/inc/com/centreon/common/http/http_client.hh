@@ -23,12 +23,10 @@
 
 class client_test;
 
-namespace com::centreon::broker {
+namespace com::centreon::common::http {
 
-namespace http_client {
 /**
  * @class client
- * "broker/http_client/inc/com/centreon/broker/http_client/http_client.hh"
  *
  * @brief this class is the heart of the library
  * it dispatchs requests on connections to the server
@@ -146,9 +144,6 @@ void client::visit_queue(visitor_type& visitor) const {
     visitor(*cb->request);
   }
 }
-
-}  // namespace http_client
-
-}
+}  // namespace com::centreon::common::http
 
 #endif  // CCB_HTTP_CLIENT_CLIENT_HH__

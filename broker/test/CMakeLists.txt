@@ -42,7 +42,7 @@ include_directories(${PROJECT_SOURCE_DIR}/tcp/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls2/inc)
 include_directories(${PROJECT_SOURCE_DIR}/grpc/inc)
-include_directories(${PROJECT_SOURCE_DIR}/http_client/inc)
+include_directories(${CMAKE_SOURCE_DIR}/common/http/inc)
 include_directories(${PROJECT_SOURCE_DIR}/http_tsdb/inc)
 include_directories(${PROJECT_SOURCE_DIR}/victoria_metrics/inc)
 include_directories(${PROJECT_SOURCE_DIR}/test/test_util/inc)
@@ -74,6 +74,7 @@ target_link_libraries(
   rpc_client
   berpc
   centreon_common
+  spdlog::spdlog
   -L${PROTOBUF_LIB_DIR}
   gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
   crypto ssl

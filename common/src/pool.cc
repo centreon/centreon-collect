@@ -16,14 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include <spdlog/spdlog.h>
-#include <forward_list>
-#include <mutex>
-#include <thread>
-
-#include <boost/asio.hpp>
-
-namespace asio = boost::asio;
 
 #include "pool.hh"
 

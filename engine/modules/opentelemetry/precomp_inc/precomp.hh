@@ -53,4 +53,6 @@ namespace asio = boost::asio;
 
 #include "com/centreon/engine/log_v2.hh"
 
+#include "com/centreon/exceptions/msg_fmt.hh"
+
 #endif
