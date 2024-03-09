@@ -1,20 +1,20 @@
-/*
-** Copyright 2021-2023 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2021-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #include "com/centreon/broker/unified_sql/stream.hh"
 
 #include <absl/strings/str_split.h>
@@ -514,8 +514,8 @@ void stream::_load_caches() {
         if (metric_id <= 0)
           SPDLOG_LOGGER_ERROR(
               log_v2::sql(),
-              "unified_sql: the 'metrics' table contains row with metric_id "
-              "<= 0 ; you should remove them.");
+              "unified_sql: the 'metrics' table contains row with metric_id {} "
+              "<= 0 ; you should remove it.", metric_id);
         else {
           uint64_t index_id = res.value_as_u64(1);
           std::string metric_name = res.value_as_str(2);
@@ -893,10 +893,11 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         while (ms.fetch_row(res)) {
           int32_t metric_id = res.value_as_i32(1);
           if (metric_id <= 0)
-            SPDLOG_LOGGER_ERROR(log_v2::sql(),
-                                "unified_sql: the 'metrics' table contains "
-                                "rows with metric_id "
-                                "<= 0 ; you should remove them.");
+            SPDLOG_LOGGER_ERROR(
+                log_v2::sql(),
+                "unified_sql: the 'metrics' table contains rows with metric_id "
+                "{} <= 0 ; you should remove it.",
+                metric_id);
           else {
             metrics_to_delete.insert(metric_id);
             _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});

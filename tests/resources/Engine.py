@@ -8,7 +8,6 @@ import engine_pb2_grpc
 from array import array
 from os import makedirs, chmod
 from os.path import exists, dirname
-from xml.etree.ElementTree import Comment
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 import db_conf
@@ -409,27 +408,27 @@ passive_checks_enabled 1
 
     @staticmethod
     def create_tags(poller: int, nb: int, offset: int, tag_type: str):
-        tt = ["servicegroup", "hostgroup", "servicecategory", "hostcategory"]   
+        tt = ["servicegroup", "hostgroup", "servicecategory", "hostcategory"]
 
-        config_file = f"{CONF_DIR}/config{poller}/tags.cfg"                         
-        with open(config_file, "w+") as ff:                                              
-            content = ""                                                                 
-            tid = 0                                                                      
-            for i in range(nb):                                                          
-                if len(tag_type) > 0:                                                    
-                    typ = tag_type                                                       
-                    tid += 1                                                             
-                else:                                                                    
-                    if i % 4 == 0:                                                       
-                        tid += 1                                                         
-                    typ = tt[i % 4]                                                      
+        config_file = f"{CONF_DIR}/config{poller}/tags.cfg"
+        with open(config_file, "w+") as ff:
+            content = ""
+            tid = 0
+            for i in range(nb):
+                if len(tag_type) > 0:
+                    typ = tag_type
+                    tid += 1
+                else:
+                    if i % 4 == 0:
+                        tid += 1
+                    typ = tt[i % 4]
                 content += """define tag {{                                              
     id                     {0}                                                           
     tag_name               tag{2}                                                        
     type                   {1}                                                           
 }}                                                                                       
-""".format(tid, typ, i + offset)                                                         
-            ff.write(content)                                                            
+""".format(tid, typ, i + offset)
+            ff.write(content)
 
     def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
         if exists(CONF_DIR):
@@ -438,7 +437,6 @@ passive_checks_enabled 1
         if hosts % self.instances > 0:
             r = 1
         v = int(hosts / self.instances) + r
-        last = hosts - (self.instances - 1) * v
         for inst in range(self.instances):
             if v < hosts:
                 nb_hosts = v
@@ -462,7 +460,7 @@ passive_checks_enabled 1
                 self.hosts.append("host_{}".format(h["hid"]))
                 for j in range(1, services_by_host + 1):
                     ff.write(self.ctn_create_service(h["hid"],
-                                                 (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
+                                                     (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
                     self.services.append("service_{}".format(h["hid"]))
             ff.close()
             f.close()
@@ -664,6 +662,7 @@ define contact {
 
 engine = None
 
+
 def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
     """
     Configure all the necessary files for num instances of centengine.
@@ -719,6 +718,7 @@ def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = Fa
     f = open(filename, "w")
     f.writelines(lines)
     f.close()
+
 
 def ctn_engine_config_add_value(idx: int, key: str, value: str):
     """
@@ -789,6 +789,7 @@ def ctn_engine_config_replace_value_in_services(idx: int, desc: str, key: str, v
 
     with open(filename, "w") as f:
         f.writelines(lines)
+
 
 def ctn_engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
     """
@@ -994,10 +995,9 @@ def ctn_engine_config_remove_host(idx: int, host: str):
         idx (int): Index of the configuration (from 0)
         host (str): name of the host wanted to be removed
     """
-    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
 
     host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
     host_begin = re.compile(r"^define host {$")
@@ -1034,7 +1034,7 @@ def ctn_add_host_group(index: int, id_host_group: int, members: list):
         id_host_group (int): ID of the new host group to add.
         members (list): A list of host names.
     """
-    mbs = [l for l in members if l in engine.hosts]
+    mbs = [line for line in members if line in engine.hosts]
     f = open(ETC_ROOT + "/centreon-engine/config{}/hostgroups.cfg".format(index), "a+")
     logger.console(mbs)
     f.write(engine.create_host_group(id_host_group, mbs))
@@ -1054,7 +1054,7 @@ def ctn_rename_host_group(index: int, id_host_group: int, name: str, members: li
         name (str): host_group_name
         members (list): The new list of host members.
     """
-    mbs = [l for l in members if l in engine.hosts]
+    mbs = [line for line in members if line in engine.hosts]
     f = open(ETC_ROOT + "/centreon-engine/config{}/hostgroups.cfg".format(index), "w")
     logger.console(mbs)
     f.write("""define hostgroup {{
@@ -1090,25 +1090,25 @@ def ctn_rename_service(index: int, hst: str, svc: str, new_svc: str):
     l_svc = None
 
     for i in range(len(ll)):
-        l = ll[i]
+        line = ll[i]
         if inside:
-            if rs_end.match(l):
+            if rs_end.match(line):
                 inside = False
                 if svc == my_svc and hst == my_hst:
                     ll[l_svc] = f"    service_description\t{new_svc}\n"
                 svc, hst, l_svc = None, None, None
                 continue
-            m = rs_hst.search(l)
+            m = rs_hst.search(line)
             if m:
                 my_hst = m.group(1)
             else:
-                m = rs_svc.search(l)
+                m = rs_svc.search(line)
                 if m:
                     my_svc = m.group(1)
                     l_svc = i
 
         else:
-            if rs_start.match(l):
+            if rs_start.match(line):
                 inside = True
 
     f = open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "w")
@@ -1164,7 +1164,7 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
     f = open(ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(index), "a+")
     svc = engine.ctn_create_service(host_id, [1, cmd_id])
     lst = svc.split('\n')
-    good = [l for l in lst if "_SERVICE_ID" in l][0]
+    good = [line for line in lst if "_SERVICE_ID" in line][0]
     m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)
     if m is not None:
         retval = int(m.group(1))
@@ -1196,7 +1196,7 @@ def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id:
     to_append = engine.ctn_create_anomaly_detection(
         host_id, dependent_service_id, metric_name, sensitivity)
     lst = to_append.split('\n')
-    good = [l for l in lst if "service_id" in l][0]
+    good = [line for line in lst if "service_id" in line][0]
     m = re.search(r"service_id\s+([^\s]*)$", good)
     if m is not None:
         retval = int(m.group(1))
@@ -1302,7 +1302,7 @@ def ctn_add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warnin
         unknown_impact (int): _Impact weight in the event of an Unknown condition, in real-time monitoring. Ignored if indicator is a boolean rule
     """
     dbconf.ctn_add_ba_kpi(id_ba_src, id_ba_dest, critical_impact,
-                      warning_impact, unknown_impact)
+                          warning_impact, unknown_impact)
 
 
 def ctn_add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
@@ -2228,6 +2228,41 @@ def ctn_create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = 
     engine.create_tags(poller, nb, offset, tag_type)
 
 
+def ctn_engine_config_remove_tag(poller: int, tag_id: int):
+    """
+    Remove all the tags from tags.cfg with the given tag ID.
+
+    Args:
+        poller: Poller index.
+        tag_id: ID of the tag to remove.
+    """
+    filename = f"{CONF_DIR}/config{poller}/tags.cfg"
+    with open(filename, "r") as ff:
+        lines = ff.readlines()
+
+    tag_name = re.compile(f"^\s*id\s+{tag_id}\s*$")
+    tag_begin = re.compile(r"^define tag {$")
+    tag_end = re.compile(r"^}$")
+    tag_begin_idx = 0
+    while tag_begin_idx < len(lines):
+        if (tag_begin.match(lines[tag_begin_idx])):
+            for tag_line_idx in range(tag_begin_idx, len(lines)):
+                if (tag_name.match(lines[tag_line_idx])):
+                    for end_tag_line in range(tag_line_idx, len(lines)):
+                        if tag_end.match(lines[end_tag_line]):
+                            del lines[tag_begin_idx:end_tag_line + 1]
+                            break
+                    break
+                elif tag_end.match(lines[tag_line_idx]):
+                    tag_begin_idx = tag_line_idx
+                    break
+        else:
+            tag_begin_idx = tag_begin_idx + 1
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
 def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
     """
     Add a reference to a cfg file in the centengine.cfg file at index _poller_.
@@ -2393,7 +2428,7 @@ def ctn_remove_severities_from_services(poller: int):
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*severity_id\s*\d+$")
-    out = [l for l in lines if not r.match(l)]
+    out = [line for line in lines if not r.match(line)]
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(out)
     ff.close()
@@ -2410,10 +2445,11 @@ def ctn_remove_severities_from_hosts(poller: int):
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*severity_id\s*\d+$")
-    out = [l for l in lines if not r.match(l)]
+    out = [line for line in lines if not r.match(line)]
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(out)
     ff.close()
+
 
 def ctn_check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
     """
@@ -2505,7 +2541,7 @@ def ctn_remove_tags_from_services(poller: int, type: str):
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*" + type + r"\s*[0-9,]+$")
-    lines = [l for l in lines if not r.match(l)]
+    lines = [line for line in lines if not r.match(line)]
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
@@ -2523,32 +2559,8 @@ def ctn_remove_tags_from_hosts(poller: int, type: str):
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*" + type + r"\s*[0-9,]+$")
-    lines = [l for l in lines if not r.match(l)]
+    lines = [line for line in lines if not r.match(line)]
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(lines)
-    ff.close()
-
-
-def ctn_add_template_to_services(poller: int, tmpl: str, svc_lst):
-    """
-    Add a service template to services.
-
-    Args:
-        poller (int): Index of the poller to work with.
-        tmpl (str): The name of the template to add.
-        svc_lst (list): A list of service IDs. We don't take care of host IDs here.
-    """
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
-    r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
-    for i in range(len(lines)):
-        m = r.match(lines[i])
-        if m is not None and m.group(1) in svc_lst:
-            lines.insert(
-                i + 1, "    use                     {}\n".format(tmpl))
-
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
 
@@ -2590,7 +2602,7 @@ def ctn_config_engine_remove_cfg_file(poller: int, fic: str):
     ff.close()
     r = re.compile(
         r"^\s*cfg_file=" + ETC_ROOT + "/centreon-engine/config{}/{}".format(poller, fic))
-    linesearch = [l for l in lines if not r.match(l)]
+    linesearch = [line for line in lines if not r.match(line)]
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(linesearch)
     ff.close()
@@ -2976,35 +2988,34 @@ def ctn_modify_retention_dat(poller, host, service, key, value):
         hst = ""
         svc = ""
         for i in range(len(lines)):
-            l = lines[i]
+            line = lines[i]
             if not in_block:
-                if l == "service {\n":
+                if line == "service {\n":
                     in_block = True
                     continue
             else:
-                if l == "}\n":
+                if line == "}\n":
                     in_block = False
                     hst = ""
                     svc = ""
                     continue
-                m = r_hst.match(l)
+                m = r_hst.match(line)
                 if m:
                     hst = m.group(1)
                     continue
-                m = r_svc.match(l)
+                m = r_svc.match(line)
                 if m:
                     svc = m.group(1)
                     continue
-                if l.startswith(f"{key}=") and host == hst and svc == service:
+                if line.startswith(f"{key}=") and host == hst and svc == service:
                     logger.console(f"key '{key}' found !")
                     lines[i] = f"{key}={value}\n"
                     hst = ""
                     svc = ""
 
-        ff = open(
-            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
-        ff.writelines(lines)
-        ff.close()
+        with open(
+                f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w") as ff:
+            ff.writelines(lines)
 
 
 def ctn_modify_retention_dat_host(poller, host, key, value):
@@ -3028,21 +3039,21 @@ def ctn_modify_retention_dat_host(poller, host, key, value):
         in_block = False
         hst = ""
         for i in range(len(lines)):
-            l = lines[i]
+            line = lines[i]
             if not in_block:
-                if l == "host {\n":
+                if line == "host {\n":
                     in_block = True
                     continue
             else:
-                if l == "}\n":
+                if line == "}\n":
                     in_block = False
                     hst = ""
                     continue
-                m = r_hst.match(l)
+                m = r_hst.match(line)
                 if m:
                     hst = m.group(1)
                     continue
-                if l.startswith(f"{key}=") and host == hst:
+                if line.startswith(f"{key}=") and host == hst:
                     logger.console(f"key '{key}' found !")
                     lines[i] = f"{key}={value}\n"
                     hst = ""
