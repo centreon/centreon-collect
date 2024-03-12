@@ -1,5 +1,5 @@
-/*
- * Copyright 2014, 2021-2023 Centreon
+/**
+ * Copyright 2014, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,14 +20,12 @@
 #define CCB_BAM_BOOL_EXPRESSION_HH
 
 #include "bbdo/bam/state.hh"
+#include "bbdo/bam_state.pb.h"
 #include "com/centreon/broker/bam/computable.hh"
-#include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "impact_values.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker::bam {
 
-namespace bam {
 // Forward declaration.
 class bool_value;
 
@@ -59,8 +57,7 @@ class bool_expression : public computable {
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };
-}  // namespace bam
 
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_EXPRESSION_HH

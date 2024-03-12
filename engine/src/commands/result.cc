@@ -108,7 +108,7 @@ void result::_internal_copy(result const& right) {
   output = right.output;
 }
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 namespace commands {
 std::ostream& operator<<(std::ostream& s, const result& to_dump) {
   s << "start_time=" << to_dump.start_time << ", end_time=" << to_dump.end_time
@@ -120,4 +120,4 @@ std::ostream& operator<<(std::ostream& s, const result& to_dump) {
 
 }  // namespace commands
 
-CCE_END()
+}  // namespace com::centreon::engine

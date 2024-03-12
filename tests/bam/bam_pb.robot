@@ -19,7 +19,7 @@ Test Teardown       Save Logs If Failed
 
 *** Test Cases ***
 BAWORST
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured.
+    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. We also check stats output
     [Tags]    broker    downtime    engine    bam
     BAM Init
 
@@ -91,14 +91,43 @@ BAWORST
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${output}    Query
-    ...    SELECT current_level, acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
-    Should Be Equal As Strings    ${output}    ((100.0, 0.0, 0.0, 0, 2),)
+    ...    SELECT acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
+    Should Be Equal As Strings    ${output}    ((0.0, 0.0, 0, 2),)
 
     ${result}    Check Ba Output With Timeout
     ...    test
     ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Service host_16/service_303 is in WARNING state, KPI Service host_16/service_314 is in CRITICAL state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
+
+    # check broker stats
+    ${res}    Get Broker Stats    central    1: 127.0.0.1:[0-9]+    10    endpoint central-broker-master-input    peers
+    Should Be True    ${res}    no central-broker-master-input.peers found in broker stat output
+
+    ${res}    Get Broker Stats    central    listening    10    endpoint central-broker-master-input    state
+    Should Be True    ${res}    central-broker-master-input not listening
+
+    ${res}    Get Broker Stats    central    connected    10    endpoint centreon-bam-monitoring    state
+    Should Be True    ${res}    central-bam-monitoring not connected
+
+    ${res}    Get Broker Stats    central    connected    10    endpoint centreon-bam-reporting    state
+    Should Be True    ${res}    central-bam-reporting not connected
+
+    Reload Engine
+    Reload Broker
+
+    # check broker stats
+    ${res}    Get Broker Stats    central    1: 127.0.0.1:[0-9]+    10    endpoint central-broker-master-input    peers
+    Should Be True    ${res}    no central-broker-master-input.peers found in broker stat output
+
+    ${res}    Get Broker Stats    central    listening    10    endpoint central-broker-master-input    state
+    Should Be True    ${res}    central-broker-master-input not listening
+
+    ${res}    Get Broker Stats    central    connected    10    endpoint centreon-bam-monitoring    state
+    Should Be True    ${res}    central-bam-monitoring not connected
+
+    ${res}    Get Broker Stats    central    connected    10    endpoint centreon-bam-reporting    state
+    Should Be True    ${res}    central-bam-reporting not connected
 
     # Little check of the GetBa gRPC command
     ${result}    Run Keyword And Return Status    File Should Exist    /tmp/output
@@ -107,7 +136,7 @@ BAWORST
     Wait Until Created    /tmp/output
     ${result}    Grep File    /tmp/output    digraph
     Should Not Be Empty    ${result}    /tmp/output does not contain the word 'digraph'
-
+    
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
 BAWORST2
@@ -881,8 +910,6 @@ BEPB_BA_DURATION_EVENT
     Create Ba With Services    test    worst    ${svc}
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Execute SQL String
-    ...    INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (1, "ezizae", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59")
     Execute SQL String    DELETE FROM mod_bam_relations_ba_timeperiods
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}

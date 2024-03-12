@@ -21,15 +21,10 @@
 
 #include "bbdo/bam/ba_duration_event.hh"
 #include "bbdo/bam/inherited_downtime.hh"
-#include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/computable.hh"
 #include "com/centreon/broker/bam/configuration/ba.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
-#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/service_listener.hh"
-#include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/persistent_cache.hh"
 
 CCB_BEGIN()
 
@@ -91,11 +86,6 @@ class ba : public computable, public service_listener {
   double _level_hard{100.0};
   double _level_soft{100.0};
 
-  double _downtime_hard{0.0};
-  double _downtime_soft{0.0};
-  double _acknowledgement_hard{0.0};
-  double _acknowledgement_soft{0.0};
-
   std::unordered_map<kpi*, impact_info> _impacts;
   bool _valid{true};
   configuration::ba::downtime_behaviour _dt_behaviour{
@@ -109,7 +99,8 @@ class ba : public computable, public service_listener {
                               const impact_values& new_hard_impact,
                               const impact_values& new_soft_impact,
                               bool in_downtime) = 0;
-  std::shared_ptr<pb_ba_status> _generate_ba_status(bool state_changed) const;
+  virtual std::shared_ptr<pb_ba_status> _generate_ba_status(
+      bool state_changed) const = 0;
   std::shared_ptr<io::data> _generate_virtual_service_status() const;
 
  public:

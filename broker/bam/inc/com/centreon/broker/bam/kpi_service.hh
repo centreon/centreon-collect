@@ -1,5 +1,5 @@
-/*
- * Copyright 2014-2015, 2021-2023 Centreon
+/**
+ * Copyright 2014-2015, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,15 +20,11 @@
 #define CCB_BAM_KPI_SERVICE_HH
 
 #include <absl/container/flat_hash_set.h>
-#include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/bam/service_listener.hh"
-#include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -78,6 +74,7 @@ class kpi_service : public service_listener, public kpi {
   void impact_soft(impact_values& impact) override;
   bool in_downtime() const override;
   bool is_acknowledged() const;
+  void service_update(const service_state& state) override;
   void service_update(std::shared_ptr<neb::service_status> const& status,
                       io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::pb_service>& status,
@@ -109,6 +106,6 @@ class kpi_service : public service_listener, public kpi {
 };
 }  // namespace bam
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_KPI_SERVICE_HH

@@ -50,7 +50,7 @@ params::~params() {
  *
  *  @param[out] session Object on which parameters will be applied.
  */
-void params::apply(gnutls_session_t session) {
+void params::apply(gnutls_session_t session)const  {
   // Set the encryption method (normal ciphers with anonymous
   // Diffie-Hellman and optionnally compression).
   int ret;
@@ -221,7 +221,7 @@ void params::set_trusted_ca(std::string const& ca_cert) {
  *
  *  @param[in] session Session on which checks will be performed.
  */
-void params::validate_cert(gnutls_session_t session) {
+void params::validate_cert(gnutls_session_t session) const {
   if (!_ca.empty()) {
     int ret;
     uint32_t status;

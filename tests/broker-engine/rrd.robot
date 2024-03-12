@@ -345,7 +345,7 @@ BRRDRM1
 
 BRRDRMU1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output.
-    [Tags]    rrd    metric    rebuild    unified_sql    grpc
+    [Tags]    rrd    metric    rebuild    unified_sql    grpc    MON-34594
     Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
@@ -392,6 +392,9 @@ BRRDRMU1
         Should Be True
         ...    ${result}
         ...    Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
+        # 48 = 60(octal)
+        ${result}    Has File Permissions    ${VarRoot}/lib/centreon/metrics/${m}.rrd    48
+        Should Be True    ${result}    ${VarRoot}/lib/centreon/metrics/${m}.rrd has not RW group permission
     END
 
     FOR    ${index_id}    IN    @{index}
@@ -436,6 +439,7 @@ RRD1
     ${content1}    Create List    mysql_connection: You have an error in your SQL syntax
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Not Be True    ${result}    Database did not receive command to rebuild metrics
+
 
 *** Keywords ***
 Test Clean

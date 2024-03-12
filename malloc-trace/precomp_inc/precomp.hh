@@ -1,5 +1,5 @@
 /*
-** Copyright 2012-2013 Merethis
+** Copyright 2024 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -17,23 +17,18 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCE_NAMESPACE_HH
-#define CCE_NAMESPACE_HH
+#ifndef CMT_PRECOMP_HH
+#define CMT_PRECOMP_HH
 
-#ifdef CCE_BEGIN
-#undef CCE_BEGIN
-#endif  // CCE_BEGIN
-#define CCE_BEGIN()    \
-  namespace com {      \
-  namespace centreon { \
-  namespace engine {
+#include <sys/syscall.h>
+#include <unistd.h>
 
-#ifdef CCE_END
-#undef CCE_END
-#endif  // CCE_END
-#define CCE_END() \
-  }               \
-  }               \
-  }
+#include <map>
+#include <memory>
+#include <mutex>
 
-#endif  // !CCE_NAMESPACE_HH
+#include <absl/strings/numbers.h>
+#include <boost/intrusive/set.hpp>
+#include <boost/intrusive/slist.hpp>
+
+#endif

@@ -21,6 +21,7 @@ ${engineLog0}       ${ENGINE_LOG}/config0/centengine.log
 ${engineLog1}       ${ENGINE_LOG}/config1/centengine.log
 ${engineLog2}       ${ENGINE_LOG}/config2/centengine.log
 ${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
+${engineLog4}       ${ENGINE_LOG}/config4/centengine.log
 
 
 *** Keywords ***
@@ -76,6 +77,11 @@ Start Broker
     IF    not ${only_central}
         Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2
     END
+
+Restart Broker
+    [Arguments]    ${only_central}=False
+    Kindly Stop Broker    ${only_central}
+    Start Broker    ${only_central}
 
 Reload Broker
     Send Signal To Process    SIGHUP    b1
@@ -327,7 +333,7 @@ Dump Ba On Error
     [Arguments]    ${result}    ${ba_id}
     IF    not ${result}
         Save Logs
-        Dump Ba    51001    ${ba_id}    failed/${Test Name}/ba_${ba_id}.dot
+        Broker Get Ba    51001    ${ba_id}    failed/${Test Name}/ba_${ba_id}.dot
     END
 
 Process Service Result Hard

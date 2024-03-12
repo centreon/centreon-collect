@@ -20,7 +20,7 @@
 #ifndef CCE_OPT_HH
 #define CCE_OPT_HH
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 template <typename T>
 class opt {
@@ -47,7 +47,7 @@ class opt {
   bool operator<(opt const& right) const throw() {
     return (_data < right._data);
   }
-  operator T const &() const throw() { return (_data); }
+  operator T const&() const throw() { return (_data); }
   T& operator*() throw() { return (_data); }
   T const& operator*() const throw() { return (_data); }
   T* operator->() throw() { return (&_data); }
@@ -70,6 +70,6 @@ class opt {
   bool _is_set;
 };
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_OPT_HH

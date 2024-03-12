@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/configuration/servicegroup.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 // Forward declarations.
@@ -54,6 +54,6 @@ class servicegroup {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SERVICEGROUP_HH

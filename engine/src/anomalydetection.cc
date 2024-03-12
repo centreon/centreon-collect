@@ -36,7 +36,7 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 /****************************************************************
  * anomalydetection::threshold_point
@@ -243,7 +243,7 @@ void cancellable_command::set_command_line(
 }
 }  // namespace commands
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 /****************************************************************
  * anomalydetection
@@ -1120,9 +1120,11 @@ void anomalydetection::init_thresholds() {
   try {
     t.open(_thresholds_file);
   } catch (const std::system_error& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "Fail to read thresholds file '{}' : {}",
-                        _thresholds_file, e.code().message());
+    if (!verify_config) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(),
+                          "Fail to read thresholds file '{}' : {}",
+                          _thresholds_file, e.code().message());
+    }
     return;
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(log_v2::config(),

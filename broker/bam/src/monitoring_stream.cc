@@ -23,24 +23,16 @@
 #include "bbdo/bam/ba_status.hh"
 #include "bbdo/bam/kpi_status.hh"
 #include "bbdo/bam/rebuild.hh"
-#include "bbdo/events.hh"
 #include "com/centreon/broker/bam/configuration/reader_v2.hh"
-#include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/bam/event_cache_visitor.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/fifo_client.hh"
-#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
-#include "com/centreon/broker/neb/service_status.hh"
 #include "com/centreon/broker/pool.hh"
-#include "com/centreon/broker/timestamp.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -79,8 +71,6 @@ monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
   // Let's update BAs then we will be able to load the cache with inherited
   // downtimes.
   update();
-  // Read cache.
-  _read_cache();
 }
 
 /**
@@ -186,6 +176,8 @@ void monitoring_stream::update() {
     _ba_mapping = s.get_ba_svc_mapping();
     _rebuild();
     initialize();
+    // Read cache.
+    _read_cache();
   } catch (std::exception const& e) {
     throw msg_fmt("BAM: could not process configuration update: {}", e.what());
   }

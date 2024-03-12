@@ -263,7 +263,7 @@ static std::ostream& _dump_week_day(std::ostream& os, daterange const& obj) {
   return (os);
 }
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 /**
  *  Dump daterange content into the stream.
  *
@@ -318,7 +318,7 @@ std::ostream& operator<<(std::ostream& os, exception_array const& obj) {
   return os;
 }
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 /**
  *  Get the month name.

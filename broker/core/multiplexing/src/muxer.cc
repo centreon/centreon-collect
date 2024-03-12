@@ -1,20 +1,20 @@
-/*
-** Copyright 2009-2013,2015-2017,2019-2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2009-2013,2015-2017,2019-2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/multiplexing/muxer.hh"
 
@@ -195,15 +195,19 @@ std::shared_ptr<muxer> muxer::create(std::string name,
  *  Destructor.
  */
 muxer::~muxer() noexcept {
-  stats::center::instance().unregister_muxer(_name);
   unsubscribe();
-  std::lock_guard<std::mutex> lock(_mutex);
-  SPDLOG_LOGGER_INFO(log_v2::core(),
-                     "Destroying muxer {}: number of events in the queue: {}",
-                     _name, _events_size);
-  _clean();
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    SPDLOG_LOGGER_INFO(log_v2::core(),
+                       "Destroying muxer {}: number of events in the queue: {}",
+                       _name, _events_size);
+    _clean();
+  }
   DEBUG(
       fmt::format("DESTRUCTOR muxer {:p} {}", static_cast<void*>(this), _name));
+  // caution, unregister_muxer must be the last center method called at muxer
+  // destruction to avoid re create a muxer stat entry
+  stats::center::instance().unregister_muxer(_name);
 }
 
 /**

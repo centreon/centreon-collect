@@ -1,5 +1,5 @@
-/*
- * Copyright 2014-2015 Centreon
+/**
+ * Copyright 2014-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,8 @@
 #define CCB_BAM_CONFIGURATION_APPLIER_BA_HH
 
 #include "com/centreon/broker/bam/ba.hh"
-#include "com/centreon/broker/bam/configuration/ba.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/bam/service_book.hh"
-#include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/persistent_cache.hh"
 
 CCB_BEGIN()
 
@@ -74,7 +70,8 @@ class ba {
   std::shared_ptr<bam::ba> find_ba(uint32_t id) const;
   void visit(io::stream* visitor);
   void save_to_cache(persistent_cache& cache);
-  void load_from_cache(persistent_cache& cache);
+  void apply_inherited_downtime(const inherited_downtime& dwn);
+  void apply_inherited_downtime(const pb_inherited_downtime& dwn);
 };
 }  // namespace applier
 }  // namespace configuration

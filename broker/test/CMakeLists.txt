@@ -143,7 +143,8 @@ target_link_libraries(
   CONAN_PKG::gtest
   CONAN_PKG::mariadb-connector-c
   CONAN_PKG::openssl
-  CONAN_PKG::grpc)
+  CONAN_PKG::grpc
+  stdc++fs)
 
 add_dependencies(
   ut_broker

@@ -1,5 +1,5 @@
-/*
- * Copyright 2014-2015 Centreon
+/**
+ * Copyright 2014-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,6 @@
 #include "com/centreon/broker/bam/configuration/applier/ba.hh"
 #include "com/centreon/broker/bam/configuration/applier/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/applier/kpi.hh"
-#include "com/centreon/broker/bam/service_book.hh"
-#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
@@ -63,8 +61,8 @@ class state {
   std::unordered_map<std::string, circular_check_node> _nodes;
 
  public:
-  state();
-  ~state();
+  state() = default;
+  ~state() noexcept = default;
   state(const state&) = delete;
   state& operator=(state const& other) = delete;
   void apply(configuration::state const& my_state);

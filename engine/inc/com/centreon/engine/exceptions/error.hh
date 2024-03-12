@@ -20,9 +20,7 @@
 #ifndef CCE_EXCEPTIONS_ERROR_HH
 #define CCE_EXCEPTIONS_ERROR_HH
 
-CCE_BEGIN()
-
-namespace exceptions {
+namespace com::centreon::engine::exceptions {
 /**
  *  @class error error.hh
  *  @brief Base exception class.
@@ -57,9 +55,7 @@ class error : public std::exception {
   char const* what() const throw() override;
 };
 
-}  // namespace exceptions
-
-CCE_END()
+}  // namespace com::centreon::engine::exceptions
 
 #ifdef NDEBUG
 #define engine_error() com::centreon::engine::exceptions::error()

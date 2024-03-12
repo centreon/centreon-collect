@@ -22,7 +22,7 @@
 
 #include <stack>
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 /**
  *  @class timezone_manager timezone_manager.hh
@@ -64,6 +64,6 @@ class timezone_manager {
   std::stack<tz_info> _tz;
 };
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_TIMEZONE_MANAGER_HH
