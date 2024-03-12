@@ -97,6 +97,11 @@ runs:
         git config --global user.email "release@centreon.com"
         git config --global user.name "Centreon"
 
+        # Rebuild NEW_STABLE_TAGS as an array
+        for i in ${NEW_RELEASE_TAGS[@]}; do
+          NEW_RELEASE_TAGS+=("$i")
+        done
+
         # Create release tags on git for each release components
         # Abort if no tags or existing tag
         echo "Creating release tags."
