@@ -121,7 +121,7 @@ runs:
         done
       shell: bash
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ github.token }}
 
     - name: Create stable JIRA versions from new release tags
       run: |
