@@ -107,7 +107,8 @@ add_custom_command(
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
     grpc_stream.proto
-  VERBATIM)
+  VERBATIM
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # Testing.
 if(WITH_TESTING)
