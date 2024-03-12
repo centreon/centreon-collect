@@ -120,6 +120,8 @@ runs:
           gh release create $TAG --target "${{ inputs.github_ref_name }}" --title "$TAG" --verify-tag
         done
       shell: bash
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create stable JIRA versions from new release tags
       run: |
