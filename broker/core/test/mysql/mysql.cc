@@ -507,7 +507,7 @@ TEST_F(DatabaseStorageTest, ConnectionOk) {
 //
 TEST_F(DatabaseStorageTest, CustomVarStatement) {
   config::applier::modules modules;
-  modules.load_file("./lib/10-neb.so");
+  modules.load_file("./broker/neb/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));

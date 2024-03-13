@@ -54,7 +54,7 @@ set_target_properties("${VICTORIA_METRICS}" PROPERTIES PREFIX "")
 target_link_libraries("${VICTORIA_METRICS}"
   http_tsdb
   http_client
-  bbdo_storage pb_storage_lib CONAN_PKG::spdlog)
+  bbdo_storage pb_storage_lib spdlog::spdlog)
 target_precompile_headers(${VICTORIA_METRICS} PRIVATE precomp_inc/precomp.hh)
 
 # Testing.

@@ -51,4 +51,6 @@ if (WITH_COVERAGE)
   set(GCOV gcov)
 endif ()
 add_test(NAME tests COMMAND ut_clib)
-target_link_libraries(ut_clib CONAN_PKG::gtest pthread centreon_clib)
+target_link_libraries(ut_clib PRIVATE
+    GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
+  pthread centreon_clib)

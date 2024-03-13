@@ -50,9 +50,10 @@ add_library("${INFLUXDB}" SHARED
   "${INC_DIR}/macro_cache.hh"
   "${INC_DIR}/stream.hh"
 )
-target_link_libraries("${INFLUXDB}" bbdo_storage CONAN_PKG::spdlog)
+target_link_libraries("${INFLUXDB}" bbdo_storage spdlog::spdlog)
 target_precompile_headers(${INFLUXDB} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${INFLUXDB}" PROPERTIES PREFIX "")
+add_dependencies("${INFLUXDB}" nebbase)
 
 # Testing.
 if(WITH_TESTING)

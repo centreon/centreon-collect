@@ -121,9 +121,11 @@ using pb_host_group_member =
 using pb_service_group_member =
     io::protobuf<ServiceGroupMember,
                  make_type(io::neb, neb::de_pb_service_group_member)>;
+using pb_host_parent =
+    io::protobuf<HostParent, make_type(io::neb, neb::de_pb_host_parent)>;
 
 }  // namespace neb
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_INTERNAL_HH

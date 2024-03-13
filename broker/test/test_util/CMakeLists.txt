@@ -33,6 +33,6 @@ set(HEADERS
 )
 
 add_library("test_util" STATIC ${SOURCES} ${HEADERS})
-target_link_libraries("test_util" CONAN_PKG::spdlog)
+target_link_libraries("test_util" spdlog::spdlog)
 
 target_precompile_headers("test_util" PRIVATE precomp_inc/precomp.hh)

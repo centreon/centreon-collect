@@ -40,10 +40,10 @@ contents:
       owner: centreon-broker
       group: centreon-broker
 
-  - src: "../bin/cbd"
+  - src: "../build/broker/cbd"
     dst: "/usr/sbin/cbd"
 
-  - src: "../bin/cbwd"
+  - src: "../build/broker/watchdog/cbwd"
     dst: "/usr/sbin/cbwd"
 
   - src: "../broker/script/cbd.service"

@@ -27,9 +27,33 @@ on:
         required: true
 
 jobs:
+  routing:
+    name: Check before analysis
+    runs-on: ubuntu-latest
+    outputs:
+      development_stage: ${{ steps.routing-mode.outputs.development_stage }}
+
+    steps:
+      - name: Set routing mode
+        id: routing-mode
+        run: |
+          DEVELOPMENT_STAGE="Development"
+
+          ALLOWED_BRANCHES=(develop master dev-${{ inputs.major_version }}.x ${{ inputs.major_version }}.x)
+          for BRANCH in "${ALLOWED_BRANCHES[@]}"; do
+            if [[ "${{ github.ref_name }}" == "$BRANCH" ]] && [[ '${{ github.event_name }}' != 'pull_request' ]]; then
+              DEVELOPMENT_STAGE="Release"
+            fi
+          done
+
+          echo "development_stage=$DEVELOPMENT_STAGE" >> $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
+
   build:
     name: Binary preparation
     runs-on: [self-hosted, collect]
+    needs: [routing]
+    if: needs.routing.outputs.development_stage != 'Development'
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
       credentials:
@@ -41,15 +65,17 @@ jobs:
 
       - name: Compiling Cpp sources
         run: |
+          mv /root/.cache /github/home
+          export VCPKG_ROOT=/vcpkg
+          export PATH=$VCPKG_ROOT:$PATH
           rm -rf build
-          mkdir build
-          cd build
-
-          sudo pip3 install conan==1.61.0 --prefix=/usr --upgrade
-          sudo conan install .. -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
-
-          sudo cmake \
-            -G "Ninja" \
+          cmake \
+            -B build \
+            -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
+            -DVCPKG_TARGET_TRIPLET=x64-linux-release \
+            -DVCPKG_OVERLAY_PORTS=/overlays \
+            -S . \
+            -GNinja \
             -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
             -DDEBUG_ROBOT=OFF \
             -DWITH_TESTING=OFF \
@@ -66,23 +92,20 @@ jobs:
             -DWITH_DAEMONS=ON \
             -DWITH_CREATE_FILES=OFF \
             -DWITH_CONFIG_FILES=ON \
-            -DNG=ON \
-            ..
+            -DNG=ON
 
-          sudo ninja
+          ninja -Cbuild
 
           echo "[DEBUG] - Find compiled files"
-          find ./ -name "*.so"
+          find build/{broker,engine,clib,connectors,common} -name "*.so" -type f
           echo "[DEBUG] - Build size"
-          du -sh ./lib/*.so | sort -rh
+          du -sh $(find build/{broker,engine,clib,connectors,common} -name "*.so" -type f) | sort -rh
 
       - name: Binary preparation
         run: |
           echo "[INFO] - Keeping only compiled files"
           # preserve binaries from cleaning
-          mv ./build/bin ./
-          find ./build -type f -not \( -name "*.so" \) -delete
-          mv ./bin ./build
+          find build -type f -not \( -name "*.so" -or -name "cbd" -or -name "centengine" -or -name "cbwd" -or -name "centreon_connector_*" \) -delete
 
           echo "[INFO] - Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then
@@ -103,25 +126,27 @@ jobs:
             echo "::warning::No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
           echo "[INFO] - Keeping only build's non empty folders"
-          find ./build -empty -type d -delete
-          ls -la ./build
+          find build -empty -type d -delete
+          ls -la build
 
           echo "[INFO] - Generating the tarball"
           tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
 
       - name: Cache
-        uses: actions/cache/save@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
-  sandbox-scan:
-    needs: [build]
+  policy-scan:
     name: Sandbox scan
+    needs: [routing, build]
+    if: needs.routing.outputs.development_stage != 'Development'
     runs-on: ubuntu-latest
 
     steps:
       - name: Promote latest scan
+        # only develop will be promoted to policy scan
         if: github.ref_name == 'develop'
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
@@ -129,7 +154,7 @@ jobs:
 
         # Action forked as API calls hardcoded '.com' route
         uses: sc979/veracode-sandboxes-helper@cf67241c27cbe6405ad8705111121ece9a48c4ff # v0.2
-        # Promote should not fail if sandbox was not found.
+        # Promote should not fail to trigger following sandbox scan.
         continue-on-error: true
         with:
           activity: "promote-latest-scan"
@@ -138,7 +163,7 @@ jobs:
           delete-on-promote: false
 
       - name: Get build binary
-        uses: actions/cache/restore@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache/restore@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"

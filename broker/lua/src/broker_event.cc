@@ -1,20 +1,20 @@
 /**
-* Copyright 2020-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2020-2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/lua/broker_event.hh"
 #include <google/protobuf/message.h>
@@ -22,6 +22,7 @@
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/mapping/entry.hh"
+#include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
@@ -31,6 +32,9 @@ using namespace com::centreon::exceptions;
 static void _write_item(lua_State* L,
                         const google::protobuf::Message* p,
                         const google::protobuf::FieldDescriptor* f);
+
+std::map<const lua_State*, broker_event::gc_info> broker_event::_gc_info;
+std::mutex broker_event::_gc_info_m;
 
 /**
  *  The Lua broker_event constructor
@@ -48,6 +52,32 @@ void broker_event::create(lua_State* L, std::shared_ptr<io::data> e) {
 
   luaL_getmetatable(L, "broker_event");
   lua_setmetatable(L, -2);
+  bool have_to_gc_collect = false;
+  {
+    std::lock_guard l(_gc_info_m);
+
+    /*In V2, lua stores only a userdata that contains a shared_ptr of event
+     * (16 bytes). So garbage collector don't see amount of memory used by
+     * events.
+     * So we need to call garbage collector ourselves to reduce memory
+     * consumption
+     * So we call at least gc every minute or
+     * at most every 10s if lua own more than
+     * com::centreon::broker::multiplexing::muxer::event_queue_max_size() events
+     * */
+    time_t now = time(nullptr);
+    gc_info& gc_inf = _gc_info[L];
+    if ((++gc_inf._broker_event_cpt > com::centreon::broker::multiplexing::
+                                          muxer::event_queue_max_size() &&
+         gc_inf._last_full_gc + 10 < now) ||
+        (gc_inf._last_full_gc + 60 < now)) {
+      gc_inf._last_full_gc = now;
+      have_to_gc_collect = true;
+    }
+  }
+  if (have_to_gc_collect) {
+    lua_gc(L, LUA_GCCOLLECT, 0);
+  }
 }
 
 static void _message_to_table(lua_State* L,
@@ -344,12 +374,18 @@ void broker_event::create_as_table(lua_State* L, const io::data& d) {
  *
  *  @return 0
  */
-static int l_broker_event_destructor(lua_State* L) {
+int broker_event::l_broker_event_destructor(lua_State* L) {
   void* ptr = luaL_checkudata(L, 1, "broker_event");
 
   if (ptr) {
     auto event = static_cast<std::shared_ptr<io::data>*>(ptr);
     event->reset();
+    std::lock_guard l(_gc_info_m);
+
+    gc_info& gc_inf = _gc_info[L];
+    if (gc_inf._broker_event_cpt > 0) {
+      --gc_inf._broker_event_cpt;
+    }
   }
   return 0;
 }
@@ -757,4 +793,14 @@ void broker_event::broker_event_reg(lua_State* L) {
 #endif
 
   lua_setglobal(L, name);
+}
+
+/**
+ * @brief when a lua_State is closed we clean _gc_info
+ *
+ * @param The Lua interpreter as a lua_State*
+ */
+void broker_event::lua_close(const lua_State* L) {
+  std::lock_guard l(_gc_info_m);
+  _gc_info.erase(L);
 }

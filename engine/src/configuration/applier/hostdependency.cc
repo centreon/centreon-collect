@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2019 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/applier/hostdependency.hh"
 #include "com/centreon/engine/broker.hh"
@@ -139,13 +139,14 @@ void applier::hostdependency::expand_objects(configuration::state& s) {
                     s, dependent_hosts);
 
       // Browse all depended and dependent hosts.
-      for (std::set<std::string>::const_iterator it1(depended_hosts.begin()),
-           end1(depended_hosts.end());
+      for (std::set<std::string>::const_iterator it1 = depended_hosts.begin(),
+                                                 end1 = depended_hosts.end();
            it1 != end1; ++it1)
-        for (std::set<std::string>::const_iterator it2(dependent_hosts.begin()),
-             end2(dependent_hosts.end());
+        for (std::set<std::string>::const_iterator
+                 it2 = dependent_hosts.begin(),
+                 end2 = dependent_hosts.end();
              it2 != end2; ++it2)
-          for (int i(0); i < 2; ++i) {
+          for (int i = 0; i < 2; ++i) {
             // Create host dependency instance.
             configuration::hostdependency hdep(*it_dep);
             hdep.hostgroups().clear();
@@ -155,9 +156,9 @@ void applier::hostdependency::expand_objects(configuration::state& s) {
             hdep.dependent_hosts().clear();
             hdep.dependent_hosts().insert(*it2);
             hdep.dependency_type(
-                !i ? configuration::hostdependency::execution_dependency
+                i == 0 ? configuration::hostdependency::execution_dependency
                    : configuration::hostdependency::notification_dependency);
-            if (i)
+            if (i == 1)
               hdep.execution_failure_options(0);
             else
               hdep.notification_failure_options(0);

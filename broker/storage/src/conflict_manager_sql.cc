@@ -1,20 +1,20 @@
 /**
-* Copyright 2019-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2019-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #include <fmt/format.h>
 
 #include "com/centreon/broker/log_v2.hh"
@@ -272,8 +272,9 @@ void conflict_manager::_update_hosts_and_services_of_instance(uint32_t id,
         "UPDATE hosts AS h LEFT JOIN services AS s ON h.host_id=s.host_id "
         "SET h.real_state=h.state,s.real_state=s.state,h.state={},s.state={} "
         "WHERE h.instance_id={}",
-        com::centreon::engine::host::state_unreachable,
-        com::centreon::engine::service::state_unknown, id);
+        static_cast<uint32_t>(com::centreon::engine::host::state_unreachable),
+        static_cast<uint32_t>(com::centreon::engine::service::state_unknown),
+        id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::hosts);
   }
@@ -1507,18 +1508,6 @@ void conflict_manager::_process_service_status(
         "{}))",
         ss.host_id, ss.service_id, ss.check_type, ss.last_check, ss.next_check,
         now, ss.current_state, ss.state_type);
-  *std::get<2>(t) = true;
-}
-
-/**
- *  Process an instance configuration event.
- *
- *  @param[in] e  Uncasted instance configuration.
- *
- * @return The number of events that can be acknowledged.
- */
-void conflict_manager::_process_instance_configuration(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
   *std::get<2>(t) = true;
 }
 

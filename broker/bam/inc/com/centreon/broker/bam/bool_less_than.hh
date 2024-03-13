@@ -46,6 +46,6 @@ class bool_less_than : public bool_binary_operator {
 };
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_BOOL_LESS_THAN_HH

@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2015, 2020-2023 Centreon
+ * Copyright 2011-2015, 2020-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -170,6 +170,8 @@ void broker_module_init(void const* arg) {
       e.register_event(bam::pb_dimension_truncate_table_signal::static_type(),
                        "DimensionTruncateTableSignal",
                        &bam::pb_dimension_truncate_table_signal::operations);
+      e.register_event(bam::pb_services_book_state::static_type(), "BaState",
+                       &bam::pb_services_book_state::operations);
       /* Let's register the ba_info event to be sure it is declared in case
        * brokerrpc is not already instanciated. */
       e.register_event(make_type(io::extcmd, extcmd::de_ba_info), "ba_info",

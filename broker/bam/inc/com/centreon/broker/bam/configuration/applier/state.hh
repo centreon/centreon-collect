@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2014-2015 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,8 +62,8 @@ class state {
   std::unordered_map<std::string, circular_check_node> _nodes;
 
  public:
-  state();
-  ~state();
+  state() = default;
+  ~state() noexcept = default;
   state(const state&) = delete;
   state& operator=(state const& other) = delete;
   void apply(configuration::state const& my_state);
@@ -77,6 +77,6 @@ class state {
 }  // namespace configuration
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_CONFIGURATION_APPLIER_STATE_HH

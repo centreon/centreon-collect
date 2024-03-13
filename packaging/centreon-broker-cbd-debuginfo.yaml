@@ -15,10 +15,10 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../bin/cbd.debug"
+  - src: "../build/broker/cbd.debug"
     dst: "/usr/sbin/"
 
-  - src: "../bin/cbwd.debug"
+  - src: "../build/broker/watchdog/cbwd.debug"
     dst: "/usr/lib/debug/usr/sbin/"
 
 overrides:

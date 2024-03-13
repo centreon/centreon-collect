@@ -1,12 +1,13 @@
 ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/debian:bullseye
+ARG TRIPLET
 
-RUN <<EOF
+RUN bash -e <<EOF
 
 apt-get update
 
-apt-get -y install cmake \
+apt-get -y install git \
     curl \
     gcc \
     g++ \
@@ -23,44 +24,57 @@ apt-get -y install cmake \
     python3-pip \
     libperl-dev \
     libgcrypt20-dev \
-    dh-make \
     aptitude \
-    lintian \
-    pbuilder \
-    quilt \
     git-buildpackage \
-    debmake \
-    devscripts \
     fakeroot \
     strace \
     locales \
     rrdtool \
     rrdcached \
     zstd \
+    libssl-dev \
+    libssh2-1-dev \
+    zlib1g-dev \
+    zip \
+    libcurl4-openssl-dev \
     sudo
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
+echo 'deb http://deb.debian.org/debian bullseye-backports main contrib' | tee -a /etc/apt/sources.list
+
 apt-get update
 apt-get install -y nfpm
+apt-get install -y -t bullseye-backports cmake
 
 apt-get clean
 
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
-
-curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-python3 get-pip.py
-pip3 install conan==1.61.0
-ln -s /usr/local/bin/conan /usr/bin/conan
-rm -rf ~/.conan/profiles/default
-
 EOF
 
-COPY conanfile.txt .
+RUN bash -e <<EOF
+if [ "${TRIPLET}" = "arm64-linux" ] ; then
+  export VCPKG_FORCE_SYSTEM_BINARIES=1
+fi
 
-RUN <<EOF
+cd /
+git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
+/vcpkg/bootstrap-vcpkg.sh
+mkdir /src
+EOF
 
-cat conanfile.txt
-conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build='missing'
+COPY vcpkg.json /src
+COPY overlays /overlays
+COPY custom-triplets /custom-triplets
+
+RUN bash -e <<EOF
+
+export VCPKG_ROOT=/vcpkg
+export PATH=\$VCPKG_ROOT:\$PATH
+
+if [ "${TRIPLET}" = "arm64-linux" ] ; then
+  export VCPKG_FORCE_SYSTEM_BINARIES=1
+fi
+/vcpkg/vcpkg install --overlay-triplets=custom-triplets --triplet ${TRIPLET}-release --vcpkg-root vcpkg --x-wait-for-lock --x-manifest-root=/src --x-install-root=vcpkg_installed --overlay-ports=overlays
 
 EOF
 

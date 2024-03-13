@@ -32,11 +32,12 @@ if(WITH_TESTING)
 
   target_link_libraries(
     rpc_client_engine
+    -L${PROTOBUF_LIB_DIR}
     cerpc
     centreon_common
-    CONAN_PKG::grpc
-    CONAN_PKG::openssl
-    CONAN_PKG::zlib
+  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+    crypto ssl
+    z
     dl
     pthread)
 
@@ -165,19 +166,20 @@ if(WITH_TESTING)
   endif()
 
   target_link_libraries(
-    ut_engine
+    ut_engine PRIVATE
+    -L${PROTOBUF_LIB_DIR}
     ${ENGINERPC}
     ut_engine_utils
     cce_core
     enginelog
     pthread
     ${GCOV}
-    CONAN_PKG::gtest
-    CONAN_PKG::grpc
-    CONAN_PKG::openssl
-    CONAN_PKG::zlib
-    CONAN_PKG::fmt
-    CONAN_PKG::rapidyaml
+    GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
+  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+    crypto ssl
+    z
+    fmt::fmt
+    ryml::ryml
     stdc++fs
     dl)
 endif()

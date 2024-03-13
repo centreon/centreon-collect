@@ -147,7 +147,8 @@ enum data_element {
   de_pb_host_group = 49,
   de_pb_host_group_member = 50,
   de_pb_service_group = 51,
-  de_pb_service_group_member = 52
+  de_pb_service_group_member = 52,
+  de_pb_host_parent = 53,
 };
 }  // namespace neb
 namespace storage {
@@ -197,7 +198,8 @@ enum data_element {
   de_pb_kpi_status = 27,
   de_pb_ba_duration_event = 28,
   de_pb_dimension_ba_timeperiod_relation = 29,
-  de_pb_dimension_truncate_table_signal = 30
+  de_pb_dimension_truncate_table_signal = 30,
+  de_pb_services_book_state = 31,
 };
 }
 

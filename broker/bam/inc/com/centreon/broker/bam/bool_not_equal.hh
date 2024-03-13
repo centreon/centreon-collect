@@ -44,6 +44,6 @@ class bool_not_equal : public bool_binary_operator {
 };
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_BOOL_NOT_EQUAL_HH

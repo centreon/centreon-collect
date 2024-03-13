@@ -1,5 +1,5 @@
-/*
- * Copyright 2014, 2021-2023 Centreon
+/**
+ * Copyright 2014, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
 #define CCB_BAM_BOOL_EXPRESSION_HH
 
 #include "bbdo/bam/state.hh"
+#include "bbdo/bam_state.pb.h"
 #include "com/centreon/broker/bam/computable.hh"
-#include "com/centreon/broker/io/stream.hh"
 #include "impact_values.hh"
 
 namespace com::centreon::broker {
@@ -60,6 +60,6 @@ class bool_expression : public computable {
 };
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_BOOL_EXPRESSION_HH

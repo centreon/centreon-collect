@@ -15,7 +15,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../bin/centreon_connector_ssh"
+  - src: "../build/connectors/ssh/centreon_connector_ssh"
     dst: "/usr/lib64/centreon-connector/"
     file_info:
       mode: 0775
@@ -24,9 +24,13 @@ overrides:
   rpm:
     depends:
       - libgcrypt
+      - libssh2
+      - centreon-clib = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
+      - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - libgcrypt20
+      - libssh2-1
 
 rpm:
   summary: Centreon Connector SSH provide persistante connection between checks.

@@ -39,7 +39,7 @@ func findIncludes(file string, treated *[]string, depth int) {
                               "watchdog/inc/",
                               "stats/inc/",
                               "notification/inc/",
-                              "../protobuf/",
+                              "../bbdo/",
                               "dumper/inc/",
                               "storage/inc/",
                               "unified_sql/inc/",

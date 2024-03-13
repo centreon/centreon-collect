@@ -33,12 +33,12 @@ BEBAMIDT1
     Start Broker
     ${start}    Get Current Date
     Start Engine
-    # Let's wait for the initial service states.
-    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+    # Let's wait for Engine to be ready
+    ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    ...    A message about checking for external commands should have raised.
 
     # KPI set to critical
     Process Service Result Hard    host_16    service_314    2    output critical for service_314
@@ -93,12 +93,12 @@ BEBAMIDT2
     Start Broker
     ${start}    Get Current Date
     Start Engine
-    # Let's wait for the initial service states.
-    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+    # Let's wait for Engine to be ready
+    ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    ...    A message about checking for external commands should have raised.
 
     # KPI set to critical
     Process Service Result Hard    host_16    service_314    2    output critical for service_314
@@ -125,12 +125,12 @@ BEBAMIDT2
         Stop Engine
         ${start}    Get Current Date
         Start Engine
-        # Let's wait for the initial service states.
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+        # Let's wait for Engine to be ready
+        ${content}    Create List    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
+        ...    A message about checking for external commands should have raised.
 
         # Broker is restarted
         Log To Console    Broker is stopped (step ${i})
@@ -146,7 +146,8 @@ BEBAMIDT2
     # The downtime is deleted
     Delete Service Downtime    host_16    service_314
     ${result}    Check Service Downtime With Timeout    host_16    service_314    0    60
-    Should Be True    ${result}    The service (host_16, service_314) is in downtime and should not.
+    Should Be True    ${result}    The service (host_16, service_314) is in downtime but should not.
+
     ${result}    Check Downtimes With Timeout    0    60
     Should Be True    ${result}    We should have no more downtime
 

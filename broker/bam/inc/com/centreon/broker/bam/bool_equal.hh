@@ -43,6 +43,6 @@ class bool_equal : public bool_binary_operator {
 };
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_BOOL_EQUAL_HH

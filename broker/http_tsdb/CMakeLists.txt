@@ -41,6 +41,11 @@ set(HEADERS
 )
 
 add_library(http_tsdb STATIC ${SOURCES} ${HEADERS})
+add_dependencies(http_tsdb
+	pb_neb_lib
+	pb_header_lib
+	pb_storage_lib
+	)
 target_include_directories(http_tsdb PRIVATE ${INC_DIR})
 
 target_precompile_headers(http_tsdb PRIVATE precomp_inc/precomp.hh)

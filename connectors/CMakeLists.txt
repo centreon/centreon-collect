@@ -88,15 +88,16 @@ if(WITH_TESTING)
   target_precompile_headers(ut_connector REUSE_FROM centreon_connector_perl)
 
   target_link_libraries(
-    ut_connector
-    CONAN_PKG::gtest
+    ut_connector PRIVATE
+    GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
     centreon_clib
     ${PERL_LIBRARIES}
-    CONAN_PKG::fmt
-    CONAN_PKG::spdlog
-    CONAN_PKG::libssh2
-    CONAN_PKG::abseil
-    ${LIBSSH2_LIBRARIES})
+    fmt::fmt
+    spdlog::spdlog
+    ssh2
+    absl::any absl::log absl::base absl::bits
+    absl::raw_hash_set absl::hash absl::low_level_hash absl::hashtablez_sampler
+    )
 
   set_target_properties(
     ut_connector

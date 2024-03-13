@@ -248,9 +248,9 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
               break;
             default:
               v = fmt::format("{:f}", m.value());
-              SPDLOG_LOGGER_TRACE(log_v2::rrd(),
-                                  "RRD: update metric {} of type {} with {}",
-                                  m.metric_id(), m.value_type(), v);
+              SPDLOG_LOGGER_TRACE(
+                  log_v2::rrd(), "RRD: update metric {} of type {} with {}",
+                  m.metric_id(), static_cast<uint32_t>(m.value_type()), v);
               break;
           }
           _backend.update(m.time(), v);
@@ -264,9 +264,10 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
         // Debug message.
         std::shared_ptr<storage::metric> e(
             std::static_pointer_cast<storage::metric>(d));
-        SPDLOG_LOGGER_DEBUG(
-            log_v2::rrd(), "RRD: new data for metric {} (time {}) {}",
-            e->metric_id, e->time, e->is_for_rebuild ? "for rebuild" : "");
+        SPDLOG_LOGGER_DEBUG(log_v2::rrd(),
+                            "RRD: new data for metric {} (time {}) {}",
+                            e->metric_id, static_cast<time_t>(e->time),
+                            e->is_for_rebuild ? "for rebuild" : "");
 
         // Metric path.
         std::string metric_path(

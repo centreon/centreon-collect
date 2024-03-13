@@ -1,21 +1,21 @@
 /**
-* Copyright 2011 - 2020 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011 - 2020 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/host.hh"
 #include <cassert>
@@ -1545,7 +1545,7 @@ int host::handle_async_check_result_3x(
   SPDLOG_LOGGER_DEBUG(
       log_v2::checks(),
       "** Async check result for host '{}' handled: new state={}", name(),
-      get_current_state());
+      static_cast<uint32_t>(get_current_state()));
 
   /* high resolution start time for event broker */
   start_time_hires = queued_check_result.get_start_time();
@@ -3077,8 +3077,9 @@ int host::process_check_result_3x(enum host::host_state new_state,
       "NEW STATE={}",
       name(), get_current_attempt(), max_check_attempts(),
       get_check_type() == check_active ? "ACTIVE" : "PASSIVE",
-      get_state_type() == hard ? "HARD" : "SOFT", get_current_state(),
-      new_state);
+      get_state_type() == hard ? "HARD" : "SOFT",
+      static_cast<uint32_t>(get_current_state()),
+      static_cast<uint32_t>(new_state));
 
   /* we have to adjust current attempt # for passive checks, as it isn't done
    * elsewhere */
@@ -3093,7 +3094,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
           << "PASSIVE HOST CHECK: " << name() << ";" << new_state << ";"
           << get_plugin_output();
     SPDLOG_LOGGER_DEBUG(log_v2::checks(), "PASSIVE HOST CHECK: {};{};{}",
-                        name(), new_state, get_plugin_output());
+                        name(), static_cast<uint32_t>(new_state),
+                        get_plugin_output());
   }
 
   /******* HOST WAS DOWN/UNREACHABLE INITIALLY *******/
@@ -3452,7 +3454,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
       "Pre-handle_host_state() Host: {}, Attempt={}/{}, Type={}, Final "
       "State={}",
       name(), get_current_attempt(), max_check_attempts(),
-      get_state_type() == hard ? "HARD" : "SOFT", _current_state);
+      get_state_type() == hard ? "HARD" : "SOFT",
+      static_cast<uint32_t>(_current_state));
 
   /* handle the host state */
   handle_state();
@@ -3467,7 +3470,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
       "Post-handle_host_state() Host: {}, Attempt={}/{}, Type={}, Final "
       "State={}",
       name(), get_current_attempt(), max_check_attempts(),
-      get_state_type() == hard ? "HARD" : "SOFT", _current_state);
+      get_state_type() == hard ? "HARD" : "SOFT",
+      static_cast<uint32_t>(_current_state));
 
   /******************** POST-PROCESSING STUFF *********************/
 
@@ -3600,7 +3604,7 @@ enum host::host_state host::determine_host_reachability(
                                   << "': current state=" << new_state;
   SPDLOG_LOGGER_DEBUG(log_v2::checks(),
                       "Determining state of host '{}': current state= {}",
-                      name(), new_state);
+                      name(), static_cast<uint32_t>(new_state));
 
   /* host is UP - no translation needed */
   if (new_state == host::state_up) {
@@ -3798,14 +3802,16 @@ void host::adjust_check_attempt(bool is_active) {
   engine_logger(dbg_checks, most)
       << "Adjusting check attempt number for host '" << name()
       << "': current attempt=" << get_current_attempt() << "/"
-      << max_check_attempts() << ", state=" << _current_state
+      << max_check_attempts()
+      << ", state=" << static_cast<uint32_t>(_current_state)
       << ", state type=" << get_state_type();
   SPDLOG_LOGGER_DEBUG(
       log_v2::checks(),
       "Adjusting check attempt number for host '{}': current attempt= {}/{}, "
       "state= {}, state type= {}",
-      name(), get_current_attempt(), max_check_attempts(), _current_state,
-      get_state_type());
+      name(), get_current_attempt(), max_check_attempts(),
+      static_cast<uint32_t>(_current_state),
+      static_cast<uint32_t>(get_state_type()));
   /* if host is in a hard state, reset current attempt number */
   if (get_state_type() == notifier::hard)
     set_current_attempt(1);
@@ -3851,9 +3857,10 @@ void host::check_for_orphaned() {
 
     /* determine the time at which the check results should have come in (allow
      * 10 minutes slack time) */
-    expected_time = (time_t)(
-        it->second->get_next_check() + it->second->get_latency() +
-        config->host_check_timeout() + config->check_reaper_interval() + 600);
+    expected_time =
+        (time_t)(it->second->get_next_check() + it->second->get_latency() +
+                 config->host_check_timeout() +
+                 config->check_reaper_interval() + 600);
 
     /* this host was supposed to have executed a while ago, but for some reason
      * the results haven't come back in... */

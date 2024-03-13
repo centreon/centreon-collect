@@ -1,22 +1,20 @@
 /**
-* Copyright 2009-2017 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
-
-#include "com/centreon/broker/tls/stream.hh"
+ * Copyright 2009-2017 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <cerrno>
 
@@ -24,6 +22,9 @@
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+
+#include "com/centreon/broker/tls/internal.hh"
+#include "com/centreon/broker/tls/stream.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tls;
@@ -44,8 +45,56 @@ using namespace com::centreon::exceptions;
  *  @param[in] sess  TLS session, providing informations on the
  *                   encryption that should be used.
  */
-stream::stream(gnutls_session_t* sess)
-    : io::stream("TLS"), _deadline((time_t)-1), _session(sess) {}
+stream::stream(unsigned int session_flags)
+    : io::stream("TLS"), _deadline((time_t)-1), _session(nullptr) {
+  SPDLOG_LOGGER_DEBUG(log_v2::tls(), "{:p} TLS: created",
+                      static_cast<const void*>(this));
+  int ret = gnutls_init(&_session, session_flags);
+  if (ret != GNUTLS_E_SUCCESS) {
+    SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS: cannot initialize session: {}",
+                        gnutls_strerror(ret));
+    throw msg_fmt("TLS: cannot initialize session: {}", gnutls_strerror(ret));
+  }
+}
+
+/**
+ * @brief this mehtod initialize crypto of the stream
+ *
+ * @param param crypto params that will validate cert of the session
+ */
+void stream::init(const params& param) {
+  int ret;
+  param.apply(_session);
+
+  // Bind the TLS session with the stream from the lower layer.
+#if GNUTLS_VERSION_NUMBER < 0x020C00
+  gnutls_transport_set_lowat(*session, 0);
+#endif  // GNU TLS < 2.12.0
+  gnutls_transport_set_pull_function(_session, pull_helper);
+  gnutls_transport_set_push_function(_session, push_helper);
+  gnutls_transport_set_ptr(_session, this);
+
+  // Perform the TLS handshake.
+  SPDLOG_LOGGER_DEBUG(log_v2::tls(), "{:p} TLS: performing handshake",
+                      static_cast<const void*>(this));
+  do {
+    ret = gnutls_handshake(_session);
+  } while (GNUTLS_E_AGAIN == ret || GNUTLS_E_INTERRUPTED == ret);
+  if (ret != GNUTLS_E_SUCCESS) {
+    SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS: handshake failed: {}",
+                        gnutls_strerror(ret));
+    throw msg_fmt("TLS: handshake failed: {} ", gnutls_strerror(ret));
+  }
+  SPDLOG_LOGGER_DEBUG(log_v2::tls(), "TLS: successful handshake");
+  gnutls_protocol_t prot = gnutls_protocol_get_version(_session);
+  gnutls_cipher_algorithm_t ciph = gnutls_cipher_get(_session);
+  SPDLOG_LOGGER_DEBUG(log_v2::tls(), "TLS: protocol and cipher  {} {} used",
+                      gnutls_protocol_get_name(prot),
+                      gnutls_cipher_get_name(ciph));
+
+  // Check certificate.
+  param.validate_cert(_session);
+}
 
 /**
  *  @brief Destructor.
@@ -56,11 +105,11 @@ stream::stream(gnutls_session_t* sess)
 stream::~stream() {
   if (_session) {
     try {
-      _deadline = time(nullptr) + 30;  // XXX : use connection timeout
-      gnutls_bye(*_session, GNUTLS_SHUT_RDWR);
-      gnutls_deinit(*_session);
-      delete (_session);
-      _session = nullptr;
+      SPDLOG_LOGGER_DEBUG(log_v2::tls(), "{:p} TLS: destroy session: {:p}",
+                          static_cast<const void*>(this),
+                          static_cast<const void*>(_session));
+      gnutls_bye(_session, GNUTLS_SHUT_RDWR);
+      gnutls_deinit(_session);
     }
     // Ignore exception whatever the error might be.
     catch (...) {
@@ -89,11 +138,11 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   _deadline = deadline;
   std::shared_ptr<io::raw> buffer(new io::raw);
   buffer->resize(BUFSIZ);
-  int ret(gnutls_record_recv(*_session, buffer->data(), buffer->size()));
+  int ret(gnutls_record_recv(_session, buffer->data(), buffer->size()));
   if (ret < 0) {
     if ((ret != GNUTLS_E_INTERRUPTED) && (ret != GNUTLS_E_AGAIN)) {
-      log_v2::tls()->error("TLS: could not receive data: {}",
-                           gnutls_strerror(ret));
+      SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS: could not receive data: {}",
+                          gnutls_strerror(ret));
       throw msg_fmt("TLS: could not receive data: {} ", gnutls_strerror(ret));
     } else
       return false;
@@ -102,7 +151,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
     d = buffer;
     return true;
   } else {
-    log_v2::tls()->error("TLS session is terminated");
+    SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS session is terminated");
     throw msg_fmt("TLS session is terminated");
   }
   return false;
@@ -117,39 +166,45 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  *  @return Number of bytes actually read.
  */
 long long stream::read_encrypted(void* buffer, long long size) {
-  // Read some data.
-  bool timed_out(false);
-  while (_buffer.empty()) {
-    std::shared_ptr<io::data> d;
-    timed_out = !_substream->read(d, _deadline);
-    if (!timed_out && d && d->type() == io::raw::static_type()) {
-      io::raw* r(static_cast<io::raw*>(d.get()));
-      _buffer.reserve(_buffer.size() + r->get_buffer().size());
-      _buffer.insert(_buffer.end(), r->get_buffer().begin(),
-                     r->get_buffer().end());
-      //_buffer.append(r->data(), r->size());
-    } else if (timed_out)
-      break;
-  }
-
-  // Transfer data.
-  uint32_t rb(_buffer.size());
-  if (!rb) {
-    if (timed_out) {
-      gnutls_transport_set_errno(*_session, EAGAIN);
-      return -1;
-    } else {
-      return 0;
+  try {
+    // Read some data.
+    bool timed_out(false);
+    while (_buffer.empty()) {
+      std::shared_ptr<io::data> d;
+      timed_out = !_substream->read(d, _deadline);
+      if (!timed_out && d && d->type() == io::raw::static_type()) {
+        io::raw* r(static_cast<io::raw*>(d.get()));
+        _buffer.reserve(_buffer.size() + r->get_buffer().size());
+        _buffer.insert(_buffer.end(), r->get_buffer().begin(),
+                       r->get_buffer().end());
+        //_buffer.append(r->data(), r->size());
+      } else if (timed_out)
+        break;
     }
-  } else if (size >= rb) {
-    memcpy(buffer, _buffer.data(), rb);
-    _buffer.clear();
-    return rb;
-  } else {
-    memcpy(buffer, _buffer.data(), size);
-    _buffer.erase(_buffer.begin(), _buffer.begin() + size);
-    //_buffer.remove(0, size);
-    return size;
+
+    // Transfer data.
+    uint32_t rb(_buffer.size());
+    if (!rb) {
+      if (timed_out) {
+        gnutls_transport_set_errno(_session, EAGAIN);
+        return -1;
+      } else {
+        return 0;
+      }
+    } else if (size >= rb) {
+      memcpy(buffer, _buffer.data(), rb);
+      _buffer.clear();
+      return rb;
+    } else {
+      memcpy(buffer, _buffer.data(), size);
+      _buffer.erase(_buffer.begin(), _buffer.begin() + size);
+      //_buffer.remove(0, size);
+      return size;
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_DEBUG(log_v2::tls(), "tls read fail: {}", e.what());
+    gnutls_transport_set_errno(_session, EPIPE);
+    throw;
   }
 }
 
@@ -172,10 +227,10 @@ int stream::write(std::shared_ptr<io::data> const& d) {
     char const* ptr(packet->const_data());
     int size(packet->size());
     while (size > 0) {
-      int ret(gnutls_record_send(*_session, ptr, size));
+      int ret(gnutls_record_send(_session, ptr, size));
       if (ret < 0) {
-        log_v2::tls()->error("TLS: could not send data: {}",
-                             gnutls_strerror(ret));
+        SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS: could not send data: {}",
+                            gnutls_strerror(ret));
         throw msg_fmt("TLS: could not send data: {}", gnutls_strerror(ret));
       }
       ptr += ret;
@@ -199,9 +254,15 @@ long long stream::write_encrypted(void const* buffer, long long size) {
   std::vector<char> tmp(const_cast<char*>(static_cast<char const*>(buffer)),
                         const_cast<char*>(static_cast<char const*>(buffer)) +
                             static_cast<std::size_t>(size));
-  log_v2::tls()->trace("tls write enc: {}", size);
+  SPDLOG_LOGGER_TRACE(log_v2::tls(), "tls write enc: {}", size);
   r->get_buffer() = std::move(tmp);
-  _substream->write(r);
-  _substream->flush();
+  try {
+    _substream->write(r);
+    _substream->flush();
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_DEBUG(log_v2::tls(), "tls write fail: {}", e.what());
+    gnutls_transport_set_errno(_session, EPIPE);
+    throw;
+  }
   return size;
 }

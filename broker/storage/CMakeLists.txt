@@ -39,8 +39,14 @@ add_library(
 set(CONFLICTMGR
     conflictmgr
     PARENT_SCOPE)
+add_dependencies(conflictmgr
+	pb_neb_lib
+	pb_header_lib
+	pb_storage_lib
+	)
+
 set_target_properties(conflictmgr PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(conflictmgr CONAN_PKG::spdlog)
+target_link_libraries(conflictmgr spdlog::spdlog)
 target_precompile_headers(conflictmgr PRIVATE precomp_inc/precomp.hpp)
 
 # Storage module.
@@ -65,8 +71,10 @@ add_library(
 set_target_properties("${STORAGE}" PROPERTIES PREFIX "" COMPILE_FLAGS "-fPIC")
 add_dependencies("${STORAGE}" target_rebuild_message
                  target_remove_graph_message table_max_size)
-target_link_libraries(${STORAGE} conflictmgr rokerbase bbdo_storage
-                      pb_rebuild_message_lib pb_remove_graph_message_lib)
+target_link_libraries(${STORAGE}
+  -L${PROTOBUF_LIB_DIR}
+  conflictmgr rokerbase bbdo_storage
+  pb_rebuild_message_lib pb_remove_graph_message_lib)
 target_precompile_headers(${STORAGE} REUSE_FROM conflictmgr)
 
 # Testing.

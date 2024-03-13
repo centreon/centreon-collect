@@ -73,12 +73,13 @@ class ba {
   std::shared_ptr<bam::ba> find_ba(uint32_t id) const;
   void visit(io::stream* visitor);
   void save_to_cache(persistent_cache& cache);
-  void load_from_cache(persistent_cache& cache);
+  void apply_inherited_downtime(const inherited_downtime& dwn);
+  void apply_inherited_downtime(const pb_inherited_downtime& dwn);
 };
 }  // namespace applier
 }  // namespace configuration
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_CONFIGURATION_APPLIER_BA_HH

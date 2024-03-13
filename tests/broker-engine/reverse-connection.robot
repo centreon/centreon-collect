@@ -71,6 +71,8 @@ BRCTS1
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
     ${result}    Find In Log With Timeout    ${log}    ${start}    ${content}    40
     Should Be True    ${result}    Connection to map has failed
+    @{files}    List Files In Directory    ${VarRoot}/lib/centreon-broker
+    Log To Console    ${files}
     File Should Not Exist
     ...    ${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*
     ...    There should not exist queue map files.

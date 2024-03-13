@@ -1,20 +1,20 @@
 /**
-* Copyright 2021-2023 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2021-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #include "com/centreon/broker/unified_sql/stream.hh"
 
 #include <absl/strings/str_split.h>
@@ -86,7 +86,7 @@ constexpr void (stream::*const stream::neb_processing_table[])(
     &stream::_process_service_group_member,
     &stream::_process_service,
     &stream::_process_service_status,
-    &stream::_process_instance_configuration,
+    nullptr,
     &stream::_process_responsive_instance,
     &stream::_process_pb_service,
     &stream::_process_pb_adaptive_service,
@@ -113,7 +113,8 @@ constexpr void (stream::*const stream::neb_processing_table[])(
     &stream::_process_pb_host_group,
     &stream::_process_pb_host_group_member,
     &stream::_process_pb_service_group,
-    &stream::_process_pb_service_group_member};
+    &stream::_process_pb_service_group_member,
+    &stream::_process_pb_host_parent};
 
 constexpr size_t neb_processing_table_size =
     sizeof(stream::neb_processing_table) /
@@ -646,7 +647,7 @@ void stream::_finish_actions() {
   _ack += _processed;
   _processed = 0;
   SPDLOG_LOGGER_TRACE(log_v2::sql(), "finish actions processed = {}",
-                      _processed);
+                      static_cast<bool>(_processed));
 }
 
 /**
@@ -783,7 +784,7 @@ int32_t stream::flush() {
   _pending_events -= retval;
   // Event acknowledgement.
   SPDLOG_LOGGER_TRACE(log_v2::sql(), "SQL: {} / {} events acknowledged", retval,
-                      _pending_events);
+                      static_cast<int32_t>(_pending_events));
   return retval;
 }
 
@@ -1317,6 +1318,22 @@ void stream::_init_statements() {
       "last_check=?,"                 // 9: last_check
       "output=? "                     // 10: output
       "WHERE id=? AND parent_id=?");  // 11, 12: service_id and host_id
+  const std::string host_exe_dep_query(
+      "INSERT INTO hosts_hosts_dependencies (dependent_host_id, host_id, "
+      "dependency_period, execution_failure_options, inherits_parent) "
+      "VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+      "dependency_period=VALUES(dependency_period), "
+      "execution_failure_options=VALUES(execution_failure_options), "
+      "inherits_parent=VALUES(inherits_parent)");
+  _host_exe_dependency_insupdate = _mysql.prepare_query(host_exe_dep_query);
+  const std::string host_notif_dep_query(
+      "INSERT INTO hosts_hosts_dependencies (dependent_host_id, host_id, "
+      "dependency_period, notification_failure_options, inherits_parent) "
+      "VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+      "dependency_period=VALUES(dependency_period), "
+      "notification_failure_options=VALUES(notification_failure_options), "
+      "inherits_parent=VALUES(inherits_parent)");
+  _host_notif_dependency_insupdate = _mysql.prepare_query(host_notif_dep_query);
   if (_store_in_hosts_services) {
     if (_bulk_prepared_statement) {
       auto hu = std::make_unique<database::mysql_bulk_stmt>(hscr_query);

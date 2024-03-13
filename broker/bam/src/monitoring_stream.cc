@@ -79,8 +79,6 @@ monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
   // Let's update BAs then we will be able to load the cache with inherited
   // downtimes.
   update();
-  // Read cache.
-  _read_cache();
 }
 
 /**
@@ -186,6 +184,8 @@ void monitoring_stream::update() {
     _ba_mapping = s.get_ba_svc_mapping();
     _rebuild();
     initialize();
+    // Read cache.
+    _read_cache();
   } catch (std::exception const& e) {
     throw msg_fmt("BAM: could not process configuration update: {}", e.what());
   }
@@ -329,14 +329,16 @@ struct kpi_binder {
       if (status.last_state_change() <= 0) {
         return fmt::format("({},{},{},{},1+1,NULL,{},{},{},{})",
                            status.level_acknowledgement_hard(),
-                           status.state_hard(), status.level_downtime_hard(),
+                           static_cast<uint32_t>(status.state_hard()),
+                           status.level_downtime_hard(),
                            status.level_nominal_hard(), status.last_impact(),
                            int(status.valid()), int(status.in_downtime()),
                            status.kpi_id());
       } else {
         return fmt::format(
             "({},{},{},{},1+1,{},{},{},{},{})",
-            status.level_acknowledgement_hard(), status.state_hard(),
+            status.level_acknowledgement_hard(),
+            static_cast<uint32_t>(status.state_hard()),
             status.level_downtime_hard(), status.level_nominal_hard(),
             status.last_state_change(), status.last_impact(),
             int(status.valid()), int(status.in_downtime()), status.kpi_id());

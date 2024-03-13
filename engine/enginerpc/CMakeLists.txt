@@ -37,7 +37,7 @@ add_custom_command(
   OUTPUT ${ENGINERPC_DIR}/engine.grpc.pb.cc ${ENGINERPC_DIR}/engine.grpc.pb.h
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin
+    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
     --proto_path=${ENGINERPC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     --grpc_out="${ENGINERPC_DIR}" ${ENGINERPC_DIR}/engine.proto
   DEPENDS ${ENGINERPC_DIR}/engine.proto
@@ -56,7 +56,7 @@ add_custom_target(
 add_library(
   cerpc STATIC ${ENGINERPC_DIR}/engine.grpc.pb.cc ${ENGINERPC_DIR}/engine.pb.cc
                ${ENGINERPC_DIR}/engine.grpc.pb.h ${ENGINERPC_DIR}/engine.pb.h)
-target_link_libraries(cerpc CONAN_PKG::protobuf)
+target_link_libraries(cerpc protobuf)
 
 # mod_enginerpc target.
 add_library(
@@ -76,4 +76,4 @@ set_property(
   PROPERTY PREFIX ""
   PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Link target with libraries.
-target_link_libraries(${ENGINERPC} cerpc centreon_common CONAN_PKG::spdlog)
+target_link_libraries(${ENGINERPC} cerpc centreon_common spdlog::spdlog)

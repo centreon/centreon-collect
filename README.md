@@ -108,27 +108,54 @@ download site](https://download.centreon.com).
 This paragraph is only a quickstart guide for the compilation of
 Centreon Collect.
 
-### CentOS / Debian / Raspbian
+### CentOS / Debian / Raspbian / Ubuntu
 
 Compilation of these distributions is pretty straightforward.
 
-You'll need to download the project and launch the *cmake.sh* script
-to prepare the compilation environment:
+#### Packages to install
+
+On Debian/Raspbian/Ubuntu, you should install these packages:
+
+```shell
+apt install librrd-dev libgnutls28-dev liblua5.3-dev libperl-dev libgcrypt20-dev libssl-dev libssh2-1-dev zlib1g-dev libcurl4-openssl-dev
+```
+
+On CentOS, you should install these packages:
+
+```shell
+dnf install gnutls-devel libgcrypt-devel lua-devel rrdtool-devel selinux-policy-devel openssl-devel libssh2-devel libcurl-devel zlib-devel
+```
+
+And you'll probably need to enable some repos for the installation to succeed, for example:
+
+```shell
+dnf config-manager --set-enabled powertools
+dnf update
+```
+
+#### Compilation
+
+You'll need to download the project and launch the *cmake-vcpkg.sh* script to prepare the compilation environment:
 
 ```shell
 git clone https://github.com/centreon/centreon-collect
 cd centreon-collect
-./cmake.sh
+./cmake-vcpkg.sh
 ```
 
 Now launch the compilation using the *make* command and then install the
 software by running *make install* as priviledged user:
 
 ```shell
-cd build
-make
-make install
+make -Cbuild
+make -Cbuild install
 ```
+
+**Remark. ** The cmake-vcpkg.sh initializes two environment variables like this:
+* `VCPKG_ROOT=`*path to centreon-collect*`/vcpkg`
+* `PATH=$VCPKG_ROOT:$PATH`
+
+These two variables are very important if you want to recompile the project later.
 
 ### Other distributions
 
@@ -136,39 +163,26 @@ If you are on another distribution, then follow the steps below.
 
 Check if you have these packages installed (Note that packages names
 come from CentOS distributions, so if some packages names don't match
-on your distribution try to find their equivalent names): git, make,
-cmake, gcc-c++, python3, libgnutls-devel, liblua-devel, librrd-devel.
-
-For the projet compilation you need to have conan installed. Try to use
-the package manager given by your OS to install conan. ('apt' for
-Debian, 'rpm' for Red Hat, 'pacman' for Arch Linux, ...). It is prefered
-to install gcc before conan.
-
-Example :
-
-```shell
-apt install conan
-```
-
-If it does not work, conan can be installed with pip3:
-
-```shell
-pip3 install conan==1.57.0
-```
-
-> All the dependencies pulled by conan are located in conanfile.txt. If
-> you want to use a dependency from your package manager instead of conan,
-> you need to remove it from conanfile.txt.
+on your distribution try to find their equivalent names): git, make, cmake, gcc-c++, python3, libgnutls-devel, liblua-devel, librrd-devel, openssl-devel, zlib-devel, libcurl-devel, libssh2-devel.
 
 You can now prepare the compilation environment:
 
 ```shell
 git clone https://github.com/centreon/centreon-collect
-mkdir -p centreon-collect/build
-cd centreon-collect/build
-conan install .. --build=missing
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DWITH_TESTING=On -DWITH_MODULE_SIMU=On ..
-
+cd centreon-collect
+export VCPKG_ROOT=$PWD/vcpkg
+export PATH=$VCPKG_ROOT:$PATH
+git clone -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
+./vcpkg/bootstrap-vcpkg.sh
+mkdir build
+cmake -B build \
+      -DVCPKG_OVERLAY_TRIPLETS=custom-triplets \
+      -DVCPKG_TARGET_TRIPLET=x64-linux-release \
+      -DVCPKG_OVERLAY_PORTS=overlays \
+      -DWITH_TESTING=On \
+      -DWITH_CREATE_FILES=OFF \
+      -DWITH_CONF=OFF \
+      -S .
 ```
 
 This will look for required dependencies and print a summary of the
@@ -178,16 +192,17 @@ Now launch the compilation using the *make* command and then install the
 software by running *make install* as priviledged user:
 
 ```shell
-make
-make install
+make -Cbuild
+make -Cbuild install
 ```
 
 Normally if all compiles, you have finished installing Collect. But if
-you want, you can also check it. Always from the *build* directory you
-can execute this command:
+you want, you can also check it. From the *build* directory you
+can execute these commands:
 
 ```shell
-test/ut
+tests/ut_broker
+tests/ut_engine
 ```
 
 You're done!
@@ -202,18 +217,10 @@ docker container run --name ubuntu22.04 -ti -v /data/dev/centreon-collect:/root/
 Now you are in your ubuntu container
 ```shell
 cd /root/centreon-collect/
-apt update
-apt install python3
-apt install python3-pip
-pip3 install conan
-apt install libgnutls28-dev
-apt install liblua5.4-dev
-apt install librrd-dev
-apt install cmake
-
-./cmake.sh 
-cd build
-make
+apt install librrd-dev libgnutls28-dev liblua5.3-dev libperl-dev libgcrypt20-dev libssl-dev libssh2-1-dev zlib1g-dev libcurl4-openssl-dev cmake
+./cmake-vcpkg.sh 
+make -Cbuild
+make -Cbuild install
 ```
 Then you have all binaries compiled in the ubuntu distribution.
 You can access it outside the container in the /data/dev/centreon-collect/build directory
@@ -248,5 +255,4 @@ For any question or remark feel free to send a mail to the project
 maintainers:
 
 <a href="https://github.com/bouda1"><img src="https://avatars1.githubusercontent.com/u/6324413?s=400&v=4" title="David Boucher" width="80" height="80"></a> &nbsp;
-<a href="https://github.com/rem31"><img src="https://avatars.githubusercontent.com/u/73845199?s=460&v=4" title="Rémi Gres" width="80" height="80"></a> &nbsp;
 <a href="https://github.com/jean-christophe81"><img src="https://avatars.githubusercontent.com/u/98889244?v=4" title="Jean-Christophe Roques" width="80" height="80"></a> &nbsp;

@@ -30,8 +30,8 @@ if [ $database_type == 'mysql' ]; then
     sleep 5
     echo "########################### Init centreon database ############################"
 
-    mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED WITH mysql_native_password BY 'centreon';"
-    mysql -e "CREATE USER IF NOT EXISTS 'root_centreon'@'localhost' IDENTIFIED WITH mysql_native_password BY 'centreon';"
+    mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED WITH mysql_native_password BY 'centreon'"
+    mysql -e "CREATE USER IF NOT EXISTS 'root_centreon'@'localhost' IDENTIFIED WITH mysql_native_password BY 'centreon'"
 else
     echo "########################### Start MariaDB ######################################"
     if [ "$distrib" = "ALMALINUX" ]; then
@@ -46,11 +46,11 @@ else
 
     echo "########################### Init centreon database ############################"
 
-    mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon';"
-    mysql -e "CREATE USER IF NOT EXISTS 'root_centreon'@'localhost' IDENTIFIED BY 'centreon';"
+    mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon'"
+    mysql -e "CREATE USER IF NOT EXISTS 'root_centreon'@'localhost' IDENTIFIED BY 'centreon'"
 fi
 
-mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,CREATE TEMPORARY TABLES, EVENT,CREATE VIEW ON *.* TO  'centreon'@'localhost';"
+mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,CREATE TEMPORARY TABLES, EVENT,CREATE VIEW ON *.* TO  'centreon'@'localhost'"
 mysql -e "GRANT ALL PRIVILEGES ON *.* TO 'root_centreon'@'localhost'"
 
 cat resources/centreon.sql | sed "s/DBNameConf/centreon/g" > /tmp/centreon.sql
@@ -58,7 +58,11 @@ cat resources/centreon.sql | sed "s/DBNameConf/centreon/g" > /tmp/centreon.sql
 mysql -u root_centreon -pcentreon < resources/centreon_storage.sql
 mysql -u root_centreon -pcentreon < /tmp/centreon.sql
 
-cd tests
+if [ $database_type == 'mysql' ]; then
+  killall -w mysqldtoto
+else
+  killall -w mariadbd
+fi
 
 if [ "$distrib" = "ALMALINUX" ]; then
   dnf groupinstall -y "Development Tools"
@@ -68,28 +72,3 @@ else
   apt-get install -y build-essential
   apt-get install -y python3-dev
 fi
-
-
-echo "########################## Install centreon collect ###########################"
-cd ..
-echo "Installation..."
-if [ "$distrib" = "ALMALINUX" ]; then
-  dnf clean all
-  rm -f ./*-selinux-*.rpm # avoid to install selinux packages which are dependent to centreon-common-selinux
-  dnf install -y ./*.rpm
-else
-  apt-get update
-#  apt-get install -y ./*.deb
-fi
-
-
-if [ $database_type == 'mysql' ]; then
-  killall -w mysqldtoto
-else
-  killall -w mariadbd
-fi
-
-cd ..
-
-\rm -rf *
-

@@ -33,8 +33,8 @@ using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
 
-static std::string perl_connector = BUILD_PATH
-    "/bin/centreon_connector_perl --debug --log-file=/data/dev/connector.log";
+static std::string perl_connector = BUILD_PATH "/connectors/perl/"
+    "centreon_connector_perl --debug --log-file=/data/dev/connector.log";
 
 static constexpr const char cmd1[] =
     "2\x00"

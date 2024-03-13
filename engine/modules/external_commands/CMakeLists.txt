@@ -44,7 +44,7 @@ target_precompile_headers("externalcmd" PRIVATE precomp_inc/precomp.hh)
 
 set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
 add_dependencies(externalcmd centreon_clib)
-target_link_libraries(externalcmd centreon_clib CONAN_PKG::spdlog)
+target_link_libraries(externalcmd centreon_clib spdlog::spdlog)
 
 # Install rule.
 install(TARGETS "externalcmd"

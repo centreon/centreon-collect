@@ -22,9 +22,8 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/tcp/tcp_config.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::tcp {
 
-namespace tcp {
 /**
  *  @class acceptor acceptor.hh "com/centreon/broker/tcp/acceptor.hh"
  *  @brief TCP acceptor.
@@ -34,7 +33,7 @@ namespace tcp {
 class acceptor : public io::endpoint {
   tcp_config::pointer _conf;
 
-  std::list<std::string> _children;
+  absl::flat_hash_set<std::string> _children;
   std::mutex _childrenm;
   std::shared_ptr<asio::ip::tcp::acceptor> _acceptor;
 
@@ -46,14 +45,12 @@ class acceptor : public io::endpoint {
   acceptor& operator=(const acceptor&) = delete;
 
   void add_child(std::string const& child);
-  void listen();
   std::shared_ptr<io::stream> open() override;
   void remove_child(std::string const& child);
   void stats(nlohmann::json& tree) override;
   bool is_ready() const override;
 };
-}  // namespace tcp
 
-}
+}  // namespace com::centreon::broker::tcp
 
 #endif  // !CCB_TCP_ACCEPTOR_HH

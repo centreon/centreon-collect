@@ -27,7 +27,7 @@
 
 #include <filesystem>
 #include <iostream>
-#include <ryml.hpp>
+#include <ryml/ryml.hpp>
 
 #include "absl/base/call_once.h"
 #include "com/centreon/engine/log_v2.hh"
@@ -304,6 +304,6 @@ whitelist& whitelist::instance() {
 
 void whitelist::reload() {
   static constexpr std::string_view directories[] = {
-      "/etc/centreon-engine-whitelist", "/usr/share/centreon-engine-whitelist"};
+      "/etc/centreon-engine-whitelist", "/usr/share/centreon-engine/whitelist.conf.d"};
   _instance = std::make_unique<whitelist>(directories, directories + 2);
 }

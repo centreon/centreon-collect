@@ -42,7 +42,7 @@ add_library(
   ${INC_DIR}/worker.hh
   ${INC_DIR}/worker_pool.hh)
 set_target_properties("${STATS}" PROPERTIES PREFIX "")
-target_link_libraries("${STATS}" CONAN_PKG::spdlog)
+target_link_libraries("${STATS}" spdlog::spdlog)
 target_precompile_headers(${STATS} PRIVATE precomp_inc/precomp.hpp)
 
 # Testing.

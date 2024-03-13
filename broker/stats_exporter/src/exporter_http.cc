@@ -26,8 +26,9 @@ exporter_http::exporter_http(const std::string& url, const config::state& s)
   opentelemetry::exporter::otlp::OtlpHttpMetricExporterOptions otlpOptions;
   /* url should be of the form http://XX.XX.XX.XX:4318/v1/metrics */
   otlpOptions.url = url;
-  otlpOptions.aggregation_temporality =
-      opentelemetry::sdk::metrics::AggregationTemporality::kCumulative;
+  otlpOptions.aggregation_temporality = static_cast<
+      opentelemetry::exporter::otlp::PreferredAggregationTemporality>(
+      opentelemetry::sdk::metrics::AggregationTemporality::kCumulative);
   auto exporter =
       opentelemetry::exporter::otlp::OtlpHttpMetricExporterFactory::Create(
           otlpOptions);

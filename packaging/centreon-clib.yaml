@@ -16,11 +16,11 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../lib/libcentreon_clib.so"
+  - src: "../build/clib/libcentreon_clib.so"
     dst: "/usr/lib64/"
     packager: rpm
 
-  - src: "../lib/libcentreon_clib.so"
+  - src: "../build/clib/libcentreon_clib.so"
     dst: "/usr/lib/"
     packager: deb
 

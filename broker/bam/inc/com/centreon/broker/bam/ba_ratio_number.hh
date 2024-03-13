@@ -41,6 +41,8 @@ class ba_ratio_number : public ba {
                       const impact_values& new_hard_impact,
                       const impact_values& new_soft_impact,
                       bool in_downtime) override;
+  std::shared_ptr<pb_ba_status> _generate_ba_status(
+      bool state_changed) const override;
 
  public:
   ba_ratio_number(uint32_t id,

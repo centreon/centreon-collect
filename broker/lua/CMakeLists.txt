@@ -57,7 +57,13 @@ add_library("${LUA}" SHARED
   "${INC_DIR}/macro_cache.hh"
   "${INC_DIR}/stream.hh"
 )
-target_link_libraries("${LUA}" ${LUA_LIBRARIES} CONAN_PKG::openssl bbdo_storage bbdo_bam CONAN_PKG::spdlog pb_storage_lib)
+add_dependencies(${LUA}
+	pb_neb_lib
+	pb_header_lib
+	pb_storage_lib
+	pb_bam_lib)
+
+target_link_libraries("${LUA}" ${LUA_LIBRARIES} crypto ssl bbdo_storage bbdo_bam spdlog::spdlog pb_storage_lib)
 target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${LUA}" PROPERTIES PREFIX "")
 
