@@ -193,16 +193,14 @@ void luabinding::_load_script(const std::string& lua_script) {
     if (lua_pcall(_L, 2, 1, 0) != 0) {
       const char* ret = lua_tostring(_L, -1);
       if (ret)
-        log_v2::lua()->error(
-            "lua: The filter() function doesn't work correctly: {}", ret);
+        _logger->error("lua: The filter() function doesn't work correctly: {}",
+                       ret);
       else
-        log_v2::lua()->error(
-            "lua: The filter() function doesn't work correctly");
+        _logger->error("lua: The filter() function doesn't work correctly");
       _filter = false;
     } else {
       if (!lua_isboolean(_L, -1)) {
-        log_v2::lua()->error(
-            "lua: The filter() function should return a boolean.");
+        _logger->error("lua: The filter() function should return a boolean.");
         _filter = false;
       }
     }
@@ -367,13 +365,12 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
             _logger, "lua: error while running function `filter()': {}", ret);
       else
         SPDLOG_LOGGER_ERROR(
-            log_v2::lua(),
-            "lua: unknown error while running function `filter()'");
+            _logger, "lua: unknown error while running function `filter()'");
       RETURN_AND_POP(0);
     }
 
     if (!lua_isboolean(_L, -1)) {
-      SPDLOG_LOGGER_ERROR(log_v2::lua(), "lua: `filter' must return a boolean");
+      SPDLOG_LOGGER_ERROR(_logger, "lua: `filter' must return a boolean");
       RETURN_AND_POP(0);
     }
 

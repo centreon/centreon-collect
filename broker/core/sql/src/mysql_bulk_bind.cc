@@ -105,17 +105,17 @@ void mysql_bulk_bind::set_value_as_i64(size_t range,
     _bind[range].length = _column[range].length_buffer();                 \
   }
 
-#define VALUE(ftype, vtype, sqltype)                                        \
-  vtype mysql_bulk_bind::value_as_##ftype(size_t range) const {             \
-    if (_bind[range].buffer_type == sqltype)                                \
-      return *static_cast<vtype*>(_bind[range].buffer);                     \
-    else {                                                                  \
-      assert("This field is not an " #sqltype == nullptr);                  \
-      SPDLOG_LOGGER_CRITICAL(_logger,                                       \
-                             "{} This field is not an " #sqltype " but {}", \
-                             __FUNCTION__, _bind[range].buffer_type);       \
-      return 0;                                                             \
-    }                                                                       \
+#define VALUE(ftype, vtype, sqltype)                                      \
+  vtype mysql_bulk_bind::value_as_##ftype(size_t range) const {           \
+    if (_bind[range].buffer_type == sqltype)                              \
+      return *static_cast<vtype*>(_bind[range].buffer);                   \
+    else {                                                                \
+      assert("This field is not an " #sqltype == nullptr);                \
+      SPDLOG_LOGGER_CRITICAL(                                             \
+          _logger, "{} This field is not an " #sqltype " but {}",         \
+          __FUNCTION__, static_cast<uint32_t>(_bind[range].buffer_type)); \
+      return 0;                                                           \
+    }                                                                     \
   }
 
 SET_VALUE(i32, int32_t, MYSQL_TYPE_LONG, false)

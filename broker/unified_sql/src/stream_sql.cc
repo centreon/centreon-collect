@@ -884,10 +884,10 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
       };
       _downtimes->add_bulk_row(binder);
     } else {
-      log_v2::sql()->error("original actual end time {} is null {}",
-                           dd.actual_end_time.get_time_t(),
-                           dd.actual_end_time.is_null());
-      log_v2::sql()->error("actual end time {}", dd.actual_end_time);
+      _logger_sql->error("original actual end time {} is null {}",
+                         dd.actual_end_time.get_time_t(),
+                         dd.actual_end_time.is_null());
+      _logger_sql->error("actual end time {}", dd.actual_end_time);
       _downtimes->add_multi_row(fmt::format(
           "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
           dd.actual_end_time.to_string(), dd.actual_start_time.to_string(),
@@ -970,9 +970,9 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
       };
       _downtimes->add_bulk_row(binder);
     } else {
-      log_v2::sql()->error("PB actual end time {} -> {}",
-                           dt_obj.actual_end_time(),
-                           uint64_not_null_not_neg_1{dt_obj.actual_end_time()});
+      _logger_sql->error("PB actual end time {} -> {}",
+                         dt_obj.actual_end_time(),
+                         uint64_not_null_not_neg_1{dt_obj.actual_end_time()});
       _downtimes->add_multi_row(fmt::format(
           "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
           uint64_not_null_not_neg_1{dt_obj.actual_end_time()},
@@ -1593,8 +1593,7 @@ void stream::_process_host_parent(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::host_parent % _mysql.connections_count();
-  _finish_action(-1, actions::hosts | actions::host_dependencies |
-                         actions::comments | actions::downtimes);
+  _finish_action(-1, actions::hosts | actions::comments | actions::downtimes);
 
   std::shared_ptr<neb::pb_host_parent> hpp =
       std::static_pointer_cast<neb::pb_host_parent>(d);
@@ -1603,7 +1602,7 @@ void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
   // Enable parenting.
   if (hp.enabled()) {
     // Log message.
-    SPDLOG_LOGGER_INFO(log_v2::sql(), "SQL: pb host {} is parent of host {}",
+    SPDLOG_LOGGER_INFO(_logger_sql, "SQL: pb host {} is parent of host {}",
                        hp.parent_id(), hp.child_id());
 
     // Prepare queries.
@@ -1627,7 +1626,7 @@ void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
   }
   // Disable parenting.
   else {
-    SPDLOG_LOGGER_INFO(log_v2::sql(),
+    SPDLOG_LOGGER_INFO(_logger_sql,
                        "SQL: pb host {} is not parent of host {} anymore",
                        hp.parent_id(), hp.child_id());
 

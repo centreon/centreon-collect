@@ -20,6 +20,7 @@
 #include "com/centreon/engine/configuration/object.hh"
 #include <absl/strings/ascii.h>
 #include <absl/strings/str_split.h>
+#include <boost/algorithm/string.hpp>
 #include "com/centreon/engine/configuration/anomalydetection.hh"
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/configuration/connector.hh"

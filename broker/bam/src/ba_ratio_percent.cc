@@ -213,7 +213,7 @@ std::shared_ptr<pb_ba_status> ba_ratio_percent::_generate_ba_status(
   else
     status.set_output(get_output() + "|" + perfdata);
 
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+  SPDLOG_LOGGER_DEBUG(_logger,
                       "BAM: generating status of ratio percent BA {} '{}' "
                       "(state {}, in downtime {}, level {})",
                       get_id(), _name, status.state(), status.in_downtime(),

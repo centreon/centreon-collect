@@ -33,25 +33,22 @@ set(SOURCES
     string.cc
     time.cc
     uuid.cc
-    variant.cc
-)
+    variant.cc)
 
 # Static libraries.
 add_library(misc STATIC ${SOURCES})
-add_dependencies(misc table_max_size)
+add_dependencies(misc table_max_size target_storage)
 set_target_properties(misc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 if(WITH_TESTING)
   set(TESTS_SOURCES
-    ${TESTS_SOURCES}
-    ${TESTS_DIR}/buffer.cc
-    ${TESTS_DIR}/exec.cc
-    ${TESTS_DIR}/filesystem.cc
-    ${TESTS_DIR}/math.cc
-    ${TESTS_DIR}/misc.cc
-    ${TESTS_DIR}/perfdata.cc
-    ${TESTS_DIR}/string.cc
-    PARENT_SCOPE
-  )
+      ${TESTS_SOURCES}
+      ${TESTS_DIR}/buffer.cc
+      ${TESTS_DIR}/exec.cc
+      ${TESTS_DIR}/filesystem.cc
+      ${TESTS_DIR}/math.cc
+      ${TESTS_DIR}/misc.cc
+      ${TESTS_DIR}/perfdata.cc
+      ${TESTS_DIR}/string.cc
+      PARENT_SCOPE)
 endif(WITH_TESTING)
-

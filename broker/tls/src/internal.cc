@@ -134,7 +134,8 @@ ssize_t tls::pull_helper(gnutls_transport_ptr_t ptr, void* data, size_t size) {
   try {
     return static_cast<tls::stream*>(ptr)->read_encrypted(data, size);
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::tls(), "read failed: {}", e.what());
+    auto logger = log_v2::instance().get(log_v2::TLS);
+    SPDLOG_LOGGER_DEBUG(logger, "read failed: {}", e.what());
     return -1;
   }
 }
@@ -149,7 +150,8 @@ ssize_t tls::push_helper(gnutls_transport_ptr_t ptr,
   try {
     return static_cast<tls::stream*>(ptr)->write_encrypted(data, size);
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::tls(), "write failed: {}", e.what());
+    auto logger = log_v2::instance().get(log_v2::TLS);
+    SPDLOG_LOGGER_DEBUG(logger, "write failed: {}", e.what());
     return -1;
   }
 }

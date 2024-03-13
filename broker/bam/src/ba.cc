@@ -592,8 +592,9 @@ void ba::set_level_warning(double level) {
  * @param visitor The visitor to handle events.
  * @param logger The logger to use.
  */
-void ba::update_from(computable* child, io::stream* visitor, const std::shared_ptr<spdlog::logger>& logger) {
-  auto logger = log_v2::bam();
+void ba::update_from(computable* child,
+                     io::stream* visitor,
+                     const std::shared_ptr<spdlog::logger>& logger) {
   logger->trace("ba::update_from (BA {})", _id);
   // Get impact.
   impact_values new_hard_impact;

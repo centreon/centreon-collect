@@ -41,8 +41,12 @@ if(WITH_TESTING)
     -L${PROTOBUF_LIB_DIR}
     cerpc
     centreon_common
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-    crypto ssl
+    gRPC::gpr
+    gRPC::grpc
+    gRPC::grpc++
+    gRPC::grpc++_alts
+    crypto
+    ssl
     z
     dl
     pthread)
@@ -133,8 +137,7 @@ if(WITH_TESTING)
       # Headers.
       "${TESTS_DIR}/test_engine.hh"
       "${TESTS_DIR}/test_engine.hh"
-      "${TESTS_DIR}/timeperiod/utils.hh"
-      )
+      "${TESTS_DIR}/timeperiod/utils.hh")
 
   # Unit test executable.
   include_directories(${TESTS_DIR})
@@ -149,8 +152,8 @@ if(WITH_TESTING)
   endif()
 
   # utils.cc can't be compiled with precomp headers so it's compiled apart
-  #add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
-  #target_compile_definitions(ut_engine_utils PRIVATE LEGACY_CONF=0)
+  # add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
+  # target_compile_definitions(ut_engine_utils PRIVATE LEGACY_CONF=0)
   add_library(ut_engine_utils_legacy STATIC "${TESTS_DIR}/timeperiod/utils.cc")
   target_compile_definitions(ut_engine_utils_legacy PRIVATE LEGACY_CONF=1)
 
@@ -188,9 +191,16 @@ if(WITH_TESTING)
     engine_config
     pthread
     ${GCOV}
-    GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-    crypto ssl
+    GTest::gtest
+    GTest::gtest_main
+    GTest::gmock
+    GTest::gmock_main
+    gRPC::gpr
+    gRPC::grpc
+    gRPC::grpc++
+    gRPC::grpc++_alts
+    crypto
+    ssl
     z
     fmt::fmt
     ryml::ryml

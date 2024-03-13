@@ -41,12 +41,15 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *                   encryption that should be used.
  */
 stream::stream(unsigned int session_flags)
-    : io::stream("TLS"), _deadline((time_t)-1), _session(nullptr) {
-  SPDLOG_LOGGER_DEBUG(log_v2::tls(), "{:p} TLS: created",
+    : io::stream("TLS"),
+      _deadline((time_t)-1),
+      _session(nullptr),
+      _logger{log_v2::instance().get(log_v2::TLS)} {
+  SPDLOG_LOGGER_DEBUG(_logger, "{:p} TLS: created",
                       static_cast<const void*>(this));
   int ret = gnutls_init(&_session, session_flags);
   if (ret != GNUTLS_E_SUCCESS) {
-    SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS: cannot initialize session: {}",
+    SPDLOG_LOGGER_ERROR(_logger, "TLS: cannot initialize session: {}",
                         gnutls_strerror(ret));
     throw msg_fmt("TLS: cannot initialize session: {}", gnutls_strerror(ret));
   }
@@ -70,20 +73,20 @@ void stream::init(const params& param) {
   gnutls_transport_set_ptr(_session, this);
 
   // Perform the TLS handshake.
-  SPDLOG_LOGGER_DEBUG(log_v2::tls(), "{:p} TLS: performing handshake",
+  SPDLOG_LOGGER_DEBUG(_logger, "{:p} TLS: performing handshake",
                       static_cast<const void*>(this));
   do {
     ret = gnutls_handshake(_session);
   } while (GNUTLS_E_AGAIN == ret || GNUTLS_E_INTERRUPTED == ret);
   if (ret != GNUTLS_E_SUCCESS) {
-    SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS: handshake failed: {}",
+    SPDLOG_LOGGER_ERROR(_logger, "TLS: handshake failed: {}",
                         gnutls_strerror(ret));
     throw msg_fmt("TLS: handshake failed: {} ", gnutls_strerror(ret));
   }
-  SPDLOG_LOGGER_DEBUG(log_v2::tls(), "TLS: successful handshake");
+  SPDLOG_LOGGER_DEBUG(_logger, "TLS: successful handshake");
   gnutls_protocol_t prot = gnutls_protocol_get_version(_session);
   gnutls_cipher_algorithm_t ciph = gnutls_cipher_get(_session);
-  SPDLOG_LOGGER_DEBUG(log_v2::tls(), "TLS: protocol and cipher  {} {} used",
+  SPDLOG_LOGGER_DEBUG(_logger, "TLS: protocol and cipher  {} {} used",
                       gnutls_protocol_get_name(prot),
                       gnutls_cipher_get_name(ciph));
 
@@ -100,7 +103,7 @@ void stream::init(const params& param) {
 stream::~stream() {
   if (_session) {
     try {
-      SPDLOG_LOGGER_DEBUG(log_v2::tls(), "{:p} TLS: destroy session: {:p}",
+      SPDLOG_LOGGER_DEBUG(_logger, "{:p} TLS: destroy session: {:p}",
                           static_cast<const void*>(this),
                           static_cast<const void*>(_session));
       gnutls_bye(_session, GNUTLS_SHUT_RDWR);
@@ -200,7 +203,7 @@ long long stream::read_encrypted(void* buffer, long long size) {
       return size;
     }
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::tls(), "tls read fail: {}", e.what());
+    SPDLOG_LOGGER_DEBUG(_logger, "tls read fail: {}", e.what());
     gnutls_transport_set_errno(_session, EPIPE);
     throw;
   }
@@ -216,8 +219,7 @@ long long stream::read_encrypted(void* buffer, long long size) {
  *  @return Number of events acknowledged.
  */
 int stream::write(std::shared_ptr<io::data> const& d) {
-  if (!validate(d, get_name()))
-    return 1;
+  _logger = log_v2::instance().get(log_v2::TLS);
 
   // Send data.
   if (d->type() == io::raw::static_type()) {

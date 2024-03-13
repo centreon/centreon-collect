@@ -205,11 +205,9 @@ void failover::_run() {
           _stream = s;
           set_state(s ? "connected" : "connecting");
           if (s)
-            SPDLOG_LOGGER_DEBUG(log_v2::processing(), "{} stream connected",
-                                _name);
+            SPDLOG_LOGGER_DEBUG(_logger, "{} stream connected", _name);
           else
-            SPDLOG_LOGGER_DEBUG(log_v2::processing(),
-                                "{} fail to create stream", _name);
+            SPDLOG_LOGGER_DEBUG(_logger, "{} fail to create stream", _name);
         }
         _initialized = true;
         set_last_connection_success(timestamp::now());
@@ -423,8 +421,7 @@ void failover::_run() {
                          "failover {}: connection closed", _name);
       on_exception_handler();
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
-                          "failover: global error: {}", e.what());
+      SPDLOG_LOGGER_ERROR(_logger, "failover: global error: {}", e.what());
       on_exception_handler();
     } catch (...) {
       SPDLOG_LOGGER_ERROR(
@@ -436,8 +433,7 @@ void failover::_run() {
       on_exception_handler();
     }
 
-    SPDLOG_LOGGER_DEBUG(log_v2::processing(),
-                        "failover {} end of loop => reconnect", _name);
+    SPDLOG_LOGGER_DEBUG(_logger, "failover {} end of loop => reconnect", _name);
 
     // Clear stream.
     {
@@ -448,9 +444,8 @@ void failover::_run() {
         try {
           ack_events = _stream->stop();
         } catch (const std::exception& e) {
-          SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
-                              "Failed to send stop event to stream: {}",
-                              e.what());
+          SPDLOG_LOGGER_ERROR(
+              _logger, "Failed to send stop event to stream: {}", e.what());
         }
         _muxer->ack_events(ack_events);
         _stream.reset();

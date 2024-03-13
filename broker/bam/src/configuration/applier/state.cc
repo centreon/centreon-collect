@@ -80,11 +80,6 @@ applier::state::state()
     : _logger{log_v2::instance().get(log_v2::BAM)}, _bool_exp_applier() {}
 
 /**
- *  Destructor.
- */
-applier::state::~state() {}
-
-/**
  *  Apply configuration.
  *
  *  @param[in] my_state  Configuration state.
@@ -237,12 +232,12 @@ void applier::state::_circular_check(applier::state::circular_check_node& n) {
  *  @param[in] cache  The cache.
  */
 void applier::state::save_to_cache(persistent_cache& cache) {
-  log_v2::bam()->trace("BAM: Saving states to cache");
+  _logger->trace("BAM: Saving states to cache");
   cache.transaction();
   _book_service.save_to_cache(cache);
   _ba_applier.save_to_cache(cache);
   cache.commit();
-  log_v2::bam()->trace("BAM: States correctly saved");
+  _logger->trace("BAM: States correctly saved");
 }
 
 /**
@@ -251,8 +246,7 @@ void applier::state::save_to_cache(persistent_cache& cache) {
  *  @param[in] cache  the cache.
  */
 void applier::state::load_from_cache(persistent_cache& cache) {
-  log_v2::bam()->debug(
-      "BAM: Loading restoring inherited downtimes and BA states");
+  _logger->debug("BAM: Loading restoring inherited downtimes and BA states");
 
   std::shared_ptr<io::data> d;
   cache.get(d);
@@ -276,7 +270,7 @@ void applier::state::load_from_cache(persistent_cache& cache) {
     }
     cache.get(d);
   }
-  log_v2::bam()->debug("BAM: Inherited downtimes and BA states restored");
+  _logger->debug("BAM: Inherited downtimes and BA states restored");
 }
 
 /**

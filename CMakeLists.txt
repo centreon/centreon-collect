@@ -29,17 +29,24 @@ set(CMAKE_CXX_STANDARD 17)
 
 if(DEFINED ENV{VCPKG_ROOT})
   set(VCPKG_ROOT "$ENV{VCPKG_ROOT}")
-  message(STATUS "TOOLCHAIN set to ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
-  set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file")
+  message(
+    STATUS "TOOLCHAIN set to ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+  set(CMAKE_TOOLCHAIN_FILE
+      "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      CACHE STRING "Vcpkg toolchain file")
 else()
-  message(STATUS "TOOLCHAIN set to ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
-  set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file")
+  message(
+    STATUS
+      "TOOLCHAIN set to ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+  )
+  set(CMAKE_TOOLCHAIN_FILE
+      "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      CACHE STRING "Vcpkg toolchain file")
 endif()
 
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file")
+set(CMAKE_TOOLCHAIN_FILE
+    "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    CACHE STRING "Vcpkg toolchain file")
 
 project("Centreon Collect" C CXX)
 
@@ -144,7 +151,7 @@ set(COLLECT_PATCH 0)
 set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${COLLECT_VERSION}\")
 
-if (DEBUG_ROBOT)
+if(DEBUG_ROBOT)
   add_definitions(-DDEBUG_ROBOT)
 endif()
 
@@ -170,12 +177,14 @@ pkg_check_modules(LIBSSH2 REQUIRED libssh2)
 
 # There is a bug with grpc. It is not put in the triplet directory. So we have
 # to search for its plugin.
-file(GLOB_RECURSE GRPC_CPP_PLUGIN_EXE
-  RELATIVE ${CMAKE_BINARY_DIR} grpc_cpp_plugin)
-find_program(GRPC_CPP_PLUGIN
+file(
+  GLOB_RECURSE GRPC_CPP_PLUGIN_EXE
+  RELATIVE ${CMAKE_BINARY_DIR}
+  grpc_cpp_plugin)
+find_program(
+  GRPC_CPP_PLUGIN
   NAMES ${GRPC_CPP_PLUGIN_EXE}
-  PATHS ${CMAKE_BINARY_DIR}
-  REQUIRED
+  PATHS ${CMAKE_BINARY_DIR} REQUIRED
   NO_DEFAULT_PATH)
 
 set(PROTOBUF_LIB_DIR ${Protobuf_DIR}/../../lib)
@@ -211,11 +220,9 @@ endif()
 
 set(protobuf_MODULE_COMPATIBLE True)
 
-include_directories(${CMAKE_SOURCE_DIR}
-  ${VCPKG_INCLUDE_DIR}
-  fmt::fmt
-  spdlog::spdlog
-  ${CMAKE_SOURCE_DIR}/clib/inc)
+include_directories(
+  ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${VCPKG_INCLUDE_DIR} fmt::fmt
+  spdlog::spdlog ${CMAKE_SOURCE_DIR}/clib/inc)
 
 add_subdirectory(clib)
 add_subdirectory(common)
@@ -225,10 +232,9 @@ add_subdirectory(engine)
 add_subdirectory(connectors)
 add_subdirectory(ccc)
 
-if (WITH_MALLOC_TRACE)
+if(WITH_MALLOC_TRACE)
   add_subdirectory(malloc-trace)
 endif()
-
 
 add_custom_target(test-broker COMMAND tests/ut_broker)
 add_custom_target(test-engine COMMAND tests/ut_engine)

@@ -51,14 +51,16 @@ class service_book {
                      service_state_listeners,
                      absl::Hash<std::pair<uint64_t, uint64_t>>>
       _book;
+  std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  service_book() = default;
+  service_book();
   ~service_book() noexcept = default;
   service_book(const service_book&) = delete;
   service_book& operator=(const service_book&) = delete;
   void listen(uint32_t host_id, uint32_t service_id, service_listener* listnr);
-  void unlisten(uint32_t host_id, uint32_t service_id,
+  void unlisten(uint32_t host_id,
+                uint32_t service_id,
                 service_listener* listnr);
   void update(const std::shared_ptr<neb::acknowledgement>& t,
               io::stream* visitor,
@@ -66,14 +68,17 @@ class service_book {
   void update(const std::shared_ptr<neb::pb_acknowledgement>& t,
               io::stream* visitor,
               const std::shared_ptr<spdlog::logger>& logger);
-  void update(const std::shared_ptr<neb::downtime>& t, io::stream* visitor,
+  void update(const std::shared_ptr<neb::downtime>& t,
+              io::stream* visitor,
               const std::shared_ptr<spdlog::logger>& logger);
-  void update(const std::shared_ptr<neb::pb_downtime>& t, io::stream* visitor,
+  void update(const std::shared_ptr<neb::pb_downtime>& t,
+              io::stream* visitor,
               const std::shared_ptr<spdlog::logger>& logger);
   void update(const std::shared_ptr<neb::service_status>& t,
               io::stream* visitor,
               const std::shared_ptr<spdlog::logger>& logger);
-  void update(const std::shared_ptr<neb::pb_service>& t, io::stream* visitor,
+  void update(const std::shared_ptr<neb::pb_service>& t,
+              io::stream* visitor,
               const std::shared_ptr<spdlog::logger>& logger);
   void update(const std::shared_ptr<neb::pb_service_status>& t,
               io::stream* visitor,

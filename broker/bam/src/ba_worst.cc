@@ -241,7 +241,7 @@ std::shared_ptr<pb_ba_status> ba_worst::_generate_ba_status(
     status.set_output(get_output() + "|" + perfdata);
 
   SPDLOG_LOGGER_DEBUG(
-      log_v2::bam(),
+      _logger,
       "BAM: generating status of worst BA {} '{}' (state {}, in downtime {})",
       get_id(), _name, status.state(), status.in_downtime());
   return ret;

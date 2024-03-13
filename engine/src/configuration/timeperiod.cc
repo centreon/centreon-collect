@@ -151,7 +151,8 @@ timeperiod::key_type const& timeperiod::key() const noexcept {
 void timeperiod::merge(object const& obj) {
   if (obj.type() != _type)
     throw exceptions::msg_fmt(
-        "Cannot merge time period with object of type '{}'", obj.type());
+        "Cannot merge time period with object of type '{}'",
+        static_cast<uint32_t>(obj.type()));
   timeperiod const& tmpl(static_cast<timeperiod const&>(obj));
 
   MRG_DEFAULT(_alias);

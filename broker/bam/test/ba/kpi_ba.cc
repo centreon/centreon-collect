@@ -295,9 +295,9 @@ TEST_F(KpiBA, KpiBaDt) {
 
   absl::FixedArray<std::shared_ptr<bam::kpi_service>, 2> kpis{
       std::make_shared<bam::kpi_service>(1, 2, 3, 1,
-                                         fmt::format("service {}", 0)),
+                                         fmt::format("service {}", 0), logger),
       std::make_shared<bam::kpi_service>(2, 2, 3, 2,
-                                         fmt::format("service {}", 1)),
+                                         fmt::format("service {}", 1), logger),
   };
 
   /* Construction of kpi_services */

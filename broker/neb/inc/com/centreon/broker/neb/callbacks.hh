@@ -53,6 +53,7 @@ int callback_pb_process(int callback_type, void* data);
 int callback_program_status(int callback_type, void* data);
 int callback_pb_program_status(int callback_type, void* data);
 int callback_relation(int callback_type, void* data);
+int callback_pb_relation(int callback_type, void* data);
 int callback_service(int callback_type, void* data);
 int callback_service_check(int callback_type, void* data);
 int callback_pb_service_check(int callback_type, void* data);

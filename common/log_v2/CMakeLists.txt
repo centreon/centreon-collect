@@ -23,8 +23,6 @@ add_definitions(${spdlog_DEFINITIONS})
 add_library(
   log_v2 STATIC
   # Sources.
-  log_v2.cc
-  log_v2.hh
-  config.hh)
+  log_v2.cc log_v2.hh config.hh)
 
-target_link_libraries(log_v2 CONAN_PKG::spdlog stdc++fs)
+target_link_libraries(log_v2 spdlog::spdlog stdc++fs)

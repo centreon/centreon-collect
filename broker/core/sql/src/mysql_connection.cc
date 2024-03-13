@@ -15,7 +15,7 @@
  *
  * For more information : contact@centreon.com
  */
-#include <errmsg.h>
+#include <mysql/errmsg.h>
 
 #include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/config/applier/init.hh"
