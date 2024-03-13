@@ -183,9 +183,6 @@ if(WITH_TESTING)
     opentelemetry
     pb_open_telemetry_lib
     enginelog
-    -L${CONAN_LIB_DIRS_OPENTELEMETRY-CPP}
-    opentelemetry_proto
-    opentelemetry_proto_grpc
     pthread
     ${GCOV}
     GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main

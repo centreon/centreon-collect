@@ -41,13 +41,16 @@ class https_connection : public connection_base {
 
   https_connection(const std::shared_ptr<asio::io_context>& io_context,
                    const std::shared_ptr<spdlog::logger>& logger,
-                   const http_config::pointer& conf);
+                   const http_config::pointer& conf,
+                   const ssl_ctx_initializer& ssl_init);
 
   void on_handshake(const boost::beast::error_code err,
                     const connect_callback_type& callback);
 
   void on_connect(const boost::beast::error_code& err,
                   connect_callback_type& callback);
+
+  void init_keep_alive();
 
   void on_sent(const boost::beast::error_code& err,
                request_ptr request,
@@ -66,7 +69,9 @@ class https_connection : public connection_base {
 
   static pointer load(const std::shared_ptr<asio::io_context>& io_context,
                       const std::shared_ptr<spdlog::logger>& logger,
-                      const http_config::pointer& conf);
+                      const http_config::pointer& conf,
+                      const ssl_ctx_initializer& ssl_init =
+                          https_connection::load_client_certificate);
 
   ~https_connection();
 
@@ -75,6 +80,17 @@ class https_connection : public connection_base {
   void connect(connect_callback_type&& callback) override;
 
   void send(request_ptr request, send_callback_type&& callback) override;
+
+  void on_accept(connect_callback_type&& callback) override;
+
+  void answer(const response_ptr& response,
+              answer_callback_type&& callback) override;
+  void receive_request(request_callback_type&& callback) override;
+
+  asio::ip::tcp::socket& get_socket() override;
+
+  static void load_client_certificate(asio::ssl::context& ctx,
+                                      const http_config::pointer& conf);
 };
 
 }  // namespace com::centreon::common::http

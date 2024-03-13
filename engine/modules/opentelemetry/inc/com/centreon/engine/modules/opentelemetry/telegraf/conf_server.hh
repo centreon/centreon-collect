@@ -41,25 +41,10 @@ class conf_server_config {
   bool operator==(const conf_server_config& right) const;
 };
 
-class http_session : public std::enable_shared_from_this<http_session> {};
-
-class https_session : public std::enable_shared_from_this<https_session> {
-};
-
-class http_server : public std::enable_shared_from_this<http_server> {
-  conf_server_config::pointer _conf;
-  std::shared_ptr<asio::io_context> _io_ctx;
-
+template <class connection_class>
+class conf_session : public connection_class {
  public:
-  http_server(const conf_server_config::pointer& conf,
-              const std::shared_ptr<asio::io_context>& ctx);
-
-  std::shared_ptr<http_server> create(
-      const conf_server_config::pointer& conf,
-      const std::shared_ptr<asio::io_context>& ctx);
-
-
-  void shutdown();
+  void on_accept() override;
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry::telegraf

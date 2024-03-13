@@ -128,8 +128,7 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
          const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const std::shared_ptr<http_tsdb_config>& conf,
-         http::client::connection_creator conn_creator =
-             http::http_connection::load);
+         http::connection_creator conn_creator);
 
   virtual request::pointer create_request() const = 0;
 

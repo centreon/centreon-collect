@@ -57,6 +57,8 @@ include_directories("${INCLUDE_DIR}"
 	${VCPKG_INCLUDE_DIR}
   )
 
+add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
+
 add_library(centreon_common STATIC ${SOURCES})
 target_include_directories(centreon_common PRIVATE ${INCLUDE_DIR} ${CONAN_INCLUDE_DIRS_RAPIDJSON})
 set_property(TARGET centreon_common PROPERTY POSITION_INDEPENDENT_CODE ON)

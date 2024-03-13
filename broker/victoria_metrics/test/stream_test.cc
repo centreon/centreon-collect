@@ -31,7 +31,9 @@ using duration = system_clock::duration;
 
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/victoria_metrics/stream.hh"
+#include "com/centreon/common/pool.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::common;
@@ -55,6 +57,11 @@ TEST_F(victoria_stream_test, Authorization) {
   auto cfg = std::make_shared<http_tsdb::http_tsdb_config>(
       dummy, "/write", "Aladdin", "open sesame", 1, dummy2, dummy2);
 
-  std::shared_ptr<stream> s = stream::load(g_io_context, cfg, "my_account");
+  std::shared_ptr<stream> s =
+      stream::load(g_io_context, cfg, "my_account", [cfg]() {
+        return http::http_connection::load(
+            com::centreon::common::pool::io_context_ptr(),
+            log_v2::victoria_metrics(), cfg);
+      });
   ASSERT_EQ(s->get_authorization(), "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==");
 }
