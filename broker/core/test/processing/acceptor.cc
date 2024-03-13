@@ -39,7 +39,7 @@ class ProcessingTest : public ::testing::Test {
       (void)e;
     }
 
-    log_v2::core()->set_level(spdlog::level::info);
+    log_v2::instance().get(log_v2::CORE)->set_level(spdlog::level::info);
     _endpoint = std::make_shared<temporary_endpoint>();
   }
 

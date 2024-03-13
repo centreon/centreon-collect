@@ -204,7 +204,7 @@ muxer::~muxer() noexcept {
   unsubscribe();
   {
     std::lock_guard<std::mutex> lock(_mutex);
-    SPDLOG_LOGGER_INFO(log_v2::core(),
+    SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
                        "Destroying muxer {}: number of events in the queue: {}",
                        _name, _events_size);
     _clean();

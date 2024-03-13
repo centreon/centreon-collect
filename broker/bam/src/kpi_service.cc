@@ -171,13 +171,12 @@ bool kpi_service::is_acknowledged() const {
 
 void kpi_service::service_update(const service_state& s) {
   // Log message.
-  log_v2::bam()->debug("BAM: Service KPI {} is restored from persistent cache",
-                       _id);
+  _logger->debug("BAM: Service KPI {} is restored from persistent cache", _id);
 
   // Update information.
   if (!time_is_undefined(s.last_check)) {
     _last_check = s.last_check;
-    log_v2::bam()->trace(
+    _logger->trace(
         "service kpi {} last check updated with status last check {}", _id,
         s.last_check);
   }
@@ -192,7 +191,7 @@ void kpi_service::service_update(const service_state& s) {
 
   // Propagate change.
   if (changed)
-    notify_parents_of_change(nullptr);
+    notify_parents_of_change(nullptr, _logger);
 }
 
 /**
@@ -422,10 +421,13 @@ void kpi_service::service_update(
  *  @param[in]  dt
  *  @param[out] visitor  Object that will receive events.
  */
-void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
-                                 io::stream* visitor,
-  const std::shared_ptr<spdlog::logger>& logger) {
-  log_v2::bam()->info("kpi_service:service_update on downtime {}: was started {} ; actual end time {}",
+void kpi_service::service_update(
+    const std::shared_ptr<neb::downtime>& dt,
+    io::stream* visitor,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  logger->info(
+      "kpi_service:service_update on downtime {}: was started {} ; actual end "
+      "time {}",
       dt->internal_id, dt->was_started, dt->actual_end_time.get_time_t());
   _logger = logger;
   // Update information.
@@ -438,8 +440,11 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
     return;
   }
 
-  log_v2::bam()->info("kpi_service:service_update on downtime {}: was started {} ; actual end time {} ; downtimed {}",
-      dt->internal_id, dt->was_started, dt->actual_end_time.get_time_t(), downtimed);
+  _logger->info(
+      "kpi_service:service_update on downtime {}: was started {} ; actual end "
+      "time {} ; downtimed {}",
+      dt->internal_id, dt->was_started, dt->actual_end_time.get_time_t(),
+      downtimed);
   if (downtimed) {
     _logger->trace("adding in kpi service the impacting downtime {}",
                    dt->internal_id);
@@ -764,8 +769,8 @@ void kpi_service::update_from(computable* child [[maybe_unused]],
 }
 
 std::string kpi_service::object_info() const {
-  return fmt::format("KPI {} with service ({}, {})\nstate: {}\ndowntime: {}", get_id(),
-                     get_host_id(), get_service_id(),
+  return fmt::format("KPI {} with service ({}, {})\nstate: {}\ndowntime: {}",
+                     get_id(), get_host_id(), get_service_id(),
                      static_cast<uint32_t>(get_state_hard()), _downtimed);
 }
 

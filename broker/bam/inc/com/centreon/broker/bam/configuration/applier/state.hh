@@ -62,7 +62,7 @@ class state {
   std::unordered_map<std::string, circular_check_node> _nodes;
 
  public:
-  state() = default;
+  state();
   ~state() noexcept = default;
   state(const state&) = delete;
   state& operator=(state const& other) = delete;

@@ -2659,7 +2659,7 @@ int neb::callback_relation(int callback_type, void* data) {
  */
 int neb::callback_pb_relation(int callback_type [[maybe_unused]], void* data) {
   // Log message.
-  SPDLOG_LOGGER_INFO(log_v2::neb(), "callbacks: generating pb relation event");
+  SPDLOG_LOGGER_INFO(neb_logger, "callbacks: generating pb relation event");
 
   try {
     // Input variable.
@@ -2674,10 +2674,8 @@ int neb::callback_pb_relation(int callback_type [[maybe_unused]], void* data) {
         // Find host IDs.
         int host_id;
         int parent_id;
-        {
-          host_id = engine::get_host_id(relation->dep_hst->name());
-          parent_id = engine::get_host_id(relation->hst->name());
-        }
+        host_id = engine::get_host_id(relation->dep_hst->name());
+        parent_id = engine::get_host_id(relation->hst->name());
         if (host_id && parent_id) {
           // Generate parent event.
           auto new_host_parent{std::make_shared<pb_host_parent>()};
@@ -2687,7 +2685,7 @@ int neb::callback_pb_relation(int callback_type [[maybe_unused]], void* data) {
           new_host_parent->mut_obj().set_parent_id(parent_id);
 
           // Send event.
-          SPDLOG_LOGGER_INFO(log_v2::neb(),
+          SPDLOG_LOGGER_INFO(neb_logger,
                              "callbacks: pb host {} is parent of host {}",
                              parent_id, host_id);
           neb::gl_publisher.write(new_host_parent);
@@ -3418,11 +3416,10 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
 
   const engine::service* es{static_cast<engine::service*>(
       static_cast<nebstruct_service_status_data*>(data)->object_ptr)};
-==== BASE ====
-  log_v2::neb()->info("callbacks: pb_service_status ({},{}) status {}, type {}",
-                      es->host_id(), es->service_id(), es->get_current_state(),
-                      es->get_check_type());
-==== BASE ====
+  neb_logger->info("callbacks: pb_service_status ({},{}) status {}, type {}",
+                   es->host_id(), es->service_id(),
+                   static_cast<uint32_t>(es->get_current_state()),
+                   static_cast<uint32_t>(es->get_check_type()));
 
   auto s{std::make_shared<neb::pb_service_status>()};
   ServiceStatus& sscr = s.get()->mut_obj();

@@ -396,8 +396,7 @@ void applier::ba::apply_inherited_downtime(const inherited_downtime& dwn) {
 
   std::map<uint32_t, applied>::iterator found = _applied.find(dwn.ba_id);
   if (found != _applied.end()) {
-    log_v2::bam()->debug("BAM: found an inherited downtime for BA {}",
-                         found->first);
+    _logger->debug("BAM: found an inherited downtime for BA {}", found->first);
     found->second.obj->set_inherited_downtime(dwn);
     std::shared_ptr<io::data> s;
     if (bbdo3_enabled)
@@ -416,8 +415,7 @@ void applier::ba::apply_inherited_downtime(const pb_inherited_downtime& dwn) {
   std::map<uint32_t, applied>::iterator found =
       _applied.find(dwn.obj().ba_id());
   if (found != _applied.end()) {
-    log_v2::bam()->debug("BAM: found an inherited downtime for BA {}",
-                         found->first);
+    _logger->debug("BAM: found an inherited downtime for BA {}", found->first);
     found->second.obj->set_inherited_downtime(dwn);
     std::shared_ptr<io::data> s;
     if (bbdo3_enabled)

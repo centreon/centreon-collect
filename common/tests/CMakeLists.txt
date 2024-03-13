@@ -34,4 +34,11 @@ if(WITH_COVERAGE)
   set(GCOV gcov)
 endif()
 add_test(NAME tests COMMAND ut_common)
-target_link_libraries(ut_common CONAN_PKG::gtest pthread log_v2)
+target_link_libraries(
+  ut_common
+  GTest::gtest
+  GTest::gtest_main
+  GTest::gmock
+  GTest::gmock_main
+  pthread
+  log_v2)

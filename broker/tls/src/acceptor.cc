@@ -84,7 +84,6 @@ std::shared_ptr<io::stream> acceptor::open(
     const std::shared_ptr<io::stream>& lower) {
   std::shared_ptr<stream> u;
   if (lower) {
-    int ret;
     auto logger = log_v2::instance().get(log_v2::TLS);
 
     // Load parameters.

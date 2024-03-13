@@ -54,7 +54,6 @@ class stream : public io::stream {
   /* The Lua engine */
   luabinding _luabinding;
 
-  /* Logger ID */
   std::shared_ptr<spdlog::logger> _logger;
 
   /* Macro cache */

@@ -47,9 +47,7 @@ set(PRECOMP_HEADER "${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh")
 
 set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 
-include_directories(
-  "${INC_DIR}" "${INC_DIR}/compatibility"
-)
+include_directories("${INC_DIR}" "${INC_DIR}/compatibility")
 
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
@@ -511,6 +509,7 @@ target_link_libraries(
   ${PTHREAD_LIBRARIES}
   ${SOCKET_LIBRARIES}
   centreon_clib
+  engine_config
   fmt::fmt
   spdlog::spdlog)
 
@@ -524,14 +523,14 @@ target_precompile_headers(cce_core_legacy PRIVATE ${PRECOMP_HEADER})
 # Link target with required libraries.
 target_link_libraries(
   cce_core_legacy
-  CONAN_PKG::nlohmann_json
+  nlohmann_json::nlohmann_json
   ${MATH_LIBRARIES}
   ${PTHREAD_LIBRARIES}
   ${SOCKET_LIBRARIES}
   centreon_clib
   engine_config_legacy
-  ${fmt_LIBRARIES}
-  CONAN_PKG::spdlog)
+  fmt::fmt
+  spdlog::spdlog)
 
 # centengine target.
 add_executable(centengine "${SRC_DIR}/main.cc")
@@ -551,9 +550,16 @@ target_link_libraries(
   cce_core
   gRPC::grpc++
   "-Wl,--no-whole-archive"
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-  absl::any absl::log absl::base absl::bits
-  crypto ssl
+  gRPC::gpr
+  gRPC::grpc
+  gRPC::grpc++
+  gRPC::grpc++_alts
+  absl::any
+  absl::log
+  absl::base
+  absl::bits
+  crypto
+  ssl
   ${c-ares_LIBS}
   z
   ryml::ryml
@@ -570,30 +576,35 @@ add_dependencies(centengine_legacy centreon_clib)
 # Link centengine with required libraries.
 target_link_libraries(
   centengine_legacy
+  -L${PROTOBUF_LIB_DIR}
   "-rdynamic"
   centreon_clib
   log_v2
   "-Wl,-whole-archive"
   enginerpc_legacy
   cce_core_legacy
-  engine_config_legacy
-  "-Wl,-no-whole-archive"
-  -L${CONAN_LIB_DIRS_GRPC}
-  "-Wl,--whole-archive"
-  grpc++
+  gRPC::grpc++
   "-Wl,--no-whole-archive"
-  CONAN_PKG::grpc
-  ${absl_LIBS}
-  CONAN_PKG::openssl
+  gRPC::gpr
+  gRPC::grpc
+  gRPC::grpc++
+  gRPC::grpc++_alts
+  absl::any
+  absl::log
+  absl::base
+  absl::bits
+  crypto
+  ssl
   ${c-ares_LIBS}
-  CONAN_PKG::zlib
-  CONAN_PKG::rapidyaml
+  z
+  ryml::ryml
+  stdc++fs
   dl)
 
 # centenginestats target.
-add_executable("centenginestats" "${SRC_DIR}/centenginestats.cc")
-add_dependencies("centenginestats" centreon_clib)
-target_link_libraries("centenginestats" centreon_clib fmt::fmt)
+add_executable(centenginestats "${SRC_DIR}/centenginestats.cc")
+add_dependencies(centenginestats centreon_clib)
+target_link_libraries(centenginestats centreon_clib fmt::fmt)
 target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 
 # Unit tests.

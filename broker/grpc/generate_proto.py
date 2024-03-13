@@ -247,7 +247,7 @@ with open(args.cc_file, 'w') as fp:
       {
         auto logger = log_v2::instance().get(log_v2::GRPC);
         SPDLOG_LOGGER_ERROR(logger, "unknown content type: {} => ignored",
-                            stream_content->content_case());
+                            static_cast<uint32_t>(stream_content->content_case()));
         return std::shared_ptr<io::data>();
       }
     }

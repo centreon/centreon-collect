@@ -27,10 +27,6 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
-static constexpr bool time_is_undefined(uint64_t t) {
-  return t == 0 || t == static_cast<uint64_t>(-1);
-}
-
 /**
  *  Default constructor.
  */
@@ -71,19 +67,19 @@ uint32_t bool_service::get_service_id() const {
  */
 void bool_service::service_update(const service_state& s) {
   // Update information.
-  log_v2::bam()->debug("BAM: bool_service updated with service state {}", s);
+  _logger->debug("BAM: bool_service updated with service state {}", s);
   bool changed =
       _state_hard != static_cast<state>(s.last_hard_state) || !_state_known;
 
   _state_hard = static_cast<short>(s.last_hard_state);
-  log_v2::bam()->debug("BAM: bool_service ({},{}) state hard set to {}",
-                       s.host_id, s.service_id, _state_hard);
+  _logger->debug("BAM: bool_service ({},{}) state hard set to {}", s.host_id,
+                 s.service_id, _state_hard);
   if (_state_hard != state_unknown)
     _state_known = true;
 
   // Propagate change.
   if (changed)
-    notify_parents_of_change(nullptr);
+    notify_parents_of_change(nullptr, _logger);
 }
 
 /**
@@ -218,7 +214,8 @@ bool bool_service::in_downtime() const {
  * @param logger The logger to use.
  */
 void bool_service::update_from(computable* child [[maybe_unused]],
-                               io::stream* visitor, const std::shared_ptr<spdlog::logger>& logger) {
+                               io::stream* visitor,
+                               const std::shared_ptr<spdlog::logger>& logger) {
   logger->trace("bool_service::update_from");
   notify_parents_of_change(visitor, logger);
 }

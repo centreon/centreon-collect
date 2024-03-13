@@ -756,7 +756,7 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
               _logger->error(
                   "Repeated type f->cpp_type = {} not managed in the "
                   "inheritence.",
-                  f->cpp_type());
+                  static_cast<uint32_t>(f->cpp_type()));
               assert(124 == 294);
           }
         } else {

@@ -81,8 +81,14 @@ add_library(
   "${INC_DIR}/timeperiod.hh")
 
 target_compile_definitions(engine_config_legacy PRIVATE LEGACY_CONF=1)
-target_link_libraries(engine_config_legacy CONAN_PKG::spdlog CONAN_PKG::abseil
-                      log_v2)
+target_link_libraries(
+  engine_config_legacy
+  spdlog::spdlog
+  absl::any
+  absl::log
+  absl::base
+  absl::bits
+  log_v2)
 
 # Set files.
 add_library(
@@ -139,5 +145,12 @@ add_library(
   "${INC_DIR}/timeperiod.hh")
 
 target_compile_definitions(engine_config PRIVATE LEGACY_CONF=0)
-target_link_libraries(engine_config CONAN_PKG::spdlog CONAN_PKG::abseil
-                      pb_configuration_lib log_v2)
+target_link_libraries(
+  engine_config
+  spdlog::spdlog
+  absl::any
+  absl::log
+  absl::base
+  absl::bits
+  pb_configuration_lib
+  log_v2)

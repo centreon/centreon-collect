@@ -17,16 +17,22 @@
  */
 
 #include "com/centreon/broker/bam/service_book.hh"
+#include <spdlog/logger.h>
 
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
+
+using com::centreon::common::log_v2::log_v2;
 
 static constexpr bool time_is_undefined(uint64_t t) {
   return t == 0 || t == static_cast<uint64_t>(-1);
 }
+
+service_book::service_book() : _logger{log_v2::instance().get(log_v2::BAM)} {}
 
 /**
  *  Make a service listener listen to service updates.
@@ -35,10 +41,11 @@ static constexpr bool time_is_undefined(uint64_t t) {
  *  @param[in]     service_id  Service ID.
  *  @param[in,out] listnr      Service listener.
  */
-void service_book::listen(uint32_t host_id, uint32_t service_id,
+void service_book::listen(uint32_t host_id,
+                          uint32_t service_id,
                           service_listener* listnr) {
-  log_v2::bam()->trace("BAM: service ({}, {}) added to service book", host_id,
-                       service_id);
+  _logger->trace("BAM: service ({}, {}) added to service book", host_id,
+                 service_id);
   auto found = _book.find(std::make_pair(host_id, service_id));
   if (found == _book.end()) {
     service_state_listeners sl{{listnr},
@@ -55,7 +62,8 @@ void service_book::listen(uint32_t host_id, uint32_t service_id,
  *  @param[in] service_id  Service ID.
  *  @param[in] listnr      Service listener.
  */
-void service_book::unlisten(uint32_t host_id, uint32_t service_id,
+void service_book::unlisten(uint32_t host_id,
+                            uint32_t service_id,
                             service_listener* listnr) {
   auto found = _book.find(std::make_pair(host_id, service_id));
   if (found != _book.end()) {
@@ -74,7 +82,8 @@ void service_book::unlisten(uint32_t host_id, uint32_t service_id,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::pb_acknowledgement>& t,
-                          io::stream* visitor) {
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   auto found =
       _book.find(std::make_pair(t->obj().host_id(), t->obj().service_id()));
   if (found == _book.end())
@@ -82,7 +91,7 @@ void service_book::update(const std::shared_ptr<neb::pb_acknowledgement>& t,
   auto& svc_state = found->second.state;
   svc_state.acknowledged = time_is_undefined(t->obj().deletion_time());
   for (auto l : found->second.listeners)
-    l->service_update(t, visitor);
+    l->service_update(t, visitor, logger);
 }
 
 /**
@@ -93,14 +102,15 @@ void service_book::update(const std::shared_ptr<neb::pb_acknowledgement>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::acknowledgement>& t,
-                          io::stream* visitor) {
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   auto found = _book.find(std::make_pair(t->host_id, t->service_id));
   if (found == _book.end())
     return;
   auto& svc_state = found->second.state;
   svc_state.acknowledged = t->deletion_time.is_null();
   for (auto l : found->second.listeners)
-    l->service_update(t, visitor);
+    l->service_update(t, visitor, logger);
 }
 
 /**
@@ -111,12 +121,13 @@ void service_book::update(const std::shared_ptr<neb::acknowledgement>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::downtime>& t,
-                          io::stream* visitor) {
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   auto found = _book.find(std::make_pair(t->host_id, t->service_id));
   if (found == _book.end())
     return;
   for (auto l : found->second.listeners)
-    l->service_update(t, visitor);
+    l->service_update(t, visitor, logger);
 }
 
 /**
@@ -127,13 +138,14 @@ void service_book::update(const std::shared_ptr<neb::downtime>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::pb_downtime>& t,
-                          io::stream* visitor) {
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   auto found =
       _book.find(std::make_pair(t->obj().host_id(), t->obj().service_id()));
   if (found == _book.end())
     return;
   for (auto l : found->second.listeners)
-    l->service_update(t, visitor);
+    l->service_update(t, visitor, logger);
 }
 
 /**
@@ -144,7 +156,8 @@ void service_book::update(const std::shared_ptr<neb::pb_downtime>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::service_status>& t,
-                          io::stream* visitor) {
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   auto found = _book.find(std::make_pair(t->host_id, t->service_id));
   if (found == _book.end())
     return;
@@ -155,7 +168,7 @@ void service_book::update(const std::shared_ptr<neb::service_status>& t,
   svc_state.state_type = t->state_type;
 
   for (auto l : found->second.listeners)
-    l->service_update(t, visitor);
+    l->service_update(t, visitor, logger);
 }
 
 /**
@@ -166,7 +179,8 @@ void service_book::update(const std::shared_ptr<neb::service_status>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::pb_service>& t,
-                          io::stream* visitor) {
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   auto found =
       _book.find(std::make_pair(t->obj().host_id(), t->obj().service_id()));
   if (found == _book.end())
@@ -180,7 +194,7 @@ void service_book::update(const std::shared_ptr<neb::pb_service>& t,
   svc_state.state_type = o.state_type();
 
   for (auto l : found->second.listeners)
-    l->service_update(t, visitor);
+    l->service_update(t, visitor, logger);
 }
 
 /**
@@ -191,7 +205,8 @@ void service_book::update(const std::shared_ptr<neb::pb_service>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::pb_service_status>& t,
-                          io::stream* visitor) {
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   auto found =
       _book.find(std::make_pair(t->obj().host_id(), t->obj().service_id()));
   if (found == _book.end())
@@ -205,7 +220,7 @@ void service_book::update(const std::shared_ptr<neb::pb_service_status>& t,
   svc_state.state_type = o.state_type();
 
   for (auto l : found->second.listeners)
-    l->service_update(t, visitor);
+    l->service_update(t, visitor, logger);
 }
 
 /**
@@ -238,7 +253,7 @@ void service_book::save_to_cache(persistent_cache& cache) const {
  * @param state A ServicesBookState get from the cache.
  */
 void service_book::apply_services_state(const ServicesBookState& state) {
-  log_v2::bam()->trace("BAM: applying services state from cache");
+  _logger->trace("BAM: applying services state from cache");
   for (auto& svc : state.service()) {
     auto found = _book.find(std::make_pair(svc.host_id(), svc.service_id()));
     if (found == _book.end())
@@ -252,5 +267,5 @@ void service_book::apply_services_state(const ServicesBookState& state) {
     for (auto l : found->second.listeners)
       l->service_update(svc_state);
   }
-  log_v2::bam()->trace("BAM: Services state applied from cache");
+  _logger->trace("BAM: Services state applied from cache");
 }

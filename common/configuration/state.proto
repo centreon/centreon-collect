@@ -74,7 +74,7 @@ message State {
   string log_v2_logger = 19;
   string log_file = 20;
   string debug_file = 21;
-  uint32 debug_level = 22;
+  uint64 debug_level = 22;
   uint32 debug_verbosity = 23;
   uint32 max_debug_file_size = 24;
   bool log_pid = 25;
