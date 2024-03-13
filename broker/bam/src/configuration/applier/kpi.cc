@@ -93,10 +93,10 @@ void applier::kpi::apply(bam::configuration::state::kpis const& my_kpis,
   bam::configuration::state::kpis to_create(my_kpis);
 
   // Iterate through configuration.
-  for (bam::configuration::state::kpis::iterator it(to_create.begin()),
-       end(to_create.end());
+  for (bam::configuration::state::kpis::iterator it = to_create.begin(),
+                                                 end = to_create.end();
        it != end;) {
-    std::map<uint32_t, applied>::iterator cfg_it(to_delete.find(it->first));
+    std::map<uint32_t, applied>::iterator cfg_it = to_delete.find(it->first);
     // Found = modify (or not).
     if (cfg_it != to_delete.end()) {
       // Configuration mismatch, modify object
