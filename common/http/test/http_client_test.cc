@@ -18,6 +18,7 @@
  *
  */
 #include <gtest/gtest.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 #include "defer.hh"
 
@@ -36,7 +37,7 @@ const asio::ip::tcp::endpoint test_endpoint(asio::ip::make_address("127.0.0.1"),
                                             1234);
 
 static std::shared_ptr<spdlog::logger> logger =
-    std::make_shared<spdlog::logger>("http_client_test");
+    spdlog::stdout_color_mt("http_client_test");
 
 class http_client_test : public ::testing::Test {
  public:
@@ -50,13 +51,16 @@ class connection_ok : public connection_base {
   unsigned _connect_counter;
   unsigned _request_counter;
 
+  asio::ip::tcp::socket _useless;
+
  public:
   connection_ok(const std::shared_ptr<asio::io_context>& io_context,
                 const std::shared_ptr<spdlog::logger>& logger,
                 const http_config::pointer& conf)
       : connection_base(io_context, logger, conf),
         _connect_counter(0),
-        _request_counter(0) {}
+        _request_counter(0),
+        _useless(*io_context) {}
 
   unsigned get_connect_counter() const { return _connect_counter; }
   unsigned get_request_counter() const { return _request_counter; }
@@ -89,21 +93,27 @@ class connection_ok : public connection_base {
     }
     ++_request_counter;
   }
+
+  void on_accept(connect_callback_type&& callback) override {}
+
+  void answer(const response_ptr& response,
+              answer_callback_type&& callback) override {}
+  void receive_request(request_callback_type&& callback) override {}
+
+  asio::ip::tcp::socket& get_socket() override { return _useless; }
 };
 
 TEST_F(http_client_test, many_request_use_all_connection) {
   std::vector<std::shared_ptr<connection_ok>> conns;
+  http_config::pointer client_conf =
+      std::make_shared<http_config>(test_endpoint, "localhost");
   client::pointer clt =
-      client::load(g_io_context, logger,
-                   std::make_shared<http_config>(test_endpoint, "localhost"),
-                   [&conns](const std::shared_ptr<asio::io_context>& io_context,
-                            const std::shared_ptr<spdlog::logger>& logger,
-                            const http_config::pointer& conf) {
-                     auto dummy_conn = std::make_shared<connection_ok>(
-                         io_context, logger, conf);
-                     conns.push_back(dummy_conn);
-                     return dummy_conn;
-                   });
+      client::load(g_io_context, logger, client_conf, [&conns, client_conf]() {
+        auto dummy_conn =
+            std::make_shared<connection_ok>(g_io_context, logger, client_conf);
+        conns.push_back(dummy_conn);
+        return dummy_conn;
+      });
 
   request_ptr request(std::make_shared<request_base>());
 
@@ -139,15 +149,12 @@ TEST_F(http_client_test, recycle_connection) {
   std::vector<std::shared_ptr<connection_ok>> conns;
   auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   client::pointer clt =
-      client::load(g_io_context, logger, conf,
-                   [&conns](const std::shared_ptr<asio::io_context>& io_context,
-                            const std::shared_ptr<spdlog::logger>& logger,
-                            const http_config::pointer& conf) {
-                     auto dummy_conn = std::make_shared<connection_ok>(
-                         io_context, logger, conf);
-                     conns.push_back(dummy_conn);
-                     return dummy_conn;
-                   });
+      client::load(g_io_context, logger, conf, [&conns, conf]() {
+        auto dummy_conn =
+            std::make_shared<connection_ok>(g_io_context, logger, conf);
+        conns.push_back(dummy_conn);
+        return dummy_conn;
+      });
 
   struct sender {
     request_ptr request = std::make_shared<request_base>();
@@ -195,6 +202,8 @@ TEST_F(http_client_test, recycle_connection) {
 *************************************************************************/
 
 class connection_bagot : public connection_base {
+  asio::ip::tcp::socket _useless;
+
  public:
   enum fail_stage { no_fail = 0, fail_connect, fail_send };
 
@@ -205,7 +214,7 @@ class connection_bagot : public connection_base {
   connection_bagot(const std::shared_ptr<asio::io_context>& io_context,
                    const std::shared_ptr<spdlog::logger>& logger,
                    const http_config::pointer& conf)
-      : connection_base(io_context, logger, conf) {}
+      : connection_base(io_context, logger, conf), _useless(*io_context) {}
 
   fail_stage get_fail_stage() const { return _fail_stage; }
 
@@ -256,6 +265,14 @@ class connection_bagot : public connection_base {
       }
     }
   }
+
+  void on_accept(connect_callback_type&& callback) override {}
+
+  void answer(const response_ptr& response,
+              answer_callback_type&& callback) override {}
+  void receive_request(request_callback_type&& callback) override {}
+
+  asio::ip::tcp::socket& get_socket() override { return _useless; }
 };
 
 class client_test : public client {
@@ -263,21 +280,18 @@ class client_test : public client {
   client_test(const std::shared_ptr<asio::io_context>& io_context,
               const std::shared_ptr<spdlog::logger>& logger,
               const http_config::pointer& conf,
-              client::connection_creator conn_creator)
+              connection_creator conn_creator)
       : client(io_context, logger, conf, conn_creator) {
     _retry_unit = std::chrono::milliseconds(1);
   }
 };
 
 TEST_F(http_client_test, all_handler_called) {
+  auto client_conf = std::make_shared<http_config>(test_endpoint, "localhost");
   client::pointer clt = std::make_shared<client_test>(
-      g_io_context, logger,
-      std::make_shared<http_config>(test_endpoint, "localhost"),
-      [](const std::shared_ptr<asio::io_context>& io_context,
-         const std::shared_ptr<spdlog::logger>& logger,
-         const http_config::pointer& conf) {
-        auto dummy_conn =
-            std::make_shared<connection_bagot>(io_context, logger, conf);
+      g_io_context, logger, client_conf, [client_conf]() {
+        auto dummy_conn = std::make_shared<connection_bagot>(
+            g_io_context, logger, client_conf);
         return dummy_conn;
       });
 
@@ -363,13 +377,10 @@ unsigned connection_retry::failed_before_success;
 TEST_F(http_client_test, retry_until_success) {
   connection_retry::nb_failed_per_request.clear();
   auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
-  client::pointer clt = std::make_shared<client_test>(
-      g_io_context, logger, conf,
-      [](const std::shared_ptr<asio::io_context>& io_context,
-         const std::shared_ptr<spdlog::logger>& logger,
-         const http_config::pointer& conf) {
+  client::pointer clt =
+      std::make_shared<client_test>(g_io_context, logger, conf, [conf]() {
         auto dummy_conn =
-            std::make_shared<connection_retry>(io_context, logger, conf);
+            std::make_shared<connection_retry>(g_io_context, logger, conf);
         return dummy_conn;
       });
 

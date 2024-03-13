@@ -26,7 +26,7 @@ namespace com::centreon::common::http {
  *
  */
 class http_config {
-  // destination address
+  // destination or listen address
   asio::ip::tcp::endpoint _endpoint;
   std::string _server_name;
   bool _crypted;

@@ -51,7 +51,7 @@ client::client(const std::shared_ptr<asio::io_context>& io_context,
   _busy_conns.reserve(conf->get_max_connections());
   // create all connection ready to connect
   for (unsigned cpt = 0; cpt < conf->get_max_connections(); ++cpt) {
-    _not_connected_conns.insert(conn_creator(io_context, logger, conf));
+    _not_connected_conns.insert(conn_creator());
   }
 }
 

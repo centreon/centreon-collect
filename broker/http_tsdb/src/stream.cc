@@ -119,7 +119,7 @@ stream::stream(const std::string& name,
                const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
                const std::shared_ptr<http_tsdb_config>& conf,
-               common::http::client::connection_creator conn_creator)
+               http::connection_creator conn_creator)
     : io::stream(name),
       _io_context(io_context),
       _logger(logger),

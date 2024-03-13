@@ -27,17 +27,11 @@ set(SOURCES
   ${SRC_DIR}/http_client.cc
   ${SRC_DIR}/http_connection.cc
   ${SRC_DIR}/https_connection.cc
+  ${SRC_DIR}/http_server.cc
 )
 
-# Headers.
-set(HEADERS
-  ${INC_DIR}/http_client.hh
-  ${INC_DIR}/http_connection.hh
-  ${INC_DIR}/https_connection.hh
-  ${INC_DIR}/http_config.hh
-)
 
-add_library(centreon_http STATIC ${SOURCES} ${HEADERS})
+add_library(centreon_http STATIC ${SOURCES} )
 target_include_directories(centreon_http PRIVATE ${INC_DIR})
 
 target_precompile_headers(centreon_http REUSE_FROM centreon_common)

@@ -46,11 +46,6 @@ namespace com::centreon::common::http {
  */
 class client : public std::enable_shared_from_this<client> {
  public:
-  using connection_creator = std::function<connection_base::pointer(
-      const std::shared_ptr<asio::io_context>& io_context,
-      const std::shared_ptr<spdlog::logger>& logger,
-      const http_config::pointer& conf)>;
-
   friend client_test;
 
  private:
@@ -118,7 +113,7 @@ class client : public std::enable_shared_from_this<client> {
   static pointer load(const std::shared_ptr<asio::io_context>& io_context,
                       const std::shared_ptr<spdlog::logger>& logger,
                       const http_config::pointer& conf,
-                      connection_creator conn_creator = http_connection::load);
+                      connection_creator conn_creator);
 
   template <class callback_type>
   bool send(const request_ptr& request, callback_type&& callback) {

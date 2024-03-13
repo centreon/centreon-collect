@@ -42,8 +42,7 @@ class stream : public http_tsdb::stream {
   stream(const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
          const std::string& account_id,
-         common::http::client::connection_creator conn_creator =
-             common::http::http_connection::load);
+         http::connection_creator conn_creator);
 
   http_tsdb::request::pointer create_request() const override;
 
@@ -54,8 +53,7 @@ class stream : public http_tsdb::stream {
       const std::shared_ptr<asio::io_context>& io_context,
       const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
       const std::string& account_id,
-      common::http::client::connection_creator conn_creator =
-          common::http::http_connection::load);
+      http::connection_creator conn_creator);
 
   const std::string& get_authorization() const { return _authorization; }
 };

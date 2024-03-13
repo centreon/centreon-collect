@@ -50,6 +50,22 @@ using connect_callback_type =
     std::function<void(const boost::beast::error_code&, const std::string&)>;
 
 /**
+ * @brief called in server mode when response have been sent
+ *
+ */
+using answer_callback_type =
+    std::function<void(const boost::beast::error_code&, const std::string&)>;
+
+/**
+ * @brief called after a request have been received (server mode)
+ *
+ */
+using request_callback_type =
+    std::function<void(const boost::beast::error_code&,
+                       const std::string&,
+                       const std::shared_ptr<request_type>&)>;
+
+/**
  * @brief this option set the interval in seconds between two keepalive sent
  *
  */
@@ -106,7 +122,9 @@ using request_ptr = std::shared_ptr<request_base>;
  */
 class connection_base : public std::enable_shared_from_this<connection_base> {
  protected:
-  // this atomic uint is used to atomicaly modify object state
+  asio::ip::tcp::endpoint _peer;
+
+  // this atomic uint is used to atomically modify object state
   std::atomic_uint _state;
   // http keepalive expiration
   time_point _keep_alive_end;
@@ -151,20 +169,58 @@ class connection_base : public std::enable_shared_from_this<connection_base> {
 
   virtual void connect(connect_callback_type&& callback) = 0;
 
+  // client version
   virtual void send(request_ptr request, send_callback_type&& callback) = 0;
+
+  // server version
+  /**
+   * @brief to override in accepted session objects
+   * It has to call on_accept(connect_callback_type&& callback) in order to
+   * receive
+   *
+   */
+  virtual void on_accept() {}
+
+  virtual void on_accept(connect_callback_type&& callback) = 0;
+
+  virtual void answer(const response_ptr& response,
+                      answer_callback_type&& callback) = 0;
+  virtual void receive_request(request_callback_type&& callback) = 0;
 
   e_state get_state() const { return e_state(_state.load()); }
 
   time_point get_keep_alive_end() const { return _keep_alive_end; }
 
   void gest_keepalive(const response_ptr& response);
+
+  virtual asio::ip::tcp::socket& get_socket() = 0;
+
+  asio::ip::tcp::endpoint& get_peer() { return _peer; }
+  const asio::ip::tcp::endpoint& get_peer() const { return _peer; }
 };
+
+/**
+ * @brief This initializer is used by https client or server connection to init
+ * ssl context In order to have the same signature, this parameter is passed to
+ * http_connection::load with nullptr as default value even if it is not
+ * used
+ *
+ */
+using ssl_ctx_initializer =
+    std::function<void(asio::ssl::context& ctx, const http_config::pointer&)>;
+
+/**
+ * @brief this functor is used by client and server to create needed connection
+ * this constructor allow server and client to work either with http or https
+ *
+ */
+using connection_creator = std::function<connection_base::pointer()>;
 
 /**
  * @brief this class manages a tcp connection
  * it's used by client object to send request
  * constructor is protected because load is mandatory
- * this object musn't be create on stack and must be allocated
+ * this object mustn't be create on stack and must be allocated
  *
  */
 class http_connection : public connection_base {
@@ -173,10 +229,13 @@ class http_connection : public connection_base {
  protected:
   http_connection(const std::shared_ptr<asio::io_context>& io_context,
                   const std::shared_ptr<spdlog::logger>& logger,
-                  const http_config::pointer& conf);
+                  const http_config::pointer& conf,
+                  const ssl_ctx_initializer& ssl_initializer = nullptr);
 
   void on_connect(const boost::beast::error_code& err,
                   const connect_callback_type& callback);
+
+  void init_keep_alive();
 
   void on_sent(const boost::beast::error_code& err,
                request_ptr request,
@@ -195,7 +254,8 @@ class http_connection : public connection_base {
 
   static pointer load(const std::shared_ptr<asio::io_context>& io_context,
                       const std::shared_ptr<spdlog::logger>& logger,
-                      const http_config::pointer& conf);
+                      const http_config::pointer& conf,
+                      const ssl_ctx_initializer& ssl_initializer = nullptr);
 
   ~http_connection();
 
@@ -204,6 +264,14 @@ class http_connection : public connection_base {
   void connect(connect_callback_type&& callback) override;
 
   void send(request_ptr request, send_callback_type&& callback) override;
+
+  void on_accept(connect_callback_type&& callback) override;
+
+  void answer(const response_ptr& response,
+              answer_callback_type&& callback) override;
+  void receive_request(request_callback_type&& callback) override;
+
+  asio::ip::tcp::socket& get_socket() override;
 };
 
 }  // namespace com::centreon::common::http

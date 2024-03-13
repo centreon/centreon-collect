@@ -36,7 +36,7 @@ const std::string stream::allowed_macros =
 stream::stream(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
                const std::string& account_id,
-               common::http::client::connection_creator conn_creator)
+               http::connection_creator conn_creator)
     : http_tsdb::stream("victoria_metrics",
                         io_context,
                         log_v2::victoria_metrics(),
@@ -66,7 +66,7 @@ std::shared_ptr<stream> stream::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
     const std::string& account_id,
-    common::http::client::connection_creator conn_creator) {
+    http::connection_creator conn_creator) {
   return std::shared_ptr<stream>(
       new stream(io_context, conf, account_id, conn_creator));
 }

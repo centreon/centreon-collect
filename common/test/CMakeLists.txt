@@ -48,3 +48,12 @@ add_dependencies(ut_common centreon_common centreon_http)
 set_property(TARGET ut_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_precompile_headers(ut_common PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
+
+set_target_properties(
+  ut_common
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
+
