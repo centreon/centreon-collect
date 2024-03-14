@@ -175,32 +175,32 @@ BEPBCVS
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    True
 
-BEPB_HOST_DEPENDENCY                                                            
-    [Documentation]    BBDO 3 communication of host dependencies.       
-    [Tags]    broker    engine    protobuf    bbdo                              
-    Ctn Config Engine    ${1}                                                       
-    Ctn Config Engine Add Cfg File    0    dependencies.cfg                         
-    Ctn Add Host Dependency    0    host_1    host_2                                
-    Ctn Config Broker    central                                                    
-    Ctn Config Broker    module                                                     
-    Ctn Config BBDO3    ${1}                                                        
-    Ctn Broker Config Log    central    sql    trace                                
-    Ctn Config Broker Sql Output    central    unified_sql                          
-    Ctn Clear Retention                                                             
-    ${start}    Get Current Date                                                
-    Ctn Start Broker    True                                                        
-    Ctn Start engine                                                                
-                                                                                
-    ${result}    Common.Ctn Check Host Dependencies    2    1        24x7    1   ou    dp    30
+BEPB_HOST_DEPENDENCY
+    [Documentation]    BBDO 3 communication of host dependencies.
+    [Tags]    broker    engine    protobuf    bbdo
+    Ctn Config Engine    ${1}
+    Ctn Config Engine Add Cfg File    0    dependencies.cfg
+    Ctn Add Host Dependency    0    host_1    host_2
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
+    ${start}    Get Current Date
+    Ctn Start Broker    True
+    Ctn Start engine
+
+    ${result}    Common.Ctn Check Host Dependencies    2    1    24x7    1    ou    dp    30
     Should Be True    ${result}    No notification dependency from 2 to 1 with timeperiod 24x7 on 'ou'
-                                                                                
-    Ctn Config Engine    ${1}                                                       
-    Ctn Reload Engine                                                               
-                                                                                
-    ${result}    Common.Ctn Check No Host Dependencies    30                               
-    Should Be True    ${result}    No host dependency should be defined         
-                                                                                
-    [Teardown]    Ctn Stop Engine Broker And Save Logs    True                      
+
+    Ctn Config Engine    ${1}
+    Ctn Reload Engine
+
+    ${result}    Common.Ctn Check No Host Dependencies    30
+    Should Be True    ${result}    No host dependency should be defined
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    True
 
 BEPB_SERVICE_DEPENDENCY
     [Documentation]    bbdo_version 3 communication of host dependencies.
@@ -284,5 +284,30 @@ BEPBHostParent
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()    host parent not deleted
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    True
+
+BEPBINST_CONF
+    [Documentation]    bbdo_version 3 communication of instance configuration.
+    [Tags]    broker    engine    protobuf    bbdo    MON-38007
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config BBDO3    ${1}
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
+    ${start}    Get Current Date
+    Ctn Start Broker    True
+    Ctn Start engine
+
+    ${content}    Create List    muxer centreon-broker-master-rrd event of type 10036 pushed
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    log about pb_instance_configuration not found
+
+    Sleep    2
+    ${start}    Get Current Date
+    Ctn Reload Engine
+
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    log about pb_instance_configuration not found
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    True

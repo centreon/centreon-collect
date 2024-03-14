@@ -24,7 +24,7 @@
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/callbacks.hh"
-#include "com/centreon/broker/neb/internal.hh"
+#include "com/centreon/broker/neb/instance_configuration.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -187,6 +187,21 @@ int nebmodule_init(int flags, char const* args, void* handle) {
  *  @return OK.
  */
 int nebmodule_reload() {
+  multiplexing::publisher p;
+  if (com::centreon::broker::config::applier::state::instance()
+          .get_bbdo_version()
+          .major_v > 2) {
+    auto ic = std::make_shared<neb::pb_instance_configuration>();
+    ic->mut_obj().set_loaded(true);
+    ic->mut_obj().set_poller_id(config::applier::state::instance().poller_id());
+    p.write(ic);
+  } else {
+    std::shared_ptr<neb::instance_configuration> ic(
+        new neb::instance_configuration);
+    ic->loaded = true;
+    ic->poller_id = config::applier::state::instance().poller_id();
+    p.write(ic);
+  }
   return 0;
 }
 }
