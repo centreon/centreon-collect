@@ -495,6 +495,20 @@ static void send_pb_service_list() {
   send_service_list(neb::callback_pb_service);
 }
 
+
+/**
+ *  Send the instance configuration loaded event.
+ */
+static void send_instance_configuration() {
+  log_v2::neb()->info(
+      "init: sending initial instance configuration loading event");
+  std::shared_ptr<neb::instance_configuration> ic(
+      new neb::instance_configuration);
+  ic->loaded = true;
+  ic->poller_id = config::applier::state::instance().poller_id();
+  neb::gl_publisher.write(ic);
+}
+
 /**
  *  Send the instance configuration loaded event.
  */
@@ -506,6 +520,12 @@ static void send_pb_instance_configuration() {
   ic->mut_obj().set_poller_id(config::applier::state::instance().poller_id());
   neb::gl_publisher.write(ic);
 }
+
+/**************************************
+ *                                     *
+ *          Global Functions           *
+ *                                     *
+ **************************************/
 
 /**
  *  Send initial configuration to the global publisher.
@@ -523,6 +543,7 @@ void neb::send_initial_configuration() {
   send_service_group_list();
   send_host_dependencies_list();
   send_service_dependencies_list();
+  send_instance_configuration();
 }
 
 /**************************************
