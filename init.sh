@@ -14,6 +14,7 @@ fi
 # To be sure the script has not already been launched.
 if [[ "$PATH" =~ "vcpkg" ]] ; then
   echo "Already initialized"
+  exit 2
 fi
 
 # The main purpose.
