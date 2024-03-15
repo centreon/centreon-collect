@@ -354,6 +354,8 @@ void applier::kpi::_resolve_kpi(configuration::kpi const& cfg,
 
   my_ba->add_impact(kpi);
   kpi->add_parent(my_ba);
+  /* The propagation is forced to be sure all the ba is coherent. */
+  my_ba->notify_parents_of_change(nullptr);
 }
 
 /**
