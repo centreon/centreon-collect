@@ -155,7 +155,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 #find_package(opentelemetry-cpp REQUIRED)
 find_package(GTest CONFIG REQUIRED)
 find_package(CURL REQUIRED)
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED COMPONENTS url)
 find_package(ryml CONFIG REQUIRED)
 add_definitions("-DSPDLOG_FMT_EXTERNAL")
 

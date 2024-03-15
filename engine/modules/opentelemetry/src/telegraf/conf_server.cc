@@ -16,12 +16,21 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/common/rapidjson_helper.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include <boost/url.hpp>
 
 #include "telegraf/conf_server.hh"
 
+#include "com/centreon/common/http/https_connection.hh"
+#include "com/centreon/engine/command_manager.hh"
+#include "com/centreon/engine/commands/forward.hh"
+
+#include "com/centreon/engine/host.hh"
+#include "com/centreon/engine/macros.hh"
+#include "com/centreon/engine/service.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
 using namespace com::centreon::engine::modules::opentelemetry::telegraf;
+using namespace com::centreon::engine;
 
 static constexpr std::string_view _config_schema(R"(
 {
@@ -36,7 +45,7 @@ static constexpr std::string_view _config_schema(R"(
         "port": {
             "description": "port to listen",
             "type": "integer",
-            "minimum": 1024,
+            "minimum": 80,
             "maximum": 65535
         },
         "encryption": {
@@ -48,14 +57,25 @@ static constexpr std::string_view _config_schema(R"(
             "type": "integer",
             "minimum": 0,
             "maximum": 3600
+        },
+        "certificate_path": {
+            "description": "path of the certificate file",
+            "type": "string",
+            "minLength": 5
+        },
+        "key_path": {
+            "description": "path of the key file",
+            "type": "string",
+            "minLength": 5
         }
-    }
+    },
     "type": "object"
 }
 
 )");
 
-conf_server_config::conf_server_config(const rapidjson::Value& json_config_v) {
+conf_server_config::conf_server_config(const rapidjson::Value& json_config_v,
+                                       asio::io_context& io_context) {
   common::rapidjson_helper json_config(json_config_v);
 
   static common::json_validator validator(_config_schema);
@@ -67,15 +87,243 @@ conf_server_config::conf_server_config(const rapidjson::Value& json_config_v) {
                         e.what());
     throw;
   }
-  _listen_address = json_config.get_string("listen_address", "0.0.0.0");
-  _crypted = json_config.get_bool("encryption", true);
-  _port = json_config.get_unsigned("port", _crypted ? 443 : 80);
+  std::string listen_address =
+      json_config.get_string("listen_address", "0.0.0.0");
+  _crypted = json_config.get_bool("encryption", false);
+  unsigned port = json_config.get_unsigned("port", _crypted ? 443 : 80);
+  asio::ip::tcp::resolver::query query(listen_address, std::to_string(port));
+  asio::ip::tcp::resolver resolver(io_context);
+  boost::system::error_code ec;
+  asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec), end;
+  if (ec) {
+    throw exceptions::msg_fmt("unable to resolve {}:{}", listen_address, port);
+  }
+  if (it == end) {
+    throw exceptions::msg_fmt("no ip found for {}:{}", listen_address, port);
+  }
+
+  _listen_endpoint = it->endpoint();
+
   _second_keep_alive_interval =
       json_config.get_unsigned("keepalive_interval", 30);
+  _certificate_path = json_config.get_string("certificate_path");
+  _key_path = json_config.get_string("key_path");
 }
 
 bool conf_server_config::operator==(const conf_server_config& right) const {
-  return _listen_address == right._listen_address && _port == right._port &&
+  return _listen_endpoint == right._listen_endpoint &&
          _crypted == right._crypted &&
-         _second_keep_alive_interval == right._second_keep_alive_interval;
+         _second_keep_alive_interval == right._second_keep_alive_interval &&
+         _certificate_path == right._certificate_path &&
+         _key_path == right._key_path;
 }
+
+/**********************************************************************
+ *                       session http(s)
+ **********************************************************************/
+
+/**
+ * @brief http/https session
+ *
+ * @tparam connection_class http_connection or https_connection
+ */
+template <class connection_class>
+void conf_session<connection_class>::on_accept() {
+  connection_class::on_accept(
+      [me = shared_from_this()](const boost::beast::error_code& err,
+                                const std::string&) {
+        if (!err)
+          me->wait_for_request();
+      });
+}
+
+template <class connection_class>
+void conf_session<connection_class>::wait_for_request() {
+  connection_class::receive_request(
+      [me = shared_from_this()](
+          const boost::beast::error_code& err, const std::string& detail,
+          const std::shared_ptr<http::request_type>& request) {
+        if (err) {
+          SPDLOG_LOGGER_DEBUG(me->_logger,
+                              "fail to receive request from {}: {}", me->_peer,
+                              err.what());
+          return;
+        }
+        me->on_receive_request(request);
+      });
+}
+
+template <class connection_class>
+void conf_session<connection_class>::on_receive_request(
+    const std::shared_ptr<http::request_type>& request) {
+  boost::url_view parsed(request->target());
+  std::vector<std::string> host_list;
+
+  for (const auto& get_param : parsed.params()) {
+    if (get_param.key == "host") {
+      host_list.emplace_back(get_param.value);
+    }
+  }
+  auto to_call = std::packaged_task<int(void)>(
+      [me = shared_from_this(), request,
+       hosts = std::move(host_list)]() mutable -> int32_t {
+        // then we are in the main thread
+        // services, hosts and commands are stable
+        me->answer(request, std::move(hosts));
+        return 0;
+      });
+  command_manager::instance().enqueue(std::move(to_call));
+}
+
+/**
+ * @brief add a nagios paragraph to telegraf configuration
+ *
+ * @param cmd_name name of the command
+ * @param cmd_line command line configured and filled by macr contents
+ * @param host host name
+ * @param service  service name
+ * @param to_append response body
+ * @return true a not empty command line is present after --cmd_line flag
+ * @return false
+ */
+static bool otel_command_to_stream(const std::string& cmd_name,
+                                   const std::string& cmd_line,
+                                   const std::string& host,
+                                   const std::string& service,
+                                   std::string& to_append) {
+  constexpr std::string_view flag = "--cmd_line";
+  std::string plugins_cmdline;
+  size_t flag_pos = cmd_line.find(flag);
+  if (flag_pos != std::string::npos) {
+    plugins_cmdline = cmd_line.substr(flag_pos + flag.length() + 1);
+    boost::trim(plugins_cmdline);
+  }
+
+  if (plugins_cmdline.empty()) {
+    return false;
+  }
+
+  fmt::format_to(std::back_inserter(to_append), R"(
+[[inputs.exec]]
+  name_override = "{}"
+  commands = ["{}"]
+  data_format = "nagios"
+  [inputs.exec.tags]
+    host = "{}"
+    service = "{}"
+
+)",
+                 cmd_name, plugins_cmdline, host, service);
+  return true;
+}
+
+/**
+ * @brief Get all opentelemetry commands from an host and add its to
+ * configuration response
+ *
+ * @param host
+ * @param request_body conf to append
+ * @return true at least one opentelemetry command was found
+ * @return false
+ */
+static bool get_commands(const std::string& host_name,
+                         std::string& request_body) {
+  auto use_otl_command = [](const checkable& to_test) -> bool {
+    if (to_test.get_check_command_ptr()->get_type() ==
+        commands::command::e_type::otel)
+      return true;
+    if (to_test.get_check_command_ptr()->get_type() ==
+        commands::command::e_type::forward) {
+      return std::static_pointer_cast<commands::forward>(
+                 to_test.get_check_command_ptr())
+                 ->get_sub_command()
+                 ->get_type() == commands::command::e_type::otel;
+    }
+    return false;
+  };
+
+  bool ret = false;
+  auto hst_iter = host::hosts.find(host_name);
+  if (hst_iter == host::hosts.end()) {
+    SPDLOG_LOGGER_ERROR(log_v2::otl(), "unknown host:{}", host_name);
+    return false;
+  }
+  std::shared_ptr<host> hst = hst_iter->second;
+  std::string cmd_line;
+  // host check use otl?
+  if (use_otl_command(*hst)) {
+    nagios_macros* macros(get_global_macros());
+
+    ret |= otel_command_to_stream(hst->check_command(),
+                                  hst->get_check_command_line(macros),
+                                  hst->name(), "", request_body);
+    clear_volatile_macros_r(macros);
+  }
+
+  // services of host
+  auto serv_iter = service::services_by_id.lower_bound({hst->host_id(), 0});
+  for (; serv_iter != service::services_by_id.end() &&
+         serv_iter->first.first == hst->host_id();
+       ++serv_iter) {
+    std::shared_ptr<service> serv = serv_iter->second;
+    if (use_otl_command(*serv)) {
+      nagios_macros* macros(get_global_macros());
+      ret |= otel_command_to_stream(
+          serv->check_command(), serv->get_check_command_line(macros),
+          serv->get_hostname(), serv->name(), request_body);
+      clear_volatile_macros_r(macros);
+    }
+  }
+  return ret;
+}
+
+/**
+ * @brief construct and send conf to telegraf
+ * As it uses host, services and command list, it must be called in the main
+ * thread
+ *
+ * @tparam connection_class
+ * @param request incoming request
+ * @param host_list hosts extracted from get parameters
+ */
+template <class connection_class>
+void conf_session<connection_class>::answer(
+    const std::shared_ptr<http::request_type>& request,
+    std::vector<std::string>&& host_list) {
+  http::response_ptr resp(std::make_shared<http::response_type>());
+  resp->version(request->version());
+
+  resp->body() = R"(# Centreon telegraf configuration
+# This telegraf configuration is generated by centreon centengine
+[agent]
+  ## Default data collection interval for all inputs
+  interval = "60s"
+)";
+  bool at_least_one_found = false;
+  for (const std::string& host : host_list) {
+    at_least_one_found |= get_commands(host, resp->body());
+  }
+  if (at_least_one_found) {
+    resp->result(boost::beast::http::status::ok);
+    resp->insert(boost::beast::http::field::content_type, "text/plain");
+  } else {
+    resp->result(boost::beast::http::status::not_found);
+    resp->body() =
+        "<html><body>No host service found from get parameters</body></html>";
+  }
+  resp->content_length(resp->body().length());
+
+  connection_class::answer(
+      resp, [me = shared_from_this()](const boost::beast::error_code& err,
+                                      const std::string& detail) {
+        if (err) {
+          SPDLOG_LOGGER_ERROR(me->_logger, "fail to answer to telegraf {} {}",
+                              err.message(), detail);
+          return;
+        }
+        me->wait_for_request();
+      });
+}
+
+template class conf_session<http::http_connection>;
+template class conf_session<http::https_connection>;

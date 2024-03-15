@@ -39,11 +39,16 @@ command_map commands::command::commands;
  *  @param[in] name         The command name.
  *  @param[in] command_line The command line.
  *  @param[in] listener     The command listener to catch events.
+ *  @param[in] cmd_type     object type.
  */
 commands::command::command(const std::string& name,
                            const std::string& command_line,
-                           command_listener* listener)
-    : _command_line(command_line), _listener{listener}, _name(name) {
+                           command_listener* listener,
+                           e_type cmd_type)
+    : _type(cmd_type),
+      _command_line(command_line),
+      _listener{listener},
+      _name(name) {
   if (_name.empty())
     throw engine_error() << "Could not create a command with an empty name";
   if (_listener) {

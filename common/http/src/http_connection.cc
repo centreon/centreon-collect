@@ -105,6 +105,25 @@ void connection_base::gest_keepalive(const response_ptr& resp) {
   }
 }
 
+/**
+ * @brief used on server side
+ * it adds keepalive header with the value of receive timeout
+ *
+ * @param response
+ */
+void connection_base::add_keep_alive_to_server_response(
+    const response_ptr& response) const {
+  response->keep_alive(true);
+  if (_conf->get_receive_timeout() > std::chrono::seconds(1)) {
+    response->insert(
+        boost::beast::http::field::keep_alive,
+        fmt::format("timeout={}",
+                    std::chrono::duration_cast<std::chrono::seconds>(
+                        _conf->get_receive_timeout())
+                        .count()));
+  }
+}
+
 /**************************************************************************
  *    http_connection
  **************************************************************************/
@@ -400,6 +419,8 @@ void http_connection::answer(const response_ptr& response,
     return;
   }
 
+  add_keep_alive_to_server_response(response);
+
   std::lock_guard<std::mutex> l(_socket_m);
   _socket.expires_after(_conf->get_send_timeout());
   boost::beast::http::async_write(
@@ -438,7 +459,9 @@ void http_connection::receive_request(request_callback_type&& callback) {
   }
 
   std::lock_guard<std::mutex> l(_socket_m);
-  _socket.expires_after(_conf->get_receive_timeout());
+  if (_conf->get_receive_timeout() > std::chrono::seconds(1))
+    _socket.expires_after(_conf->get_receive_timeout());
+
   auto req = std::make_shared<request_type>();
   boost::beast::http::async_read(
       _socket, _recv_buffer, *req,

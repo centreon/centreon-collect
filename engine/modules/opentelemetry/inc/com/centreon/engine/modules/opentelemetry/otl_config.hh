@@ -34,7 +34,7 @@ class otl_config {
   size_t _max_fifo_size;
 
  public:
-  otl_config(const std::string_view& file_path);
+  otl_config(const std::string_view& file_path, asio::io_context& io_context);
 
   grpc_config::pointer get_grpc_config() const { return _grpc_conf; }
   telegraf::conf_server_config::pointer get_telegraf_conf_server_config()

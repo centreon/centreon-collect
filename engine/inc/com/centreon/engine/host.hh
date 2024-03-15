@@ -28,7 +28,7 @@ class contact;
 class host;
 class hostgroup;
 class hostescalation;
-}
+}  // namespace com::centreon::engine
 
 using host_map =
     absl::flat_hash_map<std::string,
@@ -259,6 +259,8 @@ class host : public notifier {
   std::list<hostgroup*> const& get_parent_groups() const;
   std::list<hostgroup*>& get_parent_groups();
 
+  std::string get_check_command_line(nagios_macros* macros);
+
  private:
   uint64_t _id;
   std::string _alias;
@@ -291,7 +293,7 @@ class host : public notifier {
   std::list<hostgroup*> _hostgroups;
 };
 
-}
+}  // namespace com::centreon::engine
 
 int is_host_immediate_child_of_host(com::centreon::engine::host* parent,
                                     com::centreon::engine::host* child);
@@ -314,7 +316,7 @@ bool host_exists(uint64_t host_id) noexcept;
 uint64_t get_host_id(std::string const& name);
 std::string get_host_name(const uint64_t host_id);
 
-}
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os, host_map_unsafe const& obj);
 

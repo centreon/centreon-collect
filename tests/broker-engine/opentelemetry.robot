@@ -80,7 +80,9 @@ BEOTEL_TELEGRAF_CHECK_HOST
     [Documentation]    we send nagios telegraf formated datas and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    mon-34004
     Ctn Config Engine    ${1}    ${2}    ${2}
-    Ctn Add Otl ServerModule    0    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "telegraf_conf_server": {"port": 1443, "encryption": true }}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -89,7 +91,7 @@ BEOTEL_TELEGRAF_CHECK_HOST
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp
-    ...    nagios_telegraf
+    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.1
     ...    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace

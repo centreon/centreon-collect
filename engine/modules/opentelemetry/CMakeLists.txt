@@ -19,10 +19,7 @@
 # Set directories.
 set(MODULE_DIR "${PROJECT_SOURCE_DIR}/modules/opentelemetry")
 set(SRC_DIR "${MODULE_DIR}/src")
-set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/opentelemetry" "${CMAKE_SOURCE_DIR}/bbdo" )
 
-# Include directories.
-include_directories("${MODULE_DIR}/inc")
 
 #protobuf service
 set(service_files
@@ -69,6 +66,9 @@ target_precompile_headers(opentelemetry PRIVATE precomp_inc/precomp.hh)
 # set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
 target_link_libraries(opentelemetry 
   centreon_common
+  centreon_http
+  -L${Boost_LIBRARY_DIR_RELEASE}
+  boost_url
   spdlog::spdlog)
 
 add_dependencies(opentelemetry 
@@ -76,7 +76,16 @@ add_dependencies(opentelemetry
   pb_neb_lib
   pb_tag_lib)
 
-target_include_directories(opentelemetry PRIVATE ${INC_DIR} ${CMAKE_SOURCE_DIR}/common/inc src )
+target_include_directories(opentelemetry PRIVATE 
+  "${MODULE_DIR}/inc/com/centreon/engine/modules/opentelemetry" 
+  "${CMAKE_SOURCE_DIR}/bbdo" 
+  "${MODULE_DIR}/inc"
+  ${CMAKE_SOURCE_DIR}/common/inc
+  ${CMAKE_SOURCE_DIR}/common/http/inc 
+  src
+  ${PROJECT_SOURCE_DIR}/enginerpc 
+  ${CMAKE_SOURCE_DIR}/common/src
+  )
 
 # Install rule.
 install(

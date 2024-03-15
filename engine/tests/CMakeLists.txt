@@ -23,7 +23,8 @@ if(WITH_TESTING)
   set(MODULE_DIR_OTL "${PROJECT_SOURCE_DIR}/modules/opentelemetry")
   include_directories(${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc
                       ${MODULE_DIR_OTL}/inc
-                      ${CMAKE_SOURCE_DIR}/bbdo)
+                      ${CMAKE_SOURCE_DIR}/bbdo
+                      ${CMAKE_SOURCE_DIR}/common/http/inc)
 
   # Set directory.
   set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")

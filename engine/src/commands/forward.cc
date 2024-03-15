@@ -36,7 +36,8 @@ using namespace com::centreon::engine::commands;
 forward::forward(std::string const& command_name,
                  std::string const& command_line,
                  const std::shared_ptr<command>& cmd)
-    : command(command_name, command_line, nullptr), _command(cmd) {
+    : command(command_name, command_line, nullptr, e_type::forward),
+      _command(cmd) {
   if (_name.empty())
     throw engine_error() << "Could not create a command with an empty name";
   if (_command_line.empty())
@@ -90,12 +91,11 @@ void forward::register_host_serv(const std::string& host,
   _command->register_host_serv(host, service_description);
 }
 
-
 /**
  * @brief notify a command that a service is not using it anymore
- * 
- * @param host 
- * @param service_description 
+ *
+ * @param host
+ * @param service_description
  */
 void forward::unregister_host_serv(const std::string& host,
                                    const std::string& service_description) {

@@ -46,8 +46,8 @@ using service_map_unsafe =
     absl::flat_hash_map<std::pair<std::string, std::string>,
                         com::centreon::engine::service*>;
 using service_id_map =
-    absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
-                        std::shared_ptr<com::centreon::engine::service>>;
+    std::map<std::pair<uint64_t, uint64_t>,
+             std::shared_ptr<com::centreon::engine::service>>;
 
 namespace com::centreon::engine {
 
@@ -219,6 +219,8 @@ class service : public notifier {
 
   static service_map services;
   static service_id_map services_by_id;
+
+  std::string get_check_command_line(nagios_macros* macros);
 
  private:
   uint64_t _host_id;

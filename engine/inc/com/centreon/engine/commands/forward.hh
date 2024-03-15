@@ -52,6 +52,8 @@ class forward : public command {
            uint32_t timeout,
            result& res) override;
 
+  std::shared_ptr<command> get_sub_command() const { return _command; }
+
   void register_host_serv(const std::string& host,
                           const std::string& service_description) override;
 

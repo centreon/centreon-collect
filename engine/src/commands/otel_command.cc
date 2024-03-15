@@ -129,7 +129,7 @@ void otel_command::reset_all_extractor() {
 otel_command::otel_command(const std::string& connector_name,
                            const std::string& cmd_line,
                            commands::command_listener* listener)
-    : command(connector_name, cmd_line, listener),
+    : command(connector_name, cmd_line, listener, e_type::otel),
       _host_serv_list(std::make_shared<otel::host_serv_list>()) {
   init();
 }
@@ -231,9 +231,9 @@ void otel_command::run(const std::string& processed_cmd,
     std::unique_lock l(cv_m);
     cv.wait(l);
   }
-  SPDLOG_LOGGER_TRACE(log_v2::otl(),
-                      "otel_command::end sync_run: connector='{}', cmd='{}', {}",
-                      _name, processed_cmd, res);
+  SPDLOG_LOGGER_TRACE(
+      log_v2::otl(), "otel_command::end sync_run: connector='{}', cmd='{}', {}",
+      _name, processed_cmd, res);
 }
 
 /**

@@ -31,6 +31,8 @@
 #include <absl/container/flat_hash_set.h>
 
 #include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include <boost/beast/ssl.hpp>
 namespace asio = boost::asio;
 #include <boost/algorithm/string.hpp>
 #include <boost/container/flat_map.hpp>
@@ -51,6 +53,8 @@ namespace asio = boost::asio;
 #include "opentelemetry/proto/common/v1/common.pb.h"
 #include "opentelemetry/proto/metrics/v1/metrics.pb.h"
 
+#include "com/centreon/common/http/http_server.hh"
+#include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/engine/log_v2.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"

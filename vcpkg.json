@@ -21,6 +21,7 @@
     "boost-interprocess",
     "boost-exception",
     "boost-serialization",
+    "boost-url",
     "nlohmann-json",
     "rapidjson",
     "gtest"

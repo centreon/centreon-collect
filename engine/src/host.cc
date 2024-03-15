@@ -1772,12 +1772,9 @@ int host::run_async_check(int check_options,
   double old_latency(get_latency());
   set_latency(latency);
 
-  // Get current host macros.
   nagios_macros* macros(get_global_macros());
-  grab_host_macros_r(macros, this);
-  std::string tmp;
-  get_raw_command_line_r(macros, get_check_command_ptr(),
-                         check_command().c_str(), tmp, 0);
+
+  std::string processed_cmd = get_check_command_line(macros);
 
   // Time to start command.
   gettimeofday(&start_time, nullptr);
@@ -1792,10 +1789,6 @@ int host::run_async_check(int check_options,
 
   // Set the execution flag.
   set_is_executing(true);
-
-  // Get command object.
-  commands::command* cmd = get_check_command_ptr().get();
-  std::string processed_cmd(cmd->process_cmd(macros));
 
   // Send event broker.
   broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, this, checkable::check_active,
@@ -1848,8 +1841,9 @@ int host::run_async_check(int check_options,
       retry = false;
       try {
         // Run command.
-        uint64_t id = cmd->run(processed_cmd, *macros,
-                               config->host_check_timeout(), check_result_info);
+        uint64_t id = get_check_command_ptr()->run(processed_cmd, *macros,
+                                                   config->host_check_timeout(),
+                                                   check_result_info);
       } catch (com::centreon::exceptions::interruption const& e) {
         retry = true;
       } catch (std::exception const& e) {
@@ -4053,4 +4047,17 @@ void host::set_check_command_ptr(
   if (cmd) {
     cmd->register_host_serv(name(), "");
   }
+}
+
+/**
+ * @brief calculate final check command with macros replaced
+ *
+ * @return std::string
+ */
+std::string host::get_check_command_line(nagios_macros* macros) {
+  grab_host_macros_r(macros, this);
+  std::string tmp;
+  get_raw_command_line_r(macros, get_check_command_ptr(),
+                         check_command().c_str(), tmp, 0);
+  return get_check_command_ptr()->process_cmd(macros);
 }

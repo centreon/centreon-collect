@@ -24,13 +24,12 @@
 #include <chrono>
 #include <deque>
 #include <forward_list>
+#include <fstream>
 #include <map>
+#include <mutex>
 #include <regex>
 #include <set>
 #include <string>
-#include <fstream>
-#include <mutex>
-
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
@@ -49,9 +48,6 @@
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-using system_clock = std::chrono::system_clock;
-using time_point = system_clock::time_point;
-using duration = system_clock::duration;
 
 namespace asio = boost::asio;
 

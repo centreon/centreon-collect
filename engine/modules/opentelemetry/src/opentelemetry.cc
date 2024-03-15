@@ -18,6 +18,7 @@
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
+#include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/modules/opentelemetry/opentelemetry.hh"
 
@@ -25,6 +26,7 @@
 #include "otl_server.hh"
 
 using namespace com::centreon::engine::modules::opentelemetry;
+namespace http = com::centreon::common::http;
 
 /**
  * @brief Construct a new open telemetry::open telemetry object
@@ -47,10 +49,22 @@ open_telemetry::open_telemetry(
  */
 void open_telemetry::_reload() {
   std::unique_ptr<otl_config> new_conf =
-      std::make_unique<otl_config>(_config_file_path);
+      std::make_unique<otl_config>(_config_file_path, *_io_context);
   if (!_conf || !(*new_conf->get_grpc_config() == *_conf->get_grpc_config())) {
     this->_create_otl_server(new_conf->get_grpc_config());
   }
+
+  if (!new_conf->get_telegraf_conf_server_config()) {
+    if (_telegraf_conf_server) {
+      _telegraf_conf_server->shutdown();
+      _telegraf_conf_server.reset();
+    }
+  } else if (!_conf || !_conf->get_telegraf_conf_server_config() ||
+             !(*new_conf->get_telegraf_conf_server_config() ==
+               *_conf->get_telegraf_conf_server_config())) {
+    _create_telegraf_conf_server(new_conf->get_telegraf_conf_server_config());
+  }
+
   if (!_conf || !(*_conf == *new_conf)) {
     fmt::formatter<::opentelemetry::proto::collector::metrics::v1::
                        ExportMetricsServiceRequest>::max_length_log =
@@ -90,17 +104,61 @@ std::shared_ptr<open_telemetry> open_telemetry::load(
  */
 void open_telemetry::_create_otl_server(
     const grpc_config::pointer& server_conf) {
-  std::shared_ptr<otl_server> to_shutdown = _otl_server;
-  if (to_shutdown) {
-    to_shutdown->shutdown(std::chrono::seconds(10));
+  try {
+    std::shared_ptr<otl_server> to_shutdown = _otl_server;
+    if (to_shutdown) {
+      to_shutdown->shutdown(std::chrono::seconds(10));
+    }
+    _otl_server = otl_server::load(
+        server_conf,
+        [me = shared_from_this()](const metric_request_ptr& request) {
+          me->_on_metric(request);
+        });
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::otl(),
+                        "fail to create opentelemetry grpc server: {}",
+                        e.what());
+    throw;
   }
-  _otl_server = otl_server::load(
-      server_conf,
-      [me = shared_from_this()](const metric_request_ptr& request) {
-        me->_on_metric(request);
-      });
 }
 
+void open_telemetry::_create_telegraf_conf_server(
+    const telegraf::conf_server_config::pointer& telegraf_conf) {
+  try {
+    http::server::pointer to_shutdown = _telegraf_conf_server;
+    if (to_shutdown) {
+      to_shutdown->shutdown();
+    }
+    http::http_config::pointer conf = std::make_shared<http::http_config>(
+        telegraf_conf->get_listen_endpoint(), "", telegraf_conf->is_crypted(),
+        std::chrono::seconds(10), std::chrono::seconds(30),
+        std::chrono::seconds(300), 30, std::chrono::seconds(10), 0,
+        std::chrono::hours(1), 1, asio::ssl::context::tlsv12,
+        telegraf_conf->get_certificate_path(), telegraf_conf->get_key_path());
+
+    if (telegraf_conf->is_crypted()) {
+      _telegraf_conf_server = http::server::load(
+          _io_context, log_v2::otl(), conf, [conf, io_ctx = _io_context]() {
+            return std::make_shared<
+                telegraf::conf_session<http::https_connection>>(
+                io_ctx, log_v2::otl(), conf,
+                http::https_connection::load_server_certificate);
+          });
+    } else {
+      _telegraf_conf_server = http::server::load(
+          _io_context, log_v2::otl(), conf, [conf, io_ctx = _io_context]() {
+            return std::make_shared<
+                telegraf::conf_session<http::http_connection>>(
+                io_ctx, log_v2::otl(), conf, nullptr);
+          });
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::otl(),
+                        "fail to create telegraf http(s) conf server: {}",
+                        e.what());
+    _telegraf_conf_server.reset();
+  }
+}
 /**
  * @brief static method used to make singleton reload is configuration
  *
@@ -149,8 +207,8 @@ void open_telemetry::_shutdown() {
 /**
  * @brief create an host serv extractor from connector command line
  *
- * @param cmdline witch begins with name of extractor, following parameters are
- * used by extractor
+ * @param cmdline witch begins with name of extractor, following parameters
+ * are used by extractor
  * @return
  * std::shared_ptr<com::centreon::engine::commands::otel::host_serv_extractor>
  * @throw if extractor type is unknown
@@ -197,8 +255,9 @@ open_telemetry::create_extractor(
 
 /**
  * @brief simulate a check by reading in metrics fifos
- * It creates an otel_converter, the first word of processed_cmd is the name of
- * converter such as nagios_telegraf. Following parameters are used by converter
+ * It creates an otel_converter, the first word of processed_cmd is the name
+ * of converter such as nagios_telegraf. Following parameters are used by
+ * converter
  *
  * @param processed_cmd converter type with arguments
  * @param command_id command id
@@ -276,8 +335,8 @@ void open_telemetry::_on_metric(const metric_request_ptr& metrics) {
                                                 &host_serv_index, &to_notify](
                                                    const data_point& data_pt) {
         bool data_point_known = false;
-        // we try all extractors and we begin with the last witch has achieved
-        // to extract host
+        // we try all extractors and we begin with the last witch has
+        // achieved to extract host
         for (unsigned tries = 0; tries < _extractors.size(); ++tries) {
           host_serv_metric hostservmetric =
               last_success->second->extract_host_serv_metric(data_pt);

@@ -76,7 +76,8 @@ static constexpr std::string_view _grpc_config_schema(R"(
  * @throw msg fmt if file can not be read or if json content is not accepted by
  * validator
  */
-otl_config::otl_config(const std::string_view& file_path) {
+otl_config::otl_config(const std::string_view& file_path,
+                       asio::io_context& io_context) {
   static json_validator validator(_grpc_config_schema);
   rapidjson::Document file_content_d =
       rapidjson_helper::read_from_file(file_path);
@@ -92,7 +93,7 @@ otl_config::otl_config(const std::string_view& file_path) {
   if (file_content.has_member("telegraf_conf_server")) {
     _telegraf_conf_server_config =
         std::make_shared<telegraf::conf_server_config>(
-            file_content.get_member("server"));
+            file_content.get_member("telegraf_conf_server"), io_context);
   }
 }
 

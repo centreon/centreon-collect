@@ -30,13 +30,22 @@ server::server(const std::shared_ptr<asio::io_context>& io_context,
       _conf(conf),
       _conn_creator(conn_creator),
       _acceptor(*io_context) {
-  _acceptor.open(_conf->get_endpoint().protocol());
-  _acceptor.set_option(asio::ip::tcp::socket::reuse_address(true));
+  SPDLOG_LOGGER_INFO(logger, "create http(s) server listening on {}",
+                     conf->get_endpoint());
 
-  // Bind to the server address
-  _acceptor.bind(_conf->get_endpoint());
-  // Start listening for connections
-  _acceptor.listen(asio::ip::tcp::socket::max_listen_connections);
+  try {
+    _acceptor.open(_conf->get_endpoint().protocol());
+    _acceptor.set_option(asio::ip::tcp::socket::reuse_address(true));
+
+    // Bind to the server address
+    _acceptor.bind(_conf->get_endpoint());
+    // Start listening for connections
+    _acceptor.listen(asio::ip::tcp::socket::max_listen_connections);
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(logger, "fail to listen on {}: {}",
+                        _conf->get_endpoint(), e.what());
+    throw;
+  }
 }
 
 server::~server() {

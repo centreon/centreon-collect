@@ -46,6 +46,10 @@ namespace commands {
  *  notify listener at the end of the command.
  */
 class command {
+ public:
+  enum class e_type { exec, forward, raw, connector, otel };
+  const e_type _type;
+
  protected:
   static uint64_t get_uniq_id();
 
@@ -90,7 +94,8 @@ class command {
 
   command(const std::string& name,
           const std::string& command_line,
-          command_listener* listener = nullptr);
+          command_listener* listener = nullptr,
+          e_type cmd_type = e_type::exec);
   virtual ~command() noexcept;
   command(const command&) = delete;
   command& operator=(const command&) = delete;
@@ -98,6 +103,7 @@ class command {
   bool operator!=(const command& right) const noexcept;
   virtual const std::string& get_command_line() const noexcept;
   virtual const std::string& get_name() const noexcept;
+  e_type get_type() const { return _type; }
   virtual std::string process_cmd(nagios_macros* macros) const;
   virtual uint64_t run(const std::string& processed_cmd,
                        nagios_macros& macors,

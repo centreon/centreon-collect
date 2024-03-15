@@ -30,7 +30,7 @@ TEST(process_stat, current_process) {
   ASSERT_LE(current.starttime(),
             std::chrono::system_clock::now() + std::chrono::minutes(1));
 
-  ASSERT_TRUE(current.cmdline().find("test/ut_common") != std::string::npos);
+  ASSERT_EQ(current.cmdline().substr(0, 15), "tests/ut_common");
 }
 
 TEST(process_stat, current_heavy_process) {
