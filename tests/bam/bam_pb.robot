@@ -1265,3 +1265,24 @@ Ctn BAM Setup
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events
     Execute SQL String    ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
+
+Ctn Bam Init
+    Ctn Clear Commands Status
+    Ctn Clear Retention
+    Ctn Clear Db Conf    mod_bam
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    config    trace
+    Ctn Broker Config Source Log    central    1
+    Ctn Config BBDO3    ${1}
+    Ctn Config Engine    ${1}
+    # This is to avoid parasite status.
+    Ctn Set Services Passive    ${0}    service_30.
+
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clone Engine Config To Db
+    Ctn Add Bam Config To Engine
+    Ctn Add Bam Config To Broker    central
