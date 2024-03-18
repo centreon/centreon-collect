@@ -285,7 +285,7 @@ class DbConf:
 
             connection.commit()
 
-    def ctn_remove_service_kpi(self, id_ba: int, host: str, svc: str):
+    def remove_service_kpi(self, id_ba: int, host: str, svc: str):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
@@ -298,7 +298,7 @@ class DbConf:
                 cursor.execute(f"DELETE FROM mod_bam_kpi WHERE host_id={self.host[host]} AND service_id={self.service[svc]} AND id_ba={id_ba}")
             connection.commit()
 
-    def ctn_add_boolean_kpi(self, id_ba: int, expression: str, impact_if: bool, critical_impact: int):
+    def add_boolean_kpi(self, id_ba: int, expression: str, impact_if: bool, critical_impact: int):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,

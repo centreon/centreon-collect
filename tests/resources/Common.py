@@ -925,7 +925,7 @@ def clear_db(table: str):
         connection.commit()
 
 
-def ctn_clear_db_conf(table: str):
+def clear_db_conf(table: str):
     """
     Erase a table's sontent in the configuration database.
 
@@ -945,7 +945,7 @@ def ctn_clear_db_conf(table: str):
         connection.commit()
 
 
-def ctn_check_service_severity_with_timeout(host_id: int, service_id: int, severity_id, timeout: int):
+def check_service_severity_with_timeout(host_id: int, service_id: int, severity_id, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
