@@ -8,7 +8,6 @@
 if (( sourced == 0 )) ; then
   echo "Please execute this script with:"
   echo ". init.sh"
-  exit 1
 # To be sure the script has not already been launched.
 elif [[ "$PATH" =~ "vcpkg" ]] ; then
   echo "Already initialized"
