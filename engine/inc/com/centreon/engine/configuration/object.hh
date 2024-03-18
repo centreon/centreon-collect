@@ -26,7 +26,7 @@
 #include <memory>
 #include <set>
 #include <type_traits>
-//#include "com/centreon/engine/string.hh"
+// #include "com/centreon/engine/string.hh"
 
 typedef std::list<std::string> list_string;
 typedef std::set<std::string> set_string;
@@ -102,9 +102,13 @@ class object {
       } else if constexpr (std::is_same_v<U, float>) {
         if (absl::SimpleAtof(value, &val))
           return (obj.*ptr)(val);
+        else
+          return false;
       } else if constexpr (std::is_same_v<U, double>) {
         if (absl::SimpleAtod(value, &val))
           return (obj.*ptr)(val);
+        else
+          return false;
       } else {
         static_assert(std::is_integral_v<U> || std::is_floating_point_v<U> ||
                       std::is_same_v<U, bool>);

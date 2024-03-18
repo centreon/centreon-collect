@@ -407,12 +407,11 @@ static void send_pb_service_list() {
   send_service_list(neb::callback_pb_service);
 }
 
-
 /**
  *  Send the instance configuration loaded event.
  */
 static void send_instance_configuration() {
-  log_v2::neb()->info(
+  neb_logger->info(
       "init: sending initial instance configuration loading event");
   std::shared_ptr<neb::instance_configuration> ic(
       new neb::instance_configuration);
