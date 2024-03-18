@@ -1113,6 +1113,147 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
 
+BA_CHANGED
+    [Documentation]    A BA of type worst is configured with one service kpi.
+    ...                Then it is modified so that the service kpi is replaced
+    ...                by a boolean rule kpi. When cbd is reloaded, the BA is
+    ...                well updated.
+    [Tags]    MON-34895
+    Ctn Bam Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_302")] }}
+    ${ba}    Ctn Create Ba With Services    test    worst    ${svc}
+
+    Ctn Start Broker
+    ${start}    Get Current Date
+    Ctn Start Engine
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    # Both services ${state} => The BA parent is ${state}
+    Ctn Process Service Result Hard
+    ...    host_16
+    ...    service_302
+    ...    0
+    ...    output OK for service 302
+        
+    ${result}    Ctn Check Ba Status With Timeout    test    0    30
+    Ctn Dump Ba On Error    ${result}    ${ba[0]}
+    Should Be True    ${result}    The BA test is not OK as expected
+
+    Ctn Remove Service Kpi    ${ba[0]}    host_16    service_302
+    Ctn Add Boolean Kpi
+    ...    ${ba[0]}
+    ...    {host_16 service_302} {IS} {OK}
+    ...    False
+    ...    100
+
+    Ctn Reload Broker
+    Remove File    /tmp/ba.dot
+    Ctn Broker Get Ba    51001    ${ba[0]}    /tmp/ba.dot
+    Wait Until Created    /tmp/ba.dot
+    ${result}    Grep File    /tmp/ba.dot    Boolean exp
+    Should Not Be Empty    ${result}
+
+    Ctn Add Boolean Kpi
+    ...    ${ba[0]}
+    ...    {host_16 service_303} {IS} {WARNING}
+    ...    False
+    ...    100
+
+    Ctn Reload Broker
+    Remove File    /tmp/ba.dot
+    Ctn Broker Get Ba    51001    ${ba[0]}    /tmp/ba.dot
+    Wait Until Created    /tmp/ba.dot
+    ${result}    Grep File    /tmp/ba.dot    BOOL Service (16, 303)
+    Should Not Be Empty    ${result}
+    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+
+
+BA_IMPACT_IMPACT
+    [Documentation]    A BA of type impact is defined with two BAs of type impact
+    ...                as children. The first child has an impact of 90 and the
+    ...                second one of 10. When they are impacting both, the
+    ...                parent should be critical. When they are not impacting,
+    ...                the parent should be ok.
+    [Tags]    MON-34895
+    Ctn Bam Init
+
+    ${parent_ba}    Ctn Create Ba    parent    impact    20    99
+    @{svc1}    Set Variable    ${{ [("host_16", "service_302")] }}
+    ${child1_ba}    Ctn Create Ba    child1    impact    20    99
+    Ctn Add Service Kpi    host_16    service_302    ${child1_ba[0]}    100    2    3
+    ${child2_ba}    Ctn Create Ba    child2    impact    20    99
+    Ctn Add Service Kpi    host_16    service_303    ${child2_ba[0]}    100    2    3
+
+    Ctn Add Ba Kpi    ${child1_ba[0]}    ${parent_ba[0]}    90    2    3
+    Ctn Add Ba Kpi    ${child2_ba[0]}    ${parent_ba[0]}    10    2    3
+
+    Ctn Start Broker
+    ${start}    Get Current Date
+    Ctn Start Engine
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    FOR    ${state}    ${value}    IN
+    ...    OK          0
+    ...    CRITICAL    2
+    ...    OK          0
+    ...    CRITICAL    2
+        # Both services ${state} => The BA parent is ${state}
+        Ctn Process Service Result Hard
+        ...    host_16
+        ...    service_302
+        ...    ${value}
+        ...    output ${state} for service 302
+        
+        Ctn Process Service Result Hard
+        ...    host_16
+        ...    service_303
+        ...    ${value}
+        ...    output ${state} for service 302
+
+        ${result}    Ctn Check Service Status With Timeout    host_16    service_302    ${value}    60    HARD
+        Should Be True    ${result}    The service (host_16,service_302) is not ${state} as expected
+        ${result}    Ctn Check Service Status With Timeout    host_16    service_303    ${value}    60    HARD
+        Should Be True    ${result}    The service (host_16,service_303) is not ${state} as expected
+
+        ${result}    Ctn Check Ba Status With Timeout    child1    ${value}    30
+        Ctn Dump Ba On Error    ${result}    ${child1_ba[0]}
+        Should Be True    ${result}    The BA child1 is not ${state} as expected
+
+        ${result}    Ctn Check Ba Status With Timeout    child2    ${value}    30
+        Ctn Dump Ba On Error    ${result}    ${child2_ba[0]}
+        Should Be True    ${result}    The BA child2 is not ${state} as expected
+
+        ${result}    Ctn Check Ba Status With Timeout    parent    ${value}    30
+        Ctn Dump Ba On Error    ${result}    ${parent_ba[0]}
+        Should Be True    ${result}    The BA parent is not ${state} as expected
+
+        Remove Files    /tmp/parent1.dot    /tmp/parent2.dot
+        Ctn Broker Get Ba    51001    ${parent_ba[0]}    /tmp/parent1.dot
+        Wait Until Created    /tmp/parent1.dot
+
+        ${start}    Get Current Date
+        Ctn Reload Broker
+        ${content}    Create List    Inherited downtimes and BA states restored
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+        Should Be True    ${result}    It seems that no cache has been restored into BAM.
+
+        Ctn Broker Get Ba    51001    ${parent_ba[0]}    /tmp/parent2.dot
+        Wait Until Created    /tmp/parent2.dot
+
+        ${result}    Ctn Compare Dot Files    /tmp/parent1.dot    /tmp/parent2.dot
+        Should Be True    ${result}    The BA changed during Broker reload.
+    END
+
+    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+
+
 *** Keywords ***
 BAM Setup
     Stop Processes
@@ -1124,3 +1265,24 @@ BAM Setup
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events
     Execute SQL String    ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
+
+Ctn Bam Init
+    Ctn Clear Commands Status
+    Ctn Clear Retention
+    Ctn Clear Db Conf    mod_bam
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    config    trace
+    Ctn Broker Config Source Log    central    1
+    Ctn Config BBDO3    ${1}
+    Ctn Config Engine    ${1}
+    # This is to avoid parasite status.
+    Ctn Set Services Passive    ${0}    service_30.
+
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clone Engine Config To Db
+    Ctn Add Bam Config To Engine
+    Ctn Add Bam Config To Broker    central
