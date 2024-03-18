@@ -597,11 +597,11 @@ def ctn_check_acknowledgement_with_timeout(hostname: str, service_desc: str, ent
         with connection:
             with connection.cursor() as cursor:
                 logger.console(
-                    f"SELECT a.acknowledgement_id, a.state, a.type, a.sticky, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time} ORDER BY entry_time DESC")
+                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time} ORDER BY entry_time DESC")
                 cursor.execute(
-                    f"SELECT a.acknowledgement_id, a.state, a.type, a.sticky, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time} ORDER BY entry_time DESC")
+                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time} ORDER BY entry_time DESC")
                 result = cursor.fetchall()
-                if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status) and result[0]['deletion_time'] is None and int(result[0]['sticky']) == int(sticky):
+                if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status) and result[0]['deletion_time'] is None:
                     logger.console(
                         f"status={result[0]['state']} and state_type={result[0]['type']}")
                     if state_type == 'HARD' and int(result[0]['type']) == 1:
