@@ -411,7 +411,7 @@ set(LIBROKER_SOURCES
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
-add_dependencies(rokerbase berpc target_bbdo)
+add_dependencies(rokerbase berpc target_bbdo target_extcmd)
 target_link_libraries(
   rokerbase
   sql
