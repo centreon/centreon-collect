@@ -1332,7 +1332,7 @@ def remove_service_kpi(id_ba: int, host: str, svc: str):
         svc: the service description.
     """
     global dbconf
-    dbconf.ctn_remove_service_kpi(id_ba, host, svc)
+    dbconf.remove_service_kpi(id_ba, host, svc)
 
 
 def get_command_id(service: int):
