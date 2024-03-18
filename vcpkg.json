@@ -21,6 +21,7 @@
     "boost-interprocess",
     "boost-exception",
     "boost-serialization",
+    "boost-uuid",
     {
       "name": "opentelemetry-cpp",
       "features": [
