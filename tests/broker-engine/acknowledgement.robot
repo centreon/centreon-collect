@@ -8,7 +8,6 @@ Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
-
 *** Test Cases ***
 BEACK1
     [Documentation]    Engine has a critical service. An external command is sent to acknowledge it.

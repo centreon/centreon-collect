@@ -31,7 +31,6 @@ set(NEB_SOURCES
     ${SRC_DIR}/comment.cc
     ${SRC_DIR}/custom_variable.cc
     ${SRC_DIR}/custom_variable_status.cc
-    ${SRC_DIR}/dependency.cc
     ${SRC_DIR}/downtime.cc
     ${SRC_DIR}/group.cc
     ${SRC_DIR}/group_member.cc
@@ -59,7 +58,6 @@ set(NEB_SOURCES
     ${INC_DIR}/com/centreon/broker/neb/comment.hh
     ${INC_DIR}/com/centreon/broker/neb/custom_variable.hh
     ${INC_DIR}/com/centreon/broker/neb/custom_variable_status.hh
-    ${INC_DIR}/com/centreon/broker/neb/dependency.hh
     ${INC_DIR}/com/centreon/broker/neb/downtime.hh
     ${INC_DIR}/com/centreon/broker/neb/events.hh
     ${INC_DIR}/com/centreon/broker/neb/group.hh
