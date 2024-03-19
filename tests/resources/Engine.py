@@ -1322,6 +1322,19 @@ def add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warn
         host, serv, id_ba, critical_impact, warning_impact, unknown_impact)
 
 
+def remove_service_kpi(id_ba: int, host: str, svc: str):
+    """
+    Remove a service kpi given by hostname/service description from a ba given by its id.
+
+    Args:
+        id_ba: The BA ID.
+        host: the host name.
+        svc: the service description.
+    """
+    global dbconf
+    dbconf.remove_service_kpi(id_ba, host, svc)
+
+
 def get_command_id(service: int):
     """
     Get the command ID of the service with the given ID.
