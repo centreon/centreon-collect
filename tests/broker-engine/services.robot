@@ -54,3 +54,106 @@ SDER
 
     Stop Engine
     Kindly Stop Broker
+
+
+LCDNU
+    [Documentation]    One service is configured .
+    [Tags]    broker    engine    services    lua
+    Config Engine    ${1}    ${1}    ${1}
+    Set Services Passive    ${0}    service_1
+    Config Broker    central
+    Config Broker    rrd
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
+    Broker Config Flush Log    central    0
+    Broker Config Log    central    core    error
+    Broker Config Log    central    tcp    error
+    Broker Config Log    central    sql    error
+    Config Broker Sql Output    central    unified_sql
+    Config Broker Remove Rrd Output    central
+    Clear Retention
+    Remove File    /tmp/testLUA.log
+    
+    ${new_content}    Catenate
+    ...    function init(params)
+    ...        broker_log:set_parameters(1, "/tmp/test-LUA.log")
+    ...    end
+    ...    
+    ...    function write(d)
+    ...       -- d et de type service status type id = 65565
+    ...       if d._type == 65565 then
+    ...           local svc = broker_cache:get_service(d.host_id, d.service_id)
+    ...       -- Example using status enum 
+    ...           local state = d.state
+    ...           broker_log:info(0, "Service status: " .. tostring(d.state))
+    ...           broker_log:info(0, "Service: " .. broker.json_encode(d)) -- pour debuguer
+    ...           local now = os.time()
+    ...           broker_log:info(0, "Current time: " .. tostring(now))
+    ...           
+    ...           --broker_log:info(0, " new state: " .. tostring(state) .. " old state: " .. tostring(svc.state))
+    ...        end
+    ...        return true
+    ...    end
+
+    # Create the initial LUA script file
+    Create File    /tmp/test-LUA.lua    ${new_content}
+
+    Broker Config Add Lua Output    central    test-LUA    /tmp/test-LUA.lua
+
+    ${start}    Get Current Date
+    Start Broker
+    Start Engine
+
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+
+    ## Time to set the service to warning  hard
+    FOR   ${i}    IN RANGE    ${4}
+        Process Service Result Hard    host_1    service_1    ${1}    The service_1 is WARNING
+            Sleep    1s
+    END
+
+    Set Service State    ${31}    ${1}
+
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${1}    60    HARD
+
+    ${content}    Create List    host_1;service_1;1;The service_1
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    service1
+
+
+    ## Time to set the service to UP  hard
+    FOR   ${i}    IN RANGE    ${4}
+        Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+            Sleep    1s
+    END
+
+    Set Service State    ${30}    ${0}
+
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    90    HARD
+
+    ${content}    Create List    host_1;service_1;0;
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    service1
+
+
+    ## Time to set the service to CRITICAL HARD.
+    FOR   ${i}    IN RANGE    ${4}
+        Process Service Result Hard    host_1    service_1    ${2}    The service_4 is CRITICAL
+            Sleep    1s
+    END
+
+    Set Service State    ${38}    ${2}
+
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+
+    ${content}    Create List    host_1;service_1;2;
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    service1
+
+    Wait Until Created    /tmp/test-LUA.log    90s
+    ${grep_res}    Grep File    /tmp/test-LUA.log    name:
+    Should Not Be Empty    ${grep_res}    service name not found
