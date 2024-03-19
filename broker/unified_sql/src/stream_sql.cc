@@ -385,7 +385,7 @@ void stream::_prepare_pb_hg_insupdate_statement() {
     query_preparator qp(neb::pb_host_group::static_type(), unique);
     _pb_host_group_insupdate = qp.prepare_insert_or_update_table(
         _mysql, "hostgroups ", /*space is mandatory to avoid
-                             conflict with _process_host_dependency*/
+                             conflict with _host_group_insupdate*/
         {{3, "hostgroup_id", io::protobuf_base::invalid_on_zero, 0},
          {4, "name", 0, get_hostgroups_col_size(hostgroups_name)}});
   }
@@ -407,7 +407,7 @@ void stream::_prepare_pb_sg_insupdate_statement() {
     query_preparator qp(neb::pb_service_group::static_type(), unique);
     _pb_service_group_insupdate = qp.prepare_insert_or_update_table(
         _mysql, "servicegroups ", /*space is mandatory to avoid
-                             conflict with _process_host_dependency*/
+                             conflict with _service_group_insupdate*/
         {{3, "servicegroup_id", io::protobuf_base::invalid_on_zero, 0},
          {4, "name", 0, get_servicegroups_col_size(servicegroups_name)}});
   }
@@ -1409,7 +1409,7 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
       query_preparator qp(neb::pb_host_group_member::static_type(), unique);
       _pb_host_group_member_insert = qp.prepare_insert_into(
           _mysql, "hosts_hostgroups ", /*space is mandatory to avoid
-                               conflict with _process_host_dependency*/
+                               conflict with _process_host_group_member*/
           {{3, "hostgroup_id", io::protobuf_base::invalid_on_zero, 0},
            {5, "host_id", io::protobuf_base::invalid_on_zero, 0}});
     }

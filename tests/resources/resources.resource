@@ -23,7 +23,6 @@ ${engineLog2}       ${ENGINE_LOG}/config2/centengine.log
 ${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
 ${engineLog4}       ${ENGINE_LOG}/config4/centengine.log
 
-
 *** Keywords ***
 Ctn Config BBDO3
     [Arguments]    ${nbEngine}    ${version}=3.0.1
@@ -344,3 +343,16 @@ Ctn Process Service Result Hard
     ...    ${svc}
     ...    ${state}
     ...    ${output}
+
+Ctn Wait For Engine To Be Ready
+    [Arguments]    ${start}    ${nbEngine}=1
+    FOR    ${i}    IN RANGE    ${nbEngine}
+        # Let's wait for the external command check start
+        ${content}    Create List    check_for_external_commands()
+        ${result}    Ctn Find In Log With Timeout
+	...    ${ENGINE_LOG}/config${i}/centengine.log
+	...    ${start}    ${content}    60
+        Should Be True
+        ...    ${result}
+        ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.
+    END
