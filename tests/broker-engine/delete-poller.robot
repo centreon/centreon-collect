@@ -419,12 +419,8 @@ EBDP6
     Ctn Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
-
-    # Let's wait until engine listens to external_commands.
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands is missing.
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
@@ -449,7 +445,7 @@ EBDP6
     ${start}    Get Current Date
     Ctn Kindly Stop Broker
     Ctn Clear Engine Logs
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     # Let's wait until engine listens to external_commands.
@@ -465,7 +461,7 @@ EBDP6
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
@@ -476,8 +472,8 @@ EBDP6
     END
     Should Be Equal As Strings    ${output}    ()
 
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 EBDP7
     [Documentation]    Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
