@@ -74,9 +74,9 @@ runs:
         git config --global user.name "Centreon"
 
         # Rebuild NEW_STABLE_TAGS as an array
-        for i in ${NEW_RELEASE_TAGS[@]}; do
-          NEW_RELEASE_TAGS+=("$i")
-        done
+        # for i in ${NEW_RELEASE_TAGS[@]}; do
+        #   NEW_RELEASE_TAGS+=("$i")
+        # done
 
         # Create release tags on git for each release components
         echo "Creating release tags."
@@ -109,9 +109,9 @@ runs:
         fi
 
         # Rebuild NEW_STABLE_TAGS as an array
-        for i in ${NEW_STABLE_TAGS[@]}; do
-          NEW_RELEASE_TAGS+=("$i")
-        done
+        # for i in ${NEW_STABLE_TAGS[@]}; do
+        #   NEW_RELEASE_TAGS+=("$i")
+        # done
 
         # Create GITHUB release for each release components
         echo "Creating GITHUB releases."
@@ -132,9 +132,9 @@ runs:
         JIRA_INCOMING_WEBHOOK="${{ inputs.jira_webhook_url }}"
 
         # Rebuild NEW_STABLE_TAGS as an array
-        for i in ${NEW_STABLE_TAGS[@]}; do
-          NEW_RELEASE_TAGS+=("$i")
-        done
+        # for i in ${NEW_STABLE_TAGS[@]}; do
+        #   NEW_RELEASE_TAGS+=("$i")
+        # done
 
         # Create new JIRA versions (old way of doing it)
         # TODO: add a future capacity to determine wether the release is hotfix or standard (using TYPE)
@@ -181,9 +181,9 @@ runs:
         JIRA_INCOMING_WEBHOOK="${{ inputs.jira_webhook_url }}"
 
         # Rebuild NEW_STABLE_TAGS as an array
-        for i in ${NEW_STABLE_TAGS[@]}; do
-          NEW_RELEASE_TAGS+=("$i")
-        done
+        # for i in ${NEW_STABLE_TAGS[@]}; do
+        #   NEW_RELEASE_TAGS+=("$i")
+        # done
 
         # Build JSON structure with released versions
         JSON_TAGS=$(jq -n '{componentList:$ARGS.positional}' --args "${NEW_RELEASE_TAGS[@]}")
