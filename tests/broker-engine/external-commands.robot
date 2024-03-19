@@ -25,12 +25,8 @@ BEEXTCMD1
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -42,10 +38,10 @@ BEEXTCMD1
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((10.0,),)"    BREAK
+            IF    ${output} == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -62,12 +58,8 @@ BEEXTCMD2
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -79,10 +71,10 @@ BEEXTCMD2
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((15.0,),)"    BREAK
+            IF    ${output} == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -103,12 +95,8 @@ BEEXTCMD3
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -118,10 +106,10 @@ BEEXTCMD3
             ${output}    Query    SELECT check_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((10.0,),)"    BREAK
+            IF    ${output} == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -139,12 +127,8 @@ BEEXTCMD4
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -154,10 +138,10 @@ BEEXTCMD4
             ${output}    Query    SELECT check_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((15.0,),)"    BREAK
+            IF    ${output} == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -176,12 +160,8 @@ BEEXTCMD5
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Retry Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -193,10 +173,10 @@ BEEXTCMD5
             ...    SELECT s.retry_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((15.0,),)"    BREAK
+            IF    ${output} == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -213,12 +193,8 @@ BEEXTCMD6
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Retry Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -230,10 +206,10 @@ BEEXTCMD6
             ...    SELECT s.retry_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((10.0,),)"    BREAK
+            IF    ${output} == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -254,12 +230,8 @@ BEEXTCMD7
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Retry Host Check Interval    ${use_grpc}    host_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -269,10 +241,10 @@ BEEXTCMD7
             ${output}    Query    SELECT retry_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((15.0,),)"    BREAK
+            IF    ${output} == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -290,12 +262,8 @@ BEEXTCMD8
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Retry Host Check Interval    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -305,10 +273,10 @@ BEEXTCMD8
             ${output}    Query    SELECT retry_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((10.0,),)"    BREAK
+            IF    ${output} == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -327,12 +295,8 @@ BEEXTCMD9
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Max Svc Check Attempts    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -344,7 +308,7 @@ BEEXTCMD9
             ...    SELECT s.max_check_attempts FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((15,),)"    BREAK
+            IF    ${output} == "((15,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15,),)
 
@@ -354,10 +318,10 @@ BEEXTCMD9
             ...    SELECT max_check_attempts FROM resources WHERE name='service_1' AND parent_name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((15,),)"    BREAK
+            IF    ${output} == "((15,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15,),)
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -374,12 +338,8 @@ BEEXTCMD10
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Max Svc Check Attempts    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -391,10 +351,10 @@ BEEXTCMD10
             ...    SELECT s.max_check_attempts FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((10,),)"    BREAK
+            IF    ${output} == "((10,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10,),)
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -415,12 +375,8 @@ BEEXTCMD11
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Max Host Check Attempts    ${use_grpc}    host_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -430,7 +386,7 @@ BEEXTCMD11
             ${output}    Query    SELECT max_check_attempts FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((15,),)"    BREAK
+            IF    ${output} == "((15,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15,),)
 
@@ -439,10 +395,10 @@ BEEXTCMD11
             ${output}    Query    SELECT max_check_attempts FROM resources WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((15,),)"    BREAK
+            IF    ${output} == "((15,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15,),)
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -460,12 +416,8 @@ BEEXTCMD12
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Max Host Check Attempts    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -475,11 +427,11 @@ BEEXTCMD12
             ${output}    Query    SELECT max_check_attempts FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((10,),)"    BREAK
+            IF    ${output} == "((10,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10,),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -500,12 +452,8 @@ BEEXTCMD13
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Host Check Timeperiod    ${use_grpc}    host_1    24x6
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -515,11 +463,11 @@ BEEXTCMD13
             ${output}    Query    SELECT check_period FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "(('24x6',),)"    BREAK
+            IF    ${output} == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -537,12 +485,8 @@ BEEXTCMD14
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Host Check Timeperiod    ${use_grpc}    host_1    24x6
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -552,11 +496,11 @@ BEEXTCMD14
             ${output}    Query    SELECT check_period FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "(('24x6',),)"    BREAK
+            IF    ${output} == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -577,12 +521,8 @@ BEEXTCMD15
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Host Notification Timeperiod    ${use_grpc}    host_1    24x7
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -592,11 +532,11 @@ BEEXTCMD15
             ${output}    Query    SELECT notification_period FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "(('24x7',),)"    BREAK
+            IF    ${output} == "(('24x7',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x7',),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -614,12 +554,8 @@ BEEXTCMD16
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Host Notification Timeperiod    ${use_grpc}    host_1    24x6
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -629,11 +565,11 @@ BEEXTCMD16
             ${output}    Query    SELECT notification_period FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "(('24x6',),)"    BREAK
+            IF    ${output} == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -654,12 +590,8 @@ BEEXTCMD17
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Svc Check Timeperiod    ${use_grpc}    host_1    service_1    24x6
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -671,11 +603,11 @@ BEEXTCMD17
             ...    SELECT s.check_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "(('24x6',),)"    BREAK
+            IF    ${output} == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -693,12 +625,8 @@ BEEXTCMD18
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Svc Check Timeperiod    ${use_grpc}    host_1    service_1    24x7
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -710,11 +638,11 @@ BEEXTCMD18
             ...    SELECT s.check_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "(('24x7',),)"    BREAK
+            IF    ${output} == "(('24x7',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x7',),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -735,12 +663,8 @@ BEEXTCMD19
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Svc Notification Timeperiod    ${use_grpc}    host_1    service_1    24x7
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -752,11 +676,11 @@ BEEXTCMD19
             ...    SELECT s.notification_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "(('24x7',),)"    BREAK
+            IF    ${output} == "(('24x7',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x7',),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -774,12 +698,8 @@ BEEXTCMD20
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Change Svc Notification Timeperiod    ${use_grpc}    host_1    service_1    24x6
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -791,11 +711,11 @@ BEEXTCMD20
             ...    SELECT s.notification_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "(('24x6',),)"    BREAK
+            IF    ${output} == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -817,12 +737,8 @@ BEEXTCMD21
         ...    external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo3.0 use_grpc=${use_grpc}
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Disable Host And Child Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -832,7 +748,7 @@ BEEXTCMD21
             ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -841,7 +757,7 @@ BEEXTCMD21
             ${output}    Query    SELECT notifications_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -852,7 +768,7 @@ BEEXTCMD21
             ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
@@ -861,11 +777,11 @@ BEEXTCMD21
             ${output}    Query    SELECT notifications_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -884,12 +800,8 @@ BEEXTCMD22
         ...    external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo2.0 use_grpc=${use_grpc}
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Disable Host And Child Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -899,7 +811,7 @@ BEEXTCMD22
             ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -910,11 +822,11 @@ BEEXTCMD22
             ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -934,12 +846,8 @@ BEEXTCMD23
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Disable Host Check    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -949,7 +857,7 @@ BEEXTCMD23
             ${output}    Query    SELECT active_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -958,7 +866,7 @@ BEEXTCMD23
             ${output}    Query    SELECT active_checks_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -967,7 +875,7 @@ BEEXTCMD23
             ${output}    Query    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -978,7 +886,7 @@ BEEXTCMD23
             ${output}    Query    SELECT active_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
@@ -987,7 +895,7 @@ BEEXTCMD23
             ${output}    Query    SELECT active_checks_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
@@ -996,10 +904,10 @@ BEEXTCMD23
             ${output}    Query    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1016,12 +924,8 @@ BEEXTCMD24
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Disable Host Check    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1031,7 +935,7 @@ BEEXTCMD24
             ${output}    Query    SELECT active_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1040,7 +944,7 @@ BEEXTCMD24
             ${output}    Query    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1051,7 +955,7 @@ BEEXTCMD24
             ${output}    Query    SELECT active_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
@@ -1060,11 +964,11 @@ BEEXTCMD24
             ${output}    Query    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1084,12 +988,8 @@ BEEXTCMD25
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Disable Host Event Handler    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1099,7 +999,7 @@ BEEXTCMD25
             ${output}    Query    SELECT event_handler_enabled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1110,11 +1010,11 @@ BEEXTCMD25
             ${output}    Query    SELECT event_handler_enabled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1131,12 +1031,8 @@ BEEXTCMD26
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Disable Host Event Handler    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1146,7 +1042,7 @@ BEEXTCMD26
             ${output}    Query    SELECT event_handler_enabled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1157,11 +1053,11 @@ BEEXTCMD26
             ${output}    Query    SELECT event_handler_enabled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1181,12 +1077,8 @@ BEEXTCMD27
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Disable Host Flap Detection    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1196,7 +1088,7 @@ BEEXTCMD27
             ${output}    Query    SELECT flap_detection FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1207,11 +1099,11 @@ BEEXTCMD27
             ${output}    Query    SELECT flap_detection FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1228,12 +1120,8 @@ BEEXTCMD28
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Disable Host Flap Detection    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1243,7 +1131,7 @@ BEEXTCMD28
             ${output}    Query    SELECT flap_detection FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1254,11 +1142,11 @@ BEEXTCMD28
             ${output}    Query    SELECT flap_detection FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1280,12 +1168,8 @@ BEEXTCMD29
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Ctn Disable Host Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1295,7 +1179,7 @@ BEEXTCMD29
             ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1304,7 +1188,7 @@ BEEXTCMD29
             ${output}    Query    SELECT notifications_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1315,7 +1199,7 @@ BEEXTCMD29
             ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
@@ -1324,45 +1208,41 @@ BEEXTCMD29
             ${output}    Query    SELECT notifications_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
 BEEXTCMD30
     [Documentation]    external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console
         ...    external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Notifications    ${use_grpc}    host_1
+        Ctn Clear Retention
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
+        Ctn Disable Host Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT notify FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1370,209 +1250,197 @@ BEEXTCMD30
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT notify FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD31
     [Documentation]    external command DISABLE_HOST_SVC_CHECKS and ENABLE_HOST_SVC_CHECKS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Svc Checks    ${use_grpc}    host_1
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
+        Ctn Disable Host Svc Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT active_checks_enabled FROM resources WHERE name='service_1'
-            ${output}=    Query    SELECT active_checks_enabled FROM resources WHERE name='service_1'
+            ${output}    Query    SELECT active_checks_enabled FROM resources WHERE name='service_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Svc Checks    ${use_grpc}    host_1
+        Ctn Enable Host Svc Checks    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT active_checks_enabled FROM resources WHERE name='service_1'
-            ${output}=    Query    SELECT active_checks_enabled FROM resources WHERE name='service_1'
+            ${output}    Query    SELECT active_checks_enabled FROM resources WHERE name='service_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD32
     [Documentation]    external command DISABLE_HOST_SVC_CHECKS and ENABLE_HOST_SVC_CHECKS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Svc Checks    ${use_grpc}    host_1
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
+        Ctn Disable Host Svc Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Svc Checks    ${use_grpc}    host_1
+        Ctn Enable Host Svc Checks    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD33
     [Documentation]    external command DISABLE_HOST_SVC_NOTIFICATIONS and ENABLE_HOST_SVC_NOTIFICATIONS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Disable Host Svc Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1580,11 +1448,11 @@ BEEXTCMD33
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1593,37 +1461,33 @@ BEEXTCMD33
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD34
     [Documentation]    external command DISABLE_HOST_SVC_NOTIFICATIONS and ENABLE_HOST_SVC_NOTIFICATIONS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Disable Host Svc Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1631,11 +1495,11 @@ BEEXTCMD34
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1644,61 +1508,57 @@ BEEXTCMD34
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD35
     [Documentation]    external command DISABLE_PASSIVE_HOST_CHECKS and ENABLE_PASSIVE_HOST_CHECKS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Disable Passive Host Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks_enabled FROM resources WHERE name='host_1'
-            ${output}=    Query    SELECT passive_checks_enabled FROM resources WHERE name='host_1'
+            ${output}    Query    SELECT passive_checks_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1706,55 +1566,51 @@ BEEXTCMD35
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks_enabled FROM resources WHERE name='host_1'
-            ${output}=    Query    SELECT passive_checks_enabled FROM resources WHERE name='host_1'
+            ${output}    Query    SELECT passive_checks_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD36
     [Documentation]    external command DISABLE_PASSIVE_HOST_CHECKS and ENABLE_PASSIVE_HOST_CHECKS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Disable Passive Host Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1762,41 +1618,37 @@ BEEXTCMD36
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD37
     [Documentation]    external command DISABLE_PASSIVE_SVC_CHECKS and ENABLE_PASSIVE_SVC_CHECKS on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1804,20 +1656,20 @@ BEEXTCMD37
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks_enabled FROM resources WHERE name='service_1'
-            ${output}=    Query    SELECT passive_checks_enabled FROM resources WHERE name='service_1'
+            ${output}    Query    SELECT passive_checks_enabled FROM resources WHERE name='service_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1826,46 +1678,42 @@ BEEXTCMD37
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks_enabled FROM resources WHERE name='service_1'
-            ${output}=    Query    SELECT passive_checks_enabled FROM resources WHERE name='service_1'
+            ${output}    Query    SELECT passive_checks_enabled FROM resources WHERE name='service_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD38
     [Documentation]    external command DISABLE_PASSIVE_SVC_CHECKS and ENABLE_PASSIVE_SVC_CHECKS on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1873,11 +1721,11 @@ BEEXTCMD38
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1886,52 +1734,48 @@ BEEXTCMD38
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD39
     [Documentation]    external command START_OBSESSING_OVER_HOST and STOP_OBSESSING_OVER_HOST on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Stop Obsessing Over Host    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT obsess_over_host FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1939,46 +1783,42 @@ BEEXTCMD39
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT obsess_over_host FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD40
     [Documentation]    external command START_OBSESSING_OVER_HOST and STOP_OBSESSING_OVER_HOST on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Stop Obsessing Over Host    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT obsess_over_host FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -1986,41 +1826,37 @@ BEEXTCMD40
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT obsess_over_host FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD41
     [Documentation]    external command START_OBSESSING_OVER_SVC and STOP_OBSESSING_OVER_SVC on bbdo3.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -2028,11 +1864,11 @@ BEEXTCMD41
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -2041,37 +1877,33 @@ BEEXTCMD41
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD42
     [Documentation]    external command START_OBSESSING_OVER_SVC and STOP_OBSESSING_OVER_SVC on bbdo2.0
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Clear Retention
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -2079,11 +1911,11 @@ BEEXTCMD42
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
+            IF    ${output} == "((0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
@@ -2092,82 +1924,76 @@ BEEXTCMD42
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    ${output} == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_GRPC1
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and grpc
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
+        Ctn Clear Retention
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
+        Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    300
             Log To Console
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((10.0,),)"    BREAK
+            IF    ${output} == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_GRPC2
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Broker Config Log    central    sql    debug
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
+        Ctn Clear Retention
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
         # Let's wait for the external command check start
-        ${content}    Create List    check_for_external_commands()
-        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-        Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
+        Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -2178,464 +2004,430 @@ BEEXTCMD_GRPC2
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((15.0,),)"    BREAK
+            IF    ${output} == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_GRPC3
     [Documentation]    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
+    Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        Ctn Clear Retention
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Host Check Interval    ${use_grpc}    host_1    10
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT check_interval FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT check_interval FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT check_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((10.0,),)"    BREAK
+            IF    ${output} == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_GRPC4
     [Documentation]    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
-        Clear Retention
-        ${start}=    Get Round Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        Ctn Clear Retention
+        ${start}    Get Round Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Host Check Interval    ${use_grpc}    host_1    15
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT check_interval FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT check_interval FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT check_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((15.0,),)"    BREAK
+            IF    ${output} == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC1
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and reversed gRPC
     [Tags]    broker    engine    services    extcmd    bbdo3
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Broker Config Output Remove    module0    central-module-master-output    host
-    Broker Config Output Remove    central    centreon-broker-master-rrd    host
-    Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
-    Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Broker Config Output Remove    module0    central-module-master-output    host
+    Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
+    Ctn Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
-        ${start}=    Get Current Date
+        Ctn Clear Retention
+        ${start}    Get Current Date
         Sleep    1s
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
+        Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    300
             Log To Console
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((10.0,),)"    BREAK
+            IF    ${output} == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC2
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc reversed
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Broker Config Output Remove    module0    central-module-master-output    host
-    Broker Config Output Remove    central    centreon-broker-master-rrd    host
-    Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
-    Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
-    Broker Config Log    central    sql    debug
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Broker Config Output Remove    module0    central-module-master-output    host
+    Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
+    Ctn Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc} reversed
-        Clear Retention
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
+        Ctn Clear Retention
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
+        Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((15.0,),)"    BREAK
+            IF    ${output} == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC3
     [Documentation]    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc reversed
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Output Remove    module0    central-module-master-output    host
-    Broker Config Output Remove    central    centreon-broker-master-rrd    host
-    Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
-    Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Output Remove    module0    central-module-master-output    host
+    Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
+    Ctn Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
+    Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc} reversed
-        Clear Retention
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Host Check Interval    ${use_grpc}    host_1    10
+        Ctn Clear Retention
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
+        Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT check_interval FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT check_interval FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT check_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((10.0,),)"    BREAK
+            IF    ${output} == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_REVERSE_GRPC4
     [Documentation]    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc reversed
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Broker Config Output Remove    module0    central-module-master-output    host
-    Broker Config Output Remove    central    centreon-broker-master-rrd    host
-    Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
-    Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Broker Config Output Remove    module0    central-module-master-output    host
+    Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
+    Ctn Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc} reversed
-        Clear Retention
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Clear Retention
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         Sleep    1s
-        Change Normal Host Check Interval    ${use_grpc}    host_1    15
+        Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT check_interval FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT check_interval FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT check_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((15.0,),)"    BREAK
+            IF    ${output} == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEEXTCMD_COMPRESS_GRPC1
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and compressed grpc
     [Tags]    broker    engine    services    extcmd
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Change Broker Compression Output    module0    central-module-master-output    yes
-    Change Broker Compression Input    central    centreon-broker-master-input    yes
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Compression Output    module0    central-module-master-output    yes
+    Ctn Change Broker Compression Input    central    centreon-broker-master-input    yes
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
-        Clear Retention
-        ${start}=    Get Current Date
-        Start Broker
-        Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
-        Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
+        Ctn Clear Retention
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
+        Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    300
             Log To Console
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((10.0,),)"    BREAK
+            IF    ${output} == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker
     END
 
 BEATOI11
     [Documentation]    external command SEND_CUSTOM_HOST_NOTIFICATION with option_number=1 should work
     [Tags]    broker    engine    host    extcmd    notification    atoi
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date
-    Start Broker
-    Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
-    SEND CUSTOM HOST NOTIFICATION    host_1    1    admin    foobar
-    ${content}=    Create List    EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;foobar
-    ${result}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    Send Custom Host Notification    host_1    1    admin    foobar
+    ${content}    Create List    EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;foobar
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=command argument notification_option must be an integer between 0 and 7.
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEATOI12
     [Documentation]    external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
     [Tags]    broker    engine    host    extcmd    notification    atoi
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date
-    Start Broker
-    Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
-    SEND CUSTOM HOST NOTIFICATION    host_1    8    admin    foobar
-    ${content}=    Create List
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    Send Custom Host Notification    host_1    8    admin    foobar
+    ${content}    Create List
     ...    Error: could not send custom host notification: '8' must be an integer between 0 and 7
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=command argument notification_option must be an integer between 0 and 7.
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEATOI13
     [Documentation]    external command SCHEDULE SERVICE DOWNTIME with duration<0 should fail
     [Tags]    broker    engine    host    extcmd    atoi
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date
-    Start Broker
-    Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
-    ${date}=    Get Current Date    result_format=epoch
-    SCHEDULE SERVICE DOWNTIME    host_1    service_1    -1
-    ${content}=    Create List    Error: could not schedule downtime : duration
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=command argument duration must be an integer >= 0.
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    Ctn Schedule Service Downtime    host_1    service_1    -1
+    ${content}    Create List    Error: could not schedule downtime : duration
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    command argument duration must be an integer >= 0.
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEATOI21
     [Documentation]    external command ADD_HOST_COMMENT and DEL_HOST_COMMENT should work
     [Tags]    broker    engine    host    extcmd    atoi
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    ${start}    Get Current Date
     Sleep    1s
-    Start Broker
-    Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
-    ADD HOST COMMENT    host_1    1    user    comment
-    ${content}=    Create List    ADD_HOST_COMMENT
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    Add Host Comment    host_1    1    user    comment
+    ${content}    Create List    ADD_HOST_COMMENT
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=the comment with id:1 was not added.
-    ${com_id}=    Find Internal Id    ${start}    True    30
-    DEL HOST COMMENT    ${com_id}
-    ${result}=    Find Internal Id    ${start}    False    30
-    Should Be True    ${result}    msg=the comment with id:${com_id} was not deleted.
-    Stop Engine
-    Kindly Stop Broker
+    ${com_id}    Ctn Find Internal Id    ${start}    True    30
+    Ctn Del Host Comment    ${com_id}
+    ${result}    Ctn Find Internal Id    ${start}    False    30
+    Should Be True    ${result}    The comment with id:${com_id} was not deleted.
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEATOI22
     [Documentation]    external command DEL_HOST_COMMENT with comment_id<0 should fail
     [Tags]    broker    engine    host    extcmd    atoi
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    debug
+    ${start}    Get Current Date
     Sleep    1s
-    Start Broker
-    Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
-    ADD HOST COMMENT    host_1    1    user    comment
-    ${content}=    Create List    ADD_HOST_COMMENT
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=the comment with id:1 was not added.
-    ${com_id}=    Find Internal Id    ${start}    True    30
-    DEL HOST COMMENT    -1
-    ${content}=    Create List    Error: could not delete comment : comment_id
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=comment_id must be an unsigned integer.
-    ${result}=    Find Internal Id    ${start}    True    30
-    Should Be True    ${result}    msg=comment with id:-1 was deleted.
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    Ctn Add Host Comment    host_1    1    user    comment
+    ${content}    Create List    ADD_HOST_COMMENT
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The comment with id:1 was not added.
+    ${com_id}    Ctn Find Internal Id    ${start}    True    30
+    Ctn Del Host Comment    -1
+    ${content}    Create List    Error: could not delete comment : comment_id
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Comment ID must be an unsigned integer.
+    ${result}    Ctn Find Internal Id    ${start}    True    30
+    Should Be True    ${result}    Comment with id:-1 was deleted.
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 BEATOI23
     [Documentation]    external command ADD_SVC_COMMENT with persistent=0 should work
     [Tags]    broker    engine    host    extcmd    atoi
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Log    central    core    error
-    Broker Config Log    central    sql    error
-    ${start}=    Get Current Date
-    Start Broker
-    Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
-    ${date}=    Get Current Date    result_format=epoch
-    ADD SVC COMMENT    host_1    service_1    0    user    comment
-    ${content}=    Create List    ADD_SVC_COMMENT
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=command argument persistent_flag must be 0 or 1.
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    error
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    Ctn Add Svc Comment    host_1    service_1    0    user    comment
+    ${content}    Create List    ADD_SVC_COMMENT
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Command argument persistent_flag must be 0 or 1.
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
