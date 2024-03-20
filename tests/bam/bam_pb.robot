@@ -1263,7 +1263,7 @@ BA_CHANGED
     Ctn Bam Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_302")] }}
-    ${ba}    Create Ba With Services    test    worst    ${svc}
+    ${ba}    Ctn Create Ba With Services    test    worst    ${svc}
 
     Start Broker
     ${start}    Get Current Date
