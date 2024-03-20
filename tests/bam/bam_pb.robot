@@ -1169,7 +1169,7 @@ BA_CHANGED
     Wait Until Created    /tmp/ba.dot
     ${result}    Grep File    /tmp/ba.dot    BOOL Service (16, 303)
     Should Not Be Empty    ${result}
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 
 BA_IMPACT_IMPACT
@@ -1251,7 +1251,7 @@ BA_IMPACT_IMPACT
         Should Be True    ${result}    The BA changed during Broker reload.
     END
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 
 BA_CHANGED
@@ -1310,7 +1310,7 @@ BA_CHANGED
     Wait Until Created    /tmp/ba.dot
     ${result}    Grep File    /tmp/ba.dot    BOOL Service (16, 303)
     Should Not Be Empty    ${result}
-    [Teardown]    Run Keywords    Stop engine    AND    Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 
 BA_IMPACT_IMPACT
@@ -1392,7 +1392,7 @@ BA_IMPACT_IMPACT
         Should Be True    ${result}    The BA changed during Broker reload.
     END
 
-    [Teardown]    Run Keywords    Stop engine    AND    Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND  Ctn Kindly Stop Broker
 
 
 *** Keywords ***
