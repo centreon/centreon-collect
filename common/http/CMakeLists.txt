@@ -42,7 +42,8 @@ set_target_properties(centreon_http PROPERTIES COMPILE_FLAGS "-fPIC")
 if(WITH_TESTING)
   set(TESTS_SOURCES
     ${TESTS_SOURCES}
-    ${TEST_DIR}/http_connection_test.cc
     ${TEST_DIR}/http_client_test.cc
+    ${TEST_DIR}/http_connection_test.cc
+    ${TEST_DIR}/http_server_test.cc
     PARENT_SCOPE)
 endif(WITH_TESTING)

@@ -29,6 +29,7 @@ class conf_server_config {
   unsigned _second_keep_alive_interval;
   std::string _certificate_path;
   std::string _key_path;
+  std::string _engine_otl_endpoint;
 
  public:
   using pointer = std::shared_ptr<conf_server_config>;
@@ -46,12 +47,17 @@ class conf_server_config {
 
   const std::string& get_certificate_path() const { return _certificate_path; }
   const std::string& get_key_path() const { return _key_path; }
+  const std::string& get_engine_otl_endpoint() const {
+    return _engine_otl_endpoint;
+  }
 
   bool operator==(const conf_server_config& right) const;
 };
 
 template <class connection_class = http::http_connection>
 class conf_session : public connection_class {
+  conf_server_config::pointer _telegraf_conf;
+
   void wait_for_request();
 
   void on_receive_request(const std::shared_ptr<http::request_type>& request);
@@ -66,8 +72,10 @@ class conf_session : public connection_class {
   conf_session(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
                const http::http_config::pointer& conf,
-               const http::ssl_ctx_initializer& ssl_initializer)
-      : connection_class(io_context, logger, conf, ssl_initializer) {}
+               const http::ssl_ctx_initializer& ssl_initializer,
+               const conf_server_config::pointer& telegraf_conf)
+      : connection_class(io_context, logger, conf, ssl_initializer),
+        _telegraf_conf(telegraf_conf) {}
 
   pointer shared_from_this() {
     return std::static_pointer_cast<my_type>(

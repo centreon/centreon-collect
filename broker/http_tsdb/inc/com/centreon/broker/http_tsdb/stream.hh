@@ -81,7 +81,7 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   // Database and http parameters
   std::shared_ptr<http_tsdb_config> _conf;
 
-  http::client::pointer _http_client;
+  http::http_client::pointer _http_client;
 
   // number of metric and status sent to tsdb and acknowledged by a 20x response
   unsigned _acknowledged;

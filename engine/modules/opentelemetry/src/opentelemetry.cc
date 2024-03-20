@@ -122,10 +122,15 @@ void open_telemetry::_create_otl_server(
   }
 }
 
+/**
+ * @brief create an http(s) server to give configuration to telegraf
+ *
+ * @param telegraf_conf
+ */
 void open_telemetry::_create_telegraf_conf_server(
     const telegraf::conf_server_config::pointer& telegraf_conf) {
   try {
-    http::server::pointer to_shutdown = _telegraf_conf_server;
+    http::http_server::pointer to_shutdown = _telegraf_conf_server;
     if (to_shutdown) {
       to_shutdown->shutdown();
     }
@@ -137,19 +142,21 @@ void open_telemetry::_create_telegraf_conf_server(
         telegraf_conf->get_certificate_path(), telegraf_conf->get_key_path());
 
     if (telegraf_conf->is_crypted()) {
-      _telegraf_conf_server = http::server::load(
-          _io_context, log_v2::otl(), conf, [conf, io_ctx = _io_context]() {
+      _telegraf_conf_server = http::http_server::load(
+          _io_context, log_v2::otl(), conf,
+          [conf, io_ctx = _io_context, telegraf_conf]() {
             return std::make_shared<
                 telegraf::conf_session<http::https_connection>>(
                 io_ctx, log_v2::otl(), conf,
-                http::https_connection::load_server_certificate);
+                http::https_connection::load_server_certificate, telegraf_conf);
           });
     } else {
-      _telegraf_conf_server = http::server::load(
-          _io_context, log_v2::otl(), conf, [conf, io_ctx = _io_context]() {
+      _telegraf_conf_server = http::http_server::load(
+          _io_context, log_v2::otl(), conf,
+          [conf, io_ctx = _io_context, telegraf_conf]() {
             return std::make_shared<
                 telegraf::conf_session<http::http_connection>>(
-                io_ctx, log_v2::otl(), conf, nullptr);
+                io_ctx, log_v2::otl(), conf, nullptr, telegraf_conf);
           });
     }
   } catch (const std::exception& e) {
@@ -159,6 +166,7 @@ void open_telemetry::_create_telegraf_conf_server(
     _telegraf_conf_server.reset();
   }
 }
+
 /**
  * @brief static method used to make singleton reload is configuration
  *

@@ -305,14 +305,15 @@ void https_connection::on_handshake(const beast::error_code err,
   callback(err, {});
 }
 
-#define BAD_SEND_STATE_ERROR(error_string)                        \
-  std::string detail =                                            \
-      fmt::format(error_string, *_conf, state_to_str(expected));  \
-  SPDLOG_LOGGER_ERROR(_logger, detail);                           \
-  _io_context->post([cb = std::move(callback), detail]() {        \
-    cb(std::make_error_code(std::errc::invalid_argument), detail, \
-       response_ptr());                                           \
-  });                                                             \
+#define BAD_SEND_STATE_ERROR(error_string)                              \
+  std::string detail =                                                  \
+      fmt::format(error_string, static_cast<const void*>(this), *_conf, \
+                  state_to_str(expected));                              \
+  SPDLOG_LOGGER_ERROR(_logger, detail);                                 \
+  _io_context->post([cb = std::move(callback), detail]() {              \
+    cb(std::make_error_code(std::errc::invalid_argument), detail,       \
+       response_ptr());                                                 \
+  });                                                                   \
   return;
 
 /**
@@ -325,7 +326,7 @@ void https_connection::send(request_ptr request,
                             send_callback_type&& callback) {
   unsigned expected = e_idle;
   if (!_state.compare_exchange_strong(expected, e_send)) {
-    BAD_SEND_STATE_ERROR("send to {}, bad state {}");
+    BAD_SEND_STATE_ERROR("{:p} send to {}, bad state {}");
   }
 
   request->_send = system_clock::now();
@@ -369,7 +370,7 @@ void https_connection::on_sent(const beast::error_code& err,
 
   unsigned expected = e_send;
   if (!_state.compare_exchange_strong(expected, e_receive)) {
-    BAD_SEND_STATE_ERROR("on_sent to {}, bad state {}");
+    BAD_SEND_STATE_ERROR("{:p} on_sent to {}, bad state {}");
   }
 
   if (_logger->level() == spdlog::level::trace) {
@@ -381,6 +382,10 @@ void https_connection::on_sent(const beast::error_code& err,
   request->_sent = system_clock::now();
 
   std::lock_guard<std::mutex> l(_socket_m);
+  if (_conf->get_receive_timeout() >= std::chrono::seconds(1)) {
+    beast::get_lowest_layer(*_stream).expires_after(
+        _conf->get_receive_timeout());
+  }
   response_ptr resp = std::make_shared<response_type>();
   beast::http::async_read(
       *_stream, _recv_buffer, *resp,
@@ -405,7 +410,9 @@ void https_connection::on_read(const beast::error_code& err,
   if (err) {
     std::string detail = fmt::format("fail receive {} from {}: {}", *request,
                                      *_conf, err.message());
-    SPDLOG_LOGGER_ERROR(_logger, detail);
+    if (err != boost::asio::error::operation_aborted) {
+      SPDLOG_LOGGER_ERROR(_logger, detail);
+    }
     callback(err, detail, response_ptr());
     shutdown();
     return;
@@ -413,7 +420,7 @@ void https_connection::on_read(const beast::error_code& err,
 
   unsigned expected = e_receive;
   if (!_state.compare_exchange_strong(expected, e_idle)) {
-    BAD_SEND_STATE_ERROR("on_read to {}, bad state {}");
+    BAD_SEND_STATE_ERROR("{:p} on_read to {}, bad state {}");
   }
 
   request->_receive = system_clock::now();
@@ -430,6 +437,13 @@ void https_connection::on_read(const beast::error_code& err,
   callback(err, {}, resp);
 }
 
+/**
+ * @brief server part, send response to client
+ * in case of receive time out < 1s, socket is closed after response sent
+ *
+ * @param response
+ * @param callback
+ */
 void https_connection::answer(const response_ptr& response,
                               answer_callback_type&& callback) {
   unsigned expected = e_idle;
@@ -462,6 +476,9 @@ void https_connection::answer(const response_ptr& response,
         } else {
           unsigned expected = e_send;
           me->_state.compare_exchange_strong(expected, e_idle);
+          if (me->_conf->get_receive_timeout() < std::chrono::seconds(1)) {
+            me->shutdown();
+          }
         }
         SPDLOG_LOGGER_TRACE(me->_logger, "{:p} response sent: {}",
                             static_cast<void*>(me.get()), *response);
@@ -469,6 +486,11 @@ void https_connection::answer(const response_ptr& response,
       });
 }
 
+/**
+ * @brief server part: wait for incoming request
+ *
+ * @param callback
+ */
 void https_connection::receive_request(request_callback_type&& callback) {
   unsigned expected = e_idle;
   if (!_state.compare_exchange_strong(expected, e_receive)) {
@@ -485,7 +507,7 @@ void https_connection::receive_request(request_callback_type&& callback) {
   }
 
   std::lock_guard<std::mutex> l(_socket_m);
-  if (_conf->get_receive_timeout() > std::chrono::seconds(1))
+  if (_conf->get_receive_timeout() >= std::chrono::seconds(1))
     beast::get_lowest_layer(*_stream).expires_after(
         _conf->get_receive_timeout());
   auto req = std::make_shared<request_type>();
@@ -494,9 +516,15 @@ void https_connection::receive_request(request_callback_type&& callback) {
       [me = shared_from_this(), req, cb = std::move(callback)](
           const boost::beast::error_code& ec, std::size_t) mutable {
         if (ec) {
-          SPDLOG_LOGGER_ERROR(
-              me->_logger, "{:p} fail to receive request from {}: {}",
-              static_cast<void*>(me.get()), me->get_peer(), ec.message());
+          if (ec == boost::beast::http::error::end_of_stream) {
+            SPDLOG_LOGGER_DEBUG(
+                me->_logger, "{:p} fail to receive request from {}: {}",
+                static_cast<void*>(me.get()), me->get_peer(), ec.message());
+          } else {
+            SPDLOG_LOGGER_ERROR(
+                me->_logger, "{:p} fail to receive request from {}: {}",
+                static_cast<void*>(me.get()), me->get_peer(), ec.message());
+          }
           me->shutdown();
         } else {
           unsigned expected = e_receive;
@@ -589,6 +617,7 @@ void https_connection::load_client_certificate(
  * openssl req -newkey rsa:2048 -nodes -keyout ../server.key -x509 -days 10000
  * -out ../server.crt
  * -subj "/C=US/ST=CA/L=Los Angeles/O=Beast/CN=www.example.com"
+ * -addext "subjectAltName=DNS:localhost,IP:172.17.0.1"
  * @endcode
  *
  *

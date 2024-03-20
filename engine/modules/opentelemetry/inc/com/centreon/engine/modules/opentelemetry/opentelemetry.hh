@@ -44,7 +44,7 @@ class otl_server;
 class open_telemetry : public commands::otel::open_telemetry_base {
   asio::system_timer _second_timer;
   std::shared_ptr<otl_server> _otl_server;
-  std::shared_ptr<http::server> _telegraf_conf_server;
+  std::shared_ptr<http::http_server> _telegraf_conf_server;
 
   using cmd_line_to_extractor_map =
       std::map<std::string, std::shared_ptr<host_serv_extractor>>;

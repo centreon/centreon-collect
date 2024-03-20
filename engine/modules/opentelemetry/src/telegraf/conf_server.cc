@@ -67,11 +67,18 @@ static constexpr std::string_view _config_schema(R"(
             "description": "path of the key file",
             "type": "string",
             "minLength": 5
+        },
+        "engine_otel_endpoint": {
+            "description": "opentelemetry engine grpc server",
+            "type": "string",
+            "minLength": 5
         }
     },
+    "required":[
+      "engine_otel_endpoint"
+    ],
     "type": "object"
 }
-
 )");
 
 conf_server_config::conf_server_config(const rapidjson::Value& json_config_v,
@@ -83,7 +90,7 @@ conf_server_config::conf_server_config(const rapidjson::Value& json_config_v,
     json_config.validate(validator);
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "forbidden values in telegraf conf server config: {}",
+                        "forbidden values in telegraf_conf_server config: {}",
                         e.what());
     throw;
   }
@@ -106,8 +113,47 @@ conf_server_config::conf_server_config(const rapidjson::Value& json_config_v,
 
   _second_keep_alive_interval =
       json_config.get_unsigned("keepalive_interval", 30);
-  _certificate_path = json_config.get_string("certificate_path");
-  _key_path = json_config.get_string("key_path");
+  _certificate_path = json_config.get_string("certificate_path", "");
+  _key_path = json_config.get_string("key_path", "");
+  _engine_otl_endpoint = json_config.get_string("engine_otel_endpoint");
+  if (_crypted) {
+    if (_certificate_path.empty()) {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::config(),
+          "telegraf conf server  encryption activated and no certificate path "
+          "provided");
+      throw exceptions::msg_fmt(
+          "telegraf conf server  encryption activated and no certificate path "
+          "provided");
+    }
+    if (_key_path.empty()) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(),
+                          "telegraf conf server  encryption activated and no "
+                          "certificate key path provided");
+
+      throw exceptions::msg_fmt(
+          "telegraf conf server  encryption activated and no certificate key "
+          "path provided");
+    }
+    if (::access(_certificate_path.c_str(), R_OK)) {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::config(),
+          "telegraf conf server unable to read certificate file {}",
+          _certificate_path);
+      throw exceptions::msg_fmt(
+          "telegraf conf server unable to read certificate file {}",
+          _certificate_path);
+    }
+    if (::access(_key_path.c_str(), R_OK)) {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::config(),
+          "telegraf conf server unable to read certificate key file {}",
+          _key_path);
+      throw exceptions::msg_fmt(
+          "telegraf conf server unable to read certificate key file {}",
+          _key_path);
+    }
+  }
 }
 
 bool conf_server_config::operator==(const conf_server_config& right) const {
@@ -137,6 +183,12 @@ void conf_session<connection_class>::on_accept() {
       });
 }
 
+/**
+ * @brief after connection or have sent a response, it waits for a new incomming
+ * request
+ *
+ * @tparam connection_class
+ */
 template <class connection_class>
 void conf_session<connection_class>::wait_for_request() {
   connection_class::receive_request(
@@ -153,6 +205,13 @@ void conf_session<connection_class>::wait_for_request() {
       });
 }
 
+/**
+ * @brief incomming request handler
+ * handler is passed to the main thread via command_manager::instance().enqueue
+ *
+ * @tparam connection_class
+ * @param request
+ */
 template <class connection_class>
 void conf_session<connection_class>::on_receive_request(
     const std::shared_ptr<http::request_type>& request) {
@@ -197,11 +256,23 @@ static bool otel_command_to_stream(const std::string& cmd_name,
   if (flag_pos != std::string::npos) {
     plugins_cmdline = cmd_line.substr(flag_pos + flag.length() + 1);
     boost::trim(plugins_cmdline);
+  } else {
+    SPDLOG_LOGGER_ERROR(log_v2::otl(),
+                        "host: {}, serv: {}, no --cmd_lineplugin found in {}",
+                        host, service, cmd_line);
+    return false;
   }
 
   if (plugins_cmdline.empty()) {
+    SPDLOG_LOGGER_ERROR(log_v2::otl(),
+                        "host: {}, serv: {}, no plugins cmd_line found in {}",
+                        host, service, cmd_line);
     return false;
   }
+
+  SPDLOG_LOGGER_DEBUG(log_v2::otl(),
+                      "host: {}, serv: {}, cmd {} plugins cmd_line {}", host,
+                      service, cmd_name, cmd_line);
 
   fmt::format_to(std::back_inserter(to_append), R"(
 [[inputs.exec]]
@@ -258,6 +329,10 @@ static bool get_commands(const std::string& host_name,
                                   hst->get_check_command_line(macros),
                                   hst->name(), "", request_body);
     clear_volatile_macros_r(macros);
+  } else {
+    SPDLOG_LOGGER_DEBUG(log_v2::otl(),
+                        "host {} doesn't use telegraf to do his check",
+                        host_name);
   }
 
   // services of host
@@ -272,6 +347,11 @@ static bool get_commands(const std::string& host_name,
           serv->check_command(), serv->get_check_command_line(macros),
           serv->get_hostname(), serv->name(), request_body);
       clear_volatile_macros_r(macros);
+    } else {
+      SPDLOG_LOGGER_DEBUG(
+          log_v2::otl(),
+          "host {} service {} doesn't use telegraf to do his check", host_name,
+          serv->name());
     }
   }
   return ret;
@@ -281,6 +361,7 @@ static bool get_commands(const std::string& host_name,
  * @brief construct and send conf to telegraf
  * As it uses host, services and command list, it must be called in the main
  * thread
+ * host::hosts and service::services must be stable during this call
  *
  * @tparam connection_class
  * @param request incoming request
@@ -293,12 +374,22 @@ void conf_session<connection_class>::answer(
   http::response_ptr resp(std::make_shared<http::response_type>());
   resp->version(request->version());
 
-  resp->body() = R"(# Centreon telegraf configuration
+  if (host_list.empty()) {
+    SPDLOG_LOGGER_ERROR(log_v2::otl(), "no host found in target argument {}",
+                        *request);
+  }
+
+  resp->body() = fmt::format(R"(# Centreon telegraf configuration
 # This telegraf configuration is generated by centreon centengine
 [agent]
   ## Default data collection interval for all inputs
   interval = "60s"
-)";
+
+[[outputs.opentelemetry]]
+   service_address = "{}"
+
+)",
+                             _telegraf_conf->get_engine_otl_endpoint());
   bool at_least_one_found = false;
   for (const std::string& host : host_list) {
     at_least_one_found |= get_commands(host, resp->body());

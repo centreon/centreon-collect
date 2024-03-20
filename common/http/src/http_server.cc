@@ -21,10 +21,10 @@
 
 using namespace com::centreon::common::http;
 
-server::server(const std::shared_ptr<asio::io_context>& io_context,
-               const std::shared_ptr<spdlog::logger>& logger,
-               const http_config::pointer& conf,
-               connection_creator&& conn_creator)
+http_server::http_server(const std::shared_ptr<asio::io_context>& io_context,
+                         const std::shared_ptr<spdlog::logger>& logger,
+                         const http_config::pointer& conf,
+                         connection_creator&& conn_creator)
     : _io_context(io_context),
       _logger(logger),
       _conf(conf),
@@ -48,16 +48,16 @@ server::server(const std::shared_ptr<asio::io_context>& io_context,
   }
 }
 
-server::~server() {
+http_server::~http_server() {
   shutdown();
 }
 
-server::pointer server::load(
+http_server::pointer http_server::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     const http_config::pointer& conf,
     connection_creator&& conn_creator) {
-  std::shared_ptr<server> ret = std::make_shared<server>(
+  std::shared_ptr<http_server> ret = std::make_shared<http_server>(
       io_context, logger, conf, std::move(conn_creator));
 
   ret->start_accept();
@@ -67,7 +67,7 @@ server::pointer server::load(
   return ret;
 }
 
-void server::start_accept() {
+void http_server::start_accept() {
   connection_base::pointer future_conn = _conn_creator();
   std::lock_guard l(_acceptor_m);
   _acceptor.async_accept(future_conn->get_socket(), future_conn->get_peer(),
@@ -77,11 +77,13 @@ void server::start_accept() {
                          });
 }
 
-void server::on_accept(const boost::beast::error_code& err,
-                       const connection_base::pointer& conn) {
+void http_server::on_accept(const boost::beast::error_code& err,
+                            const connection_base::pointer& conn) {
   if (err) {
-    SPDLOG_LOGGER_ERROR(_logger, "fail accept connection on {}: {}",
-                        _conf->get_endpoint(), err.message());
+    if (err != boost::asio::error::operation_aborted) {
+      SPDLOG_LOGGER_ERROR(_logger, "fail accept connection on {}: {}",
+                          _conf->get_endpoint(), err.message());
+    }
     return;
   }
   SPDLOG_LOGGER_DEBUG(_logger, "connection accepted from {} to {}",
@@ -91,7 +93,7 @@ void server::on_accept(const boost::beast::error_code& err,
   start_accept();
 }
 
-void server::shutdown() {
+void http_server::shutdown() {
   std::lock_guard l(_acceptor_m);
   boost::system::error_code ec;
   _acceptor.close(ec);

@@ -309,110 +309,16 @@ class http_test : public ::testing::TestWithParam<bool> {
 };
 
 template <class base_class>
-class answer_no_keep_alive : public base_class {
- public:
-  using my_type = answer_no_keep_alive<base_class>;
-
-  answer_no_keep_alive(const std::shared_ptr<asio::io_context>& io_context,
-                       const std::shared_ptr<spdlog::logger>& logger,
-                       const http_config::pointer& conf,
-                       const ssl_ctx_initializer& ssl_initializer)
-      : base_class(io_context, logger, conf, ssl_initializer) {}
-
-  void on_accept() override {
-    base_class::on_accept([me = base_class::shared_from_this()](
-                              const boost::beast::error_code ec,
-                              const std::string&) {
-      ASSERT_FALSE(ec);
-      me->receive_request([me](const boost::beast::error_code ec,
-                               const std::string&,
-                               const std::shared_ptr<request_type>& request) {
-        ASSERT_FALSE(ec);
-        ASSERT_EQ(request->body(), "hello server");
-        response_ptr resp(std::make_shared<response_type>(
-            beast::http::status::ok, request->version()));
-        resp->keep_alive(false);
-        resp->body() = "hello client";
-        resp->content_length(resp->body().length());
-        me->answer(resp, [](const boost::beast::error_code ec,
-                            const std::string&) { ASSERT_FALSE(ec); });
-      });
-    });
-  }
-};
-
-TEST_P(http_test, connect_send_answer_without_keepalive) {
-  std::shared_ptr<connection_base> conn;
-  http_config::pointer client_conf = create_conf();
-  http_config::pointer server_conf = create_server_conf();
-
-  connection_creator server_creator;
-
-  if (GetParam()) {  // crypted
-    server_creator = [server_conf]() {
-      return std::make_shared<answer_no_keep_alive<https_connection>>(
-          g_io_context, logger, server_conf, load_server_certificate);
-    };
-  } else {
-    server_creator = [server_conf]() {
-      return std::make_shared<answer_no_keep_alive<http_connection>>(
-          g_io_context, logger, server_conf, nullptr);
-    };
-  }
-
-  auto client = GetParam()
-                    ? https_connection::load(g_io_context, logger, client_conf)
-                    : http_connection::load(g_io_context, logger, client_conf);
-  request_ptr request(std::make_shared<request_base>());
-  request->method(beast::http::verb::put);
-  request->target("/");
-  request->body() = "hello server";
-  request->content_length(request->body().length());
-  std::promise<std::tuple<beast::error_code, std::string, response_ptr>> p;
-  auto f(p.get_future());
-  time_point send_begin = system_clock::now();
-
-  auto serv = server::load(g_io_context, logger, server_conf,
-                           std::move(server_creator));
-
-  client->connect([&p, client, request](const beast::error_code& err,
-                                        const std::string& detail) {
-    if (err) {
-      p.set_value(std::make_tuple(err, detail, response_ptr()));
-    } else {
-      client->send(request,
-                   [&p](const beast::error_code& err, const std::string& detail,
-                        const response_ptr& response) mutable {
-                     p.set_value(std::make_tuple(err, detail, response));
-                   });
-    }
-  });
-
-  auto completion = f.get();
-  time_point send_end = system_clock::now();
-  ASSERT_LT((send_end - send_begin), std::chrono::milliseconds(100));
-  ASSERT_FALSE(std::get<0>(completion));
-  ASSERT_TRUE(std::get<1>(completion).empty());
-  ASSERT_EQ(std::get<2>(completion)->body(), "hello client");
-  ASSERT_EQ(std::get<2>(completion)->keep_alive(), false);
-  std::this_thread::sleep_for(std::chrono::seconds(1));
-  ASSERT_EQ(client->get_state(), connection_base::e_not_connected);
-
-  serv->shutdown();
-}
-
-// simple exchange with  keepalive
-template <class base_class>
-class answer_keep_alive : public base_class {
+class simple_answer : public base_class {
   unsigned _counter;
 
  public:
-  using my_type = answer_keep_alive<base_class>;
+  using my_type = simple_answer<base_class>;
 
-  answer_keep_alive(const std::shared_ptr<asio::io_context>& io_context,
-                    const std::shared_ptr<spdlog::logger>& logger,
-                    const http_config::pointer& conf,
-                    const ssl_ctx_initializer& ssl_initializer)
+  simple_answer(const std::shared_ptr<asio::io_context>& io_context,
+                const std::shared_ptr<spdlog::logger>& logger,
+                const http_config::pointer& conf,
+                const ssl_ctx_initializer& ssl_initializer)
       : base_class(io_context, logger, conf, ssl_initializer), _counter(0) {}
 
   void on_accept() override {
@@ -456,21 +362,34 @@ class answer_keep_alive : public base_class {
   }
 };
 
-TEST_P(http_test, connect_send_answer_with_keepalive) {
+TEST_P(http_test, connect_send_answer_without_keepalive) {
   std::shared_ptr<connection_base> conn;
   http_config::pointer client_conf = create_conf();
-  http_config::pointer server_conf = create_server_conf();
+  http_config::pointer server_conf;
+  if (GetParam()) {
+    server_conf = std::make_shared<http_config>(
+        listen_endpoint, "localhost", true, std::chrono::seconds(10),
+        std::chrono::seconds(10), std::chrono::seconds(0), 30,
+        std::chrono::seconds(10), 5, std::chrono::hours(1), 10,
+        asio::ssl::context_base::sslv23_server);
+
+  } else {
+    server_conf = std::make_shared<http_config>(
+        listen_endpoint, "localhost", false, std::chrono::seconds(10),
+        std::chrono::seconds(10), std::chrono::seconds(0), 30,
+        std::chrono::seconds(10), 5, std::chrono::hours(1), 10);
+  }
 
   connection_creator server_creator;
 
   if (GetParam()) {  // crypted
     server_creator = [server_conf]() {
-      return std::make_shared<answer_keep_alive<https_connection>>(
+      return std::make_shared<simple_answer<https_connection>>(
           g_io_context, logger, server_conf, load_server_certificate);
     };
   } else {
     server_creator = [server_conf]() {
-      return std::make_shared<answer_keep_alive<http_connection>>(
+      return std::make_shared<simple_answer<http_connection>>(
           g_io_context, logger, server_conf, nullptr);
     };
   }
@@ -487,8 +406,70 @@ TEST_P(http_test, connect_send_answer_with_keepalive) {
   auto f(p.get_future());
   time_point send_begin = system_clock::now();
 
-  auto serv = server::load(g_io_context, logger, server_conf,
-                           std::move(server_creator));
+  auto serv = http_server::load(g_io_context, logger, server_conf,
+                                std::move(server_creator));
+
+  client->connect([&p, client, request](const beast::error_code& err,
+                                        const std::string& detail) {
+    if (err) {
+      p.set_value(std::make_tuple(err, detail, response_ptr()));
+    } else {
+      client->send(request,
+                   [&p](const beast::error_code& err, const std::string& detail,
+                        const response_ptr& response) mutable {
+                     p.set_value(std::make_tuple(err, detail, response));
+                   });
+    }
+  });
+
+  auto completion = f.get();
+  time_point send_end = system_clock::now();
+  ASSERT_LT((send_end - send_begin), std::chrono::milliseconds(100));
+  ASSERT_FALSE(std::get<0>(completion));
+  ASSERT_TRUE(std::get<1>(completion).empty());
+  ASSERT_EQ(std::get<2>(completion)->body(), "hello client 0");
+  ASSERT_EQ(std::get<2>(completion)->keep_alive(), false);
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  ASSERT_EQ(client->get_state(), connection_base::e_not_connected);
+
+  serv->shutdown();
+}
+
+// simple exchange with  keepalive
+
+TEST_P(http_test, connect_send_answer_with_keepalive) {
+  std::shared_ptr<connection_base> conn;
+  http_config::pointer client_conf = create_conf();
+  http_config::pointer server_conf = create_server_conf();
+
+  connection_creator server_creator;
+
+  if (GetParam()) {  // crypted
+    server_creator = [server_conf]() {
+      return std::make_shared<simple_answer<https_connection>>(
+          g_io_context, logger, server_conf, load_server_certificate);
+    };
+  } else {
+    server_creator = [server_conf]() {
+      return std::make_shared<simple_answer<http_connection>>(
+          g_io_context, logger, server_conf, nullptr);
+    };
+  }
+
+  auto client = GetParam()
+                    ? https_connection::load(g_io_context, logger, client_conf)
+                    : http_connection::load(g_io_context, logger, client_conf);
+  request_ptr request(std::make_shared<request_base>());
+  request->method(beast::http::verb::put);
+  request->target("/");
+  request->body() = "hello server";
+  request->content_length(request->body().length());
+  std::promise<std::tuple<beast::error_code, std::string, response_ptr>> p;
+  auto f(p.get_future());
+  time_point send_begin = system_clock::now();
+
+  auto serv = http_server::load(g_io_context, logger, server_conf,
+                                std::move(server_creator));
 
   client->connect([&p, client, request](const beast::error_code& err,
                                         const std::string& detail) {

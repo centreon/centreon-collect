@@ -67,7 +67,8 @@ static constexpr std::string_view _grpc_config_schema(R"(
         "server"
     ],
     "type": "object"
-})");
+}
+)");
 
 /**
  * @brief Construct a new otl config::otl config object

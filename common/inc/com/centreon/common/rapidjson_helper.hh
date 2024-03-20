@@ -322,7 +322,7 @@ class rapidjson_helper {
  */
 class json_validator {
   rapidjson::SchemaDocument _schema;
-
+  std::string _json_schema;
   friend class rapidjson_helper;
 
  public:
@@ -330,6 +330,8 @@ class json_validator {
   json_validator& operator=(const json_validator&) = delete;
 
   json_validator(const std::string_view& json_schema);
+
+  const std::string& get_json_schema() const { return _json_schema; }
 };
 
 namespace literals {

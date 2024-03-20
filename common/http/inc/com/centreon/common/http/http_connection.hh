@@ -98,7 +98,7 @@ class request_base : public request_type {
   virtual ~request_base() {}
   friend class http_connection;
   friend class https_connection;
-  friend class client;
+  friend class http_client;
 
   virtual void dump(std::ostream&) const;
 

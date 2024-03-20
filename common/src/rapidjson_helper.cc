@@ -318,13 +318,22 @@ void rapidjson_helper::validate(json_validator& validator) {
   if (!_val.Accept(valid)) {
     rapidjson::StringBuffer sb;
     valid.GetInvalidSchemaPointer().StringifyUriFragment(sb);
-    std::string err =
-        fmt::format("Invalid schema: {}\n\tInvalid keyword: {}\n",
-                    sb.GetString(), valid.GetInvalidSchemaKeyword());
+    std::string err;
+    err = fmt::format("document doesn't respect this schema: {}\n",
+                      validator.get_json_schema());
+    if (sb.GetLength() > 1) {
+      err += "Invalid value for ";
+      err += sb.GetString();
+    }
+    err += "\nProblem for schema keyword:";
+    err += valid.GetInvalidSchemaKeyword();
+
     sb.Clear();
     valid.GetInvalidDocumentPointer().StringifyUriFragment(sb);
-    err += fmt::format("Invalid document: {}", sb.GetString());
-    throw exceptions::msg_fmt(err);
+    if (sb.GetLength() > 1) {
+      err += fmt::format("\nInvalid document: {}", sb.GetString());
+    }
+    throw std::invalid_argument(err);
   }
 }
 
@@ -334,4 +343,5 @@ void rapidjson_helper::validate(json_validator& validator) {
  * @param json_schema
  */
 json_validator::json_validator(const std::string_view& json_schema)
-    : _schema(rapidjson_helper::read_from_string(json_schema)) {}
+    : _schema(rapidjson_helper::read_from_string(json_schema)),
+      _json_schema(json_schema) {}

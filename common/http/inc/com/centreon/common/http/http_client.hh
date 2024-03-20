@@ -44,7 +44,7 @@ namespace com::centreon::common::http {
  * @endcode
  *
  */
-class client : public std::enable_shared_from_this<client> {
+class http_client : public std::enable_shared_from_this<http_client> {
  public:
   friend client_test;
 
@@ -102,13 +102,13 @@ class client : public std::enable_shared_from_this<client> {
   void _send(const cb_request::pointer& request, connection_base::pointer conn);
 
  protected:
-  client(const std::shared_ptr<asio::io_context>& io_context,
-         const std::shared_ptr<spdlog::logger>& logger,
-         const http_config::pointer& conf,
-         connection_creator conn_creator);
+  http_client(const std::shared_ptr<asio::io_context>& io_context,
+              const std::shared_ptr<spdlog::logger>& logger,
+              const http_config::pointer& conf,
+              connection_creator conn_creator);
 
  public:
-  using pointer = std::shared_ptr<client>;
+  using pointer = std::shared_ptr<http_client>;
 
   static pointer load(const std::shared_ptr<asio::io_context>& io_context,
                       const std::shared_ptr<spdlog::logger>& logger,
@@ -133,7 +133,7 @@ class client : public std::enable_shared_from_this<client> {
 };
 
 template <class visitor_type>
-void client::visit_queue(visitor_type& visitor) const {
+void http_client::visit_queue(visitor_type& visitor) const {
   std::lock_guard<std::mutex> l(_protect);
   for (const auto& cb : _queue) {
     visitor(*cb->request);

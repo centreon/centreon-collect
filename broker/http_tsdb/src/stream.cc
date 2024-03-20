@@ -130,7 +130,7 @@ stream::stream(const std::string& name,
       _metric_stat{{0, 0}, {0, 0}},
       _status_stat{{0, 0}, {0, 0}} {
   _http_client =
-      common::http::client::load(io_context, logger, conf, conn_creator);
+      common::http::http_client::load(io_context, logger, conf, conn_creator);
 }
 
 stream::~stream() {}

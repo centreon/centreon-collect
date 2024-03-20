@@ -30,7 +30,7 @@ namespace com::centreon::common::http {
  * in constructor parameter
  *
  */
-class server : public std::enable_shared_from_this<server> {
+class http_server : public std::enable_shared_from_this<http_server> {
  private:
   const std::shared_ptr<asio::io_context> _io_context;
   const std::shared_ptr<spdlog::logger> _logger;
@@ -45,14 +45,14 @@ class server : public std::enable_shared_from_this<server> {
                  const connection_base::pointer& conn);
 
  public:
-  using pointer = std::shared_ptr<server>;
+  using pointer = std::shared_ptr<http_server>;
 
-  server(const std::shared_ptr<asio::io_context>& io_context,
-         const std::shared_ptr<spdlog::logger>& logger,
-         const http_config::pointer& conf,
-         connection_creator&& conn_creator);
+  http_server(const std::shared_ptr<asio::io_context>& io_context,
+              const std::shared_ptr<spdlog::logger>& logger,
+              const http_config::pointer& conf,
+              connection_creator&& conn_creator);
 
-  ~server();
+  ~http_server();
 
   static pointer load(const std::shared_ptr<asio::io_context>& io_context,
                       const std::shared_ptr<spdlog::logger>& logger,

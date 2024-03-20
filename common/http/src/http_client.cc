@@ -26,7 +26,7 @@ using namespace com::centreon::common::http;
 using lock_guard = std::lock_guard<std::mutex>;
 
 /**
- * @brief Construct a new client::client object
+ * @brief Construct a new http_client::http_client object
  * at the construction, no connection to server is done, connection will be done
  * on demand
  *
@@ -36,16 +36,16 @@ using lock_guard = std::lock_guard<std::mutex>;
  * @param conn_creator this function is used to construct connections to the
  * server, it can be a http_connection::load, https_connection::load....
  */
-client::client(const std::shared_ptr<asio::io_context>& io_context,
-               const std::shared_ptr<spdlog::logger>& logger,
-               const http_config::pointer& conf,
-               connection_creator conn_creator)
+http_client::http_client(const std::shared_ptr<asio::io_context>& io_context,
+                         const std::shared_ptr<spdlog::logger>& logger,
+                         const http_config::pointer& conf,
+                         connection_creator conn_creator)
     : _io_context(io_context),
       _logger(logger),
       _conf(conf),
       _retry_unit(std::chrono::seconds(1)),
       _halt(false) {
-  SPDLOG_LOGGER_INFO(_logger, "client::client {}", *_conf);
+  SPDLOG_LOGGER_INFO(_logger, "http_client::http_client {}", *_conf);
   _not_connected_conns.reserve(conf->get_max_connections());
   _keep_alive_conns.reserve(conf->get_max_connections());
   _busy_conns.reserve(conf->get_max_connections());
@@ -56,21 +56,21 @@ client::client(const std::shared_ptr<asio::io_context>& io_context,
 }
 
 /**
- * @brief in order to avoid mistakes, client::client is protected
- * The use of this static method is mandatory to create a client object
+ * @brief in order to avoid mistakes, http_client::http_client is protected
+ * The use of this static method is mandatory to create a http_client object
  *
  * @param io_context
  * @param logger
  * @param conf
  * @param conn_creator
- * @return client::pointer
+ * @return http_client::pointer
  */
-client::pointer client::load(
+http_client::pointer http_client::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     const http_config::pointer& conf,
     connection_creator conn_creator) {
-  return pointer(new client(io_context, logger, conf, conn_creator));
+  return pointer(new http_client(io_context, logger, conf, conn_creator));
 }
 
 /**
@@ -83,8 +83,8 @@ client::pointer client::load(
  * @return true if connection available
  * @return false if enqueue
  */
-bool client::_send_or_push(const cb_request::pointer request,
-                           bool push_to_front) {
+bool http_client::_send_or_push(const cb_request::pointer request,
+                                bool push_to_front) {
   if (_halt) {
     return false;
   }
@@ -149,7 +149,7 @@ bool client::_send_or_push(const cb_request::pointer request,
  * @return true if a connect is launched
  * @return false no idle connection
  */
-bool client::_connect(const cb_request::pointer& request) {
+bool http_client::_connect(const cb_request::pointer& request) {
   if (_halt) {
     return false;
   }
@@ -177,7 +177,7 @@ bool client::_connect(const cb_request::pointer& request) {
  * @brief pop first queue element and try to send it
  *
  */
-void client::_send_first_queue_request() {
+void http_client::_send_first_queue_request() {
   cb_request::pointer to_send;
   {
     std::lock_guard<std::mutex> l(_protect);
@@ -198,8 +198,8 @@ void client::_send_first_queue_request() {
  * @param request
  * @param conn
  */
-void client::_send(const cb_request::pointer& request,
-                   connection_base::pointer conn) {
+void http_client::_send(const cb_request::pointer& request,
+                        connection_base::pointer conn) {
   if (_logger->level() == spdlog::level::trace) {
     SPDLOG_LOGGER_TRACE(_logger, "send {} on {:p}", *request->request,
                         static_cast<void*>(conn.get()));
@@ -225,10 +225,10 @@ void client::_send(const cb_request::pointer& request,
  * @param request
  * @param conn
  */
-void client::_on_connect(const boost::beast::error_code& error,
-                         const std::string& detail,
-                         const cb_request::pointer& request,
-                         connection_base::pointer conn) {
+void http_client::_on_connect(const boost::beast::error_code& error,
+                              const std::string& detail,
+                              const cb_request::pointer& request,
+                              connection_base::pointer conn) {
   if (error) {  // error => shutdown and retry
     SPDLOG_LOGGER_ERROR(_logger, "{:p} fail to connect {}: {}",
                         static_cast<void*>(conn.get()), error.message(),
@@ -263,11 +263,11 @@ void client::_on_connect(const boost::beast::error_code& error,
  * @param response
  * @param conn
  */
-void client::_on_sent(const boost::beast::error_code& error,
-                      const std::string& detail,
-                      const cb_request::pointer& request,
-                      const response_ptr& response,
-                      connection_base::pointer conn) {
+void http_client::_on_sent(const boost::beast::error_code& error,
+                           const std::string& detail,
+                           const cb_request::pointer& request,
+                           const response_ptr& response,
+                           connection_base::pointer conn) {
   cb_request::pointer to_call;
   if (error) {  // error => shutdown and _retry
     SPDLOG_LOGGER_ERROR(_logger, "{:p} fail to send request",
@@ -335,8 +335,8 @@ void client::_on_sent(const boost::beast::error_code& error,
  * after this method call, instance musn't be used
  *
  */
-void client::shutdown() {
-  SPDLOG_LOGGER_INFO(_logger, "client::shutdown {}", *_conf);
+void http_client::shutdown() {
+  SPDLOG_LOGGER_INFO(_logger, "http_client::shutdown {}", *_conf);
   lock_guard l(_protect);
   // shutdown all connections
   for (connection_base::pointer& conn : _keep_alive_conns) {
@@ -362,10 +362,10 @@ void client::shutdown() {
  * @param request
  * @param response
  */
-void client::_retry(const boost::beast::error_code& error,
-                    const std::string& detail,
-                    const cb_request::pointer& request,
-                    const response_ptr& response) {
+void http_client::_retry(const boost::beast::error_code& error,
+                         const std::string& detail,
+                         const cb_request::pointer& request,
+                         const response_ptr& response) {
   cb_request::pointer to_call;
 
   if (_halt) {  // object halted => callback without _retry
