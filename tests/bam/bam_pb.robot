@@ -1158,7 +1158,7 @@ BA_CHANGED
     ...    service_302
     ...    0
     ...    output OK for service 302
-        
+
     ${result}    Ctn Check Ba Status With Timeout    test    0    30
     Ctn Dump Ba On Error    ${result}    ${ba[0]}
     Should Be True    ${result}    The BA test is not OK as expected
@@ -1280,7 +1280,7 @@ BA_CHANGED
     ...                by a boolean rule kpi. When cbd is reloaded, the BA is
     ...                well updated.
     [Tags]    MON-34895
-    Bam Init
+    Ctn Bam Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_302")] }}
     ${ba}    Create Ba With Services    test    worst    ${svc}
@@ -1299,7 +1299,7 @@ BA_CHANGED
     ...    service_302
     ...    0
     ...    output OK for service 302
-        
+
     ${result}    Check Ba Status With Timeout    test    0    30
     Dump Ba On Error    ${result}    ${ba[0]}
     Should Be True    ${result}    The BA test is not OK as expected
@@ -1340,7 +1340,7 @@ BA_IMPACT_IMPACT
     ...                parent should be critical. When they are not impacting,
     ...                the parent should be ok.
     [Tags]    MON-34895
-    Bam Init
+    Ctn Bam Init
 
     ${parent_ba}    Create Ba    parent    impact    20    99
     @{svc1}    Set Variable    ${{ [("host_16", "service_302")] }}
