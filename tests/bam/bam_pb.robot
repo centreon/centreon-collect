@@ -1260,7 +1260,7 @@ BA_CHANGED
     ...                by a boolean rule kpi. When cbd is reloaded, the BA is
     ...                well updated.
     [Tags]    MON-34895
-    Bam Init
+    Ctn Bam Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_302")] }}
     ${ba}    Create Ba With Services    test    worst    ${svc}
@@ -1279,7 +1279,7 @@ BA_CHANGED
     ...    service_302
     ...    0
     ...    output OK for service 302
-        
+
     ${result}    Check Ba Status With Timeout    test    0    30
     Dump Ba On Error    ${result}    ${ba[0]}
     Should Be True    ${result}    The BA test is not OK as expected
