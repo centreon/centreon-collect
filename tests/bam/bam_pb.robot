@@ -1138,7 +1138,7 @@ BA_CHANGED
     ...    service_302
     ...    0
     ...    output OK for service 302
-        
+
     ${result}    Ctn Check Ba Status With Timeout    test    0    30
     Ctn Dump Ba On Error    ${result}    ${ba[0]}
     Should Be True    ${result}    The BA test is not OK as expected
@@ -1251,65 +1251,6 @@ BA_IMPACT_IMPACT
         Should Be True    ${result}    The BA changed during Broker reload.
     END
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
-
-
-BA_CHANGED
-    [Documentation]    A BA of type worst is configured with one service kpi.
-    ...                Then it is modified so that the service kpi is replaced
-    ...                by a boolean rule kpi. When cbd is reloaded, the BA is
-    ...                well updated.
-    [Tags]    MON-34895
-    Ctn Bam Init
-
-    @{svc}    Set Variable    ${{ [("host_16", "service_302")] }}
-    ${ba}    Ctn Create Ba With Services    test    worst    ${svc}
-
-    Start Broker
-    ${start}    Get Current Date
-    Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-
-    # Both services ${state} => The BA parent is ${state}
-    Process Service Result Hard
-    ...    host_16
-    ...    service_302
-    ...    0
-    ...    output OK for service 302
-
-    ${result}    Check Ba Status With Timeout    test    0    30
-    Dump Ba On Error    ${result}    ${ba[0]}
-    Should Be True    ${result}    The BA test is not OK as expected
-
-    Remove Service Kpi    ${ba[0]}    host_16    service_302
-    Add Boolean Kpi
-    ...    ${ba[0]}
-    ...    {host_16 service_302} {IS} {OK}
-    ...    False
-    ...    100
-
-    Reload Broker
-    Remove File    /tmp/ba.dot
-    Broker Get Ba    51001    ${ba[0]}    /tmp/ba.dot
-    Wait Until Created    /tmp/ba.dot
-    ${result}    Grep File    /tmp/ba.dot    Boolean exp
-    Should Not Be Empty    ${result}
-
-    Add Boolean Kpi
-    ...    ${ba[0]}
-    ...    {host_16 service_303} {IS} {WARNING}
-    ...    False
-    ...    100
-
-    Reload Broker
-    Remove File    /tmp/ba.dot
-    Broker Get Ba    51001    ${ba[0]}    /tmp/ba.dot
-    Wait Until Created    /tmp/ba.dot
-    ${result}    Grep File    /tmp/ba.dot    BOOL Service (16, 303)
-    Should Not Be Empty    ${result}
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 
