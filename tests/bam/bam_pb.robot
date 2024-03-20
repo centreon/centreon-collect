@@ -1274,6 +1274,147 @@ BA_IMPACT_IMPACT
     [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
 
 
+BA_CHANGED
+    [Documentation]    A BA of type worst is configured with one service kpi.
+    ...                Then it is modified so that the service kpi is replaced
+    ...                by a boolean rule kpi. When cbd is reloaded, the BA is
+    ...                well updated.
+    [Tags]    MON-34895
+    Bam Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_302")] }}
+    ${ba}    Create Ba With Services    test    worst    ${svc}
+
+    Start Broker
+    ${start}    Get Current Date
+    Start Engine
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    # Both services ${state} => The BA parent is ${state}
+    Process Service Result Hard
+    ...    host_16
+    ...    service_302
+    ...    0
+    ...    output OK for service 302
+        
+    ${result}    Check Ba Status With Timeout    test    0    30
+    Dump Ba On Error    ${result}    ${ba[0]}
+    Should Be True    ${result}    The BA test is not OK as expected
+
+    Remove Service Kpi    ${ba[0]}    host_16    service_302
+    Add Boolean Kpi
+    ...    ${ba[0]}
+    ...    {host_16 service_302} {IS} {OK}
+    ...    False
+    ...    100
+
+    Reload Broker
+    Remove File    /tmp/ba.dot
+    Broker Get Ba    51001    ${ba[0]}    /tmp/ba.dot
+    Wait Until Created    /tmp/ba.dot
+    ${result}    Grep File    /tmp/ba.dot    Boolean exp
+    Should Not Be Empty    ${result}
+
+    Add Boolean Kpi
+    ...    ${ba[0]}
+    ...    {host_16 service_303} {IS} {WARNING}
+    ...    False
+    ...    100
+
+    Reload Broker
+    Remove File    /tmp/ba.dot
+    Broker Get Ba    51001    ${ba[0]}    /tmp/ba.dot
+    Wait Until Created    /tmp/ba.dot
+    ${result}    Grep File    /tmp/ba.dot    BOOL Service (16, 303)
+    Should Not Be Empty    ${result}
+    [Teardown]    Run Keywords    Stop engine    AND    Kindly Stop Broker
+
+
+BA_IMPACT_IMPACT
+    [Documentation]    A BA of type impact is defined with two BAs of type impact
+    ...                as children. The first child has an impact of 90 and the
+    ...                second one of 10. When they are impacting both, the
+    ...                parent should be critical. When they are not impacting,
+    ...                the parent should be ok.
+    [Tags]    MON-34895
+    Bam Init
+
+    ${parent_ba}    Create Ba    parent    impact    20    99
+    @{svc1}    Set Variable    ${{ [("host_16", "service_302")] }}
+    ${child1_ba}    Create Ba    child1    impact    20    99
+    Add Service Kpi    host_16    service_302    ${child1_ba[0]}    100    2    3
+    ${child2_ba}    Create Ba    child2    impact    20    99
+    Add Service Kpi    host_16    service_303    ${child2_ba[0]}    100    2    3
+
+    Add Ba Kpi    ${child1_ba[0]}    ${parent_ba[0]}    90    2    3
+    Add Ba Kpi    ${child2_ba[0]}    ${parent_ba[0]}    10    2    3
+
+    Start Broker
+    ${start}    Get Current Date
+    Start Engine
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    FOR    ${state}    ${value}    IN
+    ...    OK          0
+    ...    CRITICAL    2
+    ...    OK          0
+    ...    CRITICAL    2
+        # Both services ${state} => The BA parent is ${state}
+        Process Service Result Hard
+        ...    host_16
+        ...    service_302
+        ...    ${value}
+        ...    output ${state} for service 302
+        
+        Process Service Result Hard
+        ...    host_16
+        ...    service_303
+        ...    ${value}
+        ...    output ${state} for service 302
+
+        ${result}    Check Service Status With Timeout    host_16    service_302    ${value}    60    HARD
+        Should Be True    ${result}    The service (host_16,service_302) is not ${state} as expected
+        ${result}    Check Service Status With Timeout    host_16    service_303    ${value}    60    HARD
+        Should Be True    ${result}    The service (host_16,service_303) is not ${state} as expected
+
+        ${result}    Check Ba Status With Timeout    child1    ${value}    30
+        Dump Ba On Error    ${result}    ${child1_ba[0]}
+        Should Be True    ${result}    The BA child1 is not ${state} as expected
+
+        ${result}    Check Ba Status With Timeout    child2    ${value}    30
+        Dump Ba On Error    ${result}    ${child2_ba[0]}
+        Should Be True    ${result}    The BA child2 is not ${state} as expected
+
+        ${result}    Check Ba Status With Timeout    parent    ${value}    30
+        Dump Ba On Error    ${result}    ${parent_ba[0]}
+        Should Be True    ${result}    The BA parent is not ${state} as expected
+
+        Remove Files    /tmp/parent1.dot    /tmp/parent2.dot
+        Broker Get Ba    51001    ${parent_ba[0]}    /tmp/parent1.dot
+        Wait Until Created    /tmp/parent1.dot
+
+        ${start}    Get Current Date
+        Reload Broker
+        ${content}    Create List    Inherited downtimes and BA states restored
+        ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+        Should Be True    ${result}    It seems that no cache has been restored into BAM.
+
+        Broker Get Ba    51001    ${parent_ba[0]}    /tmp/parent2.dot
+        Wait Until Created    /tmp/parent2.dot
+
+        ${result}    Compare Dot Files    /tmp/parent1.dot    /tmp/parent2.dot
+        Should Be True    ${result}    The BA changed during Broker reload.
+    END
+
+    [Teardown]    Run Keywords    Stop engine    AND    Kindly Stop Broker
+
+
 *** Keywords ***
 Ctn BAM Setup
     Ctn Stop Processes
