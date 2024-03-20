@@ -28,6 +28,7 @@ set(SOURCES ${SRC_DIR}/engine.cc ${SRC_DIR}/muxer.cc ${SRC_DIR}/publisher.cc)
 
 # Static libraries.
 add_library(multiplexing STATIC ${SOURCES})
+add_dependencies(multiplexing target_extcmd)
 set_target_properties(multiplexing PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(multiplexing PRIVATE ../precomp_inc/precomp.hpp)
 target_link_libraries(multiplexing misc spdlog::spdlog)
