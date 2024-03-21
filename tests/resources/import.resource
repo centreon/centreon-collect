@@ -9,6 +9,7 @@ Library             Collections
 Library             DatabaseLibrary
 Library             Examples
 Library             HttpCtrl.Server
+Library             RequestsLibrary
 # Creation
 Resource            resources.resource
 # Python Library

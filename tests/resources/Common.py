@@ -1762,5 +1762,27 @@ def ctn_protobuf_to_json(protobuf_obj):
     it replaces uppercase letters in keys by _<lower>
     """
     converted = MessageToJson(protobuf_obj)
-    return json.loads(converted)#, object_pairs_hook=replace_upper_key_by_undescorelower )
+    return json.loads(converted)
+
+
+def ctn_compare_string_with_file(string_to_compare:str, file_path:str):
+    """
+    ctn_compare_string_with_file
+
+    compare a multiline string with a file content
+    Args:
+        string_to_compare: multiline string to compare
+        file_path: path of the file to compare
+
+    Returns: True if contents are identical
+    """
+    str_lines = string_to_compare.splitlines(keepends=True)
+    with open(file_path) as f:
+        file_lines = f.readlines()
+    if len(str_lines) != len(file_lines):
+        return False
+    for str_line, file_line in zip(str_lines, file_lines):
+        if str_line != file_line:
+            return False
+    return True
 

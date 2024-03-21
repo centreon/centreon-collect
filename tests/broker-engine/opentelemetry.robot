@@ -82,7 +82,7 @@ BEOTEL_TELEGRAF_CHECK_HOST
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "telegraf_conf_server": {"port": 1443, "encryption": true }}
+    ...    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -238,6 +238,155 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     ${result}    Ctn Check Service Check Status With Timeout    host_1    service_1    30    ${start}    2    CRITICAL
 
     Should Be True    ${result}    services table not updated
+
+BEOTEL_SERVE_TELEGRAF_CONFIGURATION_CRYPTED
+    [Documentation]    we configure engine with a telegraf conf server and we check telegraf conf file
+    [Tags]    broker    engine    opentelemetry    mon-35539
+    Ctn Create Key And Certificate    localhost    /tmp/otel/server.key    /tmp/otel/server.crt
+    Ctn Config Engine    ${1}    ${3}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "telegraf_conf_server": {"port": 1443, "encryption": true, "engine_otel_endpoint": "127.0.0.1:4317", "certificate_path": "/tmp/otel/server.crt", "key_path": "/tmp/otel/server.key"}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    open_telemetry attributes --host_attribute=data_point --host_key=host --service_attribute=data_point --service_key=service
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check_icmp_serv_1
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_serv_1
+    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.1
+    ...    OTEL connector
+
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    otel_check_icmp_serv_2
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_serv_2
+    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.2
+    ...    OTEL connector
+
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp_host_1
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_host_1
+    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.10
+    ...    OTEL connector
+
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_2    check_command    otel_check_icmp_host_2
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_host_2
+    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.20
+    ...    OTEL connector
+
+    Ctn Engine Config Replace Value In Services    ${0}    service_5    check_command    otel_check_icmp_serv_5
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_serv_5
+    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.5
+    ...    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    module
+
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    Ctn Start Engine
+
+    # Let's wait for the otel server start
+    ${content}    Create List    server listen on 0.0.0.0:1443
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "server listen on 0.0.0.0:1443" should be available.
+    Sleep    1
+    ${telegraf_conf_response}    GET
+    ...    verify=${False}
+    ...    url=https://localhost:1443/engine?host=host_1&host=host_2&host=host_3
+
+    Should Be Equal As Strings    ${telegraf_conf_response.reason}    OK    no response received or error response
+    ${content_compare_result}    Ctn Compare String With File
+    ...    ${telegraf_conf_response.text}
+    ...    resources/opentelemetry/telegraf.conf
+
+    Should Be True
+    ...    ${content_compare_result}
+    ...    unexpected telegraf server response: ${telegraf_conf_response.text}
+
+BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
+    [Documentation]    we configure engine with a telegraf conf server and we check telegraf conf file
+    [Tags]    broker    engine    opentelemetry    mon-35539
+    Ctn Create Key And Certificate    localhost    /tmp/otel/server.key    /tmp/otel/server.crt
+    Ctn Config Engine    ${1}    ${3}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "telegraf_conf_server": {"port": 1443, "encryption": false, "engine_otel_endpoint": "127.0.0.1:4317"}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    open_telemetry attributes --host_attribute=data_point --host_key=host --service_attribute=data_point --service_key=service
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check_icmp_serv_1
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_serv_1
+    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.1
+    ...    OTEL connector
+
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    otel_check_icmp_serv_2
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_serv_2
+    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.2
+    ...    OTEL connector
+
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp_host_1
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_host_1
+    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.10
+    ...    OTEL connector
+
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_2    check_command    otel_check_icmp_host_2
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_host_2
+    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.20
+    ...    OTEL connector
+
+    Ctn Engine Config Replace Value In Services    ${0}    service_5    check_command    otel_check_icmp_serv_5
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_serv_5
+    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.5
+    ...    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    module
+
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    Ctn Start Engine
+
+    # Let's wait for the otel server start
+    ${content}    Create List    server listen on 0.0.0.0:1443
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "server listen on 0.0.0.0:1443" should be available.
+    Sleep    1
+    ${telegraf_conf_response}    GET
+    ...    url=http://localhost:1443/engine?host=host_1&host=host_2&host=host_3
+
+    Should Be Equal As Strings    ${telegraf_conf_response.reason}    OK    no response received or error response
+
+    Should Be Equal As Strings    ${telegraf_conf_response.reason}    OK    no response received or error response
+    ${content_compare_result}    Ctn Compare String With File
+    ...    ${telegraf_conf_response.text}
+    ...    resources/opentelemetry/telegraf.conf
+
+    Should Be True
+    ...    ${content_compare_result}
+    ...    unexpected telegraf server response: ${telegraf_conf_response.text}
 
 
 *** Keywords ***
