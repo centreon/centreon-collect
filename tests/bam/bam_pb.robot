@@ -1138,7 +1138,7 @@ BA_CHANGED
     ...    service_302
     ...    0
     ...    output OK for service 302
-        
+
     ${result}    Ctn Check Ba Status With Timeout    test    0    30
     Ctn Dump Ba On Error    ${result}    ${ba[0]}
     Should Be True    ${result}    The BA test is not OK as expected
@@ -1169,7 +1169,7 @@ BA_CHANGED
     Wait Until Created    /tmp/ba.dot
     ${result}    Grep File    /tmp/ba.dot    BOOL Service (16, 303)
     Should Not Be Empty    ${result}
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 
 BA_IMPACT_IMPACT
@@ -1251,7 +1251,7 @@ BA_IMPACT_IMPACT
         Should Be True    ${result}    The BA changed during Broker reload.
     END
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 
 *** Keywords ***
