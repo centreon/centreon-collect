@@ -1,4 +1,4 @@
- Settings ***
+*** Settings ***
 Documentation       Centreon Broker start/stop tests with bbdo_server and bbdo_client input/output streams. Only these streams are used instead of grpc and tcp.
 
 Resource            ../resources/import.resource
@@ -31,10 +31,11 @@ BSCSSRR1
     Ctn Broker Config Output Set    central    centreon-broker-master-rrd    retention    yes
     Ctn Config Broker Bbdo Input    rrd    bbdo_client    5670    tcp    localhost
     Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    functions    trace
     ${start}    Ctn Get Round Current Date
     Repeat Keyword    5 times    Ctn Start Stop Service    0
-    ${content}    Create List    failover 'centreon-broker-master-rrd' construction.
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${content}    Create List    failover::failover constructor .* centreon-broker-master-rrd
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
 
 BSCSSPRR1
