@@ -310,7 +310,7 @@ EBDP4
     Should Be True    ${result}    Service alerts about service 781 and 782 should be raised
 
     ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
-    ${result}    Ctn Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
     Ctn Stop engine
 
@@ -594,14 +594,14 @@ EBDP8
     Should Be True    ${result}    Service alerts about service 781 and 782 should be raised
 
     ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
-    ${result}    Ctn Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
     Ctn Stop engine
 
     # Because poller3 is going to be removed, we move its memory file to poller0, 1 and 2.
-    Move File
-    ...    ${VarRoot}/lib/centreon-engine/central-module-master3.memory.central-module-master-output
-    ...    ${VarRoot}/lib/centreon-engine/central-module-master0.memory.central-module-master-output
+    # Move File
+    # ...    ${VarRoot}/lib/centreon-engine/central-module-master3.memory.central-module-master-output
+    # ...    ${VarRoot}/lib/centreon-engine/central-module-master0.memory.central-module-master-output
 
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
     Ctn Config Engine    ${3}    ${39}    ${20}
