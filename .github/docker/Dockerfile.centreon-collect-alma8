@@ -46,7 +46,7 @@ dnf install -y cmake \
     rrdtool-devel \
     selinux-policy-devel \
     yum-utils \
-    perl \
+    perl-base \
     zstd \
     nfpm \
     openssl-devel \
