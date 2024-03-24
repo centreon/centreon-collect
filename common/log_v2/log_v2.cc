@@ -22,6 +22,7 @@
 #include <grpc/impl/codegen/log.h>
 #include <spdlog/common.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/dist_sink.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -30,6 +31,7 @@
 
 #include <atomic>
 #include <initializer_list>
+#include <memory>
 
 using namespace com::centreon::common::log_v2;
 using namespace spdlog;
@@ -238,7 +240,9 @@ std::shared_ptr<spdlog::logger> log_v2::create_logger(const logger_id id) {
   }
 
   std::shared_ptr<spdlog::logger> logger;
-  logger = std::make_shared<spdlog::logger>(_logger_name[id], my_sink);
+  auto dist_sink = std::make_shared<sinks::dist_sink_mt>();
+  dist_sink->add_sink(my_sink);
+  logger = std::make_shared<spdlog::logger>(_logger_name[id], dist_sink);
   if (_log_pid) {
     if (_log_source)
       logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] [%P] %v");
@@ -307,10 +311,8 @@ void log_v2::apply(const config& log_conf) {
       break;
   }
 
-  if (!log_conf.custom_sinks().empty()) {
-    sinks = log_conf.custom_sinks();
-    sinks.push_back(my_sink);
-  }
+  sinks = log_conf.custom_sinks();
+  sinks.push_back(my_sink);
 
   auto update_sink_logger = [&](const std::string& name,
                                 level::level_enum lvl) {
@@ -318,24 +320,20 @@ void log_v2::apply(const config& log_conf) {
     std::shared_ptr<spdlog::logger> logger = _loggers[id];
     if (logger) {
       if (!log_conf.is_slave()) {
-        if (!sinks.empty() &&
-            log_conf.loggers_with_custom_sinks().contains(name))
-          logger->sinks() = sinks;
-        else {
-          logger->sinks().clear();
-          logger->sinks().push_back(my_sink);
-        }
+        const auto& sinks_tmp = std::static_pointer_cast<sinks::dist_sink_mt>(
+            *(logger->sinks().begin()));
+        sinks_tmp->set_sinks(sinks);
       }
     } else {
-      if (log_conf.is_slave())
-        logger = std::make_shared<spdlog::logger>(name, my_sink);
-      else {
-        if (!sinks.empty() &&
-            log_conf.loggers_with_custom_sinks().contains(name))
-          logger =
-              std::make_shared<spdlog::logger>(name, begin(sinks), end(sinks));
-        else
-          logger = std::make_shared<spdlog::logger>(name, my_sink);
+      /* Why this slave notion? */
+      if (log_conf.is_slave()) {
+        auto sinks_tmp = std::make_shared<sinks::dist_sink_mt>();
+        sinks_tmp->set_sinks(sinks);
+        logger = std::make_shared<spdlog::logger>(name, sinks_tmp);
+      } else {
+        auto sinks_tmp = std::make_shared<sinks::dist_sink_mt>();
+        sinks_tmp->set_sinks(sinks);
+        logger = std::make_shared<spdlog::logger>(name, sinks_tmp);
       }
     }
     logger->set_level(lvl);
