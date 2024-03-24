@@ -350,8 +350,8 @@ Ctn Wait For Engine To Be Ready
         # Let's wait for the external command check start
         ${content}    Create List    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout
-	...    ${ENGINE_LOG}/config${i}/centengine.log
-	...    ${start}    ${content}    60
+        ...    ${ENGINE_LOG}/config${i}/centengine.log
+        ...    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.

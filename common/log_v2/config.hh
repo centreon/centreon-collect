@@ -35,6 +35,7 @@ class config {
 
  private:
   const std::string _name;
+  /* This is a little hack to avoid to replace the log file set by centengine */
   bool _is_slave = false;
   logger_type _log_type;
   std::string _dirname;

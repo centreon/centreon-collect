@@ -1264,7 +1264,7 @@ def ctn_broker_config_log(name, key, value):
 
     *Example:*
 
-    | Broker Config Log | central | bam | trace |
+    | Ctn Broker Config Log | central | bam | trace |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -2738,7 +2738,8 @@ def ctn_broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
     return res
 
-def check_all_services_with_status(host: str, service_like:str, status: int, legacy:bool=False, timeout:int=TIMEOUT):
+
+def check_all_services_with_status(host: str, service_like: str, status: int, legacy: bool = False, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -2762,7 +2763,8 @@ def check_all_services_with_status(host: str, service_like:str, status: int, leg
                 time.sleep(1)
     return False
 
-def check_last_checked_services_with_given_metric_more_than(metric_like: str, now: int, goal: int, timeout:int=TIMEOUT):
+
+def check_last_checked_services_with_given_metric_more_than(metric_like: str, now: int, goal: int, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -2775,7 +2777,8 @@ def check_last_checked_services_with_given_metric_more_than(metric_like: str, no
             with connection.cursor() as cursor:
                 # Read a single record
                 sql = f"SELECT count(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE '{metric_like}' AND s.last_check >= {now}"
-                logger.console(f"SELECT count(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE '{metric_like}' AND s.last_check >= {now}")
+                logger.console(
+                    f"SELECT count(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE '{metric_like}' AND s.last_check >= {now}")
                 cursor.execute(sql)
                 result = cursor.fetchall()
                 logger.console(result[0])

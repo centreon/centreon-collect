@@ -18,7 +18,8 @@
 
 include_directories(${CONAN_INCLUDE_DIRS_GTEST})
 
-add_executable(ut_common main.cc log_v2/log_v2.cc)
+add_executable(ut_common main.cc log_v2/log_v2.cc process_stat_test.cc
+                         hex_dump_test.cc node_allocator_test.cc)
 set_target_properties(
   ut_common
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
@@ -37,8 +38,14 @@ add_test(NAME tests COMMAND ut_common)
 target_link_libraries(
   ut_common
   GTest::gtest
-  GTest::gtest_main
+  # GTest::gtest_main
   GTest::gmock
   GTest::gmock_main
   pthread
+  absl::any
+  absl::log
+  absl::base
+  absl::bits
+  absl::raw_hash_set
+  centreon_common
   log_v2)
