@@ -139,9 +139,9 @@ EBNHG4
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
 
-    Broker Config Log    central    sql    info
-    Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
+    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
@@ -175,7 +175,7 @@ EBNHG4
         ${output}    Query    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}
         Log To Console    ${output}
         Sleep    1s
-        IF    "${output}" == "(('hostgroup_test',),)"    BREAK
+        IF    ${output} == "(('hostgroup_test',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('hostgroup_test',),)
 
@@ -228,7 +228,7 @@ EBNHGU4_${test_label}
         ${grep_result}    Grep File    /tmp/lua-engine.log    host_group_name:hostgroup_1
         Sleep    1s
 
-        IF    "${output}" == "(('hostgroup_1', 1), ('hostgroup_1', 2), ('hostgroup_1', 3))" and len("""${grep_result}""") > 10
+        IF    ${output} == "(('hostgroup_1', 1), ('hostgroup_1', 2), ('hostgroup_1', 3))" and len("""${grep_result}""") > 10
             BREAK
         END
     END
@@ -259,7 +259,7 @@ EBNHGU4_${test_label}
         Log To Console    ${output}
         ${grep_result}    Grep File    /tmp/lua-engine.log    host_group_name:hostgroup_test
         Sleep    1s
-        IF    "${output}" == "(('hostgroup_test', 1), ('hostgroup_test', 2), ('hostgroup_test', 3))" and len("""${grep_result}""") > 10
+        IF    ${output} == "(('hostgroup_test', 1), ('hostgroup_test', 2), ('hostgroup_test', 3))" and len("""${grep_result}""") > 10
             BREAK
         END
     END
@@ -285,7 +285,7 @@ EBNHGU4_${test_label}
         ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id WHERE h.hostgroup_id = ${1}
         Log To Console    ${output}
         Sleep    1s
-        IF    "${output}" == "()"    BREAK
+        IF    ${output} == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()    hostgroup_test not deleted
 

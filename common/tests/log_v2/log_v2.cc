@@ -40,23 +40,23 @@ static std::string read_file(const std::string& name) {
 }
 
 TEST_F(TestLogV3, load) {
-  log_v2::load({"core", "config"});
-  ASSERT_EQ(log_v2::instance().get(0)->name(), std::string_view("core"));
-  ASSERT_EQ(log_v2::instance().get(1)->name(), std::string_view("config"));
+  log_v2::load("ut_common", {log_v2::CORE, log_v2::CONFIG});
+  ASSERT_EQ(log_v2::instance().get(log_v2::CORE)->name(), std::string_view("core"));
+  ASSERT_EQ(log_v2::instance().get(log_v2::CONFIG)->name(), std::string_view("config"));
 }
 
 TEST_F(TestLogV3, LoggerUpdated) {
-  log_v2::load({"core"});
-  ASSERT_EQ(log_v2::instance().get(0)->level(), spdlog::level::info);
-  auto core_logger = log_v2::instance().get(0);
+  log_v2::load("ut_common", {log_v2::CORE});
+  auto core_logger = log_v2::instance().get(log_v2::CORE);
+  ASSERT_EQ(core_logger->level(), spdlog::level::info);
   testing::internal::CaptureStdout();
   core_logger->info("First log");
-  config cfg("/tmp", "test.log", 10000, 0, false, false);
+  config cfg("/tmp/test.log", config::logger_type::LOGGER_STDOUT, 0, false, false);
   cfg.set_level("core", "debug");
   log_v2::instance().apply(cfg);
-  ASSERT_EQ(log_v2::instance().get(0)->level(), spdlog::level::debug);
+  ASSERT_EQ(core_logger->level(), spdlog::level::debug);
   core_logger->info("Second log with the old core logger version");
-  log_v2::instance().get(0)->info("Log with the new version");
+  core_logger->info("Log with the new version");
   std::string output = testing::internal::GetCapturedStdout();
   std::cout << "Captured stdout:\n" << output << std::endl;
   /* To match the output, we use regex because of the colored output. */
@@ -77,7 +77,7 @@ TEST_F(TestLogV3, LoggerUpdated) {
 }
 
 TEST_F(TestLogV3, LoggerUpdatedMt) {
-  log_v2::load({"core"});
+  log_v2::load("ut_common", {log_v2::CORE});
   std::vector<std::thread> v;
   testing::internal::CaptureStdout();
   std::mutex m;
@@ -85,21 +85,21 @@ TEST_F(TestLogV3, LoggerUpdatedMt) {
   bool change_done = false;
   for (int i = 0; i < 5; i++) {
     std::thread t([i, &m, &cv, &change_done] {
-      auto core_logger = log_v2::instance().get(0);
+      auto core_logger = log_v2::instance().get(log_v2::CORE);
       for (int j = 0; j < 10; j++) {
         core_logger->info("Log {} from thread {}", j, i);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
       std::unique_lock<std::mutex> lck(m);
       cv.wait(lck, [&change_done] { return change_done; });
-      core_logger = log_v2::instance().get(0);
+      core_logger = log_v2::instance().get(log_v2::CORE);
       for (int j = 0; j < 10; j++)
         core_logger->info("New log {} from thread {}", j, i);
     });
     v.push_back(std::move(t));
   }
 
-  config cfg("/tmp", "test.log", 10000, 0, false, false);
+  config cfg("/tmp/test.log", config::logger_type::LOGGER_STDOUT, 0, false, false);
   cfg.set_level("core", "debug");
   log_v2::instance().apply(cfg);
 
@@ -138,11 +138,11 @@ TEST_F(TestLogV3, LoggerUpdatedMt) {
 }
 
 TEST_F(TestLogV3, Flush) {
-  log_v2::load({"core"});
-  config cfg("/tmp", "test.log", 10000, 3, false, false);
+  log_v2::load("ut_common", {log_v2::CORE});
+  config cfg("/tmp/test.log", config::logger_type::LOGGER_STDOUT, 3, false, false);
   cfg.set_level("core", "debug");
   log_v2::instance().apply(cfg);
-  auto logger = log_v2::instance().get(0);
+  auto logger = log_v2::instance().get(log_v2::CORE);
 
   logger->debug("log 1");
   std::string content = read_file("/tmp/test.log");
@@ -177,7 +177,7 @@ TEST_F(TestLogV3, Flush) {
   /* The flush is disabled */
   cfg.set_flush_interval(0);
   log_v2::instance().apply(cfg);
-  logger = log_v2::instance().get(0);
+  logger = log_v2::instance().get(log_v2::CORE);
 
   logger->debug("log 1");
   logger->debug("log 2");

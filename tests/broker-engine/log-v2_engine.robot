@@ -23,7 +23,7 @@ LOGV2EB1
     Ctn Engine Config Set Value    ${0}    log_level_config    trace
     Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
 
     Ctn Start Broker
     Ctn Start engine
@@ -44,7 +44,7 @@ LOGV2EB1
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         Log To Console    ${output}
         Sleep    1s
-        IF    "${output}" == "((1,),)"    BREAK
+        IF    ${output} == "((1,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((1,),)
     Ctn Stop Engine
@@ -66,7 +66,7 @@ LOGV2EBU1
     Ctn Engine Config Set Value    ${0}    log_level_config    trace
     Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
 
     Ctn Start Broker
     Ctn Start engine
@@ -106,7 +106,7 @@ LOGV2DB1
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Sleep    1s
 
     Ctn Start Broker
@@ -150,7 +150,7 @@ LOGV2DB2
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Sleep    1s
     Ctn Start Broker
     Ctn Start engine
@@ -162,7 +162,7 @@ LOGV2DB2
     ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
-    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
+    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    30
     Should Not Be True    ${result1}
     Should Not Be True    ${result2}
 
@@ -188,7 +188,7 @@ LOGV2EB2
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
 
     Ctn Start Broker
     Ctn Start engine
@@ -200,7 +200,7 @@ LOGV2EB2
     ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
-    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
+    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    30
     Should Be True    ${result1}
     Should Be True    ${result2}
 
@@ -233,7 +233,7 @@ LOGV2EBU2
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     Sleep    1s
 
     Ctn Start Broker
@@ -246,7 +246,7 @@ LOGV2EBU2
     ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
-    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
+    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    30
     Should Be True    ${result1}
     Should Be True    ${result2}
 
@@ -309,10 +309,10 @@ LOGV2DF1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
-    ${content_hold}    Create List    \\[\\d+\\] \\[${pid}\\] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d+\\] \\[${pid}\\] Configuration loaded, main loop starting.
     ${content_v2}    Create List    \\[info\\] .* \\[${pid}\\] Configuration loaded, main loop starting.
 
-    ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
+    ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    30
     ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
     Should Not Be True    ${result2}
@@ -341,7 +341,7 @@ LOGV2DF2
     ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
-    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
+    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    15
     Should Not Be True    ${result1}
     Should Not Be True    ${result2}
     Ctn Stop Engine
@@ -369,7 +369,7 @@ LOGV2EF2
     ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
-    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
+    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    15
     Should Be True    ${result1}
     Should Be True    ${result2}
     Ctn Stop Engine

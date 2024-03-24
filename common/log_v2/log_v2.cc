@@ -325,16 +325,9 @@ void log_v2::apply(const config& log_conf) {
         sinks_tmp->set_sinks(sinks);
       }
     } else {
-      /* Why this slave notion? */
-      if (log_conf.is_slave()) {
-        auto sinks_tmp = std::make_shared<sinks::dist_sink_mt>();
-        sinks_tmp->set_sinks(sinks);
-        logger = std::make_shared<spdlog::logger>(name, sinks_tmp);
-      } else {
-        auto sinks_tmp = std::make_shared<sinks::dist_sink_mt>();
-        sinks_tmp->set_sinks(sinks);
-        logger = std::make_shared<spdlog::logger>(name, sinks_tmp);
-      }
+      auto sinks_tmp = std::make_shared<sinks::dist_sink_mt>();
+      sinks_tmp->set_sinks(sinks);
+      logger = std::make_shared<spdlog::logger>(name, sinks_tmp);
     }
     logger->set_level(lvl);
     if (lvl != level::off) {
@@ -406,6 +399,11 @@ void log_v2::apply(const config& log_conf) {
     if (!applied[i]) {
       if (_loggers[i])
         update_sink_logger(_logger_name[i], _loggers[i]->level());
+    }
+  }
+  for (uint32_t i = 0; i < applied.size(); i++) {
+    if (_loggers[i]) {
+      update_sink_logger(_logger_name[i], _loggers[i]->level());
     }
   }
 }

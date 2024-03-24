@@ -33,9 +33,8 @@ add_custom_command(
   OUTPUT ${SRC_DIR}/process_stat.grpc.pb.cc ${SRC_DIR}/process_stat.grpc.pb.h
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-    --proto_path=${SRC_DIR} --grpc_out="${SRC_DIR}"
-    ${SRC_DIR}/process_stat.proto
+    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${SRC_DIR}
+    --grpc_out="${SRC_DIR}" ${SRC_DIR}/process_stat.proto
   DEPENDS ${SRC_DIR}/process_stat.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${SRC_DIR}/process_stat.pb.cc ${SRC_DIR}/process_stat.pb.h
@@ -48,13 +47,11 @@ set(SOURCES ${SRC_DIR}/process_stat.cc ${SRC_DIR}/process_stat.pb.cc
             ${SRC_DIR}/process_stat.grpc.pb.cc ${SRC_DIR}/hex_dump.cc)
 
 # Include directories.
-include_directories("${INCLUDE_DIR}"
-	${VCPKG_INCLUDE_DIR}
-  )
+include_directories("${INCLUDE_DIR}" ${VCPKG_INCLUDE_DIR})
 
 add_library(centreon_common STATIC ${SOURCES})
 set_property(TARGET centreon_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(WITH_TESTING)
-  add_subdirectory(test)
+  add_subdirectory(tests)
 endif()
