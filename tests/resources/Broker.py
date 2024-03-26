@@ -94,7 +94,7 @@ config = {
                 "db_password": "{5}",
                 "db_name": "{6}",
                 "queries_per_transaction": "1000",
-                "connections_count": "3",
+                "connections_count": "1",
                 "read_timeout": "1",
                 "type": "sql"
             }},
@@ -127,7 +127,7 @@ config = {
                 "read_timeout": "1",
                 "check_replication": "no",
                 "store_in_data_bin": "yes",
-                "connections_count": "3",
+                "connections_count": "1",
                 "insert_in_index_data": "1",
                 "type": "storage"
             }}
@@ -333,7 +333,7 @@ config = {
                 "db_password": "{5}",
                 "db_name": "{6}",
                 "queries_per_transaction": "1000",
-                "connections_count": "3",
+                "connections_count": "1",
                 "read_timeout": "1",
                 "type": "sql"
             }},
@@ -378,7 +378,7 @@ config = {
                 "read_timeout": "1",
                 "check_replication": "no",
                 "store_in_data_bin": "yes",
-                "connections_count": "3",
+                "connections_count": "1",
                 "insert_in_index_data": "1",
                 "type": "storage"
             }}
@@ -620,7 +620,7 @@ def config_broker_sql_output(name, output):
             "interval": "60",
             "length": "15552000",
             "queries_per_transaction": "20000",
-            "connections_count": "4",
+            "connections_count": "1",
             "read_timeout": "60",
             "buffering_timeout": "0",
             "retry_interval": "60",
@@ -641,7 +641,7 @@ def config_broker_sql_output(name, output):
             "db_password": DB_PASS,
             "db_name": DB_NAME_STORAGE,
             "queries_per_transaction": "1000",
-            "connections_count": "3",
+            "connections_count": "1",
             "read_timeout": "1",
             "type": "sql"
         })
@@ -661,7 +661,7 @@ def config_broker_sql_output(name, output):
             "read_timeout": "1",
             "check_replication": "no",
             "store_in_data_bin": "yes",
-            "connections_count": "3",
+            "connections_count": "1",
             "insert_in_index_data": "1",
             "type": "storage"
         })
