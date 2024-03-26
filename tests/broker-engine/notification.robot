@@ -12,18 +12,18 @@ Test Teardown       Ctn Save Logs If Failed
 *** Test Cases ***
 not1
     [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state.
-    [Tags]    broker    engine    services    hosts    notification    MON-21239
-    Config Engine    ${1}    ${1}    ${1}
-    Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    [Tags]    broker    engine    services    hosts    notification
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Notifications
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -52,18 +52,18 @@ not1
 
 not2
     [Documentation]    This test case configures a single service and verifies that a recovery notification is sent after a service recovers from a non-OK state.
-    [Tags]    broker    engine    services    hosts    notification    MON-21239
-    Config Engine    ${1}    ${1}    ${1}
-    Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    [Tags]    broker    engine    services    hosts    notification
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Notifications
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -107,18 +107,18 @@ not2
 
 not3
     [Documentation]    This test case configures a single service and verifies that a non-OK notification is sent after the service exits downtime.
-    [Tags]    broker    engine    services    hosts    notification    MON-21239
-    Config Engine    ${1}    ${1}    ${1}
-    Config Notifications
-    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    [Tags]    broker    engine    services    hosts    notification
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Notifications
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
