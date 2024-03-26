@@ -41,7 +41,8 @@ apt-get -y install git \
     zlib1g-dev \
     zip \
     libcurl4-openssl-dev \
-    sudo
+    sudo \
+    perl-base
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
 
