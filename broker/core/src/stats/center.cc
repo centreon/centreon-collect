@@ -24,15 +24,15 @@
 #include "broker/core/misc/filesystem.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/version.hh"
+#include "com/centreon/common/pool.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats;
 using namespace google::protobuf::util;
 using namespace com::centreon::broker::modules;
 
-center* center::_instance{nullptr};
+center* center::_instance = nullptr;
 
 center& center::instance() {
   assert(_instance);
@@ -70,16 +70,6 @@ center::center() {
       *m->mutable_state() = "loaded";
     }
   }
-
-  /*Start the thread pool */
-  pool::instance().start_stats(_stats.mutable_pool_stats());
-}
-
-/**
- * @brief The destructor.
- */
-center::~center() {
-  pool::instance().stop_stats();
 }
 
 /**

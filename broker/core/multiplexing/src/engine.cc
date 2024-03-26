@@ -26,7 +26,7 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -421,20 +421,21 @@ bool engine::_send_to_subscribers(std::function<void()>&& callback) {
       /* We use the thread pool for the muxers from the first one to the
        * second to last */
       for (auto it = _muxers.begin(); it != it_last; ++it) {
-        pool::io_context().post([kiew, m = it->lock(), cc]() {
-          try {
-            m->publish(*kiew);
-          }  // pool threads protection
-          catch (const std::exception& ex) {
-            log_v2::instance()
-                .get(log_v2::CORE)
-                ->error("publish caught exception: {}", ex.what());
-          } catch (...) {
-            log_v2::instance()
-                .get(log_v2::CORE)
-                ->error("publish caught unknown exception");
-          }
-        });
+        com::centreon::common::pool::io_context().post(
+            [kiew, m = it->lock(), cc]() {
+              try {
+                m->publish(*kiew);
+              }  // pool threads protection
+              catch (const std::exception& ex) {
+                log_v2::instance()
+                    .get(log_v2::CORE)
+                    ->error("publish caught exception: {}", ex.what());
+              } catch (...) {
+                log_v2::instance()
+                    .get(log_v2::CORE)
+                    ->error("publish caught unknown exception");
+              }
+            });
       }
     }
   }

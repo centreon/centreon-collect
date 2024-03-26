@@ -25,7 +25,7 @@
 #include <boost/container/flat_set.hpp>
 #include "com/centreon/common/defer.hh"
 
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
 using system_clock = std::chrono::system_clock;
@@ -50,7 +50,6 @@ class http_client_test : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
     srand(time(nullptr));
-    pool::load(g_io_context, 1);
     _logger = log_v2::instance().get(log_v2::TCP);
     _logger->set_level(spdlog::level::info);
   };

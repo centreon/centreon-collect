@@ -20,14 +20,14 @@
 #include <gtest/gtest.h>
 
 #include "com/centreon/clib.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/engine/globals.hh"
 #include "common/log_v2/log_v2.hh"
 
-using com::centreon::common::log_v2::log_v2;
-
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
-bool g_io_context_started = false;
+
+using com::centreon::common::log_v2::log_v2;
 
 class CentreonEngineEnvironment : public testing::Environment {
  public:

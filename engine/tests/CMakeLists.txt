@@ -26,7 +26,8 @@ if(WITH_TESTING)
   # Tests directory. Add root inclusion direction.
   set(MODULE_DIR "${PROJECT_SOURCE_DIR}/modules/external_commands")
   set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/external_commands")
-  include_directories(${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc)
+  include_directories(${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc
+                      ${CMAKE_SOURCE_DIR}/common/inc)
 
   # Set directory.
   set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")

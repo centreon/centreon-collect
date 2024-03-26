@@ -56,7 +56,7 @@ const std::string command_blacklist_output(
  * by default on error rapidyaml call abort so this handler
  */
 void on_rapidyaml_error(const char* buff,
-                        size_t length,
+                        size_t length [[maybe_unused]],
                         ryml::Location loc,
                         void*) {
   throw msg_fmt("fail to parse {} at line {}: {}", loc.name.data(), loc.line,
@@ -307,6 +307,7 @@ whitelist& whitelist::instance() {
 
 void whitelist::reload() {
   static constexpr std::string_view directories[] = {
-      "/etc/centreon-engine-whitelist", "/usr/share/centreon-engine/whitelist.conf.d"};
+      "/etc/centreon-engine-whitelist",
+      "/usr/share/centreon-engine/whitelist.conf.d"};
   _instance = std::make_unique<whitelist>(directories, directories + 2);
 }

@@ -26,8 +26,6 @@
 #include "internal.hh"
 #include "line_protocol_query.hh"
 
-namespace http_client = com::centreon::broker::http_client;
-
 namespace com::centreon::broker {
 
 namespace http_tsdb {

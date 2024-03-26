@@ -1,20 +1,20 @@
 /**
-* Copyright 2013-2015 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2013-2015 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <gtest/gtest.h>
 #include "broker/core/misc/string.hh"
@@ -39,8 +39,6 @@
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
-
-extern std::shared_ptr<asio::io_context> g_io_context;
 
 struct options {
   options() : preferred_time(0), ref_time(0) {}
@@ -142,10 +140,7 @@ static void parse_file(char const* filename, options& opt) {
 
 class BamTime : public ::testing::Test {
  public:
-  void SetUp() override {
-    g_io_context->restart();
-    config::applier::init(0, "test_broker", 0);
-  }
+  void SetUp() override { config::applier::init(0, "test_broker", 0); }
 
   void TearDown() override { config::applier::deinit(); }
 };

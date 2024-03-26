@@ -19,9 +19,9 @@
 #ifndef CCB_STORAGE_REBUILDER_HH
 #define CCB_STORAGE_REBUILDER_HH
 
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/broker/sql/mysql.hh"
+#include "com/centreon/common/pool.hh"
 
 namespace com::centreon::broker {
 

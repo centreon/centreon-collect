@@ -31,14 +31,9 @@ using namespace com::centreon::broker;
 const std::string MSG1("0123456789abcdef");
 const std::string MSG2("foo bar baz qux");
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 class PublisherWrite : public testing::Test {
  public:
-  void SetUp() override {
-    g_io_context->restart();
-    config::applier::init(0, "test_broker", 0);
-  }
+  void SetUp() override { config::applier::init(0, "test_broker", 0); }
 
   void TearDown() override { config::applier::deinit(); }
 };

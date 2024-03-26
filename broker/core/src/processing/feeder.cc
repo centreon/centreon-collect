@@ -26,7 +26,7 @@
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -89,9 +89,9 @@ feeder::feeder(const std::string& name,
                                          std::move(read_filters),
                                          std::move(write_filters),
                                          false)),
-      _stat_timer(pool::io_context()),
-      _read_from_stream_timer(pool::io_context()),
-      _io_context(pool::io_context_ptr()) {
+      _stat_timer(com::centreon::common::pool::io_context()),
+      _read_from_stream_timer(com::centreon::common::pool::io_context()),
+      _io_context(com::centreon::common::pool::io_context_ptr()) {
   log_v2::instance()
       .get(log_v2::FUNCTIONS)
       ->trace("feeder::feeder constructor {} {}", static_cast<void*>(this),

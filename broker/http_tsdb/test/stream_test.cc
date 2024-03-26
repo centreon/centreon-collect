@@ -30,7 +30,7 @@ using duration = system_clock::duration;
 
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/http_tsdb/stream.hh"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -52,7 +52,6 @@ class HttpTsdbStreamTest : public ::testing::Test {
     _logger = log_v2::instance().get(log_v2::TCP);
     _logger->set_level(spdlog::level::info);
     file::disk_accessor::load(1000);
-    pool::load(g_io_context, 1);
   }
 };
 

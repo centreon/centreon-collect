@@ -39,18 +39,15 @@ namespace asio = boost::asio;
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/time/timezone_manager.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
 
 std::atomic<config::applier::applier_state> config::applier::mode{not_started};
-
-extern std::shared_ptr<asio::io_context> g_io_context;
-extern bool g_io_context_started;
 
 /**
  * @brief Load necessary structures. It initializes exactly the same structures
@@ -63,8 +60,7 @@ void config::applier::init(size_t n_thread,
                            const std::string&,
                            size_t event_queues_total_size) {
   // Load singletons.
-  pool::load(g_io_context, n_thread);
-  g_io_context_started = true;
+  com::centreon::common::pool::set_pool_size(n_thread);
   stats::center::load();
   mysql_manager::load();
   config::applier::state::load();
@@ -105,8 +101,6 @@ void config::applier::deinit() {
   stats::center::unload();
   logger->info("unloading file::disk_accessor");
   file::disk_accessor::unload();
-
-  pool::unload();
 }
 
 /**

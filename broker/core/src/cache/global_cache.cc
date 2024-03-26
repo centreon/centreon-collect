@@ -1,20 +1,20 @@
 /**
-* Copyright 2023 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/cache/global_cache_data.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -64,14 +64,17 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
         if (dirty && !*dirty) {
           // dirty will be erased by destructor
           *dirty = true;
-          SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
-                             "global_cache open file {}", _file_path);
+          log_v2::instance()
+              .get(log_v2::CORE)
+              ->info("global_cache open file {}", _file_path);
           this->managed_map(false);
           return;
         } else {
-          SPDLOG_LOGGER_ERROR(
-              log_v2::instance().get(log_v2::CORE),
-              "global_cache dirty flag not reset => erase file and recreate");
+          log_v2::instance()
+              .get(log_v2::CORE)
+              ->error(
+                  "global_cache dirty flag not reset => erase file and "
+                  "recreate");
         }
       }
     } catch (const boost::exception& e) {
@@ -79,7 +82,7 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
           fmt::format("corrupted cache file {} => recreate {}", _file_path,
                       boost::diagnostic_information(e));
 
-      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE), err_detail);
+      log_v2::instance().get(log_v2::CORE)->error(err_detail);
       _file.reset();
       _file_size = 0;
       ::remove(_file_path.c_str());
@@ -87,14 +90,15 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
       std::string err_detail = fmt::format(
           "corrupted cache file {} => recreate {}", _file_path, e.what());
 
-      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE), err_detail);
+      log_v2::instance().get(log_v2::CORE)->error(err_detail);
       _file.reset();
       _file_size = 0;
       ::remove(_file_path.c_str());
     }
 
-    SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
-                       "global_cache create file {}", _file_path);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info("global_cache create file {}", _file_path);
 
     ::remove(_file_path.c_str());
     _grow(initial_size_on_create);
@@ -102,9 +106,10 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
     try {
       this->managed_map(true);
     } catch (const boost::interprocess::bad_alloc& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
-                          "allocation error: {}, too small initial file size?",
-                          boost::diagnostic_information(e));
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error("allocation error: {}, too small initial file size?",
+                  boost::diagnostic_information(e));
       throw;
     }
   }

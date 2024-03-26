@@ -35,8 +35,6 @@
 using namespace com::centreon::broker;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 class BamExpBuilder : public ::testing::Test {
  protected:
   std::unique_ptr<test_visitor> _visitor;
@@ -46,7 +44,6 @@ class BamExpBuilder : public ::testing::Test {
   std::shared_ptr<spdlog::logger> logger;
 
   void SetUp() override {
-    g_io_context->restart();
     try {
       config::applier::init(0, "test_broker", 0);
       logger = log_v2::instance().get(log_v2::BAM);
