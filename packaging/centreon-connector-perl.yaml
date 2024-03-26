@@ -24,10 +24,10 @@ contents:
 overrides:
   rpm:
     depends:
-      - perl
+      - perl-interpreter
   deb:
     depends:
-      - perl
+      - perl-base
 
 rpm:
   summary: Centreon Connector Perl provide embedded perl for Centreon-Engine.

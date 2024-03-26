@@ -32,7 +32,7 @@ dnf --best install -y \
     python3-pip \
     perl-Thread-Queue \
     rrdtool \
-    perl-base \
+    perl-interpreter \
     procps-ng \
     zstd \
     psmisc \
