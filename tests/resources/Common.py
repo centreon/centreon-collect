@@ -749,6 +749,32 @@ def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
     return False
 
 
+def ctn_check_ba_output_with_timeout(ba_name: str, expected_output: str, timeout: int):
+    """ check if the expected is written in mod_bam.comment column
+    @param ba_name   name of the ba
+    @param expected_output  output that we should find in comment column
+    @param timeout  timeout in second
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_CONF,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT * FROM mod_bam WHERE name='{ba_name}'")
+                result = cursor.fetchall()
+                logger.console(f"ba: {result[0]}")
+                if result[0]['current_status'] is not None and result[0]['comment'] == expected_output:
+                    return True
+        time.sleep(5)
+    return False
+
+
 def ctn_check_downtimes_with_timeout(nb: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
