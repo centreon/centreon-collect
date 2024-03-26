@@ -45,8 +45,6 @@ on:
       xray_client_secret:
         required: true
 
-
-
 jobs:
   test-image-to-cache:
     runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
