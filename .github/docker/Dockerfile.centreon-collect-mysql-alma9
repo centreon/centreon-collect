@@ -41,7 +41,7 @@ dnf --best install -y cmake \
     rpm-build \
     rrdtool-devel \
     yum-utils \
-    perl \
+    perl-interpreter \
     rpm-build \
     procps-ng \
     zstd \
