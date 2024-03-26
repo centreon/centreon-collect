@@ -243,17 +243,13 @@ io::data* stream::unserialize(uint32_t event_type,
                 break;
 
               default:
-                SPDLOG_LOGGER_ERROR(
-                    _logger,
+                _logger->error(
                     "BBDO: invalid mapping for object of type '{0}': {1} is "
-                    "not "
-                    "a known type ID",
+                    "not a known type ID",
                     info->get_name(), current_entry->get_type());
                 throw msg_fmt(
-                    "BBDO: invalid mapping for "
-                    "object of type '{}"
-                    "': {}"
-                    " is not a known type ID",
+                    "BBDO: invalid mapping for object of type '{}"
+                    "': {} is not a known type ID",
                     info->get_name(), current_entry->get_type());
             }
             buffer += rb;

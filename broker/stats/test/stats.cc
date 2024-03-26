@@ -33,22 +33,18 @@
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/stats/builder.hh"
 #include "com/centreon/broker/stats/center.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 class StatsTest : public ::testing::Test {
  public:
   void SetUp() override {
-    g_io_context->restart();
-    com::centreon::broker::pool::load(g_io_context, 0);
     stats::center::load();
     mysql_manager::load();
     config::applier::state::load();
@@ -69,7 +65,6 @@ class StatsTest : public ::testing::Test {
     mysql_manager::unload();
     file::disk_accessor::unload();
     stats::center::unload();
-    pool::unload();
   }
 };
 

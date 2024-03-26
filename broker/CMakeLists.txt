@@ -82,9 +82,9 @@ add_custom_command(
   OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-    --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
-    --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
+    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${SRC_DIR}
+    --proto_path=${CMAKE_SOURCE_DIR}/common/src --grpc_out="${SRC_DIR}"
+    ${SRC_DIR}/broker.proto
   DEPENDS ${SRC_DIR}/broker.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
@@ -92,7 +92,7 @@ add_custom_command(
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
     --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     ${SRC_DIR}/broker.proto
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc"
                                                   "${SRC_DIR}/broker.pb.h")
@@ -328,7 +328,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/io/stream.cc
     ${SRC_DIR}/mapping/entry.cc
     ${SRC_DIR}/modules/handle.cc
-    ${SRC_DIR}/pool.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
     ${SRC_DIR}/processing/acceptor.cc
@@ -388,7 +387,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/mapping/property.hh
     ${INC_DIR}/mapping/source.hh
     ${INC_DIR}/modules/handle.hh
-    ${INC_DIR}/pool.hh
     ${INC_DIR}/persistent_cache.hh
     ${INC_DIR}/persistent_file.hh
     ${INC_DIR}/processing/acceptor.hh
@@ -407,7 +405,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/vars.hh
     ${INC_DIR}/version.hh)
 
-
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
@@ -421,14 +418,23 @@ target_link_libraries(
   berpc
   z
   spdlog::spdlog
-  crypto ssl
+  crypto
+  ssl
   pthread
   dl)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
-target_link_libraries(roker rokerbase crypto ssl
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-                      pthread dl)
+target_link_libraries(
+  roker
+  rokerbase
+  crypto
+  ssl
+  gRPC::gpr
+  gRPC::grpc
+  gRPC::grpc++
+  gRPC::grpc++_alts
+  pthread
+  dl)
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
@@ -456,7 +462,10 @@ target_link_libraries(
   "-Wl,--no-whole-archive"
   stdc++fs
   spdlog::spdlog
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts)
+  gRPC::gpr
+  gRPC::grpc
+  gRPC::grpc++
+  gRPC::grpc++_alts)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)

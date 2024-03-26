@@ -23,12 +23,11 @@
 #include <getopt.h>
 #endif  // HAVE_GETOPT_H
 #include <unistd.h>
-
-#include <boost/asio.hpp>
+#include <forward_list>
 #include <random>
 #include <string>
 
-namespace asio = boost::asio;
+// namespace asio = boost::asio;
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
@@ -37,6 +36,7 @@ namespace asio = boost::asio;
 #include <boost/container/flat_map.hpp>
 #include <boost/optional.hpp>
 
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -70,10 +70,10 @@ namespace asio = boost::asio;
 
 using namespace com::centreon::engine;
 using log_v2 = com::centreon::common::log_v2::log_v2;
+namespace asio = boost::asio;
 
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
-bool g_io_context_started = false;
 
 // Error message when configuration parsing fail.
 #define ERROR_CONFIGURATION                                                  \
@@ -121,6 +121,7 @@ int main(int argc, char* argv[]) {
   auto process_logger = log_v2::instance().get(log_v2::PROCESS);
   init_loggers();
   configuration::applier::logging::instance();
+  com::centreon::common::pool::load(g_io_context, runtime_logger);
 
 #if LEGACY_CONF
   config_logger->info("Configuration mechanism used: legacy");
@@ -536,20 +537,7 @@ int main(int argc, char* argv[]) {
         broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
 
         // if neb has not started g_io_context we do it here
-        if (!g_io_context_started) {
-          SPDLOG_LOGGER_INFO(process_logger,
-                             "io_context not started => create thread");
-          std::thread asio_thread([cont = g_io_context, process_logger]() {
-            try {
-              cont->run();
-            } catch (const std::exception& e) {
-              SPDLOG_LOGGER_CRITICAL(process_logger,
-                                     "catch in io_context run: {}", e.what());
-            }
-          });
-          asio_thread.detach();
-          g_io_context_started = true;
-        }
+        com::centreon::common::pool::set_pool_size(1);
 
         // Get event start time and save as macro.
         event_start = time(NULL);
@@ -619,6 +607,8 @@ int main(int argc, char* argv[]) {
   delete config;
   config = nullptr;
 #endif
+  g_io_context->stop();
+  com::centreon::common::pool::unload();
 
   return retval;
 }

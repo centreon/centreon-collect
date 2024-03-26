@@ -26,7 +26,7 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -395,11 +395,10 @@ bool engine::_send_to_subscribers(std::function<void()>&& callback) {
       return false;
     }
 
-  SPDLOG_LOGGER_TRACE(
-    log_v2::instance()
-        .get(log_v2::CORE)
-        ,"engine::_send_to_subscribers send {} events to {} muxers",
-                _kiew.size(), _muxers.size());
+    SPDLOG_LOGGER_TRACE(
+        log_v2::instance().get(log_v2::CORE),
+        "engine::_send_to_subscribers send {} events to {} muxers",
+        _kiew.size(), _muxers.size());
 
     kiew = std::make_shared<std::deque<std::shared_ptr<io::data>>>();
     std::swap(_kiew, *kiew);
@@ -421,18 +420,20 @@ bool engine::_send_to_subscribers(std::function<void()>&& callback) {
       } else {
         std::shared_ptr<muxer> mux_to_publish_in_asio = mux.lock();
         if (mux_to_publish_in_asio) {
-          pool::io_context().post([kiew, mux_to_publish_in_asio, cb]() {
-            try {
-              mux_to_publish_in_asio->publish(*kiew);
-            }  // pool threads protection
-            catch (const std::exception& ex) {
-              SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
-                                  "publish caught exception: {}", ex.what());
-            } catch (...) {
-              SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
-                                  "publish caught unknown exception");
-            }
-          });
+          com::centreon::common::pool::io_context().post(
+              [kiew, mux_to_publish_in_asio, cb]() {
+                try {
+                  mux_to_publish_in_asio->publish(*kiew);
+                }  // pool threads protection
+                catch (const std::exception& ex) {
+                  SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
+                                      "publish caught exception: {}",
+                                      ex.what());
+                } catch (...) {
+                  SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
+                                      "publish caught unknown exception");
+                }
+              });
         }
       }
     }

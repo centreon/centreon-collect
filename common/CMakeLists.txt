@@ -43,8 +43,10 @@ add_custom_command(
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # Set sources.
-set(SOURCES ${SRC_DIR}/process_stat.cc ${SRC_DIR}/process_stat.pb.cc
-            ${SRC_DIR}/process_stat.grpc.pb.cc ${SRC_DIR}/hex_dump.cc)
+set(SOURCES
+    ${SRC_DIR}/process_stat.cc ${SRC_DIR}/process_stat.pb.cc
+    ${SRC_DIR}/process_stat.grpc.pb.cc ${SRC_DIR}/hex_dump.cc
+    ${SRC_DIR}/pool.cc)
 
 # Include directories.
 include_directories("${INCLUDE_DIR}" ${VCPKG_INCLUDE_DIR})

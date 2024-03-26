@@ -22,8 +22,8 @@
 
 #include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/processing/feeder.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -127,12 +127,13 @@ void acceptor::exit() {
     for (auto& feeder : _feeders) {
       DEBUG(fmt::format("PROCESSING ACCEPTOR {} STOP feeder {}", _name,
                         static_cast<void*>(feeder.get())));
-      pool::instance().io_context().post([feeder, &feeders_stopped, &count] {
-        feeder->stop();
-        int c = atomic_fetch_sub(&count, 1);
-        if (c == 1)
-          feeders_stopped.set_value();
-      });
+      com::centreon::common::pool::instance().io_context().post(
+          [feeder, &feeders_stopped, &count] {
+            feeder->stop();
+            int c = atomic_fetch_sub(&count, 1);
+            if (c == 1)
+              feeders_stopped.set_value();
+          });
     }
     feeders_stopped.get_future().wait();
     _feeders.clear();

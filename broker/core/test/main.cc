@@ -23,9 +23,8 @@
 
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
-std::shared_ptr<asio::io_context> g_io_context =
-    std::make_shared<asio::io_context>();
-bool g_io_context_started = false;
+std::shared_ptr<asio::io_context> g_io_context(
+    std::make_shared<asio::io_context>());
 
 class CentreonBrokerEnvironment : public testing::Environment {
  public:

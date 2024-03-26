@@ -53,7 +53,6 @@ class center {
   int _json_stats_file_creation;
 
   center();
-  ~center();
 
  public:
   static center& instance();

@@ -26,20 +26,16 @@ using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
 
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/victoria_metrics/connector.hh"
 #include "com/centreon/broker/victoria_metrics/factory.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace nlohmann;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-class VictoriaMetricsFactory : public testing::Test {
- public:
-  static void SetUpTestSuite() { pool::load(g_io_context, 1); }
-};
+class VictoriaMetricsFactory : public testing::Test {};
 
 TEST_F(VictoriaMetricsFactory, MissingParams) {
   victoria_metrics::factory fact;

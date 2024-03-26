@@ -35,8 +35,6 @@
 
 #include "broker/core/misc/misc.hh"
 
-namespace asio = boost::asio;
-
 // with this define boost::interprocess doesn't need Boost.DataTime
 #define BOOST_DATE_TIME_NO_LIB 1
 #include <spdlog/fmt/ostr.h>
@@ -59,10 +57,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 
 using log_v2 = com::centreon::common::log_v2::log_v2;
-
-std::shared_ptr<asio::io_context> g_io_context =
-    std::make_shared<asio::io_context>();
-bool g_io_context_started = false;
 
 // Main config file.
 static std::vector<std::string> gl_mainconfigfiles;

@@ -35,8 +35,6 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 // Specify the event broker API version.
 NEB_API_VERSION(CURRENT_NEB_API_VERSION)
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 namespace com::centreon::broker {
 std::shared_ptr<spdlog::logger> neb_logger =
     log_v2::instance().get(log_v2::NEB);

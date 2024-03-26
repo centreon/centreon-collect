@@ -1,26 +1,26 @@
 /**
-* Copyright 2023 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/stats_exporter/exporter.hh"
 #include "com/centreon/broker/config/endpoint.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/stats/center.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -31,7 +31,8 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 /**
  * @brief Default constructor.
  */
-exporter::exporter() : _connections_watcher{pool::io_context()} {}
+exporter::exporter()
+    : _connections_watcher{com::centreon::common::pool::io_context()} {}
 
 /**
  * @brief Initialize the metrics to export.

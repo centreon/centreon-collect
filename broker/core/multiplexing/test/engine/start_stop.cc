@@ -33,14 +33,9 @@ const std::string MSG2("foo bar baz");
 const std::string MSG3("last message with qux");
 const std::string MSG4("no this is the last message");
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 class StartStop : public testing::Test {
  public:
-  void SetUp() override {
-    g_io_context->restart();
-    config::applier::init(0, "test_broker", 0);
-  }
+  void SetUp() override { config::applier::init(0, "test_broker", 0); }
 
   void TearDown() override { config::applier::deinit(); }
 };
@@ -57,8 +52,8 @@ TEST_F(StartStop, MultiplexingWorks) {
   try {
     // Subscriber.
     absl::flat_hash_set<uint32_t> filters{io::raw::static_type()};
-    std::shared_ptr<multiplexing::muxer> mux(multiplexing::muxer::create("core_multiplexing_engine_start_stop", filters,
-                            filters, false));
+    std::shared_ptr<multiplexing::muxer> mux(multiplexing::muxer::create(
+        "core_multiplexing_engine_start_stop", filters, filters, false));
 
     // Send events through engine.
     std::array<std::string, 2> messages{MSG1, MSG2};

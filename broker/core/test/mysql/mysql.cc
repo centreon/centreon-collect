@@ -49,8 +49,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using com::centreon::common::log_v2::log_v2;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 class DatabaseStorageTest : public ::testing::Test {
  protected:
   std::shared_ptr<spdlog::logger> _logger;
@@ -58,7 +56,6 @@ class DatabaseStorageTest : public ::testing::Test {
  public:
   void SetUp() override {
     _logger = log_v2::instance().get(log_v2::SQL);
-    g_io_context->restart();
     try {
       config::applier::init(0, "test_broker", 0);
     } catch (std::exception const& e) {

@@ -48,8 +48,6 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 #define FILE3 CENTREON_BROKER_LUA_SCRIPT_PATH "/test3.lua"
 #define FILE4 CENTREON_BROKER_LUA_SCRIPT_PATH "/socket.lua"
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 class LuaTest : public ::testing::Test {
  protected:
   std::shared_ptr<spdlog::logger> _logger;
@@ -58,7 +56,6 @@ class LuaTest : public ::testing::Test {
   void SetUp() override {
     _logger = log_v2::instance().get(log_v2::LUA);
 
-    g_io_context->restart();
     try {
       config::applier::init(0, "test_broker", 0);
     } catch (std::exception const& e) {

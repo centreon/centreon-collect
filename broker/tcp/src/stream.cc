@@ -26,9 +26,9 @@
 
 #include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/tcp/acceptor.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -59,12 +59,10 @@ stream::stream(const tcp_config::pointer& conf)
       ->trace("tcp::stream constructor {}", static_cast<void*>(this));
   assert(_connection->port());
   _total_tcp_count++;
-  _logger->trace("New stream to {}:{}", _conf->get_host(),
-                       _conf->get_port());
-  _logger->info(
-      "{} TCP streams are configured on a thread pool of {} threads",
-      static_cast<uint32_t>(_total_tcp_count),
-      pool::instance().get_pool_size());
+  _logger->trace("New stream to {}:{}", _conf->get_host(), _conf->get_port());
+  _logger->info("{} TCP streams are configured on a thread pool of {} threads",
+                static_cast<uint32_t>(_total_tcp_count),
+                com::centreon::common::pool::instance().get_pool_size());
 }
 
 /**
@@ -86,12 +84,10 @@ stream::stream(const tcp_connection::pointer& conn,
       ->trace("tcp::stream constructor {}", static_cast<void*>(this));
   assert(_connection->port());
   _total_tcp_count++;
-  _logger->info("New stream to {}:{}", _conf->get_host(),
-                      _conf->get_port());
-  _logger->info(
-      "{} TCP streams are configured on a thread pool of {} threads",
-      static_cast<uint32_t>(_total_tcp_count),
-      pool::instance().get_pool_size());
+  _logger->info("New stream to {}:{}", _conf->get_host(), _conf->get_port());
+  _logger->info("{} TCP streams are configured on a thread pool of {} threads",
+                static_cast<uint32_t>(_total_tcp_count),
+                com::centreon::common::pool::instance().get_pool_size());
 }
 
 /**
@@ -106,7 +102,7 @@ stream::~stream() noexcept {
       "TCP stream destroyed. Still {} configured on a thread pool of {} "
       "threads",
       static_cast<uint32_t>(_total_tcp_count),
-      pool::instance().get_pool_size());
+      com::centreon::common::pool::instance().get_pool_size());
   _logger->trace("stream closed");
   if (_connection->socket().is_open())
     _connection->close();
