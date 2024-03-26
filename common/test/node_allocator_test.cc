@@ -19,7 +19,7 @@
 #include <gtest/gtest.h>
 #include <regex>
 
-#include "com/centreon/common/node_allocator.hh"
+#include "node_allocator.hh"
 
 using namespace com::centreon::common;
 
