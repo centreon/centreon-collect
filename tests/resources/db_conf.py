@@ -233,7 +233,18 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
                 connection.commit()
                 return (id_ba, sid)
 
-    def ctn_create_ba(self, name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy: str):
+    def ctn_create_ba(self, name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy: str, activate:int = 1):
+        """
+        create a ba in centreon db
+
+        Args:
+            name: name of ba
+            typ: best, worst, ratro_percent, ratio_number, impact
+            critical_impact: critical impact level
+            warning_impact: warning impact level
+            dt_policy: Downtime policy: inherit, ignore
+            activate: 1 for enable, 0 for disable
+        """
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
@@ -259,8 +270,7 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
             else:
                 inherit_dt = 0
             with connection.cursor() as cursor:
-                cursor.execute("INSERT INTO mod_bam (name, state_source, activate,id_reporting_period,level_w,level_c,id_notification_period,notifications_enabled,event_handler_enabled, inherit_kpi_downtimes) VALUES ('{}',{},'1',1, {}, {}, 1,'0', '0','{}')".format(
-                    name, t, warning_impact, critical_impact, inherit_dt))
+                cursor.execute(f"INSERT INTO mod_bam (name, state_source, activate,id_reporting_period,level_w,level_c,id_notification_period,notifications_enabled,event_handler_enabled, inherit_kpi_downtimes) VALUES ('{name}',{t},'{activate}',1, {warning_impact}, {critical_impact}, 1,'0', '0','{inherit_dt}')")
                 id_ba = cursor.lastrowid
                 sid = self.engine.create_bam_service("ba_{}".format(
                     id_ba), name, "_Module_BAM_1", "centreon-bam-check!{}".format(id_ba))
@@ -347,5 +357,26 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
             with connection.cursor() as cursor:
                 cursor.execute("INSERT INTO mod_bam_kpi (id_indicator_ba,id_ba,drop_warning,drop_critical,drop_unknown,config_type) VALUES ({},{},{},{},{},'1')".format(
                     id_ba_src, id_ba_dest, warning_impact, critical_impact, unknown_impact))
+
+            connection.commit()
+
+    def ctn_add_relations_ba_timeperiods(self, id_ba:int, id_time_period:int):
+        """
+        add a line in mod_bam_relations_ba_timeperiods table
+
+        Args:
+            id_ba: 
+            id_time_period:
+        """
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_CONF,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(f"INSERT INTO mod_bam_relations_ba_timeperiods (ba_id, tp_id) VALUES ({id_ba},{id_time_period})")
 
             connection.commit()
