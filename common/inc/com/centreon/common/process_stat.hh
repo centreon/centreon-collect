@@ -19,12 +19,9 @@
 #ifndef CCCM_PROCESS_STAT_HH
 #define CCCM_PROCESS_STAT_HH
 
-#include <time.h>
 
 #include <boost/exception/exception.hpp>
 #include <boost/exception/info.hpp>
-#include <chrono>
-#include <string>
 
 namespace com::centreon::common {
 

@@ -18,7 +18,7 @@
 
 #include <gtest/gtest.h>
 
-#include "com/centreon/common/process_stat.hh"
+#include "process_stat.hh"
 
 using namespace com::centreon::common;
 
