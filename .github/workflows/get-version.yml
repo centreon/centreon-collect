@@ -19,6 +19,13 @@ on:
       environment:
         description: "branch stability (stable, testing, unstable, canary)"
         value: ${{ jobs.get-version.outputs.environment }}
+      release_type:
+        description: "type of release (hotfix, release)"
+        value: ${{ jobs.get-version.outputs.release_type }}
+      release_cloud:
+        description: "context of release (cloud or not cloud)"
+        value: ${{ jobs.get-version.outputs.release_cloud }}
+
 jobs:
   get-version:
     runs-on: ubuntu-22.04
@@ -29,12 +36,15 @@ jobs:
       release: ${{ steps.get_version.outputs.release }}
       stability: ${{ steps.get_version.outputs.stability }}
       environment: ${{ steps.get_version.outputs.env }}
+      release_type: ${{ steps.get_version.outputs.release_type }}
+      release_cloud: ${{ steps.get_version.outputs.release_cloud}}
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - id: get_version
         run: |
+          set -x
           IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
           VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
           PATCH=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
@@ -48,12 +58,47 @@ jobs:
             BRANCHNAME="$GITHUB_HEAD_REF"
           fi
 
+          echo "BRANCHNAME is: $BRANCHNAME"
+
+          # Set default release values
+          GITHUB_RELEASE_CLOUD=0
+          GITHUB_RELEASE_TYPE=$(echo $BRANCHNAME |cut -d '-' -f 1)
+
           case "$BRANCHNAME" in
-            master | [2-9][0-9].[0-9][0-9].x | release* | hotfix*)
+            master | [2-9][0-9].[0-9][0-9].x)
               echo "release=1" >> $GITHUB_OUTPUT
+              ;;
+            release* | hotfix*)
+            # Handle workflow_dispatch run triggers and run a dispatch ONLY for cloud release
+              GITHUB_RELEASE_BRANCH_BASE_REF_NAME="$(gh pr view $BRANCHNAME -q .baseRefName --json headRefName,baseRefName,state)"
+              echo "GITHUB_RELEASE_BRANCH_BASE_REF_NAME is: $GITHUB_RELEASE_BRANCH_BASE_REF_NAME"
+              GITHUB_RELEASE_BRANCH_PR_STATE="$(gh pr view $BRANCHNAME -q .state --json headRefName,baseRefName,state)"
+              echo "GITHUB_RELEASE_BRANCH_PR_STATE is: $GITHUB_RELEASE_BRANCH_PR_STATE"
+
+              # Check if the release context (cloud and hotfix or cloud and release)
+              if [[ "$GITHUB_RELEASE_BRANCH_BASE_REF_NAME" == "master" ]] && [[ "$GITHUB_RELEASE_BRANCH_PR_STATE" == "OPEN" ]]; then
+                # Get release pull request ID
+                GITHUB_RELEASE_BRANCH_PR_NUMBER="$(gh pr view $BRANCHNAME -q .[] --json number)"
+                # Set release cloud to 1 (0=not-cloud, 1=cloud)
+                GITHUB_RELEASE_CLOUD=1
+                # Debug
+                echo "GITHUB_RELEASE_TYPE is: $GITHUB_RELEASE_TYPE"
+                echo "GITHUB_RELEASE_BRANCH_PR_NUMBER is: $GITHUB_RELEASE_BRANCH_PR_NUMBER"
+                echo "GITHUB_RELEASE_CLOUD is: $GITHUB_RELEASE_CLOUD"
+                # Github ouputs
+                echo "release=`echo $GITHUB_RELEASE_BRANCH_PR_NUMBER`.`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
+                echo "release_type=$GITHUB_RELEASE_TYPE" >> $GITHUB_OUTPUT
+                echo "release_cloud=$GITHUB_RELEASE_CLOUD" >> $GITHUB_OUTPUT
+              else
+                echo "release=1" >> $GITHUB_OUTPUT
+                echo "release_cloud=$GITHUB_RELEASE_CLOUD" >> $GITHUB_OUTPUT
+                echo "release_type=$GITHUB_RELEASE_TYPE" >> $GITHUB_OUTPUT
+              fi
               ;;
             *)
               echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
+              echo "release_cloud=$GITHUB_RELEASE_CLOUD" >> $GITHUB_OUTPUT
+              echo "release_type=$GITHUB_RELEASE_TYPE" >> $GITHUB_OUTPUT
               ;;
           esac
 
