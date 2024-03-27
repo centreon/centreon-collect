@@ -1,7 +1,6 @@
 ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/almalinux:8
-#FROM almalinux:8
 
 RUN dnf clean all
 
@@ -28,6 +27,7 @@ RUN dnf clean all && dnf install -y cmake \
     MariaDB-server \
     gnutls-devel \
     libgcrypt-devel \
+    libssh2-devel \
     lua-devel \
     make \
     maven \
@@ -40,10 +40,6 @@ RUN dnf clean all && dnf install -y cmake \
     rrdtool-devel \
     yum-utils \
     perl \
-    openssl-devel \
-    libssh2-devel \
-    libcurl-devel \
-    zlib-devel \
     rpm-build
 RUN dnf update libarchive
 
