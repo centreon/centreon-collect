@@ -22,7 +22,6 @@
 #include <grpc/impl/codegen/log.h>
 #include <spdlog/common.h>
 #include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/dist_sink.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -36,7 +35,7 @@
 using namespace com::centreon::common::log_v2;
 using namespace spdlog;
 
-log_v2* log_v2::_instance;
+log_v2* log_v2::_instance = nullptr;
 
 const std::array<std::string, log_v2::LOGGER_SIZE> log_v2::_logger_name = {
     "core",
@@ -68,6 +67,17 @@ const std::array<std::string, log_v2::LOGGER_SIZE> log_v2::_logger_name = {
     "comments",
     "macros",
     "runtime"};
+
+bool log_v2::_for_engine(log_v2::logger_id id) const {
+  const absl::flat_hash_set<log_v2::logger_id> for_engine = {
+      log_v2::CONFIG,      log_v2::PROCESS,          log_v2::FUNCTIONS,
+      log_v2::EVENTS,      log_v2::CHECKS,           log_v2::NOTIFICATIONS,
+      log_v2::EVENTBROKER, log_v2::EXTERNAL_COMMAND, log_v2::COMMANDS,
+      log_v2::DOWNTIMES,   log_v2::COMMENTS,         log_v2::MACROS,
+      log_v2::RUNTIME,
+  };
+  return for_engine.contains(id);
+}
 
 /**
  * @brief this function is passed to grpc in order to log grpc layer's events to
@@ -119,9 +129,9 @@ static void grpc_logger(gpr_log_func_args* args) {
  * @param name The name of the logger.
  * @param ilist The list of loggers to initialize.
  */
-void log_v2::load(const std::string& name,
-                  std::initializer_list<logger_id> ilist) {
-  _instance = new log_v2(name, ilist);
+void log_v2::load(std::string name) {
+  if (!_instance)
+    _instance = new log_v2(std::move(name));
 }
 
 /**
@@ -144,11 +154,8 @@ void log_v2::unload() {
  * @param name Name of the logger.
  * @param ilist List of loggers to initialize.
  */
-log_v2::log_v2(const std::string& name,
-               std::initializer_list<log_v2::logger_id> ilist)
-    : _log_name{name} {
-  for (auto& s : ilist)
-    create_logger(s);
+log_v2::log_v2(std::string name) : _log_name{std::move(name)} {
+  create_loggers(config::logger_type::LOGGER_STDOUT);
 }
 
 /**
@@ -205,27 +212,22 @@ log_v2::logger_id log_v2::get_id(const std::string& name) const noexcept {
 }
 
 /**
- * @brief Create a logger from its id. The call of this function is dangerous.
- * We want to avoid mutexes in this library. So if we create a logger, we don't
- * have to use it at the same time.
- * This function is called when a broker module is started and it has to log.
- * Otherwise, it is called by the configuration apply of the log_v2 library.
- * If the logger already exists, the method returns it. The logger is not
- * modified by this method, it is created or returned as is.
+ * @brief Create all the loggers in log_v2. By default they are writing into
+ * stdout. Broker.
  *
- * @param id A logger_id identifying which logger to initialize.
- *
- * @return A shared pointer to the logger.
+ * @param typ The log type, to log in syslog, a file, in stdout.
+ * @param length The max length of the log receiver (only used for files).
  */
-std::shared_ptr<spdlog::logger> log_v2::create_logger(const logger_id id) {
+void log_v2::create_loggers(config::logger_type typ, size_t length) {
+  _configuring = true;
   sink_ptr my_sink;
 
-  if (_loggers[id])
-    return _loggers[id];
+  for (int32_t id = 0; id < LOGGER_SIZE; id++)
+    assert(!_loggers[id]);
 
-  switch (_current_log_type) {
+  switch (typ) {
     case config::logger_type::LOGGER_FILE: {
-      if (_current_max_size)
+      if (length)
         my_sink = std::make_shared<sinks::rotating_file_sink_mt>(
             _file_path, _current_max_size, 99);
       else
@@ -239,30 +241,31 @@ std::shared_ptr<spdlog::logger> log_v2::create_logger(const logger_id id) {
       break;
   }
 
-  std::shared_ptr<spdlog::logger> logger;
-  auto dist_sink = std::make_shared<sinks::dist_sink_mt>();
-  dist_sink->add_sink(my_sink);
-  logger = std::make_shared<spdlog::logger>(_logger_name[id], dist_sink);
-  if (_log_pid) {
-    if (_log_source)
-      logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] [%P] %v");
-    else
-      logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
-  } else {
-    if (_log_source)
-      logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] %v");
-    else
-      logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
-  }
-  logger->set_level(level::level_enum::info);
-  spdlog::register_logger(logger);
-  _loggers[id] = logger;
-  _slaves[id] = false;
+  for (int32_t id = 0; id < LOGGER_SIZE; id++) {
+    std::shared_ptr<spdlog::logger> logger;
+    logger = std::make_shared<spdlog::logger>(_logger_name[id], my_sink);
+    if (_log_pid) {
+      if (_log_source)
+        logger->set_pattern(
+            "[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] [%P] %v");
+      else
+        logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+    } else {
+      if (_log_source)
+        logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] %v");
+      else
+        logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+    }
+    logger->set_level(level::level_enum::info);
+    spdlog::register_logger(logger);
+    _loggers[id] = std::move(logger);
+    _slaves[id] = false;
 
-  /* Hook for gRPC, not beautiful, but no idea how to do better. */
-  if (id == GRPC)
-    gpr_set_log_function(grpc_logger);
-  return logger;
+    /* Hook for gRPC, not beautiful, but no idea how to do better. */
+    if (id == GRPC)
+      gpr_set_log_function(grpc_logger);
+  }
+  _configuring = false;
 }
 
 /**
@@ -289,52 +292,40 @@ std::shared_ptr<spdlog::logger> log_v2::get(log_v2::logger_id idx) {
  * @param log_conf The configuration to apply
  */
 void log_v2::apply(const config& log_conf) {
-  sink_ptr my_sink;
-  std::vector<spdlog::sink_ptr> sinks;
+  _configuring = true;
+  spdlog::sink_ptr my_sink;
 
-  switch (log_conf.log_type()) {
-    case config::logger_type::LOGGER_FILE: {
-      if (!log_conf.is_slave())
-        _file_path = log_conf.log_path();
-      if (log_conf.max_size())
-        my_sink = std::make_shared<sinks::rotating_file_sink_mt>(
-            _file_path, log_conf.max_size(), 99);
-      else
-        my_sink = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
-    } break;
-    case config::logger_type::LOGGER_SYSLOG:
-      my_sink = std::make_shared<sinks::syslog_sink_mt>(log_conf.filename(), 0,
-                                                        0, true);
-      break;
-    case config::logger_type::LOGGER_STDOUT:
-      my_sink = std::make_shared<sinks::stdout_color_sink_mt>();
-      break;
-  }
-
-  sinks = log_conf.custom_sinks();
-  sinks.push_back(my_sink);
-
-  auto update_sink_logger = [&](const std::string& name,
-                                level::level_enum lvl) {
-    logger_id id = get_id(name);
-    std::shared_ptr<spdlog::logger> logger = _loggers[id];
-    if (logger) {
-      if (!log_conf.is_slave()) {
-        const auto& sinks_tmp = std::static_pointer_cast<sinks::dist_sink_mt>(
-            *(logger->sinks().begin()));
-        sinks_tmp->set_sinks(sinks);
-      }
-    } else {
-      auto sinks_tmp = std::make_shared<sinks::dist_sink_mt>();
-      sinks_tmp->set_sinks(sinks);
-      logger = std::make_shared<spdlog::logger>(name, sinks_tmp);
+  /* This part is about sinks so it is reserved for masters */
+  if (!log_conf.is_slave()) {
+    _file_path = log_conf.log_path();
+    switch (log_conf.log_type()) {
+      case config::logger_type::LOGGER_FILE: {
+        if (log_conf.max_size())
+          my_sink = std::make_shared<sinks::rotating_file_sink_mt>(
+              _file_path, log_conf.max_size(), 99);
+        else
+          my_sink = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
+      } break;
+      case config::logger_type::LOGGER_SYSLOG:
+        my_sink =
+            std::make_shared<sinks::syslog_sink_mt>(_file_path, 0, 0, true);
+        break;
+      case config::logger_type::LOGGER_STDOUT:
+        my_sink = std::make_shared<sinks::stdout_color_sink_mt>();
+        break;
     }
-    logger->set_level(lvl);
-    if (lvl != level::off) {
-      if (log_conf.flush_interval() > 0)
-        logger->flush_on(level::warn);
-      else
-        logger->flush_on(lvl);
+
+    for (int32_t id = 0; id < LOGGER_SIZE; id++) {
+      std::vector<spdlog::sink_ptr> sinks;
+
+      /* Little hack to include the broker sink to engine loggers. */
+      if (_for_engine(static_cast<logger_id>(id)))
+        sinks = log_conf.custom_sinks();
+
+      sinks.push_back(my_sink);
+      auto logger = _loggers[id];
+      auto& name = _logger_name[id];
+      logger->sinks() = sinks;
       if (log_conf.log_pid()) {
         if (log_conf.log_source())
           logger->set_pattern(
@@ -347,65 +338,44 @@ void log_v2::apply(const config& log_conf) {
         else
           logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
       }
-    }
 
-    if (name == "grpc") {
-      switch (lvl) {
-        case level::level_enum::trace:
-        case level::level_enum::debug:
-          gpr_set_log_verbosity(GPR_LOG_SEVERITY_DEBUG);
-          break;
-        case level::level_enum::info:
-        case level::level_enum::warn:
-          gpr_set_log_verbosity(GPR_LOG_SEVERITY_INFO);
-          break;
-        default:
-          gpr_set_log_verbosity(GPR_LOG_SEVERITY_ERROR);
-          break;
+      if (name == "grpc" && log_conf.loggers().contains(name)) {
+        level::level_enum lvl = level::from_str(log_conf.loggers().at(name));
+        switch (lvl) {
+          case level::level_enum::trace:
+          case level::level_enum::debug:
+            gpr_set_log_verbosity(GPR_LOG_SEVERITY_DEBUG);
+            break;
+          case level::level_enum::info:
+          case level::level_enum::warn:
+            gpr_set_log_verbosity(GPR_LOG_SEVERITY_INFO);
+            break;
+          default:
+            gpr_set_log_verbosity(GPR_LOG_SEVERITY_ERROR);
+            break;
+        }
       }
     }
-
-    if (!_loggers[id]) {
-      _loggers[id] = logger;
-      _slaves[id] = log_conf.is_slave();
-
-      /* Hook for gRPC, not beautiful, but no idea how to do better. */
-      if (name == "grpc")
-        gpr_set_log_function(grpc_logger);
-
-      spdlog::register_logger(logger);
-    }
-    return logger;
-  };
+  }
 
   _flush_interval = std::chrono::seconds(
       log_conf.flush_interval() > 0 ? log_conf.flush_interval() : 0);
   spdlog::flush_every(_flush_interval);
+  /* This is for all loggers, a slave will overwrite the master configuration */
+  for (int32_t id = 0; id < LOGGER_SIZE; id++) {
+    auto& name = _logger_name[id];
+    if (log_conf.loggers().contains(name)) {
+      auto logger = _loggers[id];
+      level::level_enum lvl = level::from_str(log_conf.loggers().at(name));
+      logger->set_level(lvl);
+      if (log_conf.flush_interval() > 0)
+        logger->flush_on(level::warn);
+      else
+        logger->flush_on(lvl);
+    }
+  }
 
-  /* Little array to know on which logger we already have made the update */
-  absl::FixedArray<bool> applied(_loggers.size());
-  /* Initialization of the array */
-  memset(applied.data(), 0, applied.size() * sizeof(bool));
-  /* We go through the configuration at first */
-  for (auto it = log_conf.loggers().begin(), end = log_conf.loggers().end();
-       it != end; ++it) {
-    update_sink_logger(it->first, level::from_str(it->second));
-    applied[get_id(it->first)] = true;
-  }
-  _current_log_type = log_conf.log_type();
-  /* We go through the loggers not already updated. And if needed we update
-   * their sinks. */
-  for (uint32_t i = 0; i < applied.size(); i++) {
-    if (!applied[i]) {
-      if (_loggers[i])
-        update_sink_logger(_logger_name[i], _loggers[i]->level());
-    }
-  }
-  for (uint32_t i = 0; i < applied.size(); i++) {
-    if (_loggers[i]) {
-      update_sink_logger(_logger_name[i], _loggers[i]->level());
-    }
-  }
+  _configuring = false;
 }
 
 /**

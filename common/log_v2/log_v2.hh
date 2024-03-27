@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Centreon
+ * Copyright 2023-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,6 +55,8 @@ constexpr uint32_t log_v2_configuration = 3;
  * important not to store forever the logger's shared_ptr.
  */
 class log_v2 {
+  std::atomic_bool _configuring = false;
+
  public:
   enum logger_id {
     CORE = 0,
@@ -97,18 +99,18 @@ class log_v2 {
   const static std::array<std::string, LOGGER_SIZE> _logger_name;
   std::array<std::shared_ptr<spdlog::logger>, LOGGER_SIZE> _loggers;
   std::array<bool, LOGGER_SIZE> _slaves;
-  std::atomic<config::logger_type> _current_log_type =
-      config::logger_type::LOGGER_STDOUT;
+  std::atomic<config::logger_type> _current_log_type;
   size_t _current_max_size = 0U;
   bool _log_pid = false;
   bool _log_source = false;
 
+  bool _for_engine(logger_id id) const;
+
  public:
-  static void load(const std::string& name,
-                   std::initializer_list<logger_id> ilist);
+  static void load(std::string name);
   static void unload();
   static log_v2& instance();
-  log_v2(const std::string& name, std::initializer_list<logger_id> ilist);
+  log_v2(std::string name);
   log_v2(const log_v2&) = delete;
   log_v2& operator=(const log_v2&) = delete;
   ~log_v2() noexcept = default;
@@ -116,6 +118,7 @@ class log_v2 {
 
   std::chrono::seconds flush_interval();
   void set_flush_interval(uint32_t second_flush_interval);
+  void create_loggers(config::logger_type typ, size_t length = 0);
   std::shared_ptr<spdlog::logger> create_logger(const logger_id id);
   std::shared_ptr<spdlog::logger> get(const logger_id idx);
   void apply(const config& conf);
@@ -126,6 +129,7 @@ class log_v2 {
   const std::string& log_name() const;
   void disable();
   void disable(std::initializer_list<logger_id> ilist);
+  bool configuring() const { return _configuring; }
 };
 }  // namespace com::centreon::common::log_v2
 #endif /* !CCC_LOG_V2_HH */

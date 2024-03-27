@@ -161,9 +161,7 @@ int main(int argc, char* argv[]) {
   uint16_t default_port{51000};
   std::string default_listen_address{"localhost"};
 
-  log_v2::load("cbd", {log_v2::CORE, log_v2::CONFIG, log_v2::PROCESSING,
-                       log_v2::SQL, log_v2::STATS, log_v2::FUNCTIONS});
-  ADD_DEBUG(misc::LOG_V2);
+  log_v2::load("cbd");
   auto core_logger = log_v2::instance().get(log_v2::CORE);
 
   // Set configuration update handler.

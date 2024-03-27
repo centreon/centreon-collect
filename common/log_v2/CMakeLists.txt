@@ -25,4 +25,5 @@ add_library(
   # Sources.
   log_v2.cc log_v2.hh config.hh)
 
-target_link_libraries(log_v2 spdlog::spdlog stdc++fs gRPC::gpr)
+target_link_libraries(log_v2 spdlog::spdlog stdc++fs gRPC::gpr
+                      absl::raw_hash_set)

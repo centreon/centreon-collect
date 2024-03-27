@@ -62,7 +62,7 @@ const char* const* broker_module_parents() {
  *  @param[in] arg Configuration argument.
  */
 void broker_module_init(const void* arg) {
-  auto logger = log_v2::instance().create_logger(log_v2::STATS);
+  auto logger = log_v2::instance().get(log_v2::STATS);
   // Increment instance number.
   if (!instances++) {
     const config::state* s = static_cast<const config::state*>(arg);
