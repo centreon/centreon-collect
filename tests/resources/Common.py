@@ -1487,14 +1487,6 @@ def ctn_check_no_host_dependencies(timeout=TIMEOUT):
     return False
 
 
-def ctn_grep(file_path: str, pattern: str):
-    with open(file_path, "r") as file:
-        for line in file:
-            if re.search(pattern, line):
-                return line.strip()
-    return ""
-
-
 def ctn_get_collect_version():
     f = open("../CMakeLists.txt", "r")
     lines = f.readlines()

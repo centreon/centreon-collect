@@ -21,6 +21,7 @@
 #include <getopt.h>
 
 #include <boost/asio.hpp>
+#include <boost/asio/io_context.hpp>
 #include <cerrno>
 #include <chrono>
 #include <clocale>
@@ -34,6 +35,7 @@
 #include <thread>
 
 #include "broker/core/misc/misc.hh"
+#include "com/centreon/common/pool.hh"
 
 // with this define boost::interprocess doesn't need Boost.DataTime
 #define BOOST_DATE_TIME_NO_LIB 1
@@ -55,6 +57,9 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
+
+std::shared_ptr<asio::io_context> g_io_context =
+    std::make_shared<asio::io_context>();
 
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
@@ -163,6 +168,7 @@ int main(int argc, char* argv[]) {
 
   log_v2::load("cbd");
   auto core_logger = log_v2::instance().get(log_v2::CORE);
+  com::centreon::common::pool::load(g_io_context, core_logger);
 
   // Set configuration update handler.
   if (signal(SIGHUP, hup_handler) == SIG_ERR) {
