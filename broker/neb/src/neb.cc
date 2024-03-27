@@ -86,12 +86,7 @@ int nebmodule_deinit(int flags, int reason) {
  *  @return 0 on success, any other value on failure.
  */
 int nebmodule_init(int flags, char const* args, void* handle) {
-  neb_logger = log_v2::instance().create_logger(log_v2::NEB);
-
-  // Needed by cbmod core
-  log_v2::instance().create_logger(log_v2::SQL);
-  log_v2::instance().create_logger(log_v2::BBDO);
-  log_v2::instance().create_logger(log_v2::PROCESSING);
+  neb_logger = log_v2::instance().get(log_v2::NEB);
 
   try {
     // Save module handle and flags for future use.

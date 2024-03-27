@@ -57,7 +57,7 @@ bool broker_module_deinit() {
  */
 void broker_module_init(void const* arg) {
   (void)arg;
-  auto logger = log_v2::instance().create_logger(log_v2::NEB);
+  auto logger = log_v2::instance().get(log_v2::NEB);
   if (!neb_instances++) {
     logger->info("NEB: module for Centreon Broker {}", CENTREON_BROKER_VERSION);
     io::events& e(io::events::instance());

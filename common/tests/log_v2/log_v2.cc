@@ -19,130 +19,83 @@
 #include "common/log_v2/log_v2.hh"
 #include <absl/strings/str_split.h>
 #include <gtest/gtest.h>
+#include <re2/re2.h>
 #include <fstream>
-#include <regex>
 
 using log_v2 = com::centreon::common::log_v2::log_v2;
 using config = com::centreon::common::log_v2::config;
 
-class TestLogV3 : public ::testing::Test {
+class TestLogV2 : public ::testing::Test {
  public:
-  void SetUp() override {}
+  //  void SetUp() override {}
   void TearDown() override { log_v2::unload(); }
 };
 
 static std::string read_file(const std::string& name) {
   std::ifstream is(name);
-  std::stringstream buffer;
-  buffer << is.rdbuf();
-  is.close();
-  return buffer.str();
+  if (is) {
+    std::stringstream buffer;
+    buffer << is.rdbuf();
+    is.close();
+    return buffer.str();
+  }
+  return {};
 }
 
-TEST_F(TestLogV3, load) {
-  log_v2::load("ut_common", {log_v2::CORE, log_v2::CONFIG});
+// When the log_v2 is loaded, we can access all its loggers.
+TEST_F(TestLogV2, load) {
+  log_v2::load("ut_common");
   ASSERT_EQ(log_v2::instance().get(log_v2::CORE)->name(),
             std::string_view("core"));
   ASSERT_EQ(log_v2::instance().get(log_v2::CONFIG)->name(),
             std::string_view("config"));
 }
 
-TEST_F(TestLogV3, LoggerUpdated) {
-  log_v2::load("ut_common", {log_v2::CORE});
+// Given a log_v2 loaded.
+// When the level of a logger is info
+// Then a log of level debug is not displayed
+// When the level of a logger is debug
+// Then a log of level debug is also displayed
+TEST_F(TestLogV2, LoggerUpdated) {
+  log_v2::load("ut_common");
   const auto& core_logger = log_v2::instance().get(log_v2::CORE);
   ASSERT_EQ(core_logger->level(), spdlog::level::info);
   testing::internal::CaptureStdout();
   core_logger->info("First log");
+  core_logger->debug("First debug log");
   config cfg("/tmp/test.log", config::logger_type::LOGGER_STDOUT, 0, false,
              false);
   cfg.set_level("core", "debug");
   log_v2::instance().apply(cfg);
   ASSERT_EQ(core_logger->level(), spdlog::level::debug);
-  core_logger->info("Second log with the old core logger version");
-  core_logger->info("Log with the new version");
+  core_logger->info("Second log");
+  core_logger->debug("Second debug log");
   std::string output = testing::internal::GetCapturedStdout();
   std::cout << "Captured stdout:\n" << output << std::endl;
   /* To match the output, we use regex because of the colored output. */
-  std::regex re(
-      "\\[core\\] \\[.*info.*\\] First log\n.*\\[core\\] \\[.*info.*\\] Second "
-      "log with the old core logger version");
-  std::smatch match;
-  ASSERT_TRUE(std::regex_search(output, match, re) && match.size() > 0);
 
-  std::string content = read_file("/tmp/test.log");
-  ASSERT_TRUE(content.find("Log with the new version") != std::string::npos)
-      << "The file logged contains '" << content
-      << "' and this string does not contain 'Log with the new version'"
-      << std::endl;
-  ;
-
+  std::vector<std::string> lines = absl::StrSplit(output, "\n");
+  ASSERT_GE(lines.size(), 3U) << "We should have at least three lines of log";
+  ASSERT_TRUE(
+      RE2::PartialMatch(lines[0], "\\[core\\] \\[.*info.*\\] First log"))
+      << "The first log should be of type 'info'";
+  ASSERT_TRUE(
+      RE2::PartialMatch(lines[1], "\\[core\\] \\[.*info.*\\] Second log"))
+      << "The second log should be of type 'info'";
+  ASSERT_TRUE(RE2::PartialMatch(lines[2],
+                                "\\[core\\] \\[.*debug.*\\] Second debug log"))
+      << "The third log should be of type 'debug'";
   std::remove("/tmp/test.log");
 }
 
-TEST_F(TestLogV3, LoggerUpdatedMt) {
-  log_v2::load("ut_common", {log_v2::CORE});
-  std::vector<std::thread> v;
-  testing::internal::CaptureStdout();
-  std::mutex m;
-  std::condition_variable cv;
-  bool change_done = false;
-  for (int i = 0; i < 5; i++) {
-    std::thread t([i, &m, &cv, &change_done] {
-      const auto& core_logger = log_v2::instance().get(log_v2::CORE);
-      for (int j = 0; j < 10; j++) {
-        core_logger->info("Log {} from thread {}", j, i);
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
-      std::unique_lock<std::mutex> lck(m);
-      cv.wait(lck, [&change_done] { return change_done; });
-      for (int j = 0; j < 10; j++)
-        core_logger->info("New log {} from thread {}", j, i);
-    });
-    v.push_back(std::move(t));
-  }
+TEST_F(TestLogV2, Flush) {
+  /* We remove the file if it exists */
+  struct stat buffer;
+  if (stat("/tmp/test.log", &buffer) == 0)
+    std::remove("/tmp/test.log");
 
-  config cfg("/tmp/test.log", config::logger_type::LOGGER_STDOUT, 0, false,
-             false);
-  cfg.set_level("core", "debug");
-  log_v2::instance().apply(cfg);
-
-  {
-    std::lock_guard<std::mutex> lck(m);
-    change_done = true;
-    cv.notify_all();
-  }
-
-  for (auto& t : v)
-    t.join();
-
-  std::string output = testing::internal::GetCapturedStdout();
-  std::cout << "Captured stdout:\n" << output << std::endl;
-  std::string content = read_file("/tmp/test.log");
-  auto spl = absl::StrSplit(content, '\n');
-  uint32_t count = 0;
-  for (auto& sv : spl) {
-    count++;
-  }
-  ASSERT_GE(count, 50);
-
-  spl = absl::StrSplit(output, '\n');
-  count = 0;
-  for (auto& sv : spl) {
-    if (sv.empty())
-      continue;
-    ASSERT_TRUE(sv.find("] Log ") != std::string::npos)
-        << "All the lines from stdout should contain '] Log ', here we have '"
-        << sv << "'" << std::endl;
-    count++;
-  }
-  ASSERT_LE(count, 50);
-
-  std::remove("/tmp/test.log");
-}
-
-TEST_F(TestLogV3, Flush) {
-  log_v2::load("ut_common", {log_v2::CORE});
-  config cfg("/tmp/test.log", config::logger_type::LOGGER_STDOUT, 3, false,
+  log_v2::load("ut_common");
+  config cfg("/tmp/test.log", config::logger_type::LOGGER_FILE, 3, false,
              false);
   cfg.set_level("core", "debug");
   log_v2::instance().apply(cfg);

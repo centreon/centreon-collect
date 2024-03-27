@@ -58,15 +58,17 @@ class config {
          uint32_t flush_interval,
          bool log_pid,
          bool log_source)
-      : _name{name},
-        _log_type{log_type},
+      : _log_type{log_type},
         _flush_interval{flush_interval},
         _log_pid{log_pid},
-        _log_source{log_source} {}
+        _log_source{log_source} {
+    std::filesystem::path path{name};
+    _dirname = path.parent_path();
+    _filename = path.filename();
+  }
 
   config(const config& other)
-      : _name{other._name},
-        _log_type{other._log_type},
+      : _log_type{other._log_type},
         _dirname{other._dirname},
         _filename{other._filename},
         _max_size{other._max_size},
@@ -125,7 +127,7 @@ class config {
   const absl::flat_hash_set<std::string>& loggers_with_custom_sinks() const {
     return _loggers_with_custom_sinks;
   }
-  const std::string& name() const { return _name; }
+  //  const std::string& name() const { return _name; }
   void set_slave(bool slave) { _is_slave = slave; }
   bool is_slave() const { return _is_slave; }
 };

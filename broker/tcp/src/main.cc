@@ -64,7 +64,7 @@ bool broker_module_deinit() {
 void broker_module_init(void const* arg) {
   (void)arg;
 
-  auto logger = log_v2::instance().create_logger(log_v2::TCP);
+  auto logger = log_v2::instance().get(log_v2::TCP);
   // Increment instance number.
   if (!instances++) {
     // TCP module.

@@ -42,7 +42,7 @@ class backend {
 
  public:
   backend() {
-    log_v2::instance().create_logger(log_v2::RRD);
+    log_v2::instance().get(log_v2::RRD);
     _logger = log_v2::instance().get(log_v2::RRD);
   }
   backend(backend const& b) = delete;

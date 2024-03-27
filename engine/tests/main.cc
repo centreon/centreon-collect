@@ -54,12 +54,7 @@ int main(int argc, char* argv[]) {
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonEngineEnvironment());
 
-  com::centreon::common::log_v2::log_v2::load(
-      "engine-tests",
-      {log_v2::CORE, log_v2::CONFIG, log_v2::PROCESS, log_v2::CHECKS,
-       log_v2::COMMANDS, log_v2::FUNCTIONS, log_v2::MACROS,
-       log_v2::EXTERNAL_COMMAND, log_v2::EVENTS, log_v2::NOTIFICATIONS,
-       log_v2::RUNTIME, log_v2::DOWNTIMES});
+  com::centreon::common::log_v2::log_v2::load("engine-tests");
   init_loggers();
   // Run all tests.
   int ret = RUN_ALL_TESTS();

@@ -46,6 +46,7 @@ target_link_libraries(
   absl::log
   absl::base
   absl::bits
-  absl::raw_hash_set
+  # absl::raw_hash_set
   centreon_common
+  re2::re2
   log_v2)
