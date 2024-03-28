@@ -45,6 +45,7 @@
 #include "com/centreon/engine/configuration/applier/tag.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/command.hh"
+#include "com/centreon/engine/configuration/extended_conf.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
@@ -96,6 +97,7 @@ void applier::state::apply(configuration::state& new_cfg) {
       _processing(save);
     }
   }
+  extended_conf::apply_all_to_state(*config);
 }
 
 /**
@@ -130,6 +132,7 @@ void applier::state::apply(configuration::state& new_cfg,
       _processing(save, &state);
     }
   }
+  extended_conf::apply_all_to_state(*config);
 }
 
 /**
