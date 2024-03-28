@@ -31,9 +31,7 @@ BENCH_${nb_check}STATUS
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${broker_stat_before}    Ctn Get Broker Process Stat    51001
     ${engine_stat_before}    Ctn Get Engine Process Stat    50001
@@ -99,9 +97,7 @@ BENCH_${nb_check}STATUS_TRACES
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${broker_stat_before}    Ctn Get Broker Process Stat    51001
     ${engine_stat_before}    Ctn Get Engine Process Stat    50001
@@ -170,9 +166,7 @@ BENCH_1000STATUS_100${suffixe}
     ${connected}    Ctn Wait For Connections    5669    100
     Should Be True    ${connected}    100 engines should be connected to broker
     ${result}    Ctn Wait For Listen On Range    50001    50100    centengine    60
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${ENGINE_LOG}/config99/centengine.log    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    Ctn Wait For Engine To Be Ready    ${start}    ${100}
 
     ${broker_stat_before}    Ctn Get Broker Process Stat    51001
     ${engine_stat_before}    Ctn Get Engine Process Stat    50001
