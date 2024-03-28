@@ -93,7 +93,8 @@ static void hup_handler(int signum [[maybe_unused]]) {
     // Parse configuration file.
     config::parser parsr;
     config::state conf{parsr.parse(gl_mainconfigfiles.front())};
-    auto& log_conf = conf.log_conf();
+    auto& log_conf = conf.mut_log_conf();
+    log_conf.allow_only_atomic_changes(true);
     try {
       log_v2::instance().apply(log_conf);
       /* We update the logger, since the conf has been applied */

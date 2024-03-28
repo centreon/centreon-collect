@@ -36,7 +36,7 @@ class config {
  private:
   const std::string _name;
   /* This is a little hack to avoid to replace the log file set by centengine */
-  bool _is_slave = false;
+  bool _only_atomic_changes = false;
   logger_type _log_type;
   std::string _dirname;
   std::string _filename;
@@ -128,8 +128,8 @@ class config {
     return _loggers_with_custom_sinks;
   }
   //  const std::string& name() const { return _name; }
-  void set_slave(bool slave) { _is_slave = slave; }
-  bool is_slave() const { return _is_slave; }
+  void allow_only_atomic_changes(bool slave) { _only_atomic_changes = slave; }
+  bool only_atomic_changes() const { return _only_atomic_changes; }
 };
 }  // namespace com::centreon::common::log_v2
 #endif

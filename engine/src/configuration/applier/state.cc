@@ -46,7 +46,6 @@
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/configuration/diff_state.hh"
-#include "com/centreon/engine/whitelist.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
@@ -57,6 +56,7 @@
 #include "com/centreon/engine/retention/state.hh"
 #include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/version.hh"
+#include "com/centreon/engine/whitelist.hh"
 #include "com/centreon/engine/xpddefault.hh"
 #include "com/centreon/engine/xsddefault.hh"
 #include "common/configuration/state-generated.pb.h"
@@ -107,7 +107,8 @@ void applier::state::apply(configuration::state& new_cfg) {
   } catch (std::exception const& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
-    if (!has_already_been_loaded) throw;
+    if (!has_already_been_loaded)
+      throw;
 
     // If is not the first time, we can restore the old one.
     engine_logger(log_config_error, basic)
@@ -140,7 +141,8 @@ void applier::state::apply(configuration::state& new_cfg,
   } catch (std::exception const& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
-    if (!has_already_been_loaded) throw;
+    if (!has_already_been_loaded)
+      throw;
 
     // If is not the first time, we can restore the old one.
     engine_logger(log_config_error, basic)
@@ -171,7 +173,8 @@ void applier::state::apply(configuration::State& new_cfg) {
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
-    if (!has_already_been_loaded) throw;
+    if (!has_already_been_loaded)
+      throw;
 
     // If is not the first time, we can restore the old one.
     config_logger->error("Error: Could not apply new configuration: {}",
@@ -201,7 +204,8 @@ void applier::state::apply(configuration::State& new_cfg,
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
-    if (!has_already_been_loaded) throw;
+    if (!has_already_been_loaded)
+      throw;
 
     // If is not the first time, we can restore the old one.
     config_logger->error("Cannot apply new configuration: {}", e.what());
@@ -315,13 +319,17 @@ applier::state::user_macros_find(std::string const& key) const {
  *  Lock state
  *
  */
-void applier::state::lock() { _apply_lock.lock(); }
+void applier::state::lock() {
+  _apply_lock.lock();
+}
 
 /**
  *  Unlock state
  *
  */
-void applier::state::unlock() { _apply_lock.unlock(); }
+void applier::state::unlock() {
+  _apply_lock.unlock();
+}
 
 #ifdef DEBUG_CONFIG
 /**
@@ -855,6 +863,8 @@ void applier::state::apply_log_config(configuration::state& new_cfg) {
     log_cfg.set_level("macros", new_cfg.log_level_macros());
     log_cfg.set_level("process", new_cfg.log_level_process());
     log_cfg.set_level("runtime", new_cfg.log_level_runtime());
+    if (has_already_been_loaded)
+      log_cfg.allow_only_atomic_changes(true);
     log_v2::instance().apply(log_cfg);
   } else {
     if (!new_cfg.log_file().empty())
@@ -1272,7 +1282,8 @@ void applier::state::_processing(configuration::state& new_cfg,
 #endif
 
     // Load retention.
-    if (state) _apply(new_cfg, *state);
+    if (state)
+      _apply(new_cfg, *state);
 
     // Apply scheduler.
     if (!verify_config)
@@ -1423,7 +1434,8 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   // Cleanup.
   //  if (modify_perfdata)
   //    xpddefault_cleanup_performance_data();
-  if (modify_status) xsddefault_cleanup_status_data(true);
+  if (modify_status)
+    xsddefault_cleanup_status_data(true);
 
   // Set new values.
   config->accept_passive_host_checks(new_cfg.accept_passive_host_checks());
@@ -1562,7 +1574,8 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   }
 
   // Initialize.
-  if (modify_status) xsddefault_initialize_status_data();
+  if (modify_status)
+    xsddefault_initialize_status_data();
 
   // Check global event handler commands...
   if (verify_config) {
@@ -2057,7 +2070,8 @@ void applier::state::_processing(configuration::State& new_cfg,
 #endif
 
     // Load retention.
-    if (state) _pb_apply(new_cfg, *state);
+    if (state)
+      _pb_apply(new_cfg, *state);
 
     // Apply scheduler.
     if (!verify_config)
@@ -2194,7 +2208,8 @@ void applier::state::_pb_apply(const configuration::State& new_cfg) {
   // Cleanup.
   //  if (modify_perfdata)
   //    xpddefault_cleanup_performance_data();
-  if (modify_status) xsddefault_cleanup_status_data(true);
+  if (modify_status)
+    xsddefault_cleanup_status_data(true);
 
   // Set new values.
   pb_config.set_accept_passive_host_checks(
@@ -2350,7 +2365,8 @@ void applier::state::_pb_apply(const configuration::State& new_cfg) {
   }
 
   // Initialize.
-  if (modify_status) xsddefault_initialize_status_data();
+  if (modify_status)
+    xsddefault_initialize_status_data();
 
   // Check global event handler commands...
   if (verify_config) {
@@ -2523,6 +2539,8 @@ void applier::state::apply_log_config(configuration::State& new_cfg) {
     log_cfg.set_level("macros", new_cfg.log_level_macros());
     log_cfg.set_level("process", new_cfg.log_level_process());
     log_cfg.set_level("runtime", new_cfg.log_level_runtime());
+    if (has_already_been_loaded)
+      log_cfg.allow_only_atomic_changes(true);
     log_v2::instance().apply(log_cfg);
   } else {
     if (!new_cfg.log_file().empty())

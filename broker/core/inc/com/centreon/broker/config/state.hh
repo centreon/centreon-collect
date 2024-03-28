@@ -55,19 +55,6 @@ class state {
   size_t _pool_size;
 
   common::log_v2::config _log_conf;
-  //  struct log {
-  //    std::string directory;
-  //    std::string filename;
-  //    std::size_t max_size;
-  //    uint32_t flush_period;
-  //    bool log_pid;
-  //    bool log_source;
-  //    absl::flat_hash_map<std::string, std::string> loggers;
-  //
-  //    std::string log_path() const {
-  //      return fmt::format("{}/{}", directory, filename);
-  //    }
-  //  } _log_conf;
 
  public:
   /**
