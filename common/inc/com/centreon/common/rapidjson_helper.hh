@@ -261,8 +261,16 @@ class rapidjson_helper {
                          const char* default_value) const;
 
   double get_double(const char* field_name) const;
+  float get_float(const char* field_name) const;
 
   uint64_t get_uint64_t(const char* field_name) const;
+  int64_t get_int64_t(const char* field_name) const;
+
+  uint32_t get_uint32_t(const char* field_name) const;
+  int32_t get_int32_t(const char* field_name) const;
+
+  uint16_t get_uint16_t(const char* field_name) const;
+  int16_t get_int16_t(const char* field_name) const;
 
   unsigned get_unsigned(const char* field_name) const;
   unsigned get_unsigned(const char* field_name, unsigned default_value) const;
@@ -274,6 +282,10 @@ class rapidjson_helper {
   bool get_bool(const char* field_name) const;
 
   bool get_bool(const char* field_name, bool default_value) const;
+
+  // as overriding can't be done with returned type, we use a templated method
+  template <typename value_type>
+  value_type get(const char* field_name);
 
   const rapidjson::Value& get_member(const char* field_name) const;
 
@@ -295,6 +307,70 @@ class rapidjson_helper {
   static rapidjson::Document read_from_string(
       const std::string_view& json_content);
 };
+
+/**
+ * @brief by default doesn't compile
+ * Only following specializations are valid
+ *
+ * @tparam value_type std::string, uint64_t, double....
+ * @param field_name
+ * @return value_type
+ */
+template <typename value_type>
+inline value_type rapidjson_helper::get(const char* field_name) {
+  class not_convertible {};
+  static_assert(std::is_convertible<value_type, not_convertible>::value);
+}
+
+template <>
+inline std::string rapidjson_helper::get<std::string>(const char* field_name) {
+  return get_string(field_name);
+}
+
+template <>
+inline double rapidjson_helper::get<double>(const char* field_name) {
+  return get_double(field_name);
+}
+
+template <>
+inline float rapidjson_helper::get<float>(const char* field_name) {
+  return get_float(field_name);
+}
+
+template <>
+inline uint64_t rapidjson_helper::get<uint64_t>(const char* field_name) {
+  return get_uint64_t(field_name);
+}
+
+template <>
+inline int64_t rapidjson_helper::get<int64_t>(const char* field_name) {
+  return get_int64_t(field_name);
+}
+
+template <>
+inline uint32_t rapidjson_helper::get<uint32_t>(const char* field_name) {
+  return get_uint32_t(field_name);
+}
+
+template <>
+inline int32_t rapidjson_helper::get<int32_t>(const char* field_name) {
+  return get_int32_t(field_name);
+}
+
+template <>
+inline uint16_t rapidjson_helper::get<uint16_t>(const char* field_name) {
+  return get_uint16_t(field_name);
+}
+
+template <>
+inline int16_t rapidjson_helper::get<int16_t>(const char* field_name) {
+  return get_int16_t(field_name);
+}
+
+template <>
+inline bool rapidjson_helper::get<bool>(const char* field_name) {
+  return get_bool(field_name);
+}
 
 /**
  * @brief This class is helper to build json validator from a json string
