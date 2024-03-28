@@ -315,7 +315,7 @@ BERDUC3U2
 
     ${start}    Ctn Get Round Current Date
     # Let's wait for a first service status.
-    ${content}    Create List    SQL: pb service .* status .* type .* check result output
+    ${content}    Create List    unified_sql: pb service status of .* state .* type .* check result output
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result[0]}    We did not get any pb service status for 60s
 
