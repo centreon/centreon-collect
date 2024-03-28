@@ -110,6 +110,24 @@ double rapidjson_helper::get_double(const char* field_name) const {
 }
 
 /**
+ * @brief read a float field
+ *
+ * @param field_name
+ * @return const char* field value
+ * @throw msg_fmt if member does not exist or field value is nor a float nor a
+ * string containing a float
+ */
+float rapidjson_helper::get_float(const char* field_name) const {
+  return get<float>(
+      field_name, "float",
+      [](const rapidjson::Value& val) {
+        return val.IsFloat() || val.IsInt() || val.IsUint() || val.IsInt64() ||
+               val.IsUint64();
+      },
+      &rapidjson::Value::GetFloat, &absl::SimpleAtof);
+}
+
+/**
  * @brief read a uint64_t field
  *
  * @param field_name
@@ -122,6 +140,91 @@ uint64_t rapidjson_helper::get_uint64_t(const char* field_name) const {
       field_name, "uint64",
       [](const rapidjson::Value& val) { return val.IsUint64(); },
       &rapidjson::Value::GetUint64, &absl::SimpleAtoi<uint64_t>);
+}
+
+/**
+ * @brief read a int64_t field
+ *
+ * @param field_name
+ * @return const char* field value
+ * @throw msg_fmt if member does not exist or field value is nor a int64_t nor
+ * a string containing a int64_t
+ */
+int64_t rapidjson_helper::get_int64_t(const char* field_name) const {
+  return get<int64_t>(
+      field_name, "int64",
+      [](const rapidjson::Value& val) { return val.IsInt64(); },
+      &rapidjson::Value::GetInt64, &absl::SimpleAtoi<int64_t>);
+}
+
+/**
+ * @brief read a uint32_t field
+ *
+ * @param field_name
+ * @return const char* field value
+ * @throw msg_fmt if member does not exist or field value is nor a uint32_t nor
+ * a string containing a uint32_t
+ */
+uint32_t rapidjson_helper::get_uint32_t(const char* field_name) const {
+  uint64_t to_test = get_uint64_t(field_name);
+  if (to_test > std::numeric_limits<uint32_t>::max()) {
+    throw exceptions::msg_fmt("field {}:uint32_t overflow {}", field_name,
+                              to_test);
+  }
+  return to_test;
+}
+
+/**
+ * @brief read a int32_t field
+ *
+ * @param field_name
+ * @return const char* field value
+ * @throw msg_fmt if member does not exist or field value is nor a int32_t nor
+ * a string containing a int32_t
+ */
+int32_t rapidjson_helper::get_int32_t(const char* field_name) const {
+  int64_t to_test = get_int64_t(field_name);
+  if (to_test > std::numeric_limits<int32_t>::max() ||
+      to_test < std::numeric_limits<int32_t>::min()) {
+    throw exceptions::msg_fmt("field {}:int32_t overflow {}", field_name,
+                              to_test);
+  }
+  return to_test;
+}
+
+/**
+ * @brief read a uint16_t field
+ *
+ * @param field_name
+ * @return const char* field value
+ * @throw msg_fmt if member does not exist or field value is nor a uint16_t nor
+ * a string containing a uint16_t
+ */
+uint16_t rapidjson_helper::get_uint16_t(const char* field_name) const {
+  uint64_t to_test = get_uint64_t(field_name);
+  if (to_test > std::numeric_limits<uint16_t>::max()) {
+    throw exceptions::msg_fmt("field {}:uint16_t overflow {}", field_name,
+                              to_test);
+  }
+  return to_test;
+}
+
+/**
+ * @brief read a int16_t field
+ *
+ * @param field_name
+ * @return const char* field value
+ * @throw msg_fmt if member does not exist or field value is nor a int16_t nor
+ * a string containing a int16_t
+ */
+int16_t rapidjson_helper::get_int16_t(const char* field_name) const {
+  int64_t to_test = get_int64_t(field_name);
+  if (to_test > std::numeric_limits<int16_t>::max() ||
+      to_test < std::numeric_limits<int16_t>::min()) {
+    throw exceptions::msg_fmt("field {}:int16_t overflow {}", field_name,
+                              to_test);
+  }
+  return to_test;
 }
 
 /**
