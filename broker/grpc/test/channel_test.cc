@@ -25,15 +25,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 class grpc_channel_tester : public testing::Test {
- public:
-  static void SetUpTestSuite() {
-    g_io_context->restart();
-    com::centreon::broker::pool::load(g_io_context, 1);
-    // log_v2::grpc()->set_level(spdlog::level::trace);
-  }
 };
 
 static com::centreon::broker::grpc::grpc_config::pointer conf1(
@@ -58,7 +50,7 @@ class channel_test : public channel {
       : channel("channel_test", conf) {}
 
   void start_write(const channel::event_with_data::pointer& to_send) override {
-    pool::io_context().post(
+    com::centreon::common::pool::io_context().post(
         [me = shared_from_this()]() { me->simul_on_write(); });
   }
 
@@ -68,7 +60,7 @@ class channel_test : public channel {
   }
 
   void start_read(event_ptr& to_read, bool first_read) override {
-    pool::io_context().post(
+    com::centreon::common::pool::io_context().post(
         [me = shared_from_this(), to_read]() { me->simul_on_read(); });
   }
 

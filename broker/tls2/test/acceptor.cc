@@ -30,19 +30,17 @@
 #include "com/centreon/broker/misc/buffer.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/tcp/connector.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
 #include "com/centreon/broker/tls2/acceptor.hh"
 #include "com/centreon/broker/tls2/connector.hh"
 #include "com/centreon/broker/tls2/internal.hh"
 #include "com/centreon/broker/tls2/stream.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
-
-extern std::shared_ptr<asio::io_context> g_io_context;
 
 const static std::string test_addr("127.0.0.1");
 constexpr static uint16_t test_port(4444);
@@ -50,15 +48,12 @@ constexpr static uint16_t test_port(4444);
 class Tls2Test : public ::testing::Test {
  public:
   void SetUp() override {
-    g_io_context->restart();
-    pool::load(g_io_context >, 0);
     tcp::tcp_async::load();
     tls2::initialize();
   }
 
   void TearDown() override {
     tcp::tcp_async::unload();
-    pool::unload();
   }
 };
 

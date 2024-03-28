@@ -3,7 +3,7 @@
     {
       "name": "abseil",
       "features": [
-	"cxx17"
+        "cxx17"
       ]
     },
     "libmariadb",
@@ -21,14 +21,9 @@
     "boost-interprocess",
     "boost-exception",
     "boost-serialization",
-    {
-      "name": "opentelemetry-cpp",
-      "features": [
-	"otlp-grpc",
-	"otlp-http"
-      ]
-    },
+    "boost-url",
     "nlohmann-json",
+    "rapidjson",
     "gtest"
   ]
 }

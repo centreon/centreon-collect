@@ -301,6 +301,13 @@ host::host(uint64_t host_id,
                 (flap_detection_on_up > 0 ? up : 0));
 }
 
+host::~host() {
+  std::shared_ptr<commands::command> cmd = get_check_command_ptr();
+  if (cmd) {
+    cmd->unregister_host_serv(name(), "");
+  }
+}
+
 uint64_t host::host_id() const {
   return _id;
 }
@@ -1219,7 +1226,8 @@ int host::handle_async_check_result_3x(
 
   engine_logger(dbg_functions, basic) << "handle_async_host_check_result_3x()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(),
-                      "handle_async_host_check_result_3x()");
+                      "handle_async_host_check_result_3x() host {} res:{}",
+                      name(), queued_check_result);
 
   /* get the current time */
   time_t current_time = std::time(nullptr);
@@ -1764,12 +1772,9 @@ int host::run_async_check(int check_options,
   double old_latency(get_latency());
   set_latency(latency);
 
-  // Get current host macros.
   nagios_macros* macros(get_global_macros());
-  grab_host_macros_r(macros, this);
-  std::string tmp;
-  get_raw_command_line_r(macros, get_check_command_ptr(),
-                         check_command().c_str(), tmp, 0);
+
+  std::string processed_cmd = get_check_command_line(macros);
 
   // Time to start command.
   gettimeofday(&start_time, nullptr);
@@ -1784,10 +1789,6 @@ int host::run_async_check(int check_options,
 
   // Set the execution flag.
   set_is_executing(true);
-
-  // Get command object.
-  commands::command* cmd = get_check_command_ptr().get();
-  std::string processed_cmd(cmd->process_cmd(macros));
 
   // Send event broker.
   broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, this, checkable::check_active,
@@ -1840,8 +1841,9 @@ int host::run_async_check(int check_options,
       retry = false;
       try {
         // Run command.
-        uint64_t id = cmd->run(processed_cmd, *macros,
-                               config->host_check_timeout(), check_result_info);
+        uint64_t id = get_check_command_ptr()->run(processed_cmd, *macros,
+                                                   config->host_check_timeout(),
+                                                   check_result_info);
       } catch (com::centreon::exceptions::interruption const& e) {
         retry = true;
       } catch (std::exception const& e) {
@@ -4024,4 +4026,38 @@ void host::resolve(int& w, int& e) {
 timeperiod* host::get_notification_timeperiod() const {
   /* if the service has no notification period, inherit one from the host */
   return get_notification_period_ptr();
+}
+
+/**
+ * @brief update check command
+ *
+ * @param cmd
+ */
+void host::set_check_command_ptr(
+    const std::shared_ptr<commands::command>& cmd) {
+  std::shared_ptr<commands::command> old = get_check_command_ptr();
+  if (cmd == old) {
+    return;
+  }
+
+  if (old) {
+    old->unregister_host_serv(name(), "");
+  }
+  notifier::set_check_command_ptr(cmd);
+  if (cmd) {
+    cmd->register_host_serv(name(), "");
+  }
+}
+
+/**
+ * @brief calculate final check command with macros replaced
+ *
+ * @return std::string
+ */
+std::string host::get_check_command_line(nagios_macros* macros) {
+  grab_host_macros_r(macros, this);
+  std::string tmp;
+  get_raw_command_line_r(macros, get_check_command_ptr(),
+                         check_command().c_str(), tmp, 0);
+  return get_check_command_ptr()->process_cmd(macros);
 }

@@ -48,6 +48,7 @@ using namespace com::centreon::engine::configuration::applier;
 class AnomalydetectionCheck : public TestEngine {
  public:
   void SetUp() override {
+    ::unlink("/tmp/thresholds_status_change.json");
     init_config_state();
 
     log_v2::checks()->set_level(spdlog::level::trace);

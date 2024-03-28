@@ -432,6 +432,8 @@ class state {
   void log_level_process(std::string const& value);
   std::string const& log_level_runtime() const noexcept;
   void log_level_runtime(std::string const& value);
+  std::string const& log_level_otl() const noexcept;
+  void log_level_otl(std::string const& value);
   std::string const& use_timezone() const noexcept;
   void use_timezone(std::string const& value);
   bool use_true_regexp_matching() const noexcept;
@@ -554,6 +556,7 @@ class state {
   bool _execute_host_checks;
   bool _execute_service_checks;
   int _external_command_buffer_slots;
+
   std::string _global_host_event_handler;
   std::string _global_service_event_handler;
   float _high_host_flap_threshold;
@@ -660,6 +663,7 @@ class state {
   std::string _log_level_macros;
   std::string _log_level_process;
   std::string _log_level_runtime;
+  std::string _log_level_otl;
   std::string _use_timezone;
   bool _use_true_regexp_matching;
 

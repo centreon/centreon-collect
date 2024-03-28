@@ -21,8 +21,6 @@
 
 using namespace com::centreon::broker;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 /**
  *  Check that the logger configuration class can be copied properly.
  *
@@ -30,7 +28,6 @@ extern std::shared_ptr<asio::io_context> g_io_context;
  */
 TEST(init, init) {
   // First object.
-  g_io_context->restart();
   config::applier::init(0, "test", 0);
   ASSERT_NO_THROW(config::applier::deinit());
 }

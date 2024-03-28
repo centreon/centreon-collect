@@ -1,28 +1,29 @@
 /**
-* Copyright 1999-2009 Ethan Galstad
-* Copyright 2009-2010 Nagios Core Development Team and Community Contributors
-* Copyright 2011-2021 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 1999-2009 Ethan Galstad
+ * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
+ * Copyright 2011-2021 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
 #endif  // HAVE_GETOPT_H
 #include <unistd.h>
+#include <forward_list>
 #include <random>
 #include <string>
 
@@ -37,6 +38,7 @@ namespace asio = boost::asio;
 #include <boost/container/flat_map.hpp>
 #include <boost/optional.hpp>
 
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -70,7 +72,9 @@ using namespace com::centreon::engine;
 
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
-bool g_io_context_started = false;
+
+std::unique_ptr<com::centreon::common::pool>
+    com::centreon::common::pool::_instance;
 
 // Error message when configuration parsing fail.
 #define ERROR_CONFIGURATION                                                  \
@@ -113,6 +117,7 @@ int main(int argc, char* argv[]) {
   // Hack to instanciate the logger.
   log_v2::load(g_io_context);
   configuration::applier::logging::instance();
+  com::centreon::common::pool::load(g_io_context, log_v2::runtime());
 
   logging::broker backend_broker_log;
 
@@ -429,20 +434,7 @@ int main(int argc, char* argv[]) {
         broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
 
         // if neb has not started g_io_context we do it here
-        if (!g_io_context_started) {
-          SPDLOG_LOGGER_INFO(log_v2::process(),
-                             "io_context not started => create thread");
-          std::thread asio_thread([cont = g_io_context]() {
-            try {
-              cont->run();
-            } catch (const std::exception& e) {
-              SPDLOG_LOGGER_CRITICAL(log_v2::process(),
-                                     "catch in io_context run: {}", e.what());
-            }
-          });
-          asio_thread.detach();
-          g_io_context_started = true;
-        }
+        com::centreon::common::pool::set_pool_size(1);
 
         // Get event start time and save as macro.
         event_start = time(NULL);
@@ -509,6 +501,8 @@ int main(int argc, char* argv[]) {
   // Unload singletons and global objects.
   delete config;
   config = nullptr;
+  g_io_context->stop();
+  com::centreon::common::pool::unload();
 
   return retval;
 }

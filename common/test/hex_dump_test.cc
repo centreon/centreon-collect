@@ -18,7 +18,7 @@
 
 #include <gtest/gtest.h>
 
-#include "com/centreon/common/hex_dump.hh"
+#include "hex_dump.hh"
 
 using namespace com::centreon::common;
 

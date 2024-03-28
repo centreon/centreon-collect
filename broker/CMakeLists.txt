@@ -110,7 +110,8 @@ add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc"
                                                   "${SRC_DIR}/broker.pb.h")
 
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
-                    ${CMAKE_SOURCE_DIR}/common/inc)
+                    ${CMAKE_SOURCE_DIR}/common/inc
+                    ${CMAKE_SOURCE_DIR}/bbdo)
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
@@ -349,7 +350,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/uuid.cc
     ${SRC_DIR}/misc/variant.cc
     ${SRC_DIR}/modules/handle.cc
-    ${SRC_DIR}/pool.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
     ${SRC_DIR}/processing/acceptor.cc
@@ -419,7 +419,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/misc/trash.hh
     ${INC_DIR}/misc/variant.hh
     ${INC_DIR}/modules/handle.hh
-    ${INC_DIR}/pool.hh
     ${INC_DIR}/persistent_cache.hh
     ${INC_DIR}/persistent_file.hh
     ${INC_DIR}/processing/acceptor.hh
@@ -454,6 +453,7 @@ target_link_libraries(
   bbdo_bbdo
   pb_bbdo_lib
   pb_extcmd_lib
+  pb_open_telemetry_lib
   berpc
   z
   spdlog::spdlog
@@ -509,7 +509,7 @@ add_subdirectory(core/sql)
 # Generator module.
 add_broker_module(GENERATOR OFF)
 add_broker_module(STATS ON)
-add_broker_module(STATS_EXPORTER ON)
+#add_broker_module(STATS_EXPORTER OFF)
 add_broker_module(NEB ON)
 add_broker_module(RRD ON)
 add_broker_module(UNIFIED_SQL ON)
@@ -524,7 +524,6 @@ add_broker_module(TLS2 OFF)
 add_broker_module(DUMP OFF)
 add_broker_module(GRPC ON)
 add_broker_module(VICTORIA_METRICS ON)
-add_subdirectory(http_client)
 add_subdirectory(http_tsdb)
 
 # Lua module.

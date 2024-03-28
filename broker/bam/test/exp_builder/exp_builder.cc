@@ -34,7 +34,6 @@
 
 using namespace com::centreon::broker;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
 
 class BamExpBuilder : public ::testing::Test {
  protected:
@@ -42,7 +41,6 @@ class BamExpBuilder : public ::testing::Test {
 
  public:
   void SetUp() override {
-    g_io_context->restart();
     try {
       config::applier::init(0, "test_broker", 0);
       log_v2::bam()->set_level(spdlog::level::debug);

@@ -18,11 +18,12 @@
 
 # Global options.
 set(INC_DIR "${PROJECT_SOURCE_DIR}/victoria_metrics/inc/com/centreon/broker/victoria_metrics")
+set(HTTP_INC_DIR "${CMAKE_SOURCE_DIR}/common/http/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/victoria_metrics/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/victoria_metrics/test")
 include_directories(inc
   ${PROJECT_SOURCE_DIR}/http_tsdb/inc
-  ${PROJECT_SOURCE_DIR}/http_client/inc
+  ${HTTP_INC_DIR}
   ${PROJECT_SOURCE_DIR}/neb/inc
 )
 
@@ -53,7 +54,7 @@ add_library("${VICTORIA_METRICS}" SHARED
 set_target_properties("${VICTORIA_METRICS}" PROPERTIES PREFIX "")
 target_link_libraries("${VICTORIA_METRICS}"
   http_tsdb
-  http_client
+  centreon_http
   bbdo_storage pb_storage_lib spdlog::spdlog)
 target_precompile_headers(${VICTORIA_METRICS} PRIVATE precomp_inc/precomp.hh)
 

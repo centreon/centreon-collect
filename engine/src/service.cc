@@ -159,8 +159,10 @@ service::service(const std::string& hostname,
 }
 
 service::~service() noexcept {
-  if (get_check_command_ptr()) {
-    get_check_command_ptr()->remove_caller(this);
+  std::shared_ptr<commands::command> cmd = get_check_command_ptr();
+  if (cmd) {
+    cmd->remove_caller(this);
+    cmd->unregister_host_serv(_hostname, description());
   }
 }
 
@@ -2612,11 +2614,7 @@ int service::run_async_check_local(int check_options,
 
   // Get current host and service macros.
   nagios_macros* macros(get_global_macros());
-  grab_host_macros_r(macros, svc->get_host_ptr());
-  grab_service_macros_r(macros, svc);
-  std::string tmp;
-  get_raw_command_line_r(macros, get_check_command_ptr(),
-                         svc->check_command().c_str(), tmp, 0);
+  std::string processed_cmd = svc->get_check_command_line(macros);
 
   // Time to start command.
   gettimeofday(&start_time, nullptr);
@@ -2630,10 +2628,6 @@ int service::run_async_check_local(int check_options,
 
   // Set the execution flag.
   set_is_executing(true);
-
-  // Get command object.
-  commands::command* cmd = get_check_command_ptr().get();
-  std::string processed_cmd(cmd->process_cmd(macros));
 
   // Send event broker.
   res = broker_service_check(NEBTYPE_SERVICECHECK_INITIATE, this,
@@ -2692,9 +2686,9 @@ int service::run_async_check_local(int check_options,
       retry = false;
       try {
         // Run command.
-        uint64_t id =
-            cmd->run(processed_cmd, *macros, config->service_check_timeout(),
-                     check_result_info, this);
+        uint64_t id = get_check_command_ptr()->run(
+            processed_cmd, *macros, config->service_check_timeout(),
+            check_result_info, this);
         SPDLOG_LOGGER_DEBUG(log_v2::checks(),
                             "run id={} {} for service {} host {}", id,
                             processed_cmd, _service_id, _hostname);
@@ -3922,4 +3916,33 @@ bool service::get_host_problem_at_last_check() const {
  */
 service_type service::get_service_type() const {
   return _service_type;
+}
+
+void service::set_check_command_ptr(
+    const std::shared_ptr<commands::command>& cmd) {
+  std::shared_ptr<commands::command> old = get_check_command_ptr();
+  if (cmd == old) {
+    return;
+  }
+  if (old) {
+    old->unregister_host_serv(_hostname, description());
+  }
+  notifier::set_check_command_ptr(cmd);
+  if (cmd) {
+    cmd->register_host_serv(_hostname, description());
+  }
+}
+
+/**
+ * @brief calculate final check command with macros replaced
+ *
+ * @return std::string
+ */
+std::string service::get_check_command_line(nagios_macros* macros) {
+  grab_host_macros_r(macros, get_host_ptr());
+  grab_service_macros_r(macros, this);
+  std::string tmp;
+  get_raw_command_line_r(macros, get_check_command_ptr(),
+                         check_command().c_str(), tmp, 0);
+  return get_check_command_ptr()->process_cmd(macros);
 }

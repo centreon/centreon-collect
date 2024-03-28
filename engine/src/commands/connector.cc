@@ -56,7 +56,7 @@ connector_map connector::connectors;
 connector::connector(const std::string& connector_name,
                      const std::string& connector_line,
                      command_listener* listener)
-    : command(connector_name, connector_line, listener),
+    : command(connector_name, connector_line, listener, e_type::connector),
       process_listener(),
       _is_running(false),
       _query_quit_ok(false),

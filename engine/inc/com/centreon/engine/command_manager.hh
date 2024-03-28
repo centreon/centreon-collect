@@ -20,8 +20,6 @@
 #ifndef CCE_COMMAND_MANAGER_HH
 #define CCE_COMMAND_MANAGER_HH
 
-#include <future>
-
 #include "com/centreon/engine/engine_impl.hh"
 #include "com/centreon/engine/host.hh"
 
@@ -69,6 +67,6 @@ class command_manager {
                                               unsigned long duration);
 };
 
-}
+}  // namespace com::centreon::engine
 
 #endif /* !CCE_STATISTICS_HH */

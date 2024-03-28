@@ -44,6 +44,7 @@ add_library("${SQL}" SHARED
 add_dependencies(${SQL}
 	pb_neb_lib
 	pb_header_lib
+	pb_open_telemetry_lib
 	)
 
 set_target_properties("${SQL}" PROPERTIES

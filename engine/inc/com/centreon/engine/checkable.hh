@@ -157,7 +157,8 @@ class checkable {
   virtual bool is_in_downtime() const = 0;
   void set_event_handler_ptr(commands::command* cmd);
   commands::command* get_event_handler_ptr() const;
-  void set_check_command_ptr(const std::shared_ptr<commands::command>& cmd);
+  virtual void set_check_command_ptr(
+      const std::shared_ptr<commands::command>& cmd);
   inline const std::shared_ptr<commands::command>& get_check_command_ptr()
       const {
     return _check_command_ptr;
@@ -240,6 +241,6 @@ class checkable {
   whitelist_last_result _whitelist_last_result;
 };
 
-}
+}  // namespace com::centreon::engine
 
 #endif /* !CCE_CHECKABLE */

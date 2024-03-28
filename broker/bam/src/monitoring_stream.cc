@@ -38,8 +38,8 @@
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_status.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/timestamp.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -68,7 +68,7 @@ monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
       _pending_request(0),
       _storage_db_cfg(storage_db_cfg),
       _cache(std::move(cache)),
-      _forced_svc_checks_timer{pool::io_context()} {
+      _forced_svc_checks_timer{com::centreon::common::pool::io_context()} {
   SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream constructor");
   if (!_conf_queries_per_transaction) {
     _conf_queries_per_transaction = 1;

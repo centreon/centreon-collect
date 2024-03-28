@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2013 Merethis
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013 Merethis
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -35,10 +35,9 @@ using namespace com::centreon::engine::commands;
  */
 forward::forward(std::string const& command_name,
                  std::string const& command_line,
-                 std::shared_ptr<connector>& cmd)
-    : command(command_name, command_line, nullptr),
-      _s_command(cmd),
-      _command(cmd.get()) {
+                 const std::shared_ptr<command>& cmd)
+    : command(command_name, command_line, nullptr, e_type::forward),
+      _command(cmd) {
   if (_name.empty())
     throw engine_error() << "Could not create a command with an empty name";
   if (_command_line.empty())
@@ -79,4 +78,26 @@ void forward::run(std::string const& processed_cmd,
                   uint32_t timeout,
                   result& res) {
   _command->run(processed_cmd, macros, timeout, res);
+}
+
+/**
+ * @brief notify a command of host service owner
+ *
+ * @param host
+ * @param service_description
+ */
+void forward::register_host_serv(const std::string& host,
+                                 const std::string& service_description) {
+  _command->register_host_serv(host, service_description);
+}
+
+/**
+ * @brief notify a command that a service is not using it anymore
+ *
+ * @param host
+ * @param service_description
+ */
+void forward::unregister_host_serv(const std::string& host,
+                                   const std::string& service_description) {
+  _command->unregister_host_serv(host, service_description);
 }

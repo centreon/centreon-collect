@@ -166,6 +166,9 @@ enum data_element {
   de_pb_status = 10,
   de_pb_index_mapping = 11,
   de_pb_metric_mapping = 12,
+  de_pb_otl_metrics =
+      13  // contain an
+          // ::opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest
 };
 }
 namespace bam {

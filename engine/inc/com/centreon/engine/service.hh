@@ -37,7 +37,7 @@ class host;
 class service;
 class servicegroup;
 class serviceescalation;
-}
+}  // namespace com::centreon::engine
 
 using service_map =
     absl::flat_hash_map<std::pair<std::string, std::string>,
@@ -46,8 +46,8 @@ using service_map_unsafe =
     absl::flat_hash_map<std::pair<std::string, std::string>,
                         com::centreon::engine::service*>;
 using service_id_map =
-    absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
-                        std::shared_ptr<com::centreon::engine::service>>;
+    std::map<std::pair<uint64_t, uint64_t>,
+             std::shared_ptr<com::centreon::engine::service>>;
 
 namespace com::centreon::engine {
 
@@ -214,8 +214,13 @@ class service : public notifier {
   host* get_host_ptr();
   bool get_host_problem_at_last_check() const;
 
+  void set_check_command_ptr(
+      const std::shared_ptr<commands::command>& cmd) override;
+
   static service_map services;
   static service_id_map services_by_id;
+
+  std::string get_check_command_line(nagios_macros* macros);
 
  private:
   uint64_t _host_id;
@@ -239,7 +244,7 @@ class service : public notifier {
   host* _host_ptr;
   bool _host_problem_at_last_check;
 };
-}
+}  // namespace com::centreon::engine
 
 com::centreon::engine::service* add_service(
     uint64_t host_id,
@@ -310,6 +315,6 @@ std::pair<std::string, std::string> get_host_and_service_names(
     const uint64_t service_id);
 uint64_t get_service_id(std::string const& host, std::string const& svc);
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_SERVICE_HH

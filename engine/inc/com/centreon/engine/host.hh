@@ -28,7 +28,7 @@ class contact;
 class host;
 class hostgroup;
 class hostescalation;
-}
+}  // namespace com::centreon::engine
 
 using host_map =
     absl::flat_hash_map<std::string,
@@ -102,7 +102,7 @@ class host : public notifier {
        bool obsess_over_host,
        std::string const& timezone,
        uint64_t icon_id);
-  ~host() noexcept = default;
+  ~host();
   uint64_t host_id() const;
   void set_host_id(uint64_t id);
   void add_child_host(host* child);
@@ -247,6 +247,9 @@ class host : public notifier {
   bool is_in_downtime() const override;
   void resolve(int& w, int& e);
 
+  void set_check_command_ptr(
+      const std::shared_ptr<commands::command>& cmd) override;
+
   host_map_unsafe parent_hosts;
   host_map_unsafe child_hosts;
   static host_map hosts;
@@ -255,6 +258,8 @@ class host : public notifier {
   service_map_unsafe services;
   std::list<hostgroup*> const& get_parent_groups() const;
   std::list<hostgroup*>& get_parent_groups();
+
+  std::string get_check_command_line(nagios_macros* macros);
 
  private:
   uint64_t _id;
@@ -288,7 +293,7 @@ class host : public notifier {
   std::list<hostgroup*> _hostgroups;
 };
 
-}
+}  // namespace com::centreon::engine
 
 int is_host_immediate_child_of_host(com::centreon::engine::host* parent,
                                     com::centreon::engine::host* child);
@@ -311,7 +316,7 @@ bool host_exists(uint64_t host_id) noexcept;
 uint64_t get_host_id(std::string const& name);
 std::string get_host_name(const uint64_t host_id);
 
-}
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os, host_map_unsafe const& obj);
 

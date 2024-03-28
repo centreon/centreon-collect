@@ -99,7 +99,7 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
       _instance_timeout{instance_timeout},
       _stats{stats::center::instance().register_conflict_manager()},
       _ref_count{0},
-      _group_clean_timer{pool::io_context()},
+      _group_clean_timer{com::centreon::common::pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("conflict_manager: class instanciation");
   stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
@@ -927,7 +927,8 @@ int32_t conflict_manager::unload(stream_type type) {
  * @param d The BBDO message with all the metrics/indexes to remove.
  */
 void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
-  asio::post(pool::instance().io_context(), [this, data = d] {
+  asio::post(com::centreon::common::pool::instance().io_context(), [this,
+                                                                    data = d] {
     mysql ms(_mysql.get_config());
     const bbdo::pb_remove_graphs& ids =
         *static_cast<const bbdo::pb_remove_graphs*>(data.get());
