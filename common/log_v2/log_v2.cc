@@ -68,17 +68,6 @@ const std::array<std::string, log_v2::LOGGER_SIZE> log_v2::_logger_name = {
     "macros",
     "runtime"};
 
-bool log_v2::_for_engine(log_v2::logger_id id) const {
-  const absl::flat_hash_set<log_v2::logger_id> for_engine = {
-      log_v2::CONFIG,      log_v2::PROCESS,          log_v2::FUNCTIONS,
-      log_v2::EVENTS,      log_v2::CHECKS,           log_v2::NOTIFICATIONS,
-      log_v2::EVENTBROKER, log_v2::EXTERNAL_COMMAND, log_v2::COMMANDS,
-      log_v2::DOWNTIMES,   log_v2::COMMENTS,         log_v2::MACROS,
-      log_v2::RUNTIME,
-  };
-  return for_engine.contains(id);
-}
-
 /**
  * @brief this function is passed to grpc in order to log grpc layer's events to
  * logv2
@@ -259,7 +248,6 @@ void log_v2::create_loggers(config::logger_type typ, size_t length) {
     logger->set_level(level::level_enum::info);
     spdlog::register_logger(logger);
     _loggers[id] = std::move(logger);
-    _slaves[id] = false;
 
     /* Hook for gRPC, not beautiful, but no idea how to do better. */
     if (id == GRPC)
@@ -296,7 +284,7 @@ void log_v2::apply(const config& log_conf) {
   spdlog::sink_ptr my_sink;
 
   /* This part is about sinks so it is reserved for masters */
-  if (!log_conf.is_slave()) {
+  if (!log_conf.only_atomic_changes()) {
     _file_path = log_conf.log_path();
     switch (log_conf.log_type()) {
       case config::logger_type::LOGGER_FILE: {
@@ -319,12 +307,12 @@ void log_v2::apply(const config& log_conf) {
       std::vector<spdlog::sink_ptr> sinks;
 
       /* Little hack to include the broker sink to engine loggers. */
-      if (_for_engine(static_cast<logger_id>(id)))
+      auto& name = _logger_name[id];
+      if (log_conf.loggers_with_custom_sinks().contains(name))
         sinks = log_conf.custom_sinks();
 
       sinks.push_back(my_sink);
       auto logger = _loggers[id];
-      auto& name = _logger_name[id];
       logger->sinks() = sinks;
       if (log_conf.log_pid()) {
         if (log_conf.log_source())

@@ -2718,6 +2718,7 @@ def ctn_broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
         An empty Protobuf object.
     """
     limit = time.time() + timeout
+    res = None
     while time.time() < limit:
         logger.console("Try to call GetBa")
         time.sleep(1)

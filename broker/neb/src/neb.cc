@@ -135,7 +135,7 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       // Initialization.
       /* This is a little hack to avoid to replace the log file set by
        * centengine */
-      s.mut_log_conf().set_slave(true);
+      s.mut_log_conf().allow_only_atomic_changes(true);
       com::centreon::broker::config::applier::init(s);
       //      try {
       //        log_v2::instance().apply(s.log_conf());

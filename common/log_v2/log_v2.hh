@@ -98,13 +98,10 @@ class log_v2 {
   std::string _file_path;
   const static std::array<std::string, LOGGER_SIZE> _logger_name;
   std::array<std::shared_ptr<spdlog::logger>, LOGGER_SIZE> _loggers;
-  std::array<bool, LOGGER_SIZE> _slaves;
   std::atomic<config::logger_type> _current_log_type;
   size_t _current_max_size = 0U;
   bool _log_pid = false;
   bool _log_source = false;
-
-  bool _for_engine(logger_id id) const;
 
  public:
   static void load(std::string name);
