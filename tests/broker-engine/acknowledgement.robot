@@ -8,6 +8,7 @@ Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
+
 *** Test Cases ***
 BEACK1
     [Documentation]    Engine has a critical service. An external command is sent to acknowledge it.
@@ -78,10 +79,6 @@ BEACK2
     Ctn Start Engine
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
-
-    # The service command is set to CRITICAL to also control active checks
-    ${cmd_id}    Ctn Get Service Command Id    ${1}
-    Ctn Set Command Status    ${cmd_id}    ${2}
 
     # The service command is set to CRITICAL to also control active checks
     ${cmd_id}    Ctn Get Service Command Id    ${1}
