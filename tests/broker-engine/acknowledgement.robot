@@ -83,6 +83,10 @@ BEACK2
     ${cmd_id}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_id}    ${2}
 
+    # The service command is set to CRITICAL to also control active checks
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard    host_1    service_1    ${2}    (1;1) is critical
     ${result}    Ctn Check Service Resource Status With Timeout
