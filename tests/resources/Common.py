@@ -596,8 +596,10 @@ def ctn_check_acknowledgement_with_timeout(hostname: str, service_desc: str, ent
 
         with connection:
             with connection.cursor() as cursor:
+                logger.console(
+                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time} ORDER BY entry_time DESC")
                 cursor.execute(
-                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time}")
+                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time} ORDER BY entry_time DESC")
                 result = cursor.fetchall()
                 if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status) and result[0]['deletion_time'] is None:
                     logger.console(
@@ -792,6 +794,7 @@ def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
             with connection.cursor() as cursor:
+                logger.console(f"SELECT * from mod_bam WHERE name='{ba_name}'")
                 cursor.execute(
                     f"SELECT * FROM mod_bam WHERE name='{ba_name}'")
                 result = cursor.fetchall()
@@ -1108,6 +1111,7 @@ def ctn_check_host_severity_with_timeout(host_id: int, severity_id, timeout: int
                     "select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = 0 and r.id={}".format(host_id))
                 result = cursor.fetchall()
                 if len(result) > 0:
+                    logger.console(result)
                     if severity_id == 'None':
                         if result[0]['id'] is None:
                             return True
@@ -1481,14 +1485,6 @@ def ctn_check_no_host_dependencies(timeout=TIMEOUT):
                 if len(result) > 0 and int(result[0]['count(*)']) == 0:
                     return True
     return False
-
-
-def ctn_grep(file_path: str, pattern: str):
-    with open(file_path, "r") as file:
-        for line in file:
-            if re.search(pattern, line):
-                return line.strip()
-    return ""
 
 
 def ctn_get_collect_version():
