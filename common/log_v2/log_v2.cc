@@ -208,7 +208,7 @@ log_v2::logger_id log_v2::get_id(const std::string& name) const noexcept {
  * @param length The max length of the log receiver (only used for files).
  */
 void log_v2::create_loggers(config::logger_type typ, size_t length) {
-  _configuring = true;
+  _not_threadsafe_configuration = true;
   sink_ptr my_sink;
 
   for (int32_t id = 0; id < LOGGER_SIZE; id++)
@@ -253,7 +253,7 @@ void log_v2::create_loggers(config::logger_type typ, size_t length) {
     if (id == GRPC)
       gpr_set_log_function(grpc_logger);
   }
-  _configuring = false;
+  _not_threadsafe_configuration = false;
 }
 
 /**
@@ -280,11 +280,11 @@ std::shared_ptr<spdlog::logger> log_v2::get(log_v2::logger_id idx) {
  * @param log_conf The configuration to apply
  */
 void log_v2::apply(const config& log_conf) {
-  _configuring = true;
   spdlog::sink_ptr my_sink;
 
   /* This part is about sinks so it is reserved for masters */
   if (!log_conf.only_atomic_changes()) {
+    _not_threadsafe_configuration = true;
     _file_path = log_conf.log_path();
     switch (log_conf.log_type()) {
       case config::logger_type::LOGGER_FILE: {
@@ -344,6 +344,7 @@ void log_v2::apply(const config& log_conf) {
         }
       }
     }
+    _not_threadsafe_configuration = false;
   }
 
   _flush_interval = std::chrono::seconds(
@@ -362,8 +363,6 @@ void log_v2::apply(const config& log_conf) {
         logger->flush_on(lvl);
     }
   }
-
-  _configuring = false;
 }
 
 /**

@@ -55,7 +55,7 @@ constexpr uint32_t log_v2_configuration = 3;
  * important not to store forever the logger's shared_ptr.
  */
 class log_v2 {
-  std::atomic_bool _configuring = false;
+  std::atomic_bool _not_threadsafe_configuration = false;
 
  public:
   enum logger_id {
@@ -126,7 +126,9 @@ class log_v2 {
   const std::string& log_name() const;
   void disable();
   void disable(std::initializer_list<logger_id> ilist);
-  bool configuring() const { return _configuring; }
+  bool not_threadsafe_configuration() const {
+    return _not_threadsafe_configuration;
+  }
 };
 }  // namespace com::centreon::common::log_v2
 #endif /* !CCC_LOG_V2_HH */

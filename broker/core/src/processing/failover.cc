@@ -281,7 +281,7 @@ void failover::_run() {
       time_t fill_stats_time = time(nullptr);
 
       while (!should_exit()) {
-	assert(!log_v2::instance().configuring());
+        assert(!log_v2::instance().not_threadsafe_configuration());
 
         // Check for update.
         if (_update) {
