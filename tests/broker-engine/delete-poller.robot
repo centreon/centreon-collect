@@ -487,22 +487,18 @@ EBDP7
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-
-    # Let's wait until engine listens to external_commands.
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands is missing.
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        Log To Console    Output= ${output}
-        IF    "${output}" != "()"    BREAK
+        Log To Console    Output with 3 pollers: ${output}
+        IF    ${output} != "()"    BREAK
     END
-    Should Be Equal As Strings    ${output}    ((3,),)
+    Should Be Equal As Strings    ${output}    ((3,),)    There are 3 running pollers.
 
-    # Let's brutally kill the poller
+    # Let's brutally kill the pollers
     Send Signal To Process    SIGKILL    e0
     Send Signal To Process    SIGKILL    e1
     Send Signal To Process    SIGKILL    e2
@@ -513,20 +509,18 @@ EBDP7
     Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Ctn Config Engine    ${2}    ${50}    ${20}
+    Ctn Config Broker    module    ${2}
+    Ctn Config BBDO3    ${2}
     ${start}    Get Current Date
     Ctn Clear Engine Logs
     Ctn Start engine
-
-    # Let's wait until engine listens to external_commands.
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands is missing.
+    Ctn Wait For Engine To Be Ready    ${2}
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT running, deleted, outdated FROM instances WHERE name='Poller2'
         Sleep    1s
-        Log To Console    Output= ${output}
-        IF    "${output[0][0]}" == "0" or "${output[0][1]}" == "1" or "${output[0][2]}" == "1"
+        Log To Console    Output with 2 pollers now: ${output}
+        IF    ${output[0][0]} == "0" or ${output[0][1]} == "1" or ${output[0][2]} == "1"
             BREAK
         END
     END

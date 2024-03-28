@@ -269,8 +269,7 @@ void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
         .get(log_v2::CORE)
         ->warn(
             "Poller '{}' with id {} already known as connected. Replacing it "
-            "with "
-            "'{}'",
+            "with '{}'",
             _connected_pollers[poller_id], poller_id, poller_name);
     found->second = poller_name;
   }

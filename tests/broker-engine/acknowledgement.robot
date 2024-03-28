@@ -27,6 +27,10 @@ BEACK1
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
+    # The service command is set to CRITICAL to also control active checks
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard    host_1    service_1    2    (1;1) is critical
     ${result}    Ctn Check Service Status With Timeout
@@ -40,6 +44,9 @@ BEACK1
     ...    host_1    service_1
     ...    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
+
+    # The service command is set to OK to also control active checks
+    Ctn Set Command Status    ${cmd_id}    ${0}
 
     # Service_1 is set back to OK.
     Ctn Process Service Result Hard    host_1    service_1    0    (1;1) is OK
@@ -76,6 +83,10 @@ BEACK2
     ...    ${result}
     ...    A message telling check_for_external_commands() should be available.
 
+    # The service command is set to CRITICAL to also control active checks
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard    host_1    service_1    ${2}    (1;1) is critical
     ${result}    Ctn Check Service Resource Status With Timeout
@@ -89,6 +100,9 @@ BEACK2
     ...    host_1    service_1
     ...    ${d}    2    600    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
+
+    # The service command is set to OK to also control active checks
+    Ctn Set Command Status    ${cmd_id}    ${0}
 
     # Service_1 is set back to OK.
     Ctn Process Service Result Hard    host_1    service_1    0    (1;1) is OK
@@ -118,6 +132,10 @@ BEACK3
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # The service command is set to CRITICAL to also control active checks
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
 
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard
@@ -162,6 +180,10 @@ BEACK4
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # The service command is set to CRITICAL to also control active checks
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
 
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard
@@ -209,6 +231,10 @@ BEACK5
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
+    # The service command is set to CRITICAL to also control active checks
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard    host_1    service_1    2    (1;1) is critical
     ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
@@ -217,6 +243,9 @@ BEACK5
     Ctn Acknowledge Service Problem    host_1    service_1    STICKY
     ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
+
+    # The service command is set to WARNING to also control active checks
+    Ctn Set Command Status    ${cmd_id}    ${1}
 
     # Service_1 is set to WARNING.
     Ctn Process Service Result Hard    host_1    service_1    1    (1;1) is WARNING
@@ -253,6 +282,10 @@ BEACK6
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
+    # The service command is set to CRITICAL to also control active checks
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard    host_1    service_1    ${2}    (1;1) is critical
     ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
@@ -262,6 +295,9 @@ BEACK6
     ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
     Log To Console    Acknowledgement ${ack_id} on service (1, 1).
+
+    # The service command is set to WARNING to also control active checks
+    Ctn Set Command Status    ${cmd_id}    ${1}
 
     # Service_1 is set to WARNING.
     Ctn Process Service Result Hard    host_1    service_1    1    (1;1) is WARNING
@@ -304,10 +340,11 @@ BEACK8
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
+    # The service command is set to CRITICAL to also control active checks
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     # Time to set the service to CRITICAL HARD.
-    # This is for the check command in case of an active check
-    ${cmd_id}    Ctn Get Service Command    1    1
-    Ctn Set Command Status    ${cmd_id}    2
     Ctn Process Service Result Hard    host_1    service_1    ${2}    Service (1;1) is critical HARD
     ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
