@@ -841,9 +841,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  * @return the number of events to ack.
  */
 int32_t stream::stop() {
-  log_v2::instance()
-      .get(log_v2::FUNCTIONS)
-      ->trace("unified_sql::stream stop {}", static_cast<void*>(this));
+  _logger_sql->trace("unified_sql::stream stop {}", static_cast<void*>(this));
   int32_t retval = flush();
   /* We give the order to stop the check_queues */
   _stop_check_queues = true;
