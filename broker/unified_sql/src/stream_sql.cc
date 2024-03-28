@@ -4072,8 +4072,7 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
   if (!_host_instance_known(ss.host_id)) {
     SPDLOG_LOGGER_WARN(_logger_sql,
                        "unified_sql: service status ({0}, {1}) thrown away "
-                       "because host {0} is not "
-                       "known by any poller",
+                       "because host {0} is not known by any poller",
                        ss.host_id, ss.service_id);
     return;
   }
