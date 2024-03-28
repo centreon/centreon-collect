@@ -1441,7 +1441,7 @@ BEEXTCMD33
         Ctn Start Broker
         Ctn Start Engine
         Ctn Wait For Engine To Be Ready    ${start}    ${1}
-        Disable Host Svc Notifications    ${use_grpc}    host_1
+        Ctn Disable Host Svc Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1456,7 +1456,7 @@ BEEXTCMD33
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Svc Notifications    ${use_grpc}    host_1
+        Ctn Enable Host Svc Notifications    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console
@@ -1488,7 +1488,7 @@ BEEXTCMD34
         Ctn Start Broker
         Ctn Start Engine
         Ctn Wait For Engine To Be Ready    ${start}    ${1}
-        Disable Host Svc Notifications    ${use_grpc}    host_1
+        Ctn Disable Host Svc Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -1503,7 +1503,7 @@ BEEXTCMD34
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host Svc Notifications    ${use_grpc}    host_1
+        Ctn Enable Host Svc Notifications    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console

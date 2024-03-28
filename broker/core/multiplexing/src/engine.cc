@@ -206,9 +206,6 @@ void engine::start() {
  */
 void engine::stop() {
   std::unique_lock<std::mutex> lock(_engine_m);
-  log_v2::instance()
-      .get(log_v2::FUNCTIONS)
-      ->trace("engine::engine stop {}", static_cast<void*>(this));
   if (_state != stopped) {
     // Notify hooks of multiplexing loop end.
     SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
@@ -390,8 +387,9 @@ bool engine::_send_to_subscribers(std::function<void()>&& callback) {
   {
     std::lock_guard<std::mutex> lck(_engine_m);
     if (_muxers.empty() || _kiew.empty()) {
-      // nothing to do
-      _sending_to_subscribers = false;
+      // nothing to do true => _sending_to_subscribers
+      bool expected = true;
+      _sending_to_subscribers.compare_exchange_strong(expected, false);
       return false;
     }
 
