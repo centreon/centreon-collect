@@ -315,7 +315,7 @@ Ctn Copy Coredump In Failed Dir
 Ctn Wait Or Dump And Kill Process
     [Arguments]    ${process_name}    ${binary_path}    ${timeout}
     ${result}    Wait For Process    ${process_name}    timeout=${timeout}    on_timeout=continu
-    ${test_none}    Set Variable If    $result is None    "not killed"    "killed"
+    ${test_none}    Set Variable If    $result is None    not killed    killed
     IF    ${test_none} == "not killed"
         ${pid}    Get Process Id    ${process_name}
         Ctn Dump Process    ${process_name}    ${binary_path}    ${process_name}
@@ -345,3 +345,16 @@ Ctn Process Service Result Hard
     ...    ${svc}
     ...    ${state}
     ...    ${output}
+
+Ctn Wait For Engine To Be Ready
+    [Arguments]    ${start}    ${nbEngine}=1
+    FOR    ${i}    IN RANGE    ${nbEngine}
+        # Let's wait for the external command check start
+        ${content}    Create List    check_for_external_commands()
+        ${result}    Ctn Find In Log With Timeout
+        ...    ${ENGINE_LOG}/config${i}/centengine.log
+        ...    ${start}    ${content}    60
+        Should Be True
+        ...    ${result}
+        ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.
+    END
