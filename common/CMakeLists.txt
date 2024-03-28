@@ -60,7 +60,7 @@ include_directories("${INCLUDE_DIR}"
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
 add_library(centreon_common STATIC ${SOURCES})
-target_include_directories(centreon_common PRIVATE ${INCLUDE_DIR} ${CONAN_INCLUDE_DIRS_RAPIDJSON})
+target_include_directories(centreon_common PRIVATE ${INCLUDE_DIR})
 set_property(TARGET centreon_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_precompile_headers(centreon_common PRIVATE precomp_inc/precomp.hh)

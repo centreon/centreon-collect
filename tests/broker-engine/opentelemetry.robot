@@ -324,7 +324,7 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
-    ...    open_telemetry attributes --host_attribute=data_point --host_key=host --service_attribute=data_point --service_key=service
+    ...    /usr/lib64/centreon-connector/open_telemetry attributes --host_attribute=data_point --host_key=host --service_attribute=data_point --service_key=service
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check_icmp_serv_1
     Ctn Engine Config Add Command
     ...    ${0}

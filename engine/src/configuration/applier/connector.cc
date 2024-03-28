@@ -65,11 +65,17 @@ void applier::connector::add_object(configuration::connector const& obj) {
 
   // Create connector.
   boost::trim(processed_cmd);
-  if (!processed_cmd.compare(0, _otel_fake_exe.length(), _otel_fake_exe)) {
+
+  // if executable connector path ends with open_telemetry, it's a fake
+  // opentelemetry connector
+  size_t end_path = processed_cmd.find(' ');
+  size_t otel_pos = processed_cmd.find(_otel_fake_exe);
+
+  if (otel_pos < end_path) {
     commands::otel_command::create(
         obj.connector_name(),
         boost::algorithm::trim_copy(
-            processed_cmd.substr(_otel_fake_exe.length())),
+            processed_cmd.substr(otel_pos + _otel_fake_exe.length())),
         &checks::checker::instance());
   } else {
     auto cmd = std::make_shared<commands::connector>(
@@ -115,13 +121,18 @@ void applier::connector::modify_object(configuration::connector const& obj) {
 
   boost::trim(processed_cmd);
 
-  bool otel_case =
-      !processed_cmd.compare(0, _otel_fake_exe.length(), _otel_fake_exe);
+  // if executable connector path ends with open_telemetry, it's a fake
+  // opentelemetry connector
+  size_t end_path = processed_cmd.find(' ');
+  size_t otel_pos = processed_cmd.find(_otel_fake_exe);
 
   connector_map::iterator exist_connector(
       commands::connector::connectors.find(obj.key()));
 
-  if (otel_case) {
+  if (otel_pos < end_path) {
+    std::string otel_cmdline = boost::algorithm::trim_copy(
+        processed_cmd.substr(otel_pos + _otel_fake_exe.length()));
+
     if (!commands::otel_command::update(obj.key(), processed_cmd)) {
       // connector object become an otel fake connector
       if (exist_connector != commands::connector::connectors.end()) {

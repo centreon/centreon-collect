@@ -152,10 +152,20 @@ void applier::command::modify_object(configuration::command const& obj) {
           std::make_shared<commands::forward>(
               obj.command_name(), obj.command_line(), found_con->second)};
       commands::command::commands[forward->get_name()] = forward;
-    } else
-      throw engine_error() << "Could not register command '"
-                           << obj.command_name() << "': unable to find '"
-                           << obj.connector() << "'";
+    } else {
+      std::shared_ptr<commands::otel_command> otel_cmd =
+          commands::otel_command::get_otel_command(obj.connector());
+      if (otel_cmd) {
+        std::shared_ptr<commands::forward> forward{
+            std::make_shared<commands::forward>(obj.command_name(),
+                                                obj.command_line(), otel_cmd)};
+        commands::command::commands[forward->get_name()] = forward;
+      } else {
+        throw engine_error()
+            << "Could not register command '" << obj.command_name()
+            << "': unable to find '" << obj.connector() << "'";
+      }
+    }
   }
   // Notify event broker.
   timeval tv(get_broker_timestamp(NULL));
