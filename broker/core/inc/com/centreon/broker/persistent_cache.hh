@@ -37,6 +37,11 @@ class persistent_cache {
   std::shared_ptr<io::stream> _read_file;
   std::shared_ptr<io::stream> _write_file;
 
+ protected:
+  /* Logger */
+  std::shared_ptr<spdlog::logger> _logger;
+
+ private:
   std::string _new_file() const;
   std::string _old_file() const;
   void _open();
