@@ -1365,31 +1365,15 @@ def ctn_remove_service_kpi(id_ba: int, host: str, svc: str):
     dbconf.ctn_remove_service_kpi(id_ba, host, svc)
 
 
-def ctn_get_command_id(service: int):
+def ctn_get_service_command_id(service: int):
     """
     Get the command ID of the service with the given ID.
-
-    Args:
-        service (int): ID of the service containing the command
-
-    Returns:
-        The command ID.
-    """
-    global engine
-    global dbconf
-    cmd_name = engine.service_cmd[service]
-    return dbconf.command[cmd_name]
-
-
-def ctn_get_command_service_param(service: int):
-    """
-    Get the command service param of a service.
 
     Args:
         service (int): ID of the service.
 
     Returns:
-        A string containing the arguments given to the command for that service.
+        The command ID.
     """
     global engine
     return engine.service_cmd[service][8:]
@@ -3166,22 +3150,12 @@ define servicedependency {{
 """)
 
 
-def set_service_state(id: int, state: int):
-    # Read the contents of the file and split it into lines
-    with open('/tmp/states', 'a+') as f:
-        lines = f.readlines()
-
-    r = re.compile(rf"^{id}=>[0-9]+")
-    found = False
-
-    for i in range(len(lines)):
-        if r.match(lines[i]):
-            lines[i] = f"{id}=>{state}\n"
-            found = True
-            break
-
-    if not found:
-        lines.append(f"{id}=>{state}\n")
-
-    with open('/tmp/states', 'w') as f:
-        f.writelines(lines)
+def ctn_get_service_command(host_id: int, service_id: int):
+    cmd = engine.service_cmd[service_id]
+    if cmd.startswith("command_"):
+        logger.console(f"Command id = {int(cmd[8:])}")
+        return int(cmd[8:])
+    else:
+        logger.console(
+            f"Unable to find the command id of service ({host_id};{service_id})")
+        return None
