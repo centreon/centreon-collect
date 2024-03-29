@@ -1,20 +1,20 @@
 /**
-* Copyright 2020-2023 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2020-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/log_v2.hh"
 
@@ -26,8 +26,8 @@
 
 #include <grpc/impl/codegen/log.h>
 
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/misc/misc.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
@@ -326,6 +326,25 @@ std::shared_ptr<spdlog::logger> log_v2::get_logger(logger log_type,
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
     return std::make_shared<spdlog::logger>(log_str, null_sink);
   }
+}
+
+std::shared_ptr<spdlog::logger> log_v2::get_logger_by_name(
+    const std::string& name) {
+  const absl::flat_hash_map<std::string_view, logger> logger_id = {
+      {"bam", log_bam},           {"bbdo", log_bbdo},
+      {"config", log_config},     {"core", log_core},
+      {"graphite", log_graphite}, {"grpc", log_grpc},
+      {"influxdb", log_influxdb}, {"lua", log_lua},
+      {"neb", log_neb},           {"notification", log_notification},
+      {"perfdata", log_perfdata}, {"processing", log_processing},
+      {"rrd", log_rrd},           {"sql", log_sql},
+      {"stats", log_stats},       {"tcp", log_tcp},
+      {"tls", log_tls},           {"victoria_metrics", log_victoria_metrics},
+  };
+  if (logger_id.contains(name))
+    return get_logger(logger_id.at(name), name.c_str());
+  else
+    return get_logger(log_core, "core");
 }
 
 /**

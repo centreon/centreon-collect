@@ -29,6 +29,7 @@
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
 #include "com/centreon/broker/lua/macro_cache.hh"
 #include "com/centreon/broker/misc/variant.hh"
@@ -53,8 +54,8 @@ class LuaTest : public ::testing::Test {
     } catch (std::exception const& e) {
       (void)e;
     }
-    std::shared_ptr<persistent_cache> pcache(
-        std::make_shared<persistent_cache>("/tmp/broker_test_cache"));
+    std::shared_ptr<persistent_cache> pcache(std::make_shared<persistent_cache>(
+        "/tmp/broker_test_cache", log_v2::lua()));
     _cache.reset(new macro_cache(pcache));
   }
   void TearDown() override {

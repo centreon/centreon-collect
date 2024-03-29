@@ -148,6 +148,7 @@ class log_v2 : public com::centreon::engine::log_v2_base {
   }
 
   static bool contains_logger(const std::string& logger);
+  std::shared_ptr<spdlog::logger> get_logger_by_name(const std::string& name);
   static bool contains_level(const std::string& level);
   std::vector<std::pair<std::string, std::string>> levels() const;
   void set_level(const std::string& logger, const std::string& level);

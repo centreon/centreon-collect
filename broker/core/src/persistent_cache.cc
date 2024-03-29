@@ -33,15 +33,12 @@ using namespace com::centreon::broker;
  *
  *  @param[in] cache_file  Path to the cache file.
  */
-persistent_cache::persistent_cache(const std::string& cache_file)
-    : _cache_file(cache_file) {
+persistent_cache::persistent_cache(
+    const std::string& cache_file,
+    const std::shared_ptr<spdlog::logger>& logger)
+    : _cache_file(cache_file), _logger{logger} {
   _open();
 }
-
-/**
- *  Destructor.
- */
-persistent_cache::~persistent_cache() {}
 
 /**
  *  @brief Add an event to the persistent cache.
