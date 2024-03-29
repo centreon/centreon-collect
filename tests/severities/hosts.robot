@@ -32,11 +32,11 @@ BEUHSEV1
 
     ${result}    Ctn Check Host Severity With Timeout    1    10    60
     Should Be True    ${result}    Host 1 should have severity_id=10
-    ${result}    Check Host Severity With Timeout    2    10    60
+    ${result}    Ctn Check Host Severity With Timeout    2    10    60
     Should Be True    ${result}    Host 2 should have severity_id=10
-    ${result}    Check Host Severity With Timeout    3    10    60
+    ${result}    Ctn Check Host Severity With Timeout    3    10    60
     Should Be True    ${result}    Host 3 should have severity_id=10
-    ${result}    Check Host Severity With Timeout    4    10    60
+    ${result}    Ctn Check Host Severity With Timeout    4    10    60
     Should Be True    ${result}    Host 4 should have severity_id=10
 
     Ctn Remove Severities From Hosts    ${0}
