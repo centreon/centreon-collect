@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2013,2015, 2020-2021 Centreon
+ * Copyright 2009-2013,2015, 2020-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -80,7 +80,6 @@ void engine::unload() {
  *  @param[in] e  Event to publish.
  */
 void engine::publish(const std::shared_ptr<io::data>& e) {
-  // Lock mutex.
   bool have_to_send = false;
   {
     std::lock_guard<std::mutex> lock(_engine_m);
@@ -355,7 +354,7 @@ class callback_caller {
  * the sending of data to each. callback is called only if _kiew is not empty
  * @param callback
  * @return true data sent
- * @return false nothing to sent or sent in progress
+ * @return false nothing to send or currently sending.
  */
 bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
   // is _send_to_subscriber working? (_sending_to_subscribers=false)
@@ -363,7 +362,7 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
   if (!_sending_to_subscribers.compare_exchange_strong(expected, true)) {
     return false;
   }
-  // now we continue and _sending_to_subscribers = true
+  // Now we continue and _sending_to_subscribers is true.
 
   // Process all queued events.
   std::shared_ptr<std::deque<std::shared_ptr<io::data>>> kiew;
@@ -432,7 +431,7 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
 }
 
 /**
- *  Clear events stored in the multiplexing engine.
+ * @brief Clear events stored in the multiplexing engine.
  */
 void engine::clear() {
   std::lock_guard<std::mutex> lck(_engine_m);

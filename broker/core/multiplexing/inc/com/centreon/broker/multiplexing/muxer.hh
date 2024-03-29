@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2017-2023 Centreon
+ * Copyright 2009-2017,2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -82,8 +82,10 @@ class muxer : public io::stream {
 
   void _update_stats(void) noexcept;
 
-  muxer(std::string name, const std::shared_ptr<engine>& parent,
-        const muxer_filter& r_filter, const muxer_filter& w_filter,
+  muxer(std::string name,
+        const std::shared_ptr<engine>& parent,
+        const muxer_filter& r_filter,
+        const muxer_filter& w_filter,
         bool persistent = false);
 
  public:
@@ -104,7 +106,8 @@ class muxer : public io::stream {
   void publish(const std::deque<std::shared_ptr<io::data>>& event);
   bool read(std::shared_ptr<io::data>& event, time_t deadline) override;
   template <class container>
-  bool read(container& to_fill, size_t max_to_read,
+  bool read(container& to_fill,
+            size_t max_to_read,
             read_handler&& handler) noexcept;
   const std::string& read_filters_as_str() const;
   const std::string& write_filters_as_str() const;
@@ -137,7 +140,8 @@ class muxer : public io::stream {
  * events as soon as data will be available
  */
 template <class container>
-bool muxer::read(container& to_fill, size_t max_to_read,
+bool muxer::read(container& to_fill,
+                 size_t max_to_read,
                  read_handler&& handler) noexcept {
   std::unique_lock<std::mutex> lock(_mutex);
 
