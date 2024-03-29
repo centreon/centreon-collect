@@ -21,7 +21,6 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
-using com::centreon::common::log_v2::log_v2;
 
 /**
  *  The broker_log destructor
