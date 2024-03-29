@@ -235,7 +235,7 @@ BSCSSTG3
     Ctn Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
     Ctn Broker Config Log    central    config    off
     Ctn Broker Config Log    central    core    off
-    Ctn Broker Config Log    rrd    core    off
+    Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Log    central    tls    debug
     Ctn Broker Config Log    central    grpc    debug
     Ctn Broker Config Log    rrd    grpc    debug
