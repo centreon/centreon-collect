@@ -13,7 +13,7 @@ EPCWS
     [Tags]    connector    engine
     Ctn Schedule Forced Host Check    local_host_test_machine    /tmp/test_connector_perl/rw/centengine.cmd
     Sleep    5 seconds    we wait engine forced checks
-    ${search_result}    Ctn Check Search    /tmp/test_connector_perl/log/centengine.debug    test.pl
+    ${search_result}    Ctn Check Search    /tmp/test_connector_perl/log/centengine.log    test.pl
     Should Contain    ${search_result}    a dummy check    check not found
 
 EPCUS
@@ -21,7 +21,7 @@ EPCUS
     [Tags]    connector    engine
     Ctn Schedule Forced Host Check    local_host_test_machine_bad_test    /tmp/test_connector_perl/rw/centengine.cmd
     Sleep    5 seconds    we wait engine forced checks
-    ${search_result}    Ctn Check Search    /tmp/test_connector_perl/log/centengine.debug    test_titi.pl
+    ${search_result}    Ctn Check Search    /tmp/test_connector_perl/log/centengine.log    test_titi.pl
     Should Contain
     ...    ${search_result}
     ...    Embedded Perl error: failed to open Perl file '/tmp/test_connector_perl/test_titi.pl'
@@ -37,7 +37,7 @@ EPCMS
     Sleep    10 seconds    we wait for Engine forced checks
     FOR    ${idx}    IN RANGE    2    12
         ${search_str}    Catenate    SEPARATOR=    test.pl -H 127.0.0.    ${idx}
-        ${search_result}    Ctn Check Search    /tmp/test_connector_perl/log/centengine.debug    ${search_str}
+        ${search_result}    Ctn Check Search    /tmp/test_connector_perl/log/centengine.log    ${search_str}
         Should Contain    ${search_result}    a dummy check    check not found
     END
 
