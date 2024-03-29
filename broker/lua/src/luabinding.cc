@@ -70,8 +70,7 @@ luabinding::luabinding(std::string const& lua_script,
   _L = _load_interpreter();
   _update_lua_path(path);
 
-  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::LUA),
-                      "lua: initializing the Lua virtual machine");
+  SPDLOG_LOGGER_DEBUG(_logger, "lua: initializing the Lua virtual machine");
 
   try {
     _load_script(lua_script);

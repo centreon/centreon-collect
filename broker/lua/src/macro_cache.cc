@@ -38,11 +38,9 @@ using com::centreon::common::log_v2::log_v2;
  *
  *  @param[in] cache  Persistent cache used by the macro cache.
  */
-macro_cache::macro_cache(const std::shared_ptr<persistent_cache>& cache,
-                         const std::shared_ptr<spdlog::logger>& logger)
+macro_cache::macro_cache(const std::shared_ptr<persistent_cache>& cache)
     : _cache(cache) {
   if (_cache != nullptr) {
-    _cache->set_logger(logger);
     std::shared_ptr<io::data> d;
     do {
       _cache->get(d);
@@ -514,7 +512,6 @@ macro_cache::get_dimension_bv_event(uint64_t bv_id) const {
  *  @param[in] data  The event to write.
  */
 void macro_cache::write(std::shared_ptr<io::data> const& data) {
-  _cache->update_logger();
   if (!data)
     return;
 

@@ -1,20 +1,20 @@
 /**
-* Copyright 2011-2012,2015,2017-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2012,2015,2017-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 
@@ -480,10 +480,16 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
     if (it->second.osi_from == 1 &&
         it->second.endpntfactry->has_endpoint(cfg, nullptr)) {
       std::shared_ptr<persistent_cache> cache;
-      if (cfg.cache_enabled)
-        cache = std::make_shared<persistent_cache>(fmt::format(
-            "{}.cache.{}", config::applier::state::instance().cache_dir(),
-            cfg.name));
+      if (cfg.cache_enabled) {
+        log_v2::logger_id log_id = log_v2::instance().get_id(it->first);
+        if (log_id == log_v2::LOGGER_SIZE)
+          log_id = log_v2::CORE;
+        cache = std::make_shared<persistent_cache>(
+            fmt::format("{}.cache.{}",
+                        config::applier::state::instance().cache_dir(),
+                        cfg.name),
+            log_v2::instance().get(log_id));
+      }
 
       endp = std::shared_ptr<io::endpoint>(
           it->second.endpntfactry->new_endpoint(cfg, is_acceptor, cache));

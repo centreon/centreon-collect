@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2021 Centreon
+ * Copyright 2018-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,9 +25,7 @@
 #include "com/centreon/broker/lua/luabinding.hh"
 #include "com/centreon/broker/lua/macro_cache.hh"
 
-namespace com::centreon::broker {
-
-namespace lua {
+namespace com::centreon::broker::lua {
 
 /**
  *  @class stream stream.hh "com/centreon/broker/lua/stream.hh"
@@ -71,8 +69,7 @@ class stream : public io::stream {
   int32_t flush() override;
   int32_t stop() override;
 };
-}  // namespace lua
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::lua
 
 #endif  // !CCB_LUA_STREAM_HH

@@ -27,9 +27,8 @@ extern "C" {
 #include "lualib.h"
 }
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::lua {
 
-namespace lua {
 /**
  *  @class broker_event broker_event.hh
  * "com/centreon/broker/lua/broker_event.hh"
@@ -66,8 +65,7 @@ class broker_event {
   static void create_as_table(lua_State* L, const io::data& e);
   static void lua_close(const lua_State* L);
 };
-}  // namespace lua
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::lua
 
 #endif  // !CCB_LUA_BROKER_EVENT_HH

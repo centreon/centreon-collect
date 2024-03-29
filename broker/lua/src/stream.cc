@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2023 Centreon
+ * Copyright 2017-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,17 +41,11 @@ stream::stream(const std::string& lua_script,
                const std::shared_ptr<persistent_cache>& cache)
     : io::stream("lua"),
       _luabinding(lua_script, conf_params, _cache),
-      _logger{log_v2::instance().get(log_v2::LUA)},
-      _cache{cache, _logger} {
-  log_v2::instance()
-      .get(log_v2::FUNCTIONS)
-      ->trace("lua::stream constructor {}", static_cast<void*>(this));
-}
+      _logger{cache->logger()},
+      _cache{cache} {}
 
 stream::~stream() noexcept {
-  log_v2::instance()
-      .get(log_v2::FUNCTIONS)
-      ->trace("lua::stream destructor {}", static_cast<void*>(this));
+  _logger->trace("lua::stream destructor {}", static_cast<void*>(this));
 }
 /**
  *  Read from the connector.
@@ -76,7 +70,6 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  */
 int stream::write(std::shared_ptr<io::data> const& data) {
   assert(data);
-  _logger = log_v2::instance().get(log_v2::LUA);
 
   // Give data to cache.
   _cache.write(data);
@@ -106,8 +99,6 @@ int32_t stream::flush() {
  * @return The number of acknowledged events.
  */
 int32_t stream::stop() {
-  log_v2::instance()
-      .get(log_v2::FUNCTIONS)
-      ->trace("lua::stream stop {}", static_cast<void*>(this));
+  _logger->trace("lua::stream stop {}", static_cast<void*>(this));
   return _luabinding.stop();
 }

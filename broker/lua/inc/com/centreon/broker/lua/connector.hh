@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Centreon
+ * Copyright 2017-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,8 @@
 #include "broker/core/misc/variant.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::lua {
 
-namespace lua {
 /**
  *  @class connector connector.hh "com/centreon/broker/lua/connector.hh"
  *  @brief Connect to a lua interpreter.
@@ -47,8 +46,7 @@ class connector : public io::endpoint {
   std::map<std::string, misc::variant> _conf_params;
   std::shared_ptr<persistent_cache> _cache;
 };
-}  // namespace lua
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::lua
 
 #endif  // !CCB_LUA_CONNECTOR_HH

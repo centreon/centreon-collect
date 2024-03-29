@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Centreon
+ * Copyright 2017-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,8 @@
 
 #include "com/centreon/broker/io/factory.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::lua {
 
-namespace lua {
 /**
  *  @class factory factory.hh "com/centreon/broker/lua/factory.hh"
  *  @brief lua  layer factory.
@@ -43,8 +42,7 @@ class factory : public io::factory {
       std::shared_ptr<persistent_cache> cache =
           std::shared_ptr<persistent_cache>()) const override;
 };
-}  // namespace lua
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::lua
 
 #endif  // !CCB_LUA_FACTORY_HH

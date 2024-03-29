@@ -48,7 +48,8 @@ class persistent_cache {
   void _open();
 
  public:
-  persistent_cache(const std::string& cache_file);
+  persistent_cache(const std::string& cache_file,
+                   const std::shared_ptr<spdlog::logger>& logger);
   ~persistent_cache() noexcept = default;
   persistent_cache(const persistent_cache&) = delete;
   persistent_cache& operator=(const persistent_cache&) = delete;

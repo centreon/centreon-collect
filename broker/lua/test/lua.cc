@@ -62,15 +62,14 @@ class LuaTest : public ::testing::Test {
       (void)e;
     }
     std::shared_ptr<persistent_cache> pcache(
-        std::make_shared<persistent_cache>("/tmp/broker_test_cache"));
-    _cache.reset(new macro_cache(pcache, log_v2::instance().get(log_v2::LUA)));
+        std::make_shared<persistent_cache>("/tmp/broker_test_cache", _logger));
+    _cache = std::make_unique<macro_cache>(pcache);
   }
   void TearDown() override {
     // The cache must be destroyed before the applier deinit() call.
     _cache.reset();
     config::applier::deinit();
     ::remove("/tmp/broker_test_cache");
-    // log_v2::unload();
   }
 
   void CreateScript(std::string const& filename, std::string const& content) {

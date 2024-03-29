@@ -74,8 +74,8 @@ class StatusEntryTest : public ::testing::Test {
     } catch (std::exception const& e) {
       (void)e;
     }
-    std::shared_ptr<persistent_cache> pcache(
-        std::make_shared<persistent_cache>("/tmp/broker_test_cache"));
+    std::shared_ptr<persistent_cache> pcache(std::make_shared<persistent_cache>(
+        "/tmp/broker_test_cache", log_v2::instance().get(log_v2::PERFDATA)));
   }
 
   void TearDown() override {

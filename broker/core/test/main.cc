@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 
 #include "com/centreon/broker/config/applier/state.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
 using log_v2 = com::centreon::common::log_v2::log_v2;
@@ -53,6 +54,8 @@ int main(int argc, char* argv[]) {
   testing::AddGlobalTestEnvironment(new CentreonBrokerEnvironment());
 
   log_v2::load("test");
+  com::centreon::common::pool::load(g_io_context,
+                                    log_v2::instance().get(log_v2::CORE));
   // Run all tests.
   int ret = RUN_ALL_TESTS();
   spdlog::shutdown();

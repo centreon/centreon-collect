@@ -25,9 +25,8 @@ extern "C" {
 #include "lualib.h"
 }
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::lua {
 
-namespace lua {
 /**
  *  @class broker_socket broker_socket.hh
  * "com/centreon/broker/lua/broker_socket.hh"
@@ -39,8 +38,7 @@ class broker_socket {
  public:
   static void broker_socket_reg(lua_State* L);
 };
-}  // namespace lua
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::lua
 
 #endif  // !CCB_LUA_BROKER_SOCKET_HH

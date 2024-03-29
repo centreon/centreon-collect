@@ -167,7 +167,8 @@ void engine::start() {
       std::deque<std::shared_ptr<io::data>> kiew;
       // Get events from the cache file to the local queue.
       try {
-        persistent_cache cache(_cache_file_path());
+        persistent_cache cache(_cache_file_path(),
+                               log_v2::instance().get(log_v2::CORE));
         std::shared_ptr<io::data> d;
         for (;;) {
           cache.get(d);
@@ -235,7 +236,8 @@ void engine::stop() {
     // while the engine is stopped. It will be replayed next time
     // the engine is started.
     try {
-      _cache_file = std::make_unique<persistent_cache>(_cache_file_path());
+      _cache_file = std::make_unique<persistent_cache>(
+          _cache_file_path(), log_v2::instance().get(log_v2::CORE));
       _cache_file->transaction();
     } catch (const std::exception& e) {
       log_v2::instance()

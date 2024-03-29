@@ -27,9 +27,8 @@ extern "C" {
 #include "lualib.h"
 }
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::lua {
 
-namespace lua {
 /**
  *  @class broker_cache broker_cache.hh
  * "com/centreon/broker/lua/broker_cache.hh"
@@ -43,8 +42,7 @@ class broker_cache {
                                macro_cache const& cache,
                                uint32_t api_version);
 };
-}  // namespace lua
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::lua
 
 #endif  // !CCB_LUA_BROKER_CACHE_HH

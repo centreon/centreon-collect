@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2022 Centreon
+ * Copyright 2018-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,9 +32,8 @@
 #include "com/centreon/broker/neb/service_group_member.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::lua {
 
-namespace lua {
 /**
  *  @class macro_cache macro_cache.hh "com/centreon/broker/lua/macro_cache.hh"
  *  @brief Data cache for Lua macro.
@@ -68,8 +67,7 @@ class macro_cache {
       _dimension_bv_events;
 
  public:
-  macro_cache(const std::shared_ptr<persistent_cache>& cache,
-              const std::shared_ptr<spdlog::logger>& logger);
+  macro_cache(const std::shared_ptr<persistent_cache>& cache);
   macro_cache(const macro_cache&) = delete;
   ~macro_cache();
 
@@ -144,8 +142,6 @@ class macro_cache {
 
   void _save_to_disk();
 };
-}  // namespace lua
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::lua
 
 #endif  // !CCB_LUA_MACRO_CACHE_HH

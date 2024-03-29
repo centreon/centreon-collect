@@ -37,8 +37,10 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *
  *  @param[in] cache_file  Path to the cache file.
  */
-persistent_cache::persistent_cache(const std::string& cache_file)
-    : _cache_file(cache_file), _logger{log_v2::instance().get(log_v2::CORE)} {
+persistent_cache::persistent_cache(
+    const std::string& cache_file,
+    const std::shared_ptr<spdlog::logger>& logger)
+    : _cache_file(cache_file), _logger{logger} {
   _open();
 }
 

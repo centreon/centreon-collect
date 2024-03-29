@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon
+ * Copyright 2022-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,16 +23,15 @@
 #include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::storage {
 
-namespace storage {
 using pb_index_mapping =
     io::protobuf<IndexMapping,
                  make_type(io::storage, storage::de_pb_index_mapping)>;
 using pb_metric_mapping =
     io::protobuf<MetricMapping,
                  make_type(io::storage, storage::de_pb_metric_mapping)>;
-}  // namespace storage
-}  // namespace com::centreon::broker
+
+}  // namespace com::centreon::broker::storage
 
 #endif  // !CCB_LUA_INTERNAL_HH

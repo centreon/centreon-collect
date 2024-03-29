@@ -25,9 +25,8 @@ extern "C" {
 #include "lualib.h"
 }
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::lua {
 
-namespace lua {
 /**
  *  @class broker_utils broker_utils.hh
  * "com/centreon/broker/lua/broker_utils.hh"
@@ -39,8 +38,7 @@ class broker_utils {
  public:
   static void broker_utils_reg(lua_State* L);
 };
-}  // namespace lua
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::lua
 
 #endif  // !CCB_LUA_BROKER_UTILS_HH

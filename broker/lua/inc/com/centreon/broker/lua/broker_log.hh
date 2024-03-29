@@ -21,9 +21,8 @@
 
 #include "com/centreon/broker/lua/luabinding.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::lua {
 
-namespace lua {
 /**
  *  @class broker_log broker_log.hh "com/centreon/broker/lua/broker_log.hh"
  *  @brief Class managing the Lua connector logs
@@ -45,8 +44,6 @@ class broker_log {
   std::string _file;
   int _level;
 };
-}  // namespace lua
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::lua
 
 #endif  // !CCB_LUA_BROKER_LOG_HH
