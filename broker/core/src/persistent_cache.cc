@@ -178,3 +178,12 @@ void persistent_cache::_open() {
   // We will access only the BBDO layer.
   _read_file = std::static_pointer_cast<io::stream>(bs);
 }
+
+/**
+ * @brief Accessor to the logger.
+ *
+ * @return A shared pointer to the logger.
+ */
+std::shared_ptr<spdlog::logger> persistent_cache::logger() const {
+  return _logger;
+}

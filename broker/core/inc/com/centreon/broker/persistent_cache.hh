@@ -19,6 +19,7 @@
 #ifndef CCB_PERSISTENT_CACHE_HH
 #define CCB_PERSISTENT_CACHE_HH
 
+#include <memory>
 #include "com/centreon/broker/io/stream.hh"
 
 namespace com::centreon::broker {
@@ -49,6 +50,7 @@ class persistent_cache {
   void commit();
   void get(std::shared_ptr<io::data>& d);
   void transaction();
+  std::shared_ptr<spdlog::logger> logger() const;
 
   const std::string& get_cache_file() const;
 };
