@@ -195,9 +195,9 @@ BENCH_1000STATUS_100${suffixe}
     ${diff_broker}    Ctn Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
     ${diff_engine}    Ctn Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
 
-    ${content}    Create List    pb service (100, 2000) status 1 type 1 check result output: <<warning_99>>
+    ${content}    Create List    processing pb service status of (100, 2000) - state 1 - type 1 check result output: <<warning_99>>
     ${result}    Ctn Find In Log With Timeout With Line    ${centralLog}    ${start_check}    ${content}    240
-    Should Be True    ${result[0]}    No check check result received.
+    Should Be True    ${result[0]}    No check result received.
     ${date_last_check_received}    Ctn Extract Date From Log    ${result[1][0]}
     ${all_check_delay}    Subtract Date From Date    ${date_last_check_received}    ${start_check}
 
