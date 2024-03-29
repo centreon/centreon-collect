@@ -233,13 +233,13 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
 
     def ctn_create_ba(self, name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy: str, activate:int = 1):
         """
-        create a ba in centreon db
+        Create a BA in the centreon database.
 
         Args:
-            name: name of ba
-            typ: best, worst, ratro_percent, ratio_number, impact
-            critical_impact: critical impact level
-            warning_impact: warning impact level
+            name: name of the BA
+            typ: One word among {best, worst, ratio_percent, ratio_number, impact}
+            critical_impact: Critical impact level
+            warning_impact: Warning impact level
             dt_policy: Downtime policy: inherit, ignore
             activate: 1 for enable, 0 for disable
         """
@@ -360,11 +360,11 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
 
     def ctn_add_relations_ba_timeperiods(self, id_ba:int, id_time_period:int):
         """
-        add a line in mod_bam_relations_ba_timeperiods table
+        Add a line in mod_bam_relations_ba_timeperiods table
 
         Args:
-            id_ba: 
-            id_time_period:
+            id_ba: The ID of the BA.
+            id_time_period: The ID of the timeperiod.
         """
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,

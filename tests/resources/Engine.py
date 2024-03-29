@@ -1365,31 +1365,15 @@ def ctn_remove_service_kpi(id_ba: int, host: str, svc: str):
     dbconf.ctn_remove_service_kpi(id_ba, host, svc)
 
 
-def ctn_get_command_id(service: int):
+def ctn_get_service_command_id(service: int):
     """
     Get the command ID of the service with the given ID.
-
-    Args:
-        service (int): ID of the service containing the command
-
-    Returns:
-        The command ID.
-    """
-    global engine
-    global dbconf
-    cmd_name = engine.service_cmd[service]
-    return dbconf.command[cmd_name]
-
-
-def ctn_get_command_service_param(service: int):
-    """
-    Get the command service param of a service.
 
     Args:
         service (int): ID of the service.
 
     Returns:
-        A string containing the arguments given to the command for that service.
+        The command ID.
     """
     global engine
     return engine.service_cmd[service][8:]
@@ -3164,3 +3148,14 @@ define servicedependency {{
     service_description            {service}
 }}
 """)
+
+
+def ctn_get_service_command(host_id: int, service_id: int):
+    cmd = engine.service_cmd[service_id]
+    if cmd.startswith("command_"):
+        logger.console(f"Command id = {int(cmd[8:])}")
+        return int(cmd[8:])
+    else:
+        logger.console(
+            f"Unable to find the command id of service ({host_id};{service_id})")
+        return None

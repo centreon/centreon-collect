@@ -50,7 +50,7 @@ ANO_NOFILE_VERIF_CONFIG_NO_ERROR
     Should Be True    len("""${content}""") < 2    anomalydetection error message must not be found
 
 ANO_TOO_OLD_FILE
-    [Documentation]    an anomaly detection with an oldest threshold file must be in unknown state
+    [Documentation]    An anomaly detection with an oldest threshold file must be in unknown state
     [Tags]    broker    engine    anomaly
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central

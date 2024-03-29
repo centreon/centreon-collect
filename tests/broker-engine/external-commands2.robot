@@ -1383,12 +1383,12 @@ BESERVCHECK
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    UPDATE services set command_line='toto', next_check=0 where service_id=1 and host_id=1
     Ctn Schedule Forced Svc Check    host_1    service_1
-    ${command_param}    Ctn Get Command Service Param    1
+    ${command_id}    Ctn Get Service Command Id    1
     ${result}    Ctn Check Service Check With Timeout
     ...    host_1
     ...    service_1
     ...    30
-    ...    ${VarRoot}/lib/centreon-engine/check.pl --id ${command_param}
+    ...    ${VarRoot}/lib/centreon-engine/check.pl --id ${command_id}
     Should Be True    ${result}    service table not updated
 
 BEHOSTCHECK
