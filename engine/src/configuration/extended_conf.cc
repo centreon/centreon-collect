@@ -41,8 +41,8 @@ extended_conf::extended_conf(const std::string& path) : _path(path) {
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(
         log_v2::config(),
-        "extended_conf::extended_conf : fail to read json content from {}",
-        _path);
+        "extended_conf::extended_conf : fail to read json content from {}: {}",
+        _path, e.what());
     throw;
   }
 }
@@ -68,8 +68,8 @@ void extended_conf::reload() {
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(log_v2::config(),
                         "extended_conf::extended_conf : fail to read json "
-                        "content from {} => we keep old content",
-                        _path);
+                        "content from {} => we keep old content, cause: {}",
+                        _path, e.what());
   }
 }
 

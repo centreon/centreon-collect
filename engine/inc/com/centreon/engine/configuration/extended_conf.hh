@@ -61,6 +61,7 @@ class extended_conf {
  */
 template <class file_path_iterator>
 void extended_conf::load_all(file_path_iterator begin, file_path_iterator end) {
+  _confs.clear();
   for (; begin != end; ++begin) {
     try {
       _confs.emplace_back(std::make_unique<extended_conf>(*begin));
