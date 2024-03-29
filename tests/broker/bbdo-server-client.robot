@@ -221,7 +221,10 @@ BSCSSTG2
     Ctn Kindly Stop Broker
 
 BSCSSTG3
-    [Documentation]    Start-Stop two instances of broker. The connection cannot be established if the server private key is missing and an error message explains this issue.
+    [Documentation]    Start-Stop two instances of broker.
+    ...    If the server private key is missing
+    ...    Then the connection cannot be established
+    ...    and an error message explains this issue.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    grpc    tls
     Ctn Config Broker    central
     Ctn Config Broker    rrd

@@ -126,19 +126,22 @@ void pool::_set_pool_size(size_t pool_size) {
                         : pool_size;
 
   std::lock_guard<std::mutex> lock(_pool_m);
+  SPDLOG_LOGGER_INFO(_logger, "Starting the thread pool with {} thread{}",
+                     new_size, new_size > 1 ? "s" : "");
 
   for (; _pool_size < new_size; ++_pool_size) {
-    auto& new_thread = _pool.emplace_front([ctx = _io_context,
-                                            logger = _logger] {
-      try {
-        SPDLOG_LOGGER_INFO(logger, "start of asio thread {:x}", pthread_self());
-        ctx->run();
-      } catch (const std::exception& e) {
-        SPDLOG_LOGGER_CRITICAL(logger,
-                               "catch in io_context run: {} {} thread {:x}",
-                               e.what(), typeid(e).name(), pthread_self());
-      }
-    });
+    auto& new_thread =
+        _pool.emplace_front([ctx = _io_context, logger = _logger] {
+          try {
+            SPDLOG_LOGGER_DEBUG(logger, "start of asio thread {:x}",
+                                pthread_self());
+            ctx->run();
+          } catch (const std::exception& e) {
+            SPDLOG_LOGGER_CRITICAL(logger,
+                                   "catch in io_context run: {} {} thread {:x}",
+                                   e.what(), typeid(e).name(), pthread_self());
+          }
+        });
 
     pthread_setname_np(new_thread.native_handle(),
                        fmt::format("pool_thread{}", _pool_size).c_str());
