@@ -1,5 +1,5 @@
 /**
- * Copyright 2015-2017 Centreon
+ * Copyright 2015-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,9 +24,8 @@
 #include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/influxdb/macro_cache.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::influxdb {
 
-namespace influxdb {
 /**
  *  @class line_protocol_query line_protocol_query.hh
  * "com/centreon/broker/graphite/line_protocol_query.hh"
@@ -94,8 +93,7 @@ class line_protocol_query {
   // Macro cache
   macro_cache const* _cache;
 };
-}  // namespace influxdb
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::influxdb
 
 #endif  // !CCB_INFLUXDB_LINE_PROTOCOL_QUERY_HH

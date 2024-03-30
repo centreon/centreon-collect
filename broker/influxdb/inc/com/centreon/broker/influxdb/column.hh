@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2013 Centreon
+ * Copyright 2011-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,8 @@
 #ifndef CCB_INFLUXDB_COLUMN_HH
 #define CCB_INFLUXDB_COLUMN_HH
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::influxdb {
 
-namespace influxdb {
 /**
  *  @class column column.hh "com/centreon/broker/influxdb/column.hh"
  *  @brief Store the data for a column in the query.
@@ -50,8 +49,7 @@ class column {
   bool _is_flag;
   type _type;
 };
-}  // namespace influxdb
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::influxdb
 
 #endif  // !CCB_INFLUXDB_COLUMN_HH

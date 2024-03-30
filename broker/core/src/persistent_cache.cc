@@ -189,13 +189,6 @@ std::shared_ptr<spdlog::logger> persistent_cache::logger() const {
 }
 
 /**
- * @brief Reload the logger shared pointer from its ID.
- */
-void persistent_cache::update_logger() {
-  _logger = log_v2::instance().get(log_v2::CORE);
-}
-
-/**
  * @brief Logger setter.
  *
  * @param logger The logger to use with this persistent cache.

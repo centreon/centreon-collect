@@ -23,9 +23,8 @@
 #include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::storage {
 
-namespace storage {
 // Data elements.
 using pb_index_mapping =
     io::protobuf<IndexMapping,
@@ -38,8 +37,6 @@ using pb_metric =
 using pb_status =
     io::protobuf<Status, make_type(io::storage, storage::de_pb_status)>;
 
-}  // namespace storage
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::storage
 
 #endif  // !CCB_INFLUXDB_INTERNAL_HH

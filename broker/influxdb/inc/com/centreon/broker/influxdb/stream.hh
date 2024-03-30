@@ -19,6 +19,7 @@
 #ifndef CCB_INFLUXDB_STREAM_HH
 #define CCB_INFLUXDB_STREAM_HH
 
+#include <memory>
 #include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/broker/influxdb/macro_cache.hh"
@@ -57,6 +58,9 @@ class stream : public io::stream {
 
   // Cache
   macro_cache _cache;
+
+  /* Logger */
+  std::shared_ptr<spdlog::logger> _logger;
 
   std::unique_ptr<influxdb> _influx_db;
 

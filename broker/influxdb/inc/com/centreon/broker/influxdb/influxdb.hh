@@ -1,5 +1,5 @@
 /**
- * Copyright 2015-2017 Centreon
+ * Copyright 2015-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,8 @@ class influxdb {
            std::vector<column> const& status_cols,
            std::string const& metric_ts,
            std::vector<column> const& metric_cols,
-           macro_cache const& cache);
+           macro_cache const& cache,
+           const std::shared_ptr<spdlog::logger>& logger);
 
   /**
    *  Destructor.
@@ -74,6 +75,9 @@ class influxdb {
   uint16_t _port;
 
   macro_cache const& _cache;
+
+  /* Logger */
+  std::shared_ptr<spdlog::logger> _logger;
 
   void _connect_socket();
   bool _check_answer_string(std::string const& ans,

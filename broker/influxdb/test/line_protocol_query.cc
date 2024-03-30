@@ -52,9 +52,8 @@ TEST(InfluxDBLineProtoQuery, EscapeValue) {
 TEST(InfluxDBLineProtoQuery, GenerateMetricExcept) {
   influxdb::line_protocol_query lpq1;
   std::vector<influxdb::column> columns;
-  std::shared_ptr<persistent_cache> pcache{nullptr};
-  auto logger = log_v2::instance().get(log_v2::INFLUXDB);
-  influxdb::macro_cache cache(pcache, logger);
+  std::shared_ptr<persistent_cache> pcache;
+  influxdb::macro_cache cache(pcache);
   influxdb::line_protocol_query lpq2(
       "test", columns, influxdb::line_protocol_query::status, cache);
   influxdb::line_protocol_query lpq3(
@@ -68,9 +67,8 @@ TEST(InfluxDBLineProtoQuery, GenerateMetricExcept) {
 
 TEST(InfluxDBLineProtoQuery, GenerateMetric) {
   std::vector<influxdb::column> columns;
-  std::shared_ptr<persistent_cache> pcache{nullptr};
-  auto logger = log_v2::instance().get(log_v2::INFLUXDB);
-  influxdb::macro_cache cache(pcache, logger);
+  std::shared_ptr<persistent_cache> pcache;
+  influxdb::macro_cache cache(pcache);
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
   m1.set_host_id(1);
@@ -125,9 +123,8 @@ TEST(InfluxDBLineProtoQuery, GenerateMetric) {
 
 TEST(InfluxDBLineProtoQuery, ComplexMetric) {
   std::vector<influxdb::column> columns;
-  std::shared_ptr<persistent_cache> pcache{nullptr};
-  auto logger = log_v2::instance().get(log_v2::INFLUXDB);
-  influxdb::macro_cache cache(pcache, logger);
+  std::shared_ptr<persistent_cache> pcache;
+  influxdb::macro_cache cache(pcache);
   storage::pb_metric m;
   Metric& m_obj = m.mut_obj();
   m_obj.set_host_id(1);
@@ -194,9 +191,8 @@ TEST(InfluxDBLineProtoQuery, ComplexMetric) {
 
 TEST(InfluxDBLineProtoQuery, ComplexStatus) {
   std::vector<influxdb::column> columns;
-  std::shared_ptr<persistent_cache> pcache{nullptr};
-  auto logger = log_v2::instance().get(log_v2::INFLUXDB);
-  influxdb::macro_cache cache(pcache, logger);
+  std::shared_ptr<persistent_cache> pcache;
+  influxdb::macro_cache cache(pcache);
   storage::pb_status s;
   Status& obj_s = s.mut_obj();
   obj_s.set_time(2000);
@@ -259,9 +255,8 @@ TEST(InfluxDBLineProtoQuery, ComplexStatus) {
 
 TEST(InfluxDBLineProtoQuery, ComplexPbMetric) {
   std::vector<influxdb::column> columns;
-  std::shared_ptr<persistent_cache> pcache{nullptr};
-  auto logger = log_v2::instance().get(log_v2::INFLUXDB);
-  influxdb::macro_cache cache(pcache, logger);
+  std::shared_ptr<persistent_cache> pcache;
+  influxdb::macro_cache cache(pcache);
   storage::pb_metric m;
   Metric& m_obj = m.mut_obj();
   m_obj.set_host_id(1);
@@ -320,9 +315,8 @@ TEST(InfluxDBLineProtoQuery, ComplexPbMetric) {
 
 TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
   std::vector<influxdb::column> columns;
-  std::shared_ptr<persistent_cache> pcache{nullptr};
-  auto logger = log_v2::instance().get(log_v2::INFLUXDB);
-  influxdb::macro_cache cache(pcache, logger);
+  std::shared_ptr<persistent_cache> pcache;
+  influxdb::macro_cache cache(pcache);
   storage::pb_status s;
   Status& obj_s = s.mut_obj();
   obj_s.set_time(2000);
@@ -379,9 +373,8 @@ TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
 
 TEST(InfluxDBLineProtoQuery, Except) {
   std::vector<influxdb::column> columns;
-  std::shared_ptr<persistent_cache> pcache{nullptr};
-  auto logger = log_v2::instance().get(log_v2::INFLUXDB);
-  influxdb::macro_cache cache(pcache, logger);
+  std::shared_ptr<persistent_cache> pcache;
+  influxdb::macro_cache cache(pcache);
   storage::pb_metric m;
   storage::pb_status s;
 

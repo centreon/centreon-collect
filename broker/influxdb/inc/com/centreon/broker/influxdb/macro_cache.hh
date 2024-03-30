@@ -27,9 +27,9 @@
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/persistent_cache.hh"
-namespace com::centreon::broker {
 
-namespace influxdb {
+namespace com::centreon::broker::influxdb {
+
 /**
  *  @class macro_cache macro_cache.hh
  * "com/centreon/broker/influxdb/macro_cache.hh"
@@ -57,8 +57,7 @@ class macro_cache {
   void _save_to_disk();
 
  public:
-  macro_cache(std::shared_ptr<persistent_cache> const& cache,
-              const std::shared_ptr<spdlog::logger>& logger);
+  macro_cache(std::shared_ptr<persistent_cache> const& cache);
   macro_cache(macro_cache const& f) = delete;
   macro_cache& operator=(macro_cache const& f) = delete;
   ~macro_cache();
@@ -73,8 +72,6 @@ class macro_cache {
                                              uint64_t service_id) const;
   std::string const& get_instance(uint64_t instance_id) const;
 };
-}  // namespace influxdb
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::influxdb
 
 #endif  // !CCB_INFLUXDB_MACRO_CACHE_HH

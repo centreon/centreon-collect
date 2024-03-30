@@ -21,9 +21,8 @@
 
 #include "com/centreon/broker/io/factory.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::influxdb {
 
-namespace influxdb {
 /**
  *  @class factory factory.hh "com/centreon/broker/influxdb/factory.hh"
  *  @brief Influxdb layer factory.
@@ -42,8 +41,7 @@ class factory : public io::factory {
       bool& is_acceptor,
       std::shared_ptr<persistent_cache> cache) const override;
 };
-}  // namespace influxdb
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::influxdb
 
 #endif  // !CCB_INFLUXDB_FACTORY_HH

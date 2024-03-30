@@ -1,5 +1,5 @@
 /**
- * Copyright 2015-2017, 2021 Centreon
+ * Copyright 2015-2017, 2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,9 +23,8 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::influxdb {
 
-namespace influxdb {
 /**
  *  @class connector connector.hh "com/centreon/broker/influxdb/connector.hh"
  *  @brief Connect to an influxdb stream.
@@ -62,8 +61,7 @@ class connector : public io::endpoint {
   std::vector<column> _metric_cols;
   std::shared_ptr<persistent_cache> _cache;
 };
-}  // namespace influxdb
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::influxdb
 
 #endif  // !CCB_INFLUXDB_CONNECTOR_HH

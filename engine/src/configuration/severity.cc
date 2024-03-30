@@ -139,7 +139,7 @@ void severity::check_validity(error_info* err [[maybe_unused]]) const {
   if (_level == 0)
     throw exceptions::msg_fmt(
         "Severity level must not be less than 1 (property 'level')");
-  if (_key.second == severity::none)
+  if (_key.second == static_cast<uint8_t>(severity::none))
     throw exceptions::msg_fmt(
         "Severity type must be one of 'service' or 'host'");
 }

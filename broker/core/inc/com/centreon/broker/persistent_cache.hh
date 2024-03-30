@@ -58,7 +58,6 @@ class persistent_cache {
   void get(std::shared_ptr<io::data>& d);
   void transaction();
   std::shared_ptr<spdlog::logger> logger() const;
-  void update_logger();
 
   const std::string& get_cache_file() const;
   void set_logger(const std::shared_ptr<spdlog::logger>& logger);
