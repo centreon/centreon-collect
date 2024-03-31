@@ -60,7 +60,7 @@ TEST_F(InfluxDB12, BadConnection) {
 }
 
 TEST_F(InfluxDB12, Empty) {
-  std::shared_ptr<persistent_cache> cache{nullptr};
+  std::shared_ptr<persistent_cache> cache;
   influxdb::macro_cache mcache{cache};
   std::vector<influxdb::column> mcolumns;
   std::vector<influxdb::column> scolumns;
@@ -73,7 +73,7 @@ TEST_F(InfluxDB12, Empty) {
 }
 
 TEST_F(InfluxDB12, Simple) {
-  std::shared_ptr<persistent_cache> cache{nullptr};
+  std::shared_ptr<persistent_cache> cache;
   influxdb::macro_cache mcache{cache};
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
@@ -139,7 +139,7 @@ TEST_F(InfluxDB12, Simple) {
 }
 
 TEST_F(InfluxDB12, BadServerResponse1) {
-  std::shared_ptr<persistent_cache> cache{nullptr};
+  std::shared_ptr<persistent_cache> cache;
   influxdb::macro_cache mcache{cache};
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
@@ -188,7 +188,7 @@ TEST_F(InfluxDB12, BadServerResponse1) {
 }
 
 TEST_F(InfluxDB12, BadServerResponse2) {
-  std::shared_ptr<persistent_cache> cache{nullptr};
+  std::shared_ptr<persistent_cache> cache;
   influxdb::macro_cache mcache{cache};
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
