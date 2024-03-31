@@ -1,5 +1,5 @@
 /**
- * Copyright 2015,2017 Centreon
+ * Copyright 2015,2017, 2023-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,8 @@
 
 #include "com/centreon/broker/graphite/macro_cache.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::graphite {
 
-namespace graphite {
 /**
  *  @class query query.hh "com/centreon/broker/graphite/query.hh"
  *  @brief Query compiling/generation.
@@ -79,8 +78,7 @@ class query {
   void _get_metric_id(io::data const& d, std::ostream& is);
   void _get_metric_name(io::data const& d, std::ostream& is);
 };
-}  // namespace graphite
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::graphite
 
 #endif  // !CCB_GRAPHITE_QUERY_HH

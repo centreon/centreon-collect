@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2013,2017 Centreon
+ * Copyright 2011-2013,2023-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,8 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::graphite {
 
-namespace graphite {
 /**
  *  @class connector connector.hh "com/centreon/broker/graphite/connector.hh"
  *  @brief Connect to a graphite stream.
@@ -56,8 +55,6 @@ class connector : public io::endpoint {
                   std::shared_ptr<persistent_cache> const& cache);
   std::shared_ptr<io::stream> open() override;
 };
-}  // namespace graphite
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::graphite
 
 #endif  // !CCB_GRAPHITE_CONNECTOR_HH

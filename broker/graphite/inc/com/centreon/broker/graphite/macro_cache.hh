@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Centreon
+ * Copyright 2015, 2023-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,9 +29,8 @@
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::graphite {
 
-namespace graphite {
 /**
  *  @class macro_cache macro_cache.hh
  * "com/centreon/broker/graphite/macro_cache.hh"
@@ -59,8 +58,7 @@ class macro_cache {
   void _save_to_disk();
 
  public:
-  macro_cache(const std::shared_ptr<persistent_cache>& cache,
-              const std::shared_ptr<spdlog::logger>& logger);
+  macro_cache(std::shared_ptr<persistent_cache> const& cache);
   macro_cache(macro_cache const& f) = delete;
   macro_cache& operator=(macro_cache const& f) = delete;
   ~macro_cache();
@@ -75,8 +73,6 @@ class macro_cache {
                                              uint64_t service_id) const;
   const std::string& get_instance(uint64_t instance_id) const;
 };
-}  // namespace graphite
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::graphite
 
 #endif  // !CCB_GRAPHITE_MACRO_CACHE_HH

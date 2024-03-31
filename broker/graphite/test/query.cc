@@ -29,9 +29,8 @@ using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
 
 TEST(graphiteQuery, ComplexMetric) {
-  std::shared_ptr<persistent_cache> pcache{nullptr};
-  auto logger = log_v2::instance().get(log_v2::GRAPHITE);
-  graphite::macro_cache cache(pcache, logger);
+  std::shared_ptr<persistent_cache> pcache;
+  graphite::macro_cache cache(pcache);
   storage::pb_metric m_event;
   Metric& m = m_event.mut_obj();
   m.set_host_id(1);
@@ -84,9 +83,8 @@ TEST(graphiteQuery, ComplexMetric) {
 }
 
 TEST(graphiteQuery, ComplexStatus) {
-  std::shared_ptr<persistent_cache> pcache{nullptr};
-  auto logger = log_v2::instance().get(log_v2::GRAPHITE);
-  graphite::macro_cache cache(pcache, logger);
+  std::shared_ptr<persistent_cache> pcache;
+  graphite::macro_cache cache(pcache);
   storage::pb_status s_event;
   Status& s = s_event.mut_obj();
   s.set_time(2000llu);
@@ -137,9 +135,8 @@ TEST(graphiteQuery, ComplexStatus) {
 }
 
 TEST(graphiteQuery, ComplexPbMetric) {
-  std::shared_ptr<persistent_cache> pcache{nullptr};
-  auto logger = log_v2::instance().get(log_v2::log_v2::GRAPHITE);
-  graphite::macro_cache cache(pcache, logger);
+  std::shared_ptr<persistent_cache> pcache;
+  graphite::macro_cache cache(pcache);
   storage::pb_metric m_event;
   Metric& m = m_event.mut_obj();
   m.set_host_id(1);
@@ -191,9 +188,8 @@ TEST(graphiteQuery, ComplexPbMetric) {
 }
 
 TEST(graphiteQuery, ComplexPbStatus) {
-  std::shared_ptr<persistent_cache> pcache{nullptr};
-  auto logger = log_v2::instance().get(log_v2::GRAPHITE);
-  graphite::macro_cache cache(pcache, logger);
+  std::shared_ptr<persistent_cache> pcache;
+  graphite::macro_cache cache(pcache);
   storage::pb_status s_event;
   Status& s = s_event.mut_obj();
   s.set_time(2000llu);
@@ -243,9 +239,8 @@ TEST(graphiteQuery, ComplexPbStatus) {
 }
 
 TEST(graphiteQuery, Except) {
-  std::shared_ptr<persistent_cache> pcache{nullptr};
-  auto logger = log_v2::instance().get(log_v2::GRAPHITE);
-  graphite::macro_cache cache(pcache, logger);
+  std::shared_ptr<persistent_cache> pcache;
+  graphite::macro_cache cache(pcache);
   storage::pb_status s;
   storage::pb_metric m;
 
