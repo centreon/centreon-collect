@@ -27,7 +27,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 TEST(graphiteQuery, ComplexMetric) {
-  std::shared_ptr<persistent_cache> pcache{nullptr};
+  std::shared_ptr<persistent_cache> pcache;
   graphite::macro_cache cache(pcache);
   storage::pb_metric m_event;
   Metric& m = m_event.mut_obj();
@@ -81,7 +81,7 @@ TEST(graphiteQuery, ComplexMetric) {
 }
 
 TEST(graphiteQuery, ComplexStatus) {
-  std::shared_ptr<persistent_cache> pcache{nullptr};
+  std::shared_ptr<persistent_cache> pcache;
   graphite::macro_cache cache(pcache);
   storage::pb_status s_event;
   Status& s = s_event.mut_obj();
@@ -133,7 +133,7 @@ TEST(graphiteQuery, ComplexStatus) {
 }
 
 TEST(graphiteQuery, ComplexPbMetric) {
-  std::shared_ptr<persistent_cache> pcache{nullptr};
+  std::shared_ptr<persistent_cache> pcache;
   graphite::macro_cache cache(pcache);
   storage::pb_metric m_event;
   Metric& m = m_event.mut_obj();
@@ -186,7 +186,7 @@ TEST(graphiteQuery, ComplexPbMetric) {
 }
 
 TEST(graphiteQuery, ComplexPbStatus) {
-  std::shared_ptr<persistent_cache> pcache{nullptr};
+  std::shared_ptr<persistent_cache> pcache;
   graphite::macro_cache cache(pcache);
   storage::pb_status s_event;
   Status& s = s_event.mut_obj();
@@ -237,7 +237,7 @@ TEST(graphiteQuery, ComplexPbStatus) {
 }
 
 TEST(graphiteQuery, Except) {
-  std::shared_ptr<persistent_cache> pcache{nullptr};
+  std::shared_ptr<persistent_cache> pcache;
   graphite::macro_cache cache(pcache);
   storage::pb_status s;
   storage::pb_metric m;
