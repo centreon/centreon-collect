@@ -480,6 +480,9 @@ LCDNUH
     ...    end
     ...    
     ...    function write(e)
+    ...        --if e.host_id then
+    ...            --broker_log:info(0, broker.json_encode(e))
+    ...        --end
     ...        if e._type == 65566 then --Host id
     ...            broker_log:info(0, 'configuration of ('.. e.host_id.. ')')
     ...            local host = broker_cache:get_host(e.host_id)
