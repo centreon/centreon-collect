@@ -26,6 +26,7 @@
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/bam/kpi_service.hh"
 #include "com/centreon/broker/config/applier/init.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
@@ -44,7 +45,8 @@ class KpiBA : public ::testing::Test {
     // Initialization.
     config::applier::init(0, "test_broker", 0);
 
-    _aply_state = std::make_unique<bam::configuration::applier::state>();
+    _aply_state =
+        std::make_unique<bam::configuration::applier::state>(log_v2::bam());
     _state = std::make_unique<bam::configuration::state>();
     _visitor = std::make_unique<test_visitor>("test-visitor");
   }

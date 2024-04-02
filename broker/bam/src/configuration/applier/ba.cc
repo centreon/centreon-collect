@@ -34,9 +34,12 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam::configuration;
 
 /**
- *  Default constructor.
+ * @brief Constructor of an applier of BA.
+ *
+ * @param logger The logger to use.
  */
-applier::ba::ba() {}
+applier::ba::ba(const std::shared_ptr<spdlog::logger>& logger)
+    : _logger{logger} {}
 
 /**
  *  Copy constructor.
@@ -122,7 +125,7 @@ void applier::ba::apply(const bam::configuration::state::bas& my_bas,
   for (std::map<uint32_t, applied>::iterator it = to_delete.begin(),
                                              end = to_delete.end();
        it != end; ++it) {
-    log_v2::bam()->info("BAM: removing BA {}", it->first);
+    _logger->info("BAM: removing BA {}", it->first);
     std::shared_ptr<io::data> s;
     if (bbdo3_enabled) {
       auto bs = _ba_pb_service(it->first, it->second.cfg.get_host_id(),
@@ -146,8 +149,8 @@ void applier::ba::apply(const bam::configuration::state::bas& my_bas,
   for (bam::configuration::state::bas::iterator it = to_create.begin(),
                                                 end = to_create.end();
        it != end; ++it) {
-    log_v2::bam()->info("BAM: creating BA {} ('{}')", it->first,
-                        it->second.get_name());
+    _logger->info("BAM: creating BA {} ('{}')", it->first,
+                  it->second.get_name());
     std::shared_ptr<bam::ba> new_ba(_new_ba(it->second, book));
     applied& content(_applied[it->first]);
     content.cfg = it->second;
@@ -173,14 +176,14 @@ void applier::ba::apply(const bam::configuration::state::bas& my_bas,
   for (auto& b : to_modify) {
     std::map<uint32_t, applied>::iterator pos = _applied.find(b.get_id());
     if (pos != _applied.end()) {
-      log_v2::bam()->info("BAM: modifying BA {}", b.get_id());
+      _logger->info("BAM: modifying BA {}", b.get_id());
       pos->second.obj->set_name(b.get_name());
       assert(pos->second.obj->get_state_source() == b.get_state_source());
       pos->second.obj->set_level_warning(b.get_warning_level());
       pos->second.obj->set_level_critical(b.get_critical_level());
       pos->second.cfg = b;
     } else
-      log_v2::bam()->error(
+      _logger->error(
           "BAM: attempting to modify BA {}, however associated object was not "
           "found. This is likely a software bug that you should report to "
           "Centreon Broker developers",
@@ -268,8 +271,8 @@ std::shared_ptr<neb::service> applier::ba::_ba_service(uint32_t ba_id,
                                                        uint32_t host_id,
                                                        uint32_t service_id,
                                                        bool in_downtime) {
-  log_v2::bam()->trace("_ba_service ba {}, service {}:{} with downtime {}",
-                       ba_id, host_id, service_id, in_downtime);
+  _logger->trace("_ba_service ba {}, service {}:{} with downtime {}", ba_id,
+                 host_id, service_id, in_downtime);
   auto s{std::make_shared<neb::service>()};
   s->host_id = host_id;
   s->service_id = service_id;
@@ -294,8 +297,8 @@ std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
     uint32_t host_id,
     uint32_t service_id,
     bool in_downtime) {
-  log_v2::bam()->trace("_ba_pb_service ba {}, service {}:{} with downtime {}",
-                       ba_id, host_id, service_id, in_downtime);
+  _logger->trace("_ba_pb_service ba {}, service {}:{} with downtime {}", ba_id,
+                 host_id, service_id, in_downtime);
   auto s{std::make_shared<neb::pb_service>()};
   auto& o = s->mut_obj();
   o.set_host_id(host_id);
@@ -390,8 +393,7 @@ void applier::ba::apply_inherited_downtime(const inherited_downtime& dwn) {
 
   std::map<uint32_t, applied>::iterator found = _applied.find(dwn.ba_id);
   if (found != _applied.end()) {
-    log_v2::bam()->debug("BAM: found an inherited downtime for BA {}",
-                         found->first);
+    _logger->debug("BAM: found an inherited downtime for BA {}", found->first);
     found->second.obj->set_inherited_downtime(dwn);
     std::shared_ptr<io::data> s;
     if (bbdo3_enabled)
@@ -410,8 +412,7 @@ void applier::ba::apply_inherited_downtime(const pb_inherited_downtime& dwn) {
   std::map<uint32_t, applied>::iterator found =
       _applied.find(dwn.obj().ba_id());
   if (found != _applied.end()) {
-    log_v2::bam()->debug("BAM: found an inherited downtime for BA {}",
-                         found->first);
+    _logger->debug("BAM: found an inherited downtime for BA {}", found->first);
     found->second.obj->set_inherited_downtime(dwn);
     std::shared_ptr<io::data> s;
     if (bbdo3_enabled)

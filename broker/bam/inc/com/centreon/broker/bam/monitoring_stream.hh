@@ -67,6 +67,10 @@ namespace bam {
  */
 class monitoring_stream : public io::stream {
   const std::string _ext_cmd_file;
+
+  /* Logger */
+  std::shared_ptr<spdlog::logger> _logger;
+
   configuration::applier::state _applier;
   /* This mutex is to protect writes to the external command named pipe. */
   mutable std::mutex _ext_cmd_file_m;
@@ -121,7 +125,6 @@ class monitoring_stream : public io::stream {
   int write(std::shared_ptr<io::data> const& d) override;
 };
 }  // namespace bam
-
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_MONITORING_STREAM_HH

@@ -1,5 +1,5 @@
-/*
- * Copyright 2014-2015 Centreon
+/**
+ * Copyright 2014-2015, 2022-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,9 +34,7 @@ class host;
 class service;
 }  // namespace neb
 
-namespace bam {
-namespace configuration {
-namespace applier {
+namespace bam::configuration::applier {
 /**
  *  @class ba ba.hh "com/centreon/broker/bam/configuration/applier/ba.hh"
  *  @brief Apply BA configuration.
@@ -44,6 +42,7 @@ namespace applier {
  *  Take the configuration of BAs and apply it.
  */
 class ba {
+  std::shared_ptr<spdlog::logger> _logger;
   struct applied {
     configuration::ba cfg;
     std::shared_ptr<bam::ba> obj;
@@ -65,7 +64,7 @@ class ba {
                                    service_book& book);
 
  public:
-  ba();
+  ba(const std::shared_ptr<spdlog::logger>& logger);
   ba(const ba& other);
   ~ba();
   ba& operator=(ba const& other);
@@ -76,9 +75,7 @@ class ba {
   void apply_inherited_downtime(const inherited_downtime& dwn);
   void apply_inherited_downtime(const pb_inherited_downtime& dwn);
 };
-}  // namespace applier
-}  // namespace configuration
-}  // namespace bam
+}  // namespace bam::configuration::applier
 
 }  // namespace com::centreon::broker
 

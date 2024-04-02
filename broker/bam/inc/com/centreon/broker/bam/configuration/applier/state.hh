@@ -24,9 +24,7 @@
 #include "com/centreon/broker/bam/configuration/applier/kpi.hh"
 #include "com/centreon/broker/bam/service_book.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 // Forward declaration.
 class monitoring_stream;
 
@@ -43,6 +41,8 @@ namespace applier {
  *  Take the configuration of the BAM engine and apply it.
  */
 class state {
+  std::shared_ptr<spdlog::logger> _logger;
+
   struct circular_check_node {
     circular_check_node();
 
@@ -62,7 +62,7 @@ class state {
   std::unordered_map<std::string, circular_check_node> _nodes;
 
  public:
-  state() = default;
+  state(const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept = default;
   state(const state&) = delete;
   state& operator=(state const& other) = delete;
@@ -75,8 +75,6 @@ class state {
 };
 }  // namespace applier
 }  // namespace configuration
-}  // namespace bam
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_CONFIGURATION_APPLIER_STATE_HH
