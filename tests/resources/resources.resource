@@ -143,7 +143,6 @@ Ctn Stop Processes
     Ctn Kill Engine
 
 Ctn Start engine
-    [Arguments]    ${extended_conf}=
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -157,7 +156,7 @@ Ctn Start engine
         EXCEPT
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
-        Start Process    /usr/sbin/centengine    ${conf}    ${extended_conf}    alias=${alias}
+        Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}
     END
 
 Ctn Restart Engine
