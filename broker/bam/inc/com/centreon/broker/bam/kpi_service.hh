@@ -78,26 +78,19 @@ class kpi_service : public service_listener, public kpi {
   bool is_acknowledged() const;
   void service_update(const service_state& state) override;
   void service_update(std::shared_ptr<neb::service_status> const& status,
-                      io::stream* visitor,
-                      const std::shared_ptr<spdlog::logger>& logger) override;
+                      io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::pb_service>& status,
-                      io::stream* visitor,
-                      const std::shared_ptr<spdlog::logger>& logger) override;
+                      io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::pb_service_status>& status,
-                      io::stream* visitor,
-                      const std::shared_ptr<spdlog::logger>& logger) override;
+                      io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::pb_acknowledgement>& ack,
-                      io::stream* visitor,
-                      const std::shared_ptr<spdlog::logger>& logger) override;
+                      io::stream* visitor = nullptr) override;
   void service_update(std::shared_ptr<neb::acknowledgement> const& ack,
-                      io::stream* visitor,
-                      const std::shared_ptr<spdlog::logger>& logger) override;
+                      io::stream* visitor = nullptr) override;
   void service_update(std::shared_ptr<neb::downtime> const& dt,
-                      io::stream* visitor,
-                      const std::shared_ptr<spdlog::logger>& logger) override;
+                      io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::pb_downtime>& dt,
-                      io::stream* visitor,
-                      const std::shared_ptr<spdlog::logger>& logger) override;
+                      io::stream* visitor = nullptr) override;
   void set_acknowledged(bool acknowledged);
   void set_downtimed(bool downtimed);
   void set_impact_critical(double impact);
@@ -109,9 +102,7 @@ class kpi_service : public service_listener, public kpi {
   void visit(io::stream* visitor) override;
   virtual void set_initial_event(const KpiEvent& e) override;
   bool ok_state() const override;
-  void update_from(computable* child,
-                   io::stream* visitor,
-                   const std::shared_ptr<spdlog::logger>& logger) override;
+  void update_from(computable* child, io::stream* visitor) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };

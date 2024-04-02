@@ -40,8 +40,7 @@ class computable {
   virtual ~computable() noexcept = default;
   computable& operator=(const computable&) = delete;
   void add_parent(const std::shared_ptr<computable>& parent);
-  void notify_parents_of_change(io::stream* visitor,
-                                const std::shared_ptr<spdlog::logger>& logger);
+  void notify_parents_of_change(io::stream* visitor);
   /**
    *  @brief Update this object because there was a change in the given child.
    *
@@ -50,11 +49,8 @@ class computable {
    *
    *  @param[in] child Recently changed child node.
    *  @param[in] visitor This is used to manage events
-   *  @param[in] logger The logger to use.
    */
-  virtual void update_from(computable* child,
-                           io::stream* visitor,
-                           const std::shared_ptr<spdlog::logger>& logger) = 0;
+  virtual void update_from(computable* child, io::stream* visitor) = 0;
   void remove_parent(const std::shared_ptr<computable>& parent);
   /**
    * @brief This method is used by the dump() method. It gives a summary of this

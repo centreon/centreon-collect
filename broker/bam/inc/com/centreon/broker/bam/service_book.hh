@@ -24,6 +24,7 @@
 #include "com/centreon/broker/persistent_cache.hh"
 
 namespace com::centreon::broker {
+
 // Forward declarations.
 namespace neb {
 class acknowledgement;
@@ -54,7 +55,8 @@ class service_book {
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  service_book();
+  service_book(const std::shared_ptr<spdlog::logger>& logger)
+      : _logger{logger} {}
   ~service_book() noexcept = default;
   service_book(const service_book&) = delete;
   service_book& operator=(const service_book&) = delete;
@@ -63,30 +65,24 @@ class service_book {
                 uint32_t service_id,
                 service_listener* listnr);
   void update(const std::shared_ptr<neb::acknowledgement>& t,
-              io::stream* visitor,
-              const std::shared_ptr<spdlog::logger>& logger);
+              io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::pb_acknowledgement>& t,
-              io::stream* visitor,
-              const std::shared_ptr<spdlog::logger>& logger);
+              io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::downtime>& t,
-              io::stream* visitor,
-              const std::shared_ptr<spdlog::logger>& logger);
+              io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::pb_downtime>& t,
-              io::stream* visitor,
-              const std::shared_ptr<spdlog::logger>& logger);
+              io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::service_status>& t,
-              io::stream* visitor,
-              const std::shared_ptr<spdlog::logger>& logger);
+              io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::pb_service>& t,
-              io::stream* visitor,
-              const std::shared_ptr<spdlog::logger>& logger);
+              io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::pb_service_status>& t,
-              io::stream* visitor,
-              const std::shared_ptr<spdlog::logger>& logger);
+              io::stream* visitor = nullptr);
   void save_to_cache(persistent_cache& cache) const;
   void apply_services_state(const ServicesBookState& state);
 };
 }  // namespace bam
+
 }  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_SERVICE_BOOK_HH

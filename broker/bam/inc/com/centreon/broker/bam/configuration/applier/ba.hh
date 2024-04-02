@@ -1,5 +1,5 @@
-/*
- * Copyright 2014-2015 Centreon
+/**
+ * Copyright 2014-2015, 2022-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,7 +51,8 @@ class ba {
 
   std::shared_ptr<neb::host> _ba_host(uint32_t host_id);
   std::shared_ptr<neb::pb_host> _ba_pb_host(uint32_t host_id);
-  std::shared_ptr<neb::service> _ba_service(uint32_t ba_id, uint32_t host_id,
+  std::shared_ptr<neb::service> _ba_service(uint32_t ba_id,
+                                            uint32_t host_id,
                                             uint32_t service_id,
                                             bool in_downtime = false);
   std::shared_ptr<neb::pb_service> _ba_pb_service(uint32_t ba_id,
@@ -63,7 +64,7 @@ class ba {
                                    service_book& book);
 
  public:
-  ba();
+  ba(const std::shared_ptr<spdlog::logger>& logger);
   ba(const ba& other);
   ~ba();
   ba& operator=(ba const& other);

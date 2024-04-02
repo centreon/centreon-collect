@@ -300,9 +300,7 @@ void ba::visit(io::stream* visitor) {
  *  @param visitor  Visitor that will receive events.
  */
 void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
-                        io::stream* visitor,
-                        const std::shared_ptr<spdlog::logger>& logger) {
-  _logger = logger;
+                        io::stream* visitor) {
   if (dt->host_id == _host_id && dt->service_id == _service_id) {
     // Log message.
     SPDLOG_LOGGER_DEBUG(
@@ -321,7 +319,7 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
       // Generate status event.
       visit(visitor);
 
-      notify_parents_of_change(visitor, logger);
+      notify_parents_of_change(visitor);
     }
   } else
     SPDLOG_LOGGER_DEBUG(
@@ -341,9 +339,7 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
  *  @param visitor  Visitor that will receive events.
  */
 void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
-                        io::stream* visitor,
-                        const std::shared_ptr<spdlog::logger>& logger) {
-  _logger = logger;
+                        io::stream* visitor) {
   auto& downtime = dt->obj();
   assert(downtime.host_id() == _host_id &&
          downtime.service_id() == _service_id);
@@ -366,7 +362,7 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
     // Generate status event.
     visit(visitor);
 
-    notify_parents_of_change(visitor, logger);
+    notify_parents_of_change(visitor);
   }
 }
 
@@ -590,12 +586,9 @@ void ba::set_level_warning(double level) {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
- * @param logger The logger to use.
  */
-void ba::update_from(computable* child,
-                     io::stream* visitor,
-                     const std::shared_ptr<spdlog::logger>& logger) {
-  logger->trace("ba::update_from (BA {})", _id);
+void ba::update_from(computable* child, io::stream* visitor) {
+  _logger->trace("ba::update_from (BA {})", _id);
   // Get impact.
   impact_values new_hard_impact;
   impact_values new_soft_impact;
@@ -607,7 +600,7 @@ void ba::update_from(computable* child,
 
   // Logging.
   SPDLOG_LOGGER_DEBUG(
-      logger,
+      _logger,
       "BAM: BA {}, '{}' is getting notified of child update (KPI {}, impact "
       "{}, last state change {}, downtime {})",
       _id, _name, kpi_child->get_id(), new_hard_impact.get_nominal(),
@@ -631,7 +624,7 @@ void ba::update_from(computable* child,
   visit(visitor);
 
   if (changed || _in_downtime != previous_in_downtime)
-    notify_parents_of_change(visitor, _logger);
+    notify_parents_of_change(visitor);
 }
 
 /**

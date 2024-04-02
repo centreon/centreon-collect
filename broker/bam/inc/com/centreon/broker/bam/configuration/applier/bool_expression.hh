@@ -1,5 +1,5 @@
 /**
- * Copyright 2014 Centreon
+ * Copyright 2014, 2022-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +65,8 @@ class bool_expression {
   void _resolve_expression_calls();
 
  public:
-  bool_expression() : _logger{log_v2::instance().get(log_v2::BAM)} {}
+  bool_expression(const std::shared_ptr<spdlog::logger>& logger)
+      : _logger{logger} {}
   bool_expression(const bool_expression&) = delete;
   ~bool_expression() noexcept = default;
   bool_expression& operator=(const bool_expression&) = delete;

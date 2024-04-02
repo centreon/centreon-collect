@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2015 Centreon
+ * Copyright 2014-2015, 2022-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,8 @@ class state {
   using kpis = std::unordered_map<uint32_t, kpi>;
   using bool_exps = std::unordered_map<uint32_t, bool_expression>;
 
-  state() = default;
+  state(const std::shared_ptr<spdlog::logger>& logger)
+      : _hst_svc_mapping(logger) {}
   ~state() noexcept = default;
   state(const state&) = delete;
   state& operator=(const state&) = delete;

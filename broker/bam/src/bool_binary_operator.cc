@@ -100,18 +100,15 @@ bool bool_binary_operator::in_downtime() const {
  * @param visitor The visitor to handle events.
  * @param logger The logger to use.
  */
-void bool_binary_operator::update_from(
-    computable* child,
-    io::stream* visitor,
-    const std::shared_ptr<spdlog::logger>& logger) {
-  logger->trace("bool_binary_operator::update_from");
+void bool_binary_operator::update_from(computable* child, io::stream* visitor) {
+  _logger->trace("bool_binary_operator::update_from");
   // Check operation members values.
   bool changed = false;
   if (child) {
     if (child == _left.get()) {
       if (_left->state_known() != _state_known ||
           std::abs(_left_hard - _left->value_hard()) > ::eps) {
-        logger->trace(
+        _logger->trace(
             "{}::update_from: on left: old state known: {} - new state "
             "known: {} - old value: {} - new value: {}",
             typeid(*this).name(), _state_known, _left->state_known(),
@@ -119,14 +116,14 @@ void bool_binary_operator::update_from(
         _update_state();
         changed = true;
       } else
-        logger->trace(
+        _logger->trace(
             "{}::update_from: bool_binary_operator: update_from: no "
             "on left - state known: {} - value: {}",
             typeid(*this).name(), _state_known, _left_hard);
     } else if (child == _right.get()) {
       if (_right->state_known() != _state_known ||
           std::abs(_right_hard - _right->value_hard()) > ::eps) {
-        logger->trace(
+        _logger->trace(
             "{}::update_from on right: old state known: {} - new state "
             "known: {} - old value: {} - new value: {}",
             typeid(*this).name(), _state_known, _right->state_known(),
@@ -134,14 +131,14 @@ void bool_binary_operator::update_from(
         _update_state();
         changed = true;
       } else
-        logger->trace(
+        _logger->trace(
             "{}::update_from: bool_binary_operator: update_from: no "
             "on right",
             typeid(*this).name());
     }
   }
   if (changed)
-    notify_parents_of_change(visitor, logger);
+    notify_parents_of_change(visitor);
 }
 
 void bool_binary_operator::dump(std::ofstream& output) const {

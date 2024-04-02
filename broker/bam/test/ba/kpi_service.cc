@@ -52,8 +52,8 @@ class BamBA : public ::testing::Test {
     config::applier::init(0, "test_broker", 0);
 
     logger = log_v2::instance().get(log_v2::BAM);
-    _aply_state = std::make_unique<bam::configuration::applier::state>();
-    _state = std::make_unique<bam::configuration::state>();
+    _aply_state = std::make_unique<bam::configuration::applier::state>(logger);
+    _state = std::make_unique<bam::configuration::state>(logger);
     _visitor = std::make_unique<test_visitor>("test-visitor");
   }
 
@@ -93,7 +93,7 @@ TEST_F(BamBA, KpiServiceRecompute) {
     ss->last_check = now + i;
     ss->last_hard_state = ((i & 1) ? 0 : 2);
     ss->current_state = ss->last_hard_state;
-    kpi->service_update(ss, _visitor.get(), logger);
+    kpi->service_update(ss, _visitor.get());
     if (i == 0) {
       /* Here is an occasion to checkout output from ba when it is critical */
       ASSERT_EQ(test_ba->get_output(),
@@ -159,7 +159,7 @@ TEST_F(BamBA, KpiServiceImpactState) {
       ss->host_id = j + 1;
       ss->last_hard_state = i + 1;
       ss->current_state = ss->last_hard_state;
-      kpis[j]->service_update(ss, _visitor.get(), logger);
+      kpis[j]->service_update(ss, _visitor.get());
 
       if (i == 0) {
         if (j == 0) {
@@ -274,7 +274,7 @@ TEST_F(BamBA, KpiServiceBestState) {
       ss->host_id = j + 1;
       ss->last_hard_state = i + 1;
       ss->current_state = ss->last_hard_state;
-      kpis[j]->service_update(ss, _visitor.get(), logger);
+      kpis[j]->service_update(ss, _visitor.get());
 
       short val = *it;
       ASSERT_EQ(test_ba->get_state_soft(), val);
@@ -334,7 +334,7 @@ TEST_F(BamBA, KpiServiceWorstState) {
       ss->host_id = j + 1;
       ss->last_hard_state = i + 1;
       ss->current_state = ss->last_hard_state;
-      kpis[j]->service_update(ss, _visitor.get(), logger);
+      kpis[j]->service_update(ss, _visitor.get());
 
       short val = *it;
       ASSERT_EQ(test_ba->get_state_soft(), val);
@@ -429,7 +429,7 @@ TEST_F(BamBA, KpiServiceRatioNum) {
     ss->host_id = j + 1;
     ss->last_hard_state = 2;
     ss->current_state = ss->last_hard_state;
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     short val = results.top();
     std::cout << "val = " << val << std::endl;
@@ -486,7 +486,7 @@ TEST_F(BamBA, KpiServiceRatioPercent) {
     ss->host_id = j + 1;
     ss->last_hard_state = 2;
     ss->current_state = ss->last_hard_state;
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->get_state_soft(), val);
@@ -528,14 +528,14 @@ TEST_F(BamBA, KpiServiceDtInheritAllCritical) {
     ss->last_check = now + 1;
     ss->host_id = j + 1;
     ss->last_hard_state = 2;
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt->host_id = ss->host_id;
     dt->service_id = 1;
     dt->was_started = true;
     dt->actual_start_time = now + 2;
     dt->actual_end_time = 0;
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->in_downtime(), val);
@@ -578,14 +578,14 @@ TEST_F(BamBA, KpiServiceDtInheritAllCriticalPb) {
     ss->last_check = now + 1;
     ss->host_id = j + 1;
     ss->last_hard_state = 2;
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     downtime.set_host_id(ss->host_id);
     downtime.set_service_id(1);
     downtime.set_started(true);
     downtime.set_actual_start_time(now + 2);
     downtime.set_actual_end_time(0);
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->in_downtime(), val);
@@ -630,14 +630,14 @@ TEST_F(BamBA, KpiServiceDtInheritOneOK) {
       ss->last_hard_state = 0;
     else
       ss->last_hard_state = 2;
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt->host_id = ss->host_id;
     dt->service_id = 1;
     dt->was_started = true;
     dt->actual_start_time = now + 2;
     dt->actual_end_time = 0;
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->in_downtime(), val);
@@ -688,14 +688,14 @@ TEST_F(BamBA, KpiServiceDtInheritOneOKPb) {
       ss_obj.set_last_hard_state(ServiceStatus_State_OK);
     else
       ss_obj.set_last_hard_state(ServiceStatus_State_CRITICAL);
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt_obj.set_host_id(ss_obj.host_id());
     dt_obj.set_service_id(1);
     dt_obj.set_started(true);
     dt_obj.set_actual_start_time(now + 2);
     dt_obj.set_actual_end_time(0);
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->in_downtime(), val);
@@ -740,14 +740,14 @@ TEST_F(BamBA, KpiServiceIgnoreDt) {
     ss->last_check = now + 1;
     ss->host_id = j + 1;
     ss->last_hard_state = 2;
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt->host_id = ss->host_id;
     dt->service_id = 1;
     dt->actual_start_time = now + 2;
     dt->was_started = true;
     dt->actual_end_time = 0;
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->in_downtime(), val);
@@ -791,14 +791,14 @@ TEST_F(BamBA, KpiServiceIgnoreDtPb) {
     ss_obj.set_last_check(now + 1);
     ss_obj.set_host_id(j + 1);
     ss_obj.set_last_hard_state(ServiceStatus_State_CRITICAL);
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt_obj.set_host_id(ss_obj.host_id());
     dt_obj.set_service_id(1);
     dt_obj.set_actual_start_time(now + 2);
     dt_obj.set_started(true);
     dt_obj.set_actual_end_time(0);
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->in_downtime(), val);
@@ -839,14 +839,14 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpi) {
     ss->last_check = now + 1;
     ss->host_id = j + 1;
     ss->last_hard_state = 2;
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt->host_id = ss->host_id;
     dt->service_id = 1;
     dt->actual_start_time = now + 2;
     dt->was_started = true;
     dt->actual_end_time = 0;
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->in_downtime(), val);
@@ -890,14 +890,14 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiPb) {
     ss_obj.set_last_check(now + 1);
     ss_obj.set_host_id(j + 1);
     ss_obj.set_last_hard_state(ServiceStatus_State_CRITICAL);
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt_obj.set_host_id(ss_obj.host_id());
     dt_obj.set_service_id(1);
     dt_obj.set_actual_start_time(now + 2);
     dt_obj.set_started(true);
     dt_obj.set_actual_end_time(0);
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->in_downtime(), val);
@@ -950,14 +950,14 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiImpact) {
       ss->last_hard_state = 0;
     else
       ss->last_hard_state = 2;
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt->host_id = ss->host_id;
     dt->service_id = 1;
     dt->actual_start_time = now + 2;
     dt->was_started = true;
     dt->actual_end_time = 0;
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->get_state_hard(), val);
@@ -1008,14 +1008,14 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiImpactPb) {
       ss_obj.set_last_hard_state(ServiceStatus_State_OK);
     else
       ss_obj.set_last_hard_state(ServiceStatus_State_CRITICAL);
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt_obj.set_host_id(ss_obj.host_id());
     dt_obj.set_service_id(1);
     dt_obj.set_actual_start_time(now + 2);
     dt_obj.set_started(true);
     dt_obj.set_actual_end_time(0);
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->get_state_hard(), val);
@@ -1065,14 +1065,14 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiBest) {
     ss->last_check = now + 1;
     ss->host_id = j + 1;
     ss->last_hard_state = kpis[j]->get_state_hard();
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt->host_id = ss->host_id;
     dt->service_id = 1;
     dt->actual_start_time = now + 2;
     dt->was_started = true;
     dt->actual_end_time = 0;
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->get_state_hard(), val);
@@ -1126,14 +1126,14 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiBestPb) {
     ss_obj.set_host_id(j + 1);
     ss_obj.set_last_hard_state(
         static_cast<ServiceStatus_State>(kpis[j]->get_state_hard()));
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt_obj.set_host_id(ss_obj.host_id());
     dt_obj.set_service_id(1);
     dt_obj.set_actual_start_time(now + 2);
     dt_obj.set_started(true);
     dt_obj.set_actual_end_time(0);
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->get_state_hard(), val);
@@ -1183,14 +1183,14 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiWorst) {
     ss->last_check = now + 1;
     ss->host_id = j + 1;
     ss->last_hard_state = kpis[j]->get_state_hard();
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt->host_id = ss->host_id;
     dt->service_id = 1;
     dt->was_started = true;
     dt->actual_start_time = now + 2;
     dt->actual_end_time = 0;
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->get_state_hard(), val);
@@ -1243,14 +1243,14 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiWorstPb) {
     ss_obj.set_host_id(j + 1);
     ss_obj.set_last_hard_state(
         static_cast<ServiceStatus_State>(kpis[j]->get_state_hard()));
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt_obj.set_host_id(ss_obj.host_id());
     dt_obj.set_service_id(1);
     dt_obj.set_started(true);
     dt_obj.set_actual_start_time(now + 2);
     dt_obj.set_actual_end_time(0);
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->get_state_hard(), val);
@@ -1291,14 +1291,14 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiRatio) {
     ss->last_check = now + 1;
     ss->host_id = j + 1;
     ss->last_hard_state = kpis[j]->get_state_hard();
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt->host_id = ss->host_id;
     dt->service_id = 1;
     dt->actual_start_time = now + 2;
     dt->was_started = true;
     dt->actual_end_time = 0;
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->get_state_hard(), val);
@@ -1343,14 +1343,14 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiRatioPb) {
     ss_obj.set_host_id(j + 1);
     ss_obj.set_last_hard_state(
         static_cast<ServiceStatus_State>(kpis[j]->get_state_hard()));
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt_obj.set_host_id(ss_obj.host_id());
     dt_obj.set_service_id(1);
     dt_obj.set_actual_start_time(now + 2);
     dt_obj.set_started(true);
     dt_obj.set_actual_end_time(0);
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = results.top();
     ASSERT_EQ(test_ba->get_state_hard(), val);
@@ -1392,14 +1392,14 @@ TEST_F(BamBA, KpiServiceDt) {
     ss->last_check = now + 1;
     ss->host_id = j + 1;
     ss->last_hard_state = 2;
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt->host_id = ss->host_id;
     dt->service_id = 1;
     dt->was_started = true;
     dt->actual_start_time = now + 1;
     dt->actual_end_time = 0;
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = *it;
     ASSERT_EQ(test_ba->in_downtime(), val);
@@ -1413,13 +1413,13 @@ TEST_F(BamBA, KpiServiceDt) {
     dt->actual_end_time = 0;
     dt->was_started = true;
     std::cout << "service_update 1" << std::endl;
-    kpis[0]->service_update(dt, _visitor.get(), logger);
+    kpis[0]->service_update(dt, _visitor.get());
 
     dt->deletion_time = now + 2 + 10 * i + 5;
     dt->actual_end_time = now + 2 + 10 * i + 5;
     dt->was_cancelled = true;
     std::cout << "service_update 2" << std::endl;
-    kpis[0]->service_update(dt, _visitor.get(), logger);
+    kpis[0]->service_update(dt, _visitor.get());
   }
   auto events = _visitor->queue();
 
@@ -1556,14 +1556,14 @@ TEST_F(BamBA, KpiServiceDtPb) {
     ss_obj.set_last_check(now + 1);
     ss_obj.set_host_id(j + 1);
     ss_obj.set_last_hard_state(ServiceStatus_State_CRITICAL);
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt_obj.set_host_id(ss_obj.host_id());
     dt_obj.set_service_id(1);
     dt_obj.set_started(true);
     dt_obj.set_actual_start_time(now + 1);
     dt_obj.set_actual_end_time(0);
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = *it;
     ASSERT_EQ(test_ba->in_downtime(), val);
@@ -1577,13 +1577,13 @@ TEST_F(BamBA, KpiServiceDtPb) {
     dt_obj.set_actual_end_time(0);
     dt_obj.set_started(true);
     std::cout << "service_update 1" << std::endl;
-    kpis[0]->service_update(dt, _visitor.get(), logger);
+    kpis[0]->service_update(dt, _visitor.get());
 
     dt_obj.set_deletion_time(now + 2 + 10 * i + 5);
     dt_obj.set_actual_end_time(now + 2 + 10 * i + 5);
     dt_obj.set_cancelled(true);
     std::cout << "service_update 2" << std::endl;
-    kpis[0]->service_update(dt, _visitor.get(), logger);
+    kpis[0]->service_update(dt, _visitor.get());
   }
   auto events = _visitor->queue();
 
@@ -1717,14 +1717,14 @@ TEST_F(BamBA, KpiServiceDtInherited_set) {
     ss->last_check = now + 1;
     ss->host_id = j + 1;
     ss->last_hard_state = 2;
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt->host_id = ss->host_id;
     dt->service_id = 1;
     dt->was_started = true;
     dt->actual_start_time = now + 1;
     dt->actual_end_time = 0;
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = *it;
     ASSERT_EQ(test_ba->in_downtime(), val);
@@ -1737,7 +1737,7 @@ TEST_F(BamBA, KpiServiceDtInherited_set) {
     dt->actual_start_time = now + 2 + 10 * i;
     dt->actual_end_time = 0;
     dt->was_started = true;
-    kpis[0]->service_update(dt, _visitor.get(), logger);
+    kpis[0]->service_update(dt, _visitor.get());
   }
   ASSERT_TRUE(test_ba->in_downtime());
 }
@@ -1779,14 +1779,14 @@ TEST_F(BamBA, KpiServiceDtInherited_setPb) {
     ss_obj.set_last_check(now + 1);
     ss_obj.set_host_id(j + 1);
     ss_obj.set_last_hard_state(ServiceStatus_State_CRITICAL);
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt_obj.set_host_id(ss_obj.host_id());
     dt_obj.set_service_id(1);
     dt_obj.set_started(true);
     dt_obj.set_actual_start_time(now + 1);
     dt_obj.set_actual_end_time(0);
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
 
     short val = *it;
     ASSERT_EQ(test_ba->in_downtime(), val);
@@ -1799,7 +1799,7 @@ TEST_F(BamBA, KpiServiceDtInherited_setPb) {
     dt_obj.set_actual_start_time(now + 2 + 10 * i);
     dt_obj.set_actual_end_time(0);
     dt_obj.set_started(true);
-    kpis[0]->service_update(dt, _visitor.get(), logger);
+    kpis[0]->service_update(dt, _visitor.get());
   }
   ASSERT_TRUE(test_ba->in_downtime());
 }
@@ -1837,14 +1837,14 @@ TEST_F(BamBA, KpiServiceDtInherited_unset) {
     ss->last_check = now + 1;
     ss->host_id = j + 1;
     ss->last_hard_state = 2;
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt->host_id = ss->host_id;
     dt->service_id = 1;
     dt->was_started = false;
     dt->actual_start_time = 0;
     dt->actual_end_time = 0;
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
   }
 
   ASSERT_FALSE(test_ba->in_downtime());
@@ -1884,14 +1884,14 @@ TEST_F(BamBA, KpiServiceDtInherited_unsetPb) {
     ss_obj.set_last_check(now + 1);
     ss_obj.set_host_id(j + 1);
     ss_obj.set_last_hard_state(ServiceStatus_State_CRITICAL);
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     dt_obj.set_host_id(ss_obj.host_id());
     dt_obj.set_service_id(1);
     dt_obj.set_started(false);
     dt_obj.set_actual_start_time(0);
     dt_obj.set_actual_end_time(0);
-    kpis[j]->service_update(dt, _visitor.get(), logger);
+    kpis[j]->service_update(dt, _visitor.get());
   }
 
   ASSERT_FALSE(test_ba->in_downtime());
@@ -1929,14 +1929,14 @@ TEST_F(BamBA, KpiServiceAcknowledgement) {
     ss->last_check = now + 1;
     ss->host_id = j + 1;
     ss->last_hard_state = 2;
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     ack->poller_id = 1;
     ack->host_id = ss->host_id;
     ack->service_id = 1;
     ack->entry_time = now + 2;
     ack->deletion_time = -1;
-    kpis[j]->service_update(ack, _visitor.get(), logger);
+    kpis[j]->service_update(ack, _visitor.get());
   }
 
   auto events = _visitor->queue();
@@ -1979,14 +1979,14 @@ TEST_F(BamBA, KpiServiceAcknowledgementPb) {
     ss_obj.set_last_check(now + 1);
     ss_obj.set_host_id(j + 1);
     ss_obj.set_last_hard_state(ServiceStatus_State_CRITICAL);
-    kpis[j]->service_update(ss, _visitor.get(), logger);
+    kpis[j]->service_update(ss, _visitor.get());
 
     ack->mut_obj().set_instance_id(1);
     ack->mut_obj().set_host_id(ss_obj.host_id());
     ack->mut_obj().set_service_id(1);
     ack->mut_obj().set_entry_time(now + 2);
     ack->mut_obj().set_deletion_time(-1);
-    kpis[j]->service_update(ack, _visitor.get(), logger);
+    kpis[j]->service_update(ack, _visitor.get());
   }
 
   auto events = _visitor->queue();

@@ -191,7 +191,7 @@ void kpi_service::service_update(const service_state& s) {
 
   // Propagate change.
   if (changed)
-    notify_parents_of_change(nullptr, _logger);
+    notify_parents_of_change(nullptr);
 }
 
 /**
@@ -202,9 +202,7 @@ void kpi_service::service_update(const service_state& s) {
  */
 void kpi_service::service_update(
     const std::shared_ptr<neb::service_status>& status,
-    io::stream* visitor,
-    const std::shared_ptr<spdlog::logger>& logger) {
-  _logger = logger;
+    io::stream* visitor) {
   if (status && status->host_id == _host_id &&
       status->service_id == _service_id) {
     // Log message.
@@ -243,7 +241,7 @@ void kpi_service::service_update(
 
     // Propagate change.
     if (changed)
-      notify_parents_of_change(visitor, logger);
+      notify_parents_of_change(visitor);
   }
 }
 
@@ -253,16 +251,13 @@ void kpi_service::service_update(
  *  @param[in]  status   Service status.
  *  @param[out] visitor  Object that will receive events.
  */
-void kpi_service::service_update(
-    const std::shared_ptr<neb::pb_service>& status,
-    io::stream* visitor,
-    const std::shared_ptr<spdlog::logger>& logger) {
-  _logger = logger;
+void kpi_service::service_update(const std::shared_ptr<neb::pb_service>& status,
+                                 io::stream* visitor) {
   if (status && status->obj().host_id() == _host_id &&
       status->obj().service_id() == _service_id) {
     auto& o = status->obj();
     // Log message.
-    logger->debug(
+    _logger->debug(
         "BAM: KPI {} is getting notified of service ({}, {}) update (state: "
         "{})",
         _id, _host_id, _service_id, static_cast<uint32_t>(o.state()));
@@ -277,7 +272,7 @@ void kpi_service::service_update(
       }
     } else {
       _last_check = o.last_check();
-      logger->trace(
+      _logger->trace(
           "service kpi {} last check updated with status last check {}", _id,
           o.last_check());
     }
@@ -294,7 +289,7 @@ void kpi_service::service_update(
     visit(visitor);
 
     if (changed)
-      notify_parents_of_change(visitor, logger);
+      notify_parents_of_change(visitor);
   }
 }
 
@@ -306,9 +301,7 @@ void kpi_service::service_update(
  */
 void kpi_service::service_update(
     const std::shared_ptr<neb::pb_service_status>& status,
-    io::stream* visitor,
-    const std::shared_ptr<spdlog::logger>& logger) {
-  _logger = logger;
+    io::stream* visitor) {
   if (status && status->obj().host_id() == _host_id &&
       status->obj().service_id() == _service_id) {
     auto& o = status->obj();
@@ -349,7 +342,7 @@ void kpi_service::service_update(
 
     // Propagate change.
     if (changed)
-      notify_parents_of_change(visitor, logger);
+      notify_parents_of_change(visitor);
   }
 }
 
@@ -361,9 +354,7 @@ void kpi_service::service_update(
  */
 void kpi_service::service_update(
     const std::shared_ptr<neb::pb_acknowledgement>& ack,
-    io::stream* visitor,
-    const std::shared_ptr<spdlog::logger>& logger) {
-  _logger = logger;
+    io::stream* visitor) {
   // Log message.
   _logger->debug(
       "BAM: KPI {} is getting a pb acknowledgement event for service ({}, {}) "
@@ -381,7 +372,7 @@ void kpi_service::service_update(
   visit(visitor);
 
   if (changed)
-    notify_parents_of_change(visitor, logger);
+    notify_parents_of_change(visitor);
 }
 
 /**
@@ -392,9 +383,7 @@ void kpi_service::service_update(
  */
 void kpi_service::service_update(
     const std::shared_ptr<neb::acknowledgement>& ack,
-    io::stream* visitor,
-    const std::shared_ptr<spdlog::logger>& logger) {
-  _logger = logger;
+    io::stream* visitor) {
   // Log message.
   _logger->debug(
       "BAM: KPI {} is getting an acknowledgement event for service ({}, {}) "
@@ -412,7 +401,7 @@ void kpi_service::service_update(
   visit(visitor);
 
   if (changed)
-    notify_parents_of_change(visitor, logger);
+    notify_parents_of_change(visitor);
 }
 
 /**
@@ -421,15 +410,12 @@ void kpi_service::service_update(
  *  @param[in]  dt
  *  @param[out] visitor  Object that will receive events.
  */
-void kpi_service::service_update(
-    const std::shared_ptr<neb::downtime>& dt,
-    io::stream* visitor,
-    const std::shared_ptr<spdlog::logger>& logger) {
-  logger->info(
+void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
+                                 io::stream* visitor) {
+  _logger->info(
       "kpi_service:service_update on downtime {}: was started {} ; actual end "
       "time {}",
       dt->internal_id, dt->was_started, dt->actual_end_time.get_time_t());
-  _logger = logger;
   // Update information.
   bool downtimed = dt->was_started && dt->actual_end_time.is_null();
   bool changed = false;
@@ -480,7 +466,7 @@ void kpi_service::service_update(
   visit(visitor);
 
   if (changed)
-    notify_parents_of_change(visitor, logger);
+    notify_parents_of_change(visitor);
 }
 
 /**
@@ -489,11 +475,8 @@ void kpi_service::service_update(
  *  @param[in]  dt
  *  @param[out] visitor  Object that will receive events.
  */
-void kpi_service::service_update(
-    const std::shared_ptr<neb::pb_downtime>& dt,
-    io::stream* visitor,
-    const std::shared_ptr<spdlog::logger>& logger) {
-  _logger = logger;
+void kpi_service::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
+                                 io::stream* visitor) {
   auto& downtime = dt->obj();
   // Update information.
   bool downtimed =
@@ -543,7 +526,7 @@ void kpi_service::service_update(
   visit(visitor);
 
   if (changed)
-    notify_parents_of_change(visitor, logger);
+    notify_parents_of_change(visitor);
 }
 
 /**
@@ -762,10 +745,9 @@ bool kpi_service::ok_state() const {
  * @param logger The logger to use.
  */
 void kpi_service::update_from(computable* child [[maybe_unused]],
-                              io::stream* visitor,
-                              const std::shared_ptr<spdlog::logger>& logger) {
-  logger->trace("kpi_service::update_from");
-  notify_parents_of_change(visitor, logger);
+                              io::stream* visitor) {
+  _logger->trace("kpi_service::update_from");
+  notify_parents_of_change(visitor);
 }
 
 std::string kpi_service::object_info() const {

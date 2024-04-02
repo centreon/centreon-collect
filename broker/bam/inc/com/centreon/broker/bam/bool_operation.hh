@@ -41,7 +41,7 @@ class bool_operation : public bool_binary_operator {
   const operation_type _type;
 
  public:
-  bool_operation(std::string const& op,
+  bool_operation(const std::string& op,
                  const std::shared_ptr<spdlog::logger>& logger);
   ~bool_operation() noexcept override = default;
   bool_operation(const bool_operation&) = delete;

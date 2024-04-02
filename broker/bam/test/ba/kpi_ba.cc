@@ -48,8 +48,8 @@ class KpiBA : public ::testing::Test {
     config::applier::init(0, "test_broker", 0);
 
     logger = log_v2::instance().get(log_v2::BAM);
-    _aply_state = std::make_unique<bam::configuration::applier::state>();
-    _state = std::make_unique<bam::configuration::state>();
+    _aply_state = std::make_unique<bam::configuration::applier::state>(logger);
+    _state = std::make_unique<bam::configuration::state>(logger);
     _visitor = std::make_unique<test_visitor>("test-visitor");
   }
 
@@ -134,7 +134,7 @@ TEST_F(KpiBA, KpiBa) {
     /* The first kpi is set to status critical. */
     ss->last_check = now;
     ss->last_hard_state = 0;
-    kpis[i]->service_update(ss, _visitor.get(), logger);
+    kpis[i]->service_update(ss, _visitor.get());
   }
 
   auto ss = std::make_shared<neb::service_status>();
@@ -144,7 +144,7 @@ TEST_F(KpiBA, KpiBa) {
   /* The first kpi is set to status critical. */
   ss->last_check = now + 10;
   ss->last_hard_state = 2;
-  kpis[0]->service_update(ss, _visitor.get(), logger);
+  kpis[0]->service_update(ss, _visitor.get());
 
   auto events = _visitor->queue();
 
@@ -242,7 +242,7 @@ TEST_F(KpiBA, KpiBaPb) {
     /* The first kpi is set to status critical. */
     ss->mut_obj().set_last_check(now);
     ss->mut_obj().set_last_hard_state(ServiceStatus_State_OK);
-    kpis[i]->service_update(ss, _visitor.get(), logger);
+    kpis[i]->service_update(ss, _visitor.get());
   }
 
   auto ss = std::make_shared<neb::pb_service_status>();
@@ -252,7 +252,7 @@ TEST_F(KpiBA, KpiBaPb) {
   /* The first kpi is set to status critical. */
   ss->mut_obj().set_last_check(now + 10);
   ss->mut_obj().set_last_hard_state(ServiceStatus_State_CRITICAL);
-  kpis[0]->service_update(ss, _visitor.get(), logger);
+  kpis[0]->service_update(ss, _visitor.get());
 
   auto events = _visitor->queue();
 
@@ -347,7 +347,7 @@ TEST_F(KpiBA, KpiBaDt) {
     /* The first kpi is set to status critical. */
     ss->last_check = now;
     ss->last_hard_state = 0;
-    kpis[i]->service_update(ss, _visitor.get(), logger);
+    kpis[i]->service_update(ss, _visitor.get());
   }
 
   auto ss = std::make_shared<neb::service_status>();
@@ -357,7 +357,7 @@ TEST_F(KpiBA, KpiBaDt) {
   /* The first kpi is set to status critical. */
   ss->last_check = now + 10;
   ss->last_hard_state = 2;
-  kpis[0]->service_update(ss, _visitor.get(), logger);
+  kpis[0]->service_update(ss, _visitor.get());
 
   /* Let's put a downtime on the service. */
   auto dt = std::make_shared<neb::downtime>();
@@ -366,7 +366,7 @@ TEST_F(KpiBA, KpiBaDt) {
   dt->entry_time = now + 12;
   dt->actual_start_time = now + 12;
   dt->was_started = true;
-  kpis[0]->service_update(dt, _visitor.get(), logger);
+  kpis[0]->service_update(dt, _visitor.get());
 
   auto events = _visitor->queue();
 
@@ -460,7 +460,7 @@ TEST_F(KpiBA, KpiBaDtPb) {
     /* The first kpi is set to status critical. */
     ss->mut_obj().set_last_check(now);
     ss->mut_obj().set_last_hard_state(ServiceStatus_State_OK);
-    kpis[i]->service_update(ss, _visitor.get(), logger);
+    kpis[i]->service_update(ss, _visitor.get());
   }
 
   auto ss = std::make_shared<neb::pb_service_status>();
@@ -470,7 +470,7 @@ TEST_F(KpiBA, KpiBaDtPb) {
   /* The first kpi is set to status critical. */
   ss->mut_obj().set_last_check(now + 10);
   ss->mut_obj().set_last_hard_state(ServiceStatus_State_CRITICAL);
-  kpis[0]->service_update(ss, _visitor.get(), logger);
+  kpis[0]->service_update(ss, _visitor.get());
 
   /* Let's put a downtime on the service. */
   auto dt = std::make_shared<neb::pb_downtime>();
@@ -480,7 +480,7 @@ TEST_F(KpiBA, KpiBaDtPb) {
   dt_obj.set_entry_time(now + 12);
   dt_obj.set_actual_start_time(now + 12);
   dt_obj.set_started(true);
-  kpis[0]->service_update(dt, _visitor.get(), logger);
+  kpis[0]->service_update(dt, _visitor.get());
 
   auto events = _visitor->queue();
 
@@ -571,7 +571,7 @@ TEST_F(KpiBA, KpiBaDtOff) {
 
     ss->last_check = now;
     ss->last_hard_state = 0;
-    kpis[i]->service_update(ss, _visitor.get(), logger);
+    kpis[i]->service_update(ss, _visitor.get());
   }
 
   auto ss = std::make_shared<neb::service_status>();
@@ -581,7 +581,7 @@ TEST_F(KpiBA, KpiBaDtOff) {
   /* The first kpi is set to status critical. */
   ss->last_check = now + 10;
   ss->last_hard_state = 2;
-  kpis[0]->service_update(ss, _visitor.get(), logger);
+  kpis[0]->service_update(ss, _visitor.get());
 
   /* Let's put a downtime on the service. */
   auto dt = std::make_shared<neb::downtime>();
@@ -591,7 +591,7 @@ TEST_F(KpiBA, KpiBaDtOff) {
   dt->actual_start_time = now + 12;
   dt->actual_end_time = -1;
   dt->was_started = true;
-  kpis[0]->service_update(dt, _visitor.get(), logger);
+  kpis[0]->service_update(dt, _visitor.get());
 
   /* Let's remove the downtime from the service. */
   dt = std::make_shared<neb::downtime>();
@@ -602,7 +602,7 @@ TEST_F(KpiBA, KpiBaDtOff) {
   dt->deletion_time = now + 20;
   dt->was_started = true;
   dt->was_cancelled = true;
-  kpis[0]->service_update(dt, _visitor.get(), logger);
+  kpis[0]->service_update(dt, _visitor.get());
   ASSERT_TRUE(!test_ba->in_downtime());
 
   auto events = _visitor->queue();
@@ -692,7 +692,7 @@ TEST_F(KpiBA, KpiBaDtOffPb) {
 
     ss->mut_obj().set_last_check(now);
     ss->mut_obj().set_last_hard_state(ServiceStatus_State_OK);
-    kpis[i]->service_update(ss, _visitor.get(), logger);
+    kpis[i]->service_update(ss, _visitor.get());
   }
 
   auto ss = std::make_shared<neb::pb_service_status>();
@@ -702,7 +702,7 @@ TEST_F(KpiBA, KpiBaDtOffPb) {
   /* The first kpi is set to status critical. */
   ss->mut_obj().set_last_check(now + 10);
   ss->mut_obj().set_last_hard_state(ServiceStatus_State_CRITICAL);
-  kpis[0]->service_update(ss, _visitor.get(), logger);
+  kpis[0]->service_update(ss, _visitor.get());
 
   /* Let's put a downtime on the service. */
   auto dt = std::make_shared<neb::pb_downtime>();
@@ -714,7 +714,7 @@ TEST_F(KpiBA, KpiBaDtOffPb) {
     dt_obj.set_actual_start_time(now + 12);
     dt_obj.set_actual_end_time(-1);
     dt_obj.set_started(true);
-    kpis[0]->service_update(dt, _visitor.get(), logger);
+    kpis[0]->service_update(dt, _visitor.get());
   }
 
   /* Let's remove the downtime from the service. */
@@ -728,7 +728,7 @@ TEST_F(KpiBA, KpiBaDtOffPb) {
     dt_obj.set_deletion_time(now + 20);
     dt_obj.set_started(true);
     dt_obj.set_cancelled(true);
-    kpis[0]->service_update(dt, _visitor.get(), logger);
+    kpis[0]->service_update(dt, _visitor.get());
   }
   ASSERT_TRUE(!test_ba->in_downtime());
 
@@ -819,7 +819,7 @@ TEST_F(KpiBA, KpiBaOkDtOff) {
 
     ss->last_check = now;
     ss->last_hard_state = 0;
-    kpis[i]->service_update(ss, _visitor.get(), logger);
+    kpis[i]->service_update(ss, _visitor.get());
   }
 
   auto ss = std::make_shared<neb::service_status>();
@@ -834,7 +834,7 @@ TEST_F(KpiBA, KpiBaOkDtOff) {
   dt->actual_start_time = now + 12;
   dt->actual_end_time = -1;
   dt->was_started = true;
-  kpis[0]->service_update(dt, _visitor.get(), logger);
+  kpis[0]->service_update(dt, _visitor.get());
   ASSERT_FALSE(test_ba->in_downtime());
 
   /* Let's remove the downtime from the service. */
@@ -846,7 +846,7 @@ TEST_F(KpiBA, KpiBaOkDtOff) {
   dt->deletion_time = now + 20;
   dt->was_started = true;
   dt->was_cancelled = true;
-  kpis[0]->service_update(dt, _visitor.get(), logger);
+  kpis[0]->service_update(dt, _visitor.get());
   ASSERT_FALSE(test_ba->in_downtime());
 }
 
@@ -924,7 +924,7 @@ TEST_F(KpiBA, KpiBaOkDtOffPb) {
 
     ss->mut_obj().set_last_check(now);
     ss->mut_obj().set_last_hard_state(ServiceStatus_State_OK);
-    kpis[i]->service_update(ss, _visitor.get(), logger);
+    kpis[i]->service_update(ss, _visitor.get());
   }
 
   auto ss = std::make_shared<neb::pb_service_status>();
@@ -941,7 +941,7 @@ TEST_F(KpiBA, KpiBaOkDtOffPb) {
     dt_obj.set_actual_start_time(now + 12);
     dt_obj.set_actual_end_time(-1);
     dt_obj.set_started(true);
-    kpis[0]->service_update(dt, _visitor.get(), logger);
+    kpis[0]->service_update(dt, _visitor.get());
   }
   ASSERT_FALSE(test_ba->in_downtime());
 
@@ -956,7 +956,7 @@ TEST_F(KpiBA, KpiBaOkDtOffPb) {
     dt_obj.set_deletion_time(now + 20);
     dt_obj.set_started(true);
     dt_obj.set_cancelled(true);
-    kpis[0]->service_update(dt, _visitor.get(), logger);
+    kpis[0]->service_update(dt, _visitor.get());
   }
   ASSERT_FALSE(test_ba->in_downtime());
 }
@@ -1038,7 +1038,7 @@ TEST_F(KpiBA, KpiBaWorstImpact) {
 
     ss->last_check = now;
     ss->last_hard_state = 0;
-    kpis[i]->service_update(ss, _visitor.get(), logger);
+    kpis[i]->service_update(ss, _visitor.get());
   }
   ASSERT_EQ(test_ba->get_output(),
             "Status is OK - Level = 100 (warn: 25 - crit: 0) - none of the 1 "
@@ -1050,7 +1050,7 @@ TEST_F(KpiBA, KpiBaWorstImpact) {
   ss->service_id = 1;
   ss->last_check = now + 10;
   ss->last_hard_state = 3;
-  kpis[0]->service_update(ss, _visitor.get(), logger);
+  kpis[0]->service_update(ss, _visitor.get());
 
   _visitor->print_events();
 
@@ -1135,7 +1135,7 @@ TEST_F(KpiBA, KpiBaWorstImpactPb) {
 
     ss->mut_obj().set_last_check(now);
     ss->mut_obj().set_last_hard_state(ServiceStatus_State_OK);
-    kpis[i]->service_update(ss, _visitor.get(), logger);
+    kpis[i]->service_update(ss, _visitor.get());
   }
 
   auto ss = std::make_shared<neb::pb_service_status>();
@@ -1143,7 +1143,7 @@ TEST_F(KpiBA, KpiBaWorstImpactPb) {
   ss->mut_obj().set_service_id(1);
   ss->mut_obj().set_last_check(now + 10);
   ss->mut_obj().set_last_hard_state(ServiceStatus_State_UNKNOWN);
-  kpis[0]->service_update(ss, _visitor.get(), logger);
+  kpis[0]->service_update(ss, _visitor.get());
 
   _visitor->print_events();
 

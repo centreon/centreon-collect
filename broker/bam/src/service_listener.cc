@@ -37,8 +37,7 @@ void service_listener::service_update(const service_state& state
  */
 void service_listener::service_update(
     const std::shared_ptr<neb::service_status>& status [[maybe_unused]],
-    io::stream* visitor [[maybe_unused]],
-    const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]]) {}
+    io::stream* visitor [[maybe_unused]]) {}
 
 /**
  *  Notify of a service status update.
@@ -48,8 +47,7 @@ void service_listener::service_update(
  */
 void service_listener::service_update(
     const std::shared_ptr<neb::pb_service>& status [[maybe_unused]],
-    io::stream* visitor [[maybe_unused]],
-    const std::shared_ptr<spdlog::logger>& logger) {}
+    io::stream* visitor [[maybe_unused]]) {}
 
 /**
  *  Notify of a service status update.
@@ -59,8 +57,7 @@ void service_listener::service_update(
  */
 void service_listener::service_update(
     const std::shared_ptr<neb::pb_service_status>& status [[maybe_unused]],
-    io::stream* visitor [[maybe_unused]],
-    const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]]) {}
+    io::stream* visitor [[maybe_unused]]) {}
 
 /**
  *  Notify of a protobuf acknowledgement.
@@ -70,8 +67,7 @@ void service_listener::service_update(
  */
 void service_listener::service_update(
     const std::shared_ptr<neb::pb_acknowledgement>& ack [[maybe_unused]],
-    io::stream* visitor [[maybe_unused]],
-    const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]]) {}
+    io::stream* visitor [[maybe_unused]]) {}
 
 /**
  *  Notify of an acknowledgement.
@@ -81,8 +77,7 @@ void service_listener::service_update(
  */
 void service_listener::service_update(
     const std::shared_ptr<neb::acknowledgement>& ack [[maybe_unused]],
-    io::stream* visitor [[maybe_unused]],
-    const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]]) {}
+    io::stream* visitor [[maybe_unused]]) {}
 
 /**
  *  Notify of a downtime.
@@ -90,10 +85,9 @@ void service_listener::service_update(
  *  @param[in]  dt       Downtime.
  *  @param[out] visitor  Visitor.
  */
-void service_listener::service_update(
-    const std::shared_ptr<neb::downtime>& dt [[maybe_unused]],
-    io::stream* visitor [[maybe_unused]],
-    const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]]) {}
+void service_listener::service_update(const std::shared_ptr<neb::downtime>& dt
+                                      [[maybe_unused]],
+                                      io::stream* visitor [[maybe_unused]]) {}
 
 /**
  *  Notify of a downtime (protobuf).
@@ -103,5 +97,4 @@ void service_listener::service_update(
  */
 void service_listener::service_update(
     const std::shared_ptr<neb::pb_downtime>& dt [[maybe_unused]],
-    io::stream* visitor [[maybe_unused]],
-    const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]]) {}
+    io::stream* visitor [[maybe_unused]]) {}

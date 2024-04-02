@@ -1,5 +1,5 @@
 /*
-** Copyright 2014-2015, 2020-2023 Centreon
+** Copyright 2014-2015, 2020-2024 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -38,12 +38,14 @@ class connector : public io::endpoint {
   std::string _storage_db_name;
   std::shared_ptr<persistent_cache> _cache;
 
-  connector(stream_type type, const database_config& db_cfg,
+  connector(stream_type type,
+            const database_config& db_cfg,
             const multiplexing::muxer_filter& filter);
 
  public:
   static std::unique_ptr<connector> create_monitoring_connector(
-      const std::string& ext_cmd_file, const database_config& db_cfg,
+      const std::string& ext_cmd_file,
+      const database_config& db_cfg,
       const std::string& storage_db_name,
       std::shared_ptr<persistent_cache> cache);
 

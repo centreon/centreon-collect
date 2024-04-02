@@ -29,6 +29,7 @@
 #include "com/centreon/broker/sql/mysql_stmt.hh"
 
 namespace com::centreon::broker {
+
 namespace extcmd {
 using pb_ba_info =
     io::protobuf<BaInfo, make_type(io::extcmd, extcmd::de_ba_info)>;
@@ -68,7 +69,7 @@ namespace bam {
 class monitoring_stream : public io::stream {
   const std::string _ext_cmd_file;
 
-  /* Loggers */
+  /* Logger */
   std::shared_ptr<spdlog::logger> _logger;
 
   configuration::applier::state _applier;
@@ -113,7 +114,8 @@ class monitoring_stream : public io::stream {
   monitoring_stream(std::string const& ext_cmd_file,
                     database_config const& db_cfg,
                     database_config const& storage_db_cfg,
-                    std::shared_ptr<persistent_cache> cache);
+                    std::shared_ptr<persistent_cache> cache,
+                    const std::shared_ptr<spdlog::logger>& logger);
   ~monitoring_stream();
   monitoring_stream(const monitoring_stream&) = delete;
   monitoring_stream& operator=(const monitoring_stream&) = delete;

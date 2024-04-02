@@ -52,13 +52,15 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *
  *  @param[in] db_cfg                  BAM DB configuration.
  */
-reporting_stream::reporting_stream(database_config const& db_cfg)
+reporting_stream::reporting_stream(
+    database_config const& db_cfg,
+    const std::shared_ptr<spdlog::logger>& logger)
     : io::stream("BAM-BI"),
       _ack_events(0),
       _pending_events(0),
       _mysql(db_cfg),
       _processing_dimensions(false),
-      _logger{log_v2::instance().get(log_v2::BAM)} {
+      _logger{logger} {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: reporting stream constructor");
   // Prepare queries.
   _prepare();
@@ -76,7 +78,8 @@ reporting_stream::reporting_stream(database_config const& db_cfg)
   _close_all_events();
 
   // Initialize the availabilities thread.
-  _availabilities = std::make_unique<availability_thread>(db_cfg, _timeperiods);
+  _availabilities =
+      std::make_unique<availability_thread>(db_cfg, _timeperiods, _logger);
   _availabilities->start_and_wait();
 }
 
@@ -137,9 +140,7 @@ int32_t reporting_stream::flush() {
  */
 int32_t reporting_stream::stop() {
   int32_t retval = flush();
-  log_v2::instance()
-      .get(log_v2::CORE)
-      ->info("reporting stream stopped with {} events acknowledged", retval);
+  _logger->info("reporting stream stopped with {} events acknowledged", retval);
   return retval;
 }
 

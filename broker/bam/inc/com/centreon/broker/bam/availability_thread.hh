@@ -1,5 +1,5 @@
-/*
- * Copyright 2014 - 2021-2023 Centreon
+/**
+ * Copyright 2014 - 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,11 +41,11 @@ namespace bam {
 class availability_thread final {
  public:
   availability_thread(database_config const& db_cfg,
-                      timeperiod_map& shared_map);
+                      timeperiod_map& shared_map,
+                      const std::shared_ptr<spdlog::logger>& logger);
   ~availability_thread();
-  availability_thread(availability_thread const& other) = delete;
-  availability_thread& operator=(availability_thread const& other) const =
-      delete;
+  availability_thread(availability_thread const&) = delete;
+  availability_thread& operator=(availability_thread const&) const = delete;
 
   virtual void run();
   void terminate();

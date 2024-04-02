@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2015 Centreon
+ * Copyright 2014-2015, 2022-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,8 +43,10 @@ class bool_expression;
  *  Take the configuration of KPIs and apply it.
  */
 class kpi {
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
-  kpi();
+  kpi(const std::shared_ptr<spdlog::logger>& logger);
   kpi(kpi const& other);
   ~kpi() noexcept = default;
   kpi& operator=(kpi const& other);

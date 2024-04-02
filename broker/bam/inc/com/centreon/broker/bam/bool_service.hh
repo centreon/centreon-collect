@@ -53,21 +53,16 @@ class bool_service : public bool_value, public service_listener {
   uint32_t get_service_id() const;
   void service_update(const service_state& s) override;
   void service_update(const std::shared_ptr<neb::pb_service>& status,
-                      io::stream* visitor,
-                      const std::shared_ptr<spdlog::logger>& logger) override;
+                      io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::pb_service_status>& status,
-                      io::stream* visitor,
-                      const std::shared_ptr<spdlog::logger>& logger) override;
+                      io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::service_status>& status,
-                      io::stream* visitor,
-                      const std::shared_ptr<spdlog::logger>& logger) override;
+                      io::stream* visitor = nullptr) override;
   double value_hard() const override;
   bool boolean_value() const override;
   bool state_known() const override;
   bool in_downtime() const override;
-  void update_from(computable* child,
-                   io::stream* visitor,
-                   const std::shared_ptr<spdlog::logger>& logger) override;
+  void update_from(computable* child, io::stream* visitor) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };

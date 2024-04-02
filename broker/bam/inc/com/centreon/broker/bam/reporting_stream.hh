@@ -1,5 +1,5 @@
-/*
- * Copyright 2014-2015, 2020-2023 Centreon
+/**
+ * Copyright 2014-2015, 2020-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,11 +85,12 @@ class reporting_stream : public io::stream {
   id_start_to_event_id _ba_event_cache;
   id_start_to_event_id _kpi_event_cache;
 
-  /* loggers */
+  /* Logger */
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  reporting_stream(database_config const& db_cfg);
+  reporting_stream(database_config const& db_cfg,
+                   const std::shared_ptr<spdlog::logger>& logger);
   ~reporting_stream();
   reporting_stream(const reporting_stream&);
   reporting_stream& operator=(const reporting_stream&);
@@ -101,7 +102,8 @@ class reporting_stream : public io::stream {
 
  private:
   void _apply(const DimensionTimeperiod& tp);
-  void _close_inconsistent_events(char const* event_type, char const* table,
+  void _close_inconsistent_events(char const* event_type,
+                                  char const* table,
                                   char const* id);
   void _close_all_events();
   void _load_timeperiods();

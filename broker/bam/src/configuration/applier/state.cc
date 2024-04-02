@@ -76,8 +76,12 @@ static std::string service_node_id(uint32_t host_id, uint32_t service_id) {
 /**
  *  Default constructor.
  */
-applier::state::state()
-    : _logger{log_v2::instance().get(log_v2::BAM)}, _bool_exp_applier() {}
+applier::state::state(const std::shared_ptr<spdlog::logger>& logger)
+    : _logger{logger},
+      _ba_applier(_logger),
+      _book_service(_logger),
+      _kpi_applier(_logger),
+      _bool_exp_applier(_logger) {}
 
 /**
  *  Apply configuration.

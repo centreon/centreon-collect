@@ -54,9 +54,7 @@ class bool_expression : public computable {
   std::shared_ptr<bool_value> get_expression() const;
   bool in_downtime() const;
   uint32_t get_id() const;
-  void update_from(computable* child,
-                   io::stream* visitor,
-                   const std::shared_ptr<spdlog::logger>& logger) override;
+  void update_from(computable* child, io::stream* visitor) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };

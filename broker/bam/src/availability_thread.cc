@@ -1,20 +1,20 @@
 /**
-* Copyright 2014, 2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2014, 2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/availability_thread.hh"
 
@@ -34,15 +34,17 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *  @param[in] db_cfg       Database configuration.
  *  @param[in] shared_map   A timeperiod map shared with the reporting.
  */
-availability_thread::availability_thread(database_config const& db_cfg,
-                                         timeperiod_map& shared_map)
+availability_thread::availability_thread(
+    database_config const& db_cfg,
+    timeperiod_map& shared_map,
+    const std::shared_ptr<spdlog::logger>& logger)
     : _started_flag{false},
       _db_cfg(db_cfg),
       _shared_tps(shared_map),
       _mutex{},
       _should_exit(false),
       _should_rebuild_all(false),
-      _logger{log_v2::instance().get(log_v2::BAM)} {}
+      _logger{logger} {}
 
 /**
  *  Destructor.

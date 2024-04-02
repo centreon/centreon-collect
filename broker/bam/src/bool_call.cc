@@ -91,10 +91,9 @@ void bool_call::set_expression(std::shared_ptr<bool_value> expression) {
  * @param logger The logger to use.
  */
 void bool_call::update_from(computable* child [[maybe_unused]],
-                            io::stream* visitor,
-                            const std::shared_ptr<spdlog::logger>& logger) {
-  logger->trace("bool_call::update_from");
+                            io::stream* visitor) {
+  _logger->trace("bool_call::update_from");
 
   if (child == _expression.get())
-    notify_parents_of_change(visitor, logger);
+    notify_parents_of_change(visitor);
 }

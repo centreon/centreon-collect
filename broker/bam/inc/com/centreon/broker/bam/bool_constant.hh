@@ -21,9 +21,8 @@
 
 #include "com/centreon/broker/bam/bool_value.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::bam {
 
-namespace bam {
 /**
  *  @class bool_and bool_and.hh "com/centreon/broker/bam/bool_and.hh"
  *  @brief AND operator.
@@ -37,22 +36,18 @@ class bool_constant : public bool_value {
   const bool _boolean_value;
 
  public:
-  bool_constant(double val, const std::shared_ptr<spdlog::logger>& logger);
+  bool_constant(double value, const std::shared_ptr<spdlog::logger>& logger);
   ~bool_constant() noexcept override = default;
   bool_constant(const bool_constant&) = delete;
   bool_constant& operator=(const bool_constant&) = delete;
   double value_hard() const override;
   bool boolean_value() const override;
   bool state_known() const override;
-  virtual void update_from(
-      computable* child,
-      io::stream* visitor,
-      const std::shared_ptr<spdlog::logger>& logger) override;
+  void update_from(computable* child, io::stream* visitor) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };
-}  // namespace bam
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_CONSTANT_HH

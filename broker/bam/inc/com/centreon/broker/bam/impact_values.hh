@@ -38,8 +38,10 @@ class impact_values {
   state _state;
 
  public:
-  impact_values(double nominal = 0.0, double acknowledgement = 0.0,
-                double downtime = 0.0, state state = state_ok);
+  impact_values(double nominal = 0.0,
+                double acknowledgement = 0.0,
+                double downtime = 0.0,
+                state state = state_ok);
   impact_values(impact_values const& other) = delete;
   ~impact_values();
   impact_values& operator=(impact_values const& other);

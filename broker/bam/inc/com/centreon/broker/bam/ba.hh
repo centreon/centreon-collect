@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2015, 2021-2023 Centreon
+ * Copyright 2014-2015, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 #ifndef CCB_BAM_BA_HH
 #define CCB_BAM_BA_HH
 
-#include <memory>
 #include "bbdo/bam/ba_duration_event.hh"
 #include "bbdo/bam/inherited_downtime.hh"
 #include "bbdo/bam/state.hh"
@@ -141,19 +140,15 @@ class ba : public computable, public service_listener {
   void set_state_source(configuration::ba::state_source source);
   void visit(io::stream* visitor);
   void service_update(std::shared_ptr<neb::downtime> const& dt,
-                      io::stream* visitor,
-                      const std::shared_ptr<spdlog::logger>& logger) override;
+                      io::stream* visitor) override;
   void service_update(std::shared_ptr<neb::pb_downtime> const& dt,
-                      io::stream* visitor,
-                      const std::shared_ptr<spdlog::logger>& logger) override;
+                      io::stream* visitor) override;
   void save_inherited_downtime(persistent_cache& cache) const;
   void set_inherited_downtime(inherited_downtime const& dwn);
   void set_inherited_downtime(pb_inherited_downtime const& dwn);
   void set_level_critical(double level);
   void set_level_warning(double level);
-  void update_from(computable* child,
-                   io::stream* visitor,
-                   const std::shared_ptr<spdlog::logger>& logger) override;
+  void update_from(computable* child, io::stream* visitor) override;
   std::string object_info() const override;
   void dump(const std::string& filename) const;
   void dump(std::ofstream& output) const override;

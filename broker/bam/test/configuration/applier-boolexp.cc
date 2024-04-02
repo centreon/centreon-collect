@@ -32,8 +32,10 @@ class ApplierBoolexp : public ::testing::Test {
     // Initialization.
     config::applier::init(0, "test_broker", 0);
 
-    _aply_state = std::make_unique<bam::configuration::applier::state>();
-    _state = std::make_unique<bam::configuration::state>();
+    auto logger = log_v2::instance().get(log_v2::BAM);
+    _aply_state = std::make_unique<bam::configuration::applier::state>(
+        log_v2::instance().get(log_v2::BAM));
+    _state = std::make_unique<bam::configuration::state>(logger);
   }
 
   void TearDown() override {

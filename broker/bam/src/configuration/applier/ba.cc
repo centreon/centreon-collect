@@ -35,9 +35,12 @@ using namespace com::centreon::broker::bam::configuration;
 using com::centreon::common::log_v2::log_v2;
 
 /**
- *  Default constructor.
+ * @brief Constructor of an applier of BA.
+ *
+ * @param logger The logger to use.
  */
-applier::ba::ba() : _logger{log_v2::instance().get(log_v2::BAM)} {}
+applier::ba::ba(const std::shared_ptr<spdlog::logger>& logger)
+    : _logger{logger} {}
 
 /**
  *  Copy constructor.

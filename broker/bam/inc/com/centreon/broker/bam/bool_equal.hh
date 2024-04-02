@@ -19,6 +19,7 @@
 #ifndef CCB_BAM_BOOL_EQUAL_HH
 #define CCB_BAM_BOOL_EQUAL_HH
 
+#include <spdlog/logger.h>
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
 
 namespace com::centreon::broker::bam {

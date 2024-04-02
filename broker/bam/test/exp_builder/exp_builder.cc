@@ -63,7 +63,7 @@ class BamExpBuilder : public ::testing::Test {
 
 TEST_F(BamExpBuilder, Valid1) {
   bam::exp_parser p("OK IS OK");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
@@ -75,7 +75,7 @@ TEST_F(BamExpBuilder, Valid1) {
 
 TEST_F(BamExpBuilder, Valid2) {
   bam::exp_parser p("OK IS NOT OK");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
@@ -87,7 +87,7 @@ TEST_F(BamExpBuilder, Valid2) {
 
 TEST_F(BamExpBuilder, Valid3) {
   bam::exp_parser p("OK AND CRITICAL");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
@@ -99,7 +99,7 @@ TEST_F(BamExpBuilder, Valid3) {
 
 TEST_F(BamExpBuilder, Valid4) {
   bam::exp_parser p("OK OR CRITICAL");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
@@ -111,7 +111,7 @@ TEST_F(BamExpBuilder, Valid4) {
 
 TEST_F(BamExpBuilder, Valid5) {
   bam::exp_parser p("OK XOR CRITICAL");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
@@ -123,7 +123,7 @@ TEST_F(BamExpBuilder, Valid5) {
 
 TEST_F(BamExpBuilder, Valid6) {
   bam::exp_parser p("2 + 3 * 2 == 8");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
@@ -135,7 +135,7 @@ TEST_F(BamExpBuilder, Valid6) {
 
 TEST_F(BamExpBuilder, Valid7) {
   bam::exp_parser p("2 - 3 * (2 - 6 / 3) == 2");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
@@ -147,7 +147,7 @@ TEST_F(BamExpBuilder, Valid7) {
 
 TEST_F(BamExpBuilder, Valid8) {
   bam::exp_parser p("2 % 3 == 20 % 6");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
@@ -161,7 +161,7 @@ TEST_F(BamExpBuilder, UnknownService1) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("{host_1 service_1} {IS} {OK}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
@@ -173,7 +173,7 @@ TEST_F(BamExpBuilder, UnknownService2) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("{host_1 service_1} {IS} {CRITICAL}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
@@ -185,12 +185,12 @@ TEST_F(BamExpBuilder, OkService2) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("{host_1 service_1} {IS} {CRITICAL}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -200,7 +200,7 @@ TEST_F(BamExpBuilder, OkService2) {
   svc1->current_state = 0;    // OK
   svc1->last_hard_state = 0;  // OK
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -210,12 +210,12 @@ TEST_F(BamExpBuilder, CritService2) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("{host_1 service_1} {IS} {CRITICAL}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -225,7 +225,7 @@ TEST_F(BamExpBuilder, CritService2) {
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
@@ -236,13 +236,13 @@ TEST_F(BamExpBuilder, CritOkService1) {
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} {OK}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -255,7 +255,7 @@ TEST_F(BamExpBuilder, CritOkService1) {
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
@@ -266,7 +266,7 @@ TEST_F(BamExpBuilder, CritOkService1) {
   svc2->mut_obj().set_state(ServiceStatus::OK);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
 
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
@@ -277,13 +277,13 @@ TEST_F(BamExpBuilder, CritOkService2) {
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} {OK}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -296,14 +296,14 @@ TEST_F(BamExpBuilder, CritOkService2) {
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
 
   svc1->mut_obj().set_state(ServiceStatus::OK);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_FALSE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -314,7 +314,7 @@ TEST_F(BamExpBuilder, CritOkService2) {
   svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
 
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -325,13 +325,13 @@ TEST_F(BamExpBuilder, CritOkService3) {
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} {OK}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -344,14 +344,14 @@ TEST_F(BamExpBuilder, CritOkService3) {
   svc2->mut_obj().set_state(ServiceStatus::OK);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
 
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
 
   svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
 
   ASSERT_FALSE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -362,7 +362,7 @@ TEST_F(BamExpBuilder, CritOkService3) {
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
@@ -373,13 +373,13 @@ TEST_F(BamExpBuilder, CritAndOkService1) {
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} {OK}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -392,7 +392,7 @@ TEST_F(BamExpBuilder, CritAndOkService1) {
   svc1->mut_obj().set_state(ServiceStatus::OK);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -403,7 +403,7 @@ TEST_F(BamExpBuilder, CritAndOkService1) {
   svc2->mut_obj().set_state(ServiceStatus::OK);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
 
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -411,7 +411,7 @@ TEST_F(BamExpBuilder, CritAndOkService1) {
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
@@ -422,13 +422,13 @@ TEST_F(BamExpBuilder, CritAndOkService2) {
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} {OK}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -441,14 +441,14 @@ TEST_F(BamExpBuilder, CritAndOkService2) {
   svc1->mut_obj().set_state(ServiceStatus::OK);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
 
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_FALSE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -459,7 +459,7 @@ TEST_F(BamExpBuilder, CritAndOkService2) {
   svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
 
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -470,13 +470,13 @@ TEST_F(BamExpBuilder, CritAndOkService3) {
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} {OK}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -489,14 +489,14 @@ TEST_F(BamExpBuilder, CritAndOkService3) {
   svc2->mut_obj().set_state(ServiceStatus::WARNING);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::WARNING);
 
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
 
   svc2->mut_obj().set_state(ServiceStatus::OK);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
 
   ASSERT_FALSE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -507,7 +507,7 @@ TEST_F(BamExpBuilder, CritAndOkService3) {
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
@@ -517,12 +517,12 @@ TEST_F(BamExpBuilder, NotCritService3) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -535,7 +535,7 @@ TEST_F(BamExpBuilder, NotCritService3) {
   svc1->mut_obj().set_state(ServiceStatus::WARNING);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::WARNING);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
@@ -543,7 +543,7 @@ TEST_F(BamExpBuilder, NotCritService3) {
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -553,7 +553,7 @@ TEST_F(BamExpBuilder, ExpressionWithService) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
@@ -561,7 +561,7 @@ TEST_F(BamExpBuilder, ExpressionWithService) {
   bam::bool_expression exp(1, true, logger);
   exp.set_expression(b);
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -574,7 +574,7 @@ TEST_F(BamExpBuilder, ExpressionWithService) {
   svc1->mut_obj().set_state(ServiceStatus::WARNING);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::WARNING);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(exp.state_known());
   ASSERT_TRUE(exp.get_state());
@@ -582,7 +582,7 @@ TEST_F(BamExpBuilder, ExpressionWithService) {
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(exp.state_known());
   ASSERT_FALSE(exp.get_state());
@@ -592,7 +592,7 @@ TEST_F(BamExpBuilder, ReverseExpressionWithService) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
@@ -600,7 +600,7 @@ TEST_F(BamExpBuilder, ReverseExpressionWithService) {
   bam::bool_expression exp(1, false, logger);
   exp.set_expression(b);
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -613,7 +613,7 @@ TEST_F(BamExpBuilder, ReverseExpressionWithService) {
   svc1->mut_obj().set_state(ServiceStatus::WARNING);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::WARNING);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(exp.state_known());
   ASSERT_FALSE(exp.get_state());
@@ -621,7 +621,7 @@ TEST_F(BamExpBuilder, ReverseExpressionWithService) {
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(exp.state_known());
   ASSERT_TRUE(exp.get_state());
@@ -631,7 +631,7 @@ TEST_F(BamExpBuilder, KpiBoolexpWithService) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
@@ -644,7 +644,7 @@ TEST_F(BamExpBuilder, KpiBoolexpWithService) {
   kpi->link_boolexp(exp);
   exp->add_parent(kpi);
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -657,7 +657,7 @@ TEST_F(BamExpBuilder, KpiBoolexpWithService) {
   svc1->mut_obj().set_state(ServiceStatus::WARNING);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::WARNING);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(exp->state_known());
   EXPECT_FALSE(kpi->ok_state());
@@ -665,7 +665,7 @@ TEST_F(BamExpBuilder, KpiBoolexpWithService) {
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(exp->state_known());
   ASSERT_TRUE(kpi->ok_state());
@@ -675,7 +675,7 @@ TEST_F(BamExpBuilder, KpiBoolexpReversedImpactWithService) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
@@ -688,7 +688,7 @@ TEST_F(BamExpBuilder, KpiBoolexpReversedImpactWithService) {
   kpi->link_boolexp(exp);
   exp->add_parent(kpi);
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -701,14 +701,14 @@ TEST_F(BamExpBuilder, KpiBoolexpReversedImpactWithService) {
   svc1->mut_obj().set_state(ServiceStatus::WARNING);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::WARNING);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(kpi->ok_state());
 
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_FALSE(kpi->ok_state());
 }
@@ -719,13 +719,13 @@ TEST_F(BamExpBuilder, BoolexpServiceXorService) {
   bam::exp_parser p(
       "({host_1 service_1} {IS} {CRITICAL}) {XOR} ({host_1 service_2} {IS} "
       "{CRITICAL})");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -737,7 +737,7 @@ TEST_F(BamExpBuilder, BoolexpServiceXorService) {
   svc1->mut_obj().set_service_id(1);
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_FALSE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -747,23 +747,23 @@ TEST_F(BamExpBuilder, BoolexpServiceXorService) {
   svc2->mut_obj().set_service_id(2);
   svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
 
   svc1->mut_obj().set_state(ServiceStatus::OK);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   svc2->mut_obj().set_state(ServiceStatus::OK);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -773,13 +773,13 @@ TEST_F(BamExpBuilder, BoolexpLTWithServiceStatus) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("{host_1 service_1} < {host_1 service_2}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -791,7 +791,7 @@ TEST_F(BamExpBuilder, BoolexpLTWithServiceStatus) {
   svc1->mut_obj().set_service_id(1);
   svc1->mut_obj().set_state(ServiceStatus::OK);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_FALSE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -801,23 +801,23 @@ TEST_F(BamExpBuilder, BoolexpLTWithServiceStatus) {
   svc2->mut_obj().set_service_id(2);
   svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
 
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   svc2->mut_obj().set_state(ServiceStatus::OK);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -829,13 +829,13 @@ TEST_F(BamExpBuilder, BoolexpKpiService) {
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} "
       "{CRITICAL}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -847,7 +847,7 @@ TEST_F(BamExpBuilder, BoolexpKpiService) {
   svc1->mut_obj().set_service_id(1);
   svc1->mut_obj().set_state(ServiceStatus::OK);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_FALSE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -857,30 +857,30 @@ TEST_F(BamExpBuilder, BoolexpKpiService) {
   svc2->mut_obj().set_service_id(2);
   svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
 
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   svc2->mut_obj().set_state(ServiceStatus::OK);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
 
   svc1->mut_obj().set_state(ServiceStatus::OK);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -894,7 +894,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} "
       "{CRITICAL}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
@@ -916,7 +916,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
   ba->add_impact(kpi);
   kpi->add_parent(ba);
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -931,7 +931,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
   svc1->mut_obj().set_service_id(1);
   svc1->mut_obj().set_state(ServiceStatus::OK);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ba->dump("/tmp/ba1");
   ASSERT_FALSE(b->state_known());
@@ -946,7 +946,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
   svc2->mut_obj().set_service_id(2);
   svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
   ba->dump("/tmp/ba2");
 
   ASSERT_TRUE(b->state_known());
@@ -958,18 +958,18 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
 
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
   ba->dump("/tmp/ba3");
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
   ba->dump("/tmp/ba4");
 
   svc2->mut_obj().set_state(ServiceStatus::OK);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
   ba->dump("/tmp/ba5");
 
   ASSERT_TRUE(b->state_known());
@@ -981,7 +981,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
 
   svc1->mut_obj().set_state(ServiceStatus::OK);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
   ba->dump("/tmp/ba6");
 
   ASSERT_TRUE(b->state_known());
@@ -1000,7 +1000,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpressionAndOperator) {
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} "
       "{CRITICAL}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
   bam::exp_builder builder(p.get_postfix(), mapping, logger);
@@ -1022,7 +1022,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpressionAndOperator) {
   ba->add_impact(kpi);
   kpi->add_parent(ba);
 
-  bam::service_book book;
+  bam::service_book book(logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -1037,7 +1037,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpressionAndOperator) {
   svc1->mut_obj().set_service_id(1);
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
 
   ba->dump("/tmp/ba1");
   ASSERT_FALSE(b->state_known());
@@ -1052,7 +1052,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpressionAndOperator) {
   svc2->mut_obj().set_service_id(2);
   svc2->mut_obj().set_state(ServiceStatus::OK);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
   ba->dump("/tmp/ba2");
 
   ASSERT_TRUE(b->state_known());
@@ -1064,18 +1064,18 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpressionAndOperator) {
 
   svc1->mut_obj().set_state(ServiceStatus::OK);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
   ba->dump("/tmp/ba3");
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
 
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
   ba->dump("/tmp/ba4");
 
   svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc2, nullptr, logger);
+  book.update(svc2, nullptr);
   ba->dump("/tmp/ba5");
 
   ASSERT_TRUE(b->state_known());
@@ -1087,7 +1087,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpressionAndOperator) {
 
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc1, nullptr, logger);
+  book.update(svc1, nullptr);
   ba->dump("/tmp/ba6");
 
   ASSERT_TRUE(b->state_known());

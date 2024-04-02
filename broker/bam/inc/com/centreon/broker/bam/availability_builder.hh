@@ -1,5 +1,5 @@
-/*
- * Copyright 2014, 2022-2023 Centreon
+/**
+ * Copyright 2014, 2022-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,7 +50,10 @@ class availability_builder {
   availability_builder(const availability_builder&) = delete;
   availability_builder& operator=(const availability_builder&) = delete;
 
-  void add_event(short status, time_t start, time_t end, bool was_in_downtime,
+  void add_event(short status,
+                 time_t start,
+                 time_t end,
+                 bool was_in_downtime,
                  time::timeperiod::ptr const& tp,
                  const std::shared_ptr<spdlog::logger>& logger);
 

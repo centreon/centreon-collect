@@ -58,14 +58,16 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *                             configuration.
  *  @param[in] cache           The persistent cache.
  */
-monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
-                                     const database_config& db_cfg,
-                                     const database_config& storage_db_cfg,
-                                     std::shared_ptr<persistent_cache> cache)
+monitoring_stream::monitoring_stream(
+    const std::string& ext_cmd_file,
+    const database_config& db_cfg,
+    const database_config& storage_db_cfg,
+    std::shared_ptr<persistent_cache> cache,
+    const std::shared_ptr<spdlog::logger>& logger)
     : io::stream("BAM"),
       _ext_cmd_file(ext_cmd_file),
-      _logger{log_v2::instance().get(log_v2::BAM)},
-      _applier(),
+      _logger{logger},
+      _applier(_logger),
       _mysql(db_cfg.auto_commit_conf()),
       _conf_queries_per_transaction(db_cfg.get_queries_per_transaction()),
       _pending_events(0),
@@ -121,9 +123,8 @@ int32_t monitoring_stream::flush() {
  */
 int32_t monitoring_stream::stop() {
   int32_t retval = flush();
-  log_v2::instance()
-      .get(log_v2::CORE)
-      ->info("monitoring stream: stopped with {} events acknowledged", retval);
+  _logger->info("monitoring stream: stopped with {} events acknowledged",
+                retval);
   /* I want to be sure the timer is really stopped. */
   std::promise<void> p;
   {
@@ -182,7 +183,7 @@ bool monitoring_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
 void monitoring_stream::update() {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream update");
   try {
-    configuration::state s;
+    configuration::state s(_logger);
     configuration::reader_v2 r(_mysql, _storage_db_cfg);
     r.read(s);
     _applier.apply(s);
@@ -393,7 +394,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
           ss->host_id, ss->service_id, ss->last_hard_state, ss->current_state);
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(ss, &ev_cache, _logger);
+      _applier.book_service().update(ss, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
     case neb::pb_service_status::static_type(): {
@@ -406,7 +407,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
           o.host_id(), o.service_id(), o.last_hard_state(), o.state());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(ss, &ev_cache, _logger);
+      _applier.book_service().update(ss, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
     case neb::pb_service::static_type(): {
@@ -419,7 +420,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
           o.host_id(), o.service_id(), o.last_hard_state(), o.state());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(s, &ev_cache, _logger);
+      _applier.book_service().update(s, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
     case neb::pb_acknowledgement::static_type(): {
@@ -430,7 +431,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
                           ack->obj().host_id(), ack->obj().service_id());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(ack, &ev_cache, _logger);
+      _applier.book_service().update(ack, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
     case neb::acknowledgement::static_type(): {
@@ -441,7 +442,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
                           ack->host_id, ack->service_id);
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(ack, &ev_cache, _logger);
+      _applier.book_service().update(ack, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
     case neb::downtime::static_type(): {
@@ -455,7 +456,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
           dt->was_cancelled);
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(dt, &ev_cache, _logger);
+      _applier.book_service().update(dt, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
     case neb::pb_downtime::static_type(): {
@@ -471,7 +472,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
                           downtime.cancelled());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(dt, &ev_cache, _logger);
+      _applier.book_service().update(dt, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
     case bam::ba_status::static_type(): {

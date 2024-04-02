@@ -23,6 +23,7 @@
 #include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker {
+
 // Forward declarations.
 namespace neb {
 class acknowledgement;
@@ -49,31 +50,25 @@ class service_listener {
   service_listener& operator=(const service_listener&) = delete;
   virtual void service_update(const service_state& s);
   virtual void service_update(std::shared_ptr<neb::pb_service> const& status,
-                              io::stream* visitor,
-                              const std::shared_ptr<spdlog::logger>& logger);
+                              io::stream* visitor = nullptr);
   virtual void service_update(
       std::shared_ptr<neb::pb_service_status> const& status,
-      io::stream* visitor,
-      const std::shared_ptr<spdlog::logger>& logger);
+      io::stream* visitor = nullptr);
   virtual void service_update(
       std::shared_ptr<neb::service_status> const& status,
-      io::stream* visitor,
-      const std::shared_ptr<spdlog::logger>& logger);
+      io::stream* visitor = nullptr);
   virtual void service_update(
       const std::shared_ptr<neb::pb_acknowledgement>& ack,
-      io::stream* visitor,
-      const std::shared_ptr<spdlog::logger>& logger);
+      io::stream* visitor = nullptr);
   virtual void service_update(std::shared_ptr<neb::acknowledgement> const& ack,
-                              io::stream* visitor,
-                              const std::shared_ptr<spdlog::logger>& logger);
+                              io::stream* visitor = nullptr);
   virtual void service_update(std::shared_ptr<neb::downtime> const& dt,
-                              io::stream* visitor,
-                              const std::shared_ptr<spdlog::logger>& logger);
+                              io::stream* visitor = nullptr);
   virtual void service_update(const std::shared_ptr<neb::pb_downtime>& dt,
-                              io::stream* visitor,
-                              const std::shared_ptr<spdlog::logger>& logger);
+                              io::stream* visitor = nullptr);
 };
 }  // namespace bam
+
 }  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_SERVICE_LISTENER_HH

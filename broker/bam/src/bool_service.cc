@@ -79,7 +79,7 @@ void bool_service::service_update(const service_state& s) {
 
   // Propagate change.
   if (changed)
-    notify_parents_of_change(nullptr, _logger);
+    notify_parents_of_change(nullptr);
 }
 
 /**
@@ -90,9 +90,7 @@ void bool_service::service_update(const service_state& s) {
  */
 void bool_service::service_update(
     const std::shared_ptr<neb::service_status>& status,
-    io::stream* visitor,
-    const std::shared_ptr<spdlog::logger>& logger) {
-  _logger = logger;
+    io::stream* visitor) {
   SPDLOG_LOGGER_TRACE(_logger,
                       "bool_service: service update with neb::service_status");
   if (status && status->host_id == _host_id &&
@@ -104,7 +102,7 @@ void bool_service::service_update(
       _state_hard = status->last_hard_state;
       _state_known = true;
       _in_downtime = new_in_downtime;
-      notify_parents_of_change(visitor, logger);
+      notify_parents_of_change(visitor);
     }
   }
 }
@@ -115,11 +113,8 @@ void bool_service::service_update(
  *  @param[in]  status   Service status.
  *  @param[out] visitor  Object that will receive events.
  */
-void bool_service::service_update(
-    const std::shared_ptr<neb::pb_service>& svc,
-    io::stream* visitor,
-    const std::shared_ptr<spdlog::logger>& logger) {
-  _logger = logger;
+void bool_service::service_update(const std::shared_ptr<neb::pb_service>& svc,
+                                  io::stream* visitor) {
   auto& o = svc->obj();
   SPDLOG_LOGGER_TRACE(_logger,
                       "bool_service: service ({},{}) updated with "
@@ -135,7 +130,7 @@ void bool_service::service_update(
       _state_known = true;
       _in_downtime = new_in_downtime;
       _logger->trace("bool_service: updated with state: {}", _state_hard);
-      notify_parents_of_change(visitor, logger);
+      notify_parents_of_change(visitor);
     }
   }
 }
@@ -148,9 +143,7 @@ void bool_service::service_update(
  */
 void bool_service::service_update(
     const std::shared_ptr<neb::pb_service_status>& status,
-    io::stream* visitor,
-    const std::shared_ptr<spdlog::logger>& logger) {
-  _logger = logger;
+    io::stream* visitor) {
   auto& o = status->obj();
   SPDLOG_LOGGER_TRACE(_logger,
                       "bool_service: service ({},{}) updated with "
@@ -165,7 +158,7 @@ void bool_service::service_update(
       _state_known = true;
       _in_downtime = new_in_downtime;
       _logger->trace("bool_service: updated with state: {}", _state_hard);
-      notify_parents_of_change(visitor, _logger);
+      notify_parents_of_change(visitor);
     }
   }
 }
@@ -211,13 +204,11 @@ bool bool_service::in_downtime() const {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
- * @param logger The logger to use.
  */
 void bool_service::update_from(computable* child [[maybe_unused]],
-                               io::stream* visitor,
-                               const std::shared_ptr<spdlog::logger>& logger) {
-  logger->trace("bool_service::update_from");
-  notify_parents_of_change(visitor, logger);
+                               io::stream* visitor) {
+  _logger->trace("bool_service::update_from");
+  notify_parents_of_change(visitor);
 }
 
 /**

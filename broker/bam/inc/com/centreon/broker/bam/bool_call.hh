@@ -1,5 +1,5 @@
-/*
- * Copyright 2014, 2023 Centreon
+/**
+ * Copyright 2014, 2023-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,9 +47,7 @@ class bool_call : public bool_value {
   bool state_known() const override;
   std::string const& get_name() const;
   void set_expression(std::shared_ptr<bool_value> expression);
-  void update_from(computable* child,
-                   io::stream* visitor,
-                   const std::shared_ptr<spdlog::logger>& logger) override;
+  void update_from(computable* child, io::stream* visitor) override;
 };
 }  // namespace com::centreon::broker::bam
 

@@ -32,8 +32,6 @@ static constexpr bool time_is_undefined(uint64_t t) {
   return t == 0 || t == static_cast<uint64_t>(-1);
 }
 
-service_book::service_book() : _logger{log_v2::instance().get(log_v2::BAM)} {}
-
 /**
  *  Make a service listener listen to service updates.
  *
@@ -82,8 +80,7 @@ void service_book::unlisten(uint32_t host_id,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::pb_acknowledgement>& t,
-                          io::stream* visitor,
-                          const std::shared_ptr<spdlog::logger>& logger) {
+                          io::stream* visitor) {
   auto found =
       _book.find(std::make_pair(t->obj().host_id(), t->obj().service_id()));
   if (found == _book.end())
@@ -91,7 +88,7 @@ void service_book::update(const std::shared_ptr<neb::pb_acknowledgement>& t,
   auto& svc_state = found->second.state;
   svc_state.acknowledged = time_is_undefined(t->obj().deletion_time());
   for (auto l : found->second.listeners)
-    l->service_update(t, visitor, logger);
+    l->service_update(t, visitor);
 }
 
 /**
@@ -102,15 +99,14 @@ void service_book::update(const std::shared_ptr<neb::pb_acknowledgement>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::acknowledgement>& t,
-                          io::stream* visitor,
-                          const std::shared_ptr<spdlog::logger>& logger) {
+                          io::stream* visitor) {
   auto found = _book.find(std::make_pair(t->host_id, t->service_id));
   if (found == _book.end())
     return;
   auto& svc_state = found->second.state;
   svc_state.acknowledged = t->deletion_time.is_null();
   for (auto l : found->second.listeners)
-    l->service_update(t, visitor, logger);
+    l->service_update(t, visitor);
 }
 
 /**
@@ -121,13 +117,12 @@ void service_book::update(const std::shared_ptr<neb::acknowledgement>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::downtime>& t,
-                          io::stream* visitor,
-                          const std::shared_ptr<spdlog::logger>& logger) {
+                          io::stream* visitor) {
   auto found = _book.find(std::make_pair(t->host_id, t->service_id));
   if (found == _book.end())
     return;
   for (auto l : found->second.listeners)
-    l->service_update(t, visitor, logger);
+    l->service_update(t, visitor);
 }
 
 /**
@@ -138,14 +133,13 @@ void service_book::update(const std::shared_ptr<neb::downtime>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::pb_downtime>& t,
-                          io::stream* visitor,
-                          const std::shared_ptr<spdlog::logger>& logger) {
+                          io::stream* visitor) {
   auto found =
       _book.find(std::make_pair(t->obj().host_id(), t->obj().service_id()));
   if (found == _book.end())
     return;
   for (auto l : found->second.listeners)
-    l->service_update(t, visitor, logger);
+    l->service_update(t, visitor);
 }
 
 /**
@@ -156,8 +150,7 @@ void service_book::update(const std::shared_ptr<neb::pb_downtime>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::service_status>& t,
-                          io::stream* visitor,
-                          const std::shared_ptr<spdlog::logger>& logger) {
+                          io::stream* visitor) {
   auto found = _book.find(std::make_pair(t->host_id, t->service_id));
   if (found == _book.end())
     return;
@@ -168,7 +161,7 @@ void service_book::update(const std::shared_ptr<neb::service_status>& t,
   svc_state.state_type = t->state_type;
 
   for (auto l : found->second.listeners)
-    l->service_update(t, visitor, logger);
+    l->service_update(t, visitor);
 }
 
 /**
@@ -179,8 +172,7 @@ void service_book::update(const std::shared_ptr<neb::service_status>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::pb_service>& t,
-                          io::stream* visitor,
-                          const std::shared_ptr<spdlog::logger>& logger) {
+                          io::stream* visitor) {
   auto found =
       _book.find(std::make_pair(t->obj().host_id(), t->obj().service_id()));
   if (found == _book.end())
@@ -194,7 +186,7 @@ void service_book::update(const std::shared_ptr<neb::pb_service>& t,
   svc_state.state_type = o.state_type();
 
   for (auto l : found->second.listeners)
-    l->service_update(t, visitor, logger);
+    l->service_update(t, visitor);
 }
 
 /**
@@ -205,8 +197,7 @@ void service_book::update(const std::shared_ptr<neb::pb_service>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::pb_service_status>& t,
-                          io::stream* visitor,
-                          const std::shared_ptr<spdlog::logger>& logger) {
+                          io::stream* visitor) {
   auto found =
       _book.find(std::make_pair(t->obj().host_id(), t->obj().service_id()));
   if (found == _book.end())
@@ -220,7 +211,7 @@ void service_book::update(const std::shared_ptr<neb::pb_service_status>& t,
   svc_state.state_type = o.state_type();
 
   for (auto l : found->second.listeners)
-    l->service_update(t, visitor, logger);
+    l->service_update(t, visitor);
 }
 
 /**

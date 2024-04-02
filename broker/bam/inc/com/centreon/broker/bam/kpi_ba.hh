@@ -26,6 +26,7 @@
 #include "com/centreon/broker/io/stream.hh"
 
 namespace com::centreon::broker::bam {
+
 // Forward declaration.
 class ba;
 class computable;
@@ -73,10 +74,7 @@ class kpi_ba : public kpi {
   void visit(io::stream* visitor) override;
   bool ok_state() const override;
   bool in_downtime() const override;
-  virtual void update_from(
-      computable* child,
-      io::stream* visitor,
-      const std::shared_ptr<spdlog::logger>& logger) override;
+  void update_from(computable* child, io::stream* visitor) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };
