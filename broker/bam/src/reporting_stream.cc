@@ -73,7 +73,8 @@ reporting_stream::reporting_stream(database_config const& db_cfg)
   _close_all_events();
 
   // Initialize the availabilities thread.
-  _availabilities = std::make_unique<availability_thread>(db_cfg, _timeperiods);
+  _availabilities = std::make_unique<availability_thread>(db_cfg, _timeperiods,
+                                                          log_v2::bam());
   _availabilities->start_and_wait();
 }
 
