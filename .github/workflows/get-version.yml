@@ -32,6 +32,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: install gh cli on self-hosted runner
+        run: |
+          if ! command -v gh &> /dev/null; then
+            echo "Installing GH CLI."
+            type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update
+            sudo apt install gh -y
+          else
+            echo "GH CLI is already installed."
+          fi
+        shell: bash
 
       - id: get_version
         run: |
@@ -79,3 +93,5 @@ jobs:
           echo "env=$VERSION-$ENV" >> $GITHUB_OUTPUT
           echo "GH_ENV: $VERSION-$ENV"
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
