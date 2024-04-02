@@ -50,13 +50,15 @@ using namespace com::centreon::broker::database;
  *
  *  @param[in] db_cfg                  BAM DB configuration.
  */
-reporting_stream::reporting_stream(database_config const& db_cfg)
+reporting_stream::reporting_stream(
+    database_config const& db_cfg,
+    const std::shared_ptr<spdlog::logger>& logger)
     : io::stream("BAM-BI"),
       _ack_events(0),
       _pending_events(0),
       _mysql(db_cfg),
       _processing_dimensions(false),
-      _logger{log_v2::bam()} {
+      _logger{logger} {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: reporting stream constructor");
   // Prepare queries.
   _prepare();

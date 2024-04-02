@@ -85,11 +85,12 @@ class reporting_stream : public io::stream {
   id_start_to_event_id _ba_event_cache;
   id_start_to_event_id _kpi_event_cache;
 
-  /* loggers */
+  /* Logger */
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  reporting_stream(database_config const& db_cfg);
+  reporting_stream(database_config const& db_cfg,
+                   const std::shared_ptr<spdlog::logger>& logger);
   ~reporting_stream();
   reporting_stream(const reporting_stream&);
   reporting_stream& operator=(const reporting_stream&);
