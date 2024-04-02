@@ -160,7 +160,9 @@ int main(int argc, char* argv[]) {
           diagnose = true;
           break;
         case 'c':
-          extended_conf_path.insert(optarg);
+          if (optarg)
+            extended_conf_path.insert(optarg);
+          break;
         default:
           error = true;
       }
@@ -361,6 +363,7 @@ int main(int argc, char* argv[]) {
         configuration::extended_conf::load_all(extended_conf_path.begin(),
                                                extended_conf_path.end());
 
+        configuration::extended_conf::apply_all_to_state(config);
         uint16_t port = config.rpc_port();
 
         if (!port) {

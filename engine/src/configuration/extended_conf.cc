@@ -38,6 +38,7 @@ extended_conf::extended_conf(const std::string& path) : _path(path) {
   }
   try {
     _content = common::rapidjson_helper::read_from_file(_path);
+    SPDLOG_LOGGER_INFO(log_v2::config(), "extended conf file {} loaded", _path);
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(
         log_v2::config(),
@@ -53,10 +54,6 @@ void extended_conf::reload() {
     SPDLOG_LOGGER_ERROR(log_v2::config(),
                         "can't access to {} anymore => we keep old content",
                         _path);
-    return;
-  }
-  if (::stat(_path.c_str(), &_file_info)) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "can't access to {}", _path);
     return;
   }
   if (!memcmp(&file_info, &_file_info, sizeof(struct stat))) {

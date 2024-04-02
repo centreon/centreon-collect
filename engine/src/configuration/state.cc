@@ -4823,6 +4823,7 @@ void state::enable_macros_filter(bool value) {
  */
 void state::apply_extended_conf(const std::string& file_path,
                                 const rapidjson::Document& json_doc) {
+  SPDLOG_LOGGER_INFO(log_v2::config(), "apply conf from file {}", file_path);
   for (rapidjson::Value::ConstMemberIterator member_iter =
            json_doc.MemberBegin();
        member_iter != json_doc.MemberEnd(); ++member_iter) {

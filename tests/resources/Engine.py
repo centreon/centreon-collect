@@ -3309,13 +3309,10 @@ def ctn_get_engine_log_level(port, log, timeout=TIMEOUT):
         logger.console("Try to call GetLogInfo")
         time.sleep(1)
         with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
-            stub = engine_pb2_grpc.BrokerStub(channel)
-            ref = engine_pb2.GenericString()
-            ref.str_arg = log
+            stub = engine_pb2_grpc.EngineStub(channel)
             try:
-                res = stub.GetLogInfo(ref)
-                res = res.level[log]
-                return res
-                break
+                logs = stub.GetLogInfo(empty_pb2.Empty())
+                return logs.loggers[0].level[log]
+
             except:
                 logger.console("gRPC server not ready")
