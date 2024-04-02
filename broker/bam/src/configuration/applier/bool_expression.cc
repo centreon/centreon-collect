@@ -103,10 +103,10 @@ void applier::bool_expression::apply(
        it != end; ++it) {
     _logger->info("BAM: creating new boolean expression {}", it->first);
     auto new_bool_exp = std::make_shared<bam::bool_expression>(
-        it->first, it->second.get_impact_if());
+        it->first, it->second.get_impact_if(), _logger);
     try {
       bam::exp_parser p(it->second.get_expression());
-      bam::exp_builder b(p.get_postfix(), mapping);
+      bam::exp_builder b(p.get_postfix(), mapping, _logger);
       bam::bool_value::ptr tree(b.get_tree());
       new_bool_exp->set_expression(tree);
       if (tree)

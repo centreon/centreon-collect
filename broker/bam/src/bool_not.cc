@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/bam/bool_not.hh"
+#include <spdlog/logger.h>
 #include <cmath>
 #include "com/centreon/broker/log_v2.hh"
 
@@ -29,7 +30,9 @@ constexpr double eps = 0.000001;
  *
  *  @param[in] val Value that will be negated.
  */
-bool_not::bool_not(bool_value::ptr val) : _value(std::move(val)) {}
+bool_not::bool_not(bool_value::ptr val,
+                   const std::shared_ptr<spdlog::logger>& logger)
+    : bool_value(logger), _value(std::move(val)) {}
 
 /**
  *  Set value object.
@@ -84,7 +87,7 @@ bool bool_not::in_downtime() const {
  */
 void bool_not::update_from(computable* child [[maybe_unused]],
                            io::stream* visitor) {
-  log_v2::bam()->trace("bool_not::update_from");
+  _logger->trace("bool_not::update_from");
   if (_value.get() == child)
     notify_parents_of_change(visitor);
 }

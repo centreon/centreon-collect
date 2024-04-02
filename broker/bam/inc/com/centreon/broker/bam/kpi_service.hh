@@ -27,9 +27,7 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class kpi_service kpi_service.hh "com/centreon/broker/bam/kpi_service.hh"
  *  @brief Service as a KPI.
@@ -61,7 +59,8 @@ class kpi_service : public service_listener, public kpi {
               uint32_t ba_id,
               uint32_t host_id,
               uint32_t service_id,
-              const std::string& host_serv);
+              const std::string& host_serv,
+              const std::shared_ptr<spdlog::logger>& logger);
   ~kpi_service() noexcept = default;
   kpi_service(const kpi_service&) = delete;
   kpi_service& operator=(const kpi_service&) = delete;
@@ -107,8 +106,6 @@ class kpi_service : public service_listener, public kpi {
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };
-}  // namespace bam
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_KPI_SERVICE_HH

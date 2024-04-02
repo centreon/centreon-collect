@@ -27,8 +27,11 @@ using namespace com::centreon::broker::bam;
 /**
  *  Default constructor.
  */
-kpi_ba::kpi_ba(uint32_t kpi_id, uint32_t ba_id, const std::string& ba_name)
-    : kpi(kpi_id, ba_id, ba_name) {}
+kpi_ba::kpi_ba(uint32_t kpi_id,
+               uint32_t ba_id,
+               const std::string& ba_name,
+               const std::shared_ptr<spdlog::logger>& logger)
+    : kpi(kpi_id, ba_id, ba_name, logger) {}
 
 /**
  *  Get the impact introduced by a CRITICAL state of the BA.
@@ -74,8 +77,8 @@ void kpi_ba::impact_soft(impact_values& soft_impact) {
  *  @param[in] my_ba Linked BA.
  */
 void kpi_ba::link_ba(std::shared_ptr<ba>& my_ba) {
-  log_v2::bam()->trace("kpi ba ({}, {}) linked to ba {} {}", _id, _ba_id,
-                       my_ba->get_name(), my_ba->get_id());
+  _logger->trace("kpi ba ({}, {}) linked to ba {} {}", _id, _ba_id,
+                 my_ba->get_name(), my_ba->get_id());
   _ba = my_ba;
 }
 
@@ -110,8 +113,8 @@ void kpi_ba::set_impact_unknown(double impact) {
  *  Unlink from BA.
  */
 void kpi_ba::unlink_ba() {
-  log_v2::bam()->trace("kpi ba ({}, {}) unlinked from ba {} {}", _id, _ba_id,
-                       _ba->get_name(), _ba->get_id());
+  _logger->trace("kpi ba ({}, {}) unlinked from ba {} {}", _id, _ba_id,
+                 _ba->get_name(), _ba->get_id());
   _ba.reset();
 }
 
@@ -158,7 +161,7 @@ void kpi_ba::visit(io::stream* visitor) {
 
     // Generate status event.
     {
-      log_v2::bam()->debug("Generating kpi status {} for BA {}", _id, _ba_id);
+      _logger->debug("Generating kpi status {} for BA {}", _id, _ba_id);
       std::shared_ptr<pb_kpi_status> status{std::make_shared<pb_kpi_status>()};
       KpiStatus& ev(status->mut_obj());
       ev.set_kpi_id(_id);
@@ -274,13 +277,13 @@ bool kpi_ba::in_downtime() const {
  * @param visitor The visitor to handle events.
  */
 void kpi_ba::update_from(computable* child, io::stream* visitor) {
-  log_v2::bam()->trace("kpi_ba::update_from");
+  _logger->trace("kpi_ba::update_from");
   // It is useless to maintain a cache of BA values in this class, as
   // the ba class already cache most of them.
   if (child == _ba.get()) {
     // Logging.
-    log_v2::bam()->debug(
-        "BAM: BA {} KPI {} is getting notified of child update", _ba_id, _id);
+    _logger->debug("BAM: BA {} KPI {} is getting notified of child update",
+                   _ba_id, _id);
 
     // Generate status event.
     visit(visitor);

@@ -318,7 +318,7 @@ void availability_thread::_build_daily_availabilities(int thread_id,
                                res.value_as_i32(2),   // Start time
                                res.value_as_i32(3),   // End time
                                res.value_as_bool(9),  // Was in downtime
-                               tp);
+                               tp, _logger);
       // Add the timeperiod is default flag.
       found->second->set_timeperiod_is_default(res.value_as_bool(7));
     }
@@ -370,7 +370,7 @@ void availability_thread::_build_daily_availabilities(int thread_id,
                                  res.value_as_i32(2),   // Start time
                                  res.value_as_i32(3),   // End time
                                  res.value_as_bool(5),  // Was in downtime
-                                 it->first);
+                                 it->first, _logger);
         // Add the timeperiod is default flag.
         found->second->set_timeperiod_is_default(it->second);
       }

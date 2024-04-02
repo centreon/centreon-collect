@@ -59,8 +59,10 @@ ba::ba(uint32_t id,
        uint32_t host_id,
        uint32_t service_id,
        configuration::ba::state_source source,
-       bool generate_virtual_status)
-    : _id(id),
+       bool generate_virtual_status,
+       const std::shared_ptr<spdlog::logger>& logger)
+    : computable(logger),
+      _id(id),
       _state_source(source),
       _host_id(host_id),
       _service_id(service_id),
@@ -188,7 +190,7 @@ void ba::remove_impact(std::shared_ptr<kpi> const& impact) {
 void ba::set_initial_event(const pb_ba_event& event) {
   const BaEvent& data = event.obj();
   SPDLOG_LOGGER_TRACE(
-      log_v2::bam(),
+      _logger,
       "BAM: ba initial event set (ba_id:{}, start_time:{}, end_time:{}, "
       "in_downtime:{}, status:{})",
       data.ba_id(), data.start_time(), data.end_time(), data.in_downtime(),
@@ -197,13 +199,12 @@ void ba::set_initial_event(const pb_ba_event& event) {
   if (!_event) {
     _event = std::make_shared<pb_ba_event>(event);
     _in_downtime = data.in_downtime();
-    SPDLOG_LOGGER_TRACE(log_v2::bam(), "ba initial event downtime: {}",
-                        _in_downtime);
+    SPDLOG_LOGGER_TRACE(_logger, "ba initial event downtime: {}", _in_downtime);
     _last_kpi_update = data.start_time();
     _initial_events.push_back(_event);
   } else {
     SPDLOG_LOGGER_ERROR(
-        log_v2::bam(),
+        _logger,
         "BAM: impossible to set ba initial event (ba_id:{}, start_time:{}, "
         "end_time:{}, in_downtime:{}, status:{}): event already defined",
         data.ba_id(), data.start_time(), data.end_time(), data.in_downtime(),
@@ -254,7 +255,7 @@ void ba::visit(io::stream* visitor) {
     com::centreon::broker::bam::state hard_state(get_state_hard());
     bool state_changed(false);
     if (!_event) {
-      SPDLOG_LOGGER_TRACE(log_v2::bam(),
+      SPDLOG_LOGGER_TRACE(_logger,
                           "BAM: ba::visit no event => creation of one");
       if (_last_kpi_update.is_null())
         _last_kpi_update = time(nullptr);
@@ -265,7 +266,7 @@ void ba::visit(io::stream* visitor) {
              com::centreon::broker::State(hard_state) !=
                  _event->obj().status()) {
       SPDLOG_LOGGER_TRACE(
-          log_v2::bam(),
+          _logger,
           "BAM: ba current event needs update? downtime?: {}, state?: {} ; "
           "dt:{}, state:{} ",
           _in_downtime != _event->obj().in_downtime(),
@@ -304,7 +305,7 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
   if (dt->host_id == _host_id && dt->service_id == _service_id) {
     // Log message.
     SPDLOG_LOGGER_DEBUG(
-        log_v2::bam(),
+        _logger,
         "BAM: BA {} '{}' is getting notified of a downtime on its service ({}, "
         "{})",
         _id, _name, _host_id, _service_id);
@@ -312,7 +313,7 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
     // Check if there was a change.
     bool in_downtime(dt->was_started && dt->actual_end_time.is_null());
     if (_in_downtime != in_downtime) {
-      SPDLOG_LOGGER_TRACE(log_v2::bam(), "ba: service_update downtime: {}",
+      SPDLOG_LOGGER_TRACE(_logger, "ba: service_update downtime: {}",
                           _in_downtime);
       _in_downtime = in_downtime;
 
@@ -323,7 +324,7 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
     }
   } else
     SPDLOG_LOGGER_DEBUG(
-        log_v2::bam(),
+        _logger,
         "BAM: BA {} '{}' has got an invalid downtime event. This should never "
         "happen. Check your database: got (host {}, service {}) expected ({}, "
         "{})",
@@ -347,7 +348,7 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
 
   // Log message.
   SPDLOG_LOGGER_DEBUG(
-      log_v2::bam(),
+      _logger,
       "BAM: BA {} '{}' is getting notified of a downtime (pb) on its service "
       "({}, {})",
       _id, _name, _host_id, _service_id);
@@ -356,7 +357,7 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
   bool in_downtime(downtime.started() &&
                    time_is_undefined(downtime.actual_end_time()));
   if (_in_downtime != in_downtime) {
-    SPDLOG_LOGGER_TRACE(log_v2::bam(), "ba: service_update downtime: {}",
+    SPDLOG_LOGGER_TRACE(_logger, "ba: service_update downtime: {}",
                         _in_downtime);
     _in_downtime = in_downtime;
 
@@ -410,9 +411,8 @@ void ba::set_inherited_downtime(const inherited_downtime& dwn) {
  */
 void ba::_open_new_event(io::stream* visitor,
                          com::centreon::broker::bam::state service_hard_state) {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(),
-                      "new pb_ba_event on ba {} with downtime = {}", _id,
-                      _in_downtime);
+  SPDLOG_LOGGER_TRACE(_logger, "new pb_ba_event on ba {} with downtime = {}",
+                      _id, _in_downtime);
   _event = std::make_shared<pb_ba_event>();
   BaEvent& data = _event->mut_obj();
   data.set_ba_id(_id);
@@ -449,8 +449,7 @@ void ba::_commit_initial_events(io::stream* visitor) {
 void ba::_compute_inherited_downtime(io::stream* visitor) {
   // kpi downtime heritance deactived. Do nothing.
   if (_dt_behaviour != configuration::ba::dt_inherit) {
-    SPDLOG_LOGGER_TRACE(log_v2::bam(), "ba: BA {} doesn't inherite downtimes",
-                        _id);
+    SPDLOG_LOGGER_TRACE(_logger, "ba: BA {} doesn't inherite downtimes", _id);
     return;
   }
 
@@ -462,7 +461,7 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
        it != end; ++it) {
     if (!it->first->ok_state() && !it->first->in_downtime()) {
       SPDLOG_LOGGER_TRACE(
-          log_v2::bam(),
+          _logger,
           "ba: every kpi in downtime ? no, kpi {} is not ok and not in "
           "downtime",
           it->first->get_id());
@@ -478,7 +477,7 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
     _inherited_downtime = std::make_unique<pb_inherited_downtime>();
     _inherited_downtime->mut_obj().set_ba_id(_id);
     _inherited_downtime->mut_obj().set_in_downtime(true);
-    SPDLOG_LOGGER_TRACE(log_v2::bam(),
+    SPDLOG_LOGGER_TRACE(_logger,
                         "ba: inherited downtime computation downtime true");
     _in_downtime = true;
 
@@ -490,7 +489,7 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
   //         Remove the downtime.
   else if ((s_ok || !every_kpi_in_downtime) && _inherited_downtime) {
     _inherited_downtime->mut_obj().set_in_downtime(false);
-    SPDLOG_LOGGER_TRACE(log_v2::bam(),
+    SPDLOG_LOGGER_TRACE(_logger,
                         "ba: inherited downtime computation downtime false");
     _in_downtime = false;
 
@@ -499,8 +498,7 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
     _inherited_downtime.reset();
   } else
     SPDLOG_LOGGER_TRACE(
-        log_v2::bam(),
-        "ba: inherited downtime computation downtime not changed ({})",
+        _logger, "ba: inherited downtime computation downtime not changed ({})",
         _in_downtime);
 }
 
@@ -592,7 +590,7 @@ void ba::set_level_warning(double level) {
  * @param visitor The visitor to handle events.
  */
 void ba::update_from(computable* child, io::stream* visitor) {
-  auto logger = log_v2::bam();
+  auto logger = _logger;
   logger->trace("ba::update_from (BA {})", _id);
   // Get impact.
   impact_values new_hard_impact;
@@ -616,11 +614,11 @@ void ba::update_from(computable* child, io::stream* visitor) {
     _last_kpi_update = std::max(_last_kpi_update, last_state_change);
 
   // Apply new data.
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: BA {} updated from KPI {}", _id,
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: BA {} updated from KPI {}", _id,
                       kpi_child->get_id());
   bool changed = _apply_changes(kpi_child, new_hard_impact, new_soft_impact,
                                 kpi_in_downtime);
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BA {} has changed: {}", _id, changed);
+  SPDLOG_LOGGER_TRACE(_logger, "BA {} has changed: {}", _id, changed);
 
   // Check for inherited downtimes.
   _compute_inherited_downtime(visitor);
@@ -655,8 +653,8 @@ void ba::dump(const std::string& filename) const {
     dump(output);
     output << "}\n";
   } else
-    log_v2::bam()->error("Unable to open the file '{}' to write BA {} info",
-                         filename, _id);
+    _logger->error("Unable to open the file '{}' to write BA {} info", filename,
+                   _id);
 }
 
 /**

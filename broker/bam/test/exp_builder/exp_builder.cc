@@ -38,13 +38,15 @@ using namespace com::centreon::broker;
 class BamExpBuilder : public ::testing::Test {
  protected:
   std::unique_ptr<test_visitor> _visitor;
+  std::shared_ptr<spdlog::logger> _logger;
 
  public:
   void SetUp() override {
+    _logger = log_v2::bam();
     try {
       config::applier::init(0, "test_broker", 0);
-      log_v2::bam()->set_level(spdlog::level::debug);
-      log_v2::bam()->flush_on(spdlog::level::debug);
+      _logger->set_level(spdlog::level::debug);
+      _logger->flush_on(spdlog::level::debug);
     } catch (std::exception const& e) {
       (void)e;
     }
@@ -59,8 +61,8 @@ class BamExpBuilder : public ::testing::Test {
 
 TEST_F(BamExpBuilder, Valid1) {
   bam::exp_parser p("OK IS OK");
-  bam::hst_svc_mapping mapping;
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::hst_svc_mapping mapping(_logger);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
   bam::bool_value::ptr b(builder.get_tree());
@@ -71,8 +73,8 @@ TEST_F(BamExpBuilder, Valid1) {
 
 TEST_F(BamExpBuilder, Valid2) {
   bam::exp_parser p("OK IS NOT OK");
-  bam::hst_svc_mapping mapping;
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::hst_svc_mapping mapping(_logger);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
   bam::bool_value::ptr b(builder.get_tree());
@@ -83,8 +85,8 @@ TEST_F(BamExpBuilder, Valid2) {
 
 TEST_F(BamExpBuilder, Valid3) {
   bam::exp_parser p("OK AND CRITICAL");
-  bam::hst_svc_mapping mapping;
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::hst_svc_mapping mapping(_logger);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
   bam::bool_value::ptr b(builder.get_tree());
@@ -95,8 +97,8 @@ TEST_F(BamExpBuilder, Valid3) {
 
 TEST_F(BamExpBuilder, Valid4) {
   bam::exp_parser p("OK OR CRITICAL");
-  bam::hst_svc_mapping mapping;
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::hst_svc_mapping mapping(_logger);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
   bam::bool_value::ptr b(builder.get_tree());
@@ -107,8 +109,8 @@ TEST_F(BamExpBuilder, Valid4) {
 
 TEST_F(BamExpBuilder, Valid5) {
   bam::exp_parser p("OK XOR CRITICAL");
-  bam::hst_svc_mapping mapping;
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::hst_svc_mapping mapping(_logger);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
   bam::bool_value::ptr b(builder.get_tree());
@@ -119,8 +121,8 @@ TEST_F(BamExpBuilder, Valid5) {
 
 TEST_F(BamExpBuilder, Valid6) {
   bam::exp_parser p("2 + 3 * 2 == 8");
-  bam::hst_svc_mapping mapping;
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::hst_svc_mapping mapping(_logger);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
   bam::bool_value::ptr b(builder.get_tree());
@@ -131,8 +133,8 @@ TEST_F(BamExpBuilder, Valid6) {
 
 TEST_F(BamExpBuilder, Valid7) {
   bam::exp_parser p("2 - 3 * (2 - 6 / 3) == 2");
-  bam::hst_svc_mapping mapping;
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::hst_svc_mapping mapping(_logger);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
   bam::bool_value::ptr b(builder.get_tree());
@@ -143,8 +145,8 @@ TEST_F(BamExpBuilder, Valid7) {
 
 TEST_F(BamExpBuilder, Valid8) {
   bam::exp_parser p("2 % 3 == 20 % 6");
-  bam::hst_svc_mapping mapping;
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::hst_svc_mapping mapping(_logger);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   ASSERT_EQ(builder.get_calls().size(), 0u);
   ASSERT_EQ(builder.get_services().size(), 0u);
   bam::bool_value::ptr b(builder.get_tree());
@@ -157,9 +159,9 @@ TEST_F(BamExpBuilder, UnknownService1) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("{host_1 service_1} {IS} {OK}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
   ASSERT_FALSE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -169,9 +171,9 @@ TEST_F(BamExpBuilder, UnknownService2) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("{host_1 service_1} {IS} {CRITICAL}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
   ASSERT_FALSE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -181,12 +183,12 @@ TEST_F(BamExpBuilder, OkService2) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("{host_1 service_1} {IS} {CRITICAL}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -206,12 +208,12 @@ TEST_F(BamExpBuilder, CritService2) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("{host_1 service_1} {IS} {CRITICAL}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -232,13 +234,13 @@ TEST_F(BamExpBuilder, CritOkService1) {
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} {OK}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -273,13 +275,13 @@ TEST_F(BamExpBuilder, CritOkService2) {
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} {OK}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -321,13 +323,13 @@ TEST_F(BamExpBuilder, CritOkService3) {
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} {OK}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -369,13 +371,13 @@ TEST_F(BamExpBuilder, CritAndOkService1) {
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} {OK}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -418,13 +420,13 @@ TEST_F(BamExpBuilder, CritAndOkService2) {
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} {OK}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -466,13 +468,13 @@ TEST_F(BamExpBuilder, CritAndOkService3) {
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} {OK}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -513,12 +515,12 @@ TEST_F(BamExpBuilder, NotCritService3) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -549,15 +551,15 @@ TEST_F(BamExpBuilder, ExpressionWithService) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::bool_expression exp(1, true);
+  bam::bool_expression exp(1, true, _logger);
   exp.set_expression(b);
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -588,15 +590,15 @@ TEST_F(BamExpBuilder, ReverseExpressionWithService) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::bool_expression exp(1, false);
+  bam::bool_expression exp(1, false, _logger);
   exp.set_expression(b);
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -627,20 +629,21 @@ TEST_F(BamExpBuilder, KpiBoolexpWithService) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  auto exp = std::make_shared<bam::bool_expression>(1, true);
+  auto exp = std::make_shared<bam::bool_expression>(1, true, _logger);
   exp->set_expression(b);
   b->add_parent(exp);
 
-  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1, "test_boool_exp");
+  auto kpi =
+      std::make_shared<bam::kpi_boolexp>(1, 1, "test_boool_exp", _logger);
   kpi->link_boolexp(exp);
   exp->add_parent(kpi);
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -671,20 +674,21 @@ TEST_F(BamExpBuilder, KpiBoolexpReversedImpactWithService) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  auto exp = std::make_shared<bam::bool_expression>(1, false);
+  auto exp = std::make_shared<bam::bool_expression>(1, false, _logger);
   exp->set_expression(b);
   b->add_parent(exp);
 
-  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1, "test_boool_exp");
+  auto kpi =
+      std::make_shared<bam::kpi_boolexp>(1, 1, "test_boool_exp", _logger);
   kpi->link_boolexp(exp);
   exp->add_parent(kpi);
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -715,13 +719,13 @@ TEST_F(BamExpBuilder, BoolexpServiceXorService) {
   bam::exp_parser p(
       "({host_1 service_1} {IS} {CRITICAL}) {XOR} ({host_1 service_2} {IS} "
       "{CRITICAL})");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -769,13 +773,13 @@ TEST_F(BamExpBuilder, BoolexpLTWithServiceStatus) {
   config::applier::modules modules;
   modules.load_file("./broker/neb/10-neb.so");
   bam::exp_parser p("{host_1 service_1} < {host_1 service_2}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -825,13 +829,13 @@ TEST_F(BamExpBuilder, BoolexpKpiService) {
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} "
       "{CRITICAL}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -890,29 +894,30 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} "
       "{CRITICAL}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  auto exp = std::make_shared<bam::bool_expression>(1, true);
+  auto exp = std::make_shared<bam::bool_expression>(1, true, _logger);
   exp->set_expression(b);
   b->add_parent(exp);
 
-  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1, "test_boool_exp");
+  auto kpi =
+      std::make_shared<bam::kpi_boolexp>(1, 1, "test_boool_exp", _logger);
   kpi->set_impact(100);
   kpi->link_boolexp(exp);
   exp->add_parent(kpi);
 
-  auto ba = std::make_shared<bam::ba_impact>(1, 30, 300, false);
+  auto ba = std::make_shared<bam::ba_impact>(1, 30, 300, false, _logger);
   ba->set_name("ba-kpi-service");
   ba->set_level_warning(70);
   ba->set_level_warning(80);
   ba->add_impact(kpi);
   kpi->add_parent(ba);
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
@@ -996,29 +1001,30 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpressionAndOperator) {
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} "
       "{CRITICAL}");
-  bam::hst_svc_mapping mapping;
+  bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, _logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  auto exp = std::make_shared<bam::bool_expression>(1, false);
+  auto exp = std::make_shared<bam::bool_expression>(1, false, _logger);
   exp->set_expression(b);
   b->add_parent(exp);
 
-  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1, "test_boool_exp");
+  auto kpi =
+      std::make_shared<bam::kpi_boolexp>(1, 1, "test_boool_exp", _logger);
   kpi->set_impact(100);
   kpi->link_boolexp(exp);
   exp->add_parent(kpi);
 
-  auto ba = std::make_shared<bam::ba_impact>(1, 30, 300, false);
+  auto ba = std::make_shared<bam::ba_impact>(1, 30, 300, false, _logger);
   ba->set_name("ba-kpi-service");
   ba->set_level_warning(70);
   ba->set_level_warning(80);
   ba->add_impact(kpi);
   kpi->add_parent(ba);
 
-  bam::service_book book;
+  bam::service_book book(_logger);
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 

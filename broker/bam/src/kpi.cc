@@ -29,8 +29,11 @@ static constexpr double eps = 0.000001;
 /**
  *  Constructor.
  */
-kpi::kpi(uint32_t kpi_id, uint32_t ba_id, const std::string& name)
-    : _id(kpi_id), _ba_id(ba_id), _name(name) {}
+kpi::kpi(uint32_t kpi_id,
+         uint32_t ba_id,
+         const std::string& name,
+         const std::shared_ptr<spdlog::logger>& logger)
+    : computable(logger), _id(kpi_id), _ba_id(ba_id), _name(name) {}
 
 /**
  *  Get KPI ID.
@@ -65,7 +68,7 @@ timestamp kpi::get_last_state_change() const {
  *  @param[in] e  The kpi event.
  */
 void kpi::set_initial_event(const KpiEvent& e) {
-  log_v2::bam()->trace("bam: kpi::set_initial_event");
+  _logger->trace("bam: kpi::set_initial_event");
   if (!_event) {
     _event = e;
     impact_values impacts;

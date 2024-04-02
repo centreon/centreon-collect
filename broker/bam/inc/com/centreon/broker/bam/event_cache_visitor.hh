@@ -1,29 +1,27 @@
-/*
-** Copyright 2014-2015, 2020-2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2014-2015, 2020-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_BAM_EVENT_CACHE_VISITOR_HH
 #define CCB_BAM_EVENT_CACHE_VISITOR_HH
 
 #include "com/centreon/broker/io/stream.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class event_cache_visitor event_cache_visitor.hh
  * "com/centreon/broker/bam/event_cache_visitor.hh"
@@ -33,9 +31,9 @@ namespace bam {
  *  this order: others, ba_events, kpi_events.
  */
 class event_cache_visitor : public io::stream {
-  std::vector<std::shared_ptr<io::data> > _others;
-  std::vector<std::shared_ptr<io::data> > _ba_events;
-  std::vector<std::shared_ptr<io::data> > _kpi_events;
+  std::vector<std::shared_ptr<io::data>> _others;
+  std::vector<std::shared_ptr<io::data>> _ba_events;
+  std::vector<std::shared_ptr<io::data>> _kpi_events;
 
  public:
   event_cache_visitor();
@@ -47,8 +45,6 @@ class event_cache_visitor : public io::stream {
   virtual int write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override { return 0; }
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_EVENT_CACHE_VISITOR_HH

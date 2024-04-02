@@ -139,8 +139,8 @@ std::shared_ptr<io::stream> connector::open() {
   else {
     database_config storage_db_cfg(_db_cfg);
     storage_db_cfg.set_name(_storage_db_name);
-    auto u = std::make_shared<monitoring_stream>(_ext_cmd_file, _db_cfg,
-                                                 storage_db_cfg, _cache);
+    auto u = std::make_shared<monitoring_stream>(
+        _ext_cmd_file, _db_cfg, storage_db_cfg, _cache, logger);
     // FIXME DBR: just after this creation, initialize() is called by update()
     // So I think this call is not needed. But for now not totally sure.
     // u->initialize();

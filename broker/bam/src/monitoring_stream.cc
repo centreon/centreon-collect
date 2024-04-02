@@ -56,13 +56,15 @@ using namespace com::centreon::broker::database;
  *                             configuration.
  *  @param[in] cache           The persistent cache.
  */
-monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
-                                     const database_config& db_cfg,
-                                     const database_config& storage_db_cfg,
-                                     std::shared_ptr<persistent_cache> cache)
+monitoring_stream::monitoring_stream(
+    const std::string& ext_cmd_file,
+    const database_config& db_cfg,
+    const database_config& storage_db_cfg,
+    std::shared_ptr<persistent_cache> cache,
+    const std::shared_ptr<spdlog::logger>& logger)
     : io::stream("BAM"),
       _ext_cmd_file(ext_cmd_file),
-      _logger{log_v2::bam()},
+      _logger{logger},
       _applier(_logger),
       _mysql(db_cfg.auto_commit_conf()),
       _conf_queries_per_transaction(db_cfg.get_queries_per_transaction()),
@@ -179,7 +181,7 @@ bool monitoring_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
 void monitoring_stream::update() {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream update");
   try {
-    configuration::state s;
+    configuration::state s{_logger};
     configuration::reader_v2 r(_mysql, _storage_db_cfg);
     r.read(s);
     _applier.apply(s);

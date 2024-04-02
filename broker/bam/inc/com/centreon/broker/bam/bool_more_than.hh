@@ -19,11 +19,10 @@
 #ifndef CCB_BAM_BOOL_MORE_THAN_HH
 #define CCB_BAM_BOOL_MORE_THAN_HH
 
+#include <spdlog/logger.h>
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_or bool_or.hh "com/centreon/broker/bam/bool_or.hh"
  *  @brief OR operator.
@@ -35,7 +34,7 @@ class bool_more_than : public bool_binary_operator {
   const bool _strict;
 
  public:
-  bool_more_than(bool strict = false);
+  bool_more_than(bool strict, const std::shared_ptr<spdlog::logger>& logger);
   bool_more_than(const bool_more_than&) = delete;
   ~bool_more_than() noexcept = default;
   bool_more_than& operator=(const bool_more_than&) = delete;
@@ -43,8 +42,6 @@ class bool_more_than : public bool_binary_operator {
   bool boolean_value() const override;
   std::string object_info() const override;
 };
-}  // namespace bam
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_MORE_THAN_HH

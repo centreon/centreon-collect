@@ -19,11 +19,10 @@
 #ifndef CCB_BAM_BOOL_EQUAL_HH
 #define CCB_BAM_BOOL_EQUAL_HH
 
+#include <spdlog/logger.h>
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_or bool_or.hh "com/centreon/broker/bam/bool_or.hh"
  *  @brief OR operator.
@@ -33,7 +32,8 @@ namespace bam {
  */
 class bool_equal : public bool_binary_operator {
  public:
-  bool_equal() = default;
+  bool_equal(const std::shared_ptr<spdlog::logger>& logger)
+      : bool_binary_operator(logger) {}
   ~bool_equal() noexcept override = default;
   bool_equal(const bool_equal&) = delete;
   bool_equal& operator=(const bool_equal&) = delete;
@@ -41,8 +41,6 @@ class bool_equal : public bool_binary_operator {
   bool boolean_value() const override;
   std::string object_info() const override;
 };
-}  // namespace bam
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_EQUAL_HH

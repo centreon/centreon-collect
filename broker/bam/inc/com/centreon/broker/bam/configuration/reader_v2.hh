@@ -20,6 +20,7 @@
 #define CCB_BAM_CONFIGURATION_READER_V2_HH
 
 #include "com/centreon/broker/bam/configuration/state.hh"
+
 #include "com/centreon/broker/sql/database_config.hh"
 
 namespace com::centreon::broker {

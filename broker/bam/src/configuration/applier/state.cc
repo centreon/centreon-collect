@@ -78,6 +78,7 @@ static std::string service_node_id(uint32_t host_id, uint32_t service_id) {
 applier::state::state(const std::shared_ptr<spdlog::logger>& logger)
     : _logger{logger},
       _ba_applier(_logger),
+      _book_service(_logger),
       _kpi_applier(_logger),
       _bool_exp_applier(_logger) {}
 
@@ -157,7 +158,8 @@ void applier::state::_circular_check(configuration::state const& my_state) {
     _nodes[bool_id];
     try {
       exp_parser parsr(it->second.get_expression());
-      exp_builder buildr(parsr.get_postfix(), my_state.get_hst_svc_mapping());
+      exp_builder buildr(parsr.get_postfix(), my_state.get_hst_svc_mapping(),
+                         _logger);
       for (std::list<bool_service::ptr>::const_iterator
                it_svc(buildr.get_services().begin()),
            end_svc(buildr.get_services().end());

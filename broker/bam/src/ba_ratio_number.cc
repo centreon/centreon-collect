@@ -48,12 +48,14 @@ static constexpr double eps = 0.000001;
 ba_ratio_number::ba_ratio_number(uint32_t id,
                                  uint32_t host_id,
                                  uint32_t service_id,
-                                 bool generate_virtual_status)
+                                 bool generate_virtual_status,
+                                 const std::shared_ptr<spdlog::logger>& logger)
     : ba(id,
          host_id,
          service_id,
          configuration::ba::state_source_ratio_number,
-         generate_virtual_status) {
+         generate_virtual_status,
+         logger) {
   _level_hard = _level_soft = 0;
 }
 
@@ -208,7 +210,7 @@ std::shared_ptr<pb_ba_status> ba_ratio_number::_generate_ba_status(
   else
     status.set_output(get_output() + "|" + perfdata);
 
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+  SPDLOG_LOGGER_DEBUG(_logger,
                       "BAM: generating status of ratio number BA {} '{}' "
                       "(state {}, in downtime {}, level {})",
                       get_id(), _name, status.state(), status.in_downtime(),

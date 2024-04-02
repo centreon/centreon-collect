@@ -32,25 +32,24 @@ constexpr double eps = 0.000001;
  * good value.
  */
 void bool_or::_update_state() {
-  log_v2::bam()->trace("bool_or::update_state...");
+  _logger->trace("bool_or::update_state...");
   if (_left && _left->state_known() && _left->boolean_value()) {
-    log_v2::bam()->trace("bam: bool or left changed to true");
+    _logger->trace("bam: bool or left changed to true");
     _left_hard = true;
     _boolean_value = true;
     _state_known = true;
   } else if (_right && _right->state_known() && _right->boolean_value()) {
-    log_v2::bam()->trace("bam: bool or right changed to true");
+    _logger->trace("bam: bool or right changed to true");
     _right_hard = true;
     _boolean_value = true;
     _state_known = true;
   } else {
-    log_v2::bam()->trace(
+    _logger->trace(
         "bam: bool or: left false or unknown - right false or unknown");
     _boolean_value = false;
     bool_binary_operator::_update_state();
-    log_v2::bam()->trace(
-        "bam: bool or generic rule applied: value: {} - known : {}",
-        _boolean_value, _state_known);
+    _logger->trace("bam: bool or generic rule applied: value: {} - known : {}",
+                   _boolean_value, _state_known);
   }
 }
 
