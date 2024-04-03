@@ -1409,6 +1409,6 @@ BEHOSTCHECK
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    UPDATE hosts SET command_line='toto' WHERE name='host_1'
-    Schedule Forced Host Check    host_1
-    ${result}    Check Host Check With Timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl --id 0
+    Ctn Schedule Forced Host Check    host_1
+    ${result}    Ctn Check Host Check With Timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl --id 0
     Should Be True    ${result}    hosts table not updated

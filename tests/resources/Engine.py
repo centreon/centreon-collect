@@ -1023,7 +1023,7 @@ def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, va
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "w") as ff:
         ff.writelines(lines)
 
-def engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, value: str):
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*;;dependency_name\s+" + desc + "\s*$")
@@ -1033,18 +1033,6 @@ def engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, value
             lines.insert(i + 1, f"    {key}                     {value}\n")
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "w") as ff:
         ff.writelines(lines)
-
-def engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, value: str):
-    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "r") as ff:
-        lines = ff.readlines()
-    r = re.compile(r"^\s*;;dependency_name\s+" + desc + "\s*$")
-    for i in range(len(lines)):
-        m = r.match(lines[i])
-        if m is not None:
-            lines.insert(i + 1, f"    {key}                     {value}\n")
-    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "w") as ff:
-        ff.writelines(lines)
-
 
 def ctn_engine_config_remove_service_host(idx: int, host: str):
     """
@@ -2259,18 +2247,18 @@ def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: s
         SG (str): name of a service group.
         contactgroup (str): name of a contact group.
     """
-    engine.ctn_create_escalations_file(poller, name, SG, contactgroup)
+    engine.create_escalations_file(poller, name, SG, contactgroup)
 
-def create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
+def ctn_create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
     engine.create_dependencies_file(poller, dependenthost, host, dependentservice, service)
 
-def create_dependenciesgrp_file(poller: int, dependentservicegroup: str, servicegroup: str):
+def ctn_create_dependenciesgrp_file(poller: int, dependentservicegroup: str, servicegroup: str):
     engine.create_dependenciesgrp_file(poller, dependentservicegroup, servicegroup)
 
-def create_dependencieshst_file(poller: int, dependenthost: str, host: str):
+def ctn_create_dependencieshst_file(poller: int, dependenthost: str, host: str):
     engine.create_dependencieshst_file(poller, dependenthost, host)
 
-def create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostgrp: str):
+def ctn_create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostgrp: str):
     engine.create_dependencieshstgrp_file(poller, dependenthostgrp, hostgrp)
 
 def ctn_create_template_file(poller: int, typ: str, what: str, ids: list):
@@ -2284,10 +2272,7 @@ def ctn_create_template_file(poller: int, typ: str, what: str, ids: list):
         what (str): A string. It depends on what type of template.
         ids (list): For each integer in this list, a template is defined.
     """
-    engine.ctn_create_template_file(poller, typ, what, ids)
-
-def create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
-    engine.create_dependencies_file(poller, dependenthost, host, dependentservice, service)
+    engine.create_template_file(poller, typ, what, ids)
 
 def ctn_create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
     """
@@ -2338,10 +2323,15 @@ def ctn_engine_config_remove_tag(poller: int, tag_id: int):
     f.close()
 
 
-def config_engine_add_cfg_file(poller: int, cfg: str):
-    ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
+def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
+    """
+    Add a reference to a cfg file in the centengine.cfg file at index _poller_.
+    Args:
+        poller (int): Poller ID.
+        cfg (str): Configuration file name to add.
+    """
+    with open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r") as ff:
+        lines = ff.readlines()
     r = re.compile(r"^\s*cfg_file=")
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -3193,7 +3183,7 @@ def ctn_config_host_command_status(idx: int, cmd_name: str, status: int):
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines[i +
-                  1] = f"    command_line                    {ENGINE_HOME}/check.pl 0 {status}\n"
+                  1] = f"    command_line                    {ENGINE_HOME}/check.pl --id 0 --state {status}\n"
             break
 
     with open(filename, "w") as f:
