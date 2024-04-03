@@ -458,16 +458,26 @@ bool notifier::_is_notification_viable_recovery(reason_type type
     std::time_t now;
     std::time(&now);
 
+    // if use_send_recovery_notifications_anyways flag is set, we don't take
+    // timeperiod into account for recovery
     if (!check_time_against_period_for_notif(now, tp)) {
-      engine_logger(dbg_notifications, more)
-          << "This notifier shouldn't have notifications sent out "
-             "at this time.";
-      SPDLOG_LOGGER_DEBUG(log_v2::notifications(),
-                          "This notifier shouldn't have notifications sent out "
-                          "at this time.");
-      retval = false;
-      send_later = true;
+      if (config->use_send_recovery_notifications_anyways()) {
+        SPDLOG_LOGGER_DEBUG(log_v2::notifications(),
+                            "recovery notification is viable even if we are "
+                            "out of timeperiod at this time.");
+      } else {
+        engine_logger(dbg_notifications, more)
+            << "This notifier shouldn't have notifications sent out "
+               "at this time.";
+        SPDLOG_LOGGER_DEBUG(
+            log_v2::notifications(),
+            "This notifier shouldn't have notifications sent out "
+            "at this time.");
+        retval = false;
+        send_later = true;
+      }
     }
+
     /* if this notifier is currently in a scheduled downtime period, don't send
      * the notification */
     else if (is_in_downtime()) {
