@@ -22,6 +22,7 @@
 
 #include <cassert>
 
+#include "bbdo/neb.pb.h"
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/config/applier/state.hh"
