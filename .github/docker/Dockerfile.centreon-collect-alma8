@@ -40,13 +40,13 @@ dnf install -y cmake \
     rrdtool-devel \
     selinux-policy-devel \
     yum-utils \
-    perl \
+    perl-interpreter \
     rpm-build \
     zstd
 
 dnf update libarchive
 
-pip3 install conan==1.57.0 --prefix=/usr --upgrade
+pip3 install conan==1.62.0 --prefix=/usr --upgrade
 rm -rf ~/.conan/profiles/default
 
 EOF

@@ -1,20 +1,20 @@
-/*
-** Copyright 2014-2015, 2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2014-2015, 2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/configuration/applier/kpi.hh"
 #include "com/centreon/broker/bam/bool_expression.hh"
@@ -93,10 +93,10 @@ void applier::kpi::apply(bam::configuration::state::kpis const& my_kpis,
   bam::configuration::state::kpis to_create(my_kpis);
 
   // Iterate through configuration.
-  for (bam::configuration::state::kpis::iterator it(to_create.begin()),
-       end(to_create.end());
+  for (bam::configuration::state::kpis::iterator it = to_create.begin(),
+                                                 end = to_create.end();
        it != end;) {
-    std::map<uint32_t, applied>::iterator cfg_it(to_delete.find(it->first));
+    std::map<uint32_t, applied>::iterator cfg_it = to_delete.find(it->first);
     // Found = modify (or not).
     if (cfg_it != to_delete.end()) {
       // Configuration mismatch, modify object
@@ -353,6 +353,8 @@ void applier::kpi::_resolve_kpi(configuration::kpi const& cfg,
 
   my_ba->add_impact(kpi);
   kpi->add_parent(my_ba);
+  /* The propagation is forced to be sure all the ba is coherent. */
+  my_ba->notify_parents_of_change(nullptr);
 }
 
 /**

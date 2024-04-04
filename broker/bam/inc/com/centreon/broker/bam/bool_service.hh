@@ -1,5 +1,5 @@
-/*
- * Copyright 2014, 2021-2023 Centreon
+/**
+ * Copyright 2014, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/bam/service_listener.hh"
+#include "com/centreon/broker/bam/service_state.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/internal.hh"
@@ -52,6 +53,7 @@ class bool_service : public bool_value, public service_listener {
   bool_service& operator=(const bool_service&) = delete;
   uint32_t get_host_id() const;
   uint32_t get_service_id() const;
+  void service_update(const service_state& s) override;
   void service_update(const std::shared_ptr<neb::pb_service>& status,
                       io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::pb_service_status>& status,

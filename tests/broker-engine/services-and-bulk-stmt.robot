@@ -13,45 +13,45 @@ Library             ../resources/Engine.py
 Library             ../resources/Broker.py
 Library             ../resources/Common.py
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
-Test Teardown       Test Clean
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Test Clean
 
 
 *** Test Cases ***
 EBBPS1
     [Documentation]    1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table resources.
     [Tags]    broker    engine    services    unified_sql
-    Config Engine    ${1}    ${1}    ${1000}
+    Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services Passive    ${0}    service_.*
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Config BBDO3    1
-    Broker Config Log    central    core    info
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    perfdata    trace
-    Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Set Services Passive    ${0}    service_.*
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    perfdata    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
     ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check Result    host_1    service_${i+1}    1    warning${i}
+        Ctn Process Service Check Result    host_1    service_${i+1}    1    warning${i}
     END
     ${content}    Create List
     ...    connected to 'MariaDB' Server
     ...    Unified sql stream supports column-wise binding in prepared statements
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -67,28 +67,28 @@ EBBPS1
     Should Be Equal As Strings    ${output}    ((0,),)
 
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check Result    host_1    service_${i+1}    2    warning${i}
+        Ctn Process Service Check Result    host_1    service_${i+1}    2    warning${i}
         IF    ${i} % 200 == 0
             ${first_service_status_content}    Create List    unified_sql service_status processing
-            ${result}    Find In Log With Timeout
+            ${result}    Ctn Find In Log With Timeout
             ...    ${centralLog}
             ...    ${start_broker}
             ...    ${first_service_status_content}
             ...    30
             Should Be True    ${result}    No service_status processing found.
             Log To Console    Stopping Broker
-            Kindly Stop Broker
+            Ctn Kindly Stop Broker
             Log To Console    Waiting for 5s
             Sleep    5s
             Log To Console    Restarting Broker
             ${start_broker}    Get Current Date
-            Start Broker
+            Ctn Start Broker
         END
     END
     ${content}    Create List
     ...    connected to 'MariaDB' Server
     ...    Unified sql stream supports column-wise binding in prepared statements
-    ${result}    Find In Log with timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -106,35 +106,35 @@ EBBPS1
 EBBPS2
     [Documentation]    1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table services.
     [Tags]    broker    engine    services    unified_sql
-    Config Engine    ${1}    ${1}    ${1000}
+    Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services Passive    ${0}    service_.*
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Config BBDO3    1
-    Broker Config Log    central    core    info
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    perfdata    trace
-    Config Broker Sql Output    central    unified_sql
-    Clear Retention
+    Ctn Set Services Passive    ${0}    service_.*
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    perfdata    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
     ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check Result    host_1    service_${i+1}    1    warning${i}
+        Ctn Process Service Check Result    host_1    service_${i+1}    1    warning${i}
     END
     ${content}    Create List
     ...    connected to 'MariaDB' Server
     ...    Unified sql stream supports column-wise binding in prepared statements
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -150,27 +150,27 @@ EBBPS2
     Should Be Equal As Strings    ${output}    ((0,),)
 
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check Result    host_1    service_${i+1}    2    critical${i}
+        Ctn Process Service Check Result    host_1    service_${i+1}    2    critical${i}
         IF    ${i} % 200 == 0
             ${first_service_status_content}    Create List    unified_sql service_status processing
-            ${result}    Find In Log With Timeout
+            ${result}    Ctn Find In Log With Timeout
             ...    ${centralLog}
             ...    ${start_broker}
             ...    ${first_service_status_content}
             ...    30
             Should Be True    ${result}    No service_status processing found.
-            Kindly Stop Broker
+            Ctn Kindly Stop Broker
             Log To Console    Waiting for 5s
             Sleep    5s
             Log To Console    Restarting Broker
             ${start_broker}    Get Current Date
-            Start Broker
+            Ctn Start Broker
         END
     END
     ${content}    Create List
     ...    connected to 'MariaDB' Server
     ...    Unified sql stream supports column-wise binding in prepared statements
-    ${result}    Find In Log with timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -188,37 +188,37 @@ EBBPS2
 EBMSSM
     [Documentation]    1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. GetSqlManagerStats is called to measure writes into data_bin.
     [Tags]    broker    engine    services    unified_sql    benchmark
-    Clear Metrics
-    Config Engine    ${1}    ${1}    ${1000}
+    Ctn Clear Metrics
+    Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services Passive    ${0}    service_.*
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Config BBDO3    1
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
+    Ctn Set Services Passive    ${0}    service_.*
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Remove Rrd Output    central
+    Ctn Clear Retention
     ${start}    Get Current Date
-    Start Broker
-    Start Engine
-    Broker Set Sql Manager Stats    51001    5    5
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Broker Set Sql Manager Stats    51001    5    5
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    100
+        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    100
     END
 
-    ${duration}    Broker Get Sql Manager Stats    51001    INSERT INTO data_bin    300
+    ${duration}    Ctn Broker Get Sql Manager Stats    51001    INSERT INTO data_bin    300
     Should Be True    ${duration} > 0
 
     # Let's wait for all force checks to be in the storage database.
@@ -234,59 +234,59 @@ EBMSSM
 EBPS2
     [Documentation]    1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
     [Tags]    broker    engine    services    unified_sql    benchmark
-    Clear Metrics
-    Config Engine    ${1}    ${1}    ${1000}
+    Ctn Clear Metrics
+    Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services Passive    ${0}    service_.*
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Config BBDO3    1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
-    Broker Config Log    central    perfdata    debug
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
+    Ctn Set Services Passive    ${0}    service_.*
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    perfdata    debug
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Remove Rrd Output    central
+    Ctn Clear Retention
 
     ${start}    Get Current Date
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
+        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
     END
     ${start}    Get Current Date
     ${content}    Create List    Check if some statements are ready,    sscr_bind connections
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that statements are available should be displayed
-    Stop mysql
-    Stop Engine
-    Start mysql
+    Ctn Stop Mysql
+    Ctn Stop Engine
+    Ctn Start Mysql
 
 RLCode
     [Documentation]    Test if reloading LUA code in a stream connector applies the changes
     [Tags]    lua    stream connector
-    Clear Commands Status
-    Clear Retention
+    Ctn Clear Commands Status
+    Ctn Clear Retention
 
     Remove File    /tmp/toto.lua
-    Config Engine    ${1}    ${1}    ${10}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
-    Config BBDO3    1
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Broker Config Log    central    lua    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Engine    ${1}    ${1}    ${10}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Log    central    lua    debug
+    Ctn Config Broker Sql Output    central    unified_sql
 
     ${INITIAL_SCRIPT_CONTENT}    Catenate
     ...    function init(params)
@@ -301,20 +301,20 @@ RLCode
     # Create the initial LUA script file
     Create File    /tmp/toto.lua    ${INITIAL_SCRIPT_CONTENT}
 
-    Broker Config Add Lua Output    central    test-toto    /tmp/toto.lua
+    Ctn Broker Config Add Lua Output    central    test-toto    /tmp/toto.lua
 
     # Start the engine/broker
     ${start}    Get Current Date
 
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
 
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${content}    Create List    lua: initializing the Lua virtual machine
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    The lua virtual machine is not correctly initialized
 
     # Define the new content to take place of the first one
@@ -332,30 +332,30 @@ RLCode
     Create File    /tmp/toto.lua    ${new_content}
     ${start}    Get Current Date
 
-    Reload Broker
+    Ctn Reload Broker
 
     ${content}    Create List    lua: initializing the Lua virtual machine
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    The Lua virtual machine is not correctly initialized
 
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 metric_mapping
     [Documentation]    Check if metric name exists using a stream connector
     [Tags]    broker    engine    bbdo    unified_sql    metric
-    Clear Commands Status
-    Clear Retention
+    Ctn Clear Commands Status
+    Ctn Clear Retention
 
     Remove File    /tmp/test.log
-    Config Engine    ${1}    ${1}    ${10}
-    Config Broker    central
-    Config Broker    module
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Log    central    lua    debug
-    Broker Config Log    module0    neb    debug
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Engine    ${1}    ${1}    ${10}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.1
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.1
+    Ctn Broker Config Log    central    lua    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Config Broker Sql Output    central    unified_sql
 
     ${new_content}    Catenate
     ...    function init(params)
@@ -372,29 +372,85 @@ metric_mapping
     # Create the initial LUA script file
     Create File    /tmp/test-metric.lua    ${new_content}
 
-    Broker Config Add Lua Output    central    test-metric    /tmp/test-metric.lua
+    Ctn Broker Config Add Lua Output    central    test-metric    /tmp/test-metric.lua
 
     ${start}    Get Current Date
 
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
 
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message about check_for_external_commands() should be available.
 
     # We force several checks with metrics
     FOR    ${i}    IN RANGE    ${10}
-        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
+        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
     END
 
     Wait Until Created    /tmp/test.log    30s
     ${grep_res}    Grep File    /tmp/test.log    name: metric1 corresponds to metric id
     Should Not Be Empty    ${grep_res}    metric name "metric1" not found
 
+Services_and_bulks_${id}
+    [Documentation]    One service is configured with one metric with a name of 150 to 1021 characters.
+    [Tags]    broker    engine    services    unified_sql    benchmark
+    Ctn Clear Metrics
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    # We want all the services to be passive to avoid parasite checks during our test.
+    ${random_string}    Generate Random String    ${metric_num_char}    [LOWER]
+    Ctn Set Services Passive    ${0}    service_.*
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.1
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Source Log    central    1
+
+    Ctn Config Broker Remove Rrd Output    central
+    Ctn Clear Retention
+    Ctn Clear Db    metrics
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Broker Set Sql Manager Stats    51001    5    5
+
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    ${start_1}    Ctn Get Round Current Date
+
+    Ctn Process Service Check Result With Metrics
+    ...    host_1
+    ...    service_${1}
+    ...    ${1}
+    ...    warning${0}
+    ...    1
+    ...    config0
+    ...    ${random_string}
+
+    ${content}    Create List    perfdata on connection
+    ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
+    ${result}    Ctn Find In Log With Timeout    ${log}    ${start_1}    ${content}    60
+    Should Be True    ${result}    A message fail to handle a metric with ${metric_num_char} characters.
+
+    ${metrics}    Ctn Get Metrics For Service    1    ${random_string}0
+    Should Not Be Equal    ${metrics}    ${None}    no metric found for service
+
+    Examples:    id    metric_num_char    --
+    ...    1    1020
+    ...    2    150
+
 
 *** Keywords ***
-Test Clean
-    Stop Engine
-    Kindly Stop Broker
-    Save Logs If Failed
+Ctn Test Clean
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Save Logs If Failed

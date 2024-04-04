@@ -1,22 +1,23 @@
-/*
-** Copyright 2014 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2014,2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/timeperiod_map.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -125,9 +126,9 @@ void timeperiod_map::add_relation(uint32_t ba_id,
  *  @return                 A vector of timeperiods and optional boolean set to
  * true if the timeperiod is default.
  */
-std::vector<std::pair<com::centreon::broker::time::timeperiod::ptr, bool> >
+std::vector<std::pair<com::centreon::broker::time::timeperiod::ptr, bool>>
 timeperiod_map::get_timeperiods_by_ba_id(uint32_t ba_id) const {
-  std::vector<std::pair<com::centreon::broker::time::timeperiod::ptr, bool> >
+  std::vector<std::pair<com::centreon::broker::time::timeperiod::ptr, bool>>
       res;
   std::pair<timeperiod_relation_map::const_iterator,
             timeperiod_relation_map::const_iterator>
@@ -137,11 +138,15 @@ timeperiod_map::get_timeperiods_by_ba_id(uint32_t ba_id) const {
     uint32_t tp_id = found.first->second.first;
     bool is_default = found.first->second.second;
     time::timeperiod::ptr tp = get_timeperiod(tp_id);
-    if (!tp)
-      throw msg_fmt("BAM-BI: could not find the timeperiod {} in cache.",
-                    tp_id);
-    res.push_back(std::make_pair(tp, is_default));
+    if (!tp) {
+      SPDLOG_LOGGER_ERROR(log_v2::bam(),
+                          "BAM-BI: could not find the timeperiod {} in cache "
+                          "for ba {}, check timeperiod table in conf db",
+                          tp_id, ba_id);
+    } else {
+      res.push_back(std::make_pair(tp, is_default));
+    }
   }
 
-  return (res);
+  return res;
 }

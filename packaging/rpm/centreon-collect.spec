@@ -32,7 +32,7 @@ BuildRequires: gnutls-devel >= 3.3.29
 BuildRequires: libgcrypt-devel
 BuildRequires: lua-devel
 BuildRequires: make
-BuildRequires: perl
+BuildRequires: perl-interpreter
 BuildRequires: perl-ExtUtils-Embed
 BuildRequires: perl-devel
 BuildRequires: rrdtool-devel
@@ -302,7 +302,7 @@ SELinux context for centreon-broker
 %setup -q -n %{name}-%{version}
 
 %build
-pip3 install conan==1.57.0 --upgrade
+pip3 install conan==1.62.0 --upgrade
 conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
 cmake3 \
@@ -540,8 +540,10 @@ fi
 %{_exec_prefix}/lib/systemd/system/centengine.service
 %{_localstatedir}/log/centreon-engine/centengine.debug
 %{_localstatedir}/log/centreon-engine/centengine.log
-%{_localstatedir}/log/centreon-engine/retention.dat
 %{_localstatedir}/log/centreon-engine/status.dat
+
+%ghost
+%{_localstatedir}/log/centreon-engine/retention.dat
 
 %files -n centreon-engine-selinux
 %defattr(-,root,root,-)

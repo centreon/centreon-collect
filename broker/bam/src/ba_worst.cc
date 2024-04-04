@@ -220,3 +220,23 @@ std::string ba_worst::get_output() const {
 std::string ba_worst::get_perfdata() const {
   return {};
 }
+
+std::shared_ptr<pb_ba_status> ba_worst::_generate_ba_status(
+    bool state_changed) const {
+  auto ret = std::make_shared<pb_ba_status>();
+  BaStatus& status = ret->mut_obj();
+  status.set_ba_id(get_id());
+  status.set_in_downtime(in_downtime());
+  if (_event)
+    status.set_last_state_change(_event->obj().start_time());
+  else
+    status.set_last_state_change(get_last_kpi_update());
+  status.set_state(com::centreon::broker::State(get_state_hard()));
+  status.set_state_changed(state_changed);
+
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::bam(),
+      "BAM: generating status of worst BA {} '{}' (state {}, in downtime {})",
+      get_id(), _name, status.state(), status.in_downtime());
+  return ret;
+}

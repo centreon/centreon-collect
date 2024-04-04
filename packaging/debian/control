@@ -15,7 +15,8 @@ Build-Depends:  debhelper-compat (=12),
                 python3,
                 python3-pip,
                 libperl-dev,
-                libgcrypt20-dev
+                libgcrypt20-dev,
+                perl-base
 Standards-Version: 4.5.0
 Homepage: https://wwww.centreon.com
 

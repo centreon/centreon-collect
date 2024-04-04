@@ -11,6 +11,8 @@ This program build Centreon-broker
     -fcr|--force-conan-rebuild : rebuild conan data
     -ng           : C++17 standard
     -clang        : Compilation with clang++
+    -mold         : Link with mold instead of ld
+    -legacy-mold  : Link with mold instead of ld but with an old gcc
     -h|--help     : help
 EOF
 }
@@ -26,13 +28,14 @@ for i in $(cat conanfile.txt) ; do
   fi
 done
 
-STD=gnu14
+STD=gnu17
 COMPILER=gcc
 CC=gcc
 CXX=g++
 LIBCXX=libstdc++11
 WITH_CLANG=OFF
 EE=
+MOLD=
 
 for i in "$@"
 do
@@ -40,11 +43,6 @@ do
     -f|--force)
       echo "Forced rebuild"
       force=1
-      shift
-      ;;
-    -ng)
-      echo "C++17 applied on this compilation"
-      STD="gnu17"
       shift
       ;;
     -r|--release)
@@ -58,6 +56,14 @@ do
       EE="-e CXX=/usr/bin/clang++ -e CC=/usr/bin/clang -e:b CXX=/usr/bin/clang++ -e:b CC=/usr/bin/clang"
       CC=clang
       CXX=clang++
+      shift
+      ;;
+    -mold)
+      MOLD="-fuse-ld=mold"
+      shift
+      ;;
+    -legacy-mold)
+      MOLD="-B /usr/bin/mold"
       shift
       ;;
     -fcr|--force-conan-rebuild)
@@ -315,16 +321,10 @@ cd build
 echo "$conan install .. --build=missing"
 $conan install .. --build=missing
 
-if [[ $STD -eq gnu17 ]] ; then
-  NG="-DNG=ON"
-else
-  NG="-DNG=OFF"
-fi
-
 if [[ "$maj" == "Raspbian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $NG $* ..
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $* ..
 elif [[ "$maj" == "Debian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $NG $* ..
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $* ..
 else
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $NG $* ..
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $* ..
 fi

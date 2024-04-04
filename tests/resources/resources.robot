@@ -1,64 +1,89 @@
 *** Settings ***
-Resource	./db_variables.robot
-Library	Process
-Library	OperatingSystem
-Library	Common.py
+Resource    ./db_variables.robot
+Library     Process
+Library     OperatingSystem
+Library     Common.py
+
+
+*** Variables ***
+${BROKER_LOG}       ${VarRoot}/log/centreon-broker
+${BROKER_LIB}       ${VarRoot}/lib/centreon-broker
+${ENGINE_LOG}       ${VarRoot}/log/centreon-engine
+${SCRIPTS}          ${CURDIR}${/}scripts${/}
+${centralLog}       ${BROKER_LOG}/central-broker-master.log
+${moduleLog0}       ${BROKER_LOG}/central-module-master0.log
+${moduleLog1}       ${BROKER_LOG}/central-module-master1.log
+${moduleLog2}       ${BROKER_LOG}/central-module-master2.log
+${moduleLog3}       ${BROKER_LOG}/central-module-master3.log
+${moduleLog4}       ${BROKER_LOG}/central-module-master4.log
+${rrdLog}           ${BROKER_LOG}/central-rrd-master.log
+
+${engineLog0}       ${ENGINE_LOG}/config0/centengine.log
+${engineLog1}       ${ENGINE_LOG}/config1/centengine.log
+${engineLog2}       ${ENGINE_LOG}/config2/centengine.log
+${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
+${engineLog4}       ${ENGINE_LOG}/config4/centengine.log
 
 *** Keywords ***
-Config BBDO3
+Ctn Config BBDO3
 	[Arguments]	${nbEngine}
-	Config Broker Sql Output	central	unified_sql
-        Broker Config Add Item	rrd	bbdo_version	3.0.1
-        Broker Config Add Item	central	bbdo_version	3.0.1
+	Ctn Config Broker Sql Output	central	unified_sql
+        Ctn Broker Config Add Item	rrd	bbdo_version	3.0.1
+        Ctn Broker Config Add Item	central	bbdo_version	3.0.1
         FOR	${i}	IN RANGE	${nbEngine}
 	 ${mod}=	Catenate	SEPARATOR=	module	${i}
-         Broker Config Add Item	${mod}	bbdo_version	3.0.1
+         Ctn Broker Config Add Item	${mod}	bbdo_version	3.0.1
 	END
 
-Clean Before Suite
-	Stop Processes
-	Clear Engine Logs
-	Clear Broker Logs
+Ctn Clean Before Suite
+	Ctn Stop Processes
+	Ctn Clear Engine Logs
+	Ctn Clear Broker Logs
 
-Clean Before Suite With rrdcached
-	Clean Before Suite
+Ctn Clean Before Suite With rrdcached
+	Ctn Clean Before Suite
 	log to console	Starting RRDCached
 	Run Process	/usr/bin/rrdcached	-l	unix:${BROKER_LIB}/rrdcached.sock	-V	LOG_DEBUG	-F
 
-Clean Grpc Before Suite
+Ctn Clean Grpc Before Suite
 	set grpc port  0
-	Clean Before Suite
+	Ctn Clean Before Suite
 
-Clean After Suite
+Ctn Clean After Suite
 	# Remove Files	${ENGINE_LOG}${/}centengine.log ${ENGINE_LOG}${/}centengine.debug
 	# Remove Files	${BROKER_LOG}${/}central-broker-master.log	${BROKER_LOG}${/}central-rrd-master.log	${BROKER_LOG}${/}central-module-master.log
 	Terminate All Processes	kill=True
 
-Clean After Suite With rrdcached
-	Clean after Suite
+Ctn Clean After Suite With rrdcached
+	Ctn Clean After Suite
 	log to console	Stopping RRDCached
-	Stop rrdcached
+	Ctn Stop Rrdcached
 
-Clear Engine Logs
+Ctn Clear Engine Logs
 	Remove Directory	${ENGINE_LOG}	Recursive=True
 	Create Directory	${ENGINE_LOG}
 
-Clear Broker Logs
+Ctn Clear Broker Logs
 	Remove Directory	${BROKER_LOG}	Recursive=True
 	Create Directory	${BROKER_LOG}
 
-Start Broker
+Ctn Start Broker
 	[Arguments]	 ${only_central}=False
 	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
 	IF  not ${only_central}
 		Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
 	END
 
-Reload Broker
+Ctn Restart Broker
+    [Arguments]    ${only_central}=False
+    Ctn Kindly Stop Broker    ${only_central}
+    Ctn Start Broker    ${only_central}
+
+Ctn Reload Broker
 	Send Signal To Process	SIGHUP	b1
 	Send Signal To Process	SIGHUP	b2
 
-Kindly Stop Broker
+Ctn Kindly Stop Broker
 	[Arguments]	 ${only_central}=False
 	Send Signal To Process	SIGTERM	b1
 	IF  not ${only_central}
@@ -86,7 +111,7 @@ Kindly Stop Broker
 		END
 	END
 
-Stop Broker
+Ctn Stop Broker
 	[Arguments]	 ${only_central}=False
 	${result}=	Terminate Process	b1	kill=False
 	Should Be Equal As Integers	${result.rc}	0
@@ -95,13 +120,13 @@ Stop Broker
 		Should Be Equal As Integers	${result.rc}	0
 	END
 
-Stop Processes
+Ctn Stop Processes
 	Terminate All Processes	kill=True
-	Kill Broker
-	Kill Engine
+	Ctn Kill Broker
+	Ctn Kill Engine
 
-Start Engine
-	${count}=	Get Engines Count
+Ctn Start Engine
+	${count}=	Ctn Get Engines Count
 	FOR	${idx}	IN RANGE	0	${count}
 	 ${alias}=	Catenate	SEPARATOR=	e	${idx}
 	 ${conf}=	Catenate	SEPARATOR=	${EtcRoot}  /centreon-engine/config	${idx}	/centengine.cfg
@@ -117,21 +142,21 @@ Start Engine
 	 Start Process	/usr/sbin/centengine	${conf}	alias=${alias}
 	END
 
-Restart Engine
-	Stop Engine
-	Start Engine
+Ctn Restart Engine
+	Ctn Stop Engine
+	Ctn Start Engine
 
-Start Custom Engine
+Ctn Start Custom Engine
 	[Arguments]	 ${conf_path}  ${process_alias}
 	Start Process  /usr/sbin/centengine  ${conf_path}  alias=${process_alias}
 
-Stop Custom Engine
+Ctn Stop Custom Engine
 	[Arguments]  ${process_alias}
 	${result}=	Terminate Process	${process_alias}
 	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
-Stop Engine
-	${count}=	Get Engines Count
+Ctn Stop Engine
+	${count}=	Ctn Get Engines Count
 	FOR	${idx}	IN RANGE	0	${count}
 	 ${alias}=	Catenate	SEPARATOR=	e	${idx}
 	 Send Signal To Process	SIGTERM	${alias}
@@ -149,61 +174,61 @@ Stop Engine
 	 END
 	END
 
-Stop Engine Broker And Save Logs
+Ctn Stop Engine Broker And Save Logs
     [Arguments]    ${only_central}=False
     TRY
-        Stop Engine
+        Ctn Stop Engine
     EXCEPT
         Log    Can't kindly stop Engine
     END
     TRY
-        Kindly Stop Broker    only_central=${only_central}
+        Ctn Kindly Stop Broker    only_central=${only_central}
     EXCEPT
         Log    Can't kindly stop Broker
     END
-    Save Logs If Failed
+    Ctn Save Logs If Failed
 
-Get Engine Pid
+Ctn Get Engine Pid
 	[Arguments]  ${process_alias}
 	${pid}=  Get Process Id  ${process_alias} 
 	[Return]  ${pid}
 	
-Reload Engine
-	${count}=	Get Engines Count
+Ctn Reload Engine
+	${count}=	Ctn Get Engines Count
 	FOR	${idx}	IN RANGE	0	${count}
 	 ${alias}=	Catenate	SEPARATOR=	e	${idx}
 	 Send Signal To Process	SIGHUP	${alias}
 	END
 
-Check Connections
-	${count}=	Get Engines Count
+Ctn Check Connections
+	${count}=	Ctn Get Engines Count
 	${pid1}=	Get Process Id	b1
 	FOR	${idx}	IN RANGE	0	${count}
 	 ${alias}=	Catenate	SEPARATOR=	e	${idx}
 	 ${pid2}=	Get Process Id	${alias}
 	 Log to console	Check Connection 5669 ${pid1} ${pid2}
-	 ${retval}=	Check Connection	5669	${pid1}	${pid2}
+	 ${retval}=	Ctn Check Connection	5669	${pid1}	${pid2}
 	 Return from Keyword If	${retval} == ${False}	${False}
 	END
 	${pid2}=	Get Process Id	b2
 	Log to console	Check Connection 5670 ${pid1} ${pid2}
-	${retval}=	Check Connection	5670	${pid1}	${pid2}
+	${retval}=	Ctn Check Connection	5670	${pid1}	${pid2}
 	[Return]	${retval}
 
-Disable Eth Connection On Port
+Ctn Disable Eth Connection On Port
 	[Arguments]	${port}
 	RUN	iptables -A INPUT -p tcp --dport ${port} -j DROP
 	RUN	iptables -A OUTPUT -p tcp --dport ${port} -j DROP
 	RUN	iptables -A FORWARD -p tcp --dport ${port} -j DROP
 
-Reset Eth Connection
+Ctn Reset Eth Connection
 	Run	iptables -F
 	Run	iptables -X
 
-Save Logs If Failed
-	Run Keyword If Test Failed	Save Logs
+Ctn Save Logs If Failed
+	Run Keyword If Test Failed	Ctn Save Logs
 
-Save Logs
+Ctn Save Logs
 	Create Directory	failed
 	${failDir}=	Catenate	SEPARATOR=	failed/	${Test Name}
 	Create Directory	${failDir}
@@ -217,7 +242,7 @@ Save Logs
 	Move Files	/tmp/lua*.log	${failDir}
 
 
-Dump Process
+Ctn Dump Process
 	[Arguments]	${process_name}	${name}
 	${pid}=	Get Process Id	${process_name}
 	${failDir}=	Catenate	SEPARATOR=	failed/	${Test Name}
@@ -228,7 +253,7 @@ Dump Process
 	Log To Console	Done...
 
 
-Wait Or Dump And Kill Process
+Ctn Wait Or Dump And Kill Process
 	[Arguments]  ${process_name}  ${timeout}
 	${result}=      Wait For Process	${process_name}	timeout=${timeout}      on_timeout=continu
 	${test_none}=  Set Variable If  $result is None  "not killed"  "killed"
@@ -239,25 +264,25 @@ Wait Or Dump And Kill Process
 	END
 	[Return]	${result}
 
-Clear Metrics
+Ctn Clear Metrics
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	Execute SQL String	DELETE FROM metrics
 	Execute SQL String	DELETE FROM index_data
 	Execute SQL String	DELETE FROM data_bin
 
-*** Variables ***
-${BROKER_LOG}	${VarRoot}/log/centreon-broker
-${BROKER_LIB}	${VarRoot}/lib/centreon-broker
-${ENGINE_LOG}	${VarRoot}/log/centreon-engine
-${SCRIPTS}	${CURDIR}${/}scripts${/}
-${centralLog}	${BROKER_LOG}/central-broker-master.log
-${moduleLog0}	${BROKER_LOG}/central-module-master0.log
-${moduleLog1}	${BROKER_LOG}/central-module-master1.log
-${moduleLog2}	${BROKER_LOG}/central-module-master2.log
-${moduleLog3}	${BROKER_LOG}/central-module-master3.log
-${rrdLog}	${BROKER_LOG}/central-rrd-master.log
+Ctn Dump Ba On Error
+    [Arguments]    ${result}    ${ba_id}
+    IF    not ${result}
+        Ctn Save Logs
+        Ctn Broker Get Ba    51001    ${ba_id}    failed/${Test Name}/ba_${ba_id}.dot
+    END
 
-${engineLog0}	${ENGINE_LOG}/config0/centengine.log
-${engineLog1}	${ENGINE_LOG}/config1/centengine.log
-${engineLog2}	${ENGINE_LOG}/config2/centengine.log
-${engineLog3}	${ENGINE_LOG}/config3/centengine.log
+Ctn Process Service Result Hard
+    [Arguments]    ${host}    ${svc}    ${state}    ${output}
+    Repeat Keyword
+    ...    3 times
+    ...    Ctn Process Service Check Result
+    ...    ${host}
+    ...    ${svc}
+    ...    ${state}
+    ...    ${output}
