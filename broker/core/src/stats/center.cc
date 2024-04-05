@@ -1,5 +1,5 @@
 /**
- * Copyright 2020-2022 Centreon
+ * Copyright 2020-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@
 
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/version.hh"
 #include "com/centreon/common/pool.hh"
@@ -33,7 +32,7 @@ using namespace com::centreon::broker::stats;
 using namespace google::protobuf::util;
 using namespace com::centreon::broker::modules;
 
-center* center::_instance{nullptr};
+center* center::_instance = nullptr;
 
 center& center::instance() {
   assert(_instance);
@@ -305,8 +304,7 @@ ConflictManagerStats* center::register_conflict_manager() {
 std::string center::to_string() {
   const JsonPrintOptions options;
   std::string retval;
-  std::time_t now;
-  time(&now);
+  std::time_t now = time(nullptr);
   std::lock_guard<std::mutex> lck(_stats_m);
   _json_stats_file_creation = now;
   _stats.set_now(now);

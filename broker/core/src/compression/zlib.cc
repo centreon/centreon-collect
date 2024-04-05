@@ -1,30 +1,31 @@
 /**
-* Copyright 2011-2017 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/compression/zlib.hh"
 #include <zlib.h>
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/exceptions/corruption.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::compression;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  * Compression function
@@ -84,7 +85,9 @@ std::vector<char> zlib::compress(std::vector<char> const& data,
  */
 std::vector<char> zlib::uncompress(unsigned char const* data, uLong nbytes) {
   if (!data) {
-    log_v2::core()->debug("compression: attempting to uncompress null buffer");
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->debug("compression: attempting to uncompress null buffer");
     return std::vector<char>();
   }
   if (nbytes <= 4) {

@@ -21,12 +21,13 @@
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::influxdb;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -54,7 +55,8 @@ stream::stream(std::string const& user,
       _actual_query(0),
       _commit(false),
       _cache(cache),
-      _logger{cache ? cache->logger() : log_v2::influxdb()},
+      _logger{cache ? cache->logger()
+                    : log_v2::instance().get(log_v2::INFLUXDB)},
       _influx_db{std::make_unique<influxdb>(user,
                                             passwd,
                                             addr,

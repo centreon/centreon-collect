@@ -17,13 +17,15 @@
  */
 
 #include "com/centreon/broker/bam/service_book.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
+
+using com::centreon::common::log_v2::log_v2;
 
 static constexpr bool time_is_undefined(uint64_t t) {
   return t == 0 || t == static_cast<uint64_t>(-1);
@@ -39,8 +41,8 @@ static constexpr bool time_is_undefined(uint64_t t) {
 void service_book::listen(uint32_t host_id,
                           uint32_t service_id,
                           service_listener* listnr) {
-  log_v2::bam()->trace("BAM: service ({}, {}) added to service book", host_id,
-                       service_id);
+  _logger->trace("BAM: service ({}, {}) added to service book", host_id,
+                 service_id);
   auto found = _book.find(std::make_pair(host_id, service_id));
   if (found == _book.end()) {
     service_state_listeners sl{{listnr},
@@ -241,7 +243,7 @@ void service_book::save_to_cache(persistent_cache& cache) const {
  * @param state A ServicesBookState get from the cache.
  */
 void service_book::apply_services_state(const ServicesBookState& state) {
-  log_v2::bam()->trace("BAM: applying services state from cache");
+  _logger->trace("BAM: applying services state from cache");
   for (auto& svc : state.service()) {
     auto found = _book.find(std::make_pair(svc.host_id(), svc.service_id()));
     if (found == _book.end())
@@ -255,5 +257,5 @@ void service_book::apply_services_state(const ServicesBookState& state) {
     for (auto l : found->second.listeners)
       l->service_update(svc_state);
   }
-  log_v2::bam()->trace("BAM: Services state applied from cache");
+  _logger->trace("BAM: Services state applied from cache");
 }

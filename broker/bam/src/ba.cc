@@ -26,12 +26,13 @@
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 double ba::_normalize(double d) {
   if (d > 100.0)
@@ -301,7 +302,6 @@ void ba::visit(io::stream* visitor) {
  */
 void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
                         io::stream* visitor) {
-  (void)visitor;
   if (dt->host_id == _host_id && dt->service_id == _service_id) {
     // Log message.
     SPDLOG_LOGGER_DEBUG(
@@ -341,7 +341,6 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
  */
 void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
                         io::stream* visitor) {
-  (void)visitor;
   auto& downtime = dt->obj();
   assert(downtime.host_id() == _host_id &&
          downtime.service_id() == _service_id);
@@ -590,8 +589,7 @@ void ba::set_level_warning(double level) {
  * @param visitor The visitor to handle events.
  */
 void ba::update_from(computable* child, io::stream* visitor) {
-  auto logger = _logger;
-  logger->trace("ba::update_from (BA {})", _id);
+  _logger->trace("ba::update_from (BA {})", _id);
   // Get impact.
   impact_values new_hard_impact;
   impact_values new_soft_impact;
@@ -603,7 +601,7 @@ void ba::update_from(computable* child, io::stream* visitor) {
 
   // Logging.
   SPDLOG_LOGGER_DEBUG(
-      logger,
+      _logger,
       "BAM: BA {}, '{}' is getting notified of child update (KPI {}, impact "
       "{}, last state change {}, downtime {})",
       _id, _name, kpi_child->get_id(), new_hard_impact.get_nominal(),

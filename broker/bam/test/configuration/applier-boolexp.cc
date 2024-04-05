@@ -21,16 +21,17 @@
 #include "com/centreon/broker/bam/configuration/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/kpi.hh"
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 class ApplierBoolexp : public ::testing::Test {
  public:
   void SetUp() override {
     // Initialization.
     config::applier::init(0, "test_broker", 0);
-    auto logger = log_v2::bam();
+    auto logger = log_v2::instance().get(log_v2::BAM);
 
     _aply_state = std::make_unique<bam::configuration::applier::state>(logger);
     _state = std::make_unique<bam::configuration::state>(logger);

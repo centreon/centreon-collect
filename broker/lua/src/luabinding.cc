@@ -20,17 +20,19 @@
 
 #include <cassert>
 
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/lua/broker_cache.hh"
 #include "com/centreon/broker/lua/broker_event.hh"
 #include "com/centreon/broker/lua/broker_log.hh"
 #include "com/centreon/broker/lua/broker_socket.hh"
 #include "com/centreon/broker/lua/broker_utils.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
 using namespace com::centreon::exceptions;
+
+using com::centreon::common::log_v2::log_v2;
 
 #ifdef LUA51
 static int l_pairs(lua_State* L) {
@@ -62,7 +64,7 @@ luabinding::luabinding(std::string const& lua_script,
       _cache(cache),
       _total{0},
       _broker_api_version{1},
-      _logger{log_v2::lua()} {
+      _logger{log_v2::instance().get(log_v2::LUA)} {
   size_t pos(lua_script.find_last_of('/'));
   std::string path(lua_script.substr(0, pos));
   _L = _load_interpreter();

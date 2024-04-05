@@ -23,6 +23,7 @@
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/broker/influxdb/macro_cache.hh"
 #include "com/centreon/broker/io/stream.hh"
+
 #include "com/centreon/broker/persistent_cache.hh"
 
 namespace com::centreon::broker {

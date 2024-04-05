@@ -55,7 +55,7 @@ class state {
   absl::flat_hash_map<uint64_t, std::string> _connected_pollers;
   mutable std::mutex _connected_pollers_m;
 
-  state();
+  state(const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept = default;
 
  public:

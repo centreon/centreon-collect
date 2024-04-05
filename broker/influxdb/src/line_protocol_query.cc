@@ -17,13 +17,14 @@
  */
 
 #include "com/centreon/broker/influxdb/line_protocol_query.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::influxdb;
 using namespace com::centreon::exceptions;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Create an empty query.
@@ -193,9 +194,9 @@ std::string line_protocol_query::generate_metric(const storage::pb_metric& me) {
       }
     }
   } catch (std::exception const& e) {
-    log_v2::influxdb()->error(
-        "influxdb: could not generate query for metric {}: {}",
-        me.obj().metric_id(), e.what());
+    auto logger = log_v2::instance().get(log_v2::INFLUXDB);
+    logger->error("influxdb: could not generate query for metric {}: {}",
+                  me.obj().metric_id(), e.what());
     return "";
   }
   return iss.str();
@@ -229,9 +230,9 @@ std::string line_protocol_query::generate_status(const storage::pb_status& st) {
       }
     }
   } catch (std::exception const& e) {
-    log_v2::influxdb()->error(
-        "influxdb: could not generate query for status {}: {}",
-        st.obj().index_id(), e.what());
+    auto logger = log_v2::instance().get(log_v2::INFLUXDB);
+    logger->error("influxdb: could not generate query for status {}: {}",
+                  st.obj().index_id(), e.what());
     return "";
   }
 
@@ -328,9 +329,10 @@ void line_protocol_query::_compile_scheme(
       else if (_type == status)
         _append_compiled_getter(&line_protocol_query::_get_status_time,
                                 escaper);
-    } else
-      log_v2::influxdb()->info("influxdb: unknown macro '{}': ignoring it",
-                               macro);
+    } else {
+      auto logger = log_v2::instance().get(log_v2::INFLUXDB);
+      logger->info("influxdb: unknown macro '{}': ignoring it", macro);
+    }
 
     found_macro = end_macro = end_macro + 1;
   }

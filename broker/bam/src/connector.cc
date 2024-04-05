@@ -133,7 +133,7 @@ std::unique_ptr<bam::connector> connector::create_reporting_connector(
  * @return BAM connection object.
  */
 std::shared_ptr<io::stream> connector::open() {
-  auto logger = log_v2::bam();
+  auto logger = log_v2::instance().get(log_v2::BAM);
   if (_type == bam_reporting_type)
     return std::make_shared<bam::reporting_stream>(_db_cfg, logger);
   else {

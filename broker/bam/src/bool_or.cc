@@ -17,11 +17,8 @@
  */
 
 #include "com/centreon/broker/bam/bool_or.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
-
-constexpr double eps = 0.000001;
 
 /**
  * @brief Check that the children are known and in that case propagate their

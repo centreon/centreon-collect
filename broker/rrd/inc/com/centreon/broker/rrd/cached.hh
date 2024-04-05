@@ -1,33 +1,34 @@
-/*
-** Copyright 2020 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2020-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_RRD_CACHED_HH
 #define CCB_RRD_CACHED_HH
 
 #include <fmt/format.h>
 
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
 #include "com/centreon/broker/rrd/lib.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::exceptions;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::broker {
 
@@ -110,18 +111,18 @@ class cached : public backend {
    */
   void remove(std::string const& filename) {
     // Build rrdcached command.
-    log_v2::rrd()->trace("RRD: FORGET the {} file", filename);
+    _logger->trace("RRD: FORGET the {} file", filename);
     std::string cmd(fmt::format("FORGET {}\n", filename));
 
     try {
       _send_to_cached(cmd);
     } catch (msg_fmt const& e) {
-      log_v2::rrd()->error(e.what());
+      _logger->error(e.what());
     }
 
     if (::remove(filename.c_str()))
-      log_v2::rrd()->error("RRD: could not remove file '{}': {}", filename,
-                           strerror(errno));
+      _logger->error("RRD: could not remove file '{}': {}", filename,
+                     strerror(errno));
   }
 
   /**
@@ -273,39 +274,39 @@ class cached : public backend {
     std::string cmd(fmt::format("UPDATE {} {}:{}\n", _filename, t, value));
 
     // Send command.
-    log_v2::rrd()->debug("RRD: updating file '{}' ({})", _filename, cmd);
+    _logger->debug("RRD: updating file '{}' ({})", _filename, cmd);
     try {
       _send_to_cached(cmd);
     } catch (msg_fmt const& e) {
       if (!strstr(e.what(), "illegal attempt to update using time"))
         throw exceptions::update(e.what());
       else
-        log_v2::rrd()->error("RRD: ignored update error in file '{}': {}",
-                             _filename, e.what() + 5);
+        _logger->error("RRD: ignored update error in file '{}': {}", _filename,
+                       e.what() + 5);
     }
   }
 
   void update(const std::deque<std::string>& pts) {
-    log_v2::rrd()->debug("RRD: updating file '{}' with {} values", _filename,
-                         pts.size());
+    _logger->debug("RRD: updating file '{}' with {} values", _filename,
+                   pts.size());
 
     std::string cmd{
         fmt::format("UPDATE {} {}\n", _filename, fmt::join(pts, " "))};
     try {
       _send_to_cached(cmd);
-      log_v2::rrd()->trace("RRD: flushing file '{}'", _filename);
+      _logger->trace("RRD: flushing file '{}'", _filename);
       _send_to_cached(fmt::format("FLUSH {}\n", _filename));
     } catch (msg_fmt const& e) {
       if (!strstr(e.what(), "illegal attempt to update using time"))
         throw exceptions::update(e.what());
       else
-        log_v2::rrd()->error("RRD: ignored update error in file '{}': {}",
-                             _filename, e.what() + 5);
+        _logger->error("RRD: ignored update error in file '{}': {}", _filename,
+                       e.what() + 5);
     }
   }
 };
 }  // namespace rrd
 
-}
+}  // namespace com::centreon::broker
 
 #endif /* !CCB_RRD_CACHED_HH */

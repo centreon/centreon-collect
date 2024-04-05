@@ -76,6 +76,8 @@ class muxer : public io::stream {
   static std::mutex _running_muxers_m;
   static absl::flat_hash_map<std::string, std::weak_ptr<muxer>> _running_muxers;
 
+  std::shared_ptr<spdlog::logger> _logger;
+
   void _clean();
   void _get_event_from_file(std::shared_ptr<io::data>& event);
   void _push_to_queue(std::shared_ptr<io::data> const& event);

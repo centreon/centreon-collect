@@ -21,7 +21,11 @@
 
 #include <absl/container/flat_hash_map.h>
 
+#include "common/log_v2/log_v2.hh"
+
 namespace com::centreon::broker::bam {
+
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  @class hst_svc_mapping hst_svc_mapping.hh

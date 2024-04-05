@@ -1,29 +1,30 @@
 /**
-* Copyright 2015-2017 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2015-2017 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/graphite/query.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::graphite;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -72,10 +73,10 @@ std::string query::generate_metric(storage::pb_metric const& me) {
       iss << escaped;
       tmp.str("");
     }
-  } catch (std::exception const& e) {
-    log_v2::graphite()->error(
-        "graphite: couldn't generate query for metric {}: {}",
-        me.obj().metric_id(), e.what());
+  } catch (const std::exception& e) {
+    auto logger = log_v2::instance().get(log_v2::GRAPHITE);
+    logger->error("graphite: couldn't generate query for metric {}: {}",
+                  me.obj().metric_id(), e.what());
     return "";
   }
 
@@ -112,9 +113,9 @@ std::string query::generate_status(storage::pb_status const& st) {
       tmp.str("");
     }
   } catch (std::exception const& e) {
-    log_v2::graphite()->error(
-        "graphite: couldn't generate query for status {}: {}",
-        st.obj().index_id(), e.what());
+    auto logger = log_v2::instance().get(log_v2::GRAPHITE);
+    logger->error("graphite: couldn't generate query for status {}: {}",
+                  st.obj().index_id(), e.what());
     return "";
   }
 
@@ -175,9 +176,10 @@ void query::_compile_naming_scheme(std::string const& naming_scheme,
       _compiled_getters.push_back(&query::_get_metric_name);
     } else if (macro == "$INDEXID$") {
       _compiled_getters.push_back(&query::_get_index_id);
-    } else
-      log_v2::graphite()->info("graphite: unknown macro '{}': ignoring it",
-                               macro);
+    } else {
+      auto logger = log_v2::instance().get(log_v2::GRAPHITE);
+      logger->info("graphite: unknown macro '{}': ignoring it", macro);
+    }
     found_macro = end_macro = end_macro + 1;
   }
   std::string substr = naming_scheme.substr(end_macro, found_macro - end_macro);

@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/bam/bool_equal.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 #include <cmath>
 

@@ -20,11 +20,12 @@
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include <gtest/gtest.h>
 #include "../../core/test/test_server.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+using com::centreon::common::log_v2::log_v2;
 
 class InfluxDB12 : public testing::Test {
  public:
@@ -33,7 +34,7 @@ class InfluxDB12 : public testing::Test {
     _thread = std::thread(&test_server::run, &_server);
 
     _server.wait_for_init();
-    _logger = log_v2::influxdb();
+    _logger = log_v2::instance().get(log_v2::INFLUXDB);
   }
   void TearDown() override {
     _server.stop();

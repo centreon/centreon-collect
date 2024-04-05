@@ -21,15 +21,16 @@
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
 #include "com/centreon/common/process_stat.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::version;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Return the Broker's version.
@@ -128,7 +129,7 @@ grpc::Status broker_impl::GetModulesStats(grpc::ServerContext* context
 }
 
 grpc::Status broker_impl::GetEndpointStats(grpc::ServerContext* context
-                                           __attribute__((unused)),
+                                           [[maybe_unused]],
                                            const GenericNameOrIndex* request,
                                            GenericString* response) {
   std::vector<nlohmann::json> value;
@@ -181,8 +182,8 @@ grpc::Status broker_impl::GetEndpointStats(grpc::ServerContext* context
 }
 
 grpc::Status broker_impl::GetGenericStats(
-    grpc::ServerContext* context __attribute__((unused)),
-    const ::google::protobuf::Empty* request __attribute__((unused)),
+    grpc::ServerContext* context [[maybe_unused]],
+    const ::google::protobuf::Empty* request [[maybe_unused]],
     GenericString* response) {
   nlohmann::json object;
   stats::get_generic_stats(object);
@@ -192,7 +193,7 @@ grpc::Status broker_impl::GetGenericStats(
 }
 
 grpc::Status broker_impl::GetSqlManagerStats(grpc::ServerContext* context
-                                             __attribute__((unused)),
+                                             [[maybe_unused]],
                                              const SqlConnection* request,
                                              SqlManagerStats* response) {
   if (!request->has_id())
@@ -222,15 +223,15 @@ grpc::Status broker_impl::SetSqlManagerStats(
 }
 
 grpc::Status broker_impl::GetConflictManagerStats(
-    grpc::ServerContext* context __attribute__((unused)),
-    const ::google::protobuf::Empty* request __attribute__((unused)),
+    grpc::ServerContext* context [[maybe_unused]],
+    const ::google::protobuf::Empty* request [[maybe_unused]],
     ConflictManagerStats* response) {
   stats::center::instance().get_conflict_manager_stats(response);
   return grpc::Status::OK;
 }
 
 grpc::Status broker_impl::GetMuxerStats(grpc::ServerContext* context
-                                        __attribute__((unused)),
+                                        [[maybe_unused]],
                                         const GenericString* request,
                                         MuxerStats* response) {
   const std::string name = request->str_arg();
@@ -256,10 +257,10 @@ void broker_impl::set_broker_name(const std::string& s) {
  * @return grpc::Status::OK
  */
 grpc::Status broker_impl::RebuildRRDGraphs(grpc::ServerContext* context
-                                           __attribute__((unused)),
+                                           [[maybe_unused]],
                                            const IndexIds* request,
                                            ::google::protobuf::Empty* response
-                                           __attribute__((unused))) {
+                                           [[maybe_unused]]) {
   multiplexing::publisher pblshr;
   auto e{std::make_shared<bbdo::pb_rebuild_graphs>(*request)};
   pblshr.write(e);
@@ -296,10 +297,10 @@ grpc::Status broker_impl::GetProcessingStats(
 }
 
 grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
-                                       __attribute__((unused)),
+                                       [[maybe_unused]],
                                        const GenericNameOrIndex* request,
                                        ::google::protobuf::Empty*) {
-  log_v2::core()->info("Remove poller...");
+  log_v2::instance().get(log_v2::CORE)->info("Remove poller...");
   multiplexing::publisher pblshr;
   auto e{std::make_shared<bbdo::pb_remove_poller>(*request)};
   pblshr.write(e);
@@ -312,18 +313,19 @@ grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
                                      LogInfo* response) {
   auto& name{request->str_arg()};
   auto& map = *response->mutable_level();
-  auto lvs = log_v2::instance()->levels();
-  response->set_log_name(log_v2::instance()->log_name());
-  response->set_log_file(log_v2::instance()->file_path());
-  response->set_log_flush_period(
-      log_v2::instance()->get_flush_interval().count());
+  auto lvs = log_v2::instance().levels();
+  response->set_log_name(log_v2::instance().log_name());
+  response->set_log_file(log_v2::instance().filename());
+  response->set_log_flush_period(log_v2::instance().flush_interval().count());
   if (!name.empty()) {
-    auto found = std::find_if(lvs.begin(), lvs.end(),
-                              [&name](std::pair<std::string, std::string>& p) {
-                                return p.first == name;
-                              });
+    auto found = std::find_if(
+        lvs.begin(), lvs.end(),
+        [&name](std::pair<std::string, spdlog::level::level_enum>& p) {
+          return p.first == name;
+        });
     if (found != lvs.end()) {
-      map[name] = std::move(found->second);
+      auto level = to_string_view(found->second);
+      map[name] = std::string(level.data(), level.size());
       return grpc::Status::OK;
     } else {
       std::string msg{fmt::format("'{}' is not a logger in broker", name)};
@@ -345,7 +347,7 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
   if (!logger) {
     std::string err_detail =
         fmt::format("The '{}' logger does not exist", logger_name);
-    SPDLOG_LOGGER_ERROR(log_v2::core(), err_detail);
+    SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE), err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
     logger->set_level(spdlog::level::level_enum(request->level()));
@@ -357,18 +359,7 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
                                             [[maybe_unused]],
                                             const LogFlushPeriod* request,
                                             ::google::protobuf::Empty*) {
-  bool done = false;
-  spdlog::apply_all([&](const std::shared_ptr<spdlog::logger> logger) {
-    if (!done) {
-      std::shared_ptr<com::centreon::engine::log_v2_logger> logger_base =
-          std::dynamic_pointer_cast<com::centreon::engine::log_v2_logger>(
-              logger);
-      if (logger_base) {
-        logger_base->get_parent()->set_flush_interval(request->period());
-        done = true;
-      }
-    }
-  });
+  log_v2::instance().set_flush_interval(request->period());
   return grpc::Status::OK;
 }
 
@@ -381,14 +372,15 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
  * @return ::grpc::Status
  */
 ::grpc::Status broker_impl::GetProcessStats(
-    ::grpc::ServerContext* context,
-    const ::google::protobuf::Empty* request,
+    ::grpc::ServerContext* context [[maybe_unused]],
+    const ::google::protobuf::Empty* request [[maybe_unused]],
     ::com::centreon::common::pb_process_stat* response) {
   try {
     com::centreon::common::process_stat stat(getpid());
     stat.to_protobuff(*response);
   } catch (const boost::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::core(), "fail to get process info: {}",
+    SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
+                        "fail to get process info: {}",
                         boost::diagnostic_information(e));
 
     return grpc::Status(grpc::StatusCode::INTERNAL,

@@ -18,13 +18,14 @@
 
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include <iterator>
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace asio;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::influxdb;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static const char* query_footer = "\n";
 

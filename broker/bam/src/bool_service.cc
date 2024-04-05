@@ -22,15 +22,10 @@
 
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/service_state.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
-
-static constexpr bool time_is_undefined(uint64_t t) {
-  return t == 0 || t == static_cast<uint64_t>(-1);
-}
 
 /**
  *  Default constructor.
@@ -94,7 +89,7 @@ void bool_service::service_update(const service_state& s) {
  *  @param[out] visitor  Object that will receive events.
  */
 void bool_service::service_update(
-    std::shared_ptr<neb::service_status> const& status,
+    const std::shared_ptr<neb::service_status>& status,
     io::stream* visitor) {
   SPDLOG_LOGGER_TRACE(_logger,
                       "bool_service: service update with neb::service_status");

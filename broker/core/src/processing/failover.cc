@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2017, 2021 Centreon
+ * Copyright 2011-2017, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,13 +22,14 @@
 
 #include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -43,6 +44,7 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
     : endpoint(false, name),
       _should_exit(false),
       _state(not_started),
+      _logger{log_v2::instance().get(log_v2::PROCESSING)},
       _buffering_timeout(0),
       _endpoint(endp),
       _failover_launched(false),
@@ -50,18 +52,16 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
       _next_timeout(0),
       _muxer(mux),
       _update(false) {
-  DEBUG(fmt::format("CONSTRUCTOR failover {:p} {} - muxer: {:p}",
-                    static_cast<void*>(this), name,
-                    static_cast<void*>(mux.get())));
-  SPDLOG_LOGGER_TRACE(log_v2::core(), "failover '{}' construction.", _name);
+  SPDLOG_LOGGER_TRACE(_logger, "failover '{}' construction.", _name);
 }
 
 /**
  *  Destructor.
  */
 failover::~failover() {
+  _logger->trace("failover::failover destructor {} {}",
+                 static_cast<void*>(this), _name);
   exit();
-  DEBUG(fmt::format("DESTRUCTOR failover {:p}", static_cast<void*>(this)));
 }
 
 /**
@@ -90,13 +90,12 @@ void failover::add_secondary_endpoint(std::shared_ptr<io::endpoint> endp) {
  *  writing to the same files.
  */
 void failover::exit() {
-  SPDLOG_LOGGER_TRACE(log_v2::core(), "failover '{}' exit.", _name);
+  SPDLOG_LOGGER_TRACE(_logger, "failover '{}' exit.", _name);
   std::unique_lock<std::mutex> lck(_state_m);
   if (_state != not_started) {
     if (!_should_exit) {
       _should_exit = true;
-      SPDLOG_LOGGER_TRACE(log_v2::processing(), "Waiting for {} to be stopped",
-                          _name);
+      SPDLOG_LOGGER_TRACE(_logger, "Waiting for {} to be stopped", _name);
 
       _state_cv.wait(
           lck, [this] { return _state == stopped || _state == not_started; });
@@ -105,7 +104,7 @@ void failover::exit() {
       _thread.join();
   }
   _muxer->wake();
-  SPDLOG_LOGGER_TRACE(log_v2::core(), "failover '{}' exited.", _name);
+  SPDLOG_LOGGER_TRACE(_logger, "failover '{}' exited.", _name);
 }
 
 /**
@@ -141,13 +140,13 @@ time_t failover::get_retry_interval() const noexcept {
 void failover::_run() {
   std::unique_lock<std::mutex> lck(_state_m);
   // Initial log.
-  SPDLOG_LOGGER_DEBUG(log_v2::processing(),
-                      "failover: thread of endpoint '{}' is starting", _name);
+  SPDLOG_LOGGER_DEBUG(_logger, "failover: thread of endpoint '{}' is starting",
+                      _name);
 
   // Check endpoint.
   if (!_endpoint) {
     SPDLOG_LOGGER_ERROR(
-        log_v2::processing(),
+        _logger,
         "failover: thread of endpoint '{}' has no endpoint object, this is "
         "likely a software bug that should be reported to Centreon Broker "
         "developers",
@@ -163,8 +162,7 @@ void failover::_run() {
       try {
         ack_events = _stream->stop();
       } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(log_v2::core(),
-                            "Failed to send stop event to stream: {}",
+        SPDLOG_LOGGER_ERROR(_logger, "Failed to send stop event to stream: {}",
                             e.what());
       }
       _muxer->ack_events(ack_events);
@@ -199,12 +197,9 @@ void failover::_run() {
           _stream = s;
           set_state(s ? "connected" : "connecting");
           if (s)
-            SPDLOG_LOGGER_DEBUG(log_v2::processing(),
-                                "{} stream {:p} connected", _name,
-                                static_cast<const void*>(s.get()));
+            SPDLOG_LOGGER_DEBUG(_logger, "{} stream connected", _name);
           else
-            SPDLOG_LOGGER_DEBUG(log_v2::processing(),
-                                "{} fail to create stream", _name);
+            SPDLOG_LOGGER_DEBUG(_logger, "{} fail to create stream", _name);
         }
         _initialized = true;
         set_last_connection_success(timestamp::now());
@@ -215,7 +210,7 @@ void failover::_run() {
       // Buffering.
       if (_buffering_timeout > 0) {
         // Status.
-        SPDLOG_LOGGER_DEBUG(log_v2::processing(),
+        SPDLOG_LOGGER_DEBUG(_logger,
                             "failover: buffering data for endpoint '{}' ({}s)",
                             _name, _buffering_timeout);
         _update_status("buffering data");
@@ -242,13 +237,13 @@ void failover::_run() {
             secondaries.push_back(s);
           else
             SPDLOG_LOGGER_ERROR(
-                log_v2::processing(),
+                _logger,
                 "failover: could not open a secondary of endpoint {}: "
                 "secondary returned a null stream",
                 _name);
         } catch (std::exception const& e) {
           SPDLOG_LOGGER_ERROR(
-              log_v2::processing(),
+              _logger,
               "failover: error occured while opening a secondary of endpoint "
               "'{}': {}",
               _name, e.what());
@@ -257,7 +252,7 @@ void failover::_run() {
 
       // Shutdown failover.
       if (_failover_launched) {
-        SPDLOG_LOGGER_DEBUG(log_v2::processing(),
+        SPDLOG_LOGGER_DEBUG(_logger,
                             "failover: shutting down failover of endpoint '{}'",
                             _name);
         _update_status("shutting down failover");
@@ -267,9 +262,8 @@ void failover::_run() {
       }
 
       // Event processing loop.
-      SPDLOG_LOGGER_DEBUG(log_v2::processing(),
-                          "failover: launching event loop of endpoint '{}'",
-                          _name);
+      SPDLOG_LOGGER_DEBUG(
+          _logger, "failover: launching event loop of endpoint '{}'", _name);
       _muxer->nack_events();
       bool stream_can_read(true);
       bool muxer_can_read(true);
@@ -279,6 +273,8 @@ void failover::_run() {
       time_t fill_stats_time = time(nullptr);
 
       while (!should_exit()) {
+        assert(!log_v2::instance().not_threadsafe_configuration());
+
         // Check for update.
         if (_update) {
           std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
@@ -296,23 +292,22 @@ void failover::_run() {
         d.reset();
         bool timed_out_stream(true);
         if (stream_can_read) {
-          SPDLOG_LOGGER_DEBUG(log_v2::processing(),
-                              "failover: reading event from endpoint '{}'",
-                              _name);
+          SPDLOG_LOGGER_DEBUG(
+              _logger, "failover: reading event from endpoint '{}'", _name);
           _update_status("reading event from stream");
           try {
             std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
             timed_out_stream = !_stream->read(d, 0);
           } catch (exceptions::shutdown const& e) {
             SPDLOG_LOGGER_DEBUG(
-                log_v2::processing(),
+                _logger,
                 "failover: stream of endpoint '{}' shutdown while reading: {}",
                 _name, e.what());
             stream_can_read = false;
           }
           if (d) {
             SPDLOG_LOGGER_DEBUG(
-                log_v2::processing(),
+                _logger,
                 "failover: writing event of endpoint '{}' to multiplexing "
                 "engine",
                 _name);
@@ -329,7 +324,7 @@ void failover::_run() {
         d.reset();
         bool timed_out_muxer(true);
         if (muxer_can_read) {
-          SPDLOG_LOGGER_DEBUG(log_v2::processing(),
+          SPDLOG_LOGGER_DEBUG(_logger,
                               "failover: reading event from "
                               "multiplexing engine for endpoint '{}'",
                               _name);
@@ -338,21 +333,21 @@ void failover::_run() {
             timed_out_muxer = !_muxer->read(d, 0);
             should_commit = should_commit || d;
           } catch (exceptions::shutdown const& e) {
-            SPDLOG_LOGGER_DEBUG(log_v2::processing(),
+            SPDLOG_LOGGER_DEBUG(_logger,
                                 "failover: muxer of endpoint '{}' "
                                 "shutdown while reading: {}",
                                 _name, e.what());
             muxer_can_read = false;
           }
           if (d) {
-            if (log_v2::processing()->level() == spdlog::level::trace)
-              SPDLOG_LOGGER_TRACE(log_v2::processing(),
+            if (_logger->level() == spdlog::level::trace)
+              SPDLOG_LOGGER_TRACE(_logger,
                                   "failover: writing event {} of multiplexing "
                                   "engine to endpoint "
                                   "'{}'",
                                   *d, _name);
             else
-              SPDLOG_LOGGER_DEBUG(log_v2::processing(),
+              SPDLOG_LOGGER_DEBUG(_logger,
                                   "failover: writing event {} of multiplexing "
                                   "engine to endpoint "
                                   "'{}'",
@@ -365,7 +360,7 @@ void failover::_run() {
               we = _stream->write(d);
             } catch (exceptions::shutdown const& e) {
               SPDLOG_LOGGER_DEBUG(
-                  log_v2::processing(),
+                  _logger,
                   "failover: stream of endpoint '{}' shutdown while writing: "
                   "{}",
                   _name, e.what());
@@ -382,7 +377,7 @@ void failover::_run() {
                 ++it;
               } catch (std::exception const& e) {
                 SPDLOG_LOGGER_ERROR(
-                    log_v2::processing(),
+                    _logger,
                     "failover: error occurred while writing to a secondary of "
                     "endpoint '{}' (secondary will be removed): {}",
                     _name, e.what());
@@ -415,16 +410,14 @@ void failover::_run() {
     }
     // Some real error occured.
     catch (const exceptions::connection_closed&) {
-      SPDLOG_LOGGER_INFO(log_v2::processing(), "failover {}: connection closed",
-                         _name);
+      SPDLOG_LOGGER_INFO(_logger, "failover {}: connection closed", _name);
       on_exception_handler();
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::processing(), "failover {}: global error: {}",
-                          _name, e.what());
+      SPDLOG_LOGGER_ERROR(_logger, "failover: global error: {}", e.what());
       on_exception_handler();
     } catch (...) {
       SPDLOG_LOGGER_ERROR(
-          log_v2::processing(),
+          _logger,
           "failover: endpoint '{}' encountered an unknown exception, this is "
           "likely a software bug that should be reported to Centreon Broker "
           "developers",
@@ -432,8 +425,7 @@ void failover::_run() {
       on_exception_handler();
     }
 
-    SPDLOG_LOGGER_DEBUG(log_v2::processing(),
-                        "failover {} end of loop => reconnect", _name);
+    SPDLOG_LOGGER_DEBUG(_logger, "failover {} end of loop => reconnect", _name);
 
     // Clear stream.
     {
@@ -444,9 +436,8 @@ void failover::_run() {
         try {
           ack_events = _stream->stop();
         } catch (const std::exception& e) {
-          SPDLOG_LOGGER_ERROR(log_v2::processing(),
-                              "Failed to send stop event to stream: {}",
-                              e.what());
+          SPDLOG_LOGGER_ERROR(
+              _logger, "Failed to send stop event to stream: {}", e.what());
         }
         _muxer->ack_events(ack_events);
         _stream.reset();
@@ -485,14 +476,14 @@ void failover::_run() {
   // Exit failover thread if necessary.
   if (_failover) {
     SPDLOG_LOGGER_INFO(
-        log_v2::processing(),
+        _logger,
         "failover: requesting termination of failover of endpoint '{}'", _name);
     _failover->exit();
   }
 
   // Exit log.
-  SPDLOG_LOGGER_DEBUG(log_v2::processing(),
-                      "failover: thread of endpoint '{}' is exiting", _name);
+  SPDLOG_LOGGER_DEBUG(_logger, "failover: thread of endpoint '{}' is exiting",
+                      _name);
 
   lck.lock();
   _state = stopped;
@@ -609,7 +600,7 @@ uint32_t failover::_get_queued_events() const {
  *  Start the internal thread.
  */
 void failover::start() {
-  SPDLOG_LOGGER_DEBUG(log_v2::processing(), "start failover '{}'.", _name);
+  SPDLOG_LOGGER_DEBUG(_logger, "start failover '{}'.", _name);
   std::unique_lock<std::mutex> lck(_state_m);
   if (_state != running) {
     _should_exit = false;
@@ -617,7 +608,7 @@ void failover::start() {
     pthread_setname_np(_thread.native_handle(), "proc_failover");
     _state_cv.wait(lck, [this] { return _state != not_started; });
   }
-  SPDLOG_LOGGER_TRACE(log_v2::core(), "failover '{}' started.", _name);
+  SPDLOG_LOGGER_TRACE(_logger, "failover '{}' started.", _name);
 }
 
 /**
@@ -630,6 +621,7 @@ bool failover::should_exit() const {
 }
 
 bool failover::wait_for_all_events_written(unsigned ms_timeout) {
+  _logger->info("processing::failover::wait_for_all_events_written");
   std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
   if (_stream) {
     return _stream->wait_for_all_events_written(ms_timeout);

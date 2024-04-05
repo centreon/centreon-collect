@@ -1,20 +1,20 @@
 /**
-* Copyright 2011-2013,2015,2017-2023 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2013,2015,2017-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/config/parser.hh"
 
@@ -25,8 +25,8 @@
 #include <streambuf>
 
 #include "com/centreon/broker/exceptions/deprecated.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -35,6 +35,7 @@ using namespace nlohmann;
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 using deprecated = com::centreon::broker::exceptions::deprecated;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 template <typename T, typename U>
 static bool get_conf(std::pair<std::string const, json> const& obj,
@@ -155,6 +156,7 @@ state parser::parse(std::string const& file) {
   state retval;
   // Parse JSON document.
   std::ifstream f(file);
+  auto logger_config = log_v2::instance().get(log_v2::CONFIG);
 
   if (f.fail())
     throw msg_fmt("Config parser: Cannot read file '{}': {}", file,
@@ -288,7 +290,7 @@ state parser::parse(std::string const& file) {
                 retval.add_module(std::move(module));
                 retval.add_endpoint(std::move(out));
               } catch (const deprecated& e) {
-                log_v2::config()->warn(
+                logger_config->warn(
                     "Deprecated endpoint found in the output configuration: {}",
                     e.what());
               }
@@ -302,7 +304,7 @@ state parser::parse(std::string const& file) {
               retval.add_module(std::move(module));
               retval.add_endpoint(std::move(out));
             } catch (const deprecated& e) {
-              log_v2::config()->warn(
+              logger_config->warn(
                   "Deprecated endpoint found in the output configuration: {}",
                   e.what());
             }
@@ -322,7 +324,7 @@ state parser::parse(std::string const& file) {
                 retval.add_module(std::move(module));
                 retval.add_endpoint(std::move(in));
               } catch (const deprecated& e) {
-                log_v2::config()->warn(
+                logger_config->warn(
                     "Deprecated endpoint found in the input configuration: {}",
                     e.what());
               }
@@ -335,7 +337,7 @@ state parser::parse(std::string const& file) {
               retval.add_module(std::move(module));
               retval.add_endpoint(std::move(in));
             } catch (const deprecated& e) {
-              log_v2::config()->warn(
+              logger_config->warn(
                   "Deprecated endpoint found in the input configuration: {}",
                   e.what());
             }
@@ -356,24 +358,24 @@ state parser::parse(std::string const& file) {
 
           auto& conf = retval.mut_log_conf();
           if (conf_js.contains("directory") && conf_js["directory"].is_string())
-            conf.directory = conf_js["directory"].get<std::string>();
+            conf.set_dirname(conf_js["directory"].get<std::string>());
           else if (conf_js.contains("directory") &&
                    !conf_js["directory"].is_null())
             throw msg_fmt(
                 "'directory' key in the log configuration must contain a "
                 "directory name");
-          if (conf.directory.empty())
-            conf.directory = "/var/log/centreon-broker";
+          if (conf.dirname().empty())
+            conf.set_dirname("/var/log/centreon-broker");
 
-          if (!misc::filesystem::writable(conf.directory))
+          if (!misc::filesystem::writable(conf.dirname()))
             throw msg_fmt("The log directory '{}' is not writable",
-                          conf.directory);
+                          conf.dirname());
 
-          conf.filename = "";
+          conf.set_filename("");
 
           if (conf_js.contains("filename") && conf_js["filename"].is_string()) {
-            conf.filename = conf_js["filename"].get<std::string>();
-            if (conf.filename.find("/") != std::string::npos)
+            conf.set_filename(conf_js["filename"].get<std::string>());
+            if (conf.filename().find("/") != std::string::npos)
               throw msg_fmt(
                   "'filename' must only contain a filename without directory");
 
@@ -384,7 +386,7 @@ state parser::parse(std::string const& file) {
                 "file name");
 
           auto ms = check_and_read<int64_t>(conf_js, "max_size");
-          conf.max_size = ms ? ms.value() : 0u;
+          conf.set_max_size(ms ? ms.value() : 0u);
 
           auto fp = check_and_read<int64_t>(conf_js, "flush_period");
           if (fp) {
@@ -393,31 +395,31 @@ state parser::parse(std::string const& file) {
                   "'flush_period' key in the log configuration must contain a "
                   "positive number or 0.");
 
-            conf.flush_period = fp.value();
+            conf.set_flush_interval(fp.value());
           } else
-            conf.flush_period = 0u;
+            conf.set_flush_interval(0u);
 
           auto lp = check_and_read<bool>(conf_js, "log_pid");
-          conf.log_pid = lp ? lp.value() : false;
+          conf.set_log_pid(lp ? lp.value() : false);
 
           auto ls = check_and_read<bool>(conf_js, "log_source");
-          conf.log_source = ls ? ls.value() : false;
+          conf.set_log_source(ls ? ls.value() : false);
 
           if (conf_js.contains("loggers") && conf_js["loggers"].is_object()) {
-            conf.loggers.clear();
+            conf.loggers().clear();
             for (auto it = conf_js["loggers"].begin();
                  it != conf_js["loggers"].end(); ++it) {
-              if (!log_v2::contains_logger(it.key()))
+              if (!log_v2::instance().contains_logger(it.key()))
                 throw msg_fmt("'{}' is not available as logger", it.key());
-              if (!it.value().is_string() ||
-                  !log_v2::contains_level(it.value().get<std::string>()))
+              if (!it.value().is_string() || !log_v2::instance().contains_level(
+                                                 it.value().get<std::string>()))
                 throw msg_fmt(
                     "The logger '{}' must contain a string among 'trace', "
                     "'debug', 'info', 'warning', 'error', 'critical', "
                     "'disabled'",
                     it.key());
 
-              conf.loggers.emplace(it.key(), it.value().get<std::string>());
+              conf.set_level(it.key(), it.value().get<std::string>());
             }
           }
         } else if (it.key() == "stats_exporter") {
@@ -480,11 +482,11 @@ state parser::parse(std::string const& file) {
             }
             retval.add_module("15-stats_exporter.so");
           } else
-            log_v2::config()->warn(
+            logger_config->warn(
                 "config parser: no exporters defined in the stats_exporter "
                 "configuration");
         } else if (it.key() == "logger") {
-          log_v2::config()->warn("logger object is deprecated on 21.10");
+          logger_config->warn("logger object is deprecated on 21.10");
         } else {
           if (it.key() == "stats")
             retval.add_module("15-stats.so");
@@ -500,8 +502,8 @@ state parser::parse(std::string const& file) {
 
   /* Post configuration */
   auto& conf = retval.mut_log_conf();
-  if (conf.filename.empty())
-    conf.filename = fmt::format("{}.log", retval.broker_name());
+  if (conf.filename().empty())
+    conf.set_filename(fmt::format("{}.log", retval.broker_name()));
   return retval;
 }
 
@@ -614,9 +616,11 @@ void parser::_parse_endpoint(const json& elem,
     if (it.value().is_string())
       e.params[it.key()] = it.value().get<std::string>();
     else
-      log_v2::config()->debug(
-          "config parser (while reading configuration file): "
-          "for key: '{}' value is not a string.",
-          it.key());
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->debug(
+              "config parser (while reading configuration file): "
+              "for key: '{}' value is not a string.",
+              it.key());
   }
 }

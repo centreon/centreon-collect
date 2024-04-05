@@ -1,29 +1,30 @@
 /**
-* Copyright 2018-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2018-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/sql/mysql_column.hh"
 
 #include <cassert>
 
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Destructor
@@ -82,10 +83,11 @@ void mysql_column::_free_vector() {
       std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
       delete vector;
     } break;
-    default:
-      log_v2::sql()->critical(
-          "mysql_column: unexpected type while vector is freed");
+    default: {
+      auto logger = log_v2::instance().get(log_v2::SQL);
+      logger->critical("mysql_column: unexpected type while vector is freed");
       assert(1 == 0);
+    }
   }
   _vector = nullptr;
 }
@@ -130,9 +132,11 @@ void* mysql_column::get_buffer() {
       std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
       return vector->data();
     } break;
-    default:
-      log_v2::sql()->critical("Unexpected type while getting the buffer value");
+    default: {
+      auto logger = log_v2::instance().get(log_v2::SQL);
+      logger->critical("Unexpected type while getting the buffer value");
       assert(1 == 0);
+    }
   }
   return nullptr;
 }
@@ -186,10 +190,12 @@ void mysql_column::clear() {
       std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
       vector->clear();
     } break;
-    default:
-      log_v2::sql()->critical(
+    default: {
+      auto logger = log_v2::instance().get(log_v2::SQL);
+      logger->critical(
           "mysql_column: unexpected type while clearing the vector");
       assert(1 == 0);
+    }
   }
 }
 
@@ -238,10 +244,12 @@ void mysql_column::reserve(size_t s) {
         std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
         vector->reserve(s);
       } break;
-      default:
-        log_v2::sql()->critical(
+      default: {
+        auto logger = log_v2::instance().get(log_v2::SQL);
+        logger->critical(
             "mysql_column: Unexpected type while vector reservation");
         assert(1 == 0);
+      }
     }
   }
 }
@@ -431,10 +439,11 @@ void mysql_column::set_type(int type) {
         vector->reserve(_rows_to_reserve);
       _vector = vector;
     } break;
-    default:
-      log_v2::sql()->critical("mysql_column: unexpected type {} for column",
-                              type);
+    default: {
+      auto logger = log_v2::instance().get(log_v2::SQL);
+      logger->critical("mysql_column: unexpected type {} for column", type);
       assert(1 == 0);
+    }
   }
 }
 

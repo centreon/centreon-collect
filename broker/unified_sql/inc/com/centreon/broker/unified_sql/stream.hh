@@ -287,6 +287,10 @@ class stream : public io::stream {
   asio::system_timer _group_clean_timer;
   asio::system_timer _loop_timer;
 
+  /* loggers  */
+  std::shared_ptr<spdlog::logger> _logger_sql;
+  std::shared_ptr<spdlog::logger> _logger_sto;
+
   absl::flat_hash_set<uint32_t> _hostgroup_cache;
   absl::flat_hash_set<uint32_t> _servicegroup_cache;
 

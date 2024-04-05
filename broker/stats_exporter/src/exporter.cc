@@ -18,14 +18,15 @@
 
 #include "com/centreon/broker/stats_exporter/exporter.hh"
 #include "com/centreon/broker/config/endpoint.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats_exporter;
 namespace metric_sdk = opentelemetry::sdk::metrics;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Default constructor.
@@ -46,10 +47,12 @@ void exporter::init_metrics(
   double timeout = s.get_stats_exporter().export_timeout;
 
   // Initialize and set the periodic metrics reader
-  log_v2::config()->info(
-      "stats_exporter: export configured with an interval of {}s and a timeout "
-      "of {}s",
-      interval, timeout);
+  log_v2::instance()
+      .get(log_v2::CONFIG)
+      ->info(
+          "stats_exporter: export configured with an interval of {}s and a "
+          "timeout of {}s",
+          interval, timeout);
   metric_sdk::PeriodicExportingMetricReaderOptions options;
   options.export_interval_millis =
       std::chrono::milliseconds(static_cast<int32_t>(1000. * interval));
@@ -165,11 +168,12 @@ exporter::~exporter() noexcept {
 void exporter::_check_connections(
     std::shared_ptr<metrics_api::MeterProvider> provider,
     const boost::system::error_code& ec) {
-  if (ec)
-    log_v2::sql()->error(
+  if (ec) {
+    auto logger = log_v2::instance().get(log_v2::SQL);
+    logger->error(
         "stats_exporter: Sql connections checker has been interrupted: {}",
         ec.message());
-  else {
+  } else {
     size_t count = mysql_manager::instance().connections_count();
     while (_conn.size() < count) {
       _conn.push_back({});

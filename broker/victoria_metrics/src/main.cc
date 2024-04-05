@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon
+ * Copyright 2022-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,10 +28,11 @@
 #include "com/centreon/broker/http_tsdb/internal.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/victoria_metrics/factory.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Load count.
 static uint32_t instances(0);
@@ -71,10 +72,11 @@ bool broker_module_deinit() {
 void broker_module_init(void const* arg) {
   (void)arg;
 
+  auto logger = log_v2::instance().get(log_v2::VICTORIA_METRICS);
   // Increment instance number.
   if (!instances++) {
     // RRD module.
-    SPDLOG_LOGGER_INFO(log_v2::victoria_metrics(),
+    SPDLOG_LOGGER_INFO(logger,
                        "victoria_metrics: module for Centreon Broker {}",
                        CENTREON_BROKER_VERSION);
 

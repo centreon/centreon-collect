@@ -1,20 +1,20 @@
 /**
-* Copyright 2011-2012,2015,2017, 2020-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2012,2015,2017, 2020-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/processing/feeder.hh"
 
@@ -24,15 +24,16 @@
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 constexpr unsigned max_event_queue_size = 0x10000;
 
@@ -85,17 +86,15 @@ feeder::feeder(const std::string& name,
                                          false)),
       _stat_timer(com::centreon::common::pool::io_context()),
       _read_from_stream_timer(com::centreon::common::pool::io_context()),
-      _io_context(com::centreon::common::pool::io_context_ptr()) {
-  DEBUG(fmt::format("CONSTRUCTOR feeder {:p} {} - muxer: {:p}",
-                    static_cast<void*>(this), name,
-                    static_cast<void*>(_muxer.get())));
+      _io_context(com::centreon::common::pool::io_context_ptr()),
+      _logger{log_v2::instance().get(log_v2::PROCESSING)} {
   if (!_client)
     throw msg_fmt("could not process '{}' with no client stream", _name);
 
   set_last_connection_attempt(timestamp::now());
   set_last_connection_success(timestamp::now());
   set_state("connected");
-  SPDLOG_LOGGER_DEBUG(log_v2::core(), "create feeder {}, {:p}", name,
+  SPDLOG_LOGGER_DEBUG(_logger, "create feeder {}, {:p}", name,
                       static_cast<const void*>(this));
 }
 
@@ -103,10 +102,7 @@ feeder::feeder(const std::string& name,
  *  Destructor.
  */
 feeder::~feeder() {
-  SPDLOG_LOGGER_DEBUG(log_v2::core(), "destroy feeder {}, {:p}", get_name(),
-                      static_cast<const void*>(this));
   stop();
-  DEBUG(fmt::format("DESTRUCTOR feeder {:p}", static_cast<void*>(this)));
 }
 
 bool feeder::is_finished() const noexcept {
@@ -169,9 +165,8 @@ void feeder::_read_from_muxer() {
         _muxer->read(events, max_event_queue_size,
                      [me = shared_from_this()]() { me->_read_from_muxer(); });
 
-    SPDLOG_LOGGER_TRACE(log_v2::processing(),
-                        "feeder '{}': {} events read from muxer", _name,
-                        events.size());
+    SPDLOG_LOGGER_TRACE(_logger, "feeder '{}': {} events read from muxer",
+                        _name, events.size());
 
     // if !other_event_to_read callback is stored and will be called as soon as
     // events will be available
@@ -208,34 +203,31 @@ unsigned feeder::_write_to_client(
   unsigned written = 0;
   try {
     for (const std::shared_ptr<io::data>& event : events) {
-      if (log_v2::processing()->level() == spdlog::level::trace) {
+      if (_logger->level() == spdlog::level::trace) {
         SPDLOG_LOGGER_TRACE(
-            log_v2::processing(),
+            _logger,
             "feeder '{}': sending 1 event {:x} from muxer to stream {}", _name,
             event->type(), *event);
       } else {
         SPDLOG_LOGGER_DEBUG(
-            log_v2::processing(),
-            "feeder '{}': sending 1 event {:x} from muxer to stream", _name,
-            event->type());
+            _logger, "feeder '{}': sending 1 event {:x} from muxer to stream",
+            _name, event->type());
       }
       _client->write(event);
       ++written;
     }
   } catch (exceptions::shutdown const&) {
     // Normal termination.
-    SPDLOG_LOGGER_INFO(log_v2::core(), "from muxer feeder '{}' shutdown",
-                       _name);
+    SPDLOG_LOGGER_INFO(_logger, "from muxer feeder '{}' shutdown", _name);
   } catch (const exceptions::connection_closed&) {
     set_last_error("");
-    SPDLOG_LOGGER_INFO(log_v2::processing(), "feeder '{}' connection closed",
-                       _name);
+    SPDLOG_LOGGER_INFO(_logger, "feeder '{}' connection closed", _name);
   } catch (const std::exception& e) {
     set_last_error(e.what());
-    SPDLOG_LOGGER_ERROR(log_v2::processing(),
-                        "from muxer feeder '{}' error:{} ", _name, e.what());
+    SPDLOG_LOGGER_ERROR(_logger, "from muxer feeder '{}' error:{} ", _name,
+                        e.what());
   } catch (...) {
-    SPDLOG_LOGGER_ERROR(log_v2::processing(),
+    SPDLOG_LOGGER_ERROR(_logger,
                         "from muxer feeder: unknown error occured while "
                         "processing client '{}'",
                         _name);
@@ -252,8 +244,8 @@ void feeder::_ack_event_to_muxer(unsigned count) noexcept {
   try {
     _muxer->ack_events(count);
   } catch (const std::exception&) {
-    SPDLOG_LOGGER_ERROR(log_v2::processing(),
-                        " {} fail to acknowledge {} events", _name, count);
+    SPDLOG_LOGGER_ERROR(_logger, " {} fail to acknowledge {} events", _name,
+                        count);
   }
 }
 
@@ -264,7 +256,6 @@ void feeder::_ack_event_to_muxer(unsigned count) noexcept {
 void feeder::stop() {
   std::unique_lock<std::timed_mutex> l(_protect);
   _stop_no_lock();
-  DEBUG(fmt::format("STOP feeder {:p}", static_cast<void*>(this)));
 }
 
 /**
@@ -272,8 +263,7 @@ void feeder::stop() {
  *
  */
 void feeder::_stop_no_lock() {
-  SPDLOG_LOGGER_INFO(log_v2::processing(), "{} Stop without lock called",
-                     _name);
+  SPDLOG_LOGGER_INFO(_logger, "{} Stop without lock called", _name);
   state expected = state::running;
   if (!_state.compare_exchange_strong(expected, state::finished)) {
     return;
@@ -292,14 +282,13 @@ void feeder::_stop_no_lock() {
   try {
     _client->stop();
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::processing(),
-                        "{} Failed to send stop event to client: {}", _name,
-                        e.what());
+    SPDLOG_LOGGER_ERROR(_logger, "{} Failed to send stop event to client: {}",
+                        _name, e.what());
   }
-  SPDLOG_LOGGER_INFO(log_v2::core(),
-                     "feeder: queue files of client '{}' removed", _name);
+  SPDLOG_LOGGER_INFO(_logger, "feeder: queue files of client '{}' removed",
+                     _name);
   _muxer->remove_queue_files();
-  SPDLOG_LOGGER_INFO(log_v2::core(), "feeder: {} terminated", _name);
+  SPDLOG_LOGGER_INFO(_logger, "feeder: {} terminated", _name);
   // in order to avoid circular owning
   _muxer->clear_read_handler();
 }
@@ -394,44 +383,40 @@ void feeder::_read_from_stream_timer_handler(
         break;
       }
       if (event) {  // event is null if not decoded by bbdo stream
-        if (log_v2::processing()->level() == spdlog::level::trace)
+        if (_logger->level() == spdlog::level::trace)
           SPDLOG_LOGGER_TRACE(
-              log_v2::processing(),
-              "feeder '{}': sending 1 event {} from stream to muxer", _name,
-              *event);
+              _logger, "feeder '{}': sending 1 event {} from stream to muxer",
+              _name, *event);
         else
           SPDLOG_LOGGER_DEBUG(
-              log_v2::processing(),
-              "feeder '{}': sending 1 event {} from stream to muxer", _name,
-              event->type());
+              _logger, "feeder '{}': sending 1 event {} from stream to muxer",
+              _name, event->type());
 
         events_to_publish.push_back(event);
       }
     }
   } catch (exceptions::shutdown const&) {
     // Normal termination.
-    SPDLOG_LOGGER_INFO(log_v2::core(), "from client feeder '{}' shutdown",
-                       _name);
+    SPDLOG_LOGGER_INFO(_logger, "from client feeder '{}' shutdown", _name);
     _muxer->write(events_to_publish);
     // _client->read shutdown => we stop read and don't restart the read from
     // stream timer
     return;
   } catch (const exceptions::connection_closed&) {
     set_last_error("");
-    SPDLOG_LOGGER_INFO(log_v2::processing(), "feeder '{}', connection closed",
-                       _name);
+    SPDLOG_LOGGER_INFO(_logger, "feeder '{}', connection closed", _name);
     _muxer->write(events_to_publish);
     stop();
     return;
   } catch (const std::exception& e) {
     set_last_error(e.what());
-    SPDLOG_LOGGER_ERROR(log_v2::processing(),
-                        "from client feeder '{}' error:{} ", _name, e.what());
+    SPDLOG_LOGGER_ERROR(_logger, "from client feeder '{}' error:{} ", _name,
+                        e.what());
     _muxer->write(events_to_publish);
     stop();
     return;
   } catch (...) {
-    SPDLOG_LOGGER_ERROR(log_v2::processing(),
+    SPDLOG_LOGGER_ERROR(_logger,
                         "from client feeder: unknown error occured while "
                         "processing client '{}'",
                         _name);

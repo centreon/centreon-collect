@@ -87,7 +87,9 @@ class engine {
 
   std::atomic_bool _sending_to_subscribers;
 
-  engine();
+  std::shared_ptr<spdlog::logger> _logger;
+
+  engine(const std::shared_ptr<spdlog::logger>& logger);
   std::string _cache_file_path() const;
   bool _send_to_subscribers(send_to_mux_callback_type&& callback);
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2013, 2021-2022 Centreon
+ * Copyright 2011-2013, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,13 +40,14 @@ namespace asio = boost::asio;
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/time/timezone_manager.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using com::centreon::common::log_v2::log_v2;
 
 std::atomic<config::applier::applier_state> config::applier::mode{not_started};
 
@@ -78,6 +79,8 @@ void config::applier::init(size_t n_thread,
  */
 void config::applier::deinit() {
   mode = finished;
+  auto logger = log_v2::instance().get(log_v2::CORE);
+  logger->info("unloading applier::endpoint");
   config::applier::endpoint::unload();
   {
     auto eng = multiplexing::engine::instance_ptr();

@@ -17,9 +17,7 @@
  */
 
 #include "com/centreon/broker/bam/bool_not.hh"
-#include <spdlog/logger.h>
 #include <cmath>
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
 

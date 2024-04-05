@@ -1,20 +1,20 @@
 /**
-* Copyright 2023 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/sql/mysql_bind_result.hh"
 
@@ -27,8 +27,11 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_bind_result::mysql_bind_result(int size, int length)
-    : mysql_bind_base(size), _length(length), _is_null(size) {
+mysql_bind_result::mysql_bind_result(
+    int size,
+    int length,
+    const std::shared_ptr<spdlog::logger>& logger)
+    : mysql_bind_base(size, logger), _length(length), _is_null(size) {
   if (length) {
     int alloc = length + 1;
     _buffer.resize(size * alloc);
@@ -49,8 +52,8 @@ int32_t mysql_bind_result::value_as_i32(size_t range) const {
   if (absl::SimpleAtoi(static_cast<char*>(_bind[range].buffer), &retval))
     return retval;
   else {
-    log_v2::sql()->debug(
-        "mysql_bind_result: unable to parse an i32 at range {}", range);
+    _logger->debug("mysql_bind_result: unable to parse an i32 at range {}",
+                   range);
     return 0;
   }
 }
@@ -61,8 +64,8 @@ uint32_t mysql_bind_result::value_as_u32(size_t range) const {
   if (absl::SimpleAtoi(static_cast<char*>(_bind[range].buffer), &retval))
     return retval;
   else {
-    log_v2::sql()->debug(
-        "mysql_bind_result: unable to parse an u32 at range {}", range);
+    _logger->debug("mysql_bind_result: unable to parse an u32 at range {}",
+                   range);
     return 0;
   }
 }
@@ -73,8 +76,8 @@ int64_t mysql_bind_result::value_as_i64(size_t range) const {
   if (absl::SimpleAtoi(static_cast<char*>(_bind[range].buffer), &retval))
     return retval;
   else {
-    log_v2::sql()->debug(
-        "mysql_bind_result: unable to parse an i64 at range {}", range);
+    _logger->debug("mysql_bind_result: unable to parse an i64 at range {}",
+                   range);
     return 0;
   }
 }
@@ -85,8 +88,8 @@ uint64_t mysql_bind_result::value_as_u64(size_t range) const {
   if (absl::SimpleAtoi(static_cast<char*>(_bind[range].buffer), &retval))
     return retval;
   else {
-    log_v2::sql()->debug(
-        "mysql_bind_result: unable to parse an u64 at range {}", range);
+    _logger->debug("mysql_bind_result: unable to parse an u64 at range {}",
+                   range);
     return 0;
   }
 }
@@ -97,8 +100,8 @@ float mysql_bind_result::value_as_f32(size_t range) const {
   if (absl::SimpleAtof(static_cast<char*>(_bind[range].buffer), &retval))
     return retval;
   else {
-    log_v2::sql()->debug(
-        "mysql_bind_result: unable to parse an f32 at range {}", range);
+    _logger->debug("mysql_bind_result: unable to parse an f32 at range {}",
+                   range);
     return 0;
   }
 }
@@ -109,8 +112,8 @@ double mysql_bind_result::value_as_f64(size_t range) const {
   if (absl::SimpleAtod(static_cast<char*>(_bind[range].buffer), &retval))
     return retval;
   else {
-    log_v2::sql()->debug(
-        "mysql_bind_result: unable to parse an f64 at range {}", range);
+    _logger->debug("mysql_bind_result: unable to parse an f64 at range {}",
+                   range);
     return 0;
   }
 }
@@ -126,8 +129,8 @@ char mysql_bind_result::value_as_tiny(size_t range) const {
   if (absl::SimpleAtoi(static_cast<char*>(_bind[range].buffer), &retval))
     return static_cast<char>(retval);
   else {
-    log_v2::sql()->debug(
-        "mysql_bind_result: unable to parse a tiny at range {}", range);
+    _logger->debug("mysql_bind_result: unable to parse a tiny at range {}",
+                   range);
     return 0;
   }
 }
@@ -138,8 +141,8 @@ bool mysql_bind_result::value_as_bool(size_t range) const {
   if (absl::SimpleAtob(static_cast<char*>(_bind[range].buffer), &retval))
     return retval;
   else {
-    log_v2::sql()->debug(
-        "mysql_bind_result: unable to parse a bool at range {}", range);
+    _logger->debug("mysql_bind_result: unable to parse a bool at range {}",
+                   range);
     return false;
   }
 }

@@ -1,29 +1,32 @@
 /**
-* Copyright 2011-2012,2017, 2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2012,2017, 2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/bbdo/internal.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::config;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
+using log_v2_config = com::centreon::common::log_v2::config;
 
 /**
  *  Default constructor.
@@ -36,7 +39,13 @@ state::state()
       _event_queue_max_size{10000},
       _poller_id{0},
       _pool_size{0},
-      _log_conf{"/var/log/centreon-broker", "", 0u, 5u, false, false, {}} {}
+      _log_conf{"/var/log/centreon-broker/",
+                log_v2_config::logger_type::LOGGER_FILE, 5u, false, false} {
+  // FIXME DBO: Is it useful since the log_conf constructor parse the name to
+  // create a path + filename.
+  _log_conf.set_filename("");
+  _log_conf.set_max_size(0);
+}
 
 /**
  *  Copy constructor.
@@ -58,7 +67,8 @@ state::state(const state& other)
       _params(other._params),
       _poller_id(other._poller_id),
       _poller_name(other._poller_name),
-      _pool_size(other._pool_size) {}
+      _pool_size(other._pool_size),
+      _log_conf(other._log_conf) {}
 
 /**
  *  Destructor.
@@ -251,7 +261,9 @@ std::string const& state::command_protocol() const noexcept {
  * @param out The endpoint is moved to the configuration.
  */
 void state::add_endpoint(endpoint&& out) noexcept {
-  log_v2::core()->trace("endpoint {} added to state", out.name);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->trace("endpoint {} added to state", out.name);
   _endpoints.emplace_back(std::move(out));
 }
 
@@ -445,11 +457,11 @@ const std::string& state::listen_address() const noexcept {
   return _listen_address;
 }
 
-state::log& state::mut_log_conf() {
+log_v2_config& state::mut_log_conf() {
   return _log_conf;
 }
 
-const state::log& state::log_conf() const {
+const log_v2_config& state::log_conf() const {
   return _log_conf;
 }
 

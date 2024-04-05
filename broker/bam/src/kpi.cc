@@ -19,7 +19,6 @@
 #include "com/centreon/broker/bam/kpi.hh"
 
 #include "com/centreon/broker/bam/ba.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;

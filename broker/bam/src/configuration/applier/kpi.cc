@@ -25,11 +25,13 @@
 #include "com/centreon/broker/bam/kpi_service.hh"
 #include "com/centreon/broker/bam/service_book.hh"
 #include "com/centreon/broker/exceptions/config.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam::configuration;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Constructor of an applier of KPI.

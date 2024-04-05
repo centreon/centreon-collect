@@ -22,9 +22,11 @@
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+using com::centreon::common::log_v2::log_v2;
 
 TEST(InfluxDBLineProtoQuery, EscapeKey) {
   influxdb::line_protocol_query lpq;
