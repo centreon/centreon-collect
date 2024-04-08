@@ -34,7 +34,7 @@ LOGV2EB1
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
-    ${content}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result1}    No message telling configuration loaded.
@@ -81,7 +81,7 @@ LOGV2EBU1
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
-    ${content}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result1}    No message telling configuration loaded.
@@ -171,10 +171,10 @@ LOGV2DB2
 
     ${pid}    Get Process Id    e0
     ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
-    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
+    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    30
     Should Not Be True    ${result1}
     Should Not Be True    ${result2}
 
@@ -216,11 +216,11 @@ LOGV2EB2
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
-    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
-    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
+    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    30
     Should Be True    ${result1}
     Should Be True    ${result2}
 
@@ -264,11 +264,11 @@ LOGV2EBU2
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
-    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
-    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
+    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    30
     Should Be True    ${result1}
     Should Be True    ${result2}
 
@@ -306,7 +306,7 @@ LOGV2EF1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
-    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
@@ -331,10 +331,10 @@ LOGV2DF1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
-    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    [${pid}] Configuration loaded, main loop starting.
     ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
 
-    ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
+    ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    30
     ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
     Should Not Be True    ${result2}
@@ -360,10 +360,10 @@ LOGV2DF2
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
     ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
-    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
+    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    15
     Should Not Be True    ${result1}
     Should Not Be True    ${result2}
     Ctn Stop engine
@@ -387,11 +387,11 @@ LOGV2EF2
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
-    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
-    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
+    ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    15
     Should Be True    ${result1}
     Should Be True    ${result2}
     Ctn Stop engine
@@ -418,7 +418,7 @@ LOGV2FE2
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
     ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    [${pid}] Configuration loaded, main loop starting.
 
     Sleep    2m
 
