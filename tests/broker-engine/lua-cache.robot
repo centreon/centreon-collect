@@ -66,14 +66,19 @@ LCDNU
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
-    
-    ${result}    Grep File    /tmp/test-LUA.log    configuration of (1,1)    regexp=False
+
+    Wait Until Created    /tmp/test-LUA.log
+    FOR    ${i}    IN RANGE    60
+        ${result}    Grep File    /tmp/test-LUA.log    configuration of (1,1)    regexp=False
+        IF    len("""${result}""") > 0    BREAK
+	Sleep    1s
+    END
     Should Not Be Empty    ${result}    Configuration error
 
     ## Time to set the service to OK hard
-    
+
     Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
-    
+
     ## check that we check the correct service
     FOR    ${i}    IN RANGE    60
         ${grep_res}    Grep File    /tmp/test-LUA.log    Status of
@@ -81,7 +86,7 @@ LCDNU
 	Sleep    1s
     END
     Should Not Be Empty    ${result}    No message about the service (1,1) status
-    
+
     FOR    ${i}    IN RANGE    60
         ${grep_res}    Grep File    /tmp/test-LUA.log    Service cache OK    regexp=False
         IF    len("""${grep_res}""") > 0    BREAK
@@ -115,7 +120,7 @@ LCDNUH
     ...        broker_log:set_parameters(2, '/tmp/test-LUA.log')
     ...        broker_log:info(0, 'lua start test')
     ...    end
-    ...    
+    ...
     ...    function write(e)
     ...        if e._type == 65566 then --Host ID
     ...            broker_log:info(0, 'configuration of ('.. e.host_id.. ')')
@@ -147,23 +152,28 @@ LCDNUH
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
-    
-    ${result}    Grep File    /tmp/test-LUA.log    configuration of (1)    regexp=False
+
+    Wait Until Created    /tmp/test-LUA.log
+    FOR    ${i}    IN RANGE    60
+        ${result}    Grep File    /tmp/test-LUA.log    configuration of (1,1)    regexp=False
+        IF    len("""${result}""") > 0    BREAK
+	Sleep    1s
+    END
     Should Not Be Empty    ${result}    Configuration error
 
     ## Time to set the host to UP hard
-    
+
     FOR   ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_1    0    host_1 UP
     END
-    
+
     FOR    ${i}    IN RANGE    60
         ${grep_res}    Grep File    /tmp/test-LUA.log    Status of
         IF    len("""${grep_res}""") > 0    BREAK
 	Sleep    1s
     END
     Should Not Be Empty    ${result}    No message about the host (1) status
-    
+
     FOR    ${i}    IN RANGE    60
         ${grep_res}    Grep File    /tmp/test-LUA.log    Host cache OK    regexp=False
         IF    len("""${grep_res}""") > 0    BREAK
