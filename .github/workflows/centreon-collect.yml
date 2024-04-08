@@ -207,5 +207,5 @@ jobs:
           minor_version: ${{ needs.get-version.outputs.patch }}
           stability: ${{ needs.get-version.outputs.stability }}
           github_ref_name: ${{ github.ref_name }}
-          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_type: release
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}
