@@ -139,12 +139,11 @@ int nebmodule_init(int flags, char const* args, void* handle) {
        * centengine */
       s.mut_log_conf().allow_only_atomic_changes(true);
       com::centreon::broker::config::applier::init(s);
-      //      try {
-      //        log_v2::instance().apply(s.log_conf());
-      //      } catch (const std::exception& e) {
-      //        log_v2::instance().get(log_v2::CORE)->error("main: {}",
-      //        e.what());
-      //      }
+      try {
+        log_v2::instance().apply(s.log_conf());
+      } catch (const std::exception& e) {
+        log_v2::instance().get(log_v2::CORE)->error("main: {}", e.what());
+      }
 
       com::centreon::broker::config::applier::state::instance().apply(s);
 

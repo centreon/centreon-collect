@@ -32,7 +32,7 @@ BERD1
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
