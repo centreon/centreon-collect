@@ -154,7 +154,7 @@ io::endpoint* factory::new_endpoint(
     try {
       certificate = read_file(it->second);
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
+      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::TLS),
                           "Failed to open cert file '{}': {}", it->second,
                           e.what());
       throw msg_fmt("Failed to open cert file '{}': {}", it->second, e.what());
@@ -168,7 +168,7 @@ io::endpoint* factory::new_endpoint(
     try {
       certificate_key = read_file(it->second);
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
+      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::TLS),
                           "Failed to open certificate key file '{}': {}",
                           it->second, e.what());
       throw msg_fmt("Failed to open certificate key file '{}': {}", it->second,
@@ -183,7 +183,7 @@ io::endpoint* factory::new_endpoint(
     try {
       certificate_authority = read_file(it->second);
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
+      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::TLS),
                           "Failed to open authority certificate file '{}': {}",
                           it->second, e.what());
       throw msg_fmt("Failed to open authority certificate file '{}': {}",
@@ -376,7 +376,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
       try {
         private_key = read_file(it->second);
       } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
+        SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::TLS),
                             "Failed to open private key file '{}': {}",
                             it->second, e.what());
         throw msg_fmt("Failed to open private key file '{}': {}", it->second,
@@ -396,7 +396,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
       try {
         certificate = read_file(it->second);
       } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
+        SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::TLS),
                             "Failed to open certificate file '{}': {}",
                             it->second, e.what());
         throw msg_fmt("Failed to open certificate file '{}': {}", it->second,
@@ -417,7 +417,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
         ca_certificate = read_file(it->second);
       } catch (const std::exception& e) {
         SPDLOG_LOGGER_ERROR(
-            log_v2::instance().get(log_v2::CORE),
+            log_v2::instance().get(log_v2::TLS),
             "Failed to open authority certificate file '{}': {}", it->second,
             e.what());
         throw msg_fmt("Failed to open authority certificate file '{}': {}",
