@@ -3249,3 +3249,23 @@ def ctn_get_service_command(host_id: int, service_id: int):
         logger.console(
             f"Unable to find the command id of service ({host_id};{service_id})")
         return None
+
+def ctn_set_service_state(id: int, state: int):
+    # Read the contents of the file and split it into lines
+    with open('/tmp/states', 'a+') as f:
+        lines = f.readlines()
+
+    r = re.compile(rf"^{id}=>[0-9]+")
+    found = False
+
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines[i] = f"{id}=>{state}\n"
+            found = True
+            break
+
+    if not found:
+        lines.append(f"{id}=>{state}\n")
+
+    with open('/tmp/states', 'w') as f:
+        f.writelines(lines)
