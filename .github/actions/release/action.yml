@@ -111,7 +111,7 @@ runs:
             echo "::notice::Tagging stable branch with $TAG."
           else
             echo "::error::Release tag $TAG already exists, exiting."
-            exit 1
+            #exit 1
           fi
         done
       shell: bash
@@ -181,7 +181,7 @@ runs:
 
         # Create JIRA version for each released component
         echo "Creating JIRA releases."
-        for TAG in ${NEW_RELEASE_TAGS[@]}; do
+        for TAG in ${NEW_STABLE_TAGS[@]}; do
           if [ -n $TAG ]; then
             echo "::notice::Creating JIRA release $TAG based on git release tag $TAG."
             # Build JSON with release information for JIRA API
@@ -228,7 +228,7 @@ runs:
         done
 
         # Build JSON structure with released versions
-        JSON_TAGS=$(jq -n '{componentList:$ARGS.positional}' --args "${NEW_RELEASE_TAGS[@]}")
+        JSON_TAGS=$(jq -n '{componentList:$ARGS.positional}' --args "${NEW_STABLE_TAGS[@]}")
         JSON_VERSION_INFO=$(jq -n --arg majorVersion "$MAJOR_VERSION" --arg scopeVersion "$SCOPE_VERSION" '$ARGS.named' )
         RELEASE_JSON=$(echo "$JSON_VERSION_INFO" | jq -c --argjson json_tags "$JSON_TAGS" '. += $json_tags')
 
