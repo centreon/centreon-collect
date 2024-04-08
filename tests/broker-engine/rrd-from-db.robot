@@ -11,47 +11,47 @@ Library             ../resources/Engine.py
 Library             ../resources/Broker.py
 Library             ../resources/Common.py
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
 BRRDDMDB1
     [Documentation]    RRD metrics deletion from metric ids with a query in centreon_storage.
     [Tags]    rrd    metric    deletion    unified_sql    mysql
-    Start Mysql
-    Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
-    Broker Config Log    central    grpc    error
-    Broker Config Log    central    sql    info
-    Broker Config Log    central    core    error
-    Broker Config Log    rrd    rrd    debug
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Start Mysql
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
+    Ctn Broker Config Log    central    grpc    error
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Create Metrics    3
     ${start}=    Get Current Date    exclude_millis=True
-    Start Broker
-    Start Engine
-    ${result}=    Check Connections
+    Ctn Start Broker
+    Ctn Start Engine
+    ${result}=    Ctn Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
 
     # We choose 3 metrics to remove.
-    ${metrics}=    Get Metrics To Delete    3
+    ${metrics}=    Ctn Get Metrics To Delete    3
     Log To Console    Metrics to delete ${metrics}
 
     ${empty}=    Create List
-    Remove Graphs from DB    ${empty}    ${metrics}
-    Reload Broker
+    Ctn Remove Graphs From Db    ${empty}    ${metrics}
+    Ctn Reload Broker
     ${metrics_str}=    Catenate    SEPARATOR=,    @{metrics}
     ${content}=    Create List    metrics ${metrics_str} erased from database
 
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}=    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    msg=No log message telling about metrics ${metrics_str} deletion.
     FOR    ${m}    IN    @{metrics}
         Log to Console    Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
@@ -61,39 +61,39 @@ BRRDDMDB1
 BRRDDIDDB1
     [Documentation]    RRD metrics deletion from index ids with a query in centreon_storage.
     [Tags]    rrd    metric    deletion    unified_sql
-    Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
-    Broker Config Log    central    sql    info
-    Broker Config Log    rrd    rrd    debug
-    Broker Config Log    rrd    core    error
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Create Metrics    3
 
     ${start}=    Get Current Date
     Sleep    1s
-    Start Broker
-    Start Engine
-    ${result}=    Check Connections
+    Ctn Start Broker
+    Ctn Start Engine
+    ${result}=    Ctn Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
 
     log to console    STEP1
-    ${indexes}=    Get Indexes To Delete    2
+    ${indexes}=    Ctn Get Indexes To Delete    2
     log to console    STEP2
-    ${metrics}=    Get Metrics Matching Indexes    ${indexes}
+    ${metrics}=    Ctn Get Metrics Matching Indexes    ${indexes}
     log to console    STEP3
     Log To Console    indexes ${indexes} to delete with their metrics
 
     ${empty}=    Create List
-    Remove Graphs from DB    ${indexes}    ${empty}
-    Reload Broker
+    Ctn Remove Graphs From Db    ${indexes}    ${empty}
+    Ctn Reload Broker
     ${indexes_str}=    Catenate    SEPARATOR=,    @{indexes}
     ${content}=    Create List    indexes ${indexes_str} erased from database
 
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}=    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    msg=No log message telling about indexes ${indexes_str} deletion.
     FOR    ${i}    IN    @{indexes}
         log to console    Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
@@ -107,45 +107,45 @@ BRRDDIDDB1
 BRRDRBDB1
     [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql
     [Tags]    rrd    metric    rebuild    unified_sql
-    Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
-    Create Metrics    3
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Create Metrics    3
 
     ${start}=    Get Current Date
-    Start Broker
-    Start Engine
-    ${result}=    Check Connections
+    Ctn Start Broker
+    Ctn Start Engine
+    ${result}=    Ctn Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
 
     # We get 3 indexes to rebuild
-    ${index}=    Get Indexes To Rebuild    3
-    Rebuild Rrd Graphs from DB    ${index}
+    ${index}=    Ctn Get Indexes To Rebuild    3
+    Ctn Rebuild Rrd Graphs From Db    ${index}
     Log To Console    Indexes to rebuild: ${index}
-    ${metrics}=    Get Metrics Matching Indexes    ${index}
+    ${metrics}=    Ctn Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
-    Reload Broker
+    Ctn Reload Broker
 
     ${content1}=    Create List    RRD: Starting to rebuild metrics
-    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}=    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild START
 
     ${content1}=    Create List    RRD: Rebuilding metric
-    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}=    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild DATA
 
     ${content1}=    Create List    RRD: Finishing to rebuild metrics
-    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
+    ${result}=    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
     Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild END
     FOR    ${m}    IN    @{metrics}
         ${value}=    Evaluate    ${m} / 2
-        ${result}=    Compare RRD Average Value    ${m}    ${value}
+        ${result}=    Ctn Compare Rrd Average Value    ${m}    ${value}
         Should Be True
         ...    ${result}
         ...    msg=Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
@@ -154,47 +154,47 @@ BRRDRBDB1
 BRRDRBUDB1
     [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
-    Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Create Metrics    3
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.1
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.1
+    Ctn Create Metrics    3
 
     ${start}=    Get Current Date    exclude_millis=True
-    Start Broker
-    Start Engine
-    ${result}=    Check Connections
+    Ctn Start Broker
+    Ctn Start Engine
+    ${result}=    Ctn Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
 
     # We get 3 indexes to rebuild
-    ${index}=    Get Indexes To Rebuild    3
-    Rebuild Rrd Graphs from DB    ${index}
-    Reload Broker
+    ${index}=    Ctn Get Indexes To Rebuild    3
+    Ctn Rebuild Rrd Graphs From Db    ${index}
+    Ctn Reload Broker
     Log To Console    Indexes to rebuild: ${index}
-    ${metrics}=    Get Metrics Matching Indexes    ${index}
+    ${metrics}=    Ctn Get Metrics Matching Indexes    ${index}
 
     ${content1}=    Create List    RRD: Starting to rebuild metrics
-    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30
+    ${result}=    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30
     Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild START
 
     ${content1}=    Create List    RRD: Rebuilding metric
-    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30
+    ${result}=    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30
     Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild DATA
 
     ${content1}=    Create List    RRD: Finishing to rebuild metrics
-    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
+    ${result}=    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
     Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild END
     FOR    ${m}    IN    @{metrics}
         ${value}=    Evaluate    ${m} / 2
-        ${result}=    Compare RRD Average Value    ${m}    ${value}
+        ${result}=    Ctn Compare Rrd Average Value    ${m}    ${value}
         Should Be True
         ...    ${result}
         ...    msg=Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
@@ -203,44 +203,44 @@ BRRDRBUDB1
 BRRDUPLICATE
     [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql with duplicate rows in database
     [Tags]    rrd    metric    rebuild    unified_sql
-    Config Engine    ${1}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker Sql Output    central    unified_sql
-    Config Broker    module
-    Broker Config Log    rrd    rrd    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Flush Log    central    0
-    Broker Config Flush Log    rrd    0
-    Clear Db    data_bin
-    Create Metrics    3
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Clear Db    data_bin
+    Ctn Create Metrics    3
 
     ${start}=    Get Current Date
-    Start Broker
-    Start Engine
-    ${result}=    Check Connections
+    Ctn Start Broker
+    Ctn Start Engine
+    ${result}=    Ctn Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
 
     # We get 3 indexes to rebuild
-    ${index}=    Get Indexes To Rebuild    3    2
-    ${duplicates}=    add_duplicate_metrics
-    Rebuild Rrd Graphs from DB    ${index}
+    ${index}=    Ctn Get Indexes To Rebuild    3    2
+    ${duplicates}=    Ctn Add Duplicate Metrics
+    Ctn Rebuild Rrd Graphs From Db    ${index}
     Log To Console    Indexes to rebuild: ${index}
-    ${metrics}=    Get Metrics Matching Indexes    ${index}
+    ${metrics}=    Ctn Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
-    Reload Broker
+    Ctn Reload Broker
 
     ${content1}=    Create List    RRD: Starting to rebuild metrics
-    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}=    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild START
 
     ${content1}=    Create List    RRD: Rebuilding metric
-    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}=    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild DATA
 
     ${content1}=    Create List    RRD: Finishing to rebuild metrics
-    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
+    ${result}=    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
     Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild END
 
-    ${result}=    check_for_NaN_metric    ${duplicates}
+    ${result}=    Ctn Check For Nan Metric    ${duplicates}
     Should Be True    ${result}    msg=at least one metric contains NaN value

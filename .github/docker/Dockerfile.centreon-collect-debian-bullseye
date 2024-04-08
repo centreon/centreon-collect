@@ -32,7 +32,8 @@ apt-get -y install cmake \
     fakeroot \
     strace \
     locales \
-    zstd
+    zstd \
+    perl-base
 
 apt-get clean
 

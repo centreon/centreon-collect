@@ -32,7 +32,7 @@ BuildRequires: gnutls-devel >= 3.3.29
 BuildRequires: libgcrypt-devel
 BuildRequires: lua-devel
 BuildRequires: make
-BuildRequires: perl
+BuildRequires: perl-interpreter
 BuildRequires: perl-ExtUtils-Embed
 BuildRequires: perl-devel
 BuildRequires: rrdtool-devel
