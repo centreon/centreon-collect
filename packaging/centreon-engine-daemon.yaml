@@ -118,7 +118,7 @@ contents:
   - src: "/usr/lib64/nagios/plugins"
     dst: "/usr/lib/nagios/plugins"
     type: symlink
-    packaging: deb
+    packager: deb
 
 scripts:
   preinstall: ./scripts/centreon-engine-daemon-preinstall.sh
