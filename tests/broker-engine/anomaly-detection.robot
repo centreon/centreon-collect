@@ -32,7 +32,7 @@ ANO_NOFILE
 	Start Broker
 	Start Engine
 	Process Service Check result	host_1	anomaly_${serv_id}	2	taratata
-	Check Service Status With Timeout  host_1  anomaly_${serv_id}  3  30
+	Check Service Resource Status With Timeout  host_1  anomaly_${serv_id}  3  30
 
 ANO_TOO_OLD_FILE
 	[Documentation]	an anomaly detection with an oldest threshold file must be in unknown state
@@ -50,7 +50,7 @@ ANO_TOO_OLD_FILE
 	Start Broker
 	Start Engine
 	Process Service Check result	host_1	anomaly_${serv_id}	2	taratata|metric=70%;50;75
-	Check Service Status With Timeout  host_1  anomaly_${serv_id}  3  30
+	Check Service Resource Status With Timeout  host_1  anomaly_${serv_id}  3  30
 
 
 ANO_OUT_LOWER_THAN_LIMIT
@@ -69,7 +69,7 @@ ANO_OUT_LOWER_THAN_LIMIT
 	Start Broker
 	Start Engine
 	Process Service Check result	host_1	anomaly_${serv_id}	2	taratata|metric=20%;50;75
-	Check Service Status With Timeout  host_1  anomaly_${serv_id}  2  30
+	Check Service Resource Status With Timeout  host_1  anomaly_${serv_id}  2  30
 
 ANO_OUT_UPPER_THAN_LIMIT
 	[Documentation]	an anomaly detection with a perfdata upper than upper limit make a critical state
@@ -87,4 +87,4 @@ ANO_OUT_UPPER_THAN_LIMIT
 	Start Broker
 	Start Engine
 	Process Service Check result	host_1	anomaly_${serv_id}	2	taratata|metric=80%;50;75
-	Check Service Status With Timeout  host_1  anomaly_${serv_id}  2  30
+	Check Service Resource Status With Timeout  host_1  anomaly_${serv_id}  2  30

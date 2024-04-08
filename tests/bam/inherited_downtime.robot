@@ -45,7 +45,7 @@ BEBAMIDT1
 
 	# KPI set to critical
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
-	${result}=	Check Service Status With Timeout	host_16	service_314	2	60
+	${result}=	Check Service Resource Status With Timeout	host_16	service_314	2	60
 	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
 
 	# The BA should become critical
@@ -96,7 +96,7 @@ BEBAMIDT2
 
 	# KPI set to critical
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
-	${result}=	Check Service Status With Timeout	host_16	service_314	2	60
+	${result}=	Check Service Resource Status With Timeout	host_16	service_314	2	60
 	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
 
 	# The BA should become critical
@@ -182,12 +182,12 @@ BEBAMIGNDT1
 
 	# KPI set to ok
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_313	0	output critical for 313
-	${result}=	Check Service Status With Timeout	host_16	service_313	0	60
+	${result}=	Check Service Resource Status With Timeout	host_16	service_313	0	60
 	Should Be True	${result}	msg=The service (host_16,service_313) is not OK as expected
 
 	# KPI set to critical
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
-	${result}=	Check Service Status With Timeout	host_16	service_314	2	60
+	${result}=	Check Service Resource Status With Timeout	host_16	service_314	2	60
 	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
 
 	# The BA should become critical
@@ -268,12 +268,12 @@ BEBAMIGNDT2
 
 	# KPI set to ok
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_313	0	output critical for 313
-	${result}=	Check Service Status With Timeout	host_16	service_313	0	60
+	${result}=	Check Service Resource Status With Timeout	host_16	service_313	0	60
 	Should Be True	${result}	msg=The service (host_16,service_313) is not OK as expected
 
 	# KPI set to critical
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
-	${result}=	Check Service Status With Timeout	host_16	service_314	2	60
+	${result}=	Check Service Resource Status With Timeout	host_16	service_314	2	60
 	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
 
 	# The BA should become critical
