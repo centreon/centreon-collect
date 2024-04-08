@@ -334,8 +334,9 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
         "UPDATE hosts AS h LEFT JOIN services AS s ON h.host_id=s.host_id "
         "SET h.real_state=h.state,s.real_state=s.state,h.state={},s.state={} "
         "WHERE h.instance_id={}",
-        com::centreon::engine::host::state_unreachable,
-        com::centreon::engine::service::state_unknown, id);
+        static_cast<uint32_t>(com::centreon::engine::host::state_unreachable),
+        static_cast<uint32_t>(com::centreon::engine::service::state_unknown),
+        id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::hosts);
   }
@@ -582,16 +583,16 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
       if (cmmnt.deletion_time.is_null())
         b.set_null_i64(3);
       else
-        b.set_value_as_i64(3, cmmnt.deletion_time.get_time_t());
+        b.set_value_as_i64(3, cmmnt.deletion_time);
       if (cmmnt.entry_time.is_null())
         b.set_null_i64(4);
       else
-        b.set_value_as_i64(4, cmmnt.entry_time.get_time_t());
+        b.set_value_as_i64(4, cmmnt.entry_time);
       b.set_value_as_i32(5, cmmnt.entry_type);
       if (cmmnt.expire_time.is_null())
         b.set_null_i64(6);
       else
-        b.set_value_as_i64(6, cmmnt.expire_time.get_time_t());
+        b.set_value_as_i64(6, cmmnt.expire_time);
       b.set_value_as_tiny(7, cmmnt.expires);
       b.set_value_as_i64(8, cmmnt.host_id, mapping::entry::invalid_on_zero);
       b.set_value_as_i64(9, cmmnt.internal_id);
@@ -874,11 +875,11 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
         if (dd.actual_end_time.is_null())
           b.set_null_i64(0);
         else
-          b.set_value_as_i64(0, dd.actual_end_time.get_time_t());
+          b.set_value_as_i64(0, dd.actual_end_time);
         if (dd.actual_start_time.is_null())
           b.set_null_i64(1);
         else
-          b.set_value_as_i64(1, dd.actual_start_time.get_time_t());
+          b.set_value_as_i64(1, dd.actual_start_time);
         b.set_value_as_str(
             2, misc::string::escape(dd.author,
                                     get_downtimes_col_size(downtimes_author)));
@@ -886,16 +887,16 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
         if (dd.deletion_time.is_null())
           b.set_null_i64(4);
         else
-          b.set_value_as_i64(4, dd.deletion_time.get_time_t());
+          b.set_value_as_i64(4, dd.deletion_time);
         b.set_value_as_i64(5, dd.duration);
         if (dd.end_time.is_null())
           b.set_null_i64(6);
         else
-          b.set_value_as_i64(6, dd.end_time.get_time_t());
+          b.set_value_as_i64(6, dd.end_time);
         if (dd.entry_time.is_null())
           b.set_null_i64(7);
         else
-          b.set_value_as_i64(7, dd.entry_time.get_time_t());
+          b.set_value_as_i64(7, dd.entry_time);
         b.set_value_as_tiny(8, int(dd.fixed));
         b.set_value_as_i64(9, dd.host_id);
         b.set_value_as_i64(10, dd.poller_id);
@@ -904,7 +905,7 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
         if (dd.start_time.is_null())
           b.set_null_i64(13);
         else
-          b.set_value_as_i64(13, dd.start_time.get_time_t());
+          b.set_value_as_i64(13, dd.start_time);
         if (dd.triggered_by == 0)
           b.set_null_i32(14);
         else
@@ -918,15 +919,20 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
       };
       _downtimes->add_bulk_row(binder);
     } else {
+      log_v2::sql()->error("original actual end time {} is null {}",
+                           dd.actual_end_time.get_time_t(),
+                           dd.actual_end_time.is_null());
+      log_v2::sql()->error("actual end time {}", dd.actual_end_time);
       _downtimes->add_multi_row(fmt::format(
           "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
-          dd.actual_end_time, dd.actual_start_time,
+          dd.actual_end_time.to_string(), dd.actual_start_time.to_string(),
           misc::string::escape(dd.author,
                                get_downtimes_col_size(downtimes_author)),
-          dd.downtime_type, dd.deletion_time, dd.duration, dd.end_time,
-          dd.entry_time, dd.fixed, dd.host_id, dd.poller_id, dd.internal_id,
-          dd.service_id, dd.start_time, int64_not_minus_one{dd.triggered_by},
-          dd.was_cancelled, dd.was_started,
+          dd.downtime_type, dd.deletion_time.to_string(), dd.duration,
+          dd.end_time.to_string(), dd.entry_time.to_string(), dd.fixed,
+          dd.host_id, dd.poller_id, dd.internal_id, dd.service_id,
+          dd.start_time, int64_not_minus_one{dd.triggered_by}, dd.was_cancelled,
+          dd.was_started,
           misc::string::escape(
               dd.comment, get_downtimes_col_size(downtimes_comment_data))));
     }
@@ -999,6 +1005,9 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
       };
       _downtimes->add_bulk_row(binder);
     } else {
+      log_v2::sql()->error("PB actual end time {} -> {}",
+                           dt_obj.actual_end_time(),
+                           uint64_not_null_not_neg_1{dt_obj.actual_end_time()});
       _downtimes->add_multi_row(fmt::format(
           "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
           uint64_not_null_not_neg_1{dt_obj.actual_end_time()},
@@ -1197,22 +1206,35 @@ void stream::_process_host_dependency(const std::shared_ptr<io::data>& d) {
   // Insert/Update.
   if (hd.enabled) {
     SPDLOG_LOGGER_INFO(log_v2::sql(),
-                       "SQL: enabling host dependency of {} on {}",
-                       hd.dependent_host_id, hd.host_id);
-
-    // Prepare queries.
-    if (!_host_dependency_insupdate.prepared()) {
-      query_preparator::event_unique unique;
-      unique.insert("host_id");
-      unique.insert("dependent_host_id");
-      query_preparator qp(neb::host_dependency::static_type(), unique);
-      _host_dependency_insupdate = qp.prepare_insert_or_update(_mysql);
-    }
+                       "SQL: enabling host dependency of {} on {}: execution "
+                       "failure options: {} - notification failure options: {}",
+                       hd.dependent_host_id, hd.host_id,
+                       hd.execution_failure_options,
+                       hd.notification_failure_options);
 
     // Process object.
-    _host_dependency_insupdate << hd;
-    _mysql.run_statement(_host_dependency_insupdate,
-                         database::mysql_error::store_host_dependency, conn);
+    if (!hd.execution_failure_options.empty()) {
+      _host_exe_dependency_insupdate.bind_value_as_i32(0, hd.dependent_host_id);
+      _host_exe_dependency_insupdate.bind_value_as_i32(1, hd.host_id);
+      _host_exe_dependency_insupdate.bind_value_as_str(2, hd.dependency_period);
+      _host_exe_dependency_insupdate.bind_value_as_str(
+          3, hd.execution_failure_options);
+      _host_exe_dependency_insupdate.bind_value_as_tiny(4, hd.inherits_parent);
+      _mysql.run_statement(_host_exe_dependency_insupdate,
+                           database::mysql_error::store_host_dependency, conn);
+    } else if (!hd.notification_failure_options.empty()) {
+      _host_notif_dependency_insupdate.bind_value_as_i32(0,
+                                                         hd.dependent_host_id);
+      _host_notif_dependency_insupdate.bind_value_as_i32(1, hd.host_id);
+      _host_notif_dependency_insupdate.bind_value_as_str(2,
+                                                         hd.dependency_period);
+      _host_notif_dependency_insupdate.bind_value_as_str(
+          3, hd.notification_failure_options);
+      _host_notif_dependency_insupdate.bind_value_as_tiny(4,
+                                                          hd.inherits_parent);
+      _mysql.run_statement(_host_notif_dependency_insupdate,
+                           database::mysql_error::store_host_dependency, conn);
+    }
     _add_action(conn, actions::host_dependencies);
   }
   // Delete.
@@ -1250,37 +1272,39 @@ void stream::_process_pb_host_dependency(const std::shared_ptr<io::data>& d) {
 
   // Insert/Update.
   if (hd.enabled()) {
-    SPDLOG_LOGGER_INFO(log_v2::sql(),
-                       "SQL: enabling host dependency of {} on {}",
-                       hd.dependent_host_id(), hd.host_id());
-
-    // Prepare queries.
-    if (!_pb_host_dependency_insupdate.prepared()) {
-      query_preparator::event_pb_unique unique{
-          {6, "host_id", io::protobuf_base::invalid_on_zero, 0},
-          {3, "dependent_host_id", io::protobuf_base::invalid_on_zero, 0}};
-      query_preparator qp(neb::pb_host_dependency::static_type(), unique);
-      _pb_host_dependency_insupdate = qp.prepare_insert_or_update_table(
-          _mysql, "hosts_hosts_dependencies ", /*space is mandatory to avoid
-                               conflict with _process_host_dependency*/
-          {{3, "dependent_host_id", io::protobuf_base::invalid_on_zero, 0},
-           {6, "host_id", io::protobuf_base::invalid_on_zero, 0},
-           {2, "dependency_period", 0,
-            get_hosts_hosts_dependencies_col_size(
-                hosts_hosts_dependencies_dependency_period)},
-           {5, "execution_failure_options", 0,
-            get_hosts_hosts_dependencies_col_size(
-                hosts_hosts_dependencies_execution_failure_options)},
-           {7, "inherits_parent", 0, 0},
-           {8, "notification_failure_options", 0,
-            get_hosts_hosts_dependencies_col_size(
-                hosts_hosts_dependencies_notification_failure_options)}});
-    }
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(),
+        "SQL: enabling pb host dependency of {} on {}: execution failure "
+        "options: {} - notification failure options: {}",
+        hd.dependent_host_id(), hd.host_id(), hd.execution_failure_options(),
+        hd.notification_failure_options());
 
     // Process object.
-    _pb_host_dependency_insupdate << hd_protobuf;
-    _mysql.run_statement(_pb_host_dependency_insupdate,
-                         database::mysql_error::store_host_dependency, conn);
+    if (!hd.execution_failure_options().empty()) {
+      _host_exe_dependency_insupdate.bind_value_as_i32(0,
+                                                       hd.dependent_host_id());
+      _host_exe_dependency_insupdate.bind_value_as_i32(1, hd.host_id());
+      _host_exe_dependency_insupdate.bind_value_as_str(2,
+                                                       hd.dependency_period());
+      _host_exe_dependency_insupdate.bind_value_as_str(
+          3, hd.execution_failure_options());
+      _host_exe_dependency_insupdate.bind_value_as_tiny(4,
+                                                        hd.inherits_parent());
+      _mysql.run_statement(_host_exe_dependency_insupdate,
+                           database::mysql_error::store_host_dependency, conn);
+    } else if (!hd.notification_failure_options().empty()) {
+      _host_notif_dependency_insupdate.bind_value_as_i32(
+          0, hd.dependent_host_id());
+      _host_notif_dependency_insupdate.bind_value_as_i32(1, hd.host_id());
+      _host_notif_dependency_insupdate.bind_value_as_str(
+          2, hd.dependency_period());
+      _host_notif_dependency_insupdate.bind_value_as_str(
+          3, hd.notification_failure_options());
+      _host_notif_dependency_insupdate.bind_value_as_tiny(4,
+                                                          hd.inherits_parent());
+      _mysql.run_statement(_host_notif_dependency_insupdate,
+                           database::mysql_error::store_host_dependency, conn);
+    }
     _add_action(conn, actions::host_dependencies);
   }
   // Delete.
@@ -1728,6 +1752,71 @@ void stream::_process_host_parent(const std::shared_ptr<io::data>& d) {
     // Delete.
     _host_parent_delete << hp;
     _mysql.run_statement(_host_parent_delete, database::mysql_error::empty,
+                         conn);
+    _add_action(conn, actions::host_parents);
+  }
+}
+
+/**
+ *  Process a host parent event.
+ *
+ *  @param[in] e Uncasted host parent.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
+  int32_t conn = special_conn::host_parent % _mysql.connections_count();
+  _finish_action(-1, actions::hosts | actions::host_dependencies |
+                         actions::comments | actions::downtimes);
+
+  std::shared_ptr<neb::pb_host_parent> hpp =
+      std::static_pointer_cast<neb::pb_host_parent>(d);
+  const HostParent& hp = hpp->obj();
+
+  // Enable parenting.
+  if (hp.enabled()) {
+    // Log message.
+    SPDLOG_LOGGER_INFO(log_v2::sql(), "SQL: pb host {} is parent of host {}",
+                       hp.parent_id(), hp.child_id());
+
+    // Prepare queries.
+    if (!_host_parent_insert.prepared()) {
+      query_preparator::event_pb_unique unique{
+          {3, "child_id", io::protobuf_base::invalid_on_zero, 0},
+          {4, "parent_id", io::protobuf_base::invalid_on_zero, 0}};
+      query_preparator qp(neb::pb_host_parent::static_type());
+      _pb_host_parent_insert = qp.prepare_insert_into(
+          _mysql, "hosts_hosts_parents",
+          {{3, "child_id", io::protobuf_base::invalid_on_zero, 0},
+           {4, "parent_id", io::protobuf_base::invalid_on_zero, 0}},
+          true);
+    }
+
+    // Insert.
+    _pb_host_parent_insert << *hpp;
+    _mysql.run_statement(_pb_host_parent_insert,
+                         database::mysql_error::store_host_parentship, conn);
+    _add_action(conn, actions::host_parents);
+  }
+  // Disable parenting.
+  else {
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: pb host {} is not parent of host {} anymore",
+                       hp.parent_id(), hp.child_id());
+
+    // Prepare queries.
+    if (!_pb_host_parent_delete.prepared()) {
+      query_preparator::event_pb_unique unique{
+          {3, "child_id", io::protobuf_base::invalid_on_zero, 0},
+          {4, "parent_id", io::protobuf_base::invalid_on_zero, 0}};
+      query_preparator qp(neb::pb_host_parent::static_type(), unique);
+      _pb_host_parent_delete =
+          qp.prepare_delete_table(_mysql, "hosts_hosts_parents");
+    }
+
+    // Delete.
+    _pb_host_parent_delete << *hpp;
+    _mysql.run_statement(_pb_host_parent_delete, database::mysql_error::empty,
                          conn);
     _add_action(conn, actions::host_parents);
   }
@@ -2800,7 +2889,7 @@ void stream::_process_log(const std::shared_ptr<io::data>& d) {
   // Push query.
   if (_logs->is_bulk()) {
     auto binder = [&](database::mysql_bulk_bind& b) {
-      b.set_value_as_i64(0, le.c_time.get_time_t());
+      b.set_value_as_i64(0, le.c_time);
       b.set_value_as_i64(1, le.host_id);
       b.set_value_as_i64(2, le.service_id);
       b.set_value_as_str(
@@ -4749,16 +4838,6 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
       break;
   }
 }
-
-/**
- *  Process an instance configuration event.
- *
- *  @param[in] e  Uncasted instance configuration.
- *
- * @return The number of events that can be acknowledged.
- */
-void stream::_process_instance_configuration(const std::shared_ptr<io::data>& d
-                                             __attribute__((unused))) {}
 
 /**
  *  Process a responsive instance event.

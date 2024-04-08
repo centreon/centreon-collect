@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
+
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -598,7 +599,8 @@ int downtime_manager::register_downtime(downtime::type type,
   engine_logger(dbg_downtime, basic)
       << "register downtime(type: " << type << ", id: " << downtime_id << ")";
   SPDLOG_LOGGER_TRACE(log_v2::downtimes(),
-                      "register downtime(type: {}, id: {})", type, downtime_id);
+                      "register downtime(type: {}, id: {})",
+                      static_cast<uint32_t>(type), downtime_id);
   /* find the downtime entry in memory */
   std::shared_ptr<downtime> temp_downtime{find_downtime(type, downtime_id)};
   if (!temp_downtime)

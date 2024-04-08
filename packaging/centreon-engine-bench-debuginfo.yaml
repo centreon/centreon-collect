@@ -15,12 +15,12 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../bin/centengine_bench_passive.debug"
+  - src: "../build/engine/modules/bench/centengine_bench_passive.debug"
     dst: "/usr/lib/debug/usr/sbin/centengine_bench_passive.debug"
     file_info:
       mode: 0644
 
-  - src: "../lib/bench_passive_module.so.debug"
+  - src: "../build/engine/modules/bench/bench_passive_module.so.debug"
     dst: "/usr/lib/debug/usr/lib64/centreon-engine/bench_passive_module.so.debug"
     file_info:
       mode: 0644

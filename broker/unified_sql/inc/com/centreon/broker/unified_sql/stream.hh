@@ -1,20 +1,21 @@
-/*
-** Copyright 2019-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2019-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
+
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
 #include <absl/container/flat_hash_map.h>
@@ -54,22 +55,8 @@ struct uint64_not_null {
 
 }  // namespace unified_sql
 }  // namespace com::centreon::broker
+
 namespace fmt {
-template <>
-struct formatter<com::centreon::broker::timestamp> {
-  constexpr auto parse(format_parse_context& ctx)
-      -> format_parse_context::iterator {
-    return ctx.begin();
-  }
-
-  auto format(const com::centreon::broker::timestamp& t,
-              format_context& ctx) const -> format_context::iterator {
-    // ctx.out() is an output iterator to write to.
-    return t.is_null() ? fmt::format_to(ctx.out(), "NULL")
-                       : fmt::format_to(ctx.out(), "{}", t.get_time_t());
-  }
-};
-
 template <>
 struct formatter<com::centreon::broker::unified_sql::int64_not_minus_one> {
   constexpr auto parse(format_parse_context& ctx)
@@ -338,8 +325,8 @@ class stream : public io::stream {
   database::mysql_stmt _flapping_status_insupdate;
   database::mysql_stmt _host_check_update;
   database::mysql_stmt _pb_host_check_update;
-  database::mysql_stmt _host_dependency_insupdate;
-  database::mysql_stmt _pb_host_dependency_insupdate;
+  database::mysql_stmt _host_exe_dependency_insupdate;
+  database::mysql_stmt _host_notif_dependency_insupdate;
   database::mysql_stmt _host_group_insupdate;
   database::mysql_stmt _pb_host_group_insupdate;
   database::mysql_stmt _host_group_member_delete;
@@ -349,6 +336,8 @@ class stream : public io::stream {
   database::mysql_stmt _pb_host_insupdate;
   database::mysql_stmt _host_parent_delete;
   database::mysql_stmt _host_parent_insert;
+  database::mysql_stmt _pb_host_parent_delete;
+  database::mysql_stmt _pb_host_parent_insert;
   database::mysql_stmt _host_status_update;
   database::mysql_stmt _instance_insupdate;
   database::mysql_stmt _pb_instance_insupdate;
@@ -427,6 +416,7 @@ class stream : public io::stream {
   void _process_pb_host_group_member(const std::shared_ptr<io::data>& d);
   void _process_host(const std::shared_ptr<io::data>& d);
   void _process_host_parent(const std::shared_ptr<io::data>& d);
+  void _process_pb_host_parent(const std::shared_ptr<io::data>& d);
   void _process_host_status(const std::shared_ptr<io::data>& d);
   void _process_instance(const std::shared_ptr<io::data>& d);
   void _process_pb_instance(const std::shared_ptr<io::data>& d);
@@ -443,7 +433,6 @@ class stream : public io::stream {
   void _process_pb_service_group_member(const std::shared_ptr<io::data>& d);
   void _process_service(const std::shared_ptr<io::data>& d);
   void _process_service_status(const std::shared_ptr<io::data>& d);
-  void _process_instance_configuration(const std::shared_ptr<io::data>& d);
   void _process_responsive_instance(const std::shared_ptr<io::data>& d);
 
   void _process_pb_host(const std::shared_ptr<io::data>& d);

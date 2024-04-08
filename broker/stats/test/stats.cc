@@ -67,8 +67,8 @@ class StatsTest : public ::testing::Test {
     io::events::unload();
     io::protocols::unload();
     mysql_manager::unload();
-    stats::center::unload();
     file::disk_accessor::unload();
+    stats::center::unload();
     pool::unload();
   }
 };

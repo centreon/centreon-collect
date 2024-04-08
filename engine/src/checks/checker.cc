@@ -1,22 +1,22 @@
 /**
-* Copyright 1999-2010 Ethan Galstad
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 1999-2010 Ethan Galstad
+ * Copyright 2011-2019 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/checks/checker.hh"
 
@@ -271,7 +271,7 @@ void checker::run_sync(host* hst,
       engine_logger(dbg_checks, more)
           << "* Using cached host state: " << hst->get_current_state();
       SPDLOG_LOGGER_DEBUG(log_v2::checks(), "* Using cached host state: {}",
-                          hst->get_current_state());
+                          static_cast<uint32_t>(hst->get_current_state()));
 
       // Update statistics.
       update_check_stats(ACTIVE_ONDEMAND_HOST_CHECK_STATS, start_time.tv_sec);
@@ -285,7 +285,7 @@ void checker::run_sync(host* hst,
       << "* Running actual host check: old state=" << hst->get_current_state();
   SPDLOG_LOGGER_DEBUG(log_v2::checks(),
                       "* Running actual host check: old state={}",
-                      hst->get_current_state());
+                      static_cast<uint32_t>(hst->get_current_state()));
 
   // Update statistics.
   update_check_stats(ACTIVE_ONDEMAND_HOST_CHECK_STATS, start_time.tv_sec);
@@ -335,7 +335,7 @@ void checker::run_sync(host* hst,
   engine_logger(dbg_checks, more)
       << "* Sync host check done: new state=" << hst->get_current_state();
   SPDLOG_LOGGER_DEBUG(log_v2::checks(), "* Sync host check done: new state={}",
-                      hst->get_current_state());
+                      static_cast<uint32_t>(hst->get_current_state()));
 
   // Send event broker.
   broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, hst, checkable::check_active,
@@ -651,7 +651,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   engine_logger(dbg_checks, basic)
       << "** Sync host check done: state=" << return_result;
   SPDLOG_LOGGER_TRACE(log_v2::checks(), "** Sync host check done: state={}",
-                      return_result);
+                      static_cast<uint32_t>(return_result));
   return return_result;
 }
 

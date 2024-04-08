@@ -46,7 +46,7 @@ static tcp::tcp_config::pointer test_conf2(
 class TcpAcceptor : public ::testing::Test {
  public:
   void SetUp() override {
-    log_v2::tcp()->set_level(spdlog::level::debug);
+    log_v2::tcp()->set_level(spdlog::level::info);
     g_io_context->restart();
     pool::load(g_io_context, 0);
     tcp::tcp_async::load();
@@ -949,7 +949,8 @@ TEST_F(TcpAcceptor, ChildsAndStats) {
 
   nlohmann::json obj;
   acc.stats(obj);
-  ASSERT_EQ(obj.dump(), "{\"peers\":\"2: child1, child3\"}");
+  ASSERT_TRUE(obj.dump() == "{\"peers\":\"2: child1, child3\"}" ||
+              obj.dump() == "{\"peers\":\"2: child3, child1\"}");
 }
 
 TEST_F(TcpAcceptor, QuestionAnswerMultiple) {

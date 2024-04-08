@@ -15,10 +15,10 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../bin/centengine_bench_passive"
+  - src: "../build/engine/modules/bench/centengine_bench_passive"
     dst: "/usr/sbin/centengine_bench_passive"
 
-  - src: "../lib/bench_passive_module.so"
+  - src: "../build/engine/modules/bench/bench_passive_module.so"
     dst: "/usr/lib64/centreon-engine/bench_passive_module.so"
 
 overrides:

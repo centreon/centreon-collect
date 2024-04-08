@@ -22,7 +22,6 @@ jobs:
           gh workflow run robot-nightly.yml -r "dev-23.10.x"
           gh workflow run robot-nightly.yml -r "dev-23.04.x"
           gh workflow run robot-nightly.yml -r "dev-22.10.x"
-          gh workflow run robot-nightly.yml -r "dev-22.04.x"
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -49,6 +48,7 @@ jobs:
     needs: [get-version]
     uses: ./.github/workflows/package-collect.yml
     with:
+      stability: ${{ needs.get-version.outputs.stability }}
       version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
       img_version: ${{ needs.get-version.outputs.img_version }}
       release: ${{ needs.get-version.outputs.release }}
@@ -81,7 +81,14 @@ jobs:
             package_extension: deb
             arch: arm64
             database_type: mariadb
-            test_group_name: robot_test-mariadb-el9-arm64
+            test_group_name: robot_test-mariadb-bullseye-arm64
+            tests_params: '{}'
+          - distrib: bookworm
+            image: centreon-collect-debian-bookworm-test
+            package_extension: deb
+            arch: amd64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-bookworm-amd64
             tests_params: '{}'
           - distrib: el9
             image: centreon-collect-alma9-test
@@ -100,7 +107,7 @@ jobs:
       image: ${{ matrix.image }}
       image_test: ${{ matrix.image }}:${{ needs.get-version.outputs.test_img_version }}
       image_version: ${{ needs.get-version.outputs.img_version }}
-      package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+      package_cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ matrix.package_extension }}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
       package_cache_path: ./*.${{ matrix.package_extension}}
       database_type: ${{ matrix.database_type }}
       tests_params: ${{matrix.tests_params}}
@@ -131,8 +138,10 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-version.outputs.version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-version.outputs.stability }}
+          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   deliver-deb:
     if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
@@ -142,6 +151,10 @@ jobs:
       matrix:
         include:
           - distrib: bullseye
+            arch: amd64
+          - distrib: bookworm
+            arch: amd64
+          - distrib: jammy
             arch: amd64
           - distrib: bullseye
             arch: arm64
@@ -158,5 +171,7 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-version.outputs.version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-version.outputs.stability }}
+          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_cloud: ${{ needs.get-version.outputs.release_cloud }}

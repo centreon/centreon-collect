@@ -19,6 +19,7 @@
 #ifndef CCB_TIMESTAMP_HH
 #define CCB_TIMESTAMP_HH
 
+#include <fmt/format.h>
 #include <istream>
 
 namespace com::centreon::broker {
@@ -68,7 +69,8 @@ struct timestamp {
    *  @return This object.
    */
   timestamp& operator=(const timestamp& right) {
-    if (this != &right) _sec = right._sec;
+    if (this != &right)
+      _sec = right._sec;
     return *this;
   }
 
@@ -145,6 +147,10 @@ struct timestamp {
   static timestamp max() {
     return timestamp(std::numeric_limits<time_t>::max());
   }
+
+  std::string to_string() const {
+    return is_null() ? "NULL" : fmt::format("{}", _sec);
+  }
 };
 
 /**
@@ -160,6 +166,10 @@ inline std::istream& operator>>(std::istream& stream, timestamp& ts) {
   stream >> s;
   ts = timestamp(s);
   return stream;
+}
+
+inline time_t format_as(const timestamp& o) {
+  return o.get_time_t();
 }
 
 }  // namespace com::centreon::broker

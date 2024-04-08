@@ -17,7 +17,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../lib/15-stats_exporter.so"
+  - src: "../build/broker/stats_exporter/15-stats_exporter.so"
     dst: "/usr/share/centreon/lib/centreon-broker/"
 
 overrides:

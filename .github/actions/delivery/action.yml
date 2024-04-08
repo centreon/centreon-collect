@@ -19,6 +19,12 @@ inputs:
   stability:
     description: "The package stability (stable, testing, unstable)"
     required: true
+  release_type:
+    description: "Type of release (hotfix, release)"
+    required: true
+  release_cloud:
+    description: "Release context (cloud or not cloud)"
+    required: true
 
 runs:
   using: "composite"
@@ -31,12 +37,12 @@ runs:
 
     - name: Build name for DEB
       shell: bash
-      if: ${{ inputs.distrib == 'bullseye' }}
+      if: ${{ contains(fromJSON('["bullseye", "bookworm", "jammy"]'), inputs.distrib) }}
       run: |
         echo "extfile=deb" >> $GITHUB_ENV
 
     - name: Use cache files
-      uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+      uses: actions/cache/restore@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
       with:
         path: ./*.${{ env.extfile }}
         key: ${{ inputs.cache_key }}
@@ -46,9 +52,11 @@ runs:
         JF_URL: https://centreon.jfrog.io
         JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
 
-    - if: ${{ startsWith(inputs.distrib, 'el') }}
+    - if: ${{ env.extfile == 'rpm' }}
       name: Publish RPMs
       run: |
+        set -eux
+
         FILES="*.${{ env.extfile }}"
 
         echo "[DEBUG] - Version: ${{ inputs.version }}"
@@ -64,8 +72,17 @@ runs:
           exit 1
         fi
 
+        # DEBUG
+        echo "[DEBUG] - Version: ${{ inputs.version }}"
+        echo "[DEBUG] - Distrib: ${{ inputs.distrib }}"
+        echo "[DEBUG] - module_name: ${{ inputs.module_name }}"
+        echo "[DEBUG] - release_cloud: ${{ inputs.release_cloud }}"
+        echo "[DEBUG] - release_type: ${{ inputs.release_type }}"
+
+        # Create ARCH dirs
         mkdir noarch x86_64
 
+        # Get ARCH target for files to deliver and regroupe them by ARCH
         for FILE in $FILES; do
           echo "[DEBUG] - File: $FILE"
 
@@ -76,20 +93,37 @@ runs:
           mv "$FILE" "$ARCH"
         done
 
-        for ROOT_REPO_PATH in "rpm-standard" "rpm-standard-internal"; do
+        # Build upload target path based on release_cloud and release_type values
+        # if cloud, deliver to testing-<release_type>
+        # if non-cloud, delivery to testing as usual
+        # CLOUD + HOTFIX + REPO STANDARD INTERNAL OR CLOUD + RELEASE + REPO STANDARD INTERNAL
+        if [[ ${{ inputs.release_cloud }} -eq 1 && ${{ inputs.release_type }} == "hotfix" ]] || [[ ${{ inputs.release_cloud }} -eq 1 && ${{ inputs.release_type }} == "release" ]]; then
+          ROOT_REPO_PATHS="rpm-standard-internal"
+          UPLOAD_REPO_PATH="${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}-${{ inputs.release_type }}/$ARCH/RPMS/${{ inputs.module_name }}/"
+        # NON-CLOUD + (HOTFIX OR RELEASE) + REPO STANDARD
+        elif [[ ${{ inputs.release_cloud }} -eq 0 ]]; then
+          ROOT_REPO_PATHS="rpm-standard"
+          UPLOAD_REPO_PATH="${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/${{ inputs.module_name }}/"
+        else
+          echo "Invalid combination of release_type and release_cloud"
+          exit 1
+        fi
+
+        # Deliver based on inputs
+        for ROOT_REPO_PATH in "$ROOT_REPO_PATHS"; do
           for ARCH in "noarch" "x86_64"; do
             if [ "$(ls -A $ARCH)" ]; then
               if [ "${{ inputs.stability }}" == "stable" ]; then
-                jf rt upload "$ARCH/*.rpm" "$ROOT_REPO_PATH/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/RPMS/${{ inputs.module_name }}/" --flat
+                echo "[DEBUG] - Stability is ${{ inputs.stability }}, not delivering."
               else
-                jf rt upload "$ARCH/*.rpm" "$ROOT_REPO_PATH/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/${{ inputs.module_name }}/" --sync-deletes="$ROOT_REPO_PATH/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/${{ inputs.module_name }}/" --flat
+                jf rt upload "$ARCH/*.rpm" "$ROOT_REPO_PATH/$UPLOAD_REPO_PATH" --sync-deletes="$ROOT_REPO_PATH/$UPLOAD_REPO_PATH" --flat
               fi
             fi
           done
         done
       shell: bash
 
-    - if: ${{ inputs.distrib == 'bullseye' }}
+    - if: ${{ env.extfile == 'deb' }}
       name: Publish DEBs
       run: |
         FILES="*.${{ env.extfile }}"
@@ -113,6 +147,12 @@ runs:
 
           echo "[DEBUG] - Version: $VERSION"
 
-          jf rt upload "$FILE" "apt-standard-${{ inputs.version }}-${{ inputs.stability }}/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
+          if [[ "${{ inputs.distrib }}" == "jammy" ]]; then
+            REPO_PREFIX="ubuntu"
+          else
+            REPO_PREFIX="apt"
+          fi
+
+          jf rt upload "$FILE" "${REPO_PREFIX}-standard-${{ inputs.version }}-${{ inputs.stability }}/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
         done
       shell: bash

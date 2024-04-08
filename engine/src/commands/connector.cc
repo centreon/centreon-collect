@@ -28,7 +28,7 @@
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::commands;
 
-//#define DEBUG_CONFIG
+// #define DEBUG_CONFIG
 
 #ifdef DEBUG_CONFIG
 #define LOCK_GUARD(lck, m) \
@@ -902,7 +902,7 @@ void connector::_run_restart() {
           "exit_status={}, "
           "output='{}'",
           command_id, res.start_time.to_mseconds(), res.end_time.to_mseconds(),
-          res.exit_code, res.exit_status, res.output);
+          res.exit_code, static_cast<uint32_t>(res.exit_status), res.output);
       if (!info->waiting_result) {
         // Forward result to the listener.
         if (_listener)

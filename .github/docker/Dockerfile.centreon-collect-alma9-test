@@ -4,7 +4,7 @@ FROM ${REGISTRY_URL}/almalinux:9
 
 COPY . /tmp/collect
 
-RUN <<EOF
+RUN bash -e <<EOF
 
 # Base dnf configuration.
 echo 'http_caching=none' >> /etc/yum.conf
@@ -38,6 +38,8 @@ dnf --best install -y \
     psmisc \
     sudo
 
+dnf clean all
+
 echo "install robot and dependencies"
 
 pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
@@ -50,4 +52,3 @@ cd /tmp/collect
 /bin/rm -rf /tmp/collect
 
 EOF
-

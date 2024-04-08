@@ -48,13 +48,26 @@ namespace lua {
  *
  */
 class broker_event {
+  struct gc_info {
+    gc_info() : _broker_event_cpt(0), _last_full_gc(time(nullptr)) {}
+
+    unsigned _broker_event_cpt;
+    time_t _last_full_gc;
+  };
+
+  static std::map<const lua_State*, gc_info> _gc_info;
+  static std::mutex _gc_info_m;
+
+  static int l_broker_event_destructor(lua_State* L);
+
  public:
   static void broker_event_reg(lua_State* L);
   static void create(lua_State* L, std::shared_ptr<io::data> e);
   static void create_as_table(lua_State* L, const io::data& e);
+  static void lua_close(const lua_State* L);
 };
 }  // namespace lua
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_LUA_BROKER_EVENT_HH

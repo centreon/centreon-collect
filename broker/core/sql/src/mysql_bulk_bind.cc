@@ -1,20 +1,20 @@
 /**
-* Copyright 2018, 2021-2023 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2018, 2021-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/sql/mysql_bulk_bind.hh"
 
@@ -103,17 +103,17 @@ void mysql_bulk_bind::set_value_as_i64(size_t range,
     _bind[range].length = _column[range].length_buffer();                 \
   }
 
-#define VALUE(ftype, vtype, sqltype)                                        \
-  vtype mysql_bulk_bind::value_as_##ftype(size_t range) const {             \
-    if (_bind[range].buffer_type == sqltype)                                \
-      return *static_cast<vtype*>(_bind[range].buffer);                     \
-    else {                                                                  \
-      assert("This field is not an " #sqltype == nullptr);                  \
-      SPDLOG_LOGGER_CRITICAL(log_v2::sql(),                                 \
-                             "{} This field is not an " #sqltype " but {}", \
-                             __FUNCTION__, _bind[range].buffer_type);       \
-      return 0;                                                             \
-    }                                                                       \
+#define VALUE(ftype, vtype, sqltype)                                      \
+  vtype mysql_bulk_bind::value_as_##ftype(size_t range) const {           \
+    if (_bind[range].buffer_type == sqltype)                              \
+      return *static_cast<vtype*>(_bind[range].buffer);                   \
+    else {                                                                \
+      assert("This field is not an " #sqltype == nullptr);                \
+      SPDLOG_LOGGER_CRITICAL(                                             \
+          log_v2::sql(), "{} This field is not an " #sqltype " but {}",   \
+          __FUNCTION__, static_cast<uint32_t>(_bind[range].buffer_type)); \
+      return 0;                                                           \
+    }                                                                     \
   }
 
 SET_VALUE(i32, int32_t, MYSQL_TYPE_LONG, false)

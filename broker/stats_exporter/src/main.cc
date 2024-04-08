@@ -70,12 +70,13 @@ void broker_module_init(const void* arg) {
                            CENTREON_BROKER_VERSION);
 
     for (const auto& e : exporters) {
-      log_v2::config()->info("stats_exporter: with exporter '{}'", e.protocol);
       switch (e.protocol) {
         case config::state::stats_exporter::HTTP:
+          log_v2::config()->info("stats_exporter: with exporter 'HTTP'");
           expt = std::make_unique<stats_exporter::exporter_http>(e.url, *s);
           break;
         case config::state::stats_exporter::GRPC:
+          log_v2::config()->info("stats_exporter: with exporter 'GRPC'");
           expt = std::make_unique<stats_exporter::exporter_grpc>(e.url, *s);
           break;
       }

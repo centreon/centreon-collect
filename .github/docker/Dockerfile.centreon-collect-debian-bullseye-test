@@ -2,10 +2,9 @@ ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/debian:bullseye
 
-
 COPY . /tmp/collect
 
-RUN <<EOF
+RUN bash -e <<EOF
 
 apt-get update
 
@@ -34,14 +33,12 @@ apt-get -y install curl \
     psmisc \
     sudo
 
-localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+apt-get clean
 
-curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-python3 get-pip.py
+localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
 pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
 pip3 install grpcio grpcio_tools py-cpuinfo cython unqlite gitpython boto3
-
 
 cd /tmp/collect
 

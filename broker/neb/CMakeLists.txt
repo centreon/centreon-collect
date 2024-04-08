@@ -45,7 +45,6 @@ set(NEB_SOURCES
     ${SRC_DIR}/host_service_status.cc
     ${SRC_DIR}/host_status.cc
     ${SRC_DIR}/instance.cc
-    ${SRC_DIR}/instance_configuration.cc
     ${SRC_DIR}/instance_status.cc
     ${SRC_DIR}/log_entry.cc
     ${SRC_DIR}/responsive_instance.cc
@@ -76,7 +75,6 @@ set(NEB_SOURCES
     ${INC_DIR}/com/centreon/broker/neb/host_service_status.hh
     ${INC_DIR}/com/centreon/broker/neb/host_status.hh
     ${INC_DIR}/com/centreon/broker/neb/instance.hh
-    ${INC_DIR}/com/centreon/broker/neb/instance_configuration.hh
     ${INC_DIR}/com/centreon/broker/neb/instance_status.hh
     ${INC_DIR}/com/centreon/broker/neb/internal.hh
     ${INC_DIR}/com/centreon/broker/neb/log_entry.hh
@@ -91,9 +89,19 @@ set(NEB_SOURCES
 
 # Static library.
 add_library(nebbase STATIC ${NEB_SOURCES})
-add_dependencies(nebbase table_max_size target_neb target_severity target_tag)
+add_dependencies(nebbase
+	table_max_size
+	target_neb
+	target_severity
+	target_tag
+	pb_neb_lib
+	pb_header_lib
+)
 
-target_link_libraries(nebbase CONAN_PKG::protobuf pb_severity_lib pb_tag_lib
+target_link_libraries(nebbase
+		      -L${PROTOBUF_LIB_DIR}
+		      pb_severity_lib pb_tag_lib
+		      protobuf
                       pb_neb_lib pb_header_lib)
 
 set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")
@@ -112,7 +120,7 @@ add_library(
 )
 
 # Flags needed to include all symbols in binary.
-target_link_libraries(${NEB} nebbase CONAN_PKG::spdlog)
+target_link_libraries(${NEB} nebbase spdlog::spdlog)
 
 set_target_properties("${NEB}" PROPERTIES PREFIX "")
 target_precompile_headers(${NEB} REUSE_FROM nebbase)
@@ -147,16 +155,19 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # Flags needed to include all symbols in shared library.
   target_link_libraries(
     "${CBMOD}"
+    -L${PROTOBUF_LIB_DIR}
     rokerlog
     "-Wl,--whole-archive"
     rokerbase
     multiplexing
     "-Wl,--no-whole-archive"
-    CONAN_PKG::nlohmann_json
-    CONAN_PKG::spdlog)
+    nlohmann_json::nlohmann_json
+    spdlog::spdlog)
 else()
-  target_link_libraries("${CBMOD}" "rokerbase" CONAN_PKG::nlohmann_json
-                        CONAN_PKG::spdlog)
+  target_link_libraries("${CBMOD}"
+    -L${PROTOBUF_LIB_DIR}
+    "rokerbase" nlohmann_json::nlohmann_json
+                        spdlog::spdlog)
 endif()
 
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")

@@ -64,13 +64,13 @@ contents:
       mode: 644
     packager: deb
 
-  - src: "../bin/centengine"
+  - src: "../build/engine/centengine"
     dst: "/usr/sbin/centengine"
 
-  - src: "../bin/centenginestats"
+  - src: "../build/engine/centenginestats"
     dst: "/usr/sbin/centenginestats"
 
-  - src: "../lib/externalcmd.so"
+  - src: "../build/engine/modules/external_commands/externalcmd.so"
     dst: "/usr/lib64/centreon-engine/externalcmd.so"
 
   - dst: "/etc/centreon-engine"
