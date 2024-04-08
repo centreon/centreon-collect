@@ -11,45 +11,45 @@ Library             ../resources/Engine.py
 Library             ../resources/Broker.py
 Library             ../resources/Common.py
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
-Test Teardown       Save Logs If Failed
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
 SDER
     [Documentation]    The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then engine and broker are started and broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that broker doesn't crash anymore.
     [Tags]    broker    engine    host    extcmd
-    Config Engine    ${1}    ${1}    ${25}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Log    central    sql    debug
-    Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
+    Ctn Config Engine    ${1}    ${1}    ${25}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    trace
+    Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    Stop Engine
+    Ctn Stop Engine
 
-    Modify Retention Dat    0    host_1    service_1    current_attempt    280
+    Ctn Modify Retention Dat    0    host_1    service_1    current_attempt    280
     # modified attributes is a bit field. We must set the bit corresponding to MAX_ATTEMPTS to be allowed to change max_attempts. Otherwise it will be set to 3.
-    Modify Retention Dat    0    host_1    service_1    modified_attributes    65535
-    Modify Retention Dat    0    host_1    service_1    max_attempts    280
+    Ctn Modify Retention Dat    0    host_1    service_1    modified_attributes    65535
+    Ctn Modify Retention Dat    0    host_1    service_1    max_attempts    280
 
-    Modify Retention Dat    0    host_1    service_1    current_state    2
-    Modify Retention Dat    0    host_1    service_1    state_type    1
-    Start Engine
+    Ctn Modify Retention Dat    0    host_1    service_1    current_state    2
+    Ctn Modify Retention Dat    0    host_1    service_1    state_type    1
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -62,5 +62,5 @@ SDER
     END
     Should Be Equal As Strings    ${output}    ((280,),)
 
-    Stop Engine
-    Kindly Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

@@ -8,7 +8,6 @@ import engine_pb2_grpc
 from array import array
 from os import makedirs, chmod
 from os.path import exists, dirname
-from xml.etree.ElementTree import Comment
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 import db_conf
@@ -172,7 +171,7 @@ class EngineInstance:
             "hid": hid}
         return retval
 
-    def create_service(self, host_id: int, cmd_ids: int):
+    def ctn_create_service(self, host_id: int, cmd_ids: int):
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
@@ -196,7 +195,7 @@ class EngineInstance:
             host_id, service_id, self.service_cmd[service_id])
         return retval
 
-    def create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
+    def ctn_create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
         self.last_service_id += 1
         service_id = self.last_service_id
         retval = """define anomalydetection {{
@@ -374,7 +373,7 @@ define command {
         ff.close()
 
     @staticmethod
-    def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+    def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
         config_file = f"{CONF_DIR}/config{poller}/escalations.cfg"
         with open(config_file, "a+") as ff:
             content = """define serviceescalation {{
@@ -388,7 +387,7 @@ define command {
             ff.write(content)
 
     @staticmethod
-    def create_template_file(poller: int, typ: str, what: str, ids):
+    def ctn_create_template_file(poller: int, typ: str, what: str, ids):
         config_file = "{}/config{}/{}Templates.cfg".format(
             CONF_DIR, poller, typ)
         ff = open(config_file, "w+")
@@ -409,27 +408,27 @@ passive_checks_enabled 1
 
     @staticmethod
     def create_tags(poller: int, nb: int, offset: int, tag_type: str):
-        tt = ["servicegroup", "hostgroup", "servicecategory", "hostcategory"]   
+        tt = ["servicegroup", "hostgroup", "servicecategory", "hostcategory"]
 
-        config_file = f"{CONF_DIR}/config{poller}/tags.cfg"                         
-        with open(config_file, "w+") as ff:                                              
-            content = ""                                                                 
-            tid = 0                                                                      
-            for i in range(nb):                                                          
-                if len(tag_type) > 0:                                                    
-                    typ = tag_type                                                       
-                    tid += 1                                                             
-                else:                                                                    
-                    if i % 4 == 0:                                                       
-                        tid += 1                                                         
-                    typ = tt[i % 4]                                                      
+        config_file = f"{CONF_DIR}/config{poller}/tags.cfg"
+        with open(config_file, "w+") as ff:
+            content = ""
+            tid = 0
+            for i in range(nb):
+                if len(tag_type) > 0:
+                    typ = tag_type
+                    tid += 1
+                else:
+                    if i % 4 == 0:
+                        tid += 1
+                    typ = tt[i % 4]
                 content += """define tag {{                                              
     id                     {0}                                                           
     tag_name               tag{2}                                                        
     type                   {1}                                                           
 }}                                                                                       
-""".format(tid, typ, i + offset)                                                         
-            ff.write(content)                                                            
+""".format(tid, typ, i + offset)
+            ff.write(content)
 
     def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
         if exists(CONF_DIR):
@@ -438,7 +437,6 @@ passive_checks_enabled 1
         if hosts % self.instances > 0:
             r = 1
         v = int(hosts / self.instances) + r
-        last = hosts - (self.instances - 1) * v
         for inst in range(self.instances):
             if v < hosts:
                 nb_hosts = v
@@ -461,8 +459,8 @@ passive_checks_enabled 1
                 f.write(h["config"])
                 self.hosts.append("host_{}".format(h["hid"]))
                 for j in range(1, services_by_host + 1):
-                    ff.write(self.create_service(h["hid"],
-                                                 (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
+                    ff.write(self.ctn_create_service(h["hid"],
+                                                     (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
                     self.services.append("service_{}".format(h["hid"]))
             ff.close()
             f.close()
@@ -664,7 +662,8 @@ define contact {
 
 engine = None
 
-def config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
+
+def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
     """
     Configure all the necessary files for num instances of centengine.
 
@@ -677,7 +676,7 @@ def config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
     engine = EngineInstance(num, hosts, srv_by_host)
 
 
-def get_engines_count():
+def ctn_get_engines_count():
     """
     Return the number of centengine configurations.
 
@@ -690,7 +689,7 @@ def get_engines_count():
         return engine.instances
 
 
-def engine_config_set_value(idx: int, key: str, value: str, force: bool = False):
+def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = False):
     """
     Set a value in the centengine.cfg
 
@@ -720,9 +719,10 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
     f.writelines(lines)
     f.close()
 
-def engine_config_add_value(idx: int, key: str, value: str):
+
+def ctn_engine_config_add_value(idx: int, key: str, value: str):
     """
-    engine_config_add_value _Engine Config Add Value_
+    ctn_engine_config_add_value _Engine Config Add Value_
 
     Run a command to add a value in the centengine.cfg for the config idx.
 
@@ -738,7 +738,7 @@ def engine_config_add_value(idx: int, key: str, value: str):
     f.close()
 
 
-def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value: str):
     """
     Set a parameter in the services.cfg.
 
@@ -763,7 +763,7 @@ def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: st
     f.close()
 
 
-def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
     """
     Changes the value of a parameter in the services.cfg file for the centengine number idx.
 
@@ -790,7 +790,8 @@ def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value
     with open(filename, "w") as f:
         f.writelines(lines)
 
-def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
+
+def ctn_engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
     """
     Set a parameter in the hosts.cfg for the Engine configuration idx.
 
@@ -815,7 +816,7 @@ def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
     f.close()
 
 
-def engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: str):
     """
     Change a parameter in the hosts.cfg file of the Engine config idx.
 
@@ -845,7 +846,7 @@ def engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: s
     f.close()
 
 
-def engine_config_change_command(idx: int, command_index: str, new_command: str):
+def ctn_engine_config_change_command(idx: int, command_index: str, new_command: str):
     """
     Changes the command line of command whose index is command_index in the Engine config idx.
 
@@ -874,7 +875,7 @@ def engine_config_change_command(idx: int, command_index: str, new_command: str)
     f.close
 
 
-def engine_config_add_command(idx: int, command_name: str, new_command: str, connector: str = None):
+def ctn_engine_config_add_command(idx: int, command_name: str, new_command: str, connector: str = None):
     """
     Add a new command in the commands.cfg for the Engine config idx.
 
@@ -901,7 +902,7 @@ def engine_config_add_command(idx: int, command_name: str, new_command: str, con
     f.close()
 
 
-def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str):
     """
     Modify a parameter in the contacts.cfg for the Engine config idx.
 
@@ -927,7 +928,7 @@ def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: st
     f.close()
 
 
-def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
     """
     Replace a value in the escalations.cfg for the config idx
 
@@ -948,7 +949,7 @@ def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value:
         ff.writelines(lines)
 
 
-def engine_config_remove_service_host(idx: int, host: str):
+def ctn_engine_config_remove_service_host(idx: int, host: str):
     """
     Remove all the services of a host from the services.cfg file.
 
@@ -986,7 +987,7 @@ def engine_config_remove_service_host(idx: int, host: str):
     f.close()
 
 
-def engine_config_remove_host(idx: int, host: str):
+def ctn_engine_config_remove_host(idx: int, host: str):
     """
     Remove a host from the hosts.cfg configuration file.
 
@@ -994,10 +995,9 @@ def engine_config_remove_host(idx: int, host: str):
         idx (int): Index of the configuration (from 0)
         host (str): name of the host wanted to be removed
     """
-    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
 
     host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
     host_begin = re.compile(r"^define host {$")
@@ -1025,7 +1025,7 @@ def engine_config_remove_host(idx: int, host: str):
     f.close()
 
 
-def add_host_group(index: int, id_host_group: int, members: list):
+def ctn_add_host_group(index: int, id_host_group: int, members: list):
     """
     Add a host group on the engine instance index
 
@@ -1034,14 +1034,14 @@ def add_host_group(index: int, id_host_group: int, members: list):
         id_host_group (int): ID of the new host group to add.
         members (list): A list of host names.
     """
-    mbs = [l for l in members if l in engine.hosts]
+    mbs = [line for line in members if line in engine.hosts]
     f = open(ETC_ROOT + "/centreon-engine/config{}/hostgroups.cfg".format(index), "a+")
     logger.console(mbs)
     f.write(engine.create_host_group(id_host_group, mbs))
     f.close()
 
 
-def rename_host_group(index: int, id_host_group: int, name: str, members: list):
+def ctn_rename_host_group(index: int, id_host_group: int, name: str, members: list):
     """
     Rename a host group on the engine instance index. It also modifies its members.
 
@@ -1054,7 +1054,7 @@ def rename_host_group(index: int, id_host_group: int, name: str, members: list):
         name (str): host_group_name
         members (list): The new list of host members.
     """
-    mbs = [l for l in members if l in engine.hosts]
+    mbs = [line for line in members if line in engine.hosts]
     f = open(ETC_ROOT + "/centreon-engine/config{}/hostgroups.cfg".format(index), "w")
     logger.console(mbs)
     f.write("""define hostgroup {{
@@ -1067,7 +1067,7 @@ def rename_host_group(index: int, id_host_group: int, name: str, members: list):
     f.close()
 
 
-def rename_service(index: int, hst: str, svc: str, new_svc: str):
+def ctn_rename_service(index: int, hst: str, svc: str, new_svc: str):
     """
     Rename a service on the engine instance index.
 
@@ -1090,25 +1090,25 @@ def rename_service(index: int, hst: str, svc: str, new_svc: str):
     l_svc = None
 
     for i in range(len(ll)):
-        l = ll[i]
+        line = ll[i]
         if inside:
-            if rs_end.match(l):
+            if rs_end.match(line):
                 inside = False
                 if svc == my_svc and hst == my_hst:
                     ll[l_svc] = f"    service_description\t{new_svc}\n"
                 svc, hst, l_svc = None, None, None
                 continue
-            m = rs_hst.search(l)
+            m = rs_hst.search(line)
             if m:
                 my_hst = m.group(1)
             else:
-                m = rs_svc.search(l)
+                m = rs_svc.search(line)
                 if m:
                     my_svc = m.group(1)
                     l_svc = i
 
         else:
-            if rs_start.match(l):
+            if rs_start.match(line):
                 inside = True
 
     f = open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "w")
@@ -1116,7 +1116,7 @@ def rename_service(index: int, hst: str, svc: str, new_svc: str):
     f.close()
 
 
-def add_service_group(index: int, id_service_group: int, members: list):
+def ctn_add_service_group(index: int, id_service_group: int, members: list):
     """
     Add a service group on the engine instance index.
 
@@ -1132,7 +1132,7 @@ def add_service_group(index: int, id_service_group: int, members: list):
     f.close()
 
 
-def add_contact_group(index: int, id_contact_group: int, members: list):
+def ctn_add_contact_group(index: int, id_contact_group: int, members: list):
     """
     Add a contact group on the engine instance index.
 
@@ -1146,7 +1146,7 @@ def add_contact_group(index: int, id_contact_group: int, members: list):
         f.write(engine.create_contact_group(id_contact_group, members))
 
 
-def create_service(index: int, host_id: int, cmd_id: int):
+def ctn_create_service(index: int, host_id: int, cmd_id: int):
     """
     Create a service on the engine instance index, on the host host_id, with the command cmd_id.
 
@@ -1162,9 +1162,9 @@ def create_service(index: int, host_id: int, cmd_id: int):
     | ${svc_id} | Create Service | 0 | 1 | 1 |
     """
     f = open(ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(index), "a+")
-    svc = engine.create_service(host_id, [1, cmd_id])
+    svc = engine.ctn_create_service(host_id, [1, cmd_id])
     lst = svc.split('\n')
-    good = [l for l in lst if "_SERVICE_ID" in l][0]
+    good = [line for line in lst if "_SERVICE_ID" in line][0]
     m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)
     if m is not None:
         retval = int(m.group(1))
@@ -1177,7 +1177,7 @@ def create_service(index: int, host_id: int, cmd_id: int):
     return retval
 
 
-def create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
+def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
     """
     Create an anomaly detection on the engine instance with the given index.
 
@@ -1193,10 +1193,10 @@ def create_anomaly_detection(index: int, host_id: int, dependent_service_id: int
     """
     f = open(
         ETC_ROOT + "/centreon-engine/config{}/anomaly_detection.cfg".format(index), "a+")
-    to_append = engine.create_anomaly_detection(
+    to_append = engine.ctn_create_anomaly_detection(
         host_id, dependent_service_id, metric_name, sensitivity)
     lst = to_append.split('\n')
-    good = [l for l in lst if "service_id" in l][0]
+    good = [line for line in lst if "service_id" in line][0]
     m = re.search(r"service_id\s+([^\s]*)$", good)
     if m is not None:
         retval = int(m.group(1))
@@ -1210,7 +1210,7 @@ def create_anomaly_detection(index: int, host_id: int, dependent_service_id: int
     return retval
 
 
-def clone_engine_config_to_db():
+def ctn_clone_engine_config_to_db():
     """
     Clone all the Engine configurations to the database. In other words, create
     the current configuration in the centreon database.
@@ -1220,7 +1220,7 @@ def clone_engine_config_to_db():
     dbconf.create_conf_db()
 
 
-def add_bam_config_to_engine():
+def ctn_add_bam_config_to_engine():
     """
     Add the bam configuration to the Engine.
     """
@@ -1228,7 +1228,7 @@ def add_bam_config_to_engine():
     dbconf.init_bam()
 
 
-def create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inherit"):
+def ctn_create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inherit"):
     """
     Create a BA with the given services.
 
@@ -1242,10 +1242,10 @@ def create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inherit")
         A tuple(BA ID, virtual service associated to the BA).
     """
     global dbconf
-    return dbconf.create_ba_with_services(name, typ, svc, dt_policy)
+    return dbconf.ctn_create_ba_with_services(name, typ, svc, dt_policy)
 
 
-def create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit"):
+def ctn_create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit"):
     """
     Create a BA.
 
@@ -1260,10 +1260,10 @@ def create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt
         A tuple(BA ID, virtual service associated to the BA).
     """
     global dbconf
-    return dbconf.create_ba(name, typ, critical_impact, warning_impact, dt_policy)
+    return dbconf.ctn_create_ba(name, typ, critical_impact, warning_impact, dt_policy)
 
 
-def add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):
+def ctn_add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):
     """
     Add a boolean KPI to a BA.
 
@@ -1276,10 +1276,10 @@ def add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impac
     Returns:
         The ID of the boolean expression.
     """
-    return dbconf.add_boolean_kpi(id_ba, expression, impact_if, critical_impact)
+    return dbconf.ctn_add_boolean_kpi(id_ba, expression, impact_if, critical_impact)
 
 
-def update_boolean_rule(boolean_id: int, expression: str):
+def ctn_update_boolean_rule(boolean_id: int, expression: str):
     """
     Udpate a boolean rule.
 
@@ -1287,10 +1287,10 @@ def update_boolean_rule(boolean_id: int, expression: str):
         boolean_id (int): The ID of the boolean expression to change.
         expression (str): The new expression.
     """
-    dbconf.update_boolean_rule(boolean_id, expression)
+    dbconf.ctn_update_boolean_rule(boolean_id, expression)
 
 
-def add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+def ctn_add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):
     """
     Add a BA KPI.
 
@@ -1301,11 +1301,11 @@ def add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_im
         warning_impact (int): Impact weight in the event of a Warning condition, in real-time monitoring. Ignored if indicator is a boolean rule
         unknown_impact (int): _Impact weight in the event of an Unknown condition, in real-time monitoring. Ignored if indicator is a boolean rule
     """
-    dbconf.add_ba_kpi(id_ba_src, id_ba_dest, critical_impact,
-                      warning_impact, unknown_impact)
+    dbconf.ctn_add_ba_kpi(id_ba_src, id_ba_dest, critical_impact,
+                          warning_impact, unknown_impact)
 
 
-def add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+def ctn_add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
     """
     Add a service KPI.
 
@@ -1318,11 +1318,11 @@ def add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warn
         unknown_impact (int): _Impact weight in the event of an Unknown condition, in real-time monitoring. Ignored if indicator is a boolean rule
     """
     global dbconf
-    dbconf.add_service_kpi(
+    dbconf.ctn_add_service_kpi(
         host, serv, id_ba, critical_impact, warning_impact, unknown_impact)
 
 
-def remove_service_kpi(id_ba: int, host: str, svc: str):
+def ctn_remove_service_kpi(id_ba: int, host: str, svc: str):
     """
     Remove a service kpi given by hostname/service description from a ba given by its id.
 
@@ -1332,10 +1332,10 @@ def remove_service_kpi(id_ba: int, host: str, svc: str):
         svc: the service description.
     """
     global dbconf
-    dbconf.remove_service_kpi(id_ba, host, svc)
+    dbconf.ctn_remove_service_kpi(id_ba, host, svc)
 
 
-def get_command_id(service: int):
+def ctn_get_command_id(service: int):
     """
     Get the command ID of the service with the given ID.
 
@@ -1351,7 +1351,7 @@ def get_command_id(service: int):
     return dbconf.command[cmd_name]
 
 
-def get_command_service_param(service: int):
+def ctn_get_command_service_param(service: int):
     """
     Get the command service param of a service.
 
@@ -1365,7 +1365,7 @@ def get_command_service_param(service: int):
     return engine.service_cmd[service][8:]
 
 
-def change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
+def ctn_change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
     """
     Update the normal check interval for a service.
 
@@ -1389,7 +1389,7 @@ def change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_in
         f.close()
 
 
-def change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: int):
+def ctn_change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: int):
     """
     Update the normal check interval for a host.
 
@@ -1412,7 +1412,7 @@ def change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: i
         f.close()
 
 
-def change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_interval: int):
+def ctn_change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_interval: int):
     """
     Change the retry check interval of a service.
 
@@ -1436,7 +1436,7 @@ def change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_int
         f.close()
 
 
-def change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: int):
+def ctn_change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: int):
     """
     Change the retry check interval for a host.
 
@@ -1459,7 +1459,7 @@ def change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: in
         f.close()
 
 
-def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_attempts: int):
+def ctn_change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_attempts: int):
     """
     Change the max check attempts for a service.
 
@@ -1483,7 +1483,7 @@ def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_a
         f.close()
 
 
-def change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: int):
+def ctn_change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: int):
     """
     Change the max check attempts of a host.
 
@@ -1506,7 +1506,7 @@ def change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: 
         f.close()
 
 
-def change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str):
+def ctn_change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str):
     """
     Change the check timeperiod for a host.
 
@@ -1529,7 +1529,7 @@ def change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str)
         f.close()
 
 
-def change_host_notification_timeperiod(use_grpc: int, hst: str, notification_timeperiod: str):
+def ctn_change_host_notification_timeperiod(use_grpc: int, hst: str, notification_timeperiod: str):
     """
     Change the host notification timeperiod for a given host.
 
@@ -1552,7 +1552,7 @@ def change_host_notification_timeperiod(use_grpc: int, hst: str, notification_ti
         f.close()
 
 
-def change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeperiod: str):
+def ctn_change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeperiod: str):
     """
     Change the service check timeperiod for a service.
 
@@ -1576,7 +1576,7 @@ def change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeper
         f.close()
 
 
-def change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notification_timeperiod: str):
+def ctn_change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notification_timeperiod: str):
     """
     Change the notification timeperiod for a service.
 
@@ -1600,7 +1600,7 @@ def change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notifi
         f.close()
 
 
-def disable_host_and_child_notifications(use_grpc: int, hst: str):
+def ctn_disable_host_and_child_notifications(use_grpc: int, hst: str):
     """
     Disable all the notifications on a host (the host itself and its children).
 
@@ -1622,7 +1622,7 @@ def disable_host_and_child_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_and_child_notifications(use_grpc: int, hst: str):
+def ctn_enable_host_and_child_notifications(use_grpc: int, hst: str):
     """
     Enable all the notifications on a host (the host itself and its children).
 
@@ -1644,7 +1644,7 @@ def enable_host_and_child_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_check(use_grpc: int, hst: str):
+def ctn_disable_host_check(use_grpc: int, hst: str):
     """
     Disable checks on a given host.
 
@@ -1661,7 +1661,7 @@ def disable_host_check(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_check(use_grpc: int, hst: str):
+def ctn_enable_host_check(use_grpc: int, hst: str):
     """
     Enable checks on a given host.
 
@@ -1678,7 +1678,7 @@ def enable_host_check(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_event_handler(use_grpc: int, hst: str):
+def ctn_disable_host_event_handler(use_grpc: int, hst: str):
     """
     Disable a host event handler.
 
@@ -1695,7 +1695,7 @@ def disable_host_event_handler(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_event_handler(use_grpc: int, hst: str):
+def ctn_enable_host_event_handler(use_grpc: int, hst: str):
     """
     Enable a host event handler.
 
@@ -1712,7 +1712,7 @@ def enable_host_event_handler(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_flap_detection(use_grpc: int, hst: str):
+def ctn_disable_host_flap_detection(use_grpc: int, hst: str):
     """
     Disable the flap detection on a host.
 
@@ -1729,7 +1729,7 @@ def disable_host_flap_detection(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_flap_detection(use_grpc: int, hst: str):
+def ctn_enable_host_flap_detection(use_grpc: int, hst: str):
     """
     Enable the flap detection on a host.
 
@@ -1746,7 +1746,7 @@ def enable_host_flap_detection(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_notifications(use_grpc: int, hst: str):
+def ctn_disable_host_notifications(use_grpc: int, hst: str):
     """
     Disable the notifications on a host.
 
@@ -1768,7 +1768,7 @@ def disable_host_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_notifications(use_grpc: int, hst: str):
+def ctn_enable_host_notifications(use_grpc: int, hst: str):
     """
     Enable notifications on a host.
 
@@ -1790,7 +1790,7 @@ def enable_host_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: float):
+def ctn_update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: float):
     """
     Update the anomaly detection sensitivity of an anomalydetection.
 
@@ -1814,7 +1814,7 @@ def update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: floa
         f.close()
 
 
-def disable_host_svc_checks(use_grpc: int, hst: str):
+def ctn_disable_host_svc_checks(use_grpc: int, hst: str):
     """
     Disable all the checks on a host (on it and on its services).
 
@@ -1831,7 +1831,7 @@ def disable_host_svc_checks(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_svc_checks(use_grpc: int, hst: str):
+def ctn_enable_host_svc_checks(use_grpc: int, hst: str):
     """
     Enable all the checks on a host (on it and on its services).
 
@@ -1848,7 +1848,7 @@ def enable_host_svc_checks(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_host_svc_notifications(use_grpc: int, hst: str):
+def ctn_disable_host_svc_notifications(use_grpc: int, hst: str):
     """
     Disable all the notifications on a host (on it and on its services).
 
@@ -1865,7 +1865,7 @@ def disable_host_svc_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_host_svc_notifications(use_grpc: int, hst: str):
+def ctn_enable_host_svc_notifications(use_grpc: int, hst: str):
     """
     Enable all the notifications on a host (on it and on its services).
 
@@ -1882,7 +1882,7 @@ def enable_host_svc_notifications(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_passive_host_checks(use_grpc: int, hst: str):
+def ctn_disable_passive_host_checks(use_grpc: int, hst: str):
     """
     Diable the passive checks on a host.
 
@@ -1899,7 +1899,7 @@ def disable_passive_host_checks(use_grpc: int, hst: str):
         f.close()
 
 
-def enable_passive_host_checks(use_grpc: int, hst: str):
+def ctn_enable_passive_host_checks(use_grpc: int, hst: str):
     """
     Enable the passive checks on a host.
 
@@ -1916,7 +1916,7 @@ def enable_passive_host_checks(use_grpc: int, hst: str):
         f.close()
 
 
-def disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
+def ctn_disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
     """
     Disable the passive checks on a service.
 
@@ -1934,7 +1934,7 @@ def disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
         f.close()
 
 
-def enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
+def ctn_enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
     """
     Enable passive checks on a service.
 
@@ -1952,7 +1952,7 @@ def enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
         f.close()
 
 
-def start_obsessing_over_host(use_grpc: int, hst: str):
+def ctn_start_obsessing_over_host(use_grpc: int, hst: str):
     """
     Start obsessing over a host.
 
@@ -1969,7 +1969,7 @@ def start_obsessing_over_host(use_grpc: int, hst: str):
         f.close()
 
 
-def stop_obsessing_over_host(use_grpc: int, hst: str):
+def ctn_stop_obsessing_over_host(use_grpc: int, hst: str):
     """
     Stop obsessing over a host.
 
@@ -1986,7 +1986,7 @@ def stop_obsessing_over_host(use_grpc: int, hst: str):
         f.close()
 
 
-def start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
+def ctn_start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
     """
     Start obsessing over a service.
 
@@ -2004,7 +2004,7 @@ def start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
         f.close()
 
 
-def stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
+def ctn_stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
     """
     Stop obsessing over a service.
 
@@ -2022,7 +2022,7 @@ def stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
         f.close()
 
 
-def external_command(func):
+def ctn_external_command(func):
     def wrapper(*args):
         now = int(time.time())
         cmd = f"[{now}] {func(*args)}"
@@ -2032,8 +2032,8 @@ def external_command(func):
     return wrapper
 
 
-@external_command
-def process_host_check_result(hst: str, state: int, output: str):
+@ctn_external_command
+def ctn_process_host_check_result(hst: str, state: int, output: str):
     """
     Process a host check result.
 
@@ -2048,8 +2048,8 @@ def process_host_check_result(hst: str, state: int, output: str):
     return f"PROCESS_HOST_CHECK_RESULT;{hst};{state};{output}\n"
 
 
-@external_command
-def schedule_service_downtime(hst: str, svc: str, duration: int):
+@ctn_external_command
+def ctn_schedule_service_downtime(hst: str, svc: str, duration: int):
     """
     Schedule a downtime on a service.
 
@@ -2065,8 +2065,8 @@ def schedule_service_downtime(hst: str, svc: str, duration: int):
     return f"SCHEDULE_SVC_DOWNTIME;{hst};{svc};{now};{now+int(duration)};0;0;{duration};admin;Downtime set by admin\n"
 
 
-@external_command
-def schedule_service_fixed_downtime(hst: str, svc: str, duration: int):
+@ctn_external_command
+def ctn_schedule_service_fixed_downtime(hst: str, svc: str, duration: int):
     """
     Schedule a fixed downtime on a service.
 
@@ -2082,7 +2082,7 @@ def schedule_service_fixed_downtime(hst: str, svc: str, duration: int):
     return f"SCHEDULE_SVC_DOWNTIME;{hst};{svc};{now};{now+int(duration)};1;0;{duration};admin;Downtime set by admin\n"
 
 
-def schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
+def ctn_schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
     """
     Schedule a fixed downtime on a host.
 
@@ -2103,7 +2103,7 @@ def schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
     f.close()
 
 
-def schedule_host_downtime(poller: int, hst: str, duration: int):
+def ctn_schedule_host_downtime(poller: int, hst: str, duration: int):
     """
     Schedule a downtime on a host.
 
@@ -2124,7 +2124,7 @@ def schedule_host_downtime(poller: int, hst: str, duration: int):
     f.close()
 
 
-def delete_host_downtimes(poller: int, hst: str):
+def ctn_delete_host_downtimes(poller: int, hst: str):
     """
     Delete the downtimes on a host.
 
@@ -2140,7 +2140,7 @@ def delete_host_downtimes(poller: int, hst: str):
     f.close()
 
 
-def delete_service_downtime_full(poller: int, hst: str, svc: str):
+def ctn_delete_service_downtime_full(poller: int, hst: str, svc: str):
     """
     Delete the downtimes on a service.
 
@@ -2157,7 +2157,7 @@ def delete_service_downtime_full(poller: int, hst: str, svc: str):
     f.close()
 
 
-def schedule_forced_svc_check(host: str, svc: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
+def ctn_schedule_forced_svc_check(host: str, svc: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
     """
     Schedule a forced check on a service.
 
@@ -2175,7 +2175,7 @@ def schedule_forced_svc_check(host: str, svc: str, pipe: str = f"{VAR_ROOT}/lib/
     time.sleep(0.05)
 
 
-def schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
+def ctn_schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
     """
     Schedule a forced check on a host.
 
@@ -2189,7 +2189,7 @@ def schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-
         f.write(cmd)
 
 
-def create_severities_file(poller: int, nb: int, offset: int = 1):
+def ctn_create_severities_file(poller: int, nb: int, offset: int = 1):
     """
     Create a severities.cfg file for a given poller.
 
@@ -2201,7 +2201,7 @@ def create_severities_file(poller: int, nb: int, offset: int = 1):
     engine.create_severities(poller, nb, offset)
 
 
-def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
     """
     Create an escalations.cfg file for a given poller.
 
@@ -2211,10 +2211,10 @@ def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
         SG (str): name of a service group.
         contactgroup (str): name of a contact group.
     """
-    engine.create_escalations_file(poller, name, SG, contactgroup)
+    engine.ctn_create_escalations_file(poller, name, SG, contactgroup)
 
 
-def create_template_file(poller: int, typ: str, what: str, ids: list):
+def ctn_create_template_file(poller: int, typ: str, what: str, ids: list):
     """
     Create a template file of the form "{typ}Templates.cfg". This should be as
     generic as possible. In fact, not so generic...
@@ -2225,10 +2225,10 @@ def create_template_file(poller: int, typ: str, what: str, ids: list):
         what (str): A string. It depends on what type of template.
         ids (list): For each integer in this list, a template is defined.
     """
-    engine.create_template_file(poller, typ, what, ids)
+    engine.ctn_create_template_file(poller, typ, what, ids)
 
 
-def create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
+def ctn_create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
     """
     Create a tags file.
 
@@ -2241,7 +2241,42 @@ def create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
     engine.create_tags(poller, nb, offset, tag_type)
 
 
-def config_engine_add_cfg_file(poller: int, cfg: str):
+def ctn_engine_config_remove_tag(poller: int, tag_id: int):
+    """
+    Remove all the tags from tags.cfg with the given tag ID.
+
+    Args:
+        poller: Poller index.
+        tag_id: ID of the tag to remove.
+    """
+    filename = f"{CONF_DIR}/config{poller}/tags.cfg"
+    with open(filename, "r") as ff:
+        lines = ff.readlines()
+
+    tag_name = re.compile(f"^\s*id\s+{tag_id}\s*$")
+    tag_begin = re.compile(r"^define tag {$")
+    tag_end = re.compile(r"^}$")
+    tag_begin_idx = 0
+    while tag_begin_idx < len(lines):
+        if (tag_begin.match(lines[tag_begin_idx])):
+            for tag_line_idx in range(tag_begin_idx, len(lines)):
+                if (tag_name.match(lines[tag_line_idx])):
+                    for end_tag_line in range(tag_line_idx, len(lines)):
+                        if tag_end.match(lines[end_tag_line]):
+                            del lines[tag_begin_idx:end_tag_line + 1]
+                            break
+                    break
+                elif tag_end.match(lines[tag_line_idx]):
+                    tag_begin_idx = tag_line_idx
+                    break
+        else:
+            tag_begin_idx = tag_begin_idx + 1
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
+def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
     """
     Add a reference to a cfg file in the centengine.cfg file at index _poller_.
 
@@ -2263,7 +2298,7 @@ def config_engine_add_cfg_file(poller: int, cfg: str):
     ff.close()
 
 
-def add_severity_to_services(poller: int, severity_id: int, svc_lst):
+def ctn_add_severity_to_services(poller: int, severity_id: int, svc_lst):
     """
     Add a severity to services.
 
@@ -2287,7 +2322,7 @@ def add_severity_to_services(poller: int, severity_id: int, svc_lst):
     ff.close()
 
 
-def set_services_passive(poller: int, srv_regex):
+def ctn_set_services_passive(poller: int, srv_regex):
     """
     Set passive a list of services.
 
@@ -2323,7 +2358,7 @@ def set_services_passive(poller: int, srv_regex):
     ff.close()
 
 
-def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
+def ctn_add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     """
     Add a severity to a list of hosts given by their ID.
 
@@ -2347,7 +2382,7 @@ def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     ff.close()
 
 
-def add_template_to_services(poller: int, tmpl: str, svc_lst):
+def ctn_add_template_to_services(poller: int, tmpl: str, svc_lst):
     """
     Add a service template to services.
 
@@ -2371,7 +2406,7 @@ def add_template_to_services(poller: int, tmpl: str, svc_lst):
     ff.close()
 
 
-def add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
+def ctn_add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
     """
     Add tags to a list of services given by their ID (just service ID).
 
@@ -2395,7 +2430,7 @@ def add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
     ff.close()
 
 
-def remove_severities_from_services(poller: int):
+def ctn_remove_severities_from_services(poller: int):
     """
     Remove severities from services on a poller.
 
@@ -2406,13 +2441,13 @@ def remove_severities_from_services(poller: int):
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*severity_id\s*\d+$")
-    out = [l for l in lines if not r.match(l)]
+    out = [line for line in lines if not r.match(line)]
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(out)
     ff.close()
 
 
-def remove_severities_from_hosts(poller: int):
+def ctn_remove_severities_from_hosts(poller: int):
     """
     Remove severities from hosts on a poller.
 
@@ -2423,12 +2458,13 @@ def remove_severities_from_hosts(poller: int):
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*severity_id\s*\d+$")
-    out = [l for l in lines if not r.match(l)]
+    out = [line for line in lines if not r.match(line)]
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(out)
     ff.close()
 
-def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
+
+def ctn_check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
     """
     Search a check, retrieve command index and return check result.
     Then it searchs the string "connector::run: id=\d+",
@@ -2475,10 +2511,10 @@ def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
     if not cmd_executed:
         return f"_recv_query_execute not found on '{r_query_execute}'"
     else:
-        return f"check_search doesn't find '{str_to_search}'"
+        return f"ctn_check_search doesn't find '{str_to_search}'"
 
 
-def add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
+def ctn_add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
     """
     Add tags to a list of hosts.
 
@@ -2506,7 +2542,7 @@ def add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
     ff.close()
 
 
-def remove_tags_from_services(poller: int, type: str):
+def ctn_remove_tags_from_services(poller: int, type: str):
     """
     Remove tags from services.
 
@@ -2518,13 +2554,13 @@ def remove_tags_from_services(poller: int, type: str):
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*" + type + r"\s*[0-9,]+$")
-    lines = [l for l in lines if not r.match(l)]
+    lines = [line for line in lines if not r.match(line)]
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
 
 
-def remove_tags_from_hosts(poller: int, type: str):
+def ctn_remove_tags_from_hosts(poller: int, type: str):
     """
     Remove tags from hosts.
 
@@ -2536,37 +2572,13 @@ def remove_tags_from_hosts(poller: int, type: str):
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*" + type + r"\s*[0-9,]+$")
-    lines = [l for l in lines if not r.match(l)]
+    lines = [line for line in lines if not r.match(line)]
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
 
 
-def add_template_to_services(poller: int, tmpl: str, svc_lst):
-    """
-    Add a service template to services.
-
-    Args:
-        poller (int): Index of the poller to work with.
-        tmpl (str): The name of the template to add.
-        svc_lst (list): A list of service IDs. We don't take care of host IDs here.
-    """
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
-    r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
-    for i in range(len(lines)):
-        m = r.match(lines[i])
-        if m is not None and m.group(1) in svc_lst:
-            lines.insert(
-                i + 1, "    use                     {}\n".format(tmpl))
-
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(lines)
-    ff.close()
-
-
-def add_template_to_hosts(poller: int, tmpl: str, hst_lst):
+def ctn_add_template_to_hosts(poller: int, tmpl: str, hst_lst):
     """
     Add a host template to hosts, each one given by its ID.
 
@@ -2590,7 +2602,7 @@ def add_template_to_hosts(poller: int, tmpl: str, hst_lst):
     ff.close()
 
 
-def config_engine_remove_cfg_file(poller: int, fic: str):
+def ctn_config_engine_remove_cfg_file(poller: int, fic: str):
     """
     Remove a config file reference from the centengine.cfg.
 
@@ -2603,13 +2615,13 @@ def config_engine_remove_cfg_file(poller: int, fic: str):
     ff.close()
     r = re.compile(
         r"^\s*cfg_file=" + ETC_ROOT + "/centreon-engine/config{}/{}".format(poller, fic))
-    linesearch = [l for l in lines if not r.match(l)]
+    linesearch = [line for line in lines if not r.match(line)]
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(linesearch)
     ff.close()
 
 
-def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
+def ctn_process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
     """
     Send a service check result with metrics.
 
@@ -2631,10 +2643,10 @@ def process_service_check_result_with_metrics(hst: str, svc: str, state: int, ou
         v = math.sin((now + m) / 1000) * 5
         pd.append(f"metric{m}={v}")
     full_output = " ".join(pd)
-    process_service_check_result(hst, svc, state, full_output, config)
+    ctn_process_service_check_result(hst, svc, state, full_output, config)
 
 
-def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
+def ctn_process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
     """
     Send a service check result.
 
@@ -2667,8 +2679,8 @@ def process_service_check_result(hst: str, svc: str, state: int, output: str, co
                 f.write(cmd)
 
 
-@external_command
-def acknowledge_service_problem(hst, service, typ='NORMAL'):
+@ctn_external_command
+def ctn_acknowledge_service_problem(hst, service, typ='NORMAL'):
     """
     Send an acknowledgement on a service.
 
@@ -2693,8 +2705,8 @@ def acknowledge_service_problem(hst, service, typ='NORMAL'):
     return f"ACKNOWLEDGE_SVC_PROBLEM;{hst};{service};{sticky};0;0;admin;Service ({hst},{service}) acknowledged\n"
 
 
-@external_command
-def remove_service_acknowledgement(hst, service):
+@ctn_external_command
+def ctn_remove_service_acknowledgement(hst, service):
     """
    Remove a service acknowledgement.
 
@@ -2708,8 +2720,8 @@ def remove_service_acknowledgement(hst, service):
     return f"REMOVE_SVC_ACKNOWLEDGEMENT;{hst};{service}\n"
 
 
-@external_command
-def send_custom_host_notification(hst, notification_option, author, comment):
+@ctn_external_command
+def ctn_send_custom_host_notification(hst, notification_option, author, comment):
     """
     Send a custom host notification.
 
@@ -2725,8 +2737,8 @@ def send_custom_host_notification(hst, notification_option, author, comment):
     return f"SEND_CUSTOM_HOST_NOTIFICATION;{hst};{notification_option};{author};{comment}\n"
 
 
-@external_command
-def add_svc_comment(host_name, svc_description, persistent, user_name, comment):
+@ctn_external_command
+def ctn_add_svc_comment(host_name, svc_description, persistent, user_name, comment):
     """
     Add a service comment.
 
@@ -2743,8 +2755,8 @@ def add_svc_comment(host_name, svc_description, persistent, user_name, comment):
     return f"ADD_SVC_COMMENT;{host_name};{svc_description};{persistent};{user_name};{comment}\n"
 
 
-@external_command
-def add_host_comment(host_name, persistent, user_name, comment):
+@ctn_external_command
+def ctn_add_host_comment(host_name, persistent, user_name, comment):
     """
     Add a host comment.
 
@@ -2760,8 +2772,8 @@ def add_host_comment(host_name, persistent, user_name, comment):
     return f"ADD_HOST_COMMENT;{host_name};{persistent};{user_name};{comment}\n"
 
 
-@external_command
-def del_host_comment(comment_id):
+@ctn_external_command
+def ctn_del_host_comment(comment_id):
     """
     Delete a host comment.
 
@@ -2774,8 +2786,8 @@ def del_host_comment(comment_id):
     return f"DEL_HOST_COMMENT;{comment_id}\n"
 
 
-@external_command
-def change_host_check_command(hst: str, Check_Command: str):
+@ctn_external_command
+def ctn_change_host_check_command(hst: str, Check_Command: str):
     """
     Change a host check command.
 
@@ -2789,8 +2801,8 @@ def change_host_check_command(hst: str, Check_Command: str):
     return f"CHANGE_HOST_CHECK_COMMAND;{hst};{Check_Command}\n"
 
 
-@external_command
-def change_custom_host_var_command(hst: str, var_name: str, var_value):
+@ctn_external_command
+def ctn_change_custom_host_var_command(hst: str, var_name: str, var_value):
     """
     Change the value of a host custom variable.
 
@@ -2805,8 +2817,8 @@ def change_custom_host_var_command(hst: str, var_name: str, var_value):
     return "CHANGE_CUSTOM_HOST_VAR;{};{};{}\n".format(hst, var_name, var_value)
 
 
-@external_command
-def change_custom_svc_var_command(hst: str, svc: str, var_name: str, var_value):
+@ctn_external_command
+def ctn_change_custom_svc_var_command(hst: str, svc: str, var_name: str, var_value):
     """
     Change a service custom variable.
 
@@ -2822,8 +2834,8 @@ def change_custom_svc_var_command(hst: str, svc: str, var_name: str, var_value):
     return "CHANGE_CUSTOM_SVC_VAR;{};{};{};{}\n".format(hst, svc, var_name, var_value)
 
 
-@external_command
-def change_global_host_event_handler(var_value: str):
+@ctn_external_command
+def ctn_change_global_host_event_handler(var_value: str):
     """
     Change the global host event handler.
 
@@ -2836,8 +2848,8 @@ def change_global_host_event_handler(var_value: str):
     return "CHANGE_GLOBAL_HOST_EVENT_HANDLER;{}\n".format(var_value)
 
 
-@external_command
-def change_global_svc_event_handler(var_value: str):
+@ctn_external_command
+def ctn_change_global_svc_event_handler(var_value: str):
     """
     Change the global service event handler.
 
@@ -2850,8 +2862,8 @@ def change_global_svc_event_handler(var_value: str):
     return "CHANGE_GLOBAL_SVC_EVENT_HANDLER;{}\n".format(var_value)
 
 
-@external_command
-def set_svc_notification_number(host_name: string, svc_description: string, value):
+@ctn_external_command
+def ctn_set_svc_notification_number(host_name: string, svc_description: string, value):
     """
     Change the notification number of a service.
 
@@ -2866,7 +2878,7 @@ def set_svc_notification_number(host_name: string, svc_description: string, valu
     return "SET_SVC_NOTIFICATION_NUMBER;{};{};{}\n".format(host_name, svc_description, value)
 
 
-def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
+def ctn_create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
     """
     Create an anomaly detection threshold file using version 1.
 
@@ -2907,7 +2919,7 @@ def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, m
     f.close()
 
 
-def create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int, metric_name: string, sensitivity: float, values: array):
+def ctn_create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int, metric_name: string, sensitivity: float, values: array):
     """
     Create an anomaly threshold file using the version 2.
 
@@ -2951,7 +2963,7 @@ def create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int
     f.close()
 
 
-def grep_retention(poller: int, pattern: str):
+def ctn_grep_retention(poller: int, pattern: str):
     """
     Check if the retention.dat file of an Engine contains a string.
 
@@ -2962,10 +2974,10 @@ def grep_retention(poller: int, pattern: str):
     Returns:
         An empty string if not found, or the found string.
     """
-    return Common.grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
+    return Common.ctn_grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
 
 
-def modify_retention_dat(poller, host, service, key, value):
+def ctn_modify_retention_dat(poller, host, service, key, value):
     """
     Modify a parameter of a service in the retention.dat file.
 
@@ -2989,38 +3001,37 @@ def modify_retention_dat(poller, host, service, key, value):
         hst = ""
         svc = ""
         for i in range(len(lines)):
-            l = lines[i]
+            line = lines[i]
             if not in_block:
-                if l == "service {\n":
+                if line == "service {\n":
                     in_block = True
                     continue
             else:
-                if l == "}\n":
+                if line == "}\n":
                     in_block = False
                     hst = ""
                     svc = ""
                     continue
-                m = r_hst.match(l)
+                m = r_hst.match(line)
                 if m:
                     hst = m.group(1)
                     continue
-                m = r_svc.match(l)
+                m = r_svc.match(line)
                 if m:
                     svc = m.group(1)
                     continue
-                if l.startswith(f"{key}=") and host == hst and svc == service:
+                if line.startswith(f"{key}=") and host == hst and svc == service:
                     logger.console(f"key '{key}' found !")
                     lines[i] = f"{key}={value}\n"
                     hst = ""
                     svc = ""
 
-        ff = open(
-            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
-        ff.writelines(lines)
-        ff.close()
+        with open(
+                f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w") as ff:
+            ff.writelines(lines)
 
 
-def modify_retention_dat_host(poller, host, key, value):
+def ctn_modify_retention_dat_host(poller, host, key, value):
     """
     Modify a parameter in the retention.dat file for a given host.
 
@@ -3041,21 +3052,21 @@ def modify_retention_dat_host(poller, host, key, value):
         in_block = False
         hst = ""
         for i in range(len(lines)):
-            l = lines[i]
+            line = lines[i]
             if not in_block:
-                if l == "host {\n":
+                if line == "host {\n":
                     in_block = True
                     continue
             else:
-                if l == "}\n":
+                if line == "}\n":
                     in_block = False
                     hst = ""
                     continue
-                m = r_hst.match(l)
+                m = r_hst.match(line)
                 if m:
                     hst = m.group(1)
                     continue
-                if l.startswith(f"{key}=") and host == hst:
+                if line.startswith(f"{key}=") and host == hst:
                     logger.console(f"key '{key}' found !")
                     lines[i] = f"{key}={value}\n"
                     hst = ""
@@ -3066,7 +3077,7 @@ def modify_retention_dat_host(poller, host, key, value):
         ff.close()
 
 
-def get_engine_process_stat(port, timeout=10):
+def ctn_get_engine_process_stat(port, timeout=10):
     """
     Call the GetGenericStats function by gRPC it works with both engine and broker.
     We get informations that look like what we could get with top or ps.
@@ -3093,7 +3104,7 @@ def get_engine_process_stat(port, timeout=10):
     return None
 
 
-def send_bench(id: int, port: int):
+def ctn_send_bench(id: int, port: int):
     """
     Send a bench event.
 
@@ -3108,7 +3119,7 @@ def send_bench(id: int, port: int):
         stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))
 
 
-def config_host_command_status(idx: int, cmd_name: str, status: int):
+def ctn_config_host_command_status(idx: int, cmd_name: str, status: int):
     """
     Set the status of a check command.
 

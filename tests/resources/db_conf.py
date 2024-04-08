@@ -35,10 +35,10 @@ class DbConf:
         self.hosts_count = 50
         self.services_per_host_count = 20
         self.commands_per_poller_count = 50
-        self.clear_db()
+        self.ctn_clear_db()
         self.engine = engine
 
-    def clear_db(self):
+    def ctn_clear_db(self):
         # Connect to the database
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER_ROOT,
@@ -195,7 +195,7 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
                         hid += 1
                     connection.commit()
 
-    def create_ba_with_services(self, name: str, typ: str, svc: [(str, str)], dt_policy):
+    def ctn_create_ba_with_services(self, name: str, typ: str, svc: [(str, str)], dt_policy):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
@@ -233,7 +233,7 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
                 connection.commit()
                 return (id_ba, sid)
 
-    def create_ba(self, name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy: str):
+    def ctn_create_ba(self, name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy: str):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
@@ -273,7 +273,7 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
                 connection.commit()
                 return (id_ba, sid)
 
-    def add_service_kpi(self, host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+    def ctn_add_service_kpi(self, host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
@@ -288,7 +288,7 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
 
             connection.commit()
 
-    def remove_service_kpi(self, id_ba: int, host: str, svc: str):
+    def ctn_remove_service_kpi(self, id_ba: int, host: str, svc: str):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
@@ -301,7 +301,7 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
                 cursor.execute(f"DELETE FROM mod_bam_kpi WHERE host_id={self.host[host]} AND service_id={self.service[svc]} AND id_ba={id_ba}")
             connection.commit()
 
-    def add_boolean_kpi(self, id_ba: int, expression: str, impact_if: bool, critical_impact: int):
+    def ctn_add_boolean_kpi(self, id_ba: int, expression: str, impact_if: bool, critical_impact: int):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
@@ -320,7 +320,7 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
             connection.commit()
             return boolean_id
 
-    def update_boolean_rule(self, boolean_id: int, expression: str):
+    def ctn_update_boolean_rule(self, boolean_id: int, expression: str):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
@@ -335,7 +335,7 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
 
             connection.commit()
 
-    def add_ba_kpi(self, id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+    def ctn_add_ba_kpi(self, id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,

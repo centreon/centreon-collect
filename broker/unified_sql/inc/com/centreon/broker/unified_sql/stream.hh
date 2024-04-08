@@ -1,20 +1,20 @@
-/*
-** Copyright 2019-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2019-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
 #include <absl/container/flat_hash_map.h>
@@ -370,8 +370,7 @@ class stream : public io::stream {
 
   database::mysql_stmt _severity_insert;
   database::mysql_stmt _severity_update;
-  database::mysql_stmt _tag_insert;
-  database::mysql_stmt _tag_update;
+  database::mysql_stmt _tag_insert_update;
   database::mysql_stmt _tag_delete;
   database::mysql_stmt _resources_tags_insert;
   database::mysql_stmt _resources_host_insert;
@@ -436,9 +435,11 @@ class stream : public io::stream {
   void _process_responsive_instance(const std::shared_ptr<io::data>& d);
 
   void _process_pb_host(const std::shared_ptr<io::data>& d);
+  uint64_t _process_pb_host_in_resources(const Host& h, int32_t conn);
   void _process_pb_host_status(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_host(const std::shared_ptr<io::data>& d);
   void _process_pb_service(const std::shared_ptr<io::data>& d);
+  uint64_t _process_pb_service_in_resources(const Service& s, int32_t conn);
   void _process_pb_adaptive_service(const std::shared_ptr<io::data>& d);
   void _process_pb_service_status(const std::shared_ptr<io::data>& d);
   void _process_severity(const std::shared_ptr<io::data>& d);
