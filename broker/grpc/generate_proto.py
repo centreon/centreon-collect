@@ -148,7 +148,10 @@ std::shared_ptr<event_with_data> create_event_with_data(const std::shared_ptr<io
 """
 cc_file_create_event_with_data_function_end = """
     default:
-        SPDLOG_LOGGER_ERROR(log_v2::grpc(), "unknown event type: {}", *event);
+      {
+        auto logger = logger = log_v2::instance().get(log_v2::GRPC);
+        SPDLOG_LOGGER_ERROR(logger, "unknown event type: {}", *event);
+      }  
     }
     if (ret) {
         ret->grpc_event.set_destination_id(event->destination_id);
@@ -238,9 +241,12 @@ with open(args.cc_file, 'w') as fp:
     fp.write(cc_file_begin_content)
     fp.write(cc_file_protobuf_to_event_function)
     fp.write("""        default:
-      SPDLOG_LOGGER_ERROR(log_v2::grpc(), "unknown content type: {} => ignored",
-                          static_cast<uint32_t>(stream_content->content_case()));
-      return std::shared_ptr<io::data>();
+      {
+        auto logger = logger = log_v2::instance().get(log_v2::GRPC);
+        SPDLOG_LOGGER_ERROR(logger, "unknown content type: {} => ignored",
+                            static_cast<uint32_t>(stream_content->content_case()));
+        return std::shared_ptr<io::data>();
+      }
     }
 }
 
