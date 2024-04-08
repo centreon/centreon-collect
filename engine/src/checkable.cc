@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2019,2022 Centreon
+ * Copyright 2011-2019,2022-2024 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -19,7 +19,7 @@
 
 #include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 #include "com/centreon/engine/configuration/whitelist.hh"
@@ -114,7 +114,7 @@ checkable::checkable(const std::string& name,
       oss << "Invalid freshness_threshold: value should be positive or 0";
     }
     engine_logger(log_config_error, basic) << oss.str();
-    log_v2::config()->error(oss.str());
+    config_logger->error(oss.str());
     throw engine_error() << "Could not register checkable '" << display_name
                          << "'";
   }

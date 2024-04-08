@@ -28,7 +28,8 @@ import "process_stat.proto";
 package com.centreon.engine;
 
 service Engine {
-  rpc GetProcessStats(google.protobuf.Empty) returns (com.centreon.common.pb_process_stat) {}
+  rpc GetProcessStats(google.protobuf.Empty)
+      returns (com.centreon.common.pb_process_stat) {}
   rpc GetVersion(google.protobuf.Empty) returns (Version) {}
   rpc GetStats(GenericString) returns (Stats) {}
   rpc GetHost(HostIdentifier) returns (EngineHost) {}
@@ -139,7 +140,6 @@ service Engine {
    */
   rpc SetLogFlushPeriod(LogFlushPeriod) returns (google.protobuf.Empty) {}
 
-  
   /**
    * @brief Send a Bench Message.
    *
@@ -147,7 +147,7 @@ service Engine {
    *
    * @return nothing.
    */
-   rpc SendBench(BenchParam) returns (google.protobuf.Empty) {}
+  rpc SendBench(BenchParam) returns (google.protobuf.Empty) {}
 }
 
 message GenericString {
@@ -580,13 +580,10 @@ message ChangeObjectCustomVar {
 }
 
 message LogInfo {
-  message LoggerInfo {
-    string log_name = 1;
-    string log_file = 2;
-    uint32 log_flush_period = 3;
-    map<string, string> level = 4;
-  }
-  repeated LoggerInfo loggers = 1;
+  string log_name = 1;
+  string log_file = 2;
+  uint32 log_flush_period = 3;
+  map<string, string> level = 4;
 }
 
 message LogFlushPeriod {
@@ -609,5 +606,5 @@ message LogLevel {
 
 message BenchParam {
   uint32 id = 1;
-  google.protobuf.Timestamp ts=2;
+  google.protobuf.Timestamp ts = 2;
 }

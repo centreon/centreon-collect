@@ -1,25 +1,23 @@
 /**
- * Copyright 2011-2020 Centreon
+ * Copyright 2011-2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
+ *
  */
 
 #include "com/centreon/engine/configuration/applier/state.hh"
-
-#include "com/centreon/engine/log_v2.hh"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/connector.hh"
@@ -49,6 +47,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
+#include "com/centreon/engine/logging/broker_sink.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/retention/applier/state.hh"
@@ -56,11 +55,14 @@
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xpddefault.hh"
 #include "com/centreon/engine/xsddefault.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
+using com::centreon::common::log_v2::log_v2;
+using com::centreon::engine::logging::broker_sink_mt;
 
 static bool has_already_been_loaded(false);
 
@@ -84,15 +86,14 @@ void applier::state::apply(configuration::state& new_cfg) {
     // If is not the first time, we can restore the old one.
     engine_logger(log_config_error, basic)
         << "Error: Could not apply new configuration: " << e.what();
-    log_v2::config()->error("Error: Could not apply new configuration: {}",
-                            e.what());
+    config_logger->error("Error: Could not apply new configuration: {}",
+                         e.what());
 
     // Check if we need to restore old configuration.
     if (_processing_state == state_error) {
       engine_logger(dbg_config, more)
           << "configuration: try to restore old configuration";
-      log_v2::config()->debug(
-          "configuration: try to restore old configuration");
+      config_logger->debug("configuration: try to restore old configuration");
       _processing(save);
     }
   }
@@ -119,14 +120,13 @@ void applier::state::apply(configuration::state& new_cfg,
     // If is not the first time, we can restore the old one.
     engine_logger(log_config_error, basic)
         << "Cannot apply new configuration: " << e.what();
-    log_v2::config()->error("Cannot apply new configuration: {}", e.what());
+    config_logger->error("Cannot apply new configuration: {}", e.what());
 
     // Check if we need to restore old configuration.
     if (_processing_state == state_error) {
       engine_logger(dbg_config, more)
           << "configuration: try to restore old configuration";
-      log_v2::config()->debug(
-          "configuration: try to restore old configuration");
+      config_logger->debug("configuration: try to restore old configuration");
       _processing(save, &state);
     }
   }
@@ -250,7 +250,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
     if (config->broker_module() != new_cfg.broker_module()) {
       engine_logger(log_config_warning, basic)
           << "Warning: Broker modules cannot be changed nor reloaded";
-      log_v2::config()->warn(
+      config_logger->warn(
           "Warning: Broker modules cannot be changed nor reloaded");
       ++config_warnings;
     }
@@ -258,28 +258,27 @@ void applier::state::_apply(configuration::state const& new_cfg) {
         new_cfg.broker_module_directory()) {
       engine_logger(log_config_warning, basic)
           << "Warning: Broker module directory cannot be changed";
-      log_v2::config()->warn(
-          "Warning: Broker module directory cannot be changed");
+      config_logger->warn("Warning: Broker module directory cannot be changed");
       ++config_warnings;
     }
     if (config->command_file() != new_cfg.command_file()) {
       engine_logger(log_config_warning, basic)
           << "Warning: Command file cannot be changed";
-      log_v2::config()->warn("Warning: Command file cannot be changed");
+      config_logger->warn("Warning: Command file cannot be changed");
       ++config_warnings;
     }
     if (config->external_command_buffer_slots() !=
         new_cfg.external_command_buffer_slots()) {
       engine_logger(log_config_warning, basic)
           << "Warning: External command buffer slots cannot be changed";
-      log_v2::config()->warn(
+      config_logger->warn(
           "Warning: External command buffer slots cannot be changed");
       ++config_warnings;
     }
     if (config->use_timezone() != new_cfg.use_timezone()) {
       engine_logger(log_config_warning, basic)
           << "Warning: Timezone can not be changed";
-      log_v2::config()->warn("Warning: Timezone can not be changed");
+      config_logger->warn("Warning: Timezone can not be changed");
       ++config_warnings;
     }
   }
@@ -483,7 +482,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   if (verify_config) {
     engine_logger(log_info_message, basic)
         << "Checking global event handlers...";
-    log_v2::events()->info("Checking global event handlers...");
+    events_logger->info("Checking global event handlers...");
   }
   if (!config->global_host_event_handler().empty()) {
     // Check the event handler command.
@@ -495,7 +494,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
       engine_logger(log_verification_error, basic)
           << "Error: Global host event handler command '" << temp_command_name
           << "' is not defined anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Global host event handler command '{}' is not defined "
           "anywhere!",
           temp_command_name);
@@ -514,7 +513,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
       engine_logger(log_verification_error, basic)
           << "Error: Global service event handler command '"
           << temp_command_name << "' is not defined anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Global service event handler command '{}' is not defined "
           "anywhere!",
           temp_command_name);
@@ -528,8 +527,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   if (verify_config) {
     engine_logger(log_info_message, basic)
         << "Checking obsessive compulsive processor commands...";
-    log_v2::events()->info(
-        "Checking obsessive compulsive processor commands...");
+    events_logger->info("Checking obsessive compulsive processor commands...");
   }
   if (!config->ocsp_command().empty()) {
     std::string temp_command_name(config->ocsp_command().substr(
@@ -540,7 +538,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
       engine_logger(log_verification_error, basic)
           << "Error: Obsessive compulsive service processor command '"
           << temp_command_name << "' is not defined anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Obsessive compulsive service processor command '{}' is not "
           "defined anywhere!",
           temp_command_name);
@@ -558,7 +556,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
       engine_logger(log_verification_error, basic)
           << "Error: Obsessive compulsive host processor command '"
           << temp_command_name << "' is not defined anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Obsessive compulsive host processor command '{}' is not "
           "defined anywhere!",
           temp_command_name);
@@ -605,7 +603,7 @@ void applier::state::_apply(
       } catch (std::exception const& e) {
         ++config_errors;
         engine_logger(log_info_message, basic) << e.what();
-        log_v2::events()->info(e.what());
+        events_logger->info(e.what());
       }
     }
   }
@@ -622,7 +620,7 @@ void applier::state::_apply(
       } catch (std::exception const& e) {
         ++config_errors;
         engine_logger(log_info_message, basic) << e.what();
-        log_v2::events()->info(e.what());
+        events_logger->info(e.what());
       }
     }
   }
@@ -639,7 +637,7 @@ void applier::state::_apply(
       } catch (std::exception const& e) {
         ++config_errors;
         engine_logger(log_info_message, basic) << e.what();
-        log_v2::events()->info(e.what());
+        events_logger->info(e.what());
       }
     }
   }
@@ -671,7 +669,7 @@ void applier::state::_check_serviceescalations() const {
             << "Error on serviceescalation !!! The service "
             << srv->get_hostname() << "/" << srv->get_description()
             << " contains a non existing service escalation";
-        log_v2::config()->error(
+        config_logger->error(
             "Error on serviceescalation !!! The service {}/{} contains a non "
             "existing service escalation",
             srv->get_hostname(), srv->get_description());
@@ -685,7 +683,7 @@ void applier::state::_check_serviceescalations() const {
           << srv->get_hostname() << "/" << srv->get_description()
           << "set size: " << s.size()
           << " ; list size: " << srv->get_escalations().size();
-      log_v2::config()->error(
+      config_logger->error(
           "Error on serviceescalation !!! Some escalations are stored "
           "several times in service {}/{} set size: {} ; list size: {}",
           srv->get_hostname(), srv->get_description(), s.size(),
@@ -708,7 +706,7 @@ void applier::state::_check_serviceescalations() const {
               << "Host name given by the escalation is " << se->get_hostname()
               << " whereas the hostname from the notifier is "
               << p.second->get_hostname() << ".";
-          log_v2::config()->error(
+          config_logger->error(
               "Error on serviceescalation !!! The notifier seen by the "
               "escalation is wrong. Host name given by the escalation is {} "
               "whereas the hostname from the notifier is {}.",
@@ -723,7 +721,7 @@ void applier::state::_check_serviceescalations() const {
               << se->get_description()
               << " whereas the service description from the notifier is "
               << p.second->get_description() << ".";
-          log_v2::config()->error(
+          config_logger->error(
               "Error on serviceescalation !!! The notifier seen by the "
               "escalation is wrong. Service description given by the "
               "escalation is {} whereas the service description from the "
@@ -740,7 +738,7 @@ void applier::state::_check_serviceescalations() const {
              "escalation is wrong "
           << "The bug is detected on escalation concerning host "
           << se->get_hostname() << " and service " << se->get_description();
-      log_v2::config()->error(
+      config_logger->error(
           "Error on serviceescalation !!! The notifier seen by the "
           "escalation is wrong The bug is detected on escalation concerning "
           "host {} and service {}",
@@ -772,7 +770,7 @@ void applier::state::_check_hostescalations() const {
         engine_logger(log_config_error, basic)
             << "Error on hostescalation !!! The host " << hst->get_name()
             << " contains a non existing host escalation";
-        log_v2::config()->error(
+        config_logger->error(
             "Error on hostescalation !!! The host {} contains a non existing "
             "host escalation",
             hst->get_name());
@@ -795,7 +793,7 @@ void applier::state::_check_hostescalations() const {
               << "Host name given by the escalation is " << he->get_hostname()
               << " whereas the hostname from the notifier is "
               << p.second->get_name() << ".";
-          log_v2::config()->error(
+          config_logger->error(
               "Error on hostescalation !!! The notifier seen by the escalation "
               "is wrong. Host name given by the escalation is {} whereas the "
               "hostname from the notifier is {}.",
@@ -811,7 +809,7 @@ void applier::state::_check_hostescalations() const {
              "is wrong "
           << "The bug is detected on escalation concerning host "
           << he->get_hostname();
-      log_v2::config()->error(
+      config_logger->error(
           "Error on hostescalation !!! The notifier seen by the escalation is "
           "wrong The bug is detected on escalation concerning host {}",
           he->get_hostname());
@@ -837,7 +835,7 @@ void applier::state::_check_contacts() const {
             << "Error on contact !!! The contact " << pp.first
             << " used in contactgroup " << p.first
             << " is not or badly defined";
-        log_v2::config()->error(
+        config_logger->error(
             "Error on contact !!! The contact {} used in contactgroup {} is "
             "not or badly defined",
             pp.first, p.first);
@@ -855,7 +853,7 @@ void applier::state::_check_contacts() const {
             << "Error on contact !!! The contact " << pp.first
             << " used in service " << p.second->get_hostname() << '/'
             << p.second->get_description() << " is not or badly defined";
-        log_v2::config()->error(
+        config_logger->error(
             "Error on contact !!! The contact {} used in service {}/{} is not "
             "or badly defined",
             pp.first, p.second->get_hostname(), p.second->get_description());
@@ -873,7 +871,7 @@ void applier::state::_check_contacts() const {
             << "Error on contact !!! The contact " << pp.first
             << " used in service " << p.second->get_name()
             << " is not or badly defined";
-        log_v2::config()->error(
+        config_logger->error(
             "Error on contact !!! The contact {} used in service {} is not or "
             "badly defined",
             pp.first, p.second->get_name());
@@ -901,7 +899,7 @@ void applier::state::_check_contactgroups() const {
             << "Error on contactgroup !!! The contactgroup " << pp.first
             << " used in service " << p.first.first << '/' << p.first.second
             << " is not or badly defined";
-        log_v2::config()->error(
+        config_logger->error(
             "Error on contactgroup !!! The contactgroup {} used in service "
             "{}/{} is not or badly defined",
             pp.first, p.first.first, p.first.second);
@@ -919,7 +917,7 @@ void applier::state::_check_contactgroups() const {
         engine_logger(log_config_error, basic)
             << "Error on contactgroup !!! The contactgroup " << pp.first
             << " used in host " << p.first << " is not or badly defined";
-        log_v2::config()->error(
+        config_logger->error(
             "Error on contactgroup !!! The contactgroup {} used in host {} is "
             "not or badly defined",
             pp.first, p.first);
@@ -938,7 +936,7 @@ void applier::state::_check_contactgroups() const {
             << "Error on contactgroup !!! The contactgroup " << pp.first
             << " used in serviceescalation " << p.second->get_uuid().to_string()
             << " is not or badly defined";
-        log_v2::config()->error(
+        config_logger->error(
             "Error on contactgroup !!! The contactgroup {} used in "
             "serviceescalation {} is not or badly defined",
             pp.first, p.second->get_uuid().to_string());
@@ -957,7 +955,7 @@ void applier::state::_check_contactgroups() const {
             << "Error on contactgroup !!! The contactgroup " << pp.first
             << " used in hostescalation " << p.second->get_uuid().to_string()
             << " is not or badly defined";
-        log_v2::config()->error(
+        config_logger->error(
             "Error on contactgroup !!! The contactgroup {} used in "
             "hostescalation {} is not or badly defined",
             pp.first, p.second->get_uuid().to_string());
@@ -987,7 +985,7 @@ void applier::state::_check_services() const {
             << "Error on service !!! The service " << p.first.first << '/'
             << p.first.second << " used in service dependency " << p.first.first
             << '/' << p.first.second << " is not or badly defined";
-        log_v2::config()->error(
+        config_logger->error(
             "Error on service !!! The service {}/{} used in service dependency "
             "{}/{} is not or badly defined",
             p.first.first, p.first.second, p.first.first, p.first.second);
@@ -1005,7 +1003,7 @@ void applier::state::_check_services() const {
           << "Error on service !!! The service " << p.first.first << '/'
           << p.first.second
           << " defined in services is not defined in services_by_id";
-      log_v2::config()->error(
+      config_logger->error(
           "Error on service !!! The service {}/{} defined in services is not "
           "defined in services_by_id",
           p.first.first, p.first.second);
@@ -1032,7 +1030,7 @@ void applier::state::_check_services() const {
               << "Error on service !!! The service " << p.first.first << '/'
               << p.first.second
               << " defined in services has a wrong check command";
-          log_v2::config()->error(
+          config_logger->error(
               "Error on service !!! The service {}/{} defined in services has "
               "a wrong check command",
               p.first.first, p.first.second);
@@ -1049,7 +1047,7 @@ void applier::state::_check_services() const {
            "services. The first one size is "
         << engine::service::services.size() << "  the second size is "
         << engine::service::services.size();
-    log_v2::config()->error(
+    config_logger->error(
         "Error on service !!! services_by_id contains ices that are not in "
         "services. The first one size is {}  the second size is {}",
         engine::service::services.size(), engine::service::services.size());
@@ -1071,7 +1069,7 @@ void applier::state::_check_hosts() const {
       engine_logger(log_config_error, basic)
           << "Error on host !!! The host " << hst->get_name() << " used in "
           << where << " is not defined or badly defined in hosts";
-      log_v2::config()->error(
+      config_logger->error(
           "Error on host !!! The host {} used in {} is not defined or badly "
           "defined in hosts",
           hst->get_name(), where);
@@ -1108,7 +1106,7 @@ void applier::state::_check_hosts() const {
           engine_logger(log_config_error, basic)
               << "Error on host !!! The host " << p.first
               << " defined in hosts has a wrong check command";
-          log_v2::config()->error(
+          config_logger->error(
               "Error on host !!! The host {} defined in hosts has a wrong "
               "check command",
               p.first);
@@ -1124,7 +1122,7 @@ void applier::state::_check_hosts() const {
            "hosts. The first one size is "
         << engine::service::services.size() << " whereas the second size is "
         << engine::service::services.size();
-    log_v2::config()->error(
+    config_logger->error(
         "Error on host !!! hosts_by_id contains hosts that are not in "
         "hosts. The first one size is {} whereas the second size is {}",
         engine::service::services.size(), engine::service::services.size());
@@ -1136,6 +1134,69 @@ void applier::state::_check_hosts() const {
 }
 
 #endif
+
+void applier::state::apply_log_config(configuration::state& new_cfg) {
+  using log_v2_config = com::centreon::common::log_v2::config;
+  log_v2_config::logger_type log_type;
+  if (new_cfg.log_v2_enabled()) {
+    if (new_cfg.log_v2_logger() == "file") {
+      if (!new_cfg.log_file().empty())
+        log_type = log_v2_config::logger_type::LOGGER_FILE;
+      else
+        log_type = log_v2_config::logger_type::LOGGER_STDOUT;
+    } else
+      log_type = log_v2_config::logger_type::LOGGER_SYSLOG;
+
+    log_v2_config log_cfg("centengine", log_type, new_cfg.log_flush_period(),
+                          new_cfg.log_pid(), new_cfg.log_file_line());
+    if (log_type == log_v2_config::logger_type::LOGGER_FILE) {
+      log_cfg.set_log_path(new_cfg.log_file());
+      log_cfg.set_max_size(new_cfg.max_log_file_size());
+    }
+    auto broker_sink = std::make_shared<broker_sink_mt>();
+    broker_sink->set_level(spdlog::level::info);
+    log_cfg.add_custom_sink(broker_sink);
+
+    log_cfg.apply_custom_sinks({"functions", "config", "events", "checks",
+                                "notifications", "eventbroker",
+                                "external_command", "commands", "downtimes",
+                                "comments", "macros", "process", "runtime"});
+    log_cfg.set_level("functions", new_cfg.log_level_functions());
+    log_cfg.set_level("config", new_cfg.log_level_config());
+    log_cfg.set_level("events", new_cfg.log_level_events());
+    log_cfg.set_level("checks", new_cfg.log_level_checks());
+    log_cfg.set_level("notifications", new_cfg.log_level_notifications());
+    log_cfg.set_level("eventbroker", new_cfg.log_level_eventbroker());
+    log_cfg.set_level("external_command", new_cfg.log_level_external_command());
+    log_cfg.set_level("commands", new_cfg.log_level_commands());
+    log_cfg.set_level("downtimes", new_cfg.log_level_downtimes());
+    log_cfg.set_level("comments", new_cfg.log_level_comments());
+    log_cfg.set_level("macros", new_cfg.log_level_macros());
+    log_cfg.set_level("process", new_cfg.log_level_process());
+    log_cfg.set_level("runtime", new_cfg.log_level_runtime());
+    if (has_already_been_loaded)
+      log_cfg.allow_only_atomic_changes(true);
+    log_v2::instance().apply(log_cfg);
+  } else {
+    if (!new_cfg.log_file().empty())
+      log_type = log_v2_config::logger_type::LOGGER_FILE;
+    else
+      log_type = log_v2_config::logger_type::LOGGER_STDOUT;
+    log_v2_config log_cfg("centengine", log_type, new_cfg.log_flush_period(),
+                          new_cfg.log_pid(), new_cfg.log_file_line());
+    if (!new_cfg.log_file().empty()) {
+      log_cfg.set_log_path(new_cfg.log_file());
+      log_cfg.set_max_size(new_cfg.max_log_file_size());
+    }
+    log_v2::instance().apply(log_cfg);
+    log_v2::instance().disable(
+        {log_v2::CORE, log_v2::CONFIG, log_v2::PROCESS, log_v2::FUNCTIONS,
+         log_v2::EVENTS, log_v2::CHECKS, log_v2::NOTIFICATIONS,
+         log_v2::EVENTBROKER, log_v2::EXTERNAL_COMMAND, log_v2::COMMANDS,
+         log_v2::DOWNTIMES, log_v2::COMMENTS, log_v2::MACROS, log_v2::RUNTIME});
+  }
+  init_loggers();
+}
 
 /**
  *  Apply retention.
@@ -1325,7 +1386,7 @@ void applier::state::_processing(configuration::state& new_cfg,
 
     applier::logging::instance().apply(new_cfg);
 
-    log_v2::instance()->apply(new_cfg);
+    apply_log_config(new_cfg);
 
     // Apply globals configurations.
     applier::globals::instance().apply(new_cfg);
@@ -1342,16 +1403,16 @@ void applier::state::_processing(configuration::state& new_cfg,
       engine_logger(log_process_info, basic)
           << "Centreon Engine " << CENTREON_ENGINE_VERSION_STRING
           << " starting ... (PID=" << getpid() << ")";
-      log_v2::process()->info("Centreon Engine {} starting ... (PID={})",
-                              CENTREON_ENGINE_VERSION_STRING, getpid());
+      process_logger->info("Centreon Engine {} starting ... (PID={})",
+                           CENTREON_ENGINE_VERSION_STRING, getpid());
 
       // Log the local time - may be different than clock
       // time due to timezone offset.
       engine_logger(log_process_info, basic)
           << "Local time is " << string::ctime(program_start) << "\n"
           << "LOG VERSION: " << LOG_VERSION_2;
-      log_v2::process()->info("Local time is {}", string::ctime(program_start));
-      log_v2::process()->info("LOG VERSION: {}", LOG_VERSION_2);
+      process_logger->info("Local time is {}", string::ctime(program_start));
+      process_logger->info("LOG VERSION: {}", LOG_VERSION_2);
     }
 
     //
@@ -1473,7 +1534,7 @@ void applier::state::_processing(configuration::state& new_cfg,
       } catch (std::exception const& e) {
         ++config_errors;
         engine_logger(log_info_message, basic) << e.what();
-        log_v2::events()->info(e.what());
+        events_logger->info(e.what());
       }
     }
 

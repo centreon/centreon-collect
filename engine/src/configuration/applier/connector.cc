@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2013,2017 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -23,7 +23,6 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/macros/misc.hh"
 #include "com/centreon/engine/macros/process.hh"
 
@@ -48,7 +47,7 @@ void applier::connector::add_object(configuration::connector const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new connector '" << obj.connector_name() << "'.";
-  log_v2::config()->debug("Creating new connector '{}'.", obj.connector_name());
+  config_logger->debug("Creating new connector '{}'.", obj.connector_name());
 
   // Expand command line.
   nagios_macros* macros(get_global_macros());
@@ -86,7 +85,7 @@ void applier::connector::modify_object(configuration::connector const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Modifying connector '" << obj.connector_name() << "'.";
-  log_v2::config()->debug("Modifying connector '{}'.", obj.connector_name());
+  config_logger->debug("Modifying connector '{}'.", obj.connector_name());
 
   // Find old configuration.
   set_connector::iterator it_cfg(config->connectors_find(obj.key()));
@@ -127,7 +126,7 @@ void applier::connector::remove_object(configuration::connector const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing connector '" << obj.connector_name() << "'.";
-  log_v2::config()->debug("Removing connector '{}'.", obj.connector_name());
+  config_logger->debug("Removing connector '{}'.", obj.connector_name());
 
   // Find connector.
   connector_map::iterator it(commands::connector::connectors.find(obj.key()));
