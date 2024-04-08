@@ -20,7 +20,7 @@ contents:
     dst: "/etc/centreon-broker/central-broker.json"
     type: config|noreplace
     file_info:
-      mode: 0664
+      mode: 0660
       owner: centreon-broker
       group: centreon-broker
 
@@ -28,7 +28,7 @@ contents:
     dst: "/etc/centreon-broker/central-rrd.json"
     type: config|noreplace
     file_info:
-      mode: 0664
+      mode: 0660
       owner: centreon-broker
       group: centreon-broker
 
@@ -36,7 +36,7 @@ contents:
     dst: "/etc/centreon-broker/watchdog.json"
     type: config|noreplace
     file_info:
-      mode: 0664
+      mode: 0660
       owner: centreon-broker
       group: centreon-broker
 
