@@ -113,7 +113,7 @@ BE_NOTIF_OVERFLOW
 
     set_svc_notification_number    host_16    service_314    40000
     Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
-    ${result}=    Check Service Resource Status With Timeout    host_16    service_314    2    30
+    ${result}=    Check Service Status With Timeout    host_16    service_314    2    30
     Should Be True    ${result}    msg=The service (host_16,service_314) is not CRITICAL as expected
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}

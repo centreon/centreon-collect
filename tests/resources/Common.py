@@ -427,7 +427,7 @@ def truncate_resource_host_service():
             cursor.execute("DELETE FROM services")
 
 
-def check_service_resource_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
+def check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -440,12 +440,17 @@ def check_service_resource_status_with_timeout(hostname: str, service_desc: str,
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT s.state FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{}\" AND h.name=\"{}\"".format(
-                    service_desc, hostname))
+                cursor.execute(
+                    f"SELECT s.state, s.state_type FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
                 result = cursor.fetchall()
                 if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
-                    return True
-        time.sleep(5)
+                    logger.console(
+                        f"status={result[0]['state']} and state_type={result[0]['state_type']}")
+                    if state_type == 'HARD' and int(result[0]['state_type']) == 1:
+                        return True
+                    elif state_type != 'HARD':
+                        return True
+        time.sleep(1)
     return False
 
 
