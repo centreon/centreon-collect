@@ -71,8 +71,11 @@ void engine::unload() {
 
   std::lock_guard<std::mutex> lk(_load_m);
   // Commit the cache file, if needed.
-  if (_instance && _instance->_cache_file)
+  if (_instance && _instance->_cache_file) {
+    // In case of muxers removed from the Engine and still events in _kiew
+    _instance->publish(_instance->_kiew);
     _instance->_cache_file->commit();
+  }
 
   _instance.reset();
 }
@@ -202,25 +205,27 @@ void engine::stop() {
     // Notify hooks of multiplexing loop end.
     SPDLOG_LOGGER_INFO(_logger, "multiplexing: stopping engine");
 
-    do {
-      // Make sure that no more data is available.
-      if (!_sending_to_subscribers) {
-        SPDLOG_LOGGER_INFO(
-            _logger,
-            "multiplexing: sending events to muxers for the last time {} "
-            "events to send",
-            _kiew.size());
-        _sending_to_subscribers = true;
-        lock.unlock();
-        std::promise<void> promise;
-        if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
-          promise.get_future().get();
-        } else {  // nothing to send or no muxer
-          break;
+    if (_muxers.size() > 0) {
+      do {
+        // Make sure that no more data is available.
+        if (!_sending_to_subscribers) {
+          SPDLOG_LOGGER_INFO(
+              _logger,
+              "multiplexing: sending events to muxers for the last time {} "
+              "events to send",
+              _kiew.size());
+          _sending_to_subscribers = true;
+          lock.unlock();
+          std::promise<void> promise;
+          if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
+            promise.get_future().get();
+          } else {  // nothing to send or no muxer
+            break;
+          }
+          lock.lock();
         }
-        lock.lock();
-      }
-    } while (!_kiew.empty());
+      } while (!_kiew.empty());
+    }
 
     // Open the cache file and start the transaction.
     // The cache file is used to cache all the events produced
@@ -241,7 +246,6 @@ void engine::stop() {
                                      EngineStats::STOPPED);
   }
   SPDLOG_LOGGER_DEBUG(_logger, "multiplexing: engine stopped");
-  DEBUG(fmt::format("STOP engine {:p}", static_cast<void*>(this)));
 }
 
 /**
@@ -266,13 +270,30 @@ void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
  *  @param[in] subscriber  Subscriber.
  */
 void engine::unsubscribe_muxer(const muxer* subscriber) {
-  std::lock_guard<std::mutex> l(_engine_m);
+  std::unique_lock<std::mutex> l(_engine_m);
+  /* We wait for the events to be sent before removing the muxer. */
+  if (!_sending_to_subscribers) {
+    SPDLOG_LOGGER_INFO(
+        _logger,
+        "multiplexing: sending events to muxers before unsubscribe one ; "
+        "events to send",
+        _kiew.size());
+    _sending_to_subscribers = true;
+    std::promise<void> promise;
+    l.unlock();
+    if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
+      promise.get_future().get();
+    }
+    l.lock();
+  }
+
   auto logger = log_v2::instance().get(log_v2::CONFIG);
   for (auto it = _muxers.begin(); it != _muxers.end(); ++it) {
     auto w = it->lock();
     if (!w || w.get() == subscriber) {
       logger->debug("engine: muxer {} unsubscribes to engine",
                     subscriber->name());
+
       _muxers.erase(it);
       return;
     }
