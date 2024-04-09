@@ -73,6 +73,11 @@ runs:
         git config --global user.email "release@centreon.com"
         git config --global user.name "Centreon"
 
+        # Rebuild NEW_STABLE_TAGS as an array
+        for i in ${NEW_RELEASE_TAGS[@]}; do
+          NEW_RELEASE_TAGS+=("$i")
+        done
+
         # Create release tags on git for each release components
         # Abort if no tags or existing tag
         echo "Creating release tags."
@@ -106,6 +111,11 @@ runs:
           echo "GH CLI is already installed."
         fi
 
+        # Rebuild NEW_STABLE_TAGS as an array
+        for i in ${NEW_STABLE_TAGS[@]}; do
+          NEW_RELEASE_TAGS+=("$i")
+        done
+
         # Create GITHUB release for each release components
         # Abort if no tags
         echo "Creating GITHUB releases."
@@ -116,6 +126,7 @@ runs:
           else
             echo "::error::Release tag $TAG was empty, exiting."
             exit 1
+          fi
         done
       shell: bash
       env:
@@ -124,6 +135,10 @@ runs:
     - name: Create stable JIRA versions from new release tags
       run: |
         set -eux
+
+        # Call JIRA to provide new jira versions to create
+        # Webhook url
+        JIRA_INCOMING_WEBHOOK="${{ inputs.jira_webhook_url }}"
 
         # Call JIRA to provide new jira versions to create
         # Webhook url
