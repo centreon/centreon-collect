@@ -4,6 +4,9 @@
 
 - [Broker documentation {#mainpage}](#broker-documentation-mainpage)
   - [Table of content](#table-of-content)
+  - [Multiplexing](#Multiplexing)
+    - [Muxer](#Muxer)
+      - [Engine](#Engine)
   - [Processing](#processing)
     - [Feeder](#feeder)
       - [Initialization](#initialization)
@@ -24,9 +27,32 @@
       - [Main classes](#main-classes)
       - [generate\_proto.py](#generate_protopy)
 
+## Multiplexing
+### Muxer
+A muxer can be plugged to an input or an output stream.
+Muxers exchange data through the Engine object. Each muxer holds a shared pointer to the Engine. So the Engine is destroyed when all the muxers are removed from Broker.
+
+We can send a data `d` to the muxer by using the `write(d)` method. With that method, the Muxer publishes to the Engine the data `d`. And then the Engine stacks on its queue the event. In case, the Engine is running, the task finishes by calling an internal function `_send_to_subscribers()` that empties the queue and sends all the data to each muxer on its own queue.
+
+So, when a data is written to a muxer, it is stacked on all the muxers using the Engine, even the muxer at the origin of the data.
+
+The `_send_to_subscribers()` internal function is a complex function. It can take a callback as argument. Let's take a look at it.
+
+Firstly, it checks if `_sending_to_subscribers` is `true`, that means the action of sending data to subscribers is already running and the function returns.
+
+If `_sending_to_subscribers` is `false`, it is changed to `true` and a copy of the Engine queue is made as a shared pointer to give it to each muxer. To send that queue, the thread pool is used and its task is just to call the `publish()` method of the muxers to push the events on their stack.
+In case of a callback is given as argument, it will be called once all the tasks are finished.
+
+This callback is rarely used. It is essentially used when we want to be sure that no more data are sent to the subscribers. In this context, the callback is just a promise to wait until all the tasks are finished. We can see this in:
+* the `stop()` method of Engine: If we want to stop it, we must be sure that no events have to be written somewhere.
+* the `unsubscribe_muxer()` method of Engine: This method removes the muxer from the Engine list of subscribers. So if we remove one muxer from it but there are still events to write into it, we have the risk of an access to a removed muxer.
+
+
+### Engine
+
 ## Processing
 
-There are two main classes in the broker Processing:
+There are two main classes in the Broker processing:
 
 * **failover**: This is mainly used to get events from broker and send them to a
   stream.
@@ -38,9 +64,7 @@ There are two main classes in the broker Processing:
 
 A feeder has two roles:
 
-1. The feeder can read events from its muxer. This is the case with a reverse
-   connections, the feeder gets its events from the broker engine through the
-   muxer and writes them to the stream client.
+1. The feeder can read events from its muxer. This is the case with a reverse connections, the feeder gets its events from the Broker engine through the muxer and writes them to the stream client.
 
 2. The feeder can also read events from its stream client. This is more usual.
 
