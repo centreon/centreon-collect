@@ -142,7 +142,7 @@ runs:
                 jf rt upload "$ARCH/*.rpm" "$ROOT_REPO_PATH/$UPLOAD_REPO_PATH" --sync-deletes="$ROOT_REPO_PATH/$UPLOAD_REPO_PATH" --flat
               fi
             fi
-          fi
+          done
         done
       shell: bash
 
