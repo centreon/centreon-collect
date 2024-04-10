@@ -42,4 +42,5 @@ message Ack {
 
 /*io::bbdo, bbdo::de_pb_stop*/
 message Stop {
+  uint64 poller_id = 1;
 }

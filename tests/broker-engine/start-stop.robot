@@ -31,15 +31,47 @@ BESS2
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    central    bbdo    info
+    ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connection between Engine and Broker not established
     ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller not visible in database
     Ctn Stop Engine
+    ${content}    Create List    SQL: Disabling poller
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No stop event processed by central cbd
     ${result}    Ctn Check Poller Disabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller still visible in database
+    Ctn Kindly Stop Broker
+
+BESS2U
+    [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first.
+    ...    Unified_sql is used.
+    [Tags]    broker    engine    start-stop
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    central    bbdo    info
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Connection between Engine and Broker not established
+    ${result}    Ctn Check Poller Enabled In Database    1    10
+    Should Be True    ${result}    Poller not visible in database
+    Ctn Stop Engine
+    ${content}    Create List    unified_sql: Disabling poller
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No stop event processed by central cbd
+    ${result}    Ctn Check Poller Disabled In Database    1    10
+    Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
 
 BESS3
@@ -122,12 +154,12 @@ BESS_GRPC2
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connections between Engine and Broker not established
     ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller not visible in database
     Ctn Stop Engine
     ${result}    Ctn Check Poller Disabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
 
 BESS_GRPC3
@@ -144,12 +176,12 @@ BESS_GRPC3
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connections between Engine and Broker not established
     ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller not visible in database
     Ctn Stop Engine
     ${result}    Ctn Check Poller Disabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
 
 BESS_GRPC4
@@ -185,12 +217,12 @@ BESS_GRPC5
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connections between Engine and Broker not established
     ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller not visible in database
     Ctn Stop Engine
     ${result}    Ctn Check Poller Disabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
 
 BESS_GRPC_COMPRESS1
@@ -209,12 +241,12 @@ BESS_GRPC_COMPRESS1
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connection not established between Engine and Broker
     ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller not visible in database
     Ctn Stop Engine
     ${result}    Ctn Check Poller Disabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
 
 BESS_CRYPTED_GRPC1
@@ -465,14 +497,14 @@ Start_Stop_Broker_Engine_${id}
     Ctn Config Broker    rrd
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Log    central    core    debug
+    Ctn Broker Config Log    central    processing    debug
     IF    ${grpc}
         Ctn Change Broker Tcp Output To Grpc    central
         Ctn Change Broker Tcp Output To Grpc    module0
         Ctn Change Broker Tcp Input To Grpc    central
         Ctn Change Broker Tcp Input To Grpc    rrd
     END
-    ${start}    Get Current Date
-
+    ${start}    Ctn Get Round Current Date
 
     Ctn Start Broker
     Ctn Start Engine
@@ -485,7 +517,7 @@ Start_Stop_Broker_Engine_${id}
     ${stop_broker}    Get Current Date
     Ctn Kindly Stop Broker
     ${content}    Create List    failover central-module-master-output: connection closed
-    ${result}    Ctn Find In Log With Timeout    ${moduleLog0}    ${stop_broker}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${stop_broker}    ${content}    60
     Should Be True    ${result}    connection closed not found
     Examples:    id    grpc    --
     ...    1    False

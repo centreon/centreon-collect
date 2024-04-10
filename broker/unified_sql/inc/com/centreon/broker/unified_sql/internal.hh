@@ -19,6 +19,7 @@
 #ifndef CCB_UNIFIED_SQL_INTERNAL_HH
 #define CCB_UNIFIED_SQL_INTERNAL_HH
 
+#include "bbdo/bbdo.pb.h"
 #include "bbdo/events.hh"
 #include "bbdo/neb.pb.h"
 #include "bbdo/rebuild_message.pb.h"
@@ -40,6 +41,7 @@ using pb_remove_graphs =
 using pb_remove_poller =
     io::protobuf<GenericNameOrIndex,
                  make_type(io::bbdo, bbdo::de_remove_poller)>;
+using pb_stop = io::protobuf<Stop, make_type(io::bbdo, bbdo::de_pb_stop)>;
 }  // namespace bbdo
 
 namespace storage {
@@ -64,6 +66,6 @@ using pb_metric_mapping =
                  make_type(io::storage, storage::de_pb_metric_mapping)>;
 
 }  // namespace storage
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_UNIFIED_SQL_INTERNAL_HH

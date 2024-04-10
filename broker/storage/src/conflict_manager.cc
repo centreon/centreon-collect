@@ -650,6 +650,11 @@ void conflict_manager::_callback() {
                        type == make_type(io::bbdo, bbdo::de_remove_graphs)) {
               remove_graphs(d);
               *std::get<2>(tpl) = true;
+            } else if (std::get<1>(tpl) == storage &&
+                       type == make_type(io::bbdo, bbdo::de_pb_stop)) {
+              _logger_sql->info("poller stopped...");
+              process_stop(d);
+              *std::get<2>(tpl) = true;
             } else {
               _logger_sql->trace(
                   "conflict_manager: event of type {} from channel '{}' thrown "
@@ -935,6 +940,42 @@ int32_t conflict_manager::unload(stream_type type) {
           retval);
     }
     return retval;
+  }
+}
+
+/**
+ * @brief Function called when a poller is disconnected from Broker. It cleans
+ * hosts/services and instances in the storage database.
+ *
+ * @param d A pb_stop event with the instance ID.
+ */
+void conflict_manager::process_stop(const std::shared_ptr<io::data>& d) {
+  auto& stop = static_cast<bbdo::pb_stop*>(d.get())->obj();
+  int32_t conn = _mysql.choose_connection_by_instance(stop.poller_id());
+  _finish_action(-1, actions::hosts | actions::acknowledgements |
+                         actions::modules | actions::downtimes |
+                         actions::comments | actions::servicegroups |
+                         actions::hostgroups | actions::service_dependencies |
+                         actions::host_dependencies);
+
+  // Log message.
+  _logger_sql->info("SQL: Disabling poller (id: {}, running: no)",
+                    stop.poller_id());
+
+  // Clean tables.
+  _clean_tables(stop.poller_id());
+
+  // Processing.
+  if (_is_valid_poller(stop.poller_id())) {
+    // Prepare queries.
+    if (!_instance_insupdate.prepared()) {
+      std::string query(fmt::format(
+          "UPDATE instances SET end_time={}, running=0 WHERE instance_id={}",
+          time(nullptr), stop.poller_id()));
+      _mysql.run_query(query, database::mysql_error::clean_hosts_services,
+                       conn);
+      _add_action(conn, actions::instances);
+    }
   }
 }
 

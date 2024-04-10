@@ -291,7 +291,7 @@ void engine::unsubscribe_muxer(const muxer* subscriber) {
   for (auto it = _muxers.begin(); it != _muxers.end(); ++it) {
     auto w = it->lock();
     if (!w || w.get() == subscriber) {
-      logger->debug("engine: muxer {} unsubscribes to engine",
+      logger->debug("multiplexing: muxer {} unsubscribed from Engine",
                     subscriber->name());
 
       _muxers.erase(it);

@@ -2670,6 +2670,8 @@ int neb::callback_process(int, void* data) {
     instance->program_start = time(nullptr);
     instance->version = get_program_version();
     start_time = instance->program_start;
+    SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: instance '{}' running {}",
+                        instance->name, instance->is_running);
 
     // Send initial event and then configuration.
     gl_publisher.write(instance);
@@ -2688,6 +2690,8 @@ int neb::callback_process(int, void* data) {
     instance->program_end = time(nullptr);
     instance->program_start = start_time;
     instance->version = get_program_version();
+    SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: instance '{}' running {}",
+                        instance->name, instance->is_running);
 
     // Send event.
     gl_publisher.write(instance);
@@ -2770,6 +2774,8 @@ int neb::callback_pb_process(int callback_type, void* data) {
     // Send event.
     gl_publisher.write(inst_obj);
   }
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: instance '{}' running {}",
+                      inst.name(), inst.running());
   return 0;
 }
 

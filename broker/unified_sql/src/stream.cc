@@ -22,6 +22,7 @@
 #include <cstring>
 #include <thread>
 
+#include "bbdo/events.hh"
 #include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
@@ -721,13 +722,29 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
     } else {
       SPDLOG_LOGGER_ERROR(_logger_sql, "unknown neb event type: {}", elem);
     }
-  } else if (type == make_type(io::bbdo, bbdo::de_rebuild_graphs))
-    _rebuilder.rebuild_graphs(data);
-  else if (type == make_type(io::bbdo, bbdo::de_remove_graphs))
-    remove_graphs(data);
-  else if (type == make_type(io::bbdo, bbdo::de_remove_poller)) {
-    SPDLOG_LOGGER_INFO(_logger_sql, "remove poller...");
-    remove_poller(data);
+  } else if (cat == io::bbdo) {
+    switch (elem) {
+      case bbdo::de_rebuild_graphs:
+        _rebuilder.rebuild_graphs(data);
+        break;
+      case bbdo::de_remove_graphs:
+        remove_graphs(data);
+        break;
+      case bbdo::de_remove_poller:
+        SPDLOG_LOGGER_INFO(_logger_sql, "remove poller...");
+        remove_poller(data);
+        break;
+      case bbdo::de_pb_stop:
+        SPDLOG_LOGGER_INFO(_logger_sql, "poller stopped...");
+        process_stop(data);
+        break;
+      default:
+        SPDLOG_LOGGER_TRACE(
+            _logger_sql,
+            "unified sql: event of category bbdo and type {} thrown away ; no "
+            "need to store it in the database.",
+            type);
+    }
   } else {
     SPDLOG_LOGGER_TRACE(
         _logger_sql,
@@ -767,6 +784,7 @@ class unified_muxer_filter : public multiplexing::muxer_filter {
     _mask[io::bbdo] |= 1ULL << bbdo::de_rebuild_graphs;
     _mask[io::bbdo] |= 1ULL << bbdo::de_remove_graphs;
     _mask[io::bbdo] |= 1ULL << bbdo::de_remove_poller;
+    _mask[io::bbdo] |= 1ULL << bbdo::de_pb_stop;
     _mask[io::extcmd] |= 1ULL << extcmd::de_pb_bench;
   }
 };
@@ -831,6 +849,42 @@ int32_t stream::stop() {
   }
 
   return retval;
+}
+
+/**
+ * @brief Function called when a poller is disconnected from Broker. It cleans
+ * hosts/services and instances in the storage database.
+ *
+ * @param d A pb_stop event with the instance ID.
+ */
+void stream::process_stop(const std::shared_ptr<io::data>& d) {
+  auto& stop = static_cast<bbdo::pb_stop*>(d.get())->obj();
+  int32_t conn = _mysql.choose_connection_by_instance(stop.poller_id());
+  _finish_action(-1, actions::hosts | actions::acknowledgements |
+                         actions::modules | actions::downtimes |
+                         actions::comments | actions::servicegroups |
+                         actions::hostgroups | actions::service_dependencies |
+                         actions::host_dependencies);
+
+  // Log message.
+  _logger_sql->info("unified_sql: Disabling poller (id: {}, running: no)",
+                    stop.poller_id());
+
+  // Clean tables.
+  _clean_tables(stop.poller_id());
+
+  // Processing.
+  if (_is_valid_poller(stop.poller_id())) {
+    // Prepare queries.
+    if (!_instance_insupdate.prepared()) {
+      std::string query(fmt::format(
+          "UPDATE instances SET end_time={}, running=0 WHERE instance_id={}",
+          time(nullptr), stop.poller_id()));
+      _mysql.run_query(query, database::mysql_error::clean_hosts_services,
+                       conn);
+      _add_action(conn, actions::instances);
+    }
+  }
 }
 
 /**

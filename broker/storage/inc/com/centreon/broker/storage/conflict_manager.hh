@@ -382,6 +382,7 @@ class conflict_manager {
                                 std::string const& metric_name,
                                 short metric_type);
   void remove_graphs(const std::shared_ptr<io::data>& d);
+  void process_stop(const std::shared_ptr<io::data>& d);
 };
 }  // namespace storage
 }  // namespace com::centreon::broker

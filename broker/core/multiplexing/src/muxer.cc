@@ -206,8 +206,6 @@ muxer::~muxer() noexcept {
                        _name, _events_size);
     _clean();
   }
-  DEBUG(
-      fmt::format("DESTRUCTOR muxer {:p} {}", static_cast<void*>(this), _name));
   // caution, unregister_muxer must be the last center method called at muxer
   // destruction to avoid re create a muxer stat entry
   stats::center::instance().unregister_muxer(_name);

@@ -34,6 +34,7 @@
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -654,16 +655,12 @@ int stream::flush() {
  */
 void stream::_send_event_stop_and_wait_for_ack() {
   if (!_coarse) {
-    if (_bbdo_version.major_v >= 3) {
-      SPDLOG_LOGGER_DEBUG(_logger, "BBDO: sending pb stop packet to peer");
-      std::shared_ptr<bbdo::pb_stop> stop_packet{
-          std::make_shared<bbdo::pb_stop>()};
-      _write(stop_packet);
-    } else {
-      SPDLOG_LOGGER_DEBUG(_logger, "BBDO: sending stop packet to peer");
-      std::shared_ptr<bbdo::stop> stop_packet{std::make_shared<bbdo::stop>()};
-      _write(stop_packet);
-    }
+    SPDLOG_LOGGER_DEBUG(_logger, "BBDO: sending stop packet to peer");
+    std::shared_ptr<bbdo::pb_stop> stop_packet{
+        std::make_shared<bbdo::pb_stop>()};
+    stop_packet->mut_obj().set_poller_id(
+        config::applier::state::instance().poller_id());
+    _write(stop_packet);
 
     SPDLOG_LOGGER_DEBUG(_logger, "BBDO: retrieving ack packet from peer");
     std::shared_ptr<io::data> d;
@@ -1059,8 +1056,8 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
         break;
       }
       case pb_stop::static_type(): {
-        SPDLOG_LOGGER_INFO(_logger, "BBDO: received pb stop from peer");
-        send_event_acknowledgement();
+        multiplexing::publisher pblshr;
+        pblshr.write(d);
         break;
       }
       default:

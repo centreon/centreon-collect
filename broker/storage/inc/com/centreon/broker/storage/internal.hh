@@ -19,6 +19,7 @@
 #ifndef CCB_STORAGE_INTERNAL_HH
 #define CCB_STORAGE_INTERNAL_HH
 
+#include "bbdo/bbdo.pb.h"
 #include "bbdo/events.hh"
 #include "bbdo/rebuild_message.pb.h"
 #include "bbdo/remove_graph_message.pb.h"
@@ -35,6 +36,7 @@ using pb_rebuild_graphs =
     io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_graphs)>;
 using pb_remove_graphs =
     io::protobuf<ToRemove, make_type(io::bbdo, bbdo::de_remove_graphs)>;
+using pb_stop = io::protobuf<Stop, make_type(io::bbdo, bbdo::de_pb_stop)>;
 }  // namespace bbdo
 
 namespace storage {
