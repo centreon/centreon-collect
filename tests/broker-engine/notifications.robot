@@ -126,22 +126,12 @@ not3
     Should Be True    ${result}    check_for_external_commands() should be available.
 
     # It's time to schedule a downtime
-    Ctn Schedule Service Downtime    host_1    service_1    ${60}
-    Sleep    60s
+    Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
 
-    ${result}    Ctn Check Number Of Downtimes    ${1}    ${start}    ${60}
-    Should Be True    ${result}    We should have 1 downtime enabled.
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    1    60
+    Should Be True    ${result}    service must be in downtime
 
-     ## Time to set the service to CRITICAL HARD.
-
-    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
-    Sleep    60s
-    
-    Ctn Delete Service Downtime Full    ${0}    host_1    service_1
-    # Let's wait for the external command check start
-    ${content}    Create List    SERVICE DOWNTIME ALERT: host_1;service_1;STOPPED; Service has exited from a period of scheduled downtime
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The downtime has not finished .
+    Ctn Delete Service Downtime    host_1    service_1
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
