@@ -17,6 +17,8 @@
  */
 
 #include "com/centreon/broker/multiplexing/muxer.hh"
+#include <absl/synchronization/mutex.h>
+#include <absl/time/time.h>
 
 #include <cassert>
 
@@ -27,6 +29,7 @@
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
+#include "com/centreon/broker/pool.hh"
 #include "com/centreon/common/time.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -55,7 +58,7 @@ void add_bench_point(bbdo::pb_bench& event,
 
 uint32_t muxer::_event_queue_max_size = std::numeric_limits<uint32_t>::max();
 
-std::mutex muxer::_running_muxers_m;
+absl::Mutex muxer::_running_muxers_m;
 absl::flat_hash_map<std::string, std::weak_ptr<muxer>> muxer::_running_muxers;
 
 /**
@@ -89,7 +92,7 @@ muxer::muxer(std::string name,
       _last_stats{std::time(nullptr)},
       _logger{log_v2::instance().get(log_v2::CORE)} {
   // Load head queue file back in memory.
-  std::lock_guard<std::mutex> lck(_mutex);
+  absl::MutexLock lck(&_events_m);
   if (_persistent) {
     try {
       auto mf{std::make_unique<persistent_file>(memory_file(_name), nullptr)};
@@ -98,7 +101,7 @@ muxer::muxer(std::string name,
         e.reset();
         mf->read(e, 0);
         if (e) {
-          _events.push_back(e);
+          _events.push_back(std::move(e));
           ++_events_size;
         }
       }
@@ -123,7 +126,7 @@ muxer::muxer(std::string name,
       _get_event_from_file(e);
       if (!e)
         break;
-      _events.push_back(e);
+      _events.push_back(std::move(e));
       ++_events_size;
     } while (_events_size < event_queue_max_size());
   } catch (const exceptions::shutdown& e) {
@@ -162,7 +165,7 @@ std::shared_ptr<muxer> muxer::create(std::string name,
                                      bool persistent) {
   std::shared_ptr<muxer> retval;
   {
-    std::lock_guard<std::mutex> lck(_running_muxers_m);
+    absl::MutexLock lck(&_running_muxers_m);
     absl::erase_if(_running_muxers,
                    [](const std::pair<std::string, std::weak_ptr<muxer>>& p) {
                      return p.second.expired();
@@ -200,10 +203,10 @@ std::shared_ptr<muxer> muxer::create(std::string name,
 muxer::~muxer() noexcept {
   unsubscribe();
   {
-    std::lock_guard<std::mutex> lock(_mutex);
-    SPDLOG_LOGGER_INFO(_logger,
-                       "Destroying muxer {}: number of events in the queue: {}",
-                       _name, _events_size);
+    absl::MutexLock lock(&_events_m);
+    SPDLOG_LOGGER_INFO(
+        _logger, "Destroying muxer {:p} {}: number of events in the queue: {}",
+        static_cast<void*>(this), _name, _events_size);
     _clean();
   }
   // caution, unregister_muxer must be the last center method called at muxer
@@ -227,14 +230,12 @@ void muxer::ack_events(int count) {
     SPDLOG_LOGGER_DEBUG(
         _logger, "multiplexing: acknowledging {} events from {} event queue",
         count, _name);
-    std::lock_guard<std::mutex> lock(_mutex);
+    absl::MutexLock lck(&_events_m);
     for (int i = 0; i < count && !_events.empty(); ++i) {
       if (_events.begin() == _pos) {
         _logger->error(
-            "multiplexing: attempt to acknowledge "
-            "more events than available in {} event queue: {} size: {}, "
-            "requested, {} "
-            "acknowledged",
+            "multiplexing: attempt to acknowledge more events than available "
+            "in {} event queue: {} size: {}, requested, {} acknowledged",
             _name, _events_size, count, i);
         break;
       }
@@ -270,9 +271,8 @@ int32_t muxer::stop() {
   SPDLOG_LOGGER_INFO(_logger,
                      "Stopping muxer {}: number of events in the queue: {}",
                      _name, _events_size);
-  std::lock_guard<std::mutex> lck(_mutex);
+  absl::MutexLock lck(&_events_m);
   _update_stats();
-  DEBUG(fmt::format("STOP muxer {:p} {}", static_cast<void*>(this), _name));
   return 0;
 }
 
@@ -297,27 +297,42 @@ uint32_t muxer::event_queue_max_size() noexcept {
   return _event_queue_max_size;
 }
 
+void muxer::_execute_reader_if_needed() {
+  if (_reader) {
+    bool expected = false;
+    if (_reader_running.compare_exchange_strong(expected, true)) {
+      pool::io_context_ptr()->post([this] {
+        _reader();
+        _reader_running.store(false);
+      });
+    }
+  }
+}
+
 /**
  *  Add a new event to the internal event list.
  *
  *  @param[in] event Event to add.
  */
 void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
+  _logger->debug("muxer {:p}:publish on muxer '{}': {} events",
+                 static_cast<void*>(this), _name, event_queue.size());
   auto evt = event_queue.begin();
   while (evt != event_queue.end()) {
     bool at_least_one_push_to_queue = false;
-    read_handler async_handler;
     {
-      // we stop this first loop when mux queue is full on order to release
-      // mutex to let read do his job before write to file
-      std::lock_guard<std::mutex> lock(_mutex);
+      // we stop this first loop when mux queue is full in order to release
+      // mutex to let read to do its job before writing to file
+      absl::MutexLock lck(&_events_m);
+      _logger->trace("muxer::publish ({}) starting the loop to stack events",
+                     _name);
       for (; evt != event_queue.end() && _events_size < event_queue_max_size();
            ++evt) {
         auto event = *evt;
         if (!_write_filter.allows(event->type())) {
-          SPDLOG_LOGGER_TRACE(
-              _logger, "muxer {} event of type {:x} rejected by write filter",
-              _name, event->type());
+          SPDLOG_LOGGER_TRACE(_logger,
+                              "muxer {} event {} rejected by write filter",
+                              _name, *event);
           continue;
         }
 
@@ -336,27 +351,23 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
 
         _push_to_queue(event);
       }
-      if (at_least_one_push_to_queue &&
-          _read_handler) {  // async handler waiting?
-        async_handler = std::move(_read_handler);
-        _read_handler = nullptr;
-      }
-    }
-    if (async_handler) {
-      async_handler();
+      _logger->trace("muxer::publish ({}) loop finished", _name);
+      if (at_least_one_push_to_queue)  // async handler waiting?
+        _execute_reader_if_needed();
     }
 
     if (evt == event_queue.end()) {
-      std::lock_guard<std::mutex> lock(_mutex);
+      absl::MutexLock lck(&_events_m);
       _update_stats();
       return;
     }
+
     // we have stopped insertion because of full queue => retry
     if (at_least_one_push_to_queue) {
       continue;
     }
-    // nothing pushed => to file
-    std::lock_guard<std::mutex> lock(_mutex);
+    /* The queue is full. The rest is put in the retention file. */
+    absl::MutexLock lck(&_events_m);
     for (; evt != event_queue.end(); ++evt) {
       auto event = *evt;
       if (!_write_filter.allows(event->type())) {
@@ -393,6 +404,8 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
     }
     _update_stats();
   }
+  _logger->debug("muxer {:p}:publish on muxer '{}': finished",
+                 static_cast<void*>(this), _name);
 }
 
 /**
@@ -404,20 +417,19 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
  *  @return Respect io::stream::read()'s return value.
  */
 bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
+  _logger->trace("muxer {:p}:read() call", static_cast<void*>(this));
   bool timed_out{false};
-  std::unique_lock<std::mutex> lock(_mutex);
+  absl::MutexLock lck(&_events_m);
 
   // No data is directly available.
   if (_pos == _events.end()) {
     // Wait a while if subscriber was not shutdown.
     if ((time_t)-1 == deadline)
-      _cv.wait(lock);
+      _no_event_cv.Wait(&_events_m);
     else if (!deadline) {
       timed_out = true;
     } else {
-      time_t now(time(nullptr));
-      timed_out = _cv.wait_for(lock, std::chrono::seconds(deadline - now)) ==
-                  std::cv_status::timeout;
+      _no_event_cv.WaitWithDeadline(&_events_m, absl::FromTimeT(deadline));
     }
     if (_pos != _events.end()) {
       event = *_pos;
@@ -475,7 +487,7 @@ const std::string& muxer::write_filters_as_str() const {
  *  @return  The size of the event queue.
  */
 uint32_t muxer::get_event_queue_size() const {
-  std::lock_guard<std::mutex> lock(_mutex);
+  absl::MutexLock lck(&_events_m);
   return _events_size;
 }
 
@@ -487,7 +499,7 @@ void muxer::nack_events() {
                       "multiplexing: reprocessing unacknowledged events from "
                       "{} event queue with {} waiting events",
                       _name, _events_size);
-  std::lock_guard<std::mutex> lock(_mutex);
+  absl::MutexLock lck(&_events_m);
   _pos = _events.begin();
   _update_stats();
 }
@@ -499,7 +511,7 @@ void muxer::nack_events() {
  */
 void muxer::statistics(nlohmann::json& tree) const {
   // Lock object.
-  std::lock_guard<std::mutex> lock(_mutex);
+  absl::MutexLock lck(&_events_m);
 
   // Queue file mode.
   bool queue_file_enabled(_file.get());
@@ -521,8 +533,7 @@ void muxer::statistics(nlohmann::json& tree) const {
  *  Wake all threads waiting on this subscriber.
  */
 void muxer::wake() {
-  std::lock_guard<std::mutex> lock(_mutex);
-  _cv.notify_all();
+  _no_event_cv.SignalAll();
 }
 
 /**
@@ -578,7 +589,7 @@ void muxer::write(std::deque<std::shared_ptr<io::data>>& to_publish) {
 
 /**
  *  Release all events stored within the internal list.
- *  Warning: _mutex must be locked to call this function.
+ *  Warning: _events_m must be locked to call this function.
  */
 void muxer::_clean() {
   _file.reset();
@@ -609,7 +620,7 @@ void muxer::_clean() {
 
 /**
  *  Get event from retention file.
- *  Warning: lock _mutex before using this function.
+ *  Warning: lock _events_m before using this function.
  *
  *  @param[out] event  Last event available. Null if none is available.
  */
@@ -657,7 +668,7 @@ std::string muxer::queue_file(std::string const& name) {
 }
 
 /**
- *  Push event to queue (_mutex is locked when this method is called).
+ *  Push event to queue (_events_m is locked when this method is called).
  *
  *  @param[in] event  New event.
  */
@@ -670,20 +681,20 @@ void muxer::_push_to_queue(std::shared_ptr<io::data> const& event) {
 
   if (pos_has_no_more_to_read) {
     _pos = --_events.end();
-    _cv.notify_one();
+    _no_event_cv.Signal();
   }
 }
 
 /**
  * @brief Fill statistics if it happened more than 1 second ago
  *
- * Warning: _mutex must be locked before while calling this function.
+ * Warning: _events_m must be locked before while calling this function.
  */
 void muxer::_update_stats() noexcept {
   std::time_t now{std::time(nullptr)};
   if (now - _last_stats > 0) {
     _last_stats = now;
-    /* Since _mutex is locked, we can get interesting values and copy them
+    /* Since _events_m is locked, we can get interesting values and copy them
      * in the capture. Then the execute() function can put them in the stats
      * object asynchronously. */
     stats::center::instance().update_muxer(
@@ -739,17 +750,13 @@ void muxer::set_write_filter(const muxer_filter& w_filter) {
 }
 
 /**
- * @brief clear readhandler in case of caller owning this object has terminate
- *
- */
-void muxer::clear_read_handler() {
-  std::unique_lock<std::mutex> lock(_mutex);
-  _read_handler = nullptr;
-}
-
-/**
  * @brief Unsubscribe this muxer from the parent engine.
  */
 void muxer::unsubscribe() {
+  _logger->debug("multiplexing: unsubscribe '{}'", _name);
   _engine->unsubscribe_muxer(this);
+}
+
+void muxer::set_reader(read_handler&& handler) {
+  _reader = handler;
 }

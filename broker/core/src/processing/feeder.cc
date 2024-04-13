@@ -57,7 +57,6 @@ std::shared_ptr<feeder> feeder::create(
       new feeder(name, parent, client, read_filters, write_filters));
   ret->_start_stat_timer();
 
-  ret->_read_from_muxer();
   ret->_start_read_from_stream_timer();
   return ret;
 }
@@ -91,6 +90,7 @@ feeder::feeder(const std::string& name,
   if (!_client)
     throw msg_fmt("could not process '{}' with no client stream", _name);
 
+  _muxer->set_reader([me = shared_from_this()] { me->_read_from_muxer(); });
   set_last_connection_attempt(timestamp::now());
   set_last_connection_success(timestamp::now());
   set_state("connected");
@@ -149,6 +149,7 @@ void feeder::_forward_statistic(nlohmann::json& tree) {
  * if not, _write_to_client will be called from muxer when event arrive
  */
 void feeder::_read_from_muxer() {
+  _logger->trace("feeder '{}':_read_from_muxer call", _name);
   bool have_to_terminate = false;
   bool other_event_to_read = true;
   std::vector<std::shared_ptr<io::data>> events;
@@ -156,14 +157,13 @@ void feeder::_read_from_muxer() {
       std::chrono::system_clock::now() + std::chrono::milliseconds(100);
   std::unique_lock<std::timed_mutex> l(_protect);
   if (_state != state::running) {
+    _logger->trace("feeder '{}':_read_from_muxer not running - return", _name);
     return;
   }
   events.reserve(_muxer->get_event_queue_size());
   while (other_event_to_read && !have_to_terminate &&
          std::chrono::system_clock::now() < timeout_read) {
-    other_event_to_read =
-        _muxer->read(events, max_event_queue_size,
-                     [me = shared_from_this()]() { me->_read_from_muxer(); });
+    other_event_to_read = _muxer->read(events, max_event_queue_size);
 
     SPDLOG_LOGGER_TRACE(_logger, "feeder '{}': {} events read from muxer",
                         _name, events.size());
@@ -182,14 +182,20 @@ void feeder::_read_from_muxer() {
     }
     events.clear();
   }
+  _logger->trace("feeder '{}':_read_from_muxer while loop finished", _name);
   if (have_to_terminate) {
+    _logger->trace("feeder '{}':_read_from_muxer have to terminate - stopping",
+                   _name);
     _stop_no_lock();
     return;
   }
   if (other_event_to_read) {  // other events to read => give time to
                               // asio to work
+    _logger->trace(
+        "feeder:_read_from_muxer others events to read, pop a new call");
     _io_context->post([me = shared_from_this()]() { me->_read_from_muxer(); });
   }
+  _logger->trace("feeder '{}':_read_from_muxer nothing to do", _name);
 }
 
 /**
@@ -290,7 +296,8 @@ void feeder::_stop_no_lock() {
   _muxer->remove_queue_files();
   SPDLOG_LOGGER_INFO(_logger, "feeder: {} terminated", _name);
   // in order to avoid circular owning
-  _muxer->clear_read_handler();
+  // FIXME DBO: this cannot work now.
+  //_muxer->clear_read_handler();
 }
 
 /**

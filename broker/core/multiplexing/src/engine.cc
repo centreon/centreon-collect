@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2013,2015, 2020-2023 Centreon
+ * Copyright 2009-2013,2015, 2020-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/multiplexing/engine.hh"
 
+#include <absl/synchronization/mutex.h>
 #include <unistd.h>
 
 #include <cassert>
@@ -35,7 +36,7 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Class instance.
 std::shared_ptr<engine> engine::_instance{nullptr};
-std::mutex engine::_load_m;
+absl::Mutex engine::_load_m;
 
 /**
  *  Get engine instance.
@@ -53,7 +54,7 @@ std::shared_ptr<engine> engine::instance_ptr() {
 void engine::load() {
   auto logger = log_v2::instance().get(log_v2::CORE);
   SPDLOG_LOGGER_TRACE(logger, "multiplexing: loading engine");
-  std::lock_guard<std::mutex> lk(_load_m);
+  absl::MutexLock lk(&_load_m);
   if (!_instance)
     _instance.reset(new engine(logger));
 }
@@ -69,7 +70,7 @@ void engine::unload() {
   if (_instance->_state != stopped)
     _instance->stop();
 
-  std::lock_guard<std::mutex> lk(_load_m);
+  absl::MutexLock lk(&_load_m);
   // Commit the cache file, if needed.
   if (_instance && _instance->_cache_file) {
     // In case of muxers removed from the Engine and still events in _kiew

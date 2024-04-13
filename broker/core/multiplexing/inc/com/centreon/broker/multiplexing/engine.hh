@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2012,2015,2019-2023 Centreon
+ * Copyright 2009-2012,2015,2019-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #ifndef CCB_MULTIPLEXING_ENGINE_HH
 #define CCB_MULTIPLEXING_ENGINE_HH
 
+#include <absl/base/thread_annotations.h>
 #include "com/centreon/broker/persistent_cache.hh"
 #include "com/centreon/broker/stats/center.hh"
 
@@ -61,8 +62,8 @@ class callback_caller;
  *  @see muxer
  */
 class engine {
-  static std::mutex _load_m;
-  static std::shared_ptr<engine> _instance;
+  static absl::Mutex _load_m;
+  static std::shared_ptr<engine> _instance ABSL_GUARDED_BY(_load_m);
 
   enum state { not_started, running, stopped };
 
@@ -96,8 +97,8 @@ class engine {
   friend class detail::callback_caller;
 
  public:
-  static void load();
-  static void unload();
+  static void load() ABSL_LOCKS_EXCLUDED(_load_m);
+  static void unload() ABSL_LOCKS_EXCLUDED(_load_m);
   static std::shared_ptr<engine> instance_ptr();
 
   engine(const engine&) = delete;

@@ -3691,10 +3691,12 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
   // Processed object.
   auto svc{static_cast<neb::pb_service const*>(d.get())};
   auto& s = svc->obj();
-  SPDLOG_LOGGER_DEBUG(
-      _logger_sql,
-      "unified_sql: processing pb service ({}, {}) state: {} state_type: {}",
-      s.host_id(), s.service_id(), s.state(), s.state_type());
+  assert(s.max_check_attempts() != 280);
+  SPDLOG_LOGGER_DEBUG(_logger_sql,
+                      "unified_sql: processing pb service ({}, {}) state: {} "
+                      "state_type: {}, max_check_attempts: {}",
+                      s.host_id(), s.service_id(), s.state(), s.state_type(),
+                      s.max_check_attempts());
   SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: pb service output: <<{}>>",
                       s.output());
 
