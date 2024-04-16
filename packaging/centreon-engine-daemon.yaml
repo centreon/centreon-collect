@@ -55,13 +55,12 @@ contents:
   - src: "../engine/scripts/centengine.service"
     dst: "/usr/lib/systemd/system/centengine.service"
     file_info:
-      mode: 644
+      mode: 0644
     packager: rpm
-
   - src: "../engine/scripts/centengine.service"
     dst: "/lib/systemd/system/centengine.service"
     file_info:
-      mode: 644
+      mode: 0644
     packager: deb
 
   - src: "../build/engine/centengine"
