@@ -525,7 +525,15 @@ void reader_v2::_load_dimensions() {
   std::promise<database::mysql_result> promise_ba_tp;
   std::future<database::mysql_result> future_ba_tp = promise_ba_tp.get_future();
   _mysql.run_query_and_get_result(
-      "SELECT ba_id, tp_id FROM mod_bam_relations_ba_timeperiods",
+      fmt::format(
+          "SELECT bt.ba_id, bt.tp_id FROM mod_bam_relations_ba_timeperiods bt"
+          " INNER JOIN mod_bam AS b"
+          " ON b.ba_id = bt.ba_id"
+          " INNER JOIN mod_bam_poller_relations AS pr"
+          " ON b.ba_id=pr.ba_id"
+          " WHERE b.activate='1'"
+          " AND pr.poller_id={}",
+          config::applier::state::instance().poller_id()),
       std::move(promise_ba_tp), 0);
 
   try {
