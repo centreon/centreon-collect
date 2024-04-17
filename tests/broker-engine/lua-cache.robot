@@ -155,7 +155,7 @@ LCDNUH
 
     Wait Until Created    /tmp/test-LUA.log
     FOR    ${i}    IN RANGE    60
-        ${result}    Grep File    /tmp/test-LUA.log    configuration of (1,1)    regexp=False
+        ${result}    Grep File    /tmp/test-LUA.log    configuration of (1)    regexp=False
         IF    len("""${result}""") > 0    BREAK
 	Sleep    1s
     END
