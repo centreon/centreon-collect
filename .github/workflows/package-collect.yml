@@ -55,7 +55,7 @@ jobs:
             package_extension: deb
             runner: collect-arm64
             arch: arm64
-          - image: centreon-collect-debian-bookwom-arm64
+          - image: centreon-collect-debian-bookworm-arm64
             distrib: bookworm
             package_extension: deb
             runner: collect-arm64
