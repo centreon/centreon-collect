@@ -88,7 +88,7 @@ jobs:
             package_extension: deb
             arch: arm64
             database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-arm64
+            test_group_name: robot_test-mariadb-bookworm-arm64
             tests_params: '{}'
           - distrib: bookworm
             image: centreon-collect-debian-bookworm-test
