@@ -162,6 +162,8 @@ jobs:
             arch: arm64
           - distrib: bookworm
             arch: amd64
+          - distrib: bookworm
+            arch: arm64
           - distrib: jammy
             arch: amd64
 
