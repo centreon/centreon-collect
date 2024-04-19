@@ -20,7 +20,7 @@ contents:
     dst: "/etc/centreon-engine/centengine.cfg"
     type: config|noreplace
     file_info:
-      mode: 0660
+      mode: 0664
       owner: centreon-engine
       group: centreon-engine
 
@@ -28,7 +28,7 @@ contents:
     dst: "/etc/centreon-engine/resource.cfg"
     type: config|noreplace
     file_info:
-      mode: 0660
+      mode: 0664
       owner: centreon-engine
       group: centreon-engine
 
@@ -36,7 +36,7 @@ contents:
     dst: "/etc/centreon-engine/commands.cfg"
     type: config|noreplace
     file_info:
-      mode: 0660
+      mode: 0664
       owner: centreon-engine
       group: centreon-engine
 
@@ -44,7 +44,7 @@ contents:
     dst: "/etc/centreon-engine/timeperiods.cfg"
     type: config|noreplace
     file_info:
-      mode: 0660
+      mode: 0664
       owner: centreon-engine
       group: centreon-engine
 
