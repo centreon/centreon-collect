@@ -1,6 +1,6 @@
 @VAR_DIR@/centengine.log {
   compress
-  create 640 @USER@ @GROUP@
+  create 644 @USER@ @GROUP@
   daily
   delaycompress
   missingok
@@ -14,7 +14,7 @@
 
 @VAR_DIR@/centengine.debug {
   compress
-  create 640 @USER@ @GROUP@
+  create 644 @USER@ @GROUP@
   delaycompress
   missingok
   olddir @ENGINE_VAR_LOG_ARCHIVE_DIR@

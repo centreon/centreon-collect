@@ -1,6 +1,6 @@
 @ENGINE_VAR_LOG_DIR@/*.log {
   compress
-  create 640 @USER@ @GROUP@
+  create 644 @USER@ @GROUP@
   daily
   delaycompress
   missingok
