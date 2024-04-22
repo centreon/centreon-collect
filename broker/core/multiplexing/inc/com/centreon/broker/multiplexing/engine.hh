@@ -69,22 +69,23 @@ class engine {
 
   using send_to_mux_callback_type = std::function<void()>;
 
-  state _state;
 
   std::unique_ptr<persistent_cache> _cache_file;
 
   // Mutex to lock _kiew and _state
   std::mutex _engine_m;
 
-  // Data queue.
-  std::deque<std::shared_ptr<io::data>> _kiew;
+  // Data queue _kiew and engine state _state are protected by _kiew_m.
+  absl::Mutex _kiew_m;
+  state _state ABSL_GUARDED_BY(_kiew_m);
+  std::deque<std::shared_ptr<io::data>> _kiew ABSL_GUARDED_BY(_kiew_m);
+  uint32_t _unprocessed_events ABSL_GUARDED_BY(_kiew_m);
 
   // Subscriber.
   std::vector<std::weak_ptr<muxer>> _muxers;
 
   // Statistics.
   EngineStats* _stats;
-  uint32_t _unprocessed_events;
 
   std::atomic_bool _sending_to_subscribers;
 

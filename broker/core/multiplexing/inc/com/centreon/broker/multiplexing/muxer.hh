@@ -26,7 +26,6 @@
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/persistent_file.hh"
-#include "develop/build/vcpkg_installed/x64-linux-release/include/absl/base/thread_annotations.h"
 
 namespace com::centreon::broker::multiplexing {
 /**
@@ -51,10 +50,7 @@ namespace com::centreon::broker::multiplexing {
  *
  *  @see engine
  */
-class muxer : public io::stream {
- public:
-  using read_handler = std::function<void()>;
-
+class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
  private:
   static uint32_t _event_queue_max_size;
 
@@ -67,7 +63,8 @@ class muxer : public io::stream {
   std::string _write_filters_str;
   const bool _persistent;
 
-  read_handler _reader;
+  std::function<uint32_t(std::vector<std::shared_ptr<io::data>>)>
+      _data_handler;
   std::atomic_bool _reader_running = false;
 
   /** Events are stacked into _events or into _file. Because several threads
@@ -142,7 +139,10 @@ class muxer : public io::stream {
   void set_write_filter(const muxer_filter& w_filter);
   void clear_read_handler();
   void unsubscribe();
-  void set_reader(read_handler&& reader);
+  void set_action_on_new_data(
+      std::function<uint32_t(std::vector<std::shared_ptr<io::data>>)>&&
+          data_handler) ABSL_LOCKS_EXCLUDED(_events_m);
+  void clear_action_on_new_data() ABSL_LOCKS_EXCLUDED(_events_m);
 };
 
 /**

@@ -80,7 +80,7 @@ class feeder : public stat_visitable,
 
   void _stop_no_lock();
 
-  void _ack_event_to_muxer(unsigned count) noexcept;
+  void _ack_events_on_muxer(uint32_t count) noexcept;
 
  public:
   static std::shared_ptr<feeder> create(

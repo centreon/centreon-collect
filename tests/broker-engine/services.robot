@@ -22,9 +22,14 @@ SDER
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    central    processing    trace
     Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    module0    processing    trace
     Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Engine Config Replace Value In Services    0    service_1    max_check_attempts    42
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -44,7 +49,7 @@ SDER
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
-    FOR    ${index}    IN RANGE    30
+    FOR    ${index}    IN RANGE    20
         Log To Console    SELECT check_attempt from services WHERE description='service_1'
         ${output}    Query    SELECT check_attempt from services WHERE description='service_1'
         Log To Console    ${output}

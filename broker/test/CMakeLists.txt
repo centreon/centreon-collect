@@ -16,8 +16,6 @@
 # For more information : contact@centreon.com
 #
 
-include_directories(${CONAN_INCLUDE_DIRS_GTEST})
-
 # Tests directory.
 set(TESTS_DIR ${PROJECT_SOURCE_DIR}/core/test)
 set(BAM_TESTS_DIR ${PROJECT_SOURCE_DIR}/bam/test)
@@ -134,6 +132,12 @@ add_executable(
   ${TESTS_DIR}/test_server.cc
   # Module sources.
   ${TESTS_SOURCES})
+
+message(STATUS "###################################")
+message(STATUS "###################################")
+message(STATUS ${TESTS_SOURCES})
+message(STATUS "###################################")
+message(STATUS "###################################")
 
 target_link_libraries(
   ut_broker

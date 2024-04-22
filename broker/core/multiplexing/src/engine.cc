@@ -60,7 +60,7 @@ void engine::load() {
 }
 
 /**
- *  Unload class instance.
+ * @brief Unload the engine class instance.
  */
 void engine::unload() {
   SPDLOG_LOGGER_TRACE(log_v2::instance().get(log_v2::CORE),
@@ -89,7 +89,7 @@ void engine::unload() {
 void engine::publish(const std::shared_ptr<io::data>& e) {
   bool have_to_send = false;
   {
-    std::lock_guard<std::mutex> lock(_engine_m);
+    absl::MutexLock lck(&_kiew_m);
     switch (_state) {
       case stopped:
         SPDLOG_LOGGER_TRACE(_logger, "engine::publish one event to file");
@@ -115,7 +115,7 @@ void engine::publish(const std::shared_ptr<io::data>& e) {
 void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
   bool have_to_send = false;
   {
-    std::lock_guard<std::mutex> lock(_engine_m);
+    absl::MutexLock lck(&_kiew_m);
     switch (_state) {
       case stopped:
         SPDLOG_LOGGER_TRACE(_logger, "engine::publish {} event to file",
@@ -152,7 +152,7 @@ void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
 void engine::start() {
   bool have_to_send = false;
   {
-    std::lock_guard<std::mutex> lock(_engine_m);
+    absl::MutexLock lck(&_kiew_m);
     if (_state == not_started) {
       // Set writing method.
       SPDLOG_LOGGER_DEBUG(_logger, "multiplexing: engine starting");
@@ -189,9 +189,9 @@ void engine::start() {
       have_to_send = true;
     }
   }
-  if (have_to_send) {
+  if (have_to_send)
     _send_to_subscribers(nullptr);
-  }
+
   SPDLOG_LOGGER_INFO(_logger, "multiplexing: engine started");
 }
 

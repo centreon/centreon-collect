@@ -298,12 +298,21 @@ uint32_t muxer::event_queue_max_size() noexcept {
 }
 
 void muxer::_execute_reader_if_needed() {
-  if (_reader) {
+  if (_data_handler) {
     bool expected = false;
     if (_reader_running.compare_exchange_strong(expected, true)) {
-      pool::io_context_ptr()->post([this] {
-        _reader();
-        _reader_running.store(false);
+      pool::io_context_ptr()->post([me = shared_from_this()] {
+	  std::vector<std::shared_ptr<io::data>> to_fill;
+	  to_fill.reserve(me->_events_size);
+	  bool still_events_to_read = me->read(to_fill, to_fill.size());
+	  uint32_t written = me->_data_handler(to_fill);
+	  if (written > 0)
+	    me->ack_events(written);
+	  if (written != to_fill.size()) {
+	    me->_logger->error("Unable to handle all the incoming events in muxer '{}'", me->_name);
+	    me->clear_action_on_new_data();
+	  }
+	  me->_reader_running.store(false);
       });
     }
   }
@@ -757,6 +766,27 @@ void muxer::unsubscribe() {
   _engine->unsubscribe_muxer(this);
 }
 
-void muxer::set_reader(read_handler&& handler) {
-  _reader = handler;
+void muxer::set_action_on_new_data(std::function<uint32_t(std::vector<std::shared_ptr<io::data>>)>&& data_handler) {
+  absl::MutexLock lck(&_events_m);
+  _data_handler = data_handler;
 }
+
+void muxer::clear_action_on_new_data() {
+  absl::MutexLock lck(&_events_m);
+  _data_handler = nullptr;
+}
+
+//void muxer::remove_reader() {
+//  auto reader_finished = [this] {
+//    return !_reader_running.load();
+//  };
+//  bool cont = false;
+//  {
+//    absl::MutexLock lck(&_events_m);
+//    cont = _pos != _events.end();
+//  }
+//  if (cont) {
+//    absl::MutexLock lck(&_events_m);
+//    _reader = nullptr;
+//  }
+//}

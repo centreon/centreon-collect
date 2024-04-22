@@ -55,6 +55,7 @@ std::shared_ptr<feeder> feeder::create(
     const multiplexing::muxer_filter& write_filters) {
   std::shared_ptr<feeder> ret(
       new feeder(name, parent, client, read_filters, write_filters));
+
   ret->_start_stat_timer();
 
   ret->_start_read_from_stream_timer();
@@ -90,7 +91,10 @@ feeder::feeder(const std::string& name,
   if (!_client)
     throw msg_fmt("could not process '{}' with no client stream", _name);
 
-  _muxer->set_reader([me = shared_from_this()] { me->_read_from_muxer(); });
+  _muxer->set_action_on_new_data(
+      [this](std::vector<std::shared_ptr<io::data>> events) -> uint32_t {
+        return _write_to_client(events);
+      });
   set_last_connection_attempt(timestamp::now());
   set_last_connection_success(timestamp::now());
   set_state("connected");
@@ -160,6 +164,7 @@ void feeder::_read_from_muxer() {
     _logger->trace("feeder '{}':_read_from_muxer not running - return", _name);
     return;
   }
+  // This size is surely too large...
   events.reserve(_muxer->get_event_queue_size());
   while (other_event_to_read && !have_to_terminate &&
          std::chrono::system_clock::now() < timeout_read) {
@@ -168,33 +173,37 @@ void feeder::_read_from_muxer() {
     SPDLOG_LOGGER_TRACE(_logger, "feeder '{}': {} events read from muxer",
                         _name, events.size());
 
-    // if !other_event_to_read callback is stored and will be called as soon as
-    // events will be available
     if (!events.empty()) {
-      unsigned written = _write_to_client(events);
+      uint32_t written = _write_to_client(events);
+      /* The case written == 0 is possible if the filter did not allow the
+       * write of data. */
       if (written > 0) {
-        _ack_event_to_muxer(written);
+        _ack_events_on_muxer(written);
         // as retention may fill queue we try to read once more
+        // This comment is wrong, we stop to read for now.
         other_event_to_read = false;
       }
-      if (written != events.size())  //_client fails to write all events
+      if (written != events.size())  //_client failed to write events
         have_to_terminate = true;
+      events.clear();
     }
-    events.clear();
   }
   _logger->trace("feeder '{}':_read_from_muxer while loop finished", _name);
   if (have_to_terminate) {
-    _logger->trace("feeder '{}':_read_from_muxer have to terminate - stopping",
+    _logger->trace("feeder '{}':_read_from_muxer has to terminate - stopping",
                    _name);
     _stop_no_lock();
     return;
   }
-  if (other_event_to_read) {  // other events to read => give time to
-                              // asio to work
-    _logger->trace(
-        "feeder:_read_from_muxer others events to read, pop a new call");
-    _io_context->post([me = shared_from_this()]() { me->_read_from_muxer(); });
-  }
+  //  FIXME DBO: I have the feeling that the muxer reader does already the
+  //  work.
+  //  if (other_event_to_read) {  // other events to read => give time to
+  //                              // asio to work
+  //    _logger->trace(
+  //        "feeder:_read_from_muxer others events to read, pop a new call");
+  //    _io_context->post([me = shared_from_this()]() { me->_read_from_muxer();
+  //    });
+  //  }
   _logger->trace("feeder '{}':_read_from_muxer nothing to do", _name);
 }
 
@@ -242,11 +251,11 @@ unsigned feeder::_write_to_client(
 }
 
 /**
- * @brief acknowledge event to the muxer and catch exception from it
+ * @brief acknowledge events to the muxer and catch exception from it
  *
  * @param count
  */
-void feeder::_ack_event_to_muxer(unsigned count) noexcept {
+void feeder::_ack_events_on_muxer(unsigned count) noexcept {
   try {
     _muxer->ack_events(count);
   } catch (const std::exception&) {
@@ -277,6 +286,7 @@ void feeder::_stop_no_lock() {
 
   set_state("disconnected");
 
+  _muxer->clear_action_on_new_data();
   // muxer should not receive events
   _muxer->unsubscribe();
   _stat_timer.cancel();
@@ -295,9 +305,11 @@ void feeder::_stop_no_lock() {
                      _name);
   _muxer->remove_queue_files();
   SPDLOG_LOGGER_INFO(_logger, "feeder: {} terminated", _name);
-  // in order to avoid circular owning
-  // FIXME DBO: this cannot work now.
-  //_muxer->clear_read_handler();
+
+  /* The muxer is in a shared_ptr. When the feeder is destroyed, we must be
+   * sure the muxer won't write data anymore otherwise we will have a segfault.
+   */
+  _muxer->clear_action_on_new_data();
 }
 
 /**
