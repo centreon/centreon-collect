@@ -334,8 +334,6 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
   int retval = 0;
   if (log_v2::lua()->level() == spdlog::level::trace) {
     SPDLOG_LOGGER_TRACE(log_v2::lua(), "lua: luabinding::write call {}", *data);
-  } else {
-    SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: luabinding::write call");
   }
 
   // Give data to cache.
