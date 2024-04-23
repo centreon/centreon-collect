@@ -63,12 +63,11 @@ class callback_caller;
  */
 class engine {
   static absl::Mutex _load_m;
-  static std::shared_ptr<engine> _instance ABSL_GUARDED_BY(_load_m);
+  static std::shared_ptr<engine> _instance;
 
   enum state { not_started, running, stopped };
 
   using send_to_mux_callback_type = std::function<void()>;
-
 
   std::unique_ptr<persistent_cache> _cache_file;
 
@@ -82,7 +81,7 @@ class engine {
   uint32_t _unprocessed_events ABSL_GUARDED_BY(_kiew_m);
 
   // Subscriber.
-  std::vector<std::weak_ptr<muxer>> _muxers;
+  std::vector<std::weak_ptr<muxer>> _muxers ABSL_GUARDED_BY(_kiew_m);
 
   // Statistics.
   EngineStats* _stats;
@@ -106,7 +105,7 @@ class engine {
   engine& operator=(const engine&) = delete;
   ~engine() noexcept;
 
-  void clear();
+  void clear() ABSL_LOCKS_EXCLUDED(_kiew_m);
   void publish(const std::shared_ptr<io::data>& d);
   void publish(const std::deque<std::shared_ptr<io::data>>& to_publish);
   void start();

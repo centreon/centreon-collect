@@ -68,6 +68,7 @@ A feeder has two roles:
 
 2. The feeder can also read events from its stream client. This is more usual.
 
+
 #### Initialization
 
 A feeder is created with a static function `feeder::create()`. This function:
@@ -76,25 +77,24 @@ A feeder is created with a static function `feeder::create()`. This function:
 * starts the statistics timer
 * starts its main loop.
 
-The main loop runs with a thread pool managed by ASIO so don't expect to see
-an std::thread somewhere.
+The main loop runs with a thread pool managed by ASIO so don't expect to see an std::thread somewhere.
 
 A feeder is initialized with:
 
-* name: name of the feeder.
-* client: the stream to exchange events with.
-* read\_filters: read filters, that is to say events allowed to be read by the
+* `name`: name of the feeder.
+* `client`: the stream to exchange events with.
+* `read_filters`: read filters, that is to say events allowed to be read by the
   feeder. Events that don't obey to these filters are ignored and thrown away
   by the feeder.
-* write\_filters: same as read filters, but concerning writing.
+* `write_filters`: same as `read_filters`, but concerning writing.
 
-After its construction, the feeder has its statistics started.
+After the construction, the feeder has its statistics started.
 Statistics are handled by an ASIO timer, every 5s the handler `feeder::_stat_timer_handler()` is called.
 
-Then, it is time for the feeder to start its main loops:
+Then, it is time for the feeder to start its main loop.
+the `feeder::_read_from_muxer()` method is called and this last one will be called until the end of the feeder.
 
-* The `feeder::_read_from_muxer()` method is called and this last one will be called until the end of the feeder.
-* And there is a last loop to start, the one concerning stream reading. The feeder constructor calls `feeder::_start_read_from_stream_timer()` that starts a timer, each time its duration is reached, the `feeder::_read_from_stream_timer_handler()` method is called.
+And there is a last loop to start, the one concerning stream reading. The feeder constructor calls `feeder::_start_read_from_stream_timer()` that starts a timer, each time its duration is reached, the `feeder::_read_from_stream_timer_handler()` method is called.
 
 #### Reading the muxer
 
