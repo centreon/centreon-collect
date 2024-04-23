@@ -17,6 +17,7 @@
  */
 #include <fmt/format.h>
 
+#include "bbdo/neb.pb.h"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"

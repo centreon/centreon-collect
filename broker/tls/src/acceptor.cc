@@ -87,8 +87,6 @@ std::shared_ptr<io::stream> acceptor::open(
     const std::shared_ptr<io::stream>& lower) {
   std::shared_ptr<stream> u;
   if (lower) {
-    int ret;
-
     // Load parameters.
     params p(params::SERVER);
     p.set_cert(_cert, _key);
