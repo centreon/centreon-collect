@@ -75,6 +75,14 @@ jobs:
             dockerfile: centreon-collect-debian-bullseye-test
             image: centreon-collect-debian-bullseye-arm64-test
             tag: ${{ needs.get-version.outputs.test_img_version }}
+          - runner: collect-arm64
+            dockerfile: centreon-collect-debian-bookworm
+            image: centreon-collect-debian-bookworm-arm64
+            tag: ${{ needs.get-version.outputs.img_version }}
+          - runner: collect-arm64
+            dockerfile: centreon-collect-debian-bookworm-test
+            image: centreon-collect-debian-bookworm-arm64-test
+            tag: ${{ needs.get-version.outputs.test_img_version }}
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
 
