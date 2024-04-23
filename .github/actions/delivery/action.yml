@@ -119,7 +119,7 @@ runs:
 
         #  NOT VALID, DO NOT DELIVER
         else
-          echo "Invalid combination of release_type and release_cloud"
+          echo "::error:: Invalid combination of release_type [${{ inputs.release_type }}] and release_cloud [${{ inputs.release_cloud }}]"
           exit 1
         fi
 
