@@ -74,7 +74,6 @@ std::unique_ptr<io::stream> connector::open() {
 std::unique_ptr<io::stream> connector::open(std::shared_ptr<io::stream> lower) {
   std::unique_ptr<io::stream> u;
   if (lower) {
-    int ret;
     // Load parameters.
     params p(params::CLIENT);
     p.set_cert(_cert, _key);
