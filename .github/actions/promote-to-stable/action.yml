@@ -115,7 +115,7 @@ runs:
       shell: bash
 
     - name: Promote DEB packages to stable
-      if: ${{ startsWith(inputs.distrib, 'bullseye') }}
+      if: ${{ contains(fromJSON('["bullseye", "bookworm"]') , inputs.distrib) }}
       run: |
         set -eux
 
