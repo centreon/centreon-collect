@@ -3111,7 +3111,7 @@ void stream::_process_pb_service_check(const std::shared_ptr<io::data>& d) {
       || !sc.active_checks_enabled()           // - active checks are disabled,
                                                //   status might not be updated
                                                // - normal case
-      || (sc.next_check() >= now - 5 * 60) ||
+      || (static_cast<time_t>(sc.next_check()) >= now - 5 * 60) ||
       !sc.next_check()) {  // - initial state
     // Apply to DB.
     SPDLOG_LOGGER_INFO(_logger_sql,
