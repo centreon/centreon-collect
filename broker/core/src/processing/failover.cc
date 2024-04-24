@@ -325,32 +325,30 @@ void failover::_run() {
         bool timed_out_muxer(true);
         if (muxer_can_read) {
           SPDLOG_LOGGER_DEBUG(_logger,
-                              "failover: reading event from "
-                              "multiplexing engine for endpoint '{}'",
+                              "failover: reading event from multiplexing "
+                              "engine for endpoint '{}'",
                               _name);
           _update_status("reading event from multiplexing engine");
           try {
             timed_out_muxer = !_muxer->read(d, 0);
             should_commit = should_commit || d;
-          } catch (exceptions::shutdown const& e) {
-            SPDLOG_LOGGER_DEBUG(_logger,
-                                "failover: muxer of endpoint '{}' "
-                                "shutdown while reading: {}",
-                                _name, e.what());
+          } catch (const exceptions::shutdown& e) {
+            SPDLOG_LOGGER_DEBUG(
+                _logger,
+                "failover: muxer of endpoint '{}' shutdown while reading: {}",
+                _name, e.what());
             muxer_can_read = false;
           }
           if (d) {
             if (_logger->level() == spdlog::level::trace)
               SPDLOG_LOGGER_TRACE(_logger,
                                   "failover: writing event {} of multiplexing "
-                                  "engine to endpoint "
-                                  "'{}'",
+                                  "engine to endpoint '{}'",
                                   *d, _name);
             else
               SPDLOG_LOGGER_DEBUG(_logger,
                                   "failover: writing event {} of multiplexing "
-                                  "engine to endpoint "
-                                  "'{}'",
+                                  "engine to endpoint '{}'",
                                   d->type(), _name);
             _update_status("writing event to stream");
             int we(0);
@@ -385,6 +383,8 @@ void failover::_run() {
               }
             }
             _update_status("");
+          } else {
+            _logger->debug("failover: no event read from muxer");
           }
         }
 

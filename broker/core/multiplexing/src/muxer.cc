@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2013,2015-2017,2019-2023 Centreon
+ * Copyright 2009-2013,2015-2017,2019-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
-static std::mutex _add_bench_point_m;
+static absl::Mutex _add_bench_point_m;
 /**
  * @brief add a bench point to pb_bench event
  * as several muxers can update it at the same time, it's protected by a mutex
@@ -45,10 +45,11 @@ static std::mutex _add_bench_point_m;
  * @param event
  * @param tp_name
  */
-void add_bench_point(bbdo::pb_bench& event,
-                     const std::string& muxer_name,
-                     const char* funct_name) {
-  std::lock_guard<std::mutex> l(_add_bench_point_m);
+static void add_bench_point(bbdo::pb_bench& event,
+                            const std::string& muxer_name,
+                            const char* funct_name)
+    ABSL_LOCKS_EXCLUDED(_add_bench_point_m) {
+  absl::MutexLock lck(&_add_bench_point_m);
   com::centreon::broker::TimePoint* muxer_tp = event.mut_obj().add_points();
   muxer_tp->set_name(muxer_name);
   muxer_tp->set_function(funct_name);
@@ -91,6 +92,8 @@ muxer::muxer(std::string name,
       _events_size{0u},
       _last_stats{std::time(nullptr)},
       _logger{log_v2::instance().get(log_v2::CORE)} {
+  absl::SetMutexDeadlockDetectionMode(absl::OnDeadlockCycle::kAbort);
+  absl::EnableMutexInvariantDebugging(true);
   // Load head queue file back in memory.
   absl::MutexLock lck(&_events_m);
   if (_persistent) {
@@ -201,7 +204,6 @@ std::shared_ptr<muxer> muxer::create(std::string name,
  *  Destructor.
  */
 muxer::~muxer() noexcept {
-  unsubscribe();
   {
     absl::MutexLock lock(&_events_m);
     SPDLOG_LOGGER_INFO(
@@ -209,6 +211,12 @@ muxer::~muxer() noexcept {
         static_cast<void*>(this), _name, _events_size);
     _clean();
   }
+  /* We must unsubscribe once _clean() is over. This is because _clean() is
+   * calling the Broker engine and the engine is unloaded once it has no more
+   * muxer in its array. As the destructor may be called asynchronously, we
+   * must be sure the Broker engine is used while it exists. */
+  unsubscribe();
+
   // caution, unregister_muxer must be the last center method called at muxer
   // destruction to avoid re create a muxer stat entry
   stats::center::instance().unregister_muxer(_name);

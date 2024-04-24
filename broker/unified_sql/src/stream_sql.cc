@@ -3691,7 +3691,6 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
   // Processed object.
   auto svc{static_cast<neb::pb_service const*>(d.get())};
   auto& s = svc->obj();
-  assert(s.max_check_attempts() != 280);
   SPDLOG_LOGGER_DEBUG(_logger_sql,
                       "unified_sql: processing pb service ({}, {}) state: {} "
                       "state_type: {}, max_check_attempts: {}",

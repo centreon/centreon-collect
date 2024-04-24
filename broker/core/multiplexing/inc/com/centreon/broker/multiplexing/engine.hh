@@ -71,9 +71,6 @@ class engine {
 
   std::unique_ptr<persistent_cache> _cache_file;
 
-  // Mutex to lock _kiew and _state
-  std::mutex _engine_m;
-
   // Data queue _kiew and engine state _state are protected by _kiew_m.
   absl::Mutex _kiew_m;
   state _state ABSL_GUARDED_BY(_kiew_m);
@@ -106,12 +103,14 @@ class engine {
   ~engine() noexcept;
 
   void clear() ABSL_LOCKS_EXCLUDED(_kiew_m);
-  void publish(const std::shared_ptr<io::data>& d);
-  void publish(const std::deque<std::shared_ptr<io::data>>& to_publish);
-  void start();
-  void stop();
-  void subscribe(const std::shared_ptr<muxer>& subscriber);
-  void unsubscribe_muxer(const muxer* subscriber);
+  void publish(const std::shared_ptr<io::data>& d) ABSL_LOCKS_EXCLUDED(_kiew_m);
+  void publish(const std::deque<std::shared_ptr<io::data>>& to_publish)
+      ABSL_LOCKS_EXCLUDED(_kiew_m);
+  void start() ABSL_LOCKS_EXCLUDED(_kiew_m);
+  void stop() ABSL_LOCKS_EXCLUDED(_kiew_m);
+  void subscribe(const std::shared_ptr<muxer>& subscriber)
+      ABSL_LOCKS_EXCLUDED(_kiew_m);
+  void unsubscribe_muxer(const muxer* subscriber) ABSL_LOCKS_EXCLUDED(_kiew_m);
 };
 }  // namespace com::centreon::broker::multiplexing
 

@@ -66,21 +66,18 @@ void engine::unload() {
   SPDLOG_LOGGER_TRACE(log_v2::instance().get(log_v2::CORE),
                       "multiplexing: unloading engine");
   absl::MutexLock lck(&_load_m);
-  if (!_instance)
-    return;
+  auto instance = instance_ptr();
+  if (instance) {
+    instance->stop();
 
-  absl::MutexLock l(&_instance->_kiew_m);
-  if (_instance->_state != stopped)
-    _instance->stop();
-
-  // Commit the cache file, if needed.
-  if (_instance && _instance->_cache_file) {
-    // In case of muxers removed from the Engine and still events in _kiew
-    _instance->publish(_instance->_kiew);
-    _instance->_cache_file->commit();
+    // Commit the cache file, if needed.
+    if (instance->_cache_file) {
+      // In case of muxers removed from the Engine and still events in _kiew
+      instance->publish(instance->_kiew);
+      instance->_cache_file->commit();
+    }
+    _instance.reset();
   }
-
-  _instance.reset();
 }
 
 /**
@@ -203,33 +200,32 @@ void engine::start() {
  * will be handled at the next cbd start.
  */
 void engine::stop() {
-  _kiew_m.Lock();
-  // absl::MutexLock lck(&_kiew_m);
+  absl::ReleasableMutexLock lck(&_kiew_m);
+  /* Here we wait for all the subscriber muxers to be stopped and removed from
+   * the muxers array. Even if they execute asynchronous functions, they have
+   * finished after that. */
+  auto muxers_empty = [&m = _muxers, logger = _logger]() {
+    logger->debug("Still {} muxers configured in Broker engine", m.size());
+    return m.empty();
+  };
+  _logger->info("Waiting for the destruction of subscribers");
+  _kiew_m.Await(absl::Condition(&muxers_empty));
+
   if (_state != stopped) {
+    // Set writing method.
+    _state = stopped;
+    stats::center::instance().update(&EngineStats::set_mode, _stats,
+                                     EngineStats::STOPPED);
+    lck.Release();
     // Notify hooks of multiplexing loop end.
     SPDLOG_LOGGER_INFO(_logger, "multiplexing: stopping engine");
 
-    if (!_muxers.empty()) {
-      do {
-        //        // Make sure that no more data is available.
-        //        if (!_sending_to_subscribers) {
-        //          SPDLOG_LOGGER_INFO(
-        //              _logger,
-        //              "multiplexing: sending events to muxers for the last
-        //              time {} " "events to send", _kiew.size());
-        //          _sending_to_subscribers = true;
-        _kiew_m.Unlock();
-        std::promise<void> promise;
-        if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
-          promise.get_future().get();
-        } else {  // nothing to send or no muxer
-          _kiew_m.Lock();
-          break;
-        }
-        _kiew_m.Lock();
-        //        }
-      } while (!_kiew.empty());
-    }
+    std::promise<void> promise;
+    if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
+      promise.get_future().get();
+    }  // nothing to send or no muxer
+
+    absl::MutexLock l(&_kiew_m);
 
     // Open the cache file and start the transaction.
     // The cache file is used to cache all the events produced
@@ -244,13 +240,8 @@ void engine::stop() {
       _cache_file.reset();
     }
 
-    // Set writing method.
-    _state = stopped;
-    stats::center::instance().update(&EngineStats::set_mode, _stats,
-                                     EngineStats::STOPPED);
+    SPDLOG_LOGGER_DEBUG(_logger, "multiplexing: engine stopped");
   }
-  SPDLOG_LOGGER_DEBUG(_logger, "multiplexing: engine stopped");
-  _kiew_m.Unlock();
 }
 
 /**
@@ -314,6 +305,8 @@ engine::engine(const std::shared_ptr<spdlog::logger>& logger)
       _logger{logger} {
   stats::center::instance().update(&EngineStats::set_mode, _stats,
                                    EngineStats::NOT_STARTED);
+  absl::SetMutexDeadlockDetectionMode(absl::OnDeadlockCycle::kAbort);
+  absl::EnableMutexInvariantDebugging(true);
 }
 
 engine::~engine() noexcept {

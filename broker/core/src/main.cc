@@ -31,6 +31,8 @@
 #include <future>
 #include <thread>
 
+#include <absl/synchronization/mutex.h>
+
 #include <absl/container/flat_hash_set.h>
 #include <absl/strings/numbers.h>
 
@@ -158,6 +160,8 @@ static void term_handler(int signum) {
  *  @return 0 on normal termination, any other value on failure.
  */
 int main(int argc, char* argv[]) {
+  absl::SetMutexDeadlockDetectionMode(absl::OnDeadlockCycle::kAbort);
+  absl::EnableMutexInvariantDebugging(true);
   // Initialization.
   int opt, option_index = 0, n_thread = 0;
   std::string broker_name{"unknown"};
