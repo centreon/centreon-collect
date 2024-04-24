@@ -47,9 +47,21 @@ This callback is rarely used. It is essentially used when we want to be sure tha
 * the `stop()` method of Engine: If we want to stop it, we must be sure that no events have to be written somewhere.
 * the `unsubscribe_muxer()` method of Engine: This method removes the muxer from the Engine list of subscribers. So if we remove one muxer from it but there are still events to write into it, we have the risk of an access to a removed muxer.
 
-
 ### Engine
 
+The Broker engine is hold by its subscriber muxers. Each one has a shared pointer
+to it. So the engine can be removed only when there are no more muxers.
+
+The engine has an array of weak pointers to these muxers. So when it is time
+to stop it, we wait for each muxer to be removed from the array. This is produced
+when the muxers themselves are stopped. If there are still data in the engine, they
+are saved to an *unprocessed* file that will be loaded on next Broker start.
+
+The engine class is the root of events dispatching. Events arrive from a stream,
+are transfered to a muxer and then to engine (at the root of the tree).
+This one then sends events to all its children. Each muxer receives these events
+and sends them to its stream.
+ 
 ## Processing
 
 There are two main classes in the Broker processing:
