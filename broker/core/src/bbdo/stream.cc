@@ -1050,14 +1050,10 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
                                ->obj()
                                .acknowledged_events());
         break;
-      case stop::static_type(): {
+      case stop::static_type():
+      case pb_stop::static_type(): {
         SPDLOG_LOGGER_INFO(_logger, "BBDO: received stop from peer");
         send_event_acknowledgement();
-        break;
-      }
-      case pb_stop::static_type(): {
-        multiplexing::publisher pblshr;
-        pblshr.write(d);
         break;
       }
       default:
@@ -1423,16 +1419,14 @@ void stream::acknowledge_events(uint32_t events) {
  */
 void stream::send_event_acknowledgement() {
   if (!_coarse) {
+    SPDLOG_LOGGER_DEBUG(_logger, "send acknowledgement for {} events",
+                        _events_received_since_last_ack);
     if (_bbdo_version.total_version >= 0x0300000001) {
-      SPDLOG_LOGGER_DEBUG(_logger, "send pb acknowledgement for {} events",
-                          _events_received_since_last_ack);
       std::shared_ptr<pb_ack> acknowledgement(std::make_shared<pb_ack>());
       acknowledgement->mut_obj().set_acknowledged_events(
           _events_received_since_last_ack);
       _write(acknowledgement);
     } else {
-      SPDLOG_LOGGER_DEBUG(_logger, "send acknowledgement for {} events",
-                          _events_received_since_last_ack);
       std::shared_ptr<ack> acknowledgement(
           std::make_shared<ack>(_events_received_since_last_ack));
       _write(acknowledgement);

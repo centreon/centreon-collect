@@ -65,6 +65,7 @@ BERD2
     Ctn Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Ctn Broker Config Log    module0    lua    debug
     Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    bbdo    debug
     Ctn Config Broker    rrd
     Ctn Clear Retention
     ${start}    Get Current Date
@@ -77,9 +78,11 @@ BERD2
     Should Be True    ${result}    Lua not started in centengine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
+    Log To Console    Engine and Broker talk during 15s.
     Sleep    15s
     Ctn Stop engine
     Ctn Start engine
+    Log To Console    Engine has been restart and now they talk during 25s.
     Sleep    25s
     Ctn Stop engine
     Ctn Kindly Stop Broker
@@ -352,9 +355,9 @@ BERDUCA300
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    module0    0
     Ctn Config Broker    rrd
-    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
-    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
-    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.1
+    Ctn Broker Config Add Item    central    bbdo_version    3.0.1
+    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
@@ -362,16 +365,14 @@ BERDUCA300
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
 
-    # Let's wait for all the services configuration.
-    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Ctn Wait For Engine To Be Ready    ${1}
 
     Ctn Stop engine
-    ${content}    Create List    BBDO: sending pb stop packet to peer
+    ${content}    Create List    BBDO: sending stop packet to peer
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Engine should send a pb stop message to cbd.
 
-    ${content}    Create List    BBDO: received pb stop from peer
+    ${content}    Create List    BBDO: received stop from peer
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should receive a pb stop message from engine.
 
@@ -414,21 +415,18 @@ BERDUCA301
 
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
-
-    # Let's wait for all the services configuration.
-    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Ctn Wait For Engine To Be Ready    ${1}
 
     Ctn Stop engine
-    ${content}    Create List    BBDO: sending pb stop packet to peer
+    ${content}    Create List    BBDO: sending stop packet to peer
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Engine should send a pb stop message to cbd.
 
-    ${content}    Create List    BBDO: received pb stop from peer
+    ${content}    Create List    BBDO: received stop from peer
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should receive a pb stop message from engine.
 
-    ${content}    Create List    send pb acknowledgement for [0-9]+ events
+    ${content}    Create List    send acknowledgement for [0-9]+ events
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result[0]}    Broker should send an ack for handled events.
 

@@ -1,23 +1,27 @@
-from robot.api import logger
-from subprocess import getoutput
-import re
 import json
-import time
-from dateutil import parser
-from datetime import datetime
+import re
+from subprocess import getoutput
+
+from robot.api import logger
 
 
-##
-# @brief Given two files with md5 as rows, this function checks the first list
-# contains the same md5 as the second list. There are exceptions in these files
-# that's why we need a function to make this test.
-#
-# @param str The first file name
-# @param str The second file name
-#
-# @return A boolean True on success
 def ctn_files_contain_same_json(file_e: str, file_b: str):
-    new_inst = '{"_type": 4294901762, "category": 65535, "element": 2, "broker_id": 1, "broker_name": "", "enabled": True, "poller_id": 1, "poller_name": "Central"}'.upper()
+    """
+    ctn_files_contain_same_json
+
+    Given two files with md5 as rows, this function checks the first list
+    contains the same md5 as the second list. There are exceptions in these files
+    that's why we need a function to make this test.
+
+    Args:
+        file_e (str): The log file produced by Engine
+        file_b (str): The log file produced by Broker
+
+    Returns:
+        A boolean that is True on success, False otherwise.
+    """
+    new_inst = '{"_type": 4294901762, "category": 65535, "element": 2, "broker_id": 1, "broker_name": "",' \
+               '"enabled": True, "poller_id": 1, "poller_name": "Central"}'.upper()
 
     f1 = open(file_e)
     content1 = f1.readlines()
@@ -65,20 +69,24 @@ def ctn_files_contain_same_json(file_e: str, file_b: str):
                 continue
 
             if len(js1) != len(js2):
+                logger.console(f"Line {idx1} in '{file_e}' and line {idx2} in '{file_b}' do not match, json contents are respectively\n{js1}\n{js2}")
                 return False
             for k in js1:
                 if isinstance(js1[k], float):
                     if abs(js1[k] - js2[k]) > 0.1:
+                        logger.console(
+                            f"Line {idx1} in '{file_e}' and line {idx2} in '{file_b}' do not match, json contents are respectively\n{js1}\n{js2}")
                         return False
                 else:
                     if js1[k] != js2[k]:
+                        logger.console(
+                            f"Line {idx1} in '{file_e}' and line {idx2} in '{file_b}' do not match, json contents are respectively\n{js1}\n{js2}")
                         return False
             idx1 += 1
             idx2 += 1
     retval = idx1 == len(content1) or idx2 == len(content2)
     if not retval:
-        logger.console("not at the end of files idx1 = {}/{} or idx2 = {}/{}".format(
-            idx1, len(content1), idx2, len(content2)))
+        logger.console(f"not at the end of files idx1 = {idx1}/{len(content1)} or idx2 = {idx2}/{len(content2)}")
         return False
     return True
 
@@ -244,3 +252,4 @@ def ctn_check_multiplicity_when_engine_restarted(file1: str, file2: str):
                 logger.console(
                     "In lst2: Bad {} {} with type {:x}".format(k, lst2[k], typ2[k]))
     return len(res1) == 1 and len(res2) == 1
+
