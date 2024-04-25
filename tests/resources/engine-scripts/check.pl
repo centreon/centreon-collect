@@ -4,10 +4,6 @@ use strict;
 use warnings;
 use Getopt::Long;
 
-if ($#ARGV < 1) {
-    die "The script must be used with one integer argument\n";
-}
-
 my $d = time();
 my $dd = localtime();
 

@@ -608,7 +608,7 @@ not13
     Should Be True    ${result}    The first notification of contact group 1 is not sent
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
-    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_1 is CRITICAL
+    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
 
     # Let's wait for the first notification of the contact group 2 U3 ET U2
     ${content}    Create List     SERVICE NOTIFICATION: U2;host_1;service_1;CRITICAL;command_notif;

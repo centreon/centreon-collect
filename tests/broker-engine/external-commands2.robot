@@ -1388,7 +1388,7 @@ BESERVCHECK
     ...    host_1
     ...    service_1
     ...    30
-    ...    ${VarRoot}/lib/centreon-engine/check.pl --id ${command_param}
+    ...    ${VarRoot}/lib/centreon-engine/check.pl --id ${command_id}
     Should Be True    ${result}    service table not updated
 
 BEHOSTCHECK

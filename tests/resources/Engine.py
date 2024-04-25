@@ -714,9 +714,6 @@ define contact {
             with open(f"{config_dir}/escalations.cfg", "w") as f:
                 pass
 
-            f = open(config_dir + "/meta_services.cfg", "w")
-            f.close()
-
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
             for file in ["check.pl", "notif.pl"]:
@@ -1023,6 +1020,15 @@ def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, va
         ff.writelines(lines)
 
 def ctn_engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, value: str):
+    """
+    Set a value in the dependencies.cfg for the config idx
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0)
+        desc (str): dependency name
+        key (str): the parameter whose value must change.
+        value (str): the new value to set.
+    """    
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*;;dependency_name\s+" + desc + "\s*$")
@@ -2249,15 +2255,49 @@ def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: s
     engine.create_escalations_file(poller, name, SG, contactgroup)
 
 def ctn_create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
+    """
+    Create an dependencies.cfg file for a given poller.
+
+    Args:
+        poller (int): Index of the poller.
+        dependenthost (str): name of the dependent host that we are gonna test
+        host (str): name of the host master
+        dependentservice (str): name of the dependent service that we are gonna test
+        service (str): name of the service master
+    """    
     engine.create_dependencies_file(poller, dependenthost, host, dependentservice, service)
 
 def ctn_create_dependenciesgrp_file(poller: int, dependentservicegroup: str, servicegroup: str):
+    """
+    Create an dependenciesgrp.cfg file for a given poller.
+
+    Args:
+        poller (int): Index of the poller.
+        dependentservicegroup (str): Dependent service group names list defines the group(s) of dependent services
+        servicegroup (str): Service group names list defines the group(s) of master services
+    """    
     engine.create_dependenciesgrp_file(poller, dependentservicegroup, servicegroup)
 
 def ctn_create_dependencieshst_file(poller: int, dependenthost: str, host: str):
+    """
+    Create an dependencies.cfg file for a given poller.
+
+    Args:
+        poller (int): Index of the poller.
+        dependenthost (str): Dependent Host Name
+        host (str): master host name
+    """    
     engine.create_dependencieshst_file(poller, dependenthost, host)
 
 def ctn_create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostgrp: str):
+    """
+    Create an dependencieshstgrp.cfg file for a given poller.
+
+    Args:
+        poller (int): Index of the poller.
+        dependenthostgrp (str): Dependent host group name list defines the dependent host group(s)
+        hostgrp (str): Host groups name list defines the master host group(s)
+    """    
     engine.create_dependencieshstgrp_file(poller, dependenthostgrp, hostgrp)
 
 def ctn_create_template_file(poller: int, typ: str, what: str, ids: list):
@@ -2317,9 +2357,8 @@ def ctn_engine_config_remove_tag(poller: int, tag_id: int):
         else:
             tag_begin_idx = tag_begin_idx + 1
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
@@ -3248,23 +3287,3 @@ def ctn_get_service_command(host_id: int, service_id: int):
         logger.console(
             f"Unable to find the command id of service ({host_id};{service_id})")
         return None
-
-def ctn_set_service_state(id: int, state: int):
-    # Read the contents of the file and split it into lines
-    with open('/tmp/states', 'a+') as f:
-        lines = f.readlines()
-
-    r = re.compile(rf"^{id}=>[0-9]+")
-    found = False
-
-    for i in range(len(lines)):
-        if r.match(lines[i]):
-            lines[i] = f"{id}=>{state}\n"
-            found = True
-            break
-
-    if not found:
-        lines.append(f"{id}=>{state}\n")
-
-    with open('/tmp/states', 'w') as f:
-        f.writelines(lines)
