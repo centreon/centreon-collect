@@ -437,7 +437,7 @@ define command {
 
     @staticmethod
     def create_dependenciesgrp_file(poller: int, dependentservicegroup: str, servicegroup: str):
-        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+        config_file = os.path.join(CONF_DIR, f"config{poller}", "dependencies.cfg")
         with open(config_file, "a+") as ff:
             content = """define servicedependency {{
     ;dependency_name               MSD_test 
