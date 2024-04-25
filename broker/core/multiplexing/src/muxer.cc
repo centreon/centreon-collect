@@ -312,7 +312,7 @@ void muxer::_execute_reader_if_needed() {
       pool::io_context_ptr()->post([me = shared_from_this()] {
         std::vector<std::shared_ptr<io::data>> to_fill;
         to_fill.reserve(me->_events_size);
-        bool still_events_to_read = me->read(to_fill, to_fill.size());
+        bool still_events_to_read = me->read(to_fill, me->_events_size);
         uint32_t written = me->_data_handler(to_fill);
         if (written > 0)
           me->ack_events(written);
@@ -363,7 +363,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         }
 
         SPDLOG_LOGGER_TRACE(
-            _logger, "muxer {} event of type {:x} written queue size: {}",
+            _logger, "muxer {} event of type {:x} written --- queue size: {}",
             _name, event->type(), _events_size);
 
         at_least_one_push_to_queue = true;
@@ -445,11 +445,11 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
     // Wait a while if subscriber was not shutdown.
     if ((time_t)-1 == deadline)
       _no_event_cv.Wait(&_events_m);
-    else if (!deadline) {
+    else if (!deadline)
       timed_out = true;
-    } else {
+    else
       _no_event_cv.WaitWithDeadline(&_events_m, absl::FromTimeT(deadline));
-    }
+
     if (_pos != _events.end()) {
       event = *_pos;
       ++_pos;
