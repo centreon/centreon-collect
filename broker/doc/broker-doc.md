@@ -2,17 +2,23 @@
 
 ## Table of content
 
-* [Processing](#Processing)
-  * [Feeder](#Feeder)
-
-* [BAM](#BAM)
-  * [Events in BAM](#EventsinBAM)
-* [Impact BA](#ImpactBA)
-* [Best BA](#BestBA)
-* [Worst BA](#WorstBA)
-* [Ratio Number BA](#RatioNumberBA)
-* [Ratio Percent BA](#RatioPercentBA)
-
+- [Broker documentation {#mainpage}](#broker-documentation-mainpage)
+  - [Table of content](#table-of-content)
+  - [Processing](#processing)
+    - [Feeder](#feeder)
+      - [Initialization](#initialization)
+      - [Reading the muxer](#reading-the-muxer)
+      - [Reading the stream](#reading-the-stream)
+      - [Concurrency](#concurrency)
+  - [BAM](#bam)
+    - [Events in BAM](#events-in-bam)
+    - [Impact BA](#impact-ba)
+    - [Best BA](#best-ba)
+    - [Worst BA](#worst-ba)
+    - [Ratio number BA](#ratio-number-ba)
+    - [Ratio percent BA](#ratio-percent-ba)
+    - [BAM cache](#bam-cache)
+  - [grpc module](#grpc-module)
 
 ## Processing
 
@@ -189,3 +195,6 @@ in percents relatively to the total of KPIs.
 When BAM is stopped (broker is stopped or reloaded), living data are saved into a cache. There are two kinds of information:
 * InheritedDowntime: it is then possible to restore the exact situation of the BA's concerning downtimes when cbd will be restarted.
 * ServicesBookState: the goal of this message is to save the BA's states. This message contains only services' states as they are the living parts of BA's. And these services states are minimalistic, we just save data used by BAM.
+
+## grpc module
+grpc threads block at shutdown if grpc object aren't cleanly stopped. For example, we must call ClientBeReactor::Finish before delete. That's why grpc::stream::stop must be called before destruction (shared_ptr< stream >::reset()). So be careful to not forget a case (a catch handler) 

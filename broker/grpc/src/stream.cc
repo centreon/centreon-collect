@@ -161,6 +161,7 @@ void stream<bireactor_class>::register_stream(
  */
 template <class bireactor_class>
 void stream<bireactor_class>::start_read() {
+  std::lock_guard l(_protect);
   if (!_alive) {
     return;
   }
@@ -174,7 +175,6 @@ void stream<bireactor_class>::start_read() {
   }
   SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} Start read",
                       static_cast<const void*>(this), _class_name);
-  std::lock_guard l(_bireactor_m);
   bireactor_class::StartRead(to_read.get());
 }
 
@@ -267,6 +267,7 @@ bool stream<bireactor_class>::read(std::shared_ptr<io::data>& d,
  */
 template <class bireactor_class>
 void stream<bireactor_class>::start_write() {
+  std::lock_guard l(_protect);
   if (!_alive) {
     return;
   }
@@ -289,7 +290,6 @@ void stream<bireactor_class>::start_write() {
                         static_cast<void*>(this), _class_name,
                         to_send->grpc_event);
 
-  std::lock_guard l(_bireactor_m);
   bireactor_class::StartWrite(&to_send->grpc_event);
 }
 
@@ -367,6 +367,7 @@ int32_t stream<bireactor_class>::write(std::shared_ptr<io::data> const& d) {
  */
 template <class bireactor_class>
 void stream<bireactor_class>::OnDone() {
+  stop();
   std::lock_guard l(_instances_m);
   SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{:p} server::OnDone()",
                       static_cast<void*>(this));
@@ -383,6 +384,7 @@ void stream<bireactor_class>::OnDone() {
  */
 template <class bireactor_class>
 void stream<bireactor_class>::OnDone(const ::grpc::Status& status) {
+  stop();
   std::lock_guard l(_instances_m);
   SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{:p} client::OnDone({}) {}",
                       static_cast<void*>(this), status.error_message(),
@@ -425,6 +427,7 @@ int32_t stream<bireactor_class>::stop() {
   SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{:p} {}::stop", static_cast<void*>(this),
                       _class_name);
   if (_alive.compare_exchange_strong(expected, false)) {
+    std::lock_guard l(_protect);
     this->shutdown();
   }
   return 0;

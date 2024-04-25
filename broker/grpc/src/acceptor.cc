@@ -62,7 +62,6 @@ server_stream::server_stream(const grpc_config::pointer& conf,
  */
 void server_stream::shutdown() {
   client_stream_base_class::shutdown();
-  std::lock_guard l(_bireactor_m);
   Finish(::grpc::Status::CANCELLED);
 }
 

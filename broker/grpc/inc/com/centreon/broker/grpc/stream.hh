@@ -109,6 +109,8 @@ class stream : public io::stream,
   grpc_config::pointer _conf;
   const std::string_view _class_name;
 
+  std::mutex _protect;
+
   void start_write();
 
  protected:
@@ -116,9 +118,6 @@ class stream : public io::stream,
 
   // called only by public stop
   virtual void shutdown();
-
-  // each bireactor method should be protected by this
-  std::mutex _bireactor_m;
 
  public:
   virtual ~stream();

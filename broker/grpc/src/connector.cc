@@ -155,7 +155,6 @@ client_stream::client_stream(const grpc_config::pointer& conf)
  */
 void client_stream::shutdown() {
   stream_base_class::shutdown();
-  std::lock_guard l(_bireactor_m);
   RemoveHold();
   _context.TryCancel();
 }
