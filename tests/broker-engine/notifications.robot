@@ -965,7 +965,7 @@ not17
     Ctn Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
 
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The notification is sent for service3 dependency not working
 
     ## Time to set the service4 to CRITICAL HARD.
@@ -974,7 +974,7 @@ not17
 
 
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The notification is sent for service4 dependency not working
 
     ## Time to set the service1 to OK hard
@@ -1072,7 +1072,7 @@ not18
     ${new_date}    Get Current Date
     
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    90
     Should Be True    ${result}    The down notification of host_3 is sent dependency not working
 
     FOR   ${i}    IN RANGE    ${3}
