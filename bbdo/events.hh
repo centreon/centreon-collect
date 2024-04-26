@@ -22,9 +22,7 @@
 #include <cstdint>
 #include <cstring>
 
-namespace com {
-namespace centreon {
-namespace broker {
+namespace com::centreon::broker {
 namespace io {
 enum data_category {
   none = 0,
@@ -35,7 +33,8 @@ enum data_category {
   bam = 6,
   extcmd = 7,
   generator = 8,
-  max_data_category = 9,
+  local = 9,
+  max_data_category = 10,
   internal = 65535
 };
 constexpr uint16_t category_id(const char* name) {
@@ -55,6 +54,8 @@ constexpr uint16_t category_id(const char* name) {
     return dumper;
   if (std::string_view("generator", 9) == name)
     return generator;
+  if (std::string_view("local", 5) == name)
+    return local;
   return none;
 }
 constexpr const char* category_name(data_category cat) {
@@ -75,6 +76,8 @@ constexpr const char* category_name(data_category cat) {
       return "generator";
     case internal:
       return "internal";
+    case local:
+      return "local";
     default:
       return "unknown category";
   }
@@ -208,6 +211,12 @@ namespace extcmd {
 enum data_element { de_pb_bench = 1, de_ba_info = 2 };
 }
 
+namespace local {
+enum data_element {
+  de_pb_stop = 1,
+};
+}
+
 constexpr uint32_t make_type(io::data_category cat, uint32_t elem) {
   return (cat << 16) | elem;
 }
@@ -217,8 +226,6 @@ constexpr uint16_t category_of_type(uint32_t type) {
 constexpr uint16_t element_of_type(uint32_t type) {
   return static_cast<uint16_t>(type);
 }
-}  // namespace broker
-}  // namespace centreon
-}  // namespace com
+}  // namespace com::centreon::broker
 
 #endif /* !CC_BROKER_EVENTS_HH */

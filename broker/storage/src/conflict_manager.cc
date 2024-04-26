@@ -950,7 +950,7 @@ int32_t conflict_manager::unload(stream_type type) {
  * @param d A pb_stop event with the instance ID.
  */
 void conflict_manager::process_stop(const std::shared_ptr<io::data>& d) {
-  auto& stop = static_cast<bbdo::pb_stop*>(d.get())->obj();
+  auto& stop = static_cast<local::pb_stop*>(d.get())->obj();
   int32_t conn = _mysql.choose_connection_by_instance(stop.poller_id());
   _finish_action(-1, actions::hosts | actions::acknowledgements |
                          actions::modules | actions::downtimes |

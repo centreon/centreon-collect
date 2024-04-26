@@ -2724,7 +2724,7 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
                          actions::hostgroups | actions::service_dependencies |
                          actions::host_dependencies);
 
-  /* Now, the bbdo::pb_stop is handled by unified_sql. So the pb_instance with
+  /* Now, the local::pb_stop is handled by unified_sql. So the pb_instance with
    * running = false, seems no more useful. */
   // Log message.
   SPDLOG_LOGGER_INFO(

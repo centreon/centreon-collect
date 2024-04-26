@@ -22,6 +22,7 @@
 #include <arpa/inet.h>
 
 #include <cassert>
+#include <memory>
 
 #include "bbdo/bbdo.pb.h"
 #include "bbdo/bbdo/ack.hh"
@@ -656,6 +657,8 @@ int stream::flush() {
 void stream::_send_event_stop_and_wait_for_ack() {
   if (!_coarse) {
     SPDLOG_LOGGER_DEBUG(_logger, "BBDO: sending stop packet to peer");
+    /* Here, we send a bbdo::pb_stop that passes through the network contrary
+     * to the local::pb_stop. */
     std::shared_ptr<bbdo::pb_stop> stop_packet{
         std::make_shared<bbdo::pb_stop>()};
     stop_packet->mut_obj().set_poller_id(
@@ -1051,11 +1054,21 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
                                .acknowledged_events());
         break;
       case stop::static_type():
-      case pb_stop::static_type(): {
         SPDLOG_LOGGER_INFO(_logger, "BBDO: received stop from peer");
         send_event_acknowledgement();
         break;
-      }
+      case pb_stop::static_type(): {
+        SPDLOG_LOGGER_INFO(_logger, "BBDO: received stop from peer");
+        send_event_acknowledgement();
+        /* Now, we send a local::pb_stop to ask unified_sql to update the
+         * database since the poller is going away. */
+        auto loc_stop = std::make_shared<local::pb_stop>();
+        auto obj = loc_stop->mut_obj();
+        obj.set_poller_id(
+            std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
+        multiplexing::publisher pblshr;
+        pblshr.write(loc_stop);
+      } break;
       default:
         break;
     }

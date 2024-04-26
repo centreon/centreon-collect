@@ -4,9 +4,10 @@
 
 - [Broker documentation {#mainpage}](#broker-documentation-mainpage)
   - [Table of content](#table-of-content)
+  - [BBDO events](#BbdoEvents)
   - [Multiplexing](#Multiplexing)
     - [Muxer](#Muxer)
-      - [Engine](#Engine)
+    - [Engine](#Engine)
   - [Processing](#processing)
     - [Feeder](#feeder)
       - [Initialization](#initialization)
@@ -26,6 +27,25 @@
       - [caution](#caution)
       - [Main classes](#main-classes)
       - [generate\_proto.py](#generate_protopy)
+
+## BBDO events
+Broker is a software that gets events on some inputs and sends them on some outputs. We
+can apply filters on all these inputs/outputs.
+
+Events are divided by categories, they are:
+  * *neb:* For Nagios Event broker. They are the main events received from Engine.
+  * *bbdo:* They are the cops of the BBDO events. Essentially created by Broker to
+    control others events.
+  * *storage:* This category represents all the events created by the sql streams
+    after transformation of some neb events.
+  * *dumper:* not used.
+  * *bam:* the bam events.
+  * *extcmd:* If you use the Broker API, then the sent commands will generate
+    such category events.
+  * *generator:* not used.
+  * *local:* That is an internal category. **Events here can not pass through
+    network**. They stay inside the generator software.
+  * *internal:* Others cops events. They are very few.
 
 ## Multiplexing
 ### Muxer

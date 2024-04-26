@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Centreon
+ * Copyright 2023-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ class muxer_filter {
   struct zero_init {};
 
   /**
-   * @brief constructor witch only initialize all to zero
+   * @brief constructor which only initializes all to zero
    *
    */
   constexpr muxer_filter(const zero_init&) : _mask{0} {
@@ -158,6 +158,14 @@ class muxer_filter {
     return *this;
   }
 
+  constexpr muxer_filter& remove_category(uint16_t category) {
+    if (category < io::max_data_category)
+      _mask[category] = 0;
+    else if (category == io::internal)
+      _mask[0] = 0;
+    return *this;
+  }
+
   /**
    * @brief Equals operator.
    *
@@ -168,7 +176,8 @@ class muxer_filter {
     const uint64_t* other_mask = other._mask;
     for (uint64_t* to_compare = _mask; to_compare < _mask + max_filter_category;
          ++to_compare, ++other_mask) {
-      if (*to_compare != *other_mask) return false;
+      if (*to_compare != *other_mask)
+        return false;
     }
     return true;
   }

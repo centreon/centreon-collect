@@ -39,6 +39,10 @@ using pb_remove_graphs =
 using pb_stop = io::protobuf<Stop, make_type(io::bbdo, bbdo::de_pb_stop)>;
 }  // namespace bbdo
 
+namespace local {
+using pb_stop = io::protobuf<Stop, make_type(io::local, local::de_pb_stop)>;
+}  // namespace local
+
 namespace storage {
 /**
  * Here is the declaration of the message sent by unified_sql to rrd to rebuild

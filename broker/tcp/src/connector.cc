@@ -21,6 +21,7 @@
 
 #include <fmt/format.h>
 
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/tcp/stream.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
 #include "common/log_v2/log_v2.hh"
@@ -28,6 +29,9 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
 using log_v2 = com::centreon::common::log_v2::log_v2;
+
+static constexpr multiplexing::muxer_filter _tcp_stream_filter =
+    multiplexing::muxer_filter().remove_category(io::local);
 
 /**
  * @brief Constructor of the connector that will connect to the given host at
@@ -38,7 +42,7 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  * @param read_timeout The read timeout in seconds or -1 if no duration.
  */
 connector::connector(const tcp_config::pointer& conf)
-    : io::limit_endpoint(false, {}), _conf(conf) {}
+    : io::limit_endpoint(false, _tcp_stream_filter), _conf(conf) {}
 
 /**
  * @brief Connect to the remote host.

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013,2017,2020-2023 Centreon
+ * Copyright 2013,2017,2020-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,8 @@
 #define BBDO_VERSION_PATCH 0
 constexpr uint32_t BBDO_HEADER_SIZE = 16u;
 
-namespace com::centreon::broker::bbdo {
+namespace com::centreon::broker {
+namespace bbdo {
 
 using pb_welcome =
     com::centreon::broker::io::protobuf<Welcome,
@@ -43,14 +44,20 @@ using pb_stop =
     com::centreon::broker::io::protobuf<Stop,
                                         make_type(io::bbdo, bbdo::de_pb_stop)>;
 
-using pb_bench =
-    com::centreon::broker::io::protobuf<Bench, make_type(io::extcmd,
-                                                         extcmd::de_pb_bench)>;
+using pb_bench = com::centreon::broker::io::
+    protobuf<Bench, make_type(io::extcmd, extcmd::de_pb_bench)>;
 
 // Load/unload of BBDO protocol.
 void load();
 void unload();
 
-}  // namespace com::centreon::broker::bbdo
+}  // namespace bbdo
+
+namespace local {
+using pb_stop = com::centreon::broker::io::
+    protobuf<Stop, make_type(io::local, local::de_pb_stop)>;
+}
+
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BBDO_INTERNAL_HH

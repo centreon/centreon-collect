@@ -122,9 +122,9 @@ void broker_module_init(void const* arg) {
                        "remove_graphs_message",
                        &storage::pb_remove_graph_message::operations);
       /* Let's register the message received when a poller is stopped. This is
-       * pb_stop. */
-      e.register_event(make_type(io::bbdo, bbdo::de_pb_stop), "Stop",
-                       &bbdo::pb_stop::operations);
+       * local::pb_stop. */
+      e.register_event(make_type(io::local, local::de_pb_stop), "Stop",
+                       &local::pb_stop::operations);
     }
 
     // Register storage layer.

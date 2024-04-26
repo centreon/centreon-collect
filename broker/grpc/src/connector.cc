@@ -27,6 +27,9 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
+static constexpr multiplexing::muxer_filter _grpc_stream_filter =
+    multiplexing::muxer_filter().remove_category(io::local);
+
 /**
  * @brief Constructor of the connector that will connect to the given host at
  * the given port. read_timeout is a duration in seconds or -1 if no limit.
@@ -36,6 +39,7 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  */
 connector::connector(const grpc_config::pointer& conf)
     : io::limit_endpoint(false, {}), _conf(conf) {
+  auto logger = log_v2::instance().get(log_v2::GRPC);
   ::grpc::ChannelArguments args;
   args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
   args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS,
@@ -51,10 +55,10 @@ connector::connector(const grpc_config::pointer& conf)
 
     const char* algo_name;
     if (grpc_compression_algorithm_name(algo, &algo_name)) {
-      log_v2::grpc()->debug("client this={:p} activate compression {}",
+      logger->debug("client this={:p} activate compression {}",
                             static_cast<void*>(this), algo_name);
     } else {
-      log_v2::grpc()->debug("client this={:p} activate compression unknown",
+      logger->debug("client this={:p} activate compression unknown",
                             static_cast<void*>(this));
     }
     args.SetCompressionAlgorithm(algo);
@@ -64,7 +68,7 @@ connector::connector(const grpc_config::pointer& conf)
     ::grpc::SslCredentialsOptions ssl_opts = {conf->get_ca(), conf->get_key(),
                                               conf->get_cert()};
     SPDLOG_LOGGER_INFO(
-        log_v2::grpc(),
+        logger,
         "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
         conf->get_hostport(), conf->get_cert().substr(0, 10),
         conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
@@ -77,7 +81,7 @@ connector::connector(const grpc_config::pointer& conf)
     }
 #endif
   } else {
-    SPDLOG_LOGGER_INFO(log_v2::grpc(), "unencrypted connection to {}",
+    SPDLOG_LOGGER_INFO(logger, "unencrypted connection to {}",
                        conf->get_hostport());
     creds = ::grpc::InsecureChannelCredentials();
   }

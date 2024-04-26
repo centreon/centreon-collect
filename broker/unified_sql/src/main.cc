@@ -151,8 +151,8 @@ void broker_module_init(void const* arg) {
 
       /* Let's register the message received when a poller is stopped. This is
        * pb_stop. */
-      e.register_event(make_type(io::bbdo, bbdo::de_pb_stop), "Stop",
-                       &bbdo::pb_stop::operations);
+      e.register_event(make_type(io::local, local::de_pb_stop), "LocStop",
+                       &local::pb_stop::operations);
     }
 
     // Register unified_sql layer.
