@@ -784,15 +784,21 @@ class unified_muxer_filter : public multiplexing::muxer_filter {
     _mask[io::bbdo] |= 1ULL << bbdo::de_rebuild_graphs;
     _mask[io::bbdo] |= 1ULL << bbdo::de_remove_graphs;
     _mask[io::bbdo] |= 1ULL << bbdo::de_remove_poller;
-    _mask[io::bbdo] |= 1ULL << bbdo::de_pb_stop;
+    _mask[io::local] |= 1ULL << local::de_pb_stop;
     _mask[io::extcmd] |= 1ULL << extcmd::de_pb_bench;
   }
 };
 
 constexpr unified_muxer_filter _muxer_filter;
+constexpr multiplexing::muxer_filter _forbidden_filter =
+    multiplexing::muxer_filter(_muxer_filter).reverse();
 
 const multiplexing::muxer_filter& stream::get_muxer_filter() {
   return _muxer_filter;
+}
+
+const multiplexing::muxer_filter& stream::get_forbidden_filter() {
+  return _forbidden_filter;
 }
 
 /**

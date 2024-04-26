@@ -1054,9 +1054,6 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
                                .acknowledged_events());
         break;
       case stop::static_type():
-        SPDLOG_LOGGER_INFO(_logger, "BBDO: received stop from peer");
-        send_event_acknowledgement();
-        break;
       case pb_stop::static_type(): {
         SPDLOG_LOGGER_INFO(_logger, "BBDO: received stop from peer");
         send_event_acknowledgement();

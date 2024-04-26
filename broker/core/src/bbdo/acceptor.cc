@@ -25,6 +25,7 @@
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bbdo;
@@ -54,7 +55,10 @@ acceptor::acceptor(std::string name,
                    uint32_t ack_limit,
                    std::list<std::shared_ptr<io::extension>>&& extensions,
                    bool grpc_serialized)
-    : io::endpoint(!one_peer_retention_mode, {}),
+    : io::endpoint(
+          !one_peer_retention_mode,
+          {},
+          multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())),
       _coarse(coarse),
       _name(std::move(name)),
       _negotiate(negotiate),

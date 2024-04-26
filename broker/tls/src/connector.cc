@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/tls/connector.hh"
 
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/tls/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -38,7 +39,10 @@ connector::connector(std::string const& cert,
                      std::string const& key,
                      std::string const& ca,
                      std::string const& tls_hostname)
-    : io::endpoint(false, {}),
+    : io::endpoint(
+          false,
+          {},
+          multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())),
       _ca(ca),
       _cert(cert),
       _key(key),

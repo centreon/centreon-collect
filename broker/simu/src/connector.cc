@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/simu/connector.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/simu/stream.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -27,7 +28,12 @@ using com::centreon::common::log_v2::log_v2;
 /**
  *  Default constructor.
  */
-connector::connector() : io::endpoint(false, {}) {}
+connector::connector()
+    : io::endpoint(
+          false,
+          {},
+          multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())
+              .add_category(io::local)) {}
 
 /**
  *  Copy constructor.

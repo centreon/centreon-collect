@@ -24,6 +24,7 @@
 #include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bbdo;
@@ -47,7 +48,10 @@ connector::connector(bool negotiate,
                      uint32_t ack_limit,
                      std::list<std::shared_ptr<io::extension>>&& extensions,
                      bool grpc_serialized)
-    : io::endpoint{false, {}},
+    : io::endpoint{false,
+                   {},
+                   multiplexing::muxer_filter(
+                       multiplexing::muxer_filter::zero_init())},
       _is_input{connector_is_input},
       _coarse{coarse},
       _negotiate{negotiate},

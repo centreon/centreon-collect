@@ -50,6 +50,9 @@ static constexpr multiplexing::muxer_filter _monitoring_stream_filter = {
     inherited_downtime::static_type(),   pb_inherited_downtime::static_type(),
     extcmd::pb_ba_info::static_type(),   pb_services_book_state::static_type()};
 
+static constexpr multiplexing::muxer_filter _monitoring_forbidden_filter =
+    multiplexing::muxer_filter(_monitoring_stream_filter).reverse();
+
 static constexpr multiplexing::muxer_filter _reporting_stream_filter = {
     bam::kpi_event::static_type(),
     bam::pb_kpi_event::static_type(),
@@ -73,6 +76,9 @@ static constexpr multiplexing::muxer_filter _reporting_stream_filter = {
     bam::pb_dimension_ba_timeperiod_relation::static_type(),
     bam::rebuild::static_type()};
 
+static constexpr multiplexing::muxer_filter _reporting_forbidden_filter =
+    multiplexing::muxer_filter(_reporting_stream_filter).reverse();
+
 /**
  * @brief Constructor. This function is not easy to use so it is private and
  * called thanks two static functions:
@@ -86,8 +92,11 @@ static constexpr multiplexing::muxer_filter _reporting_stream_filter = {
  */
 connector::connector(stream_type type,
                      const database_config& db_cfg,
-                     const multiplexing::muxer_filter& filter)
-    : io::endpoint(false, filter), _type{type}, _db_cfg{db_cfg} {}
+                     const multiplexing::muxer_filter& mandatory_filter,
+                     const multiplexing::muxer_filter& forbidden_filter)
+    : io::endpoint(false, mandatory_filter, forbidden_filter),
+      _type{type},
+      _db_cfg{db_cfg} {}
 
 /**
  * @brief Static function to create a connector for a bam monitoring stream.
@@ -104,8 +113,9 @@ std::unique_ptr<bam::connector> connector::create_monitoring_connector(
     const database_config& db_cfg,
     const std::string& storage_db_name,
     std::shared_ptr<persistent_cache> cache) {
-  auto retval = std::unique_ptr<bam::connector>(new bam::connector(
-      bam_monitoring_type, db_cfg, _monitoring_stream_filter));
+  auto retval = std::unique_ptr<bam::connector>(
+      new bam::connector(bam_monitoring_type, db_cfg, _monitoring_stream_filter,
+                         _monitoring_forbidden_filter));
   retval->_ext_cmd_file = ext_cmd_file;
   retval->_cache = std::move(cache);
   if (storage_db_name.empty())
@@ -123,7 +133,8 @@ std::unique_ptr<bam::connector> connector::create_monitoring_connector(
 std::unique_ptr<bam::connector> connector::create_reporting_connector(
     const database_config& db_cfg) {
   auto retval = std::unique_ptr<bam::connector>(
-      new bam::connector(bam_reporting_type, db_cfg, _reporting_stream_filter));
+      new bam::connector(bam_reporting_type, db_cfg, _reporting_stream_filter,
+                         _reporting_forbidden_filter));
   return retval;
 }
 

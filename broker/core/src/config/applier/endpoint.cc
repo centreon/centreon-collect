@@ -187,23 +187,35 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
         endp.reset(acceptr.release());
       } else {
         // Create muxer and endpoint.
-        if (e->get_stream_mandatory_filter().is_in(w_filter)) {
-          w_filter = e->get_stream_mandatory_filter();
+
+        /* Are there missing events in the w_filter ? */
+        if (!e->get_stream_mandatory_filter().is_in(w_filter)) {
+          w_filter |= e->get_stream_mandatory_filter();
           _logger->debug(
-              "endpoint applier: filters for endpoint '{}' reduced to the "
-              "needed ones: {}",
-              ep.name, misc::dump_filters(w_filter));
-        } else if (!e->get_stream_mandatory_filter().allows_all()) {
-          w_filter = e->get_stream_mandatory_filter();
+              "endpoint applier: The configured write filters for the endpoint "
+              "'{}' are too restrictive. Mandatory categories added to them",
+              ep.name);
+        }
+        /* Are there events in w_filter that are forbidden ? */
+        if (w_filter.contains_some_of(e->get_stream_forbidden_filter())) {
+          w_filter -= e->get_stream_forbidden_filter();
           _logger->error(
               "endpoint applier: The configured write filters for the endpoint "
-              "'{}' are too restrictive and will be ignored.{} categories are "
-              "mandatory.",
-              ep.name, w_filter.get_allowed_categories());
-        } else
-          _logger->debug(
-              "endpoint applier: filters {} for endpoint '{}' applied.",
-              w_filter.get_allowed_categories(), ep.name);
+              "'{}' contain forbidden filters. These are removed",
+              ep.name);
+        }
+
+        /* Are there events in r_filter that are forbidden ? */
+        if (r_filter.contains_some_of(e->get_stream_forbidden_filter())) {
+          r_filter -= e->get_stream_forbidden_filter();
+          _logger->error(
+              "endpoint applier: The configured read filters for the endpoint "
+              "'{}' contain forbidden filters. These are removed",
+              ep.name);
+        }
+        _logger->debug(
+            "endpoint applier: filters {} for endpoint '{}' applied.",
+            w_filter.get_allowed_categories(), ep.name);
 
         auto mux = multiplexing::muxer::create(
             ep.name, multiplexing::engine::instance_ptr(), r_filter, w_filter,

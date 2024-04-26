@@ -33,6 +33,9 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 static constexpr multiplexing::muxer_filter _tcp_stream_filter =
     multiplexing::muxer_filter().remove_category(io::local);
 
+static constexpr multiplexing::muxer_filter _tcp_forbidden_filter =
+    multiplexing::muxer_filter(_tcp_stream_filter).reverse();
+
 /**
  * @brief Constructor of the connector that will connect to the given host at
  * the given port. read_timeout is a duration in seconds or -1 if no limit.
@@ -42,7 +45,8 @@ static constexpr multiplexing::muxer_filter _tcp_stream_filter =
  * @param read_timeout The read timeout in seconds or -1 if no duration.
  */
 connector::connector(const tcp_config::pointer& conf)
-    : io::limit_endpoint(false, _tcp_stream_filter), _conf(conf) {}
+    : io::limit_endpoint(false, _tcp_stream_filter, _tcp_forbidden_filter),
+      _conf(conf) {}
 
 /**
  * @brief Connect to the remote host.

@@ -40,7 +40,8 @@ class connector : public io::endpoint {
 
   connector(stream_type type,
             const database_config& db_cfg,
-            const multiplexing::muxer_filter& filter);
+            const multiplexing::muxer_filter& mandatory_filter,
+            const multiplexing::muxer_filter& forbidden_filter);
 
  public:
   static std::unique_ptr<connector> create_monitoring_connector(

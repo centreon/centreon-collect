@@ -30,6 +30,9 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 static constexpr multiplexing::muxer_filter _grpc_stream_filter =
     multiplexing::muxer_filter().remove_category(io::local);
 
+static constexpr multiplexing::muxer_filter _grpc_forbidden_filter =
+    multiplexing::muxer_filter(_grpc_stream_filter).reverse();
+
 /**
  * @brief Constructor of the connector that will connect to the given host at
  * the given port. read_timeout is a duration in seconds or -1 if no limit.

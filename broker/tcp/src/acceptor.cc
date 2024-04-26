@@ -32,6 +32,9 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 static constexpr multiplexing::muxer_filter _tcp_stream_filter =
     multiplexing::muxer_filter().remove_category(io::local);
 
+static constexpr multiplexing::muxer_filter _tcp_forbidden_filter =
+    multiplexing::muxer_filter(_tcp_stream_filter).reverse();
+
 /**
  * @brief Acceptor constructor. It needs the port used to listen and a read
  * timeout duration given in seconds that can be -1 if no timeout is wanted.
@@ -40,7 +43,8 @@ static constexpr multiplexing::muxer_filter _tcp_stream_filter =
  * @param read_timeout A duration in seconds.
  */
 acceptor::acceptor(const tcp_config::pointer& conf)
-    : io::endpoint(true, _tcp_stream_filter), _conf(conf) {}
+    : io::endpoint(true, _tcp_stream_filter, _tcp_forbidden_filter),
+      _conf(conf) {}
 
 /**
  *  Destructor.

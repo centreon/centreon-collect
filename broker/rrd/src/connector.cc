@@ -29,21 +29,23 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
-static constexpr multiplexing::muxer_filter _rrd_stream_filter = {
-    storage::metric::static_type(),
-    storage::pb_metric::static_type(),
-    storage::status::static_type(),
-    storage::pb_status::static_type(),
-    storage::pb_rebuild_message::static_type(),
-    storage::remove_graph::static_type(),
-    storage::pb_remove_graph_message::static_type(),
-    make_type(io::extcmd, extcmd::de_pb_bench)};
+static constexpr multiplexing::muxer_filter _rrd_stream_filter =
+    multiplexing::muxer_filter(
+        {storage::metric::static_type(), storage::pb_metric::static_type(),
+         storage::status::static_type(), storage::pb_status::static_type(),
+         storage::pb_rebuild_message::static_type(),
+         storage::remove_graph::static_type(),
+         storage::pb_remove_graph_message::static_type(),
+         make_type(io::extcmd, extcmd::de_pb_bench)});
+
+static constexpr multiplexing::muxer_filter _rrd_forbidden_filter =
+    multiplexing::muxer_filter(_rrd_stream_filter).reverse();
 
 /**
  *  Default constructor.
  */
 connector::connector()
-    : io::endpoint(false, _rrd_stream_filter),
+    : io::endpoint(false, _rrd_stream_filter, _rrd_forbidden_filter),
       _cache_size(16),
       _cached_port(0),
       _ignore_update_errors(true),

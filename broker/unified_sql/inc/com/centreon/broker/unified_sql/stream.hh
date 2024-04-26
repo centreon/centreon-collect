@@ -495,6 +495,7 @@ class stream : public io::stream {
   ~stream() noexcept;
 
   static const multiplexing::muxer_filter& get_muxer_filter();
+  static const multiplexing::muxer_filter& get_forbidden_filter();
 
   void update_metric_info_cache(uint64_t index_id,
                                 uint32_t metric_id,

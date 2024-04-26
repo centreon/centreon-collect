@@ -26,7 +26,12 @@ using namespace com::centreon::broker::sql;
 /**
  *  Default constructor.
  */
-connector::connector() : io::endpoint(false, {}) {}
+connector::connector()
+    : io::endpoint(
+          false,
+          {},
+          multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())
+              .add_category(io::local)) {}
 
 /**
  *  Set connection parameters.
