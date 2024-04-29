@@ -17,7 +17,7 @@
  *
  */
 
-#include "grpc_stream.pb.h"
+#include "grpc_stream.grpc.pb.h"
 
 #include "com/centreon/broker/grpc/connector.hh"
 #include "com/centreon/broker/grpc/stream.hh"
@@ -33,7 +33,57 @@ using namespace com::centreon::broker::grpc;
  * @param port The port used for the connection.
  */
 connector::connector(const grpc_config::pointer& conf)
-    : io::limit_endpoint(false, {}), _conf(conf) {}
+    : io::limit_endpoint(false, {}), _conf(conf) {
+  ::grpc::ChannelArguments args;
+  args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
+  args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS,
+              conf->get_second_keepalive_interval() * 1000);
+  args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS,
+              conf->get_second_keepalive_interval() * 300);
+  args.SetInt(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, 0);
+  if (!conf->get_ca_name().empty())
+    args.SetString(GRPC_SSL_TARGET_NAME_OVERRIDE_ARG, conf->get_ca_name());
+  if (conf->get_compression() == grpc_config::YES) {
+    grpc_compression_algorithm algo = grpc_compression_algorithm_for_level(
+        GRPC_COMPRESS_LEVEL_HIGH, calc_accept_all_compression_mask());
+
+    const char* algo_name;
+    if (grpc_compression_algorithm_name(algo, &algo_name)) {
+      log_v2::grpc()->debug("client this={:p} activate compression {}",
+                            static_cast<void*>(this), algo_name);
+    } else {
+      log_v2::grpc()->debug("client this={:p} activate compression unknown",
+                            static_cast<void*>(this));
+    }
+    args.SetCompressionAlgorithm(algo);
+  }
+  std::shared_ptr<::grpc::ChannelCredentials> creds;
+  if (conf->is_crypted()) {
+    ::grpc::SslCredentialsOptions ssl_opts = {conf->get_ca(), conf->get_key(),
+                                              conf->get_cert()};
+    SPDLOG_LOGGER_INFO(
+        log_v2::grpc(),
+        "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
+        conf->get_hostport(), conf->get_cert().substr(0, 10),
+        conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
+    creds = ::grpc::SslCredentials(ssl_opts);
+#ifdef CAN_USE_JWT
+    if (!_conf->get_jwt().empty()) {
+      std::shared_ptr<::grpc::CallCredentials> jwt =
+          ::grpc::ServiceAccountJWTAccessCredentials(_conf->get_jwt(), 86400);
+      creds = ::grpc::CompositeChannelCredentials(creds, jwt);
+    }
+#endif
+  } else {
+    SPDLOG_LOGGER_INFO(log_v2::grpc(), "unencrypted connection to {}",
+                       conf->get_hostport());
+    creds = ::grpc::InsecureChannelCredentials();
+  }
+
+  _channel = ::grpc::CreateCustomChannel(conf->get_hostport(), creds, args);
+  _stub = std::move(
+      com::centreon::broker::stream::centreon_bbdo::NewStub(_channel));
+}
 
 /**
  * @brief open a new connection
@@ -53,11 +103,64 @@ std::shared_ptr<io::stream> connector::open() {
   }
 }
 
+namespace com::centreon::broker::grpc {
+
+using stream_base_class = com::centreon::broker::grpc::stream<
+    ::grpc::ClientBidiReactor<::com::centreon::broker::stream::CentreonEvent,
+                              ::com::centreon::broker::stream::CentreonEvent>>;
+
+/**
+ * @brief bireactor client stream
+ * this class is passed to exchange
+ *
+ */
+class client_stream : public stream_base_class {
+  ::grpc::ClientContext _context;
+
+  void shutdown() override;
+
+ public:
+  client_stream(const grpc_config::pointer& conf);
+  ::grpc::ClientContext& get_context() { return _context; }
+};
+
+/**
+ * @brief Construct a new client stream::client stream object
+ *
+ * @param conf
+ */
+client_stream::client_stream(const grpc_config::pointer& conf)
+    : stream_base_class(conf, "client") {
+  if (!conf->get_authorization().empty()) {
+    _context.AddMetadata(authorization_header, conf->get_authorization());
+  }
+}
+
+/**
+ * @brief as we call StartWrite outside grpc handlers, we add a hold and then we
+ * have to remove it
+ *
+ */
+void client_stream::shutdown() {
+  stream_base_class::shutdown();
+  RemoveHold();
+  _context.TryCancel();
+}
+
+}  // namespace com::centreon::broker::grpc
+
 /**
  * @brief create a stream from attributes
- *
+ * we add hold as StartWrite may be called by write method
  * @return std::unique_ptr<io::stream>
  */
 std::shared_ptr<io::stream> connector::create_stream() {
-  return std::make_shared<stream>(_conf);
+  std::shared_ptr<client_stream> new_stream =
+      std::make_shared<client_stream>(_conf);
+  client_stream::register_stream(new_stream);
+  _stub->async()->exchange(&new_stream->get_context(), new_stream.get());
+  new_stream->start_read();
+  new_stream->AddHold();
+  new_stream->StartCall();
+  return new_stream;
 }

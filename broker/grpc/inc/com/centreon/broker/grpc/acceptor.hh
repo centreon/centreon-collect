@@ -24,12 +24,45 @@
 
 CCB_BEGIN()
 
-namespace grpc {
+/**
+ * @brief grpc service implementation
+ * ::grpc::Server::Shutdown doesn't return until all BiReactor has been stopped,
+ * so we must store a reference on each in order to shutdown them first
+ * This is the reason of _accepted member
+ *
+ */
+class service_impl
+    : public com::centreon::broker::stream::centreon_bbdo::CallbackService,
+      public std::enable_shared_from_this<service_impl> {
+  grpc_config::pointer _conf;
 
-class server;
+  std::set<std::shared_ptr<io::stream>> _accepted;
+  mutable std::mutex _accepted_m;
+  std::deque<std::shared_ptr<io::stream>> _wait_to_open;
+  std::condition_variable _wait_cond;
+  mutable std::mutex _wait_m;
+
+ public:
+  service_impl(const grpc_config::pointer& conf);
+
+  ::grpc::ServerBidiReactor<::com::centreon::broker::stream::CentreonEvent,
+                            ::com::centreon::broker::stream::CentreonEvent>*
+  exchange(::grpc::CallbackServerContext* context) override;
+
+  const grpc_config::pointer& get_conf() const { return _conf; }
+
+  std::shared_ptr<io::stream> get_wait();
+
+  bool has_wait_stream() const;
+  void shutdown_all_wait();
+  void shutdown_all_accepted();
+  void register_accepted(const std::shared_ptr<io::stream>& to_register);
+  void unregister(const std::shared_ptr<io::stream>& to_unregister);
+};
 
 class acceptor : public io::endpoint {
-  std::shared_ptr<server> _grpc_instance;
+  std::shared_ptr<service_impl> _service;
+  std::unique_ptr<::grpc::Server> _server;
 
  public:
   acceptor(const grpc_config::pointer& conf);
@@ -39,13 +72,10 @@ class acceptor : public io::endpoint {
   acceptor& operator=(const acceptor&) = delete;
 
   std::shared_ptr<io::stream> open() override;
-  std::shared_ptr<io::stream> open(const system_clock::time_point& dead_line);
-  std::shared_ptr<io::stream> open(const system_clock::duration& delay) {
-    return open(system_clock::now() + delay);
-  }
   bool is_ready() const override;
 };
-};  // namespace grpc
+}
+;  // namespace grpc
 CCB_END()
 
 #endif  // !CCB_GRPC_ACCEPTOR_HH

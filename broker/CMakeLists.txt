@@ -417,7 +417,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/misc/shared_mutex.hh
     ${INC_DIR}/misc/string.hh
     ${INC_DIR}/misc/time.hh
-    ${INC_DIR}/misc/trash.hh
     ${INC_DIR}/misc/variant.hh
     ${INC_DIR}/modules/handle.hh
     ${INC_DIR}/pool.hh

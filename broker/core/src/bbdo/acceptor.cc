@@ -96,6 +96,7 @@ std::shared_ptr<io::stream> acceptor::open() {
       try {
         my_bbdo->negotiate(bbdo::stream::negotiate_second);
       } catch (const std::exception& e) {
+        u->stop();
         throw;
       }
 
