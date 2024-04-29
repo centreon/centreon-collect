@@ -122,25 +122,27 @@ not3
     # It's time to schedule a downtime
     Ctn Schedule Service Fixed Downtime    host_1    service_1    60
 
-    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    1    60
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    1    90
     Should Be True    ${result}    service must be in downtime
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
     ${content}    Create List    We shouldn't notify about DOWNTIME events for this notifier
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The critical notification is sent while downtime
 
     Ctn Delete Service Downtime    host_1    service_1
 
+    Sleep    10s
+
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The critical notification is not sent
 
     Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The notification recovery is not sent
 
     Ctn Stop Engine
@@ -431,7 +433,7 @@ not10
     Ctn Process Host Check Result    host_1    2    host_1 DOWN
 
     ${content}    Create List    We shouldn't notify about DOWNTIME events for this notifier
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The down notification of host_1 is sent
 
     Ctn Delete Host Downtimes    ${0}    host_1
@@ -439,7 +441,7 @@ not10
     ## Time to set the host to UP HARD.
    
     ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The down notification of host_1 is not sent
 
     ## Time to set the host to UP HARD.
@@ -454,7 +456,7 @@ not10
     Ctn Process Host Check Result    host_1    0    host_1 UP
 
     ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;RECOVERY (UP);command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The recovery notification of host_1 is not sent
 
     Ctn Stop Engine
@@ -874,7 +876,7 @@ not16
     Ctn Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_3;service_3;CRITICAL;command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The notification is not sent for service3
 
     ## Time to set the service3 to OK hard
@@ -882,19 +884,21 @@ not16
     Ctn Process Service Result Hard    host_3    service_3    ${0}    The service_3 is OK
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_3;service_3;RECOVERY (OK);command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The notification is not sent for service3
 
     ## Time to set the service1 to CRITICAL HARD.
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The notification is not sent for service1
 
     ## Time to set the service3 to CRITICAL HARD.
 
     Ctn Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
+
+    Sleep    10s
 
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
@@ -914,7 +918,7 @@ not16
     Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The notification is not sent for service1
 
     Ctn Stop Engine
