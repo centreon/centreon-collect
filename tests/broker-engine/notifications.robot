@@ -41,9 +41,7 @@ not1
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
     
     ## Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
@@ -56,7 +54,7 @@ not1
     Ctn Kindly Stop Broker
 
 not2
-    [Documentation]    This test case configures a single service and verifies that a recovery notification is sent after a service recovers from a non-OK state.
+    [Documentation]    This test case configures a single service and verifies that a recovery notification is sent
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Config Notifications
@@ -77,9 +75,7 @@ not2
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     ## Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
@@ -100,7 +96,7 @@ not2
     Ctn Kindly Stop Broker
 
 not3
-    [Documentation]    This test case configures a single service and verifies that a non-OK notification is sent after the service exits downtime.
+    [Documentation]    This test case configures a single service and verifies the notification system's behavior during and after downtime
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Config Notifications
@@ -121,29 +117,37 @@ not3
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     # It's time to schedule a downtime
-    Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
+    Ctn Schedule Service Fixed Downtime    host_1    service_1    60
 
     ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    1    60
     Should Be True    ${result}    service must be in downtime
 
-    Ctn Delete Service Downtime    host_1    service_1
-
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${content}    Create List    We shouldn't notify about DOWNTIME events for this notifier
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The critical notification is sent while downtime
+
+    Ctn Delete Service Downtime    host_1    service_1
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The critical notification is not sent
 
+    Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The notification recovery is not sent
+
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 not4
-    [Documentation]    This test case configures a single service and verifies that a non-OK notification is sent when the acknowledgement is completed.
+    [Documentation]    This test case configures a single service and verifies the notification system's behavior during and after acknowledgement
     [Tags]    broker    engine    services    acknowledgement    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Config Notifications
@@ -164,9 +168,7 @@ not4
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
@@ -222,9 +224,7 @@ not5
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     ## Time to set the services to CRITICAL HARD.
 
@@ -266,9 +266,7 @@ not6
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     ## Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
@@ -312,11 +310,7 @@ not7
     Ctn Start Broker
     Ctn Start Engine
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     ## Time to set the host to DOWN HARD.
     FOR    ${i}    IN RANGE    ${4}
@@ -348,11 +342,7 @@ not8
     Ctn Start Broker
     Ctn Start Engine
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     ## Time to set the host to DOWN HARD.
     FOR    ${i}    IN RANGE    ${4}
@@ -384,11 +374,7 @@ not9
     Ctn Start Broker
     Ctn Start Engine
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Ctn Wait For Engine To Be Ready    ${1}
     
      ## Time to set the host to CRITICAL HARD.
     FOR    ${i}    IN RANGE    ${4}
@@ -416,46 +402,6 @@ not9
     Ctn Kindly Stop Broker
 
 not10
-    [Documentation]    This test case involves scheduling downtime on a down host. After the downtime is finished and the host is still critical, we should receive a critical notification.
-    [Tags]    broker    engine    host    notification
-    Ctn Config Engine    ${1}    ${1}    ${1}
-    Ctn Config Notifications
-    Ctn Config Host Command Status    ${0}    checkh1    2
-    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Ctn Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
-    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
-
-    ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
-
-    ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
-
-    ## Time to set the host to CRITICAL HARD.
-    FOR    ${i}    IN RANGE    ${4}
-        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
-        Sleep    5s
-    END
-    ## Time to set the host on Downtime.
-    Ctn Schedule Host Downtime    ${0}    host_1    ${60}
-    ## Time to delete the host Downtime.
-    Ctn Delete Host Downtimes    ${0}    host_1
-
-    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The down notification of host_1 is not sent
-
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
-
-not11
     [Documentation]    This test case involves scheduling downtime on a down host that already had a critical notification.When The Host return to UP state we should receive a recovery notification.
     [Tags]    broker    engine    host    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -472,34 +418,29 @@ not11
     Ctn Start Broker
     Ctn Start Engine
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     ## Time to set the host to CRITICAL HARD.
     FOR    ${i}    IN RANGE    ${4}
         Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
+
+    Ctn Schedule Host Downtime    ${0}    host_1    ${60}
+
+    Ctn Process Host Check Result    host_1    2    host_1 DOWN
+
+    ${content}    Create List    We shouldn't notify about DOWNTIME events for this notifier
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The down notification of host_1 is sent
+
+    Ctn Delete Host Downtimes    ${0}    host_1
+
+    ## Time to set the host to UP HARD.
+   
     ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The down notification of host_1 is not sent
-
-    Ctn Schedule Host Downtime    ${0}    host_1    ${30}
-
-    ## Time to set the host to UP HARD.
-    Ctn Process Host Check Result    host_1    0    host_1 UP
-
-    FOR    ${i}    IN RANGE    ${4}
-        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
-        Sleep    5s
-    END
-
-    ${content}    Create List     HOST DOWNTIME ALERT: host_1;STOPPED; Host has exited from a period of scheduled downtime
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The recovery notification of host_1 is not sent
 
     ## Time to set the host to UP HARD.
     
@@ -518,7 +459,7 @@ not11
     Ctn Kindly Stop Broker
 
 
-not12
+not11
     [Documentation]    This test case involves configuring one service and checking that three alerts are sent for it.
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -538,9 +479,7 @@ not12
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() is not available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     ## Time to set the service to CRITICAL HARD.
 
@@ -562,7 +501,7 @@ not12
     Ctn Kindly Stop Broker
 
 
-not13
+not12
     [Documentation]    Escalations
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${2}    ${1}
@@ -591,9 +530,7 @@ not13
     Ctn Start Engine
 
   # Let's wait for the external command check start
-    ${content}    Create List    check
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() is not available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
     Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
@@ -643,7 +580,7 @@ not13
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The second notification of U4 is not sent
 
-not14
+not13
     [Documentation]    notification for a dependensies host
     [Tags]    broker    engine    host    unified_sql
     Ctn Config Engine    ${1}    ${2}    ${1}
@@ -684,9 +621,7 @@ not14
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
      ## Time to set the host to CRITICAL HARD.
 
@@ -747,7 +682,7 @@ not14
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not15
+not14
     [Documentation]    notification for a Service dependency
     [Tags]    broker    engine    services    unified_sql
     Ctn Config Engine    ${1}    ${2}    ${1}
@@ -783,9 +718,7 @@ not15
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     ## Time to set the service2 to CRITICAL HARD.
     Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
@@ -830,7 +763,7 @@ not15
     Ctn Kindly Stop Broker
 
 
-not16
+not15
     [Documentation]    several notification commands for the same user.
     [Tags]    broker    engine    services    unified_sql
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -855,9 +788,8 @@ not16
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
+
     ## Time to set the service to CRITICAL HARD.
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
@@ -873,7 +805,7 @@ not16
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not17
+not16
     [Documentation]    notification for a dependensies services group
     [Tags]    broker    engine    services    unified_sql
     Ctn Config Engine    ${1}    ${4}    ${1}
@@ -933,9 +865,7 @@ not17
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     ## Time to set the service3 to CRITICAL HARD.
 
@@ -989,7 +919,7 @@ not17
     Ctn Kindly Stop Broker
 
 
-not18
+not17
     [Documentation]    notification for a dependensies host group
     [Tags]    broker    engine    host    unified_sql
     Ctn Config Engine    ${1}    ${4}    ${0}
@@ -1032,9 +962,7 @@ not18
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     # Time to set the host to CRITICAL HARD.
 
@@ -1096,7 +1024,7 @@ not18
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not19
+not18
     [Documentation]    notification delay where first notification delay equal retry check
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -1121,9 +1049,7 @@ not19
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
@@ -1134,7 +1060,7 @@ not19
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not20
+not19
     [Documentation]    notification delay where first notification delay greater than retry check 
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -1158,9 +1084,7 @@ not20
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
@@ -1171,44 +1095,7 @@ not20
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not21
-    [Documentation]    notification delay where first notification delay greater than retry check by 1 min
-    [Tags]    broker    engine    services    hosts    notification
-    Ctn Config Engine    ${1}    ${1}    ${1}
-    Ctn Engine Config Set Value    0    interval_length    1    True
-    Ctn Config Notifications
-    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Ctn Engine Config Set Value In Services    0    service_1    first_notification_delay    2
-    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
-    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
-    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
-
-    ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
-
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
-
-    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
-
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No notification has been sent concerning a critical service
-
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
-
-not22
+not20
     [Documentation]    notification delay where first notification delay samller than retry check
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -1232,9 +1119,7 @@ not22
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
