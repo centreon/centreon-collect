@@ -27,11 +27,11 @@ namespace com::centreon::broker {
 namespace grpc {
 std::shared_ptr<io::data> protobuf_to_event(const event_ptr& stream_content);
 
-std::shared_ptr<channel::event_with_data> create_event_with_data(
+std::shared_ptr<event_with_data> create_event_with_data(
     const std::shared_ptr<io::data>& event);
 
 };  // namespace grpc
 
-}
+}  // namespace com::centreon::broker
 
 #endif

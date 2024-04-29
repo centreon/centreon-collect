@@ -27,10 +27,12 @@ namespace com::centreon::broker {
 namespace grpc {
 class connector : public io::limit_endpoint {
   grpc_config::pointer _conf;
+  std::shared_ptr<::grpc::Channel> _channel;
+  std::unique_ptr<com::centreon::broker::stream::centreon_bbdo::Stub> _stub;
 
  public:
   connector(const grpc_config::pointer& conf);
-
+  ~connector() = default;
   connector& operator=(const connector&) = delete;
   connector(const connector&) = delete;
 
@@ -40,6 +42,6 @@ class connector : public io::limit_endpoint {
 };
 };  // namespace grpc
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_GRPC_CONNECTOR_HH

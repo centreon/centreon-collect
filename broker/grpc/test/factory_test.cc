@@ -17,6 +17,8 @@
  *
  */
 
+#include "grpc_stream.grpc.pb.h"
+
 #include "grpc_test_include.hh"
 
 using system_clock = std::chrono::system_clock;
