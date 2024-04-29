@@ -47,13 +47,13 @@ class endpoint {
    * * otherwise, the filters configured in the stream are replaced by the
    *   mandatory ones.
    */
-  const multiplexing::muxer_filter _stream_mandatory_filter;
+  multiplexing::muxer_filter _stream_mandatory_filter;
 
   /* The forbidden filters for the stream configured from this endpoint to
    * correctly work. All filters given here must not be set into the stream,
    * otherwise it will work badly.
    */
-  const multiplexing::muxer_filter _stream_forbidden_filter;
+  multiplexing::muxer_filter _stream_forbidden_filter;
 
  protected:
   std::shared_ptr<endpoint> _from;

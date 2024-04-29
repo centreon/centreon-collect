@@ -54,6 +54,8 @@ endpoint::endpoint(endpoint const& other)
  *  @param[in] endp Lower layer endpoint object.
  */
 void endpoint::from(std::shared_ptr<endpoint> endp) {
+  _stream_mandatory_filter |= endp->get_stream_mandatory_filter();
+  _stream_forbidden_filter |= endp->get_stream_forbidden_filter();
   _from = endp;
 }
 

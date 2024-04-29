@@ -18,6 +18,7 @@
  */
 
 #include "grpc_stream.grpc.pb.h"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 
 #include "com/centreon/broker/grpc/connector.hh"
 #include "com/centreon/broker/grpc/stream.hh"
@@ -28,7 +29,7 @@ using namespace com::centreon::broker::grpc;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static constexpr multiplexing::muxer_filter _grpc_stream_filter =
-    multiplexing::muxer_filter().remove_category(io::local);
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init());
 
 static constexpr multiplexing::muxer_filter _grpc_forbidden_filter =
     multiplexing::muxer_filter(_grpc_stream_filter).reverse();

@@ -561,6 +561,7 @@ void muxer::wake() {
  *  @param[in] d  Event to multiplex.
  */
 int muxer::write(std::shared_ptr<io::data> const& d) {
+  _logger->debug("write on muxer '{}'", _name);
   if (!d) {
     return 1;
   }
@@ -586,6 +587,8 @@ int muxer::write(std::shared_ptr<io::data> const& d) {
  * @param to_publish list of event where not allowed event will be erased
  */
 void muxer::write(std::deque<std::shared_ptr<io::data>>& to_publish) {
+  _logger->debug("write on muxer '{}' {} events (bulk)", _name,
+                 to_publish.size());
   for (auto list_iter = to_publish.begin();
        !to_publish.empty() && list_iter != to_publish.end();) {
     const std::shared_ptr<io::data>& d = *list_iter;

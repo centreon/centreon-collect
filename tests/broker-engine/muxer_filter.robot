@@ -28,7 +28,7 @@ STUPID_FILTER
     Ctn Start engine
 
     ${content}    Create List
-    ...    The configured write filters for the endpoint 'central-broker-unified-sql' are too restrictive and will be ignored. neb,bbdo,extcmd categories are mandatory.
+    ...    The configured write filters for the endpoint 'central-broker-unified-sql' contain forbidden filters. These ones are removed    The configured read filters for the endpoint 'central-broker-unified-sql' contain forbidden filters. These ones are removed
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling bad filter should be available.
 
@@ -261,10 +261,7 @@ CBD_RELOAD_AND_FILTERS
     Ctn Start Broker
     Ctn Start engine
 
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Wait For Engine To Be Ready    ${1}
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index

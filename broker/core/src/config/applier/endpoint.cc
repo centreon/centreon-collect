@@ -201,7 +201,7 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
           w_filter -= e->get_stream_forbidden_filter();
           _logger->error(
               "endpoint applier: The configured write filters for the endpoint "
-              "'{}' contain forbidden filters. These are removed",
+              "'{}' contain forbidden filters. These ones are removed",
               ep.name);
         }
 
@@ -210,7 +210,7 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
           r_filter -= e->get_stream_forbidden_filter();
           _logger->error(
               "endpoint applier: The configured read filters for the endpoint "
-              "'{}' contain forbidden filters. These are removed",
+              "'{}' contain forbidden filters. These ones are removed",
               ep.name);
         }
         _logger->debug(
