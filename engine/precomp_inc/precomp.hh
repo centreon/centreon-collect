@@ -38,6 +38,7 @@
 #include <ctime>
 #include <deque>
 #include <exception>
+#include <forward_list>
 #include <functional>
 #include <iomanip>
 #include <iostream>

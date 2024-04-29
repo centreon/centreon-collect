@@ -3069,25 +3069,6 @@ def ctn_grep_retention(poller: int, pattern: str):
     return Common.ctn_grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
 
 
-def ctn_config_add_otl_connector(poller: int, connector_name: str, command_line:str):
-    """
-    config_add_otl_connector
-
-     add a connector entry to connectors.cfg
-
-    Args:
-        poller: poller index
-        connector_name: 
-        command_line:
-    """
-
-    with open(f"{CONF_DIR}/config{poller}/connectors.cfg", "a") as f:
-        f.write(f"""
-define connector {{
-    connector_name                 {connector_name}
-    connector_line                 {command_line}
-}}
-""")
 
 
 def ctn_modify_retention_dat(poller, host, service, key, value):

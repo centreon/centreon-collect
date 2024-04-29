@@ -25,7 +25,7 @@
 
 namespace asio = boost::asio;
 
-#include "pool.hh"
+#include "com/centreon/common/pool.hh"
 
 using namespace com::centreon::common;
 
