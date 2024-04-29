@@ -137,8 +137,16 @@ BSCSST2
     ...    centreon-broker-master-rrd
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Ctn Broker Config Input Set    rrd    central-rrd-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
-    Ctn Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
+    Ctn Broker Config Input Set
+    ...    rrd
+    ...    central-rrd-master-input
+    ...    private_key
+    ...    ${EtcRoot}/centreon-broker/client.key
+    Ctn Broker Config Input Set
+    ...    rrd
+    ...    central-rrd-master-input
+    ...    certificate
+    ...    ${EtcRoot}/centreon-broker/client.crt
     ${start}    Get Current Date
     Repeat Keyword    5 times    Ctn Start Stop Service    0
     ${content}    Create List    TLS: successful handshake
@@ -211,8 +219,16 @@ BSCSSTG2
     ...    centreon-broker-master-rrd
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Ctn Broker Config Input Set    rrd    central-rrd-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
-    Ctn Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
+    Ctn Broker Config Input Set
+    ...    rrd
+    ...    central-rrd-master-input
+    ...    private_key
+    ...    ${EtcRoot}/centreon-broker/client.key
+    Ctn Broker Config Input Set
+    ...    rrd
+    ...    central-rrd-master-input
+    ...    certificate
+    ...    ${EtcRoot}/centreon-broker/client.crt
     ${start}    Get Current Date
     Ctn Start Broker
     ${content}    Create List    encrypted connection    write: buff:    write done: buff:
@@ -265,7 +281,11 @@ BSCSSTG3
     ...    central-rrd-master-input
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/missing-client.key
-    Ctn Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
+    Ctn Broker Config Input Set
+    ...    rrd
+    ...    central-rrd-master-input
+    ...    certificate
+    ...    ${EtcRoot}/centreon-broker/client.crt
     ${start}    Get Current Date
     Ctn Start Broker
     ${content}    Create List
@@ -374,8 +394,8 @@ BSCSSGA2
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    rrd    core    off
     Ctn Broker Config Log    rrd    tls    debug
-    Ctn Broker Config Log    rrd    grpc    debug
-    Ctn Broker Config Log    central    grpc    debug
+    Ctn Broker Config Log    rrd    grpc    trace
+    Ctn Broker Config Log    central    grpc    trace
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
     Ctn Broker Config Source Log    rrd    1
