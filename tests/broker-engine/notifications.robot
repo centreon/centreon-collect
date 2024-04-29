@@ -451,9 +451,11 @@ not10
         Sleep    5s
     END
 
+    Ctn Process Host Check Result    host_1    0    host_1 UP
+
     ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;RECOVERY (UP);command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The down notification of host_1 is not sent
+    Should Be True    ${result}    The recovery notification of host_1 is not sent
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
