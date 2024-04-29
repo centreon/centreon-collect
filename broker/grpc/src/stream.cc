@@ -447,6 +447,8 @@ bool stream<bireactor_class>::wait_for_all_events_written(unsigned ms_timeout) {
                               [this]() { return _write_queue.empty(); });
 }
 
+namespace com::centreon::broker::grpc {
+
 template class stream<
     ::grpc::ClientBidiReactor<::com::centreon::broker::stream::CentreonEvent,
                               ::com::centreon::broker::stream::CentreonEvent>>;
@@ -454,3 +456,5 @@ template class stream<
 template class stream<
     ::grpc::ServerBidiReactor<::com::centreon::broker::stream::CentreonEvent,
                               ::com::centreon::broker::stream::CentreonEvent>>;
+
+}  // namespace com::centreon::broker::grpc

@@ -238,18 +238,6 @@ acceptor::acceptor(const grpc_config::pointer& conf)
   ::grpc::ServerBuilder builder;
 
   std::shared_ptr<::grpc::ServerCredentials> server_creds;
-#ifdef USE_TLS
-  if (false && !conf->get_cert().empty() && !conf->get_key().empty()) {
-    std::vector<::grpc::experimental::IdentityKeyCertPair> key_cert = {
-        {conf->get_key(), conf->get_cert()}};
-    std::shared_ptr<::grpc::experimental::StaticDataCertificateProvider>
-        cert_provider = std::make_shared<
-            ::grpc::experimental::StaticDataCertificateProvider>(conf->get_ca(),
-                                                                 key_cert);
-    ::grpc::experimental::TlsServerCredentialsOptions creds_opts(cert_provider);
-    creds_opts.set_root_cert_name("Root");
-    server_creds = ::grpc::experimental::TlsServerCredentials(creds_opts);
-#else
   if (conf->is_crypted() && !conf->get_cert().empty() &&
       !conf->get_key().empty()) {
     ::grpc::SslServerCredentialsOptions::PemKeyCertPair pkcp = {
@@ -266,7 +254,6 @@ acceptor::acceptor(const grpc_config::pointer& conf)
     ssl_opts.pem_key_cert_pairs.push_back(pkcp);
 
     server_creds = ::grpc::SslServerCredentials(ssl_opts);
-#endif
   } else {
     SPDLOG_LOGGER_INFO(log_v2::grpc(), "unencrypted server listening on {}",
                        conf->get_hostport());

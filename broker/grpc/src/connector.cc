@@ -58,17 +58,6 @@ connector::connector(const grpc_config::pointer& conf)
     args.SetCompressionAlgorithm(algo);
   }
   std::shared_ptr<::grpc::ChannelCredentials> creds;
-#ifdef USE_TLS
-  if (conf->is_crypted()) {
-    SPDLOG_LOGGER_INFO(
-        log_v2::grpc(),
-        "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
-        conf->get_hostport(), conf->get_cert().substr(0, 10),
-        conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
-
-    ::grpc::experimental::TlsChannelCredentialsOptions opts;
-    creds = ::grpc::experimental::TlsCredentials(opts);
-#else
   if (conf->is_crypted()) {
     ::grpc::SslCredentialsOptions ssl_opts = {conf->get_ca(), conf->get_key(),
                                               conf->get_cert()};
@@ -84,7 +73,6 @@ connector::connector(const grpc_config::pointer& conf)
           ::grpc::ServiceAccountJWTAccessCredentials(_conf->get_jwt(), 86400);
       creds = ::grpc::CompositeChannelCredentials(creds, jwt);
     }
-#endif
 #endif
   } else {
     SPDLOG_LOGGER_INFO(log_v2::grpc(), "unencrypted connection to {}",
