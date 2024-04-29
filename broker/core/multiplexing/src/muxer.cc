@@ -306,6 +306,8 @@ uint32_t muxer::event_queue_max_size() noexcept {
 }
 
 void muxer::_execute_reader_if_needed() {
+  _logger->debug("muxer '{}' execute reader if needed data_handler: {}", _name,
+                 static_cast<bool>(_data_handler));
   if (_data_handler) {
     bool expected = false;
     if (_reader_running.compare_exchange_strong(expected, true)) {
@@ -343,8 +345,10 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       // we stop this first loop when mux queue is full in order to release
       // mutex to let read to do its job before writing to file
       absl::MutexLock lck(&_events_m);
-      _logger->trace("muxer::publish ({}) starting the loop to stack events",
-                     _name);
+      _logger->trace(
+          "muxer::publish ({}) starting the loop to stack events --- "
+          "events_size = {} <> {}",
+          _name, _events_size, event_queue_max_size());
       for (; evt != event_queue.end() && _events_size < event_queue_max_size();
            ++evt) {
         auto event = *evt;
@@ -371,7 +375,8 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         _push_to_queue(event);
       }
       _logger->trace("muxer::publish ({}) loop finished", _name);
-      if (at_least_one_push_to_queue)  // async handler waiting?
+      if (at_least_one_push_to_queue ||
+          _events_size >= event_queue_max_size())  // async handler waiting?
         _execute_reader_if_needed();
     }
 

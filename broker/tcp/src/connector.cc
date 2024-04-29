@@ -35,7 +35,8 @@ static constexpr multiplexing::muxer_filter _tcp_stream_filter =
     multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init());
 
 static constexpr multiplexing::muxer_filter _tcp_forbidden_filter =
-    multiplexing::muxer_filter().add_category(io::local);
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())
+        .add_category(io::local);
 
 /**
  * @brief Constructor of the connector that will connect to the given host at

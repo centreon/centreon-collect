@@ -176,6 +176,8 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
       multiplexing::muxer_filter r_filter = parse_filters(ep.read_filters);
       multiplexing::muxer_filter w_filter = parse_filters(ep.write_filters);
       if (is_acceptor) {
+        w_filter -= e->get_stream_forbidden_filter();
+        r_filter -= e->get_stream_forbidden_filter();
         std::unique_ptr<processing::acceptor> acceptr(
             std::make_unique<processing::acceptor>(e, ep.name, r_filter,
                                                    w_filter));
