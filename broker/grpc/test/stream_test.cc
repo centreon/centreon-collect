@@ -126,7 +126,7 @@ TEST_P(grpc_test_server, ClientToServerSendReceive) {
     param.buffer += std::to_string(test_ind);
     _logger->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
                    param.data_type);
-    client.write(create_event(param));
+    client->write(create_event(param));
 
     std::shared_ptr<io::data> receive;
     bool read_ret = accepted->read(receive, time(nullptr) + 2);
@@ -160,7 +160,7 @@ TEST_P(grpc_test_server, ServerToClientSendReceive) {
     accepted->write(create_event(param));
 
     std::shared_ptr<io::data> receive;
-    bool read_ret = client.read(receive, time(nullptr) + 2);
+    bool read_ret = client->read(receive, time(nullptr) + 2);
     _logger->debug("{} read_ret={} param.data_type={}", __PRETTY_FUNCTION__,
                    read_ret, param.data_type);
     COMPARE_EVENT(read_ret, receive, param);
@@ -213,7 +213,7 @@ TEST_P(grpc_comm_failure, ClientToServerFailureBeforeWrite) {
   test_param param = GetParam();
   _logger->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
                  param.data_type);
-  client.write(create_event(GetParam()));
+  client->write(create_event(GetParam()));
   std::shared_ptr<io::data> receive;
   bool read_ret = accepted->read(receive, time(nullptr) + 2);
   _logger->debug("{} read_ret={} param.data_type={}", __PRETTY_FUNCTION__,
@@ -237,7 +237,7 @@ TEST_P(grpc_comm_failure, ClientToServerFailureAfterWrite) {
   test_param param = GetParam();
   _logger->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
                  param.data_type);
-  client.write(create_event(param));
+  client->write(create_event(param));
   std::shared_ptr<io::data> receive;
   bool read_ret = accepted->read(receive, time(nullptr) + 2);
   _logger->debug("{} read_ret={} param.data_type={}", __PRETTY_FUNCTION__,
@@ -274,7 +274,7 @@ TEST_P(grpc_comm_failure, ServerToClientFailureBeforeWrite) {
                  param.data_type);
   accepted->write(create_event(param));
   std::shared_ptr<io::data> receive;
-  bool read_ret = client.read(receive, time(nullptr) + 2);
+  bool read_ret = client->read(receive, time(nullptr) + 2);
   _logger->debug("{} read_ret={} param.data_type={}", __PRETTY_FUNCTION__,
                  read_ret, param.data_type);
   COMPARE_EVENT(read_ret, receive, param);
@@ -293,14 +293,14 @@ TEST_P(grpc_comm_failure, ServerToClientFailureBeforeWrite) {
 
   EXPECT_THROW(accepted->write(create_event(param)), msg_fmt);
 
-  com::centreon::broker::grpc::stream client2(conf_relay_in);
-  accepted = s->open(std::chrono::milliseconds(1000));
-  ASSERT_NE(accepted.get(), nullptr);
-  accepted->write(create_event(param));
-  read_ret = client2.read(receive, time(nullptr) + 2);
-  _logger->debug("{} read_ret={} param.data_type={}", __PRETTY_FUNCTION__,
-                 read_ret, param.data_type);
-COMPARE_EVENT(read_ret, receive, param);
+  std::shared_ptr<io::stream> client2 = conn.open();
+  std::shared_ptr<io::stream> accepted2 = s->open();
+  ASSERT_NE(accepted2.get(), nullptr);
+  accepted2->write(create_event(param));
+  read_ret = client2->read(receive, time(nullptr) + 2);
+  SPDLOG_LOGGER_DEBUG(_logger, "{} read_ret={} param.data_type={}",
+                      __PRETTY_FUNCTION__, read_ret, param.data_type);
+  COMPARE_EVENT(read_ret, receive, param);
   client->stop();
   client2->stop();
   accepted->stop();
@@ -320,7 +320,7 @@ TEST_P(grpc_comm_failure, ServerToClientFailureAfterWrite) {
                  param.data_type);
   accepted->write(create_event(param));
   std::shared_ptr<io::data> receive;
-  bool read_ret = client.read(receive, time(nullptr) + 2);
+  bool read_ret = client->read(receive, time(nullptr) + 2);
   _logger->debug("{} read_ret={} param.data_type={}", __PRETTY_FUNCTION__,
                  read_ret, param.data_type);
   COMPARE_EVENT(read_ret, receive, param);

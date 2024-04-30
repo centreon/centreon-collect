@@ -464,8 +464,7 @@ void failover::_run() {
       try {
         ack_events = _stream->stop();
       } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(log_v2::processing(),
-                            "Failed to send stop event to stream: {}",
+        SPDLOG_LOGGER_ERROR(_logger, "Failed to send stop event to stream: {}",
                             e.what());
       }
       _muxer->ack_events(ack_events);

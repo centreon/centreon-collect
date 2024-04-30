@@ -19,9 +19,8 @@
 #include <gtest/gtest.h>
 
 #include "com/centreon/broker/config/applier/state.hh"
-//#include "com/centreon/broker/io/events.hh"
-//#include "com/centreon/broker/io/protocols.hh"
-//#include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/io/events.hh"
+#include "com/centreon/broker/io/protocols.hh"
 #include "common/log_v2/log_v2.hh"
 
 using com::centreon::common::log_v2::log_v2;

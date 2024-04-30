@@ -28,7 +28,6 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
-using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Construct a macro cache
@@ -666,12 +665,12 @@ void macro_cache::_process_pb_host_status(
   const auto& s = std::static_pointer_cast<neb::pb_host_status>(data);
   const auto& obj = s->obj();
 
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing host status ({})",
+  SPDLOG_LOGGER_DEBUG(_cache->logger(), "lua: processing host status ({})",
                       obj.host_id());
 
   auto it = _hosts.find(obj.host_id());
   if (it == _hosts.end()) {
-    log_v2::lua()->warn(
+    _cache->logger()->warn(
         "lua: Attempt to update host ({}) in lua cache, but it does not "
         "exist. Maybe Engine should be restarted to update the cache.",
         obj.host_id());
@@ -735,8 +734,8 @@ void macro_cache::_process_pb_host_status(
     hst.set_acknowledgement_type(obj.acknowledgement_type());
     hst.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
   } else {
-    log_v2::lua()->error("lua: The host ({}) stored in cache is corrupted",
-                         obj.host_id());
+    _cache->logger()->error("lua: The host ({}) stored in cache is corrupted",
+                            obj.host_id());
   }
 }
 /**
@@ -935,12 +934,13 @@ void macro_cache::_process_pb_service_status(
   const auto& s = std::static_pointer_cast<neb::pb_service_status>(data);
   const auto& obj = s->obj();
 
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing service status ({}, {})",
-                      obj.host_id(), obj.service_id());
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
+                      "lua: processing service status ({}, {})", obj.host_id(),
+                      obj.service_id());
 
   auto it = _services.find({obj.host_id(), obj.service_id()});
   if (it == _services.end()) {
-    log_v2::lua()->warn(
+    _cache->logger()->warn(
         "lua: Attempt to update service ({}, {}) in lua cache, but it does not "
         "exist. Maybe Engine should be restarted to update the cache.",
         obj.host_id(), obj.service_id());
@@ -1007,7 +1007,7 @@ void macro_cache::_process_pb_service_status(
     svc.set_acknowledgement_type(obj.acknowledgement_type());
     svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
   } else {
-    log_v2::lua()->error(
+    _cache->logger()->error(
         "lua: The service ({}, {}) stored in cache is corrupted", obj.host_id(),
         obj.service_id());
   }

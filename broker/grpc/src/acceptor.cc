@@ -27,6 +27,13 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
 using com::centreon::common::log_v2::log_v2;
 
+static constexpr multiplexing::muxer_filter _grpc_stream_filter =
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init());
+
+static constexpr multiplexing::muxer_filter _grpc_forbidden_filter =
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())
+        .add_category(io::local);
+
 namespace com::centreon::broker::grpc {
 
 using client_stream_base_class = com::centreon::broker::grpc::stream<
@@ -100,6 +107,7 @@ service_impl::service_impl(const grpc_config::pointer& conf) : _conf(conf) {}
 ::grpc::ServerBidiReactor<::com::centreon::broker::stream::CentreonEvent,
                           ::com::centreon::broker::stream::CentreonEvent>*
 service_impl::exchange(::grpc::CallbackServerContext* context) {
+  auto logger = log_v2::instance().get(log_v2::GRPC);
   if (!_conf->get_authorization().empty()) {
     const auto& metas = context->client_metadata();
 
@@ -112,8 +120,7 @@ service_impl::exchange(::grpc::CallbackServerContext* context) {
     bool found = false;
     for (; header_search != metas.end() && !found; ++header_search) {
       if (header_search->first != authorization_header) {
-        SPDLOG_LOGGER_ERROR(logger,
-                            "Wrong client authorization token from {}",
+        SPDLOG_LOGGER_ERROR(logger, "Wrong client authorization token from {}",
                             context->peer());
         return nullptr;
       }
@@ -121,8 +128,7 @@ service_impl::exchange(::grpc::CallbackServerContext* context) {
     }
   }
 
-  SPDLOG_LOGGER_DEBUG(logger, "connection accepted from {}",
-                      context->peer());
+  SPDLOG_LOGGER_DEBUG(logger, "connection accepted from {}", context->peer());
 
   std::shared_ptr<server_stream> next_stream =
       std::make_shared<server_stream>(_conf, shared_from_this());
@@ -236,7 +242,8 @@ void service_impl::unregister(
  * @param conf
  */
 acceptor::acceptor(const grpc_config::pointer& conf)
-    : io::endpoint(true, {}), _service(std::make_shared<service_impl>(conf)) {
+    : io::endpoint(true, _grpc_stream_filter, _grpc_forbidden_filter),
+      _service(std::make_shared<service_impl>(conf)) {
   ::grpc::ServerBuilder builder;
 
   auto logger = log_v2::instance().get(log_v2::GRPC);
@@ -279,8 +286,7 @@ acceptor::acceptor(const grpc_config::pointer& conf)
         GRPC_COMPRESS_LEVEL_HIGH, calc_accept_all_compression_mask());
     const char* algo_name;
     if (grpc_compression_algorithm_name(algo, &algo_name))
-      SPDLOG_LOGGER_DEBUG(logger, "server default compression {}",
-                          algo_name);
+      SPDLOG_LOGGER_DEBUG(logger, "server default compression {}", algo_name);
     else
       SPDLOG_LOGGER_DEBUG(logger, "server default compression unknown");
 
