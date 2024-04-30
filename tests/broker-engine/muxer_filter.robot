@@ -261,7 +261,7 @@ CBD_RELOAD_AND_FILTERS
     Ctn Start Broker
     Ctn Start engine
 
-    Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${1}
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
