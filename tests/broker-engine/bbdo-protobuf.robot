@@ -289,7 +289,7 @@ BEPBHostParent
 
 BEPBINST_CONF
     [Documentation]    bbdo_version 3 communication of instance configuration.
-    [Tags]    broker    engine    protobuf    bbdo    mon-38007
+    [Tags]    broker    engine    protobuf    bbdo    MON-38007
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config BBDO3    ${1}

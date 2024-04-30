@@ -27,18 +27,13 @@ not1
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    check_for_external_commands() should be available.
-
+    Ctn Wait For Engine To Be Ready    ${1}
+    
     ## Time to set the service to CRITICAL HARD.
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Service Check Result    host_1    service_1    2    critical
-        Sleep    1s
-    END
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
     ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
@@ -47,7 +42,7 @@ not1
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification is not sent
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 not2
@@ -67,42 +62,33 @@ not2
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     ## Time to set the service to CRITICAL HARD.
-
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Service Check Result    host_1    service_1    2    critical
-        Sleep    1s
-    END
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
     ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No notification has been sent concerning a critical service
 
-    ## Time to set the service to UP    hard
+    ## Time to set the service to UP hard
 
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Service Check Result    host_1    service_1    0    ok
-        Sleep    1s
-    END
+    Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
 
     ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification recovery is not sent
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 not3
