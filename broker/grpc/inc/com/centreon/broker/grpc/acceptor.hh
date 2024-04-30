@@ -22,7 +22,7 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "grpc_config.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker::grpc {
 
 /**
  * @brief grpc service implementation
@@ -74,8 +74,6 @@ class acceptor : public io::endpoint {
   std::shared_ptr<io::stream> open() override;
   bool is_ready() const override;
 };
-}
-;  // namespace grpc
-CCB_END()
+}  // namespace com::centreon::broker::grpc
 
 #endif  // !CCB_GRPC_ACCEPTOR_HH

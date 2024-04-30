@@ -53,36 +53,6 @@ struct detail_centreon_event {
   const centreon_stream::CentreonEvent& to_dump;
 };
 
-/**
- * @brief we pass our protobuf objects to grpc_event without copy
- * so we must avoid that grpc_event delete message of protobuf object
- * This the goal of this struct.
- * At destruction, it releases protobuf object from grpc_event.
- * Destruction of protobuf object is the job of shared_ptr<io::protobuf>
- */
-struct event_with_data {
-  using pointer = std::shared_ptr<event_with_data>;
-  grpc_event_type grpc_event;
-  std::shared_ptr<io::data> bbdo_event;
-  typedef google::protobuf::Message* (grpc_event_type::*releaser_type)();
-  releaser_type releaser;
-
-  event_with_data() : releaser(nullptr) {}
-
-  event_with_data(const std::shared_ptr<io::data>& bbdo_evt,
-                  releaser_type relser)
-      : bbdo_event(bbdo_evt), releaser(relser) {}
-
-  event_with_data(const event_with_data&) = delete;
-  event_with_data& operator=(const event_with_data&) = delete;
-
-  ~event_with_data() {
-    if (releaser) {
-      (grpc_event.*releaser)();
-    }
-  }
-};
-
 template <class bireactor_class>
 class stream : public io::stream,
                public bireactor_class,
@@ -91,7 +61,7 @@ class stream : public io::stream,
   static std::mutex _instances_m;
 
   using read_queue = std::queue<event_ptr>;
-  using write_queue = std::queue<event_with_data::pointer>;
+  using write_queue = std::queue<event_ptr>;
 
   read_queue _read_queue;
   write_queue _write_queue;

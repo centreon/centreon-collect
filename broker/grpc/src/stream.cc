@@ -22,7 +22,6 @@
 #include "com/centreon/broker/grpc/stream.hh"
 
 #include "com/centreon/broker/exceptions/connection_closed.hh"
-#include "com/centreon/broker/grpc/grpc_bridge.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -224,7 +223,7 @@ bool stream<bireactor_class>::read(std::shared_ptr<io::data>& d,
     event_ptr first = _read_queue.front();
     _read_queue.pop();
     const grpc_event_type& to_convert = *first;
-    if (first->has_buffer()) {
+    if (to_convert.has_buffer()) {
       d = std::make_shared<io::raw>();
       std::static_pointer_cast<io::raw>(d)->_buffer.assign(
           to_convert.buffer().begin(), to_convert.buffer().end());
@@ -233,12 +232,7 @@ bool stream<bireactor_class>::read(std::shared_ptr<io::data>& d,
                           *std::static_pointer_cast<io::raw>(d));
       return true;
     } else {
-      d = protobuf_to_event(first);
-      if (d) {
-        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} read:{}",
-                            static_cast<void*>(this), _class_name, *d);
-      }
-      return d ? true : false;
+      return false;
     }
   };
 
@@ -271,7 +265,7 @@ void stream<bireactor_class>::start_write() {
   if (!_alive) {
     return;
   }
-  event_with_data::pointer to_send;
+  event_ptr to_send;
   {
     std::unique_lock l(_write_m);
     if (_write_pending || _write_queue.empty()) {
@@ -281,16 +275,10 @@ void stream<bireactor_class>::start_write() {
     _write_pending = true;
   }
 
-  if (to_send->bbdo_event)
-    SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} write: {}",
-                        static_cast<void*>(this), _class_name,
-                        *to_send->bbdo_event);
-  else
-    SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} write: {}",
-                        static_cast<void*>(this), _class_name,
-                        to_send->grpc_event);
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} write: {}",
+                      static_cast<void*>(this), _class_name, *to_send);
 
-  bireactor_class::StartWrite(&to_send->grpc_event);
+  bireactor_class::StartWrite(to_send.get());
 }
 
 /**
@@ -306,15 +294,9 @@ void stream<bireactor_class>::OnWriteDone(bool ok) {
   if (ok) {
     {
       std::unique_lock l(_write_m);
-      event_with_data::pointer written = _write_queue.front();
-      if (written->bbdo_event)
-        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} write done: {}",
-                            static_cast<void*>(this), _class_name,
-                            *written->bbdo_event);
-      else
-        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} write done: {}",
-                            static_cast<void*>(this), _class_name,
-                            written->grpc_event);
+      event_ptr written = _write_queue.front();
+      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} write done: {}",
+                          static_cast<void*>(this), _class_name, *written);
 
       _write_queue.pop();
       _write_pending = false;
@@ -341,17 +323,12 @@ int32_t stream<bireactor_class>::write(std::shared_ptr<io::data> const& d) {
   if (!_alive)
     throw(exceptions::connection_closed("{} connection is down",
                                         __PRETTY_FUNCTION__));
-  event_with_data::pointer to_send;
 
-  if (_conf->get_grpc_serialized() &&
-      std::dynamic_pointer_cast<io::protobuf_base>(d)) {  // no bbdo serialize
-    to_send = create_event_with_data(d);
-  } else {
-    to_send = std::make_shared<event_with_data>();
-    std::shared_ptr<io::raw> raw_src = std::static_pointer_cast<io::raw>(d);
-    to_send->grpc_event.mutable_buffer()->assign(raw_src->_buffer.begin(),
-                                                 raw_src->_buffer.end());
-  }
+  event_ptr to_send(std::make_shared<grpc_event_type>());
+
+  std::shared_ptr<io::raw> raw_src = std::static_pointer_cast<io::raw>(d);
+  to_send->mutable_buffer()->assign(raw_src->_buffer.begin(),
+                                    raw_src->_buffer.end());
   {
     std::lock_guard l(_write_m);
     _write_queue.push(to_send);

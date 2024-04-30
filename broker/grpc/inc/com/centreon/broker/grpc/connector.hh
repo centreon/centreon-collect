@@ -22,9 +22,7 @@
 #include "com/centreon/broker/io/limit_endpoint.hh"
 #include "grpc_config.hh"
 
-CCB_BEGIN()
-
-namespace grpc {
+namespace com::centreon::broker::grpc {
 class connector : public io::limit_endpoint {
   grpc_config::pointer _conf;
   std::shared_ptr<::grpc::Channel> _channel;
@@ -40,8 +38,6 @@ class connector : public io::limit_endpoint {
 
   std::shared_ptr<io::stream> create_stream() override;
 };
-};  // namespace grpc
-
-CCB_END()
+};  // namespace com::centreon::broker::grpc
 
 #endif  // !CCB_GRPC_CONNECTOR_HH
