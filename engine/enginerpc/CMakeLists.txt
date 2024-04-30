@@ -46,7 +46,8 @@ add_custom_command(
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${ENGINERPC_DIR}"
     --proto_path=${ENGINERPC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
-    ${ENGINERPC_DIR}/engine.proto)
+    ${ENGINERPC_DIR}/engine.proto
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_custom_target(
   engine_rpc

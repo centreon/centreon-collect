@@ -16,7 +16,7 @@ from datetime import datetime
 # @param str The second file name
 #
 # @return A boolean True on success
-def files_contain_same_json(file_e: str, file_b: str):
+def ctn_files_contain_same_json(file_e: str, file_b: str):
     new_inst = '{"_type": 4294901762, "category": 65535, "element": 2, "broker_id": 1, "broker_name": "", "enabled": True, "poller_id": 1, "poller_name": "Central"}'.upper()
 
     f1 = open(file_e)
@@ -83,7 +83,7 @@ def files_contain_same_json(file_e: str, file_b: str):
     return True
 
 
-def files_contain_same_md5_1(file_e: str, file_b: str):
+def ctn_files_contain_same_md5_1(file_e: str, file_b: str):
 
     getoutput("awk '{{print $8}}' {0} > {0}.md5".format(file_e))
     getoutput("awk '{{print $8}}' {0} > {0}.md5".format(file_b))
@@ -126,7 +126,7 @@ def files_contain_same_md5_1(file_e: str, file_b: str):
 # @return A boolean True on success
 
 
-def check_multiplicity_when_broker_restarted(eng_file: str, broker_file: str):
+def ctn_check_multiplicity_when_broker_restarted(eng_file: str, broker_file: str):
     f1 = open(eng_file)
     content1 = f1.readlines()
     f2 = open(broker_file)
@@ -150,6 +150,7 @@ def check_multiplicity_when_broker_restarted(eng_file: str, broker_file: str):
                                 0x10027,        # pb_host_check
                                 0x10028,        # pb_service_check
                                 0x1002e,        # pb_responsive_instance
+                                0x10036         # pb_instance_configuration
                                 ]:
                     if md5 in lst:
                         lst[md5] += 1
@@ -184,7 +185,7 @@ def check_multiplicity_when_broker_restarted(eng_file: str, broker_file: str):
 # @return A boolean True on success
 
 
-def check_multiplicity_when_engine_restarted(file1: str, file2: str):
+def ctn_check_multiplicity_when_engine_restarted(file1: str, file2: str):
     f1 = open(file1)
     content1 = f1.readlines()
     f2 = open(file2)
@@ -219,6 +220,7 @@ def check_multiplicity_when_engine_restarted(file1: str, file2: str):
                                 0x10025,        # pb_custom_variable
                                 0x10027,        # pb_host_check
                                 0x10028,        # pb_service_check
+                                0x10036         # pb_instance_configuration
                                 ]:
                     if md5 in lst:
                         lst[md5] += 1

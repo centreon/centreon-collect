@@ -3,41 +3,41 @@ Documentation       Centreon Broker victoria metrics tests
 
 Resource            ../resources/import.resource
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
-Test Teardown       Save Logs If Failed
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
 VICT_ONE_CHECK_METRIC
     [Documentation]    victoria metrics metric output
     [Tags]    broker    engine    victoria_metrics
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Config BBDO3    1
-    Clear Retention
-    Broker Config Log    central    victoria_metrics    trace
-    Broker Config Log    central    perfdata    trace
-    Broker Config Source Log    central    1
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Victoria Output
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Broker Config Log    central    victoria_metrics    trace
+    Ctn Broker Config Log    central    perfdata    trace
+    Ctn Broker Config Source Log    central    1
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Victoria Output
     ${start}    Get Current Date
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start engine
     Start Server    127.0.0.1    8000
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
-    Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
+    Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
 
-    ${start}    Get Round Current Date
+    ${start}    Ctn Get Round Current Date
     ${timeout}    Get Current Date    result_format=epoch    increment=00:01:00
     ${now}    Get Current Date    result_format=epoch
     WHILE    ${now} < ${timeout}
@@ -46,7 +46,7 @@ VICT_ONE_CHECK_METRIC
         Set Test Variable    ${metric_found}    False
         IF    ${body != None}
             ${body}    Decode Bytes To String    ${body}    UTF-8
-            ${metric_found}    Check Victoria Metric
+            ${metric_found}    Ctn Check Victoria Metric
             ...    ${body}
             ...    ${start}
             ...    unit=%
@@ -67,36 +67,36 @@ VICT_ONE_CHECK_METRIC
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker    AND    Stop Server
 
 VICT_ONE_CHECK_STATUS
     [Documentation]    victoria metrics status output
     [Tags]    broker    engine    victoria_metrics
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Config BBDO3    1
-    Clear Retention
-    Broker Config Log    central    victoria_metrics    trace
-    Broker Config Log    central    perfdata    trace
-    Broker Config Source Log    central    1
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Victoria Output
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Broker Config Log    central    victoria_metrics    trace
+    Ctn Broker Config Log    central    perfdata    trace
+    Ctn Broker Config Source Log    central    1
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Victoria Output
     ${start}    Get Current Date
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start engine
     Start Server    127.0.0.1    8000
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     # service ok
-    ${start}    Get Round Current Date
-    Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
+    ${start}    Ctn Get Round Current Date
+    Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
 
     ${timeout}    Get Current Date    result_format=epoch    increment=00:01:00
     ${now}    Get Current Date    result_format=epoch
@@ -106,7 +106,7 @@ VICT_ONE_CHECK_STATUS
         Set Test Variable    ${status_found}    False
         IF    ${body != None}
             ${body}    Decode Bytes To String    ${body}    UTF-8
-            ${status_found}    Check Victoria Status
+            ${status_found}    Ctn Check Victoria Status
             ...    ${body}
             ...    ${start}
             ...    host_id=16
@@ -124,8 +124,8 @@ VICT_ONE_CHECK_STATUS
     Should Be True    ${now} < ${timeout}
 
     # service warning
-    ${start}    Get Round Current Date
-    Process Service Result Hard
+    ${start}    Ctn Get Round Current Date
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    1
@@ -139,7 +139,7 @@ VICT_ONE_CHECK_STATUS
         Set Test Variable    ${status_found}    False
         IF    ${body != None}
             ${body}    Decode Bytes To String    ${body}    UTF-8
-            ${status_found}    Check Victoria Status
+            ${status_found}    Ctn Check Victoria Status
             ...    ${body}
             ...    ${start}
             ...    host_id=16
@@ -158,8 +158,8 @@ VICT_ONE_CHECK_STATUS
 
     # service critical
 
-    ${start}    Get Round Current Date
-    Process Service Result Hard
+    ${start}    Ctn Get Round Current Date
+    Ctn Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    2
@@ -173,7 +173,7 @@ VICT_ONE_CHECK_STATUS
         Set Test Variable    ${status_found}    False
         IF    ${body != None}
             ${body}    Decode Bytes To String    ${body}    UTF-8
-            ${status_found}    Check Victoria Status
+            ${status_found}    Ctn Check Victoria Status
             ...    ${body}
             ...    ${start}
             ...    host_id=16
@@ -190,37 +190,37 @@ VICT_ONE_CHECK_STATUS
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker    AND    Stop Server
 
 VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     [Documentation]    victoria metrics metric output after victoria shutdown
     [Tags]    broker    engine    victoria_metrics
-    Config Engine    ${1}    ${50}    ${20}
-    Config Broker    rrd
-    Config Broker    central
-    Config Broker    module    ${1}
-    Config BBDO3    1
-    Clear Retention
-    Broker Config Log    central    victoria_metrics    trace
-    Broker Config Log    central    perfdata    trace
-    Broker Config Source Log    central    1
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Victoria Output
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Broker Config Log    central    victoria_metrics    trace
+    Ctn Broker Config Log    central    perfdata    trace
+    Ctn Broker Config Source Log    central    1
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Victoria Output
     ${start}    Get Current Date
-    Start Broker
-    Start Engine
+    Ctn Start Broker
+    Ctn Start engine
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
-    Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
-    ${start}    Get Round Current Date
+    Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
+    ${start}    Ctn Get Round Current Date
 
     ${content}    Create List    [victoria_metrics]    name: "metric_taratata"
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    victoria should add metric in a request
 
     Start Server    127.0.0.1    8000
@@ -232,7 +232,7 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
         Set Test Variable    ${metric_found}    False
         IF    ${body != None}
             ${body}    Decode Bytes To String    ${body}    UTF-8
-            ${metric_found}    Check Victoria Metric
+            ${metric_found}    Ctn Check Victoria Metric
             ...    ${body}
             ...    ${start}
             ...    unit=%
@@ -253,4 +253,4 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker    AND    Stop Server

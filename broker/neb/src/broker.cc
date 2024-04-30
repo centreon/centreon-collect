@@ -128,6 +128,10 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::neb, neb::de_service_status),
                        "service_status", &neb::service_status::operations,
                        neb::service_status::entries, "services");
+      e.register_event(make_type(io::neb, neb::de_instance_configuration),
+                       "instance_configuration",
+                       &neb::instance_configuration::operations,
+                       neb::instance_configuration::entries);
       e.register_event(make_type(io::neb, neb::de_responsive_instance),
                        "responsive_instance",
                        &neb::responsive_instance::operations,
@@ -214,6 +218,10 @@ void broker_module_init(void const* arg) {
 
       e.register_event(neb::pb_host_parent::static_type(), "HostParent",
                        &neb::pb_host_parent::operations, "hosts_hosts_parents");
+
+      e.register_event(neb::pb_instance_configuration::static_type(),
+                       "InstanceConfiguration",
+                       &neb::pb_instance_configuration::operations, "no_table");
     }
   }
 }

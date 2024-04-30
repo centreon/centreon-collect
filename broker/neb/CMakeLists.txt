@@ -45,6 +45,7 @@ set(NEB_SOURCES
     ${SRC_DIR}/host_service_status.cc
     ${SRC_DIR}/host_status.cc
     ${SRC_DIR}/instance.cc
+    ${SRC_DIR}/instance_configuration.cc
     ${SRC_DIR}/instance_status.cc
     ${SRC_DIR}/log_entry.cc
     ${SRC_DIR}/responsive_instance.cc
@@ -75,6 +76,7 @@ set(NEB_SOURCES
     ${INC_DIR}/com/centreon/broker/neb/host_service_status.hh
     ${INC_DIR}/com/centreon/broker/neb/host_status.hh
     ${INC_DIR}/com/centreon/broker/neb/instance.hh
+    ${INC_DIR}/com/centreon/broker/neb/instance_configuration.hh
     ${INC_DIR}/com/centreon/broker/neb/instance_status.hh
     ${INC_DIR}/com/centreon/broker/neb/internal.hh
     ${INC_DIR}/com/centreon/broker/neb/log_entry.hh
@@ -120,7 +122,11 @@ add_library(
 )
 
 # Flags needed to include all symbols in binary.
-target_link_libraries(${NEB} nebbase spdlog::spdlog)
+target_link_libraries(${NEB}
+  "-Wl,--whole-archive"
+  nebbase
+  "-Wl,--no-whole-archive"
+  spdlog::spdlog)
 
 set_target_properties("${NEB}" PROPERTIES PREFIX "")
 target_precompile_headers(${NEB} REUSE_FROM nebbase)
