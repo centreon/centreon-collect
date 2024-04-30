@@ -33,16 +33,18 @@ not1
 
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}
-    
+
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
     ## Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
     ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The notification is not sent
+    Should Be True    ${result}    No notification has been sent concerning a critical service
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -89,7 +91,7 @@ not2
     Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
 
     ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
-    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -122,6 +124,9 @@ not3
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}
 
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     # It's time to schedule a downtime
     Ctn Schedule Service Fixed Downtime    host_1    service_1    60
 
@@ -142,7 +147,12 @@ not3
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The critical notification is not sent
 
+    Ctn Set Command Status    ${cmd_id}    ${0}
+
     Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
@@ -175,8 +185,14 @@ not4
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}
 
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     # Acknowledge the service with critical status
     Ctn Acknowledge Service Problem    host_1    service_1    STICKY
@@ -187,7 +203,12 @@ not4
     Should Be True    ${result}    check_for_external_commands() should be available.
 
     # Time to set the service to OK HARD.
+    Ctn Set Command Status    ${cmd_id}    ${0}
+
     Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -231,10 +252,20 @@ not5
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}
 
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    ${cmd_id}    Ctn Get Service Command Id    ${2}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     ## Time to set the services to CRITICAL HARD.
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
     Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+    
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${result}    Ctn Check Service Status With Timeout    host_2    service_2    ${2}    70    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
     
     # Notification for the first user john
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
@@ -273,8 +304,14 @@ not6
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}
 
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     ## Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -288,8 +325,12 @@ not6
     Ctn Reload Engine
 
     ## Time to set the service to OK hard
+    Ctn Set Command Status    ${cmd_id}    ${0}
 
     Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
 
     ${content}    Create List    This notifier shouldn't have notifications sent out at this time
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -488,6 +529,9 @@ not11
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}
 
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     ## Time to set the service to CRITICAL HARD.
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
@@ -539,8 +583,18 @@ not12
   # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}
 
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    ${cmd_id}    Ctn Get Service Command Id    ${2}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
     Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${result}    Ctn Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     # Let's wait for the first notification of the user U1
     ${content}    Create List    SERVICE NOTIFICATION: U1;host_1;service_1;CRITICAL;command_notif;
@@ -550,9 +604,17 @@ not12
     ${content}    Create List    SERVICE NOTIFICATION: U1;host_2;service_2;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The first notification of contact group 1 is not sent
+    
+    Ctn Set Command Status    ${cmd_id}    ${2}
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
     Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${result}    Ctn Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     # Let's wait for the first notification of the contact group 2 U3 ET U2
     ${content}    Create List     SERVICE NOTIFICATION: U2;host_1;service_1;CRITICAL;command_notif;
@@ -562,9 +624,17 @@ not12
     ${content}    Create List    SERVICE NOTIFICATION: U3;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The first notification of U3 is not sent
+    
+    Ctn Set Command Status    ${cmd_id}    ${2}
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
-    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_1 is CRITICAL
+    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${result}    Ctn Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     # Let's wait for the second notification of the contact group 2 U3 ET U2
     ${content}    Create List    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;
@@ -574,9 +644,17 @@ not12
     ${content}    Create List    SERVICE NOTIFICATION: U3;host_2;service_2;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The second notification of U3 is not sent
+    
+    Ctn Set Command Status    ${cmd_id}    ${2}
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
     Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${result}    Ctn Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     # Let's wait for the first notification of the contact group 3 U4
     ${content}    Create List    SERVICE NOTIFICATION: U4;host_1;service_1;CRITICAL;command_notif;
@@ -726,24 +804,41 @@ not14
 
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}
+    
+    ${cmd_id}    Ctn Get Service Command Id    ${2}
+    Ctn Set Command Status    ${cmd_id}    ${2}
 
     ## Time to set the service2 to CRITICAL HARD.
     Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_2;service_2;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification is not sent
 
     ## Time to set the service2 to OK  hard
+    ${cmd_id}    Ctn Get Service Command Id    ${2}
+    Ctn Set Command Status    ${cmd_id}    ${0}
+
     Ctn Process Service Result Hard    host_2    service_2    ${0}    The service_2 is OK
+
+    ${result}    Ctn Check Service Status With Timeout    host_2    service_2    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be OK HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_2;service_2;RECOVERY (OK);command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification is not sent
 
    ## Time to set the service1 to CRITICAL HARD.
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -751,16 +846,26 @@ not14
 
     ${new_date}    Get Current Date
     ## Time to set the service2 to CRITICAL HARD.
+    ${cmd_id}    Ctn Get Service Command Id    ${2}
+    Ctn Set Command Status    ${cmd_id}    ${2}
 
     Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    60
     Should Be True    ${result}     the dependency not working and the service_é has recieved a notification
 
     ## Time to set the service1 to OK  hard
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${0}
 
     Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    60
@@ -796,10 +901,16 @@ not15
 
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}
+    
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
 
     ## Time to set the service to CRITICAL HARD.
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -876,49 +987,88 @@ not16
 
     ## Time to set the service3 to CRITICAL HARD.
 
+    ${cmd_id}    Ctn Get Service Command Id    ${3}
+    Ctn Set Command Status    ${cmd_id}    ${0}
+
+    Ctn Process Service Result Hard    host_3    service_3    ${0}    The service_3 is OK
+
+    ${result}    Ctn Check Service Status With Timeout    host_3    service_3    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_3,service_3) should be OK HARD
+    
+    ##Time to set the service3 to CRITICAL HARD.
+    ${cmd_id}    Ctn Get Service Command Id    ${3}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     Ctn Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_3    service_3    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_3,service_3) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_3;service_3;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The notification is not sent for service3
 
     ## Time to set the service3 to OK hard
-  
+    ${cmd_id}    Ctn Get Service Command Id    ${3}
+    Ctn Set Command Status    ${cmd_id}    ${0}
+
     Ctn Process Service Result Hard    host_3    service_3    ${0}    The service_3 is OK
+
+    ${result}    Ctn Check Service Status With Timeout    host_3    service_3    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_3,service_3) should be OK HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_3;service_3;RECOVERY (OK);command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The notification is not sent for service3
 
     ## Time to set the service1 to CRITICAL HARD.
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The notification is not sent for service1
 
     ## Time to set the service3 to CRITICAL HARD.
+    ${cmd_id}    Ctn Get Service Command Id    ${3}
+    Ctn Set Command Status    ${cmd_id}    ${2}
 
     Ctn Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
 
-    Sleep    10s
+    ${result}    Ctn Check Service Status With Timeout    host_3    service_3    ${2}    90    HARD
+    Should Be True    ${result}    Service (host_3,service_3) should be CRITICAL HARD
 
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    The notification is sent for service3 dependency not working
+    Should Be True    ${result}    The notification is sent for service3: dependency not working
 
     ## Time to set the service4 to CRITICAL HARD.
+    ${cmd_id}    Ctn Get Service Command Id    ${4}
+    Ctn Set Command Status    ${cmd_id}    ${2}
 
     Ctn Process Service Result Hard    host_4    service_4    ${2}    The service_4 is CRITICAL
 
+    ${result}    Ctn Check Service Status With Timeout    host_4    service_4    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_4,service_4) should be CRITICAL HARD
+
 
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    The notification is sent for service4 dependency not working
+    Should Be True    ${result}    The notification is sent for service4: dependency not working
 
     ## Time to set the service1 to OK hard
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${0}
 
     Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
+
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
@@ -1060,7 +1210,13 @@ not18
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}
 
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1095,7 +1251,13 @@ not19
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}
 
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    100
@@ -1130,7 +1292,13 @@ not20
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}
 
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
