@@ -8,6 +8,5 @@ for file in `ls ../../bbdo/*.proto`
 do
     python3 -m grpc_tools.protoc -I../../bbdo --python_out=. --grpc_python_out=. `basename $file`
 done
-python3 ../../broker/grpc/generate_proto.py -f grpc_stream.proto -c /tmp/not_used.cc -d ../../bbdo
-python3 -m grpc_tools.protoc -I. -I../../bbdo --python_out=. --grpc_python_out=. grpc_stream.proto
+python3 -m grpc_tools.protoc -I../../broker/grpc -I../../bbdo --python_out=. --grpc_python_out=. grpc_stream.proto
 cd ..
