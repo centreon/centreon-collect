@@ -49,7 +49,8 @@ connector::connector(bool negotiate,
                      std::list<std::shared_ptr<io::extension>>&& extensions,
                      bool grpc_serialized)
     : io::endpoint{false,
-                   {},
+                   multiplexing::muxer_filter(
+                       multiplexing::muxer_filter::zero_init()),
                    multiplexing::muxer_filter(
                        multiplexing::muxer_filter::zero_init())},
       _is_input{connector_is_input},

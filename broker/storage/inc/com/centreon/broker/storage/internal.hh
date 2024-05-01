@@ -36,7 +36,6 @@ using pb_rebuild_graphs =
     io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_graphs)>;
 using pb_remove_graphs =
     io::protobuf<ToRemove, make_type(io::bbdo, bbdo::de_remove_graphs)>;
-using pb_stop = io::protobuf<Stop, make_type(io::local, local::de_pb_stop)>;
 }  // namespace bbdo
 
 namespace local {

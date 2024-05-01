@@ -32,7 +32,7 @@ STUPID_FILTER
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling bad filter should be available.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 STORAGE_ON_LUA
@@ -62,7 +62,7 @@ STORAGE_ON_LUA
     ${grep_res}    Grep File    /tmp/all_lua_event.log    "category":[^3]    regexp=True
     Should Be Empty    ${grep_res}    Events of category different than 'storage' found.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 FILTER_ON_LUA_EVENT
@@ -109,7 +109,7 @@ FILTER_ON_LUA_EVENT
         ...    All the lines in all_lua_event.log should contain "_type":196620
     END
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 BAM_STREAM_FILTER
@@ -203,7 +203,7 @@ BAM_STREAM_FILTER
     ...    centreon-bam-reporting event neb:.* rejected by write filter    regexp=True
     Should Not Be Empty    ${grep_res}    We should reject events of Neb category. They are not rejected.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 UNIFIED_SQL_FILTER
@@ -240,7 +240,7 @@ UNIFIED_SQL_FILTER
         Should Not Be Empty    ${grep_res}
     END
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 CBD_RELOAD_AND_FILTERS
@@ -270,7 +270,7 @@ CBD_RELOAD_AND_FILTERS
 
     # We check that output filters to rrd are set to "all"
     ${content}    Create List
-    ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
+    ...    endpoint applier: The configured write filters for the endpoint 'centreon-broker-master-rrd' contain forbidden filters. These ones are removed
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
@@ -284,7 +284,7 @@ CBD_RELOAD_AND_FILTERS
     #wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    No creating endpoint centreon-broker-master-rrd.
+    Should Be True    ${result}    Endpoint 'centreon-broker-master-rrd' not created.
     ${start2}    Get Current Date
 
     # We check that output filters to rrd are set to "storage"
@@ -319,7 +319,7 @@ CBD_RELOAD_AND_FILTERS
 
     # We check that output filters to rrd are set to "all"
     ${content}    Create List
-    ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
+    ...    endpoint applier: The configured write filters for the endpoint 'centreon-broker-master-rrd' contain forbidden filters. These ones are removed
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
     ${start}    Get Current Date
@@ -337,7 +337,7 @@ CBD_RELOAD_AND_FILTERS
     ...    False
     ...    Some events are rejected by the rrd output whereas all categories are enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 CBD_RELOAD_AND_FILTERS_WITH_OPR
@@ -361,10 +361,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Ctn Start Broker
     Ctn Start engine
 
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
@@ -373,8 +370,8 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     # We check that output filters to rrd are set to "all"
     ${content}    Create List
-    ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ...    Filters applied on endpoint:all
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # New configuration
@@ -421,8 +418,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     ${start2}    Get Current Date
 
     # We check that output filters to rrd are set to "all"
-    ${content}    Create List
-    ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
+    ${content}    Create List    Filters applied on endpoint:all
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
@@ -439,7 +435,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     ...    False
     ...    Some events are rejected by the rrd output whereas all categories are enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 SEVERAL_FILTERS_ON_LUA_EVENT
@@ -511,5 +507,5 @@ SEVERAL_FILTERS_ON_LUA_EVENT
         ...    "_type":65565
         ...    All the lines in all_lua_event-bis.log should contain "_type":65565
     END
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True

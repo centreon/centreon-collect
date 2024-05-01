@@ -57,7 +57,7 @@ acceptor::acceptor(std::string name,
                    bool grpc_serialized)
     : io::endpoint(
           !one_peer_retention_mode,
-          {},
+          multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init()),
           multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())),
       _coarse(coarse),
       _name(std::move(name)),

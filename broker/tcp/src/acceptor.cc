@@ -21,6 +21,7 @@
 
 #include <fmt/format.h>
 
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/tcp/stream.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
 #include "common/log_v2/log_v2.hh"
@@ -30,10 +31,11 @@ using namespace com::centreon::broker::tcp;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static constexpr multiplexing::muxer_filter _tcp_stream_filter =
-    multiplexing::muxer_filter().remove_category(io::local);
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init());
 
 static constexpr multiplexing::muxer_filter _tcp_forbidden_filter =
-    multiplexing::muxer_filter(_tcp_stream_filter).reverse();
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())
+        .add_category(io::local);
 
 /**
  * @brief Acceptor constructor. It needs the port used to listen and a read

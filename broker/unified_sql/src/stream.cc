@@ -734,7 +734,7 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
         SPDLOG_LOGGER_INFO(_logger_sql, "remove poller...");
         remove_poller(data);
         break;
-      case bbdo::de_pb_stop:
+      case local::de_pb_stop:
         SPDLOG_LOGGER_INFO(_logger_sql, "poller stopped...");
         process_stop(data);
         break;
