@@ -38,6 +38,7 @@ dnf --best install -y cmake \
     libgcrypt-devel \
     lua-devel \
     make \
+    perl-open.noarch \
     perl-ExtUtils-Embed.noarch \
     python38 \
     python38-pip \
