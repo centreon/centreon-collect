@@ -21,6 +21,7 @@
 #include <cfloat>
 #include <cmath>
 
+#include "bbdo/events.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/remove_graph.hh"

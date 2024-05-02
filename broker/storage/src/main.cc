@@ -123,7 +123,7 @@ void broker_module_init(void const* arg) {
                        &storage::pb_remove_graph_message::operations);
       /* Let's register the message received when a poller is stopped. This is
        * local::pb_stop. */
-      e.register_event(make_type(io::local, local::de_pb_stop), "Stop",
+      e.register_event(make_type(io::local, local::de_pb_stop), "LocStop",
                        &local::pb_stop::operations);
     }
 

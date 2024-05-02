@@ -30,8 +30,8 @@ connector::connector()
     : io::endpoint(
           false,
           multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init()),
-          multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())
-              .add_category(io::local)) {}
+          multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())) {
+}
 
 /**
  *  Set connection parameters.

@@ -358,7 +358,6 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
                               _name, *event);
           continue;
         }
-
         if (event->type() == bbdo::pb_bench::static_type()) {
           add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event),
                           _name, "publish");

@@ -650,7 +650,7 @@ void conflict_manager::_callback() {
                        type == make_type(io::bbdo, bbdo::de_remove_graphs)) {
               remove_graphs(d);
               *std::get<2>(tpl) = true;
-            } else if (std::get<1>(tpl) == storage &&
+            } else if (std::get<1>(tpl) == sql &&
                        type == make_type(io::local, local::de_pb_stop)) {
               _logger_sql->info("poller stopped...");
               process_stop(d);
