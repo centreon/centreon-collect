@@ -206,7 +206,8 @@ When BAM is stopped (broker is stopped or reloaded), living data are saved into 
 
 #### caution
 
-grpc threads block at shutdown if grpc object aren't cleanly stopped. For example, we must call ClientBeReactor::Finish before delete. That's why grpc::stream::stop must be called before destruction (shared_ptr< stream >::reset()). So be careful to not forget a case (a catch handler) 
+grpc threads block at shutdown if grpc object aren't cleanly stopped. For example, we must call ClientBeReactor::Finish before delete. That's why grpc::stream::stop must be called before destruction (shared_ptr< stream >::reset()). So be careful to not forget a case (a catch handler).
+Another issue: channel is owned both by connector and client stream context. At shutdown, if the last owner is client stream object, client destructor is called by OnDone method called by a grpc thread. Then channel destructor is called by grpc thread. The issue is that channel destructor tries to join current grpc thread. The solution is to leave stream destruction job to asio threads.
 
 #### Main classes
 
