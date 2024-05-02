@@ -253,6 +253,8 @@ not5
     Ctn Wait For Engine To Be Ready    ${1}
 
     ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     ${cmd_id}    Ctn Get Service Command Id    ${2}
     Ctn Set Command Status    ${cmd_id}    ${2}
 
@@ -584,6 +586,8 @@ not12
     Ctn Wait For Engine To Be Ready    ${1}
 
     ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+    
     ${cmd_id}    Ctn Get Service Command Id    ${2}
     Ctn Set Command Status    ${cmd_id}    ${2}
 
