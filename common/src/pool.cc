@@ -16,16 +16,7 @@
  * For more information : contact@centreon.com
  */
 
-#include <spdlog/spdlog.h>
-#include <forward_list>
-#include <mutex>
-#include <thread>
-
-#include <boost/asio.hpp>
-
-namespace asio = boost::asio;
-
-#include "com/centreon/common/pool.hh"
+#include "pool.hh"
 
 using namespace com::centreon::common;
 
@@ -127,6 +118,9 @@ void pool::_set_pool_size(size_t pool_size) {
                         : pool_size;
 
   std::lock_guard<std::mutex> lock(_pool_m);
+
+  SPDLOG_LOGGER_INFO(_logger, "Starting the TCP thread pool of {} threads",
+                     pool_size);
 
   for (; _pool_size < new_size; ++_pool_size) {
     auto& new_thread = _pool.emplace_front([ctx = _io_context,

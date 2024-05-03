@@ -3069,8 +3069,6 @@ def ctn_grep_retention(poller: int, pattern: str):
     return Common.ctn_grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
 
 
-
-
 def ctn_modify_retention_dat(poller, host, service, key, value):
     """
     Modify a parameter of a service in the retention.dat file.
