@@ -21,6 +21,7 @@ on:
       - conanfile.txt
       - selinux/**
       - "!.veracode-exclusions"
+      - "!veracode.json"
   push:
     branches:
       - develop
@@ -41,6 +42,7 @@ on:
       - conanfile.txt
       - selinux/**
       - "!.veracode-exclusions"
+      - "!veracode.json"
 
 jobs:
   get-version:
