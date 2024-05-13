@@ -46,8 +46,6 @@ class delta_process_stat:
         ret = google_dot_protobuf_dot_duration__pb2.Duration()
         ret.FromMilliseconds(duration_left.ToMilliseconds() -
                              duration_right.ToMilliseconds())
-        a = ret.seconds
-        b = ret.nanos
         return ret
 
 
@@ -207,7 +205,7 @@ def ctn_store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engin
     benchs = db.collection(test_name)
     benchs.create()
     benchs.store(row)
-    test = benchs.all()
+    benchs.all()
     db.close()
     return True
 

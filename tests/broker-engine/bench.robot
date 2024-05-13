@@ -177,7 +177,7 @@ BENCH_1000STATUS_100${suffixe}
     Ctn Config BBDO3    ${100}
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start engine
     ${connected}    Ctn Wait For Connections    5669    100
@@ -189,6 +189,7 @@ BENCH_1000STATUS_100${suffixe}
     ${engine_stat_before}    Ctn Get Engine Process Stat    50001
 
     ${start_check}    Get Current Date
+    Log To Console    Check start ${start_check}
     # one host per poller
     FOR    ${poller_index}    IN RANGE    100
         ${host_id}    Evaluate    ${poller_index} + 1
@@ -212,7 +213,7 @@ BENCH_1000STATUS_100${suffixe}
     ${diff_broker}    Ctn Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
     ${diff_engine}    Ctn Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
 
-    ${content}    Create List    pb service (100, 2000) status 1 type 1 check result output: <<warning_99>>
+    ${content}    Create List    pb service status of (100, 2000) - state 1 - type 1 check result output: <<warning_99>>
     ${result}    Ctn Find In Log With Timeout With Line    ${centralLog}    ${start_check}    ${content}    240
     Should Be True    ${result[0]}    No check check result received.
     ${date_last_check_received}    Ctn Extract Date From Log    ${result[1][0]}
