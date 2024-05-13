@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
     bool display_license(false);
     bool error(false);
     bool diagnose(false);
-    std::set<std::string> extended_conf_path;
+    std::set<std::string> extended_conf_file;
 
     // Process all command line arguments.
     int c;
@@ -161,7 +161,7 @@ int main(int argc, char* argv[]) {
           break;
         case 'c':
           if (optarg)
-            extended_conf_path.insert(optarg);
+            extended_conf_file.insert(optarg);
           break;
         default:
           error = true;
@@ -360,10 +360,10 @@ int main(int argc, char* argv[]) {
           p.parse(config_file, config);
         }
 
-        configuration::extended_conf::load_all(extended_conf_path.begin(),
-                                               extended_conf_path.end());
+        configuration::extended_conf::load_all(extended_conf_file.begin(),
+                                               extended_conf_file.end());
 
-        configuration::extended_conf::apply_all_to_state(config);
+        configuration::extended_conf::update_state(config);
         uint16_t port = config.rpc_port();
 
         if (!port) {

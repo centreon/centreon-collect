@@ -102,7 +102,7 @@ static void apply_conf(std::atomic<bool>* reloading) {
       std::string path(::config->cfg_main());
       p.parse(path, config);
     }
-    configuration::extended_conf::apply_all_to_state(config);
+    configuration::extended_conf::update_state(config);
     configuration::applier::state::instance().apply(config);
     engine_logger(log_info_message, basic)
         << "Configuration reloaded, main loop continuing.";

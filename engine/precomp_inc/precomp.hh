@@ -52,6 +52,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -63,7 +64,6 @@
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
-#include <absl/strings/string_view.h>
 #include <re2/re2.h>
 
 #include <rapidjson/document.h>

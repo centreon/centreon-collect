@@ -46,8 +46,6 @@ class setter_base {
   const std::string_view _field_name;
 
  public:
-  using pointer = std::unique_ptr<setter_base>;
-
   setter_base(const std::string_view& field_name) : _field_name(field_name) {}
 
   virtual ~setter_base() = default;

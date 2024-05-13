@@ -18,7 +18,7 @@
 
 #include <string>
 
-#include <absl/strings/string_view.h>
+#include <string_view>
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>

@@ -1035,7 +1035,7 @@ TEST_F(ApplierState, extended_override_conf) {
 })");
 
   configuration::extended_conf::load_all(file_paths, file_paths + 1);
-  configuration::extended_conf::apply_all_to_state(config);
+  configuration::extended_conf::update_state(config);
   ASSERT_EQ(config.log_level_functions(), std::string("debug"));
   ASSERT_EQ(config.log_level_checks(), std::string("trace"));
   ASSERT_EQ(config.instance_heartbeat_interval(), 120);
@@ -1057,7 +1057,7 @@ TEST_F(ApplierState, extended_override_conf_overflow) {
 })");
 
   configuration::extended_conf::load_all(file_paths, file_paths + 1);
-  configuration::extended_conf::apply_all_to_state(config);
+  configuration::extended_conf::update_state(config);
   ASSERT_EQ(config.enable_flap_detection(), false);
   ASSERT_EQ(config.rpc_port(), 0);
 }
