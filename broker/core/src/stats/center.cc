@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/stats/center.hh"
 
+#include <absl/synchronization/mutex.h>
 #include <fmt/format.h>
 #include <google/protobuf/util/json_util.h>
 
@@ -83,7 +84,7 @@ center::center() {
  * @return A pointer to the engine statistics.
  */
 EngineStats* center::register_engine() {
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   return _stats.mutable_processing()->mutable_engine();
 }
 
@@ -97,12 +98,12 @@ SqlConnectionStats* center::connection(size_t idx) {
  * @return A pointer to the connection statistics.
  */
 SqlConnectionStats* center::add_connection() {
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   return _stats.mutable_sql_manager()->add_connections();
 }
 
 void center::remove_connection(SqlConnectionStats* stats) {
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   auto* c = _stats.mutable_sql_manager()->mutable_connections();
   for (auto it = c->begin(); it != c->end(); ++it) {
     if (&*it == stats) {
@@ -122,7 +123,7 @@ void center::remove_connection(SqlConnectionStats* stats) {
  * @return true on success (it never fails).
  */
 void center::unregister_muxer(const std::string& name) {
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   _stats.mutable_processing()->mutable_muxers()->erase(name);
 }
 
@@ -138,7 +139,7 @@ void center::update_muxer(std::string name,
                           std::string queue_file,
                           uint32_t size,
                           uint32_t unack) {
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   auto ms = &(*_stats.mutable_processing()->mutable_muxers())[std::move(name)];
   if (ms) {
     ms->mutable_queue_file()->set_name(std::move(queue_file));
@@ -150,7 +151,7 @@ void center::update_muxer(std::string name,
 void center::init_queue_file(std::string muxer,
                              std::string queue_file,
                              uint32_t max_file_size) {
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   auto qfs =
       (&(*_stats.mutable_processing()->mutable_muxers())[std::move(muxer)])
           ->mutable_queue_file();
@@ -161,111 +162,6 @@ void center::init_queue_file(std::string muxer,
 }
 
 /**
- * @brief When a feeder needs to write statistics, it primarily has to
- * call this function to be registered in the statistic center and to get
- * a pointer for its statistics. It is prohibited to directly write into this
- * pointer. We must use the center member functions for this purpose.
- *
- * @param name
- *
- * @return A pointer to the feeder statistics.
- */
-// FeederStats* center::register_feeder(EndpointStats* ep_stats,
-//                                     const std::string& name) {
-//  std::promise<FeederStats*> p;
-//  std::future<FeederStats*> retval = p.get_future();
-//  _strand.post([this, ep_stats, &p, &name] {
-//    auto ep = &(*ep_stats->mutable_feeder())[name];
-//    p.set_value(ep);
-//  });
-//  return retval.get();
-//}
-
-// bool center::unregister_feeder(EndpointStats* ep_stats,
-//                               const std::string& name) {
-//  std::promise<bool> p;
-//  std::future<bool> retval = p.get_future();
-//  _strand.post([this, ep_stats, &p, &name] {
-//    auto ep = (*ep_stats->mutable_feeder()).erase(name);
-//    p.set_value(true);
-//  });
-//  return retval.get();
-//}
-
-// MysqlConnectionStats* center::register_mysql_connection(
-//    MysqlManagerStats* stats) {
-//  std::promise<MysqlConnectionStats*> p;
-//  std::future<MysqlConnectionStats*> retval = p.get_future();
-//  _strand.post([this, stats, &p] {
-//    auto ep = stats->add_connections();
-//    p.set_value(ep);
-//  });
-//  return retval.get();
-//}
-
-// bool center::unregister_mysql_connection(MysqlConnectionStats* c) {
-//  std::promise<bool> p;
-//  std::future<bool> retval = p.get_future();
-//  _strand.post([this, c, &p] {
-//    for (auto
-//             it =
-//                 _stats.mutable_mysql_manager()->mutable_connections()->begin(),
-//             end =
-//             _stats.mutable_mysql_manager()->mutable_connections()->end();
-//         it != end; ++it) {
-//      if (&(*it) == c) {
-//        _stats.mutable_mysql_manager()->mutable_connections()->erase(it);
-//        break;
-//      }
-//    }
-//    p.set_value(true);
-//  });
-//  return retval.get();
-//}
-
-/**
- * @brief When an endpoint needs to write statistics, it primarily has to
- * call this function to be registered in the statistic center and to get
- * a pointer to its statistics. It is prohibited to directly write into this
- * pointer. We must use the center member function for this purpose.
- *
- * @param name
- *
- * @return A pointer to the endpoint statistics.
- */
-// EndpointStats* center::register_endpoint(const std::string& name) {
-//  std::promise<EndpointStats*> p;
-//  std::future<EndpointStats*> retval = p.get_future();
-//  _strand.post([this, &p, &name] {
-//    auto ep = _stats.add_endpoint();
-//    ep->set_name(name);
-//    *ep->mutable_memory_file_path() = fmt::format(
-//        "{}.memory.{}", config::applier::state::instance().cache_dir(), name);
-//    *ep->mutable_queue_file_path() = fmt::format(
-//        "{}.queue.{}", config::applier::state::instance().cache_dir(), name);
-//
-//    p.set_value(ep);
-//  });
-//  return retval.get();
-//}
-
-// bool center::unregister_endpoint(const std::string& name) {
-//  std::promise<bool> p;
-//  std::future<bool> retval = p.get_future();
-//  _strand.post([this, &p, &name] {
-//    for (auto it = _stats.mutable_endpoint()->begin();
-//         it != _stats.mutable_endpoint()->end(); ++it) {
-//      if (it->name() == name) {
-//        _stats.mutable_endpoint()->erase(it);
-//        break;
-//      }
-//    }
-//    p.set_value(true);
-//  });
-//  return retval.get();
-//}
-
-/**
  * @brief To allow the conflict manager to send statistics, it has to call this
  * function to get a pointer to its statistics container.
  * It is prohibited to directly write into the returned pointer. We must use
@@ -274,27 +170,9 @@ void center::init_queue_file(std::string muxer,
  * @return A pointer to the conflict_manager statistics.
  */
 ConflictManagerStats* center::register_conflict_manager() {
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   return _stats.mutable_conflict_manager();
 }
-
-/**
- * @brief To allow the conflict manager to send statistics, it has to call this
- * function to get a pointer to its statistics container.
- * It is prohibited to directly write into the returned pointer. We must use
- * the center member functions for this purpose.
- *
- * @return A pointer to the module statistics.
- */
-// ModuleStats* center::register_modules() {
-//  std::promise<ModuleStats*> p;
-//  std::future<ModuleStats*> retval = p.get_future();
-//  _strand.post([this, &p] {
-//    auto m = _stats.add_modules();
-//    p.set_value(m);
-//  });
-//  return retval.get();
-//}
 
 /**
  * @brief Convert the protobuf statistics object to a json string.
@@ -305,7 +183,7 @@ std::string center::to_string() {
   const JsonPrintOptions options;
   std::string retval;
   std::time_t now = time(nullptr);
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   _json_stats_file_creation = now;
   _stats.set_now(now);
   MessageToJsonString(_stats, &retval, options);
@@ -313,7 +191,7 @@ std::string center::to_string() {
 }
 
 void center::get_sql_manager_stats(SqlManagerStats* response, int32_t id) {
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   if (id == -1)
     *response = _stats.sql_manager();
   else {
@@ -324,12 +202,12 @@ void center::get_sql_manager_stats(SqlManagerStats* response, int32_t id) {
 }
 
 void center::get_sql_connection_size(GenericSize* response) {
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   response->set_size(_stats.sql_manager().connections().size());
 }
 
 void center::get_conflict_manager_stats(ConflictManagerStats* response) {
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   *response = _stats.conflict_manager();
 }
 
@@ -338,7 +216,7 @@ int center::get_json_stats_file_creation(void) {
 }
 
 bool center::muxer_stats(const std::string& name, MuxerStats* response) {
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   if (!_stats.processing().muxers().contains(name))
     return false;
   else {
@@ -348,17 +226,17 @@ bool center::muxer_stats(const std::string& name, MuxerStats* response) {
 }
 
 MuxerStats* center::muxer_stats(const std::string& name) {
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   return &(*_stats.mutable_processing()->mutable_muxers())[name];
 }
 
 void center::get_processing_stats(ProcessingStats* response) {
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   *response = _stats.processing();
 }
 
 void center::clear_muxer_queue_file(const std::string& name) {
-  std::lock_guard<std::mutex> lck(_stats_m);
+  absl::MutexLock lck(&_stats_m);
   if (_stats.processing().muxers().contains(name))
     _stats.mutable_processing()
         ->mutable_muxers()
@@ -368,11 +246,11 @@ void center::clear_muxer_queue_file(const std::string& name) {
 }
 
 void center::lock() {
-  _stats_m.lock();
+  _stats_m.Lock();
 }
 
 void center::unlock() {
-  _stats_m.unlock();
+  _stats_m.Unlock();
 }
 
 const BrokerStats& center::stats() const {
