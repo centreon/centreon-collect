@@ -15,6 +15,7 @@
  *
  * For more information : contact@centreon.com
  */
+#include <absl/synchronization/mutex.h>
 #include <fmt/format.h>
 
 #include "bbdo/neb.pb.h"
@@ -50,7 +51,7 @@ static const std::string _insert_or_update_tags =
 void stream::_clean_tables(uint32_t instance_id) {
   // no hostgroup and servicegroup clean during this function
   {
-    std::lock_guard<std::mutex> l(_timer_m);
+    absl::MutexLock l(&_timer_m);
     _group_clean_timer.cancel();
   }
 
@@ -203,10 +204,11 @@ void stream::_clean_tables(uint32_t instance_id) {
   _mysql.run_query(query, database::mysql_error::clean_customvariables, conn);
   _add_action(conn, actions::custom_variables);
 
-  std::lock_guard<std::mutex> l(_timer_m);
+  absl::MutexLock l(&_timer_m);
   _group_clean_timer.expires_after(std::chrono::minutes(1));
   _group_clean_timer.async_wait([this](const boost::system::error_code& err) {
     if (!err) {
+      absl::ReaderMutexLock lck(&_barrier_timer_m);
       _clean_group_table();
     }
   });

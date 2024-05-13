@@ -36,8 +36,10 @@ namespace storage {
  *  metrics table of a centstorage DB.
  */
 class stream : public io::stream {
-  std::shared_ptr<spdlog::logger> _logger_storage;
+  int32_t _pending_events;
+  bool _stopped;
   std::shared_ptr<spdlog::logger> _logger_sql;
+  std::shared_ptr<spdlog::logger> _logger_storage;
   struct index_info {
     std::string host_name;
     uint32_t index_id;
@@ -68,10 +70,8 @@ class stream : public io::stream {
     double value;
   };
 
-  int32_t _pending_events;
   std::string _status;
   mutable std::mutex _statusm;
-  bool _stopped;
   std::shared_ptr<spdlog::logger> _logger;
 
   void _update_status(std::string const& status);

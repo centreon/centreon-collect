@@ -18,6 +18,7 @@
 #include "com/centreon/broker/unified_sql/stream.hh"
 
 #include <absl/strings/str_split.h>
+#include <absl/synchronization/mutex.h>
 #include <cassert>
 #include <cstring>
 #include <thread>
@@ -244,20 +245,27 @@ stream::stream(const database_config& dbcfg,
                         e.what());
     throw;
   }
-  std::lock_guard<std::mutex> l(_timer_m);
+  absl::MutexLock l(&_timer_m);
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
-  _queues_timer.async_wait(
-      [this](const boost::system::error_code& err) { _check_queues(err); });
+  _queues_timer.async_wait([this](const boost::system::error_code& err) {
+    absl::ReaderMutexLock lck(&_barrier_timer_m);
+    _check_queues(err);
+  });
   _start_loop_timer();
   SPDLOG_LOGGER_INFO(_logger_sql, "Unified sql stream running loop_interval={}",
                      _loop_timeout);
 }
 
 stream::~stream() noexcept {
-  std::lock_guard<std::mutex> l(_timer_m);
-  _group_clean_timer.cancel();
-  _queues_timer.cancel();
-  _loop_timer.cancel();
+  {
+    absl::MutexLock l(&_timer_m);
+    _group_clean_timer.cancel();
+    _queues_timer.cancel();
+    _loop_timer.cancel();
+  }
+  /* Let's wait a little if one of the timers is working during the cancellation
+   */
+  absl::MutexLock lck(&_barrier_timer_m);
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream destruction");
 }
 
@@ -1196,8 +1204,12 @@ void stream::_start_loop_timer() {
     if (err) {
       return;
     }
+    absl::ReaderMutexLock lck(&_barrier_timer_m);
     _update_hosts_and_services_of_unresponsive_instances();
-    _start_loop_timer();
+    {
+      absl::MutexLock l(&_timer_m);
+      _start_loop_timer();
+    }
   });
 }
 
