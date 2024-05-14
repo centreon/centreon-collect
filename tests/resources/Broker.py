@@ -2516,7 +2516,7 @@ def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int):
                 result = cursor.fetchall()
                 if len(result) == 0:
                     return True
-        time.sleep(5)
+        time.sleep(1)
     return False
 
 

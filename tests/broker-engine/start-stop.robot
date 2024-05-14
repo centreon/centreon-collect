@@ -31,7 +31,7 @@ BESS2
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    bbdo    info
     ${start}    Get Current Date
     Ctn Start Broker
