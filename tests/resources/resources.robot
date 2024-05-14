@@ -40,7 +40,7 @@ Ctn Clean Before Suite
 	Ctn Clear Engine Logs
 	Ctn Clear Broker Logs
 
-Ctn Clean Before Suite With rrdcached
+Ctn Clean Before Suite With Rrdcached
 	Ctn Clean Before Suite
 	log to console	Starting RRDCached
 	Run Process	/usr/bin/rrdcached	-l	unix:${BROKER_LIB}/rrdcached.sock	-V	LOG_DEBUG	-F
