@@ -35,6 +35,7 @@ if(WITH_TESTING)
     -L${PROTOBUF_LIB_DIR}
     cerpc
     centreon_common
+    spdlog::spdlog
   gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
     crypto ssl
     z

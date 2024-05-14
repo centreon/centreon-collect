@@ -3159,3 +3159,30 @@ def ctn_get_service_command(host_id: int, service_id: int):
         logger.console(
             f"Unable to find the command id of service ({host_id};{service_id})")
         return None
+    
+
+def ctn_get_engine_log_level(port, log, timeout=TIMEOUT):
+    """
+    Get the log level of a given logger. The timeout is due to the way we ask
+    for this information ; we use gRPC and the server may not be correctly
+    started.
+
+    Args:
+        port: The gRPC port to use.
+        log: The logger name.
+
+    Returns:
+        A string with the log level.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call GetLogInfo")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            try:
+                logs = stub.GetLogInfo(empty_pb2.Empty())
+                return logs.loggers[0].level[log]
+
+            except:
+                logger.console("gRPC server not ready")

@@ -16,18 +16,12 @@
 * For more information : contact@centreon.com
 */
 
-#include <fmt/format.h>
-#include <fstream>
-
-#include <absl/strings/numbers.h>
-#include <absl/strings/str_replace.h>
-#include <absl/strings/str_split.h>
 
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/exception/errinfo_file_name.hpp>
 #include <boost/throw_exception.hpp>
 
-#include "com/centreon/common/process_stat.hh"
+#include "process_stat.hh"
 
 using namespace com::centreon::common;
 
