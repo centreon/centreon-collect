@@ -30,3 +30,20 @@ The main main job is done by whitelist class, it parses file and compares final 
 This class is a singleton witch is replace by another instance each time conf is reloaded.
 
 Checkable class inherited by service and host classes keeps the last result of whitelist's check in cache in order to reduce CPU whitelist usage.
+
+## extended configuration
+Users can pass an additional configuration file to engine. Gorgone is not aware of this file, so users can override centengine.cfg configuration.
+Each entry found in additional json configuration file override his twin in centengine.cfg
+
+### example of command line
+/usr/sbin/centengine --config-file=/tmp/centengine_extend.json /etc/centreon-engine/centengine.cfg
+
+### file format
+```json
+{   
+    "send_recovery_notifications_anyways": true
+}
+```
+
+### implementation detail
+In state.cc all setters have two methods, apply_from_cfg and apply_from_json. On configuration update, we first parse centengine.cfg and other, and then we parse additional configuration files.
