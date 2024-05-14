@@ -2,6 +2,9 @@
 Documentation       Centreon Broker and Engine progressively add services
 
 Resource            ../resources/resources.robot
+Library             ../resources/Broker.py
+Library             ../resources/Engine.py
+Library             DateTime
 
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
