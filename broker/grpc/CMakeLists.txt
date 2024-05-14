@@ -26,33 +26,19 @@ include_directories(${MODULE_DIR}/inc ${SRC_DIR})
 # Sources.
 set(SOURCES
     "${SRC_DIR}/acceptor.cc"
-    "${SRC_DIR}/channel.cc"
-    "${SRC_DIR}/client.cc"
     "${SRC_DIR}/connector.cc"
     "${SRC_DIR}/factory.cc"
     "${SRC_DIR}/main.cc"
-    "${SRC_DIR}/server.cc"
     "${SRC_DIR}/stream.cc"
     "${SRC_DIR}/grpc_stream.grpc.pb.cc"
     "${SRC_DIR}/grpc_stream.pb.cc")
-# Headers.
-set(HEADERS
-    "${INC_DIR}/acceptor.hh"
-    "${INC_DIR}/channel.hh"
-    "${INC_DIR}/client.hh"
-    "${INC_DIR}/connector.hh"
-    "${INC_DIR}/factory.hh"
-    "${INC_DIR}/server.hh"
-    "${INC_DIR}/stream.hh"
-    "${SRC_DIR}/grpc_stream.grpc.pb.h"
-    "${SRC_DIR}/grpc_stream.pb.h")
 
 # GRPC module.
 set(GRPC "50-grpc")
 set(GRPC
     ${GRPC}
     PARENT_SCOPE)
-add_library(${GRPC} SHARED ${SOURCES} ${HEADERS})
+add_library(${GRPC} SHARED ${SOURCES} )
 set_target_properties(${GRPC} PROPERTIES PREFIX "")
 target_link_libraries(${GRPC} CONAN_PKG::spdlog)
 
@@ -80,7 +66,7 @@ add_custom_command(
 # Testing.
 if(WITH_TESTING)
   set(TESTS_SOURCES
-      ${TESTS_SOURCES} ${TEST_DIR}/acceptor.cc ${TEST_DIR}/channel_test.cc
+      ${TESTS_SOURCES} ${TEST_DIR}/acceptor.cc
       ${TEST_DIR}/stream_test.cc ${TEST_DIR}/factory_test.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES

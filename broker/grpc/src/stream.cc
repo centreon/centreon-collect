@@ -21,109 +21,434 @@
 
 #include "com/centreon/broker/grpc/stream.hh"
 
-#include "com/centreon/broker/grpc/client.hh"
-#include "com/centreon/broker/grpc/server.hh"
+#include "com/centreon/broker/exceptions/connection_closed.hh"
+#include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/defer.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker::grpc;
-using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 
-namespace fmt {
+// namespace fmt {
 
-// mandatory to log
-template <>
-struct formatter<io::raw> : ostream_formatter {};
+// // mandatory to log
+// template <>
+// struct formatter<io::raw> : ostream_formatter {};
 
-}  // namespace fmt
+// }  // namespace fmt
 
-com::centreon::broker::grpc::stream::stream(const grpc_config::pointer& conf)
-    : io::stream("GRPC"), _accept(false) {
-  _channel = client::create(conf);
+namespace com::centreon::broker {
+namespace stream {
+
+/**
+ * @brief << operator for CentreonEvent
+ * used by fmt with ostream_formatter
+ *
+ * @param st
+ * @param to_dump
+ * @return * std::ostream&
+ */
+std::ostream& operator<<(std::ostream& st,
+                         const centreon_stream::CentreonEvent& to_dump) {
+  if (to_dump.IsInitialized()) {
+    if (to_dump.has_buffer()) {
+      st << "buff: "
+         << com::centreon::broker::misc::string::debug_buf(
+                to_dump.buffer().data(), to_dump.buffer().length(), 20);
+    } else {
+      std::string dump{to_dump.ShortDebugString()};
+      if (dump.size() > 200) {
+        dump.resize(200);
+        st << fmt::format(" content:'{}...'", dump);
+      } else
+        st << " content:'" << dump << '\'';
+    }
+  }
+  return st;
+}
+}  // namespace stream
+namespace grpc {
+/**
+ * @brief << operator for detail_centreon_event with more details than
+ * CentreonEvent used by fmt with ostream_formatter
+ *
+ * @param st
+ * @param to_dump
+ * @return * std::ostream&
+ */
+std::ostream& operator<<(std::ostream& st,
+                         const detail_centreon_event& to_dump) {
+  if (to_dump.to_dump.IsInitialized()) {
+    if (to_dump.to_dump.has_buffer()) {
+      st << "buff: "
+         << com::centreon::broker::misc::string::debug_buf(
+                to_dump.to_dump.buffer().data(),
+                to_dump.to_dump.buffer().length(), 100);
+    } else {
+      st << " content:'" << to_dump.to_dump.ShortDebugString() << '\'';
+    }
+  }
+  return st;
+}
+}  // namespace grpc
+}  // namespace com::centreon::broker
+
+/**
+ * @brief this header is used to identify poller
+ *
+ */
+const std::string com::centreon::broker::grpc::authorization_header(
+    "authorization");
+
+/**
+ * @brief when BiReactor::OnDone is called by grpc layers, we should delete
+ * this. But this object is even used by feeder or failover.
+ * So it's stored in this container and just removed from this container when
+ * OnDone is called
+ *
+ * @tparam bireactor_class
+ */
+template <class bireactor_class>
+std::set<std::shared_ptr<stream<bireactor_class>>>
+    stream<bireactor_class>::_instances;
+
+template <class bireactor_class>
+std::mutex stream<bireactor_class>::_instances_m;
+
+/**
+ * @brief Construct a new stream<bireactor class>::stream object
+ *
+ * @tparam bireactor_class
+ * @param conf
+ * @param class_name used by logs to identify server or client case
+ */
+template <class bireactor_class>
+stream<bireactor_class>::stream(const grpc_config::pointer& conf,
+                                const std::string_view& class_name)
+    : io::stream("GRPC"), _conf(conf), _class_name(class_name) {
+  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "create {} this={:p}", _class_name,
+                      static_cast<const void*>(this));
 }
 
-com::centreon::broker::grpc::stream::stream(
-    const std::shared_ptr<accepted_service>& accepted)
-    : io::stream("GRPC"), _accept(true), _channel(accepted) {}
-
-com::centreon::broker::grpc::stream::~stream() noexcept {
-  if (_channel)
-    _channel->to_trash();
+/**
+ * @brief Destroy the stream<bireactor class>::stream object
+ *
+ * @tparam bireactor_class
+ */
+template <class bireactor_class>
+stream<bireactor_class>::~stream() {
+  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "delete {} this={:p}", _class_name,
+                      static_cast<const void*>(this));
 }
 
-#define READ_IMPL                                                             \
-  std::pair<event_ptr, bool> read_res = _channel->read(duration_or_deadline); \
-  if (read_res.second) {                                                      \
-    const grpc_event_type& to_convert = *read_res.first;                      \
-    if (to_convert.has_buffer()) {                                            \
-      d = std::make_shared<io::raw>();                                        \
-      std::static_pointer_cast<io::raw>(d)->_buffer.assign(                   \
-          to_convert.buffer().begin(), to_convert.buffer().end());            \
-      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "receive:{}",                       \
-                          *std::static_pointer_cast<io::raw>(d));             \
-    } else {                                                                  \
-      return false;                                                           \
-    }                                                                         \
-  } else {                                                                    \
-    if (_channel->is_down()) {                                                \
-      d.reset(new io::raw);                                                   \
-      throw msg_fmt("Connection lost");                                       \
-    }                                                                         \
-  }                                                                           \
-  return read_res.second;
-
-bool com::centreon::broker::grpc::stream::read(std::shared_ptr<io::data>& d,
-                                               time_t duration_or_deadline) {
-  READ_IMPL
+/**
+ * @brief after creation object is stored in _instances static container
+ *
+ * @tparam bireactor_class
+ * @param strm
+ */
+template <class bireactor_class>
+void stream<bireactor_class>::register_stream(
+    const std::shared_ptr<stream<bireactor_class>>& strm) {
+  std::lock_guard l(_instances_m);
+  _instances.insert(strm);
 }
 
-bool com::centreon::broker::grpc::stream::read(
-    std::shared_ptr<io::data>& d,
-    const system_clock::time_point& duration_or_deadline) {
-  READ_IMPL
+/**
+ * @brief call StartRead if still alive and no pending reading
+ *
+ * @tparam bireactor_class
+ */
+template <class bireactor_class>
+void stream<bireactor_class>::start_read() {
+  std::lock_guard l(_protect);
+  if (!_alive) {
+    return;
+  }
+  event_ptr to_read;
+  {
+    std::lock_guard l(_read_m);
+    if (_read_current) {
+      return;
+    }
+    to_read = _read_current = std::make_shared<grpc_event_type>();
+  }
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} Start read",
+                      static_cast<const void*>(this), _class_name);
+  bireactor_class::StartRead(to_read.get());
 }
 
-bool com::centreon::broker::grpc::stream::read(
-    std::shared_ptr<io::data>& d,
-    const system_clock::duration& duration_or_deadline){READ_IMPL}
+/**
+ * @brief completion read handler
+ * if ok, event is pushed in queue that will be read by stream::read
+ *
+ * @tparam bireactor_class
+ * @param ok
+ */
+template <class bireactor_class>
+void stream<bireactor_class>::OnReadDone(bool ok) {
+  if (ok) {
+    {
+      std::unique_lock l(_read_m);
+      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} receive: {}",
+                          static_cast<const void*>(this), _class_name,
+                          *_read_current);
+      _read_queue.push(_read_current);
+      _read_current.reset();
+    }
+    _read_cond.notify_one();
+    start_read();
+  } else {
+    SPDLOG_LOGGER_ERROR(log_v2::grpc(), "{:p} {} fail read from stream",
+                        static_cast<void*>(this), _class_name);
+    stop();
+  }
+}
 
-int32_t com::centreon::broker::grpc::stream::write(
-    std::shared_ptr<io::data> const& d) {
-  if (_channel->is_down())
-    throw msg_fmt("Connection lost");
+/**
+ * @brief peek an event from read_queue,
+ * if queue is empty it waits for incoming event
+ *
+ * @tparam bireactor_class
+ * @param d out event
+ * @param deadline max timepoint to wait
+ * @return true d point to an event
+ * @return false
+ * @throw msg_fmt if read_queue is empty and not alive (shutdown has been called
+ * or an error has ocurred)
+ */
+template <class bireactor_class>
+bool stream<bireactor_class>::read(std::shared_ptr<io::data>& d,
+                                   time_t deadline) {
+  auto extract_event = [this, &d]() -> bool {
+    event_ptr first = _read_queue.front();
+    _read_queue.pop();
+    const grpc_event_type& to_convert = *first;
+    if (to_convert.has_buffer()) {
+      d = std::make_shared<io::raw>();
+      std::static_pointer_cast<io::raw>(d)->_buffer.assign(
+          to_convert.buffer().begin(), to_convert.buffer().end());
+      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} read:{}",
+                          static_cast<void*>(this), _class_name,
+                          *std::static_pointer_cast<io::raw>(d));
+      return true;
+    } else {
+      return false;
+    }
+  };
+
+  std::unique_lock l(_read_m);
+  if (!_read_queue.empty()) {
+    return extract_event();
+  }
+  if (!_alive) {
+    d.reset();
+    throw(exceptions::connection_closed("{} connection is down",
+                                        __PRETTY_FUNCTION__));
+  }
+  _read_cond.wait_until(l, std::chrono::system_clock::from_time_t(deadline),
+                        [this]() { return !_read_queue.empty(); });
+  if (!_read_queue.empty())
+    return extract_event();
+  else
+    return false;
+}
+
+/**
+ * @brief peeks an event from write queue and pushes it on the wire
+ * does nothing if a write is already pending
+ *
+ * @tparam bireactor_class
+ */
+template <class bireactor_class>
+void stream<bireactor_class>::start_write() {
+  std::lock_guard l(_protect);
+  if (!_alive) {
+    return;
+  }
+  event_ptr to_send;
+  {
+    std::unique_lock l(_write_m);
+    if (_write_pending || _write_queue.empty()) {
+      return;
+    }
+    to_send = _write_queue.front();
+    _write_pending = true;
+  }
+
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} write: {}",
+                      static_cast<void*>(this), _class_name, *to_send);
+
+  bireactor_class::StartWrite(to_send.get());
+}
+
+/**
+ * @brief write completion handler
+ * if ok first element of write queue is popped and next event is pushed on the
+ * wire
+ *
+ * @tparam bireactor_class
+ * @param ok
+ */
+template <class bireactor_class>
+void stream<bireactor_class>::OnWriteDone(bool ok) {
+  if (ok) {
+    {
+      std::unique_lock l(_write_m);
+      event_ptr written = _write_queue.front();
+      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} write done: {}",
+                          static_cast<void*>(this), _class_name, *written);
+
+      _write_queue.pop();
+      _write_pending = false;
+    };
+    _write_cond.notify_one();
+    start_write();
+  } else {
+    SPDLOG_LOGGER_ERROR(log_v2::grpc(), "{:p} {} fail write to stream",
+                        static_cast<void*>(this), _class_name);
+    stop();
+  }
+}
+
+/**
+ * @brief push an event on write queue and start write
+ *
+ * @tparam bireactor_class
+ * @param d
+ * @return int32_t
+ * @throw msg_fmt is object is not alive (after shutdown or an error)
+ */
+template <class bireactor_class>
+int32_t stream<bireactor_class>::write(std::shared_ptr<io::data> const& d) {
+  if (!_alive)
+    throw(exceptions::connection_closed("{} connection is down",
+                                        __PRETTY_FUNCTION__));
 
   event_ptr to_send(std::make_shared<grpc_event_type>());
 
   std::shared_ptr<io::raw> raw_src = std::static_pointer_cast<io::raw>(d);
   to_send->mutable_buffer()->assign(raw_src->_buffer.begin(),
                                     raw_src->_buffer.end());
-  return _channel->write(to_send);
-}
-
-int32_t com::centreon::broker::grpc::stream::flush() {
-  return _channel->flush();
-}
-
-int32_t com::centreon::broker::grpc::stream::stop() {
-  return _channel->stop();
-}
-
-bool com::centreon::broker::grpc::stream::is_down() const {
-  return _channel->is_down();
+  {
+    std::lock_guard l(_write_m);
+    _write_queue.push(to_send);
+  }
+  start_write();
+  return 0;
 }
 
 /**
- * @brief wait for connection write queue empty
+ * @brief called when reactor is
+ * if override, it must the last method called by parent class
+ * @tparam bireactor_class
+ */
+template <class bireactor_class>
+void stream<bireactor_class>::OnDone() {
+  stop();
+
+  /**grpc has a bug, sometimes if we delete this class in this handler as it is
+   * described in examples, it also deletes used channel and does a pthread_join
+   * of the current thread witch go to a EDEADLOCK error and call grpc::Crash.
+   * So we uses asio thread to do the job
+   */
+  pool::io_context().post([me = std::enable_shared_from_this<
+                               stream<bireactor_class>>::shared_from_this()]() {
+    std::lock_guard l(_instances_m);
+    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{:p} server::OnDone()",
+                        static_cast<void*>(me.get()));
+    _instances.erase(std::static_pointer_cast<stream<bireactor_class>>(me));
+  });
+}
+
+/**
+ * @brief client OnDone bireactor override
+ * Called after an error or shutdown
+ *
+ * @tparam bireactor_class
+ * @param status
+ */
+template <class bireactor_class>
+void stream<bireactor_class>::OnDone(const ::grpc::Status& status) {
+  stop();
+
+  /**grpc has a bug, sometimes if we delete this class in this handler as it is
+   * described in examples, it also deletes used channel and does a pthread_join
+   * of the current thread witch go to a EDEADLOCK error and call grpc::Crash.
+   * So we uses asio thread to do the job
+   */
+  pool::io_context().post([me = std::enable_shared_from_this<
+                               stream<bireactor_class>>::shared_from_this(),
+                           status]() {
+    std::lock_guard l(_instances_m);
+    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{:p} client::OnDone({}) {}",
+                        static_cast<void*>(me.get()), status.error_message(),
+                        status.error_details());
+    _instances.erase(std::static_pointer_cast<stream<bireactor_class>>(me));
+  });
+}
+
+/**
+ * @brief just log
+ *
+ * @tparam bireactor_class
+ */
+template <class bireactor_class>
+void stream<bireactor_class>::shutdown() {
+  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{:p} {}::shutdown",
+                      static_cast<void*>(this), _class_name);
+}
+
+/**
+ * @brief does nothing
+ *
+ * @tparam bireactor_class
+ * @return int32_t
+ */
+template <class bireactor_class>
+int32_t stream<bireactor_class>::flush() {
+  return 0;
+}
+
+/**
+ * @brief shutdown if not yet done
+ *
+ * @tparam bireactor_class
+ * @return int32_t
+ */
+template <class bireactor_class>
+int32_t stream<bireactor_class>::stop() {
+  std::lock_guard l(_protect);
+  if (_alive) {
+    _alive = false;
+    this->shutdown();
+  }
+  return 0;
+}
+
+/**
+ * @brief wait for all events sent on the wire
  *
  * @param ms_timeout
- * @return true queue is empty
- * @return false timeout expired
+ * @return true if all events are sent
+ * @return false if timeout expires
  */
-bool com::centreon::broker::grpc::stream::wait_for_all_events_written(
-    unsigned ms_timeout) {
-  if (_channel->is_down()) {
-    return true;
-  }
-
-  return _channel->wait_for_all_events_written(ms_timeout);
+template <class bireactor_class>
+bool stream<bireactor_class>::wait_for_all_events_written(unsigned ms_timeout) {
+  std::unique_lock l(_write_m);
+  return _write_cond.wait_for(l, std::chrono::milliseconds(ms_timeout),
+                              [this]() { return _write_queue.empty(); });
 }
+
+namespace com::centreon::broker::grpc {
+
+template class stream<
+    ::grpc::ClientBidiReactor<::com::centreon::broker::stream::CentreonEvent,
+                              ::com::centreon::broker::stream::CentreonEvent>>;
+
+template class stream<
+    ::grpc::ServerBidiReactor<::com::centreon::broker::stream::CentreonEvent,
+                              ::com::centreon::broker::stream::CentreonEvent>>;
+
+}  // namespace com::centreon::broker::grpc

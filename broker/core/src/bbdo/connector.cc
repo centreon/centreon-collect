@@ -90,6 +90,7 @@ std::shared_ptr<io::stream> connector::_open(
     try {
       bbdo_stream->negotiate(bbdo::stream::negotiate_first);
     } catch (std::exception& e) {
+      stream->stop();
       throw;
     }
     bbdo_stream->set_ack_limit(_ack_limit);
