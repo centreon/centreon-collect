@@ -21,7 +21,6 @@
 #include <absl/strings/str_split.h>
 #include <unistd.h>
 
-#include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/config/state.hh"
