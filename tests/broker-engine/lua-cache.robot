@@ -15,7 +15,7 @@ Test Teardown       Ctn Save Logs If Failed
 *** Test Cases ***
 LCDNU
     [Documentation]    the lua cache updates correctly service cache.
-    [Tags]    broker    engine    services    lua    MON-24745
+    [Tags]    broker    engine    services    lua    MON-24745    MON-60934
     Ctn Clear Commands Status
     Ctn Clear Retention
 
@@ -103,7 +103,7 @@ LCDNU
 
 LCDNUH
     [Documentation]    the lua cache updates correctly host cache
-    [Tags]    broker    engine    services    lua    MON-24745
+    [Tags]    broker    engine    services    lua    MON-24745    MON-60934
     Ctn Clear Commands Status
     Ctn Clear Retention
 
