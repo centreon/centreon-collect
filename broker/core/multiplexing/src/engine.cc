@@ -156,8 +156,7 @@ void engine::start() {
       // Set writing method.
       SPDLOG_LOGGER_DEBUG(_logger, "multiplexing: engine starting");
       _state = running;
-      stats::center::instance().update(&EngineStats::set_mode, _stats,
-                                       EngineStats::RUNNING);
+      _center->update(&EngineStats::set_mode, _stats, EngineStats::RUNNING);
 
       // Local queue.
       std::deque<std::shared_ptr<io::data>> kiew;
@@ -214,8 +213,7 @@ void engine::stop() {
   if (_state != stopped) {
     // Set writing method.
     _state = stopped;
-    stats::center::instance().update(&EngineStats::set_mode, _stats,
-                                     EngineStats::STOPPED);
+    _center->update(&EngineStats::set_mode, _stats, EngineStats::STOPPED);
     lck.Release();
     // Notify hooks of multiplexing loop end.
     SPDLOG_LOGGER_INFO(_logger, "multiplexing: stopping engine");
@@ -300,11 +298,11 @@ void engine::unsubscribe_muxer(const muxer* subscriber) {
 engine::engine(const std::shared_ptr<spdlog::logger>& logger)
     : _state{not_started},
       _unprocessed_events{0u},
-      _stats{stats::center::instance().register_engine()},
+      _center{stats::center::instance_ptr()},
+      _stats{_center->register_engine()},
       _sending_to_subscribers{false},
       _logger{logger} {
-  stats::center::instance().update(&EngineStats::set_mode, _stats,
-                                   EngineStats::NOT_STARTED);
+  _center->update(&EngineStats::set_mode, _stats, EngineStats::NOT_STARTED);
   absl::SetMutexDeadlockDetectionMode(absl::OnDeadlockCycle::kAbort);
   absl::EnableMutexInvariantDebugging(true);
 }
@@ -435,8 +433,8 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
     }
   }
   if (first_muxer) {
-    stats::center::instance().update(&EngineStats::set_processed_events, _stats,
-                                     static_cast<uint32_t>(kiew->size()));
+    _center->update(&EngineStats::set_processed_events, _stats,
+                    static_cast<uint32_t>(kiew->size()));
     /* The same work but by this thread for the last muxer. */
     first_muxer->publish(*kiew);
     return true;

@@ -179,6 +179,7 @@ class conflict_manager {
   std::thread _thread;
 
   /* Stats */
+  std::shared_ptr<stats::center> _center;
   ConflictManagerStats* _stats;
   std::mutex _stat_m;
   int32_t _events_handled = 0;

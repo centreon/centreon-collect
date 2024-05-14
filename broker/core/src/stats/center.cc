@@ -26,28 +26,29 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/version.hh"
+#include "common/log_v2/log_v2.hh"
 #include "com/centreon/common/pool.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats;
 using namespace google::protobuf::util;
 using namespace com::centreon::broker::modules;
+using com::centreon::common::log_v2::log_v2;
 
-center* center::_instance = nullptr;
+std::shared_ptr<center> center::_instance;
 
-center& center::instance() {
+std::shared_ptr<center> center::instance_ptr() {
   assert(_instance);
-  return *_instance;
+  return _instance;
 }
 
 void center::load() {
-  if (_instance == nullptr)
-    _instance = new center();
+  if (!_instance)
+    _instance = std::make_shared<center>();
 }
 
 void center::unload() {
-  delete _instance;
-  _instance = nullptr;
+  _instance.reset();
 }
 
 center::center() {

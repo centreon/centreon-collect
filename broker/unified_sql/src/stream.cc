@@ -172,7 +172,8 @@ stream::stream(const database_config& dbcfg,
       _queues_timer{com::centreon::common::pool::io_context()},
       _stop_check_queues{false},
       _check_queues_stopped{false},
-      _stats{stats::center::instance().register_conflict_manager()},
+      _center{stats::center::instance_ptr()},
+      _stats{_center->register_conflict_manager()},
       _group_clean_timer{com::centreon::common::pool::io_context()},
       _loop_timer{com::centreon::common::pool::io_context()},
       _logger_sql{log_v2::instance().get(log_v2::SQL)},
@@ -224,9 +225,8 @@ stream::stream(const database_config& dbcfg,
     _dedicated_connections = std::make_unique<mysql>(dedicated_cfg);
   }
 
-  stats::center::instance().execute([stats = _stats,
-                                     loop_timeout = _loop_timeout,
-                                     max_queries = _max_pending_queries] {
+  _center->execute([stats = _stats, loop_timeout = _loop_timeout,
+                    max_queries = _max_pending_queries] {
     stats->set_loop_timeout(loop_timeout);
     stats->set_max_pending_events(max_queries);
   });

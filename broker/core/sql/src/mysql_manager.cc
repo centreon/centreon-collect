@@ -61,6 +61,7 @@ void mysql_manager::unload() {
  */
 mysql_manager::mysql_manager()
     : _stats_connections_timestamp(time(nullptr)),
+      _center{stats::center::instance_ptr()},
       _logger{log_v2::instance().get(log_v2::SQL)} {
   _logger->trace("mysql_manager instanciation");
 }
@@ -122,12 +123,12 @@ std::vector<std::shared_ptr<mysql_connection>> mysql_manager::get_connections(
 
     // We are still missing threads in the configuration to return
     while (retval.size() < connection_count) {
-      SqlConnectionStats* s = stats::center::instance().add_connection();
+      SqlConnectionStats* s = _center->add_connection();
       std::shared_ptr<mysql_connection> c;
       try {
-        c = std::make_shared<mysql_connection>(db_cfg, s, _logger);
+        c = std::make_shared<mysql_connection>(db_cfg, s, _logger, _center);
       } catch (const std::exception& e) {
-        stats::center::instance().remove_connection(s);
+        _center->remove_connection(s);
         throw;
       }
       _connection.push_back(c);

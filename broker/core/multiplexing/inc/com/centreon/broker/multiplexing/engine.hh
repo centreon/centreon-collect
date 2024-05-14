@@ -81,6 +81,7 @@ class engine {
   std::vector<std::weak_ptr<muxer>> _muxers ABSL_GUARDED_BY(_kiew_m);
 
   // Statistics.
+  std::shared_ptr<stats::center> _center;
   EngineStats* _stats;
 
   std::atomic_bool _sending_to_subscribers;

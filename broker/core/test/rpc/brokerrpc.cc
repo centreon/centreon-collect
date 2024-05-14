@@ -91,9 +91,10 @@ TEST_F(BrokerRpc, GetMuxerStats) {
       "unacknowledged_events: "
       "1790\n"};
 
-  stats::center::instance().update_muxer("mx1", "qufl_", 18u, 1789u);
+  auto center = stats::center::instance_ptr();
+  center->update_muxer("mx1", "qufl_", 18u, 1789u);
 
-  stats::center::instance().update_muxer("mx2", "_qufl", 18u, 1790u);
+  center->update_muxer("mx2", "_qufl", 18u, 1790u);
 
   std::list<std::string> output = execute("GetMuxerStats mx1 mx2");
 

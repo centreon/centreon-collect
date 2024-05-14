@@ -112,6 +112,8 @@ class mysql_connection {
   /* Logger */
   std::shared_ptr<spdlog::logger> _logger;
 
+  std::shared_ptr<stats::center> _center;
+
   /**************************************************************************/
   /*                    Methods executed by this thread                     */
   /**************************************************************************/
@@ -156,7 +158,8 @@ class mysql_connection {
 
   mysql_connection(const database_config& db_cfg,
                    SqlConnectionStats* stats,
-                   const std::shared_ptr<spdlog::logger>& logger);
+                   const std::shared_ptr<spdlog::logger>& logger,
+                   std::shared_ptr<stats::center> center);
   ~mysql_connection();
 
   void prepare_query(int id, std::string const& query);

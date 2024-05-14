@@ -52,7 +52,8 @@ stream::stream(const std::string& path,
       _last_write_offset(0),
       _stats_perc{},
       _stats_idx{0u},
-      _stats_size{0u} {}
+      _stats_size{0u},
+      _center{stats::center::instance_ptr()} {}
 
 /**
  *  Get peer name.
@@ -196,7 +197,7 @@ void stream::_update_stats() {
       }
 
       if (reg) {
-        stats::center::instance().execute(
+        _center->execute(
             [s = this->_stats, now, wid, woffset, rid, roffset, perc, m, p] {
               s->set_file_write_path(wid);
               s->set_file_write_offset(woffset);
@@ -237,14 +238,13 @@ void stream::_update_stats() {
                     std::numeric_limits<int64_t>::max());
             });
       } else {
-        stats::center::instance().execute(
-            [s = this->_stats, wid, woffset, rid, roffset, perc] {
-              s->set_file_write_path(wid);
-              s->set_file_write_offset(woffset);
-              s->set_file_read_path(rid);
-              s->set_file_read_offset(roffset);
-              s->set_file_percent_processed(perc);
-            });
+        _center->execute([s = this->_stats, wid, woffset, rid, roffset, perc] {
+          s->set_file_write_path(wid);
+          s->set_file_write_offset(woffset);
+          s->set_file_read_path(rid);
+          s->set_file_read_offset(roffset);
+          s->set_file_percent_processed(perc);
+        });
       }
     }
   }

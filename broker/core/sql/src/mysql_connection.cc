@@ -123,7 +123,7 @@ void mysql_connection::_update_stats() noexcept {
     float query_avg = _stats.average_query_duration();
 
     {
-      std::lock_guard<stats::center> lck(stats::center::instance());
+      std::lock_guard<stats::center> lck(*_center);
       _proto_stats->set_waiting_tasks(static_cast<int32_t>(_tasks_count));
       if (static_cast<bool>(_connected)) {
         _proto_stats->set_up_since(_switch_point);
@@ -1063,7 +1063,8 @@ void mysql_connection::_process_while_empty_task(
 mysql_connection::mysql_connection(
     const database_config& db_cfg,
     SqlConnectionStats* stats,
-    const std::shared_ptr<spdlog::logger>& logger)
+    const std::shared_ptr<spdlog::logger>& logger,
+    std::shared_ptr<stats::center> center)
     : _conn(nullptr),
       _finish_asked(false),
       _tasks_count{0},
@@ -1086,7 +1087,8 @@ mysql_connection::mysql_connection(
       _last_stats{std::time(nullptr)},
       _qps(db_cfg.get_queries_per_transaction()),
       _category(db_cfg.get_category()),
-      _logger{logger} {
+      _logger{logger},
+      _center{std::move(center)} {
   std::unique_lock<std::mutex> lck(_start_m);
   SPDLOG_LOGGER_INFO(_logger,
                      "mysql_connection: starting connection {:p} to {}",
@@ -1102,8 +1104,7 @@ mysql_connection::mysql_connection(
   }
   pthread_setname_np(_thread->native_handle(), "mysql_connect");
   SPDLOG_LOGGER_INFO(_logger, "mysql_connection: connection started");
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
-                                   _proto_stats, 0);
+  _center->update(&SqlConnectionStats::set_waiting_tasks, _proto_stats, 0);
 }
 
 /**
@@ -1114,7 +1115,7 @@ mysql_connection::~mysql_connection() {
   SPDLOG_LOGGER_INFO(_logger, "mysql_connection {:p}: finished",
                      static_cast<const void*>(this));
   stop();
-  stats::center::instance().remove_connection(_proto_stats);
+  _center->remove_connection(_proto_stats);
   _thread->join();
 }
 

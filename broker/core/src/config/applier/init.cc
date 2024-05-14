@@ -61,7 +61,17 @@ std::atomic<config::applier::applier_state> config::applier::mode{not_started};
 void config::applier::init(size_t n_thread,
                            const std::string&,
                            size_t event_queues_total_size) {
-  // Load singletons.
+  /* Load singletons.
+   * Why so many?
+   * The stats::center is now embedded by each user. We could avoid the
+   * singleton but as the pool is going to move to common, I don't have a view
+   * on the impact of this change, so I prefer to keep it as a singleton but
+   * starting the job to embed the center.
+   * For the multipliexing::engine, we have a similar issue. Muxers embed the
+   * engine, so we could avoid the singleton, but it is possible to access the
+   * engine from stream thanks to the singleton. As this functionality is still
+   * used, we must keep the singleton.
+   */
   com::centreon::common::pool::set_pool_size(n_thread);
   stats::center::load();
   mysql_manager::load();
@@ -92,9 +102,8 @@ void config::applier::deinit() {
   io::events::unload();
   io::protocols::unload();
   mysql_manager::unload();
-  stats::center::unload();
   file::disk_accessor::unload();
-
+  stats::center::unload();
 }
 
 /**

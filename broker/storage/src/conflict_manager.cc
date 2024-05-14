@@ -98,18 +98,18 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
       _max_pending_queries(dbcfg.get_queries_per_transaction()),
       _mysql{dbcfg},
       _instance_timeout{instance_timeout},
-      _stats{stats::center::instance().register_conflict_manager()},
+      _center{stats::center::instance_ptr()},
+      _stats{_center->register_conflict_manager()},
       _ref_count{0},
       _group_clean_timer{com::centreon::common::pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()},
       _logger_sql{log_v2::instance().get(log_v2::SQL)},
       _logger_storage{log_v2::instance().get(log_v2::PERFDATA)} {
   _logger_sql->debug("conflict_manager: class instanciation");
-  stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
-                                   _stats, _loop_timeout);
-  stats::center::instance().update(
-      &ConflictManagerStats::set_max_pending_events, _stats,
-      _max_pending_queries);
+  _center->update(&ConflictManagerStats::set_loop_timeout, _stats,
+                  _loop_timeout);
+  _center->update(&ConflictManagerStats::set_max_pending_events, _stats,
+                  _max_pending_queries);
 }
 
 conflict_manager::~conflict_manager() {
@@ -696,7 +696,7 @@ void conflict_manager::_callback() {
               {
                 std::lock_guard<std::mutex> lk(_stat_m);
                 _speed = s / _stats_count.size();
-                stats::center::instance().execute(
+                _center->execute(
                     [s = this->_stats, spd = _speed] { s->set_speed(spd); });
               }
             }
@@ -877,7 +877,7 @@ void conflict_manager::_update_stats(const std::uint32_t size,
                                      const std::size_t ev_size,
                                      const std::size_t sql_size,
                                      const std::size_t stor_size) noexcept {
-  stats::center::instance().execute(
+  _center->execute(
       [s = this->_stats, size, mpdq, ev_size, sql_size, stor_size] {
         s->set_events_handled(size);
         s->set_max_perfdata_events(mpdq);

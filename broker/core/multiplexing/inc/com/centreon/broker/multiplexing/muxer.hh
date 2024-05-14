@@ -63,8 +63,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   std::string _write_filters_str;
   const bool _persistent;
 
-  std::function<uint32_t(std::vector<std::shared_ptr<io::data>>)>
-      _data_handler;
+  std::function<uint32_t(std::vector<std::shared_ptr<io::data>>)> _data_handler;
   std::atomic_bool _reader_running = false;
 
   /** Events are stacked into _events or into _file. Because several threads
@@ -77,6 +76,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   std::unique_ptr<persistent_file> _file ABSL_GUARDED_BY(_events_m);
   absl::CondVar _no_event_cv;
 
+  std::shared_ptr<stats::center> _center;
   std::time_t _last_stats;
 
   /* The map of running muxers with the mutex to protect it. */

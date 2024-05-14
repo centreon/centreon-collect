@@ -40,10 +40,10 @@ query_preparator::query_preparator(
     uint32_t event_id,
     query_preparator::event_unique const& unique,
     query_preparator::excluded_fields const& excluded)
-    : _event_id(event_id),
+    : _logger{log_v2::instance().get(log_v2::SQL)},
+      _event_id(event_id),
       _excluded(excluded),
-      _unique(unique),
-      _logger{log_v2::instance().get(log_v2::SQL)} {}
+      _unique(unique) {}
 
 /**
  *  Constructor.
