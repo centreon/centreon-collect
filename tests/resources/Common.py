@@ -771,7 +771,7 @@ def ctn_check_ba_output_with_timeout(ba_name: str, expected_output: str, timeout
                 logger.console(f"ba: {result[0]}")
                 if result[0]['current_status'] is not None and result[0]['comment'] == expected_output:
                     return True
-        time.sleep(5)
+        time.sleep(2)
     return False
 
 
