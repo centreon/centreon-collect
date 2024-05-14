@@ -36,11 +36,22 @@
 #include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::configuration {
 
-namespace configuration {
+class setter_base {
+ protected:
+  const std::string_view _field_name;
+
+ public:
+  setter_base(const std::string_view& field_name) : _field_name(field_name) {}
+
+  virtual ~setter_base() = default;
+  virtual bool apply_from_cfg(state& obj, const char* value) = 0;
+  virtual bool apply_from_json(state& obj, const rapidjson::Document& doc) = 0;
+};
 
 /**
  *  @class state state.hh
@@ -169,8 +180,8 @@ class state {
   void date_format(date_type value);
   std::string const& debug_file() const noexcept;
   void debug_file(std::string const& value);
-  unsigned long long debug_level() const noexcept;
-  void debug_level(unsigned long long value);
+  uint64_t debug_level() const noexcept;
+  void debug_level(uint64_t value);
   unsigned int debug_verbosity() const noexcept;
   void debug_verbosity(unsigned int value);
   bool enable_environment_macros() const noexcept;
@@ -437,9 +448,15 @@ class state {
   bool use_true_regexp_matching() const noexcept;
   void use_true_regexp_matching(bool value);
 
- private:
-  typedef bool (*setter_func)(state&, char const*);
+  using setter_map =
+      absl::flat_hash_map<std::string_view, std::unique_ptr<setter_base>>;
+  static const setter_map& get_setters() { return _setters; }
 
+  void apply_extended_conf(const std::string& file_path,
+                           const rapidjson::Document& json_doc);
+
+ private:
+  static void _init_setter();
   void _set_aggregate_status_updates(std::string const& value);
   void _set_auth_file(std::string const& value);
   void _set_bare_update_check(std::string const& value);
@@ -478,35 +495,6 @@ class state {
   void _set_temp_path(std::string const& value);
   void _set_use_embedded_perl_implicitly(std::string const& value);
 
-  template <typename U, void (state::*ptr)(U)>
-  struct setter {
-    static bool generic(state& obj, char const* value) {
-      try {
-        U val(0);
-        if (!string::to(value, val))
-          return (false);
-        (obj.*ptr)(val);
-      } catch (std::exception const& e) {
-        engine_logger(logging::log_config_error, logging::basic) << e.what();
-        return (false);
-      }
-      return (true);
-    }
-  };
-
-  template <void (state::*ptr)(std::string const&)>
-  struct setter<std::string const&, ptr> {
-    static bool generic(state& obj, char const* value) {
-      try {
-        (obj.*ptr)(value);
-      } catch (std::exception const& e) {
-        engine_logger(logging::log_config_error, logging::basic) << e.what();
-        return (false);
-      }
-      return (true);
-    }
-  };
-
   bool _accept_passive_host_checks;
   bool _accept_passive_service_checks;
   int _additional_freshness_latency;
@@ -540,7 +528,7 @@ class state {
   set_contact _contacts;
   date_type _date_format;
   std::string _debug_file;
-  unsigned long long _debug_level;
+  uint64_t _debug_level;
   unsigned int _debug_verbosity;
   bool _enable_environment_macros;
   bool _enable_event_handlers;
@@ -628,7 +616,7 @@ class state {
   std::string _service_perfdata_file_processing_command;
   unsigned int _service_perfdata_file_processing_interval;
   std::string _service_perfdata_file_template;
-  static std::unordered_map<std::string, setter_func> const _setters;
+  static setter_map _setters;
   float _sleep_time;
   bool _soft_state_dependencies;
   std::string _state_retention_file;
@@ -662,10 +650,8 @@ class state {
   std::string _log_level_runtime;
   std::string _use_timezone;
   bool _use_true_regexp_matching;
-
 };
-}  // namespace configuration
 
-}
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_STATE_HH

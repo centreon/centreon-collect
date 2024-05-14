@@ -23,8 +23,6 @@
 #include <boost/exception/exception.hpp>
 #include <boost/exception/info.hpp>
 #include <boost/throw_exception.hpp>
-#include <memory>
-#include <type_traits>
 
 namespace boost::interprocess {
 
