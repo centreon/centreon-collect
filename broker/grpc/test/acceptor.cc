@@ -38,18 +38,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
-class GrpcTlsTest : public ::testing::Test {
- public:
-  void SetUp() override {
-    pool::load(g_io_context, 1);
-    log_v2::grpc()->set_level(spdlog::level::trace);
-    io::protocols::load();
-    io::events::load();
-  }
-  void TearDown() override { pool::unload(); }
-};
+class GrpcTlsTest : public ::testing::Test {};
 
 static auto read_file = [](const std::string& path) {
   std::ifstream file(path);

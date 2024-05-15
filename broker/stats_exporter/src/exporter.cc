@@ -19,9 +19,9 @@
 #include "com/centreon/broker/stats_exporter/exporter.hh"
 #include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/stats/center.hh"
+#include "com/centreon/common/pool.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats_exporter;

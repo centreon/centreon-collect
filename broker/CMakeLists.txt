@@ -349,7 +349,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/uuid.cc
     ${SRC_DIR}/misc/variant.cc
     ${SRC_DIR}/modules/handle.cc
-    ${SRC_DIR}/pool.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
     ${SRC_DIR}/processing/acceptor.cc
@@ -418,7 +417,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/misc/time.hh
     ${INC_DIR}/misc/variant.hh
     ${INC_DIR}/modules/handle.hh
-    ${INC_DIR}/pool.hh
     ${INC_DIR}/persistent_cache.hh
     ${INC_DIR}/persistent_file.hh
     ${INC_DIR}/processing/acceptor.hh

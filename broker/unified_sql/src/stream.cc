@@ -166,13 +166,13 @@ stream::stream(const database_config& dbcfg,
       _max_log_queries{_max_pending_queries},
       _next_update_metrics{std::time_t(nullptr) + 10},
       _next_loop_timeout{std::time_t(nullptr) + _loop_timeout},
-      _queues_timer{pool::io_context()},
+      _queues_timer{com::centreon::common::pool::io_context()},
       _stop_check_queues{false},
       _check_queues_stopped{false},
       _center{stats::center::instance_ptr()},
       _stats{_center->register_conflict_manager()},
-      _group_clean_timer{pool::io_context()},
-      _loop_timer{pool::io_context()},
+      _group_clean_timer{com::centreon::common::pool::io_context()},
+      _loop_timer{com::centreon::common::pool::io_context()},
       _cv(queue_timer_duration,
           _max_pending_queries,
           "INSERT INTO customvariables "
@@ -835,7 +835,8 @@ int32_t stream::stop() {
  */
 void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
   SPDLOG_LOGGER_INFO(log_v2::sql(), "remove graphs call");
-  asio::post(pool::instance().io_context(), [this, data = d] {
+  asio::post(com::centreon::common::pool::instance().io_context(), [this,
+                                                                    data = d] {
     mysql ms(_dbcfg);
     bbdo::pb_remove_graphs* ids =
         static_cast<bbdo::pb_remove_graphs*>(data.get());

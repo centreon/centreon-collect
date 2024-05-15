@@ -55,7 +55,6 @@ class center {
 
  public:
   center();
-  ~center();
 
   static std::shared_ptr<center> instance_ptr();
   static void load();
