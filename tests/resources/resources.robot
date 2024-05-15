@@ -40,7 +40,7 @@ Ctn Clean Before Suite
 	Ctn Clear Engine Logs
 	Ctn Clear Broker Logs
 
-Ctn Clean Before Suite With rrdcached
+Ctn Clean Before Suite With Rrdcached
 	Ctn Clean Before Suite
 	log to console	Starting RRDCached
 	Run Process	/usr/bin/rrdcached	-l	unix:${BROKER_LIB}/rrdcached.sock	-V	LOG_DEBUG	-F
@@ -286,3 +286,16 @@ Ctn Process Service Result Hard
     ...    ${svc}
     ...    ${state}
     ...    ${output}
+
+Ctn Wait For Engine To Be Ready
+    [Arguments]    ${start}    ${nbEngine}=1
+    FOR    ${i}    IN RANGE    ${nbEngine}
+        # Let's wait for the external command check start
+        ${content}    Create List    check_for_external_commands()
+        ${result}    Ctn Find In Log With Timeout
+        ...    ${ENGINE_LOG}/config${i}/centengine.log
+        ...    ${start}    ${content}    60
+        Should Be True
+        ...    ${result}
+        ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.
+    END

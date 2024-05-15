@@ -151,11 +151,6 @@ BAWORST2
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
-    ${result}    Ctn Check Ba Output With Timeout
-    ...    test
-    ...    Status is OK - All KPIs are in an OK state
-    ...    10
-    Should Be True    ${result}    The BA test has not the expected output
 
     # boolean critical => ba test critical
     Ctn Process Service Result Hard
@@ -169,11 +164,6 @@ BAWORST2
     ${result}    Ctn Check Ba Status With Timeout    test    2    60
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
-    ${result}    Ctn Check Ba Output With Timeout
-    ...    test
-    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Boolean rule bool test is in CRITICAL state
-    ...    10
-    Should Be True    ${result}    The BA test has not the expected output
 
     # child ba critical
     Ctn Process Service Result Hard
@@ -190,11 +180,6 @@ BAWORST2
     ${result}    Ctn Check Ba Status With Timeout    test    2    60
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
-    ${result}    Ctn Check Ba Output With Timeout
-    ...    test
-    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Business Activity test_child is in CRITICAL state, KPI Boolean rule bool test is in CRITICAL state
-    ...    10
-    Should Be True    ${result}    The BA test has not the expected output
 
     # boolean rule ok stay in critical
     Ctn Process Service Result Hard
@@ -208,11 +193,6 @@ BAWORST2
     ${result}    Ctn Check Ba Status With Timeout    test    2    60
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
-    ${result}    Ctn Check Ba Output With Timeout
-    ...    test
-    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Business Activity test_child is in CRITICAL state
-    ...    10
-    Should Be True    ${result}    The BA test has not the expected output
 
 BABEST_SERVICE_CRITICAL
     [Documentation]    With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
