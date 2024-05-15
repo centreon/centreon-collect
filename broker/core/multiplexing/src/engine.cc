@@ -27,7 +27,7 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/pool.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
@@ -402,18 +402,20 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
       } else {
         std::shared_ptr<muxer> mux_to_publish_in_asio = mux.lock();
         if (mux_to_publish_in_asio) {
-          pool::io_context().post([kiew, mux_to_publish_in_asio, cb]() {
-            try {
-              mux_to_publish_in_asio->publish(*kiew);
-            }  // pool threads protection
-            catch (const std::exception& ex) {
-              SPDLOG_LOGGER_ERROR(log_v2::core(),
-                                  "publish caught exception: {}", ex.what());
-            } catch (...) {
-              SPDLOG_LOGGER_ERROR(log_v2::core(),
-                                  "publish caught unknown exception");
-            }
-          });
+          com::centreon::common::pool::io_context().post(
+              [kiew, mux_to_publish_in_asio, cb]() {
+                try {
+                  mux_to_publish_in_asio->publish(*kiew);
+                }  // pool threads protection
+                catch (const std::exception& ex) {
+                  SPDLOG_LOGGER_ERROR(log_v2::core(),
+                                      "publish caught exception: {}",
+                                      ex.what());
+                } catch (...) {
+                  SPDLOG_LOGGER_ERROR(log_v2::core(),
+                                      "publish caught unknown exception");
+                }
+              });
         }
       }
     }

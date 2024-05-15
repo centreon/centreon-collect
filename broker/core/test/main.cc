@@ -21,10 +21,10 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/common/pool.hh"
 
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
-bool g_io_context_started = false;
 
 class CentreonBrokerEnvironment : public testing::Environment {
  public:
@@ -55,8 +55,14 @@ int main(int argc, char* argv[]) {
   testing::AddGlobalTestEnvironment(new CentreonBrokerEnvironment());
 
   com::centreon::broker::log_v2::load(g_io_context);
+  com::centreon::common::pool::load(g_io_context,
+                                    com::centreon::broker::log_v2::core());
+  com::centreon::common::pool::set_pool_size(0);
+
   // Run all tests.
   int ret = RUN_ALL_TESTS();
   spdlog::shutdown();
+  g_io_context->stop();
+  com::centreon::common::pool::unload();
   return ret;
 }

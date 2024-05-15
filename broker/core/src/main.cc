@@ -1,20 +1,20 @@
 /**
-* Copyright 2009-2013,2015,2018 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2013,2015,2018 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <getopt.h>
 
@@ -27,6 +27,7 @@
 #include <cstring>
 #include <deque>
 #include <exception>
+#include <forward_list>
 #include <future>
 #include <thread>
 
@@ -53,7 +54,7 @@ namespace asio = boost::asio;
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/pool.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -62,7 +63,6 @@ using namespace com::centreon::exceptions;
 
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
-bool g_io_context_started = false;
 
 // Main config file.
 static std::vector<std::string> gl_mainconfigfiles;
@@ -159,6 +159,7 @@ int main(int argc, char* argv[]) {
   std::string default_listen_address{"localhost"};
 
   log_v2::load(g_io_context);
+  com::centreon::common::pool::load(g_io_context, log_v2::core());
 
   // Set configuration update handler.
   if (signal(SIGHUP, hup_handler) == SIG_ERR) {
@@ -323,6 +324,7 @@ int main(int argc, char* argv[]) {
 
   log_v2::core()->info("main: process {} pid:{} end exit_code:{}", argv[0],
                        getpid(), retval);
-
+  g_io_context->stop();
+  com::centreon::common::pool::unload();
   return retval;
 }

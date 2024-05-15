@@ -23,12 +23,10 @@
 
 #include "../../core/test/test_server.hh"
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
+#include "com/centreon/common/pool.hh"
 
 using namespace com::centreon::broker;
-
-extern std::shared_ptr<asio::io_context> g_io_context;
 
 constexpr static char test_addr[] = "127.0.0.1";
 constexpr static uint16_t test_port(4242);
@@ -39,8 +37,6 @@ static tcp::tcp_config::pointer test_conf(
 class TcpConnector : public testing::Test {
  public:
   void SetUp() override {
-    g_io_context->restart();
-    pool::load(g_io_context, 0);
     tcp::tcp_async::load();
     _server.init();
     _thread = std::thread(&test_server::run, &_server);
@@ -51,7 +47,6 @@ class TcpConnector : public testing::Test {
     _server.stop();
     _thread.join();
     tcp::tcp_async::unload();
-    pool::unload();
   }
 
   test_server _server;

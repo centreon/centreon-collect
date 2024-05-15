@@ -49,7 +49,7 @@ using unique_lock = std::unique_lock<std::mutex>;
 #include "com/centreon/broker/grpc/connector.hh"
 #include "com/centreon/broker/grpc/stream.hh"
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 #endif  // CCB_GRPC_TEST__INCLUDE_HH
