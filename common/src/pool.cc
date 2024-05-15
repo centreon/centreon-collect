@@ -20,12 +20,14 @@
 
 using namespace com::centreon::common;
 
+std::unique_ptr<pool> pool::_instance;
+
 /**
  * @brief The way to access to the pool.
  *
  * @return a reference to the pool.
  */
-pool& com::centreon::common::pool::instance() {
+pool& pool::instance() {
   assert(pool::_instance);
   return *_instance;
 }
@@ -109,7 +111,7 @@ void pool::_stop() {
     for (auto& t : *_pool)
       if (t.joinable()) {
         try {
-      t.join();
+          t.join();
         } catch (const std::exception& e) {
           std::ostringstream sz_thread_id;
           sz_thread_id << t.get_id();
@@ -142,7 +144,7 @@ void pool::_set_pool_size(size_t pool_size) {
 
   for (; _pool_size < new_size; ++_pool_size) {
     auto& new_thread = _pool->emplace_front([ctx = _io_context,
-                                            logger = _logger] {
+                                             logger = _logger] {
       try {
         SPDLOG_LOGGER_INFO(logger, "start of asio thread {:x}", pthread_self());
         ctx->run();

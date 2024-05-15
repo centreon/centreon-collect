@@ -76,9 +76,6 @@ using namespace com::centreon::engine;
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
 
-std::unique_ptr<com::centreon::common::pool>
-    com::centreon::common::pool::_instance;
-
 // Error message when configuration parsing fail.
 #define ERROR_CONFIGURATION                                                  \
   "    Check your configuration file(s) to ensure that they contain valid\n" \

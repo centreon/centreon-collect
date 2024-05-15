@@ -27,9 +27,9 @@
 #include <cstring>
 #include <deque>
 #include <exception>
+#include <forward_list>
 #include <future>
 #include <thread>
-#include <forward_list>
 
 #include <absl/container/flat_hash_set.h>
 #include <absl/strings/numbers.h>
@@ -63,9 +63,6 @@ using namespace com::centreon::exceptions;
 
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
-
-std::unique_ptr<com::centreon::common::pool>
-    com::centreon::common::pool::_instance;
 
 // Main config file.
 static std::vector<std::string> gl_mainconfigfiles;

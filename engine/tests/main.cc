@@ -25,9 +25,6 @@
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
 
-std::unique_ptr<com::centreon::common::pool>
-    com::centreon::common::pool::_instance;
-
 class CentreonEngineEnvironment : public testing::Environment {
  public:
   void SetUp() override {
