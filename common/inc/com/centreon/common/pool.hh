@@ -52,7 +52,8 @@ class pool {
   const std::shared_ptr<spdlog::logger> _logger;
   asio::executor_work_guard<asio::io_context::executor_type> _worker;
   size_t _pool_size;
-  std::forward_list<std::thread> _pool;
+  std::forward_list<std::thread>* _pool;
+  pid_t _original_pid;
   mutable std::mutex _pool_m;
 
   void _stop();

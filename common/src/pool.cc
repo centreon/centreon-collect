@@ -84,13 +84,18 @@ pool::pool(const std::shared_ptr<asio::io_context>& io_context,
     : _io_context(io_context),
       _logger(logger),
       _worker{asio::make_work_guard(*_io_context)},
-      _pool_size(0) {}
+      _pool_size(0),
+      _pool(new std::forward_list<std::thread>()),
+      _original_pid(getpid()) {}
 
 /**
  * @brief Destructor
  */
 pool::~pool() {
   _stop();
+  if (_original_pid == getpid() && _pool) {
+    delete _pool;
+  }
 }
 
 /**
@@ -100,10 +105,20 @@ void pool::_stop() {
   SPDLOG_LOGGER_DEBUG(_logger, "Stopping the thread pool");
   std::lock_guard<std::mutex> lock(_pool_m);
   _worker.reset();
-  for (auto& t : _pool)
-    if (t.joinable())
+  if (_original_pid == getpid()) {
+    for (auto& t : *_pool)
+      if (t.joinable()) {
+        try {
       t.join();
-  _pool.clear();
+        } catch (const std::exception& e) {
+          std::ostringstream sz_thread_id;
+          sz_thread_id << t.get_id();
+          SPDLOG_LOGGER_ERROR(_logger, "fail to join thread {}: {}",
+                              sz_thread_id.str(), e.what());
+        }
+      }
+    _pool->clear();
+  }
   SPDLOG_LOGGER_DEBUG(_logger, "No remaining thread in the pool");
 }
 
@@ -118,12 +133,15 @@ void pool::_set_pool_size(size_t pool_size) {
                         : pool_size;
 
   std::lock_guard<std::mutex> lock(_pool_m);
+  if (new_size <= _pool_size) {
+    return;
+  }
 
   SPDLOG_LOGGER_INFO(_logger, "Starting the TCP thread pool of {} threads",
-                     pool_size);
+                     new_size - _pool_size);
 
   for (; _pool_size < new_size; ++_pool_size) {
-    auto& new_thread = _pool.emplace_front([ctx = _io_context,
+    auto& new_thread = _pool->emplace_front([ctx = _io_context,
                                             logger = _logger] {
       try {
         SPDLOG_LOGGER_INFO(logger, "start of asio thread {:x}", pthread_self());
