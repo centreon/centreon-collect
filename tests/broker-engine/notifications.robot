@@ -1313,7 +1313,7 @@ not20
 
 not_in_timeperiod_without_send_recovery_notifications_anyways
     [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is not sent outside timeperiod when _send_recovery_notifications_anyways is not set
-    [Tags]    MON-33121  broker    engine    services    hosts    notification    mon-33121
+    [Tags]    MON-33121  broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1

@@ -463,6 +463,7 @@ bool notifier::_is_notification_viable_recovery(reason_type type
     if (!check_time_against_period_for_notif(now, tp)) {
       if (config->use_send_recovery_notifications_anyways()) {
         SPDLOG_LOGGER_DEBUG(log_v2::notifications(),
+                            "send_recovery_notifications_anyways flag enabled, "
                             "recovery notification is viable even if we are "
                             "out of timeperiod at this time.");
       } else {
