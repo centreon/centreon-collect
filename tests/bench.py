@@ -115,15 +115,17 @@ class App(tk.Tk):
         self.title('Centreon-Collect Benchmarks Tool')
 
         menu = tk.Menu(self)
-        menu_exe = tk.Menu(menu, tearoff=0)
-        menu.add_cascade(label="Executable", menu=menu_exe)
+        menu_tests = tk.Menu(menu, tearoff=0)
+        menu.add_cascade(label="Tests", menu=menu_tests)
 
         self.collection = tk.StringVar()
         for k in tests_tree:
-            menu_collection = tk.Menu(menu_exe, tearoff=0)
-            for kk in tests_tree[k]:
+            menu_collection = tk.Menu(menu_tests, tearoff=0)
+            tests = list(tests_tree[k])
+            tests.sort()
+            for kk in tests:
                 menu_collection.add_radiobutton(label=tests_tree[k][kk], variable=self.collection, value=tests_tree[k][kk], command=self.collection_chosen)
-            menu_exe.add_cascade(label=k, menu=menu_collection)
+            menu_tests.add_cascade(label=k, menu=menu_collection)
         self.config(menu=menu)
         origins_label = tk.Label(self, text = "Origins")
         origins_label.grid(column=0, row=0)
@@ -135,6 +137,7 @@ class App(tk.Tk):
         confs_label.grid(column=0, row=2)
         self.confs_list = tk.Listbox(self, selectmode="SINGLE")
         self.confs_list.grid(column=0, row=3)
+        self.confs_list.bind('<<ListboxSelect>>', self.confs_list_changed)
 
         update = tk.Button(self, text = "Update", command=self.update_graph)
         update.grid(column=0, row=4)
@@ -143,25 +146,22 @@ class App(tk.Tk):
         plt.subplots_adjust(left=0.22, right=0.98, bottom=0.1, top=0.99)
         self.ax = self.fig.subplots()
         self.list_com = []
-        ax_origin_choice = None
-        origin_choice = None
-
         self.ax_conf_choice = None
-        conf_choice = None
 
         # create FigureCanvasTkAgg object
         figure_canvas = FigureCanvasTkAgg(self.fig, self)
 
         # create the toolbar
-        toolbarFrame = tk.Frame(master=self)
-        toolbarFrame.grid(row=4, column=1)
-        NavigationToolbar2Tk(figure_canvas, toolbarFrame)
+        toolbar_frame = tk.Frame(master=self)
+        toolbar_frame.grid(row=4, column=1)
+        NavigationToolbar2Tk(figure_canvas, toolbar_frame)
 
         figure_canvas.get_tk_widget().grid(column=1, row=0, rowspan=4)
 
     def collection_chosen(self):
         self.origins_list.delete(0, self.origins_list.size())
-        origins = list_origin_branch(self.collection.get())
+        origins = list(list_origin_branch(self.collection.get()))
+        origins.sort()
         for i, o in enumerate(origins):
             self.origins_list.insert(i, o)
         self.fig.canvas.draw()
@@ -172,7 +172,8 @@ class App(tk.Tk):
         if len(w.curselection()) > 0:
             index = int(w.curselection()[0])
             self.origin = w.get(index)
-            confs = list_conf(self.collection.get(), self.origin)
+            confs = list(list_conf(self.collection.get(), self.origin))
+            confs.sort()
             self.confs_list.delete(0, self.confs_list.size())
             for i, c in enumerate(confs):
                 self.confs_list.insert(i, c)
@@ -187,11 +188,12 @@ class App(tk.Tk):
     def update_graph(self):
         global db
         collection = db.collection(self.collection.get())
-        if self.ax_conf_choice is not None:
-            self.ax_conf_choice.remove()
-        self.ax_conf_choice = plt.axes((0.01, 0.01, 0.18, 0.2))
-        points = collection.filter(lambda row: row['origin'] == self.origin and f"{row['cpu']}\n mem:{int(row['memory_size']/1024/1024/1024)}" == self.conf)
-        sorted(points, key=lambda row: row['date_commit'])
+        tmp = self.conf.split('\n mem:')
+        cpu = tmp[0]
+        mem = int(tmp[1])
+        points = collection.filter(lambda row: row['origin'] == self.origin and row['cpu'] == cpu and int(row['memory_size']/1024/1024/1024) == mem)
+
+        points.sort(key=lambda row: row['t'])
         self.fig.canvas.draw()
         self.plot_boxplot(points)
 
