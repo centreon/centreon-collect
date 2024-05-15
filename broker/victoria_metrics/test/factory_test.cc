@@ -38,7 +38,10 @@ using namespace nlohmann;
 extern std::shared_ptr<asio::io_context> g_io_context;
 class VictoriaMetricsFactory : public testing::Test {
  public:
-  static void SetUpTestSuite() { pool::load(g_io_context, 1); }
+  static void SetUpTestSuite() {
+    g_io_context->restart();
+    pool::load(g_io_context, 1);
+  }
 };
 
 TEST_F(VictoriaMetricsFactory, MissingParams) {

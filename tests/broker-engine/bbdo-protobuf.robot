@@ -289,7 +289,7 @@ BEPBHostParent
 
 BEPBINST_CONF
     [Documentation]    bbdo_version 3 communication of instance configuration.
-    [Tags]    broker    engine    protobuf    bbdo    MON-38007
+    [Tags]    broker    engine    protobuf    bbdo    mon-38007
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config BBDO3    ${1}
@@ -309,5 +309,72 @@ BEPBINST_CONF
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    log about pb_instance_configuration not found
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    True
+
+GRPC_CLOUD_FAILURE
+    [Documentation]    simulate a broker failure in cloud environment, we provide a muted grpc server and there must remain only one grpc connection. Then we start broker and connection must be ok
+    [Tags]    broker    engine    bbdo_server    bbdo_client    grpc    cloud    mon-38483
+
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker Bbdo Input    central    bbdo_server    5669    grpc
+    Ctn Config Broker Bbdo Output    module0    bbdo_client    5669    grpc    localhost
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Log    module0    grpc    trace
+    Ctn Broker Config Log    module0    processing    trace
+    Ctn Broker Config Source Log    module0    1
+    Ctn Broker Config Log    central    grpc    trace
+    Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
+    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
+    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
+    Ctn Broker Config Output Set    module0    central-module-master-output    encryption    true
+    Ctn Broker Config Output Set    module0    central-module-master-output    ca_certificate    /tmp/ca_1234.crt
+    Ctn Broker Config Input Set    central    central-broker-master-input    encryption    true
+    Ctn Broker Config Input Set    central    central-broker-master-input    private_key    /tmp/server_1234.key
+    Ctn Broker Config Input Set    central    central-broker-master-input    ca_certificate    /tmp/ca_1234.crt
+    Ctn Broker Config Input Set    central    central-broker-master-input    certificate    /tmp/server_1234.crt
+
+    Ctn Config BBDO3    ${1}
+    Ctn Clear Retention
+    ${start}    Get Current Date
+    Ctn Start engine
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    ${grpc_bbdo_server}    Ctn Create Bbdo Grpc Server    5669
+
+    ${many_connections}    Ctn Wait For Connections    5669    3    20
+    Should Not Be True    ${many_connections}    We should have only one connection to fake grpc server
+
+    Call method    ${grpc_bbdo_server}    stop    1
+    Sleep    10
+
+    Ctn Start Broker    ${True}
+
+    Ctn Process Service Result Hard    host_1    service_2    2    service critical
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_2    2    60    HARD
+    Should Be True    ${result}    The service (host_1,service_2) is not CRITICAL as expected
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    True
+
+GRPC_RECONNECT
+    [Documentation]    We restart broker and engine must reconnect to it and send data
+    [Tags]    broker    engine    bbdo_server    bbdo_client    grpc    cloud    mon-38483
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker Bbdo Input    central    bbdo_server    5669    grpc
+    Ctn Config Broker Bbdo Output    module0    bbdo_client    5669    grpc    localhost
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
+    ${start}    Get Current Date
+    Ctn Start engine
+    Ctn Start Broker    True
+    Ctn Wait For Engine To Be Ready    ${start}
+    Ctn Restart Broker    True
+
+    Ctn Process Service Result Hard    host_1    service_2    2    service critical
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_2    2    60    HARD
+    Should Be True    ${result}    The service (host_1,service_2) is not CRITICAL as expected
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    True
