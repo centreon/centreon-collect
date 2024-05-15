@@ -24,7 +24,7 @@
 #include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/grpc/grpc_bridge.hh"
 #include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker::grpc;
@@ -374,13 +374,14 @@ void stream<bireactor_class>::OnDone() {
    * of the current thread witch go to a EDEADLOCK error and call grpc::Crash.
    * So we uses asio thread to do the job
    */
-  pool::io_context().post([me = std::enable_shared_from_this<
-                               stream<bireactor_class>>::shared_from_this()]() {
-    std::lock_guard l(_instances_m);
-    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{:p} server::OnDone()",
-                        static_cast<void*>(me.get()));
-    _instances.erase(std::static_pointer_cast<stream<bireactor_class>>(me));
-  });
+  common::pool::io_context().post(
+      [me = std::enable_shared_from_this<
+           stream<bireactor_class>>::shared_from_this()]() {
+        std::lock_guard l(_instances_m);
+        SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{:p} server::OnDone()",
+                            static_cast<void*>(me.get()));
+        _instances.erase(std::static_pointer_cast<stream<bireactor_class>>(me));
+      });
 }
 
 /**
@@ -398,15 +399,16 @@ void stream<bireactor_class>::OnDone(const ::grpc::Status& status) {
    * pthread_join of the current thread witch go to a EDEADLOCK error and call
    * grpc::Crash. So we uses asio thread to do the job
    */
-  pool::io_context().post([me = std::enable_shared_from_this<
-                               stream<bireactor_class>>::shared_from_this(),
-                           status]() {
-    std::lock_guard l(_instances_m);
-    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{:p} client::OnDone({}) {}",
-                        static_cast<void*>(me.get()), status.error_message(),
-                        status.error_details());
-    _instances.erase(std::static_pointer_cast<stream<bireactor_class>>(me));
-  });
+  common::pool::io_context().post(
+      [me = std::enable_shared_from_this<
+           stream<bireactor_class>>::shared_from_this(),
+       status]() {
+        std::lock_guard l(_instances_m);
+        SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{:p} client::OnDone({}) {}",
+                            static_cast<void*>(me.get()),
+                            status.error_message(), status.error_details());
+        _instances.erase(std::static_pointer_cast<stream<bireactor_class>>(me));
+      });
 }
 
 /**
