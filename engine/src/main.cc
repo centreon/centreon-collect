@@ -26,9 +26,9 @@
 #include <random>
 #include <string>
 
-#include <asio.hpp>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
+#include <asio.hpp>
 
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
           break;
         case 'c':
           if (optarg)
-            extended_conf_file.push_back(optarg);
+            extended_conf_file.emplace_back(optarg);
           break;
         default:
           error = true;
