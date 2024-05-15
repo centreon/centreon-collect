@@ -6,6 +6,8 @@ from google.protobuf.timestamp_pb2 import Timestamp
 import engine_pb2
 import engine_pb2_grpc
 from array import array
+from dateutil import parser
+import datetime
 from os import makedirs, chmod
 from os.path import exists, dirname
 from robot.api import logger
@@ -3316,3 +3318,33 @@ def ctn_get_engine_log_level(port, log, timeout=TIMEOUT):
 
             except:
                 logger.console("gRPC server not ready")
+
+
+
+def ctn_create_single_day_time_period(idx: int, time_period_name: str, date, minute_duration: int):
+    """
+    Create a single day time period with a single time range from date to date + minute_duration
+    Args
+        idx: poller index
+        time_period_name: must be unique
+        date: time range start
+        minute_duration: time range length in minutes
+    """
+    try:
+        my_date = parser.parse(date)
+    except:
+        my_date = datetime.fromtimestamp(date)
+
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/timeperiods.cfg"
+    
+    begin = my_date.time()
+    end = my_date + datetime.timedelta(minutes=minute_duration)
+
+    with open(filename, "a+") as f:
+        f.write(f"""
+define timeperiod {{
+    timeperiod_name     {time_period_name}
+    alias               {time_period_name}
+    {my_date.date().isoformat()}  {begin.strftime("%H:%M")}-{end.time().strftime("%H:%M")}
+}}
+""")
