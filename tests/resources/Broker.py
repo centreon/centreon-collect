@@ -1039,6 +1039,37 @@ def ctn_broker_config_add_item(name, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
+def ctn_broker_config_remove_output(name, output):
+    """
+    Remove an output from the broker configuration
+
+    Args:
+        name: The broker instance name among central, rrd and module%d
+        output: The output to remove.
+
+    *Example:*
+
+    | Ctn Broker Config Remove Output | central | unified_sql |
+    """
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'rrd':
+        filename = "central-rrd.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if v["type"] == output:
+            output_dict.pop(i)
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
 def ctn_broker_config_remove_item(name, key):
     """
     Remove an item from the broker configuration

@@ -239,3 +239,136 @@ BENCH_1000STATUS_100${suffixe}
     ...    ENGINE    1
     ...    ENGINE_2    2
     ...    ENGINE_3    3
+
+BENCH_${nb_check}STATUS_WITHOUT_SQL
+    [Documentation]    Broker is configured without SQL output. External command CHECK_SERVICE_RESULT is sent ${nb_checks} times.
+    [Tags]    broker    engine    bench    without_sql
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    # We want all the services to be passive to avoid parasite checks during our test.
+    Ctn Set Services Passive    ${0}    service_.*
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    processing    error
+    Ctn Config BBDO3    1
+    # No sql output to avoid broker to slow down too much
+    Ctn Broker Config Remove Output    central    unified_sql
+    Ctn Broker Config Remove Output    central    sql
+    Ctn Broker Config Remove Output    central    storage
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${broker_stat_before}    Ctn Get Broker Process Stat    51001
+    ${engine_stat_before}    Ctn Get Engine Process Stat    50001
+    Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
+    Ctn Send Bench    1    50001
+    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    ${broker_stat_after}    Ctn Get Broker Process Stat    51001
+    ${engine_stat_after}    Ctn Get Engine Process Stat    50001
+    ${diff_broker}    Ctn Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
+    ${diff_engine}    Ctn Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
+
+    Ctn Download Database From S3    bench.unqlite
+
+    ${success}    Ctn Store Result In Unqlite
+    ...    bench.unqlite
+    ...    BENCH_${nb_check}STATUS
+    ...    broker
+    ...    ${diff_broker}
+    ...    ${broker_stat_after}
+    ...    ${bench_data}
+    ...    central-broker-master-input-1
+    ...    write
+    ...    central-rrd-master-output
+    ...    publish
+    Should Be True    ${success}    Failed to save Broker bench to database
+
+    ${success}    Ctn Store Result In Unqlite
+    ...    bench.unqlite
+    ...    BENCH_${nb_check}STATUS
+    ...    engine
+    ...    ${diff_engine}
+    ...    ${engine_stat_after}
+    ...    ${bench_data}
+    ...    client
+    ...    callback_pb_bench
+    ...    central-module-master-output
+    ...    read
+    Should Be True    ${success}    Failed to save Engine bench to database
+
+    Ctn Upload Database To S3    bench.unqlite
+
+    Examples:    nb_check    --
+    ...    10000
+    ...    50000
+
+BENCH_${nb_check}STATUS_TRACES_WITHOUT_SQL
+    [Documentation]    Broker is configured without SQL output. External command CHECK_SERVICE_RESULT is sent ${nb_check} times. Logs are in trace level.
+    [Tags]    broker    engine    bench    without_sql
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    # We want all the services to be passive to avoid parasite checks during our test.
+    Ctn Set Services Passive    ${0}    service_.*
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    FOR    ${name}    IN    @{CONFIG_NAME}
+        Ctn Broker Config Log    central    ${name}    trace
+    END
+
+    Ctn Config BBDO3    1
+    # No sql output to avoid broker to slow down too much
+    Ctn Broker Config Remove Output    central    unified_sql
+    Ctn Broker Config Remove Output    central    sql
+    Ctn Broker Config Remove Output    central    storage
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${broker_stat_before}    Ctn Get Broker Process Stat    51001
+    ${engine_stat_before}    Ctn Get Engine Process Stat    50001
+    Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
+    Ctn Send Bench    1    50001
+    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    ${broker_stat_after}    Ctn Get Broker Process Stat    51001
+    ${engine_stat_after}    Ctn Get Engine Process Stat    50001
+    ${diff_broker}    Ctn Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
+    ${diff_engine}    Ctn Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
+
+    Ctn Download Database From S3    bench.unqlite
+
+    ${success}    Ctn Store Result In Unqlite
+    ...    bench.unqlite
+    ...    BENCH_${nb_check}STATUS_TRACES
+    ...    broker
+    ...    ${diff_broker}
+    ...    ${broker_stat_after}
+    ...    ${bench_data}
+    ...    central-broker-master-input-1
+    ...    write
+    ...    central-rrd-master-output
+    ...    publish
+    Should Be True    ${success}    Failed to save Broker bench to database
+
+    ${success}    Ctn Store Result In Unqlite
+    ...    bench.unqlite
+    ...    BENCH_${nb_check}STATUS_TRACES
+    ...    engine
+    ...    ${diff_engine}
+    ...    ${engine_stat_after}
+    ...    ${bench_data}
+    ...    client
+    ...    callback_pb_bench
+    ...    central-module-master-output
+    ...    read
+    Should Be True    ${success}    Failed to save Engine bench to database
+
+    Ctn Upload Database To S3    bench.unqlite
+
+    Examples:    nb_check    --
+    ...    10000
+    ...    50000
+

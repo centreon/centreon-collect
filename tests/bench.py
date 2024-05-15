@@ -249,7 +249,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--local', action="store_true", default=False, help="To work with a local database file")
     args = parser.parse_args()
 
-    if not args.local and args.bucket is not None and download_from_s3(args.unqlite_file, args.bucket) != True:
+    if not args.local and args.bucket is not None and not download_from_s3(args.unqlite_file, args.bucket):
         exit()
 
     db = UnQLite(args.unqlite_file)
