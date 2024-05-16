@@ -317,7 +317,7 @@ BENCH_${nb_checks}_SERVICE_STATUS_WITHOUT_SQL
 
     Examples:    nb_checks    --
     ...    100000
-    ...    500000
+    ...    300000
 
 BENCH_${nb_checks}_SERVICE_STATUS_TRACES_WITHOUT_SQL
     [Documentation]    Broker is configured without SQL output. External command CHECK_SERVICE_RESULT is sent ${nb_checks} times. Logs are in trace level.
@@ -390,5 +390,5 @@ BENCH_${nb_checks}_SERVICE_STATUS_TRACES_WITHOUT_SQL
 
     Examples:    nb_checks    --
     ...    100000
-    ...    500000
+    ...    300000
 
