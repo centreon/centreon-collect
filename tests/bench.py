@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-
 #
 # Copyright 2009-2023 Centreon
 #
@@ -108,6 +107,26 @@ def list_conf(collection_name: str, origin: str):
     }
 
 
+def list_metrics(collection_name: str, origin: str):
+    """List the available metrics to display.
+
+    Args:
+        collection_name: name of an unqlite collection
+        origin: The origin git branch
+
+    Returns:
+        A list<str> containing the available metrics.
+    """
+    collection = db.collection(collection_name)
+    selected = collection.filter(lambda row: row['origin'] == origin)
+    metrics = []
+    if len(selected) > 0:
+        metrics = list(selected[0].keys())
+    for m in ["cpu", "nb_core", "memory_size", "branch", "origin", "commit", "t", "__id"]:
+        metrics.remove(m)
+    return metrics
+
+
 class App(tk.Tk):
     def __init__(self, tests_tree):
         super().__init__()
@@ -118,6 +137,11 @@ class App(tk.Tk):
         menu_tests = tk.Menu(menu, tearoff=0)
         menu.add_cascade(label="Tests", menu=menu_tests)
 
+        self.columnconfigure(0, weight=0)
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(1, weight=1)
+        self.rowconfigure(3, weight=1)
+        self.rowconfigure(5, weight=1)
         self.collection = tk.StringVar()
         for k in tests_tree:
             menu_collection = tk.Menu(menu_tests, tearoff=0)
@@ -130,17 +154,23 @@ class App(tk.Tk):
         origins_label = tk.Label(self, text = "Origins")
         origins_label.grid(column=0, row=0)
         self.origins_list = tk.Listbox(self, selectmode="SINGLE")
-        self.origins_list.grid(column=0, row=1)
+        self.origins_list.grid(column=0, row=1, sticky="ns")
         self.origins_list.bind('<<ListboxSelect>>', self.origins_list_changed)
 
         confs_label = tk.Label(self, text = "Configurations")
         confs_label.grid(column=0, row=2)
         self.confs_list = tk.Listbox(self, selectmode="SINGLE")
-        self.confs_list.grid(column=0, row=3)
+        self.confs_list.grid(column=0, row=3, sticky="ns")
         self.confs_list.bind('<<ListboxSelect>>', self.confs_list_changed)
 
+        metrics_label = tk.Label(self, text = "Metrics")
+        metrics_label.grid(column=0, row=4)
+        self.metrics_list = tk.Listbox(self, selectmode="SINGLE")
+        self.metrics_list.grid(column=0, row=5, sticky="ns")
+        self.metrics_list.bind('<<ListboxSelect>>', self.metrics_list_changed)
+
         update = tk.Button(self, text = "Update", command=self.update_graph)
-        update.grid(column=0, row=4)
+        update.grid(column=0, row=6)
 
         self.fig = plt.figure()
         plt.subplots_adjust(left=0.22, right=0.98, bottom=0.1, top=0.99)
@@ -153,10 +183,10 @@ class App(tk.Tk):
 
         # create the toolbar
         toolbar_frame = tk.Frame(master=self)
-        toolbar_frame.grid(row=4, column=1)
+        toolbar_frame.grid(row=6, column=1)
         NavigationToolbar2Tk(figure_canvas, toolbar_frame)
 
-        figure_canvas.get_tk_widget().grid(column=1, row=0, rowspan=4)
+        figure_canvas.get_tk_widget().grid(column=1, row=0, rowspan=6, sticky="nesw")
 
     def collection_chosen(self):
         self.origins_list.delete(0, self.origins_list.size())
@@ -178,12 +208,25 @@ class App(tk.Tk):
             for i, c in enumerate(confs):
                 self.confs_list.insert(i, c)
 
+            metrics = list(list_metrics(self.collection.get(), self.origin))
+            metrics.sort()
+            self.metrics_list.delete(0, self.metrics_list.size())
+            for i, m in enumerate(metrics):
+                self.metrics_list.insert(i, m)
+
     def confs_list_changed(self, evt):
         # Note here that Tkinter passes an event object to onselect()
         w = evt.widget
         if len(w.curselection()) > 0:
             index = int(w.curselection()[0])
             self.conf = w.get(index)
+
+    def metrics_list_changed(self, evt):
+        # Note here that Tkinter passes an event object to onselect()
+        w = evt.widget
+        if len(w.curselection()) > 0:
+            index = int(w.curselection()[0])
+            self.metric = w.get(index)
 
     def update_graph(self):
         global db
@@ -193,7 +236,12 @@ class App(tk.Tk):
         mem = int(tmp[1])
         points = collection.filter(lambda row: row['origin'] == self.origin and row['cpu'] == cpu and int(row['memory_size']/1024/1024/1024) == mem)
 
-        points.sort(key=lambda row: row['t'])
+        # We have to take care to the uncommitted files that also do not have date_commit.
+        new_points = [p for p in points if "date_commit" in p]
+        if len(new_points) > 0:
+            points = new_points
+            points.sort(key=lambda row: row['date_commit'])
+
         self.fig.canvas.draw()
         self.plot_boxplot(points)
 
@@ -201,13 +249,13 @@ class App(tk.Tk):
         commits = self.prepare_boxplot_data(collection)
         self.ax.clear()
         self.list_com.clear(),
-        list_commits = list(set(commits.keys()))
+        list_commits = list(commits.keys())
         for list_commit in list_commits:
             self.list_com.append(list_commit[:8])
         self.ax.boxplot([commits[col] for col in commits.keys()], labels=self.list_com)
 
         self.ax.set_xlabel("Commits")
-        self.ax.set_ylabel("Normalized Values")
+        self.ax.set_ylabel(self.metric)
         self.ax.set_title("Benchmark Data")
         self.ax.set_xticklabels(self.list_com, rotation=45, ha='right')
         self.ax.set_xlim(0, len(list_commits) + 1)
@@ -220,20 +268,26 @@ class App(tk.Tk):
     #        )
 
     def prepare_boxplot_data(self, collection):
-        global data_column
-        data = {col: [] for col in data_column}
         commits = []
         for row in collection:
-            for col in data_column:
-                data[col].append(float(row[col]))
             commits.append(row['commit'])
 
+        # Here we keep commits only once but we lose the commits order.
         list_commits = list(set(commits))
-        commits_data = {cola: [] for cola in list_commits}
+        # Now, we restablish the order. The result is in commit.
+        i = 0
+        while i < len(commits):
+            c = commits[i]
+            if c in list_commits:
+                list_commits.remove(c)
+                i += 1
+            else:
+                commits.pop(i)
+
+        commits_data = {cola: [] for cola in commits}
         for row in collection:
-            for col in data_column:
-                if row['commit'] in commits_data:
-                    commits_data[row['commit']].append(float(row[col]))
+            if row['commit'] in commits_data:
+                commits_data[row['commit']].append(float(row[self.metric]))
         return commits_data
 
 if __name__ == '__main__':
@@ -241,8 +295,6 @@ if __name__ == '__main__':
         prog='bench_plot.py', description='Draws a summary on the benchmarks')
     parser.add_argument('-f', '--unqlite_file', default='bench.unqlite',
                         help='Path to the unqlite database file')
-    parser.add_argument('-d', '--data_column',
-                        default=['query_write_bytes'], nargs='+')
     parser.add_argument('-b', '--bucket', default='centreon-collect-robot-report',
                         help='The S3 bucket to use to get the unqlite file')
     parser.add_argument('-e', '--executable', help="Which executable to select for benchmarks, among (engine, broker)")
@@ -256,6 +308,5 @@ if __name__ == '__main__':
     collection_list = list_collection(db)
 
     tests_tree = extract_tests(collection_list)
-    data_column = args.data_column
     app = App(tests_tree)
     app.mainloop()

@@ -233,9 +233,9 @@ def ctn_find_in_log(log: str, date, content, regex=False):
     res = []
 
     try:
-        f = open(log, "r", encoding="latin1")
-        lines = f.readlines()
-        f.close()
+        with open(log, "r", encoding="latin1") as f:
+            lines = f.readlines()
+
         idx = ctn_find_line_from(lines, date)
 
         for c in content:

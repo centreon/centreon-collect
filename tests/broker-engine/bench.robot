@@ -33,11 +33,12 @@ BENCH_${nb_check}STATUS
     Ctn Start engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
+    ${start}    Get Current Date
     ${broker_stat_before}    Ctn Get Broker Process Stat    51001
     ${engine_stat_before}    Ctn Get Engine Process Stat    50001
     Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
     Ctn Send Bench    1    50001
-    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    ${start}    central-rrd-master-output    60
     ${broker_stat_after}    Ctn Get Broker Process Stat    51001
     ${engine_stat_after}    Ctn Get Engine Process Stat    50001
     ${diff_broker}    Ctn Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
@@ -99,11 +100,12 @@ BENCH_${nb_check}STATUS_TRACES
     Ctn Start engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
+    ${start}    Get Current Date
     ${broker_stat_before}    Ctn Get Broker Process Stat    51001
     ${engine_stat_before}    Ctn Get Engine Process Stat    50001
     Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
     Ctn Send Bench    1    50001
-    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    ${start}    central-rrd-master-output    60
     ${broker_stat_after}    Ctn Get Broker Process Stat    51001
     ${engine_stat_after}    Ctn Get Engine Process Stat    50001
     ${diff_broker}    Ctn Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
@@ -189,7 +191,7 @@ BENCH_1000STATUS_100${suffixe}
         END
     END
 
-    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    ${start_check}    central-rrd-master-output    60
     ${broker_stat_after}    Ctn Get Broker Process Stat    51001
     ${engine_stat_after}    Ctn Get Engine Process Stat    50001
     ${diff_broker}    Ctn Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
@@ -240,9 +242,11 @@ BENCH_1000STATUS_100${suffixe}
     ...    ENGINE_2    2
     ...    ENGINE_3    3
 
-BENCH_${nb_check}STATUS_WITHOUT_SQL
+BENCH_${nb_checks}_SERVICE_STATUS_WITHOUT_SQL
     [Documentation]    Broker is configured without SQL output. External command CHECK_SERVICE_RESULT is sent ${nb_checks} times.
     [Tags]    broker    engine    bench    without_sql
+    # We need to clear the retention and to check that the JSON for the bench event is well generated.
+    Ctn Clear Retention
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
@@ -261,11 +265,15 @@ BENCH_${nb_check}STATUS_WITHOUT_SQL
     Ctn Start engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
+    ${start}    Get Current Date
     ${broker_stat_before}    Ctn Get Broker Process Stat    51001
     ${engine_stat_before}    Ctn Get Engine Process Stat    50001
-    Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
+    Log To Console    Sending ${nb_checks} Service check results
+    Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_checks}
     Ctn Send Bench    1    50001
-    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    Log To Console    Done
+    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    ${start}    central-rrd-master-output    300
+    Should be True    ${bench_data} is not None    No bench element received by Broker
     ${broker_stat_after}    Ctn Get Broker Process Stat    51001
     ${engine_stat_after}    Ctn Get Engine Process Stat    50001
     ${diff_broker}    Ctn Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
@@ -275,7 +283,7 @@ BENCH_${nb_check}STATUS_WITHOUT_SQL
 
     ${success}    Ctn Store Result In Unqlite
     ...    bench.unqlite
-    ...    BENCH_${nb_check}STATUS
+    ...    BENCH_${nb_checks}_SERVICE_STATUS_WITHOUT_SQL
     ...    broker
     ...    ${diff_broker}
     ...    ${broker_stat_after}
@@ -288,7 +296,7 @@ BENCH_${nb_check}STATUS_WITHOUT_SQL
 
     ${success}    Ctn Store Result In Unqlite
     ...    bench.unqlite
-    ...    BENCH_${nb_check}STATUS
+    ...    BENCH_${nb_checks}_SERVICE_STATUS_WITHOUT_SQL
     ...    engine
     ...    ${diff_engine}
     ...    ${engine_stat_after}
@@ -301,13 +309,15 @@ BENCH_${nb_check}STATUS_WITHOUT_SQL
 
     Ctn Upload Database To S3    bench.unqlite
 
-    Examples:    nb_check    --
-    ...    10000
-    ...    50000
+    Examples:    nb_checks    --
+    ...    100000
+    ...    500000
 
-BENCH_${nb_check}STATUS_TRACES_WITHOUT_SQL
-    [Documentation]    Broker is configured without SQL output. External command CHECK_SERVICE_RESULT is sent ${nb_check} times. Logs are in trace level.
+BENCH_${nb_checks}_SERVICE_STATUS_TRACES_WITHOUT_SQL
+    [Documentation]    Broker is configured without SQL output. External command CHECK_SERVICE_RESULT is sent ${nb_checks} times. Logs are in trace level.
     [Tags]    broker    engine    bench    without_sql
+    # We need to clear the retention and to check that the JSON for the bench event is well generated.
+    Ctn Clear Retention
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
@@ -328,11 +338,15 @@ BENCH_${nb_check}STATUS_TRACES_WITHOUT_SQL
     Ctn Start engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
+    ${start}    Get Current Date
     ${broker_stat_before}    Ctn Get Broker Process Stat    51001
     ${engine_stat_before}    Ctn Get Engine Process Stat    50001
-    Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
+    Log To Console    Sending ${nb_checks} Service check results
+    Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_checks}
     Ctn Send Bench    1    50001
-    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    Log To Console    Done
+    ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    ${start}    central-rrd-master-output    300
+    Should be True    ${bench_data} is not None    No bench element received by Broker
     ${broker_stat_after}    Ctn Get Broker Process Stat    51001
     ${engine_stat_after}    Ctn Get Engine Process Stat    50001
     ${diff_broker}    Ctn Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
@@ -342,7 +356,7 @@ BENCH_${nb_check}STATUS_TRACES_WITHOUT_SQL
 
     ${success}    Ctn Store Result In Unqlite
     ...    bench.unqlite
-    ...    BENCH_${nb_check}STATUS_TRACES
+    ...    BENCH_${nb_checks}_SERVICE_STATUS_TRACES_WITHOUT_SQL
     ...    broker
     ...    ${diff_broker}
     ...    ${broker_stat_after}
@@ -355,7 +369,7 @@ BENCH_${nb_check}STATUS_TRACES_WITHOUT_SQL
 
     ${success}    Ctn Store Result In Unqlite
     ...    bench.unqlite
-    ...    BENCH_${nb_check}STATUS_TRACES
+    ...    BENCH_${nb_checks}_SERVICE_STATUS_TRACES_WITHOUT_SQL
     ...    engine
     ...    ${diff_engine}
     ...    ${engine_stat_after}
@@ -368,7 +382,7 @@ BENCH_${nb_check}STATUS_TRACES_WITHOUT_SQL
 
     Ctn Upload Database To S3    bench.unqlite
 
-    Examples:    nb_check    --
-    ...    10000
-    ...    50000
+    Examples:    nb_checks    --
+    ...    100000
+    ...    500000
 

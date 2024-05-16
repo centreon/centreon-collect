@@ -14,6 +14,7 @@ from robot.api import logger
 from dateutil import parser as date_parser
 from Common import ctn_get_collect_version
 from Common import ctn_is_using_direct_grpc
+from Common import ctn_find_line_from
 
 
 class delta_process_stat:
@@ -59,23 +60,28 @@ def ctn_add_value_to_delta_process_stat(delta, key, value):
     setattr(delta, key, value)
 
 
-def ctn_get_last_bench_result(log: str, id: int, name_to_find: str):
-    """! extract last bench trace in broker log file
-    @log  path of the log file
-    @param id id field of the bench event
-    @param name_to_find a string to find in the bench result like a muxer name
-    @return  a json object that contains all bench time points
+def ctn_get_last_bench_result(log: str, id: int, start, name_to_find: str):
+    """Extract last bench trace in the given log file.
+    Args:
+        log: The log file that should contain the bench event.
+        id: The ID of the bench event.
+        start: The date from which to start the look up.
+        name_to_find: The muxer name to find.
+    
+    Returns:
+        A JSON object that contains all bench time points.
     """
     last_bench_str = ""
     p = re.compile(
         r".+bench\s+\w+\s+content:'(.\"id\":{}.+{}.+)'".format(id, name_to_find.replace(" ", "\s")))
 
     try:
-        f = open(log, "r")
-        lines = f.readlines()
-        f.close()
+        with open(log, "r") as f:
+            lines = f.readlines()
 
-        for line in lines:
+        idx = ctn_find_line_from(lines, start)
+        for i in range(idx, len(lines)):
+            line = lines[i]
             extract = p.match(line)
             if extract is not None:
                 last_bench_str = extract.group(1)
@@ -87,18 +93,24 @@ def ctn_get_last_bench_result(log: str, id: int, name_to_find: str):
         return None
 
 
-def ctn_get_last_bench_result_with_timeout(log: str, id: int, name_to_find: str, timeout: int):
-    """! extract last bench trace in broker log file
-    @log  path of the log file
-    @param id id field of the bench event
-    @param name_to_find a string to find in the bench result like a muxer name
-    @param timeout  time out in seconds
-    @return  a json object that contains all bench time points
+def ctn_get_last_bench_result_with_timeout(log: str, id: int, start, name_to_find: str, timeout: int):
+    """Extract last bench trace in the given log file.
+
+    Args:
+        log: The log file.
+        id: The ID of the bench event.
+        start: The date from which we start to search.
+        name_to_find: A string to find in the bench result like a muxer name
+        timeout: A duration in seconds
+
+    Returns:
+        A JSON object that contains all bench time points
     """
     limit = time.time() + timeout
     while time.time() < limit:
-        json_obj = ctn_get_last_bench_result(log, id, name_to_find)
+        json_obj = ctn_get_last_bench_result(log, id, start, name_to_find)
         if json_obj is not None:
+            logger.console(json_obj)
             return json_obj
         time.sleep(5)
     logger.console("The file '{}' does not contain bench".format(log))
@@ -106,14 +118,20 @@ def ctn_get_last_bench_result_with_timeout(log: str, id: int, name_to_find: str,
 
 
 def ctn_calc_bench_delay(bench_event_result, bench_muxer_begin: str, bench_muxer_begin_function: str, bench_muxer_end: str, bench_muxer_end_function: str):
-    """! calc a duration between two time points of a bench event json object
-    @param bench_event_result bench result json object
-    @param bench_muxer_begin name of the muxer owned to the first time point (accepts regexp)
-    @param bench_muxer_begin_function name of the muxer function owned to the first time point
-    @param bench_muxer_end name of the muxer owned to the last time point
-    @param bench_muxer_end_function name of the muxer function owned to the last time point
+    """ Compute a duration between two time points of a bench event json object
+
+    Args:
+        bench_event_result: bench result json object
+        bench_muxer_begin: name of the muxer owned to the first time point (accepts regexp)
+        bench_muxer_begin_function: name of the muxer function owned to the first time point
+        bench_muxer_end: name of the muxer owned to the last time point
+        bench_muxer_end_function: name of the muxer function owned to the last time point
+
+    Returns:
+        A delay in seconds.
     """
 
+    logger.console(f"Bench Delay {bench_muxer_begin_function}: {bench_muxer_begin} => {bench_muxer_end_function}: {bench_muxer_end}")
     time_begin = 0
     time_end = 0
     begin_re = re.compile(bench_muxer_begin)
@@ -157,6 +175,7 @@ def ctn_store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engin
     row['memory_used'] = end_process_stat.vm_size
     row['event_propagation_delay'] = ctn_calc_bench_delay(
         bench_event_result, bench_muxer_begin, bench_muxer_begin_function, bench_muxer_end, bench_muxer_end_function).total_seconds()
+    logger.console(f"event_propagation_delay = {row['event_propagation_delay']}")
 
     if other_bench_data is not None:
         for key, value in other_bench_data.items():
@@ -183,8 +202,9 @@ def ctn_store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engin
     if ctn_is_using_direct_grpc():
         test_name += "_grpc"
     db = UnQLite(file_path)
-    benchs = db.collection(
-        f'collectbench_{test_name}_{broker_or_engine}_{bench_event_result["id"]}')
+    test_name = f'collectbench_{test_name}_{broker_or_engine}_{bench_event_result["id"]}'
+    logger.console(f"Storing in DB: {test_name}")
+    benchs = db.collection(test_name)
     benchs.create()
     benchs.store(row)
     test = benchs.all()
