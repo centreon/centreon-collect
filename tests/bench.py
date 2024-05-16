@@ -76,7 +76,7 @@ def extract_tests(collect_list):
     """
     engine_broker = {'engine': {}, 'broker': {}}
     test_name_extract = re.compile(
-        r"\w+_(\w+)_((?:engine|broker)).*")
+        r"[a-z]*_(.*)_(engine|broker).*")
     for collection_name in collect_list:
         m = test_name_extract.match(collection_name)
         if m is not None:
@@ -301,7 +301,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--local', action="store_true", default=False, help="To work with a local database file")
     args = parser.parse_args()
 
-    if not args.local and args.bucket is not None and not download_from_s3(args.unqlite_file, args.bucket):
+    if not args.local and args.bucket is not None and download_from_s3(args.unqlite_file, args.bucket) != True:
         exit()
 
     db = UnQLite(args.unqlite_file)
