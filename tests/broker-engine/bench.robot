@@ -14,9 +14,11 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
-BENCH_${nb_check}STATUS
+BENCH_${nb_checks}STATUS
     [Documentation]    external command CHECK_SERVICE_RESULT 1000 times
     [Tags]    broker    engine    bench
+    # We need to clear the retention and to check that the JSON for the bench event is well generated.
+    Ctn Clear Retention
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
@@ -36,7 +38,7 @@ BENCH_${nb_check}STATUS
     ${start}    Get Current Date
     ${broker_stat_before}    Ctn Get Broker Process Stat    51001
     ${engine_stat_before}    Ctn Get Engine Process Stat    50001
-    Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
+    Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_checks}
     Ctn Send Bench    1    50001
     ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    ${start}    central-rrd-master-output    60
     ${broker_stat_after}    Ctn Get Broker Process Stat    51001
@@ -48,7 +50,7 @@ BENCH_${nb_check}STATUS
 
     ${success}    Ctn Store Result In Unqlite
     ...    bench.unqlite
-    ...    BENCH_${nb_check}STATUS
+    ...    BENCH_${nb_checks}STATUS
     ...    broker
     ...    ${diff_broker}
     ...    ${broker_stat_after}
@@ -61,7 +63,7 @@ BENCH_${nb_check}STATUS
 
     ${success}    Ctn Store Result In Unqlite
     ...    bench.unqlite
-    ...    BENCH_${nb_check}STATUS
+    ...    BENCH_${nb_checks}STATUS
     ...    engine
     ...    ${diff_engine}
     ...    ${engine_stat_after}
@@ -74,13 +76,15 @@ BENCH_${nb_check}STATUS
 
     Ctn Upload Database To S3    bench.unqlite
 
-    Examples:    nb_check    --
+    Examples:    nb_checks    --
     ...    1000
     ...    10000
 
-BENCH_${nb_check}STATUS_TRACES
-    [Documentation]    external command CHECK_SERVICE_RESULT ${nb_check} times
+BENCH_${nb_checks}STATUS_TRACES
+    [Documentation]    external command CHECK_SERVICE_RESULT ${nb_checks} times
     [Tags]    broker    engine    bench
+    # We need to clear the retention and to check that the JSON for the bench event is well generated.
+    Ctn Clear Retention
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
@@ -103,7 +107,7 @@ BENCH_${nb_check}STATUS_TRACES
     ${start}    Get Current Date
     ${broker_stat_before}    Ctn Get Broker Process Stat    51001
     ${engine_stat_before}    Ctn Get Engine Process Stat    50001
-    Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
+    Ctn Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_checks}
     Ctn Send Bench    1    50001
     ${bench_data}    Ctn Get Last Bench Result With Timeout    ${rrdLog}    1    ${start}    central-rrd-master-output    60
     ${broker_stat_after}    Ctn Get Broker Process Stat    51001
@@ -115,7 +119,7 @@ BENCH_${nb_check}STATUS_TRACES
 
     ${success}    Ctn Store Result In Unqlite
     ...    bench.unqlite
-    ...    BENCH_${nb_check}STATUS_TRACES
+    ...    BENCH_${nb_checks}STATUS_TRACES
     ...    broker
     ...    ${diff_broker}
     ...    ${broker_stat_after}
@@ -128,7 +132,7 @@ BENCH_${nb_check}STATUS_TRACES
 
     ${success}    Ctn Store Result In Unqlite
     ...    bench.unqlite
-    ...    BENCH_${nb_check}STATUS_TRACES
+    ...    BENCH_${nb_checks}STATUS_TRACES
     ...    engine
     ...    ${diff_engine}
     ...    ${engine_stat_after}
@@ -141,13 +145,15 @@ BENCH_${nb_check}STATUS_TRACES
 
     Ctn Upload Database To S3    bench.unqlite
 
-    Examples:    nb_check    --
+    Examples:    nb_checks    --
     ...    1000
     ...    10000
 
 BENCH_1000STATUS_100${suffixe}
     [Documentation]    external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
     [Tags]    broker    engine    bench
+    # We need to clear the retention and to check that the JSON for the bench event is well generated.
+    Ctn Clear Retention
     Ctn Config Engine    ${100}    ${100}    ${20}
     Ctn Config Broker    module    ${100}
     Ctn Config Broker    central
