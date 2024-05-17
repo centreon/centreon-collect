@@ -22,6 +22,7 @@ BENCH_${nb_checks}STATUS
     Ctn Clear Db    logs
     Ctn Clear Db    comments
     Ctn Clear Db    data_bin
+    Ctn Clear Logs
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
@@ -91,6 +92,7 @@ BENCH_${nb_checks}STATUS_TRACES
     Ctn Clear Db    logs
     Ctn Clear Db    comments
     Ctn Clear Db    data_bin
+    Ctn Clear Logs
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
@@ -163,6 +165,7 @@ BENCH_1000STATUS_100${suffixe}
     Ctn Clear Db    logs
     Ctn Clear Db    comments
     Ctn Clear Db    data_bin
+    Ctn Clear Logs
     Ctn Config Engine    ${100}    ${100}    ${20}
     Ctn Config Broker    module    ${100}
     Ctn Config Broker    central
@@ -265,6 +268,7 @@ BENCH_${nb_checks}_SERVICE_STATUS_WITHOUT_SQL
     Ctn Clear Db    logs
     Ctn Clear Db    comments
     Ctn Clear Db    data_bin
+    Ctn Clear Logs
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
@@ -339,6 +343,7 @@ BENCH_${nb_checks}_SERVICE_STATUS_TRACES_WITHOUT_SQL
     Ctn Clear Db    logs
     Ctn Clear Db    comments
     Ctn Clear Db    data_bin
+    Ctn Clear Logs
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
@@ -411,12 +416,13 @@ BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_WITHOUT_SQL
     [Documentation]    Broker is configured without SQL output. The connection between
     ...    Engine and Broker is reversed. External command CHECK_SERVICE_RESULT is sent
     ...    ${nb_checks} times.
-    [Tags]    broker    engine    bench    without_sql    reverse connection
+    [Tags]    broker    engine    bench    without_sql    reverse connection    aa
     # We need to clear the retention and to check that the JSON for the bench event is well generated.
     Ctn Clear Retention
     Ctn Clear Db    logs
     Ctn Clear Db    comments
     Ctn Clear Db    data_bin
+    Ctn Clear Logs
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
@@ -457,12 +463,12 @@ BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_WITHOUT_SQL
 
     ${success}    Ctn Store Result In Unqlite
     ...    bench.unqlite
-    ...    BENCH_${nb_checks}_SERVICE_STATUS_WITHOUT_SQL
+    ...    BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_WITHOUT_SQL
     ...    broker
     ...    ${diff_broker}
     ...    ${broker_stat_after}
     ...    ${bench_data}
-    ...    central-broker-master-input-1
+    ...    central-broker-master-input
     ...    write
     ...    central-rrd-master-output
     ...    publish
@@ -470,7 +476,7 @@ BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_WITHOUT_SQL
 
     ${success}    Ctn Store Result In Unqlite
     ...    bench.unqlite
-    ...    BENCH_${nb_checks}_SERVICE_STATUS_WITHOUT_SQL
+    ...    BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_WITHOUT_SQL
     ...    engine
     ...    ${diff_engine}
     ...    ${engine_stat_after}
@@ -497,6 +503,7 @@ BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_TRACES_WITHOUT_SQL
     Ctn Clear Db    logs
     Ctn Clear Db    comments
     Ctn Clear Db    data_bin
+    Ctn Clear Logs
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
@@ -539,12 +546,12 @@ BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_TRACES_WITHOUT_SQL
 
     ${success}    Ctn Store Result In Unqlite
     ...    bench.unqlite
-    ...    BENCH_${nb_checks}_SERVICE_STATUS_TRACES_WITHOUT_SQL
+    ...    BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_TRACES_WITHOUT_SQL
     ...    broker
     ...    ${diff_broker}
     ...    ${broker_stat_after}
     ...    ${bench_data}
-    ...    central-broker-master-input-1
+    ...    central-broker-master-input
     ...    write
     ...    central-rrd-master-output
     ...    publish
@@ -552,7 +559,7 @@ BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_TRACES_WITHOUT_SQL
 
     ${success}    Ctn Store Result In Unqlite
     ...    bench.unqlite
-    ...    BENCH_${nb_checks}_SERVICE_STATUS_TRACES_WITHOUT_SQL
+    ...    BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_TRACES_WITHOUT_SQL
     ...    engine
     ...    ${diff_engine}
     ...    ${engine_stat_after}

@@ -400,6 +400,10 @@ def ctn_clear_retention():
 def ctn_clear_cache():
     getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
 
+def ctn_clear_logs():
+    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-engine/config*")
+    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-broker")
+
 
 def ctn_engine_log_table_duplicate(result: list):
     dup = True
