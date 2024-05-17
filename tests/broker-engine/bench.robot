@@ -19,6 +19,9 @@ BENCH_${nb_checks}STATUS
     [Tags]    broker    engine    bench
     # We need to clear the retention and to check that the JSON for the bench event is well generated.
     Ctn Clear Retention
+    Ctn Clear Db    logs
+    Ctn Clear Db    comments
+    Ctn Clear Db    data_bin
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
@@ -85,6 +88,9 @@ BENCH_${nb_checks}STATUS_TRACES
     [Tags]    broker    engine    bench
     # We need to clear the retention and to check that the JSON for the bench event is well generated.
     Ctn Clear Retention
+    Ctn Clear Db    logs
+    Ctn Clear Db    comments
+    Ctn Clear Db    data_bin
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
@@ -154,6 +160,9 @@ BENCH_1000STATUS_100${suffixe}
     [Tags]    broker    engine    bench
     # We need to clear the retention and to check that the JSON for the bench event is well generated.
     Ctn Clear Retention
+    Ctn Clear Db    logs
+    Ctn Clear Db    comments
+    Ctn Clear Db    data_bin
     Ctn Config Engine    ${100}    ${100}    ${20}
     Ctn Config Broker    module    ${100}
     Ctn Config Broker    central
@@ -253,6 +262,9 @@ BENCH_${nb_checks}_SERVICE_STATUS_WITHOUT_SQL
     [Tags]    broker    engine    bench    without_sql
     # We need to clear the retention and to check that the JSON for the bench event is well generated.
     Ctn Clear Retention
+    Ctn Clear Db    logs
+    Ctn Clear Db    comments
+    Ctn Clear Db    data_bin
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
@@ -324,6 +336,9 @@ BENCH_${nb_checks}_SERVICE_STATUS_TRACES_WITHOUT_SQL
     [Tags]    broker    engine    bench    without_sql
     # We need to clear the retention and to check that the JSON for the bench event is well generated.
     Ctn Clear Retention
+    Ctn Clear Db    logs
+    Ctn Clear Db    comments
+    Ctn Clear Db    data_bin
     Ctn Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
