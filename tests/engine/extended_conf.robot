@@ -20,9 +20,9 @@ EXT_CONF1
     Ctn Start Engine With Extend Conf
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     ${level}    Ctn Get Engine Log Level    50001    checks
-    Should Be Equal    ${level}    trace    log_level_checks must be the extended conf value
+    Should Be Equal    ${level}    trace    log_level_checks must come from the extended conf, trace
     ${level}    Ctn Get Engine Log Level    50001    comments
-    Should Be Equal    ${level}    debug    log_level_comments must be the extended conf value
+    Should Be Equal    ${level}    debug    log_level_comments must come from the extended conf, debug
 
 EXT_CONF2
     [Documentation]    Engine configuration is overided by json conf after reload
