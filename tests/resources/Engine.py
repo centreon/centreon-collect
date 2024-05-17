@@ -3314,7 +3314,7 @@ def ctn_get_engine_log_level(port, log, timeout=TIMEOUT):
             stub = engine_pb2_grpc.EngineStub(channel)
             try:
                 logs = stub.GetLogInfo(empty_pb2.Empty())
-                return logs.loggers[0].level[log]
+                return logs.level[log]
 
             except:
                 logger.console("gRPC server not ready")
