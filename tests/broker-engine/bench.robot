@@ -189,7 +189,6 @@ BENCH_1000STATUS_100${suffixe}
     ${engine_stat_before}    Ctn Get Engine Process Stat    50001
 
     ${start_check}    Get Current Date
-    Log To Console    Check start ${start_check}
     # one host per poller
     FOR    ${poller_index}    IN RANGE    100
         ${host_id}    Evaluate    ${poller_index} + 1
