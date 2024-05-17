@@ -65,9 +65,23 @@ void engine::load() {
 void engine::unload() {
   SPDLOG_LOGGER_TRACE(log_v2::instance().get(log_v2::CORE),
                       "multiplexing: unloading engine");
-  absl::MutexLock lck(&_load_m);
   auto instance = instance_ptr();
   if (instance) {
+    {
+      absl::ReleasableMutexLock lck(&instance->_kiew_m);
+      /* Here we wait for all the subscriber muxers to be stopped and removed
+       * from the muxers array. Even if they execute asynchronous functions,
+       * they have finished after that. */
+      auto muxers_empty = [&m = instance->_muxers,
+                           logger = instance->_logger]() {
+        logger->debug("Still {} muxers configured in Broker engine", m.size());
+        return m.empty();
+      };
+      instance->_logger->info("Waiting for the destruction of subscribers");
+      instance->_kiew_m.Await(absl::Condition(&muxers_empty));
+    }
+
+    absl::MutexLock lck(&_load_m);
     instance->stop();
 
     // Commit the cache file, if needed.
@@ -200,15 +214,15 @@ void engine::start() {
  */
 void engine::stop() {
   absl::ReleasableMutexLock lck(&_kiew_m);
-  /* Here we wait for all the subscriber muxers to be stopped and removed from
-   * the muxers array. Even if they execute asynchronous functions, they have
-   * finished after that. */
-  auto muxers_empty = [&m = _muxers, logger = _logger]() {
-    logger->debug("Still {} muxers configured in Broker engine", m.size());
-    return m.empty();
-  };
-  _logger->info("Waiting for the destruction of subscribers");
-  _kiew_m.Await(absl::Condition(&muxers_empty));
+//  /* Here we wait for all the subscriber muxers to be stopped and removed from
+//   * the muxers array. Even if they execute asynchronous functions, they have
+//   * finished after that. */
+//  auto muxers_empty = [&m = _muxers, logger = _logger]() {
+//    logger->debug("Still {} muxers configured in Broker engine", m.size());
+//    return m.empty();
+//  };
+//  _logger->info("Waiting for the destruction of subscribers");
+//  _kiew_m.Await(absl::Condition(&muxers_empty));
 
   if (_state != stopped) {
     // Set writing method.
@@ -421,11 +435,11 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
                   mux_to_publish_in_asio->publish(*kiew);
                 }  // pool threads protection
                 catch (const std::exception& ex) {
-                  SPDLOG_LOGGER_ERROR(logger,
-                                      "publish caught exception: {}",
+                  SPDLOG_LOGGER_ERROR(logger, "publish caught exception: {}",
                                       ex.what());
                 } catch (...) {
-                  SPDLOG_LOGGER_ERROR(logger, "publish caught unknown exception");
+                  SPDLOG_LOGGER_ERROR(logger,
+                                      "publish caught unknown exception");
                 }
               });
         }
