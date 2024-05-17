@@ -150,10 +150,9 @@ TEST_F(GrpcTlsTest, TlsStreamBadCaHostname) {
   std::cout << client_cmd << std::endl;
   system(client_cmd.c_str());
 
-  std::atomic_bool cbd_finished{false};
   std::atomic_bool centengine_finished{false};
 
-  std::thread cbd([&cbd_finished, &centengine_finished] {
+  std::thread cbd([&centengine_finished] {
     auto conf{std::make_shared<grpc_config>(
         "0.0.0.0:4141", true, read_file("/tmp/server.crt"),
         read_file("/tmp/server.key"), read_file("/tmp/client.crt"), "",

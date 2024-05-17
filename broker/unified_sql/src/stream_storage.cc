@@ -928,9 +928,8 @@ void stream::_check_queues(boost::system::error_code ec) {
       }
 
       if (_cvs.ready()) {
-        SPDLOG_LOGGER_DEBUG(_logger_sql,
-                            "{} new custom variable status inserted",
-                            _cvs.size());
+        SPDLOG_LOGGER_DEBUG(
+            _logger_sql, "{} new custom variable status inserted", _cvs.size());
         std::string query = _cvs.get_query();
         int32_t conn =
             special_conn::custom_variable % _mysql.connections_count();
@@ -999,7 +998,7 @@ void stream::_check_queues(boost::system::error_code ec) {
 
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(
-          log_v2::sql(), "fail to store queued data in database: {}", e.what());
+          _logger_sql, "fail to store queued data in database: {}", e.what());
     }
 
     if (!_stop_check_queues) {

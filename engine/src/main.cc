@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
   auto process_logger = log_v2::instance().get(log_v2::PROCESS);
   init_loggers();
   configuration::applier::logging::instance();
-  com::centreon::common::pool::load(g_io_context, log_v2::runtime());
+  com::centreon::common::pool::load(g_io_context, runtime_logger);
 
   config_logger->info("Configuration mechanism used: legacy");
   config = new configuration::state;

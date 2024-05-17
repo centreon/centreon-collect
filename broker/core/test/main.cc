@@ -21,6 +21,7 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
 using com::centreon::common::log_v2::log_v2;
@@ -58,7 +59,7 @@ int main(int argc, char* argv[]) {
 
   log_v2::load("test");
   com::centreon::common::pool::load(g_io_context,
-                                    com::centreon::broker::log_v2::core());
+                                    log_v2::instance().get(log_v2::CORE));
   com::centreon::common::pool::set_pool_size(0);
 
   // Run all tests.

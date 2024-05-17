@@ -18,7 +18,7 @@
  */
 
 #include "com/centreon/engine/configuration/state.hh"
-
+#include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
@@ -43,8 +43,7 @@ struct setter : public setter_base {
         return false;
       (obj.*ptr)(val);
     } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(),
-                          "fail to update {} with value {}: {}",
+      SPDLOG_LOGGER_ERROR(config_logger, "fail to update {} with value {}: {}",
                           setter_base::_field_name, value, e.what());
       return false;
     }
@@ -57,7 +56,7 @@ struct setter : public setter_base {
           common::rapidjson_helper(doc).get<U>(setter_base::_field_name.data());
       (obj.*ptr)(val);
     } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to update {} : {}",
+      SPDLOG_LOGGER_ERROR(config_logger, "fail to update {} : {}",
                           setter_base::_field_name, e.what());
       return false;
     }
@@ -72,9 +71,8 @@ struct setter<std::string const&, ptr> : public setter_base {
     try {
       (obj.*ptr)(value);
     } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(),
-                          "fail to update {} with value {}: {}", _field_name,
-                          value, e.what());
+      SPDLOG_LOGGER_ERROR(config_logger, "fail to update {} with value {}: {}",
+                          _field_name, value, e.what());
       return false;
     }
     return true;
@@ -85,8 +83,8 @@ struct setter<std::string const&, ptr> : public setter_base {
           common::rapidjson_helper(doc).get_string(_field_name.data());
       (obj.*ptr)(val);
     } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to update {} : {}",
-                          _field_name, e.what());
+      SPDLOG_LOGGER_ERROR(config_logger, "fail to update {} : {}", _field_name,
+                          e.what());
       return false;
     }
     return true;
@@ -4857,17 +4855,17 @@ void state::use_send_recovery_notifications_anyways(bool value) {
  */
 void state::apply_extended_conf(const std::string& file_path,
                                 const rapidjson::Document& json_doc) {
-  SPDLOG_LOGGER_INFO(log_v2::config(), "apply conf from file {}", file_path);
+  SPDLOG_LOGGER_INFO(config_logger, "apply conf from file {}", file_path);
   for (rapidjson::Value::ConstMemberIterator member_iter =
            json_doc.MemberBegin();
        member_iter != json_doc.MemberEnd(); ++member_iter) {
     const std::string_view field_name = member_iter->name.GetString();
     auto setter = _setters.find(field_name);
     if (setter == _setters.end()) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "unknown field: {} in file {}",
+      SPDLOG_LOGGER_ERROR(config_logger, "unknown field: {} in file {}",
                           field_name, file_path);
     } else if (!setter->second->apply_from_json(*this, json_doc)) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(),
+      SPDLOG_LOGGER_ERROR(config_logger,
                           "fail to update field: {}  from file {}", field_name,
                           file_path);
     }

@@ -112,8 +112,8 @@ service::service() : service(object::service) {}
 
 service::service(type_id object_type)
     : object(object_type),
-      _next_setter(_setters),
       _host_id{0},
+      _next_setter(_setters),
       _service_id{0} {}
 
 /**

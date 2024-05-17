@@ -29,7 +29,7 @@
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/common/time.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -311,21 +311,22 @@ void muxer::_execute_reader_if_needed() {
   if (_data_handler) {
     bool expected = false;
     if (_reader_running.compare_exchange_strong(expected, true)) {
-      pool::io_context_ptr()->post([me = shared_from_this()] {
-        std::vector<std::shared_ptr<io::data>> to_fill;
-        to_fill.reserve(me->_events_size);
-        bool still_events_to_read = me->read(to_fill, me->_events_size);
-        uint32_t written = me->_data_handler(to_fill);
-        if (written > 0)
-          me->ack_events(written);
-        if (written != to_fill.size()) {
-          me->_logger->error(
-              "Unable to handle all the incoming events in muxer '{}'",
-              me->_name);
-          me->clear_action_on_new_data();
-        }
-        me->_reader_running.store(false);
-      });
+      com::centreon::common::pool::io_context_ptr()->post(
+          [me = shared_from_this()] {
+            std::vector<std::shared_ptr<io::data>> to_fill;
+            to_fill.reserve(me->_events_size);
+            bool still_events_to_read = me->read(to_fill, me->_events_size);
+            uint32_t written = me->_data_handler(to_fill);
+            if (written > 0)
+              me->ack_events(written);
+            if (written != to_fill.size()) {
+              me->_logger->error(
+                  "Unable to handle all the incoming events in muxer '{}'",
+                  me->_name);
+              me->clear_action_on_new_data();
+            }
+            me->_reader_running.store(false);
+          });
     }
   }
 }

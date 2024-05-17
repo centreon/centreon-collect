@@ -36,10 +36,11 @@
 #include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 namespace com::centreon::engine::configuration {
+
+class state;
 
 class setter_base {
  protected:

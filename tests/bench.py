@@ -24,6 +24,7 @@ import boto3
 import os
 import re
 from unqlite import UnQLite
+import sys
 
 # With the following line, matplotlib can interact with Tkinter
 matplotlib.use('TkAgg')
@@ -122,8 +123,9 @@ def list_metrics(collection_name: str, origin: str):
     metrics = []
     if len(selected) > 0:
         metrics = list(selected[0].keys())
-    for m in ["cpu", "nb_core", "memory_size", "branch", "origin", "commit", "t", "__id"]:
-        metrics.remove(m)
+    for m in ["cpu", "nb_core", "memory_size", "branch", "origin", "commit", "t", "__id", "date_commit"]:
+        if m in metrics:
+            metrics.remove(m)
     return metrics
 
 
@@ -150,6 +152,8 @@ class App(tk.Tk):
             for kk in tests:
                 menu_collection.add_radiobutton(label=tests_tree[k][kk], variable=self.collection, value=tests_tree[k][kk], command=self.collection_chosen)
             menu_tests.add_cascade(label=k, menu=menu_collection)
+        menu_tests.add_separator()
+        menu_tests.add_command(label="Quit", command=self.exit)
         self.config(menu=menu)
         origins_label = tk.Label(self, text = "Origins")
         origins_label.grid(column=0, row=0)
@@ -188,6 +192,8 @@ class App(tk.Tk):
 
         figure_canvas.get_tk_widget().grid(column=1, row=0, rowspan=6, sticky="nesw")
 
+        self.protocol('WM_DELETE_WINDOW', self.exit)
+
     def collection_chosen(self):
         self.origins_list.delete(0, self.origins_list.size())
         origins = list(list_origin_branch(self.collection.get()))
@@ -213,6 +219,10 @@ class App(tk.Tk):
             self.metrics_list.delete(0, self.metrics_list.size())
             for i, m in enumerate(metrics):
                 self.metrics_list.insert(i, m)
+
+    def exit(self):
+        plt.close('all')
+        sys.exit()
 
     def confs_list_changed(self, evt):
         # Note here that Tkinter passes an event object to onselect()
