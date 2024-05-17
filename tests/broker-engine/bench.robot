@@ -416,7 +416,7 @@ BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_WITHOUT_SQL
     [Documentation]    Broker is configured without SQL output. The connection between
     ...    Engine and Broker is reversed. External command CHECK_SERVICE_RESULT is sent
     ...    ${nb_checks} times.
-    [Tags]    broker    engine    bench    without_sql    reverse connection    aa
+    [Tags]    broker    engine    bench    without_sql    reverse connection
     # We need to clear the retention and to check that the JSON for the bench event is well generated.
     Ctn Clear Retention
     Ctn Clear Db    logs
