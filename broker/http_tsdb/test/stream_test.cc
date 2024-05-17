@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ using duration = system_clock::duration;
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+using namespace com::centreon::common;
 using namespace nlohmann;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
@@ -81,8 +82,7 @@ std::atomic_uint request_test::id_gen(0);
 class stream_test : public http_tsdb::stream {
  public:
   stream_test(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
-              http_client::client::connection_creator conn_creator =
-                  http_client::http_connection::load)
+              http::connection_creator conn_creator)
       : http_tsdb::stream("stream_test",
                           g_io_context,
                           log_v2::tcp(),
@@ -94,31 +94,37 @@ class stream_test : public http_tsdb::stream {
 };
 
 TEST_F(http_tsdb_stream_test, NotRead) {
-  stream_test test(std::make_shared<http_tsdb::http_tsdb_config>());
+  auto conf = std::make_shared<http_tsdb::http_tsdb_config>();
+  http::connection_creator conn_creator = [conf]() {
+    return http::http_connection::load(g_io_context, log_v2::tcp(), conf);
+  };
+  stream_test test(conf, conn_creator);
 
   std::shared_ptr<io::data> d(std::make_shared<io::data>(1));
   ASSERT_THROW(test.read(d, 0), msg_fmt);
 }
 
-class connection_send_bagot : public http_client::connection_base {
+class connection_send_bagot : public http::connection_base {
+  asio::ip::tcp::socket _not_used;
+
  public:
   static std::atomic_uint success;
   static std::condition_variable success_cond;
 
   connection_send_bagot(const std::shared_ptr<asio::io_context>& io_context,
                         const std::shared_ptr<spdlog::logger>& logger,
-                        const http_client::http_config::pointer& conf)
-      : connection_base(io_context, logger, conf) {}
+                        const http::http_config::pointer& conf)
+      : connection_base(io_context, logger, conf), _not_used(*io_context) {}
 
   void shutdown() override { _state = e_not_connected; }
 
-  void connect(http_client::connect_callback_type&& callback) override {
+  void connect(http::connect_callback_type&& callback) override {
     _state = e_idle;
     _io_context->post([cb = std::move(callback)]() { cb({}, {}); });
   }
 
-  void send(http_client::request_ptr request,
-            http_client::send_callback_type&& callback) override {
+  void send(http::request_ptr request,
+            http::send_callback_type&& callback) override {
     if (_state != e_idle) {
       _io_context->post([cb = std::move(callback)]() {
         cb(std::make_error_code(std::errc::invalid_argument), "bad state", {});
@@ -147,32 +153,39 @@ class connection_send_bagot : public http_client::connection_base {
             std::static_pointer_cast<request_test>(request)->get_request_id(),
             std::static_pointer_cast<request_test>(request)->get_nb_data());
         _io_context->post([cb = std::move(callback)]() {
-          auto resp = std::make_shared<http_client::response_type>();
+          auto resp = std::make_shared<http::response_type>();
           resp->keep_alive(false);
           cb({}, "", resp);
         });
       }
     }
   }
+
+  void on_accept(http::connect_callback_type&& callback) override{};
+
+  void answer(const http::response_ptr& response,
+              http::answer_callback_type&& callback) override {}
+  void receive_request(http::request_callback_type&& callback) override {}
+
+  asio::ip::tcp::socket& get_socket() { return _not_used; }
 };
 
 std::atomic_uint connection_send_bagot::success(0);
 std::condition_variable connection_send_bagot::success_cond;
 
 TEST_F(http_tsdb_stream_test, all_event_sent) {
-  http_client::http_config conf(
+  http::http_config conf(
       asio::ip::tcp::endpoint(asio::ip::address_v4::loopback(), 80),
       "localhost", false, std::chrono::seconds(10), std::chrono::seconds(10),
       std::chrono::seconds(10), 30, std::chrono::seconds(1), 100,
       std::chrono::seconds(1), 5);
 
-  std::shared_ptr<stream_test> str(std::make_shared<stream_test>(
-      std::make_shared<http_tsdb::http_tsdb_config>(conf, 10),
-      [](const std::shared_ptr<asio::io_context>& io_context,
-         const std::shared_ptr<spdlog::logger>& logger,
-         const http_client::http_config::pointer& conf) {
-        auto dummy_conn =
-            std::make_shared<connection_send_bagot>(io_context, logger, conf);
+  auto tsdb_conf = std::make_shared<http_tsdb::http_tsdb_config>(conf, 10);
+
+  std::shared_ptr<stream_test> str(
+      std::make_shared<stream_test>(tsdb_conf, [tsdb_conf]() {
+        auto dummy_conn = std::make_shared<connection_send_bagot>(
+            g_io_context, log_v2::tcp(), tsdb_conf);
         return dummy_conn;
       }));
 

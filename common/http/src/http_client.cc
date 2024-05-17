@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,11 @@
  *
  */
 
-#include "com/centreon/common/defer.hh"
+#include "defer.hh"
 
 #include "http_client.hh"
 
-using namespace com::centreon::broker;
-using namespace com::centreon::broker::http_client;
+using namespace com::centreon::common::http;
 
 using lock_guard = std::lock_guard<std::mutex>;
 
@@ -52,7 +51,7 @@ client::client(const std::shared_ptr<asio::io_context>& io_context,
   _busy_conns.reserve(conf->get_max_connections());
   // create all connection ready to connect
   for (unsigned cpt = 0; cpt < conf->get_max_connections(); ++cpt) {
-    _not_connected_conns.insert(conn_creator(io_context, logger, conf));
+    _not_connected_conns.insert(conn_creator());
   }
 }
 

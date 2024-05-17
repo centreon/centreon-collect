@@ -1,5 +1,5 @@
-/*
- * Copyright 2022 Centreon (https://www.centreon.com/)
+/**
+ * Copyright 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,9 @@
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
+using system_clock = std::chrono::system_clock;
+using time_point = system_clock::time_point;
+using duration = system_clock::duration;
 
 namespace asio = boost::asio;
 

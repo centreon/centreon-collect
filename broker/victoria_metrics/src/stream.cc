@@ -1,11 +1,11 @@
 /**
- * Copyright 2022 Centreon
+ * Copyright 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  * For more information : contact@centreon.com
+ *
  */
 
 #include "com/centreon/broker/victoria_metrics/stream.hh"
@@ -36,7 +37,7 @@ const std::string stream::allowed_macros =
 stream::stream(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
                const std::string& account_id,
-               http_client::client::connection_creator conn_creator)
+               http::connection_creator conn_creator)
     : http_tsdb::stream("victoria_metrics",
                         io_context,
                         log_v2::victoria_metrics(),
@@ -66,7 +67,7 @@ std::shared_ptr<stream> stream::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
     const std::string& account_id,
-    http_client::client::connection_creator conn_creator) {
+    http::connection_creator conn_creator) {
   return std::shared_ptr<stream>(
       new stream(io_context, conf, account_id, conn_creator));
 }

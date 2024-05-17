@@ -18,32 +18,25 @@
 
 # Global options.
 
-set(INC_DIR "${PROJECT_SOURCE_DIR}/http_client/inc/com/centreon/broker/http_client")
+set(INC_DIR "${PROJECT_SOURCE_DIR}/http/inc/com/centreon/common/http")
 set(SRC_DIR "src")
-set(TEST_DIR "${PROJECT_SOURCE_DIR}/http_client/test")
-include_directories(${INC_DIR})
+set(TEST_DIR "${PROJECT_SOURCE_DIR}/http/test")
 
 # Sources.
 set(SOURCES
   ${SRC_DIR}/http_client.cc
   ${SRC_DIR}/http_connection.cc
   ${SRC_DIR}/https_connection.cc
+  ${SRC_DIR}/http_server.cc
 )
 
-# Headers.
-set(HEADERS
-  ${INC_DIR}/http_client.hh
-  ${INC_DIR}/http_connection.hh
-  ${INC_DIR}/https_connection.hh
-  ${INC_DIR}/http_config.hh
-)
 
-add_library(http_client STATIC ${SOURCES} ${HEADERS})
-target_include_directories(http_client PRIVATE ${INC_DIR})
+add_library(centreon_http STATIC ${SOURCES} )
+target_include_directories(centreon_http PRIVATE ${INC_DIR})
 
-target_precompile_headers(http_client PRIVATE precomp_inc/precomp.hh)
+target_precompile_headers(centreon_http REUSE_FROM centreon_common)
 
-set_target_properties(http_client PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(centreon_http PROPERTIES COMPILE_FLAGS "-fPIC")
 
 # Testing.
 if(WITH_TESTING)
