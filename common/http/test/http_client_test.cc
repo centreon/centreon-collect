@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
  *
  * For more information : contact@centreon.com
  *
- *
  */
+
 #include <gtest/gtest.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 

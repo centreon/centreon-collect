@@ -1,20 +1,21 @@
-/*
-** Copyright 2011-2017 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2024 Centreon (https://www.centreon.com/)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #ifndef CCB_HTTP_TSDB_STREAM_HH
 #define CCB_HTTP_TSDB_STREAM_HH
@@ -66,7 +67,7 @@ inline std::ostream& operator<<(std::ostream& str, const request& req) {
   return str;
 }
 
-/**
+/*
  *  @class stream stream.hh "com/centreon/broker/influxdb/stream.hh"
  *  @brief tsdb stream.
  *  This class is a base class
@@ -89,7 +90,7 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   request::pointer _request;
   // the two beans stat_unit and stat_average are used to produce statistics
   // about request time
-  /**
+  /*
    * @brief stat cumul
    * this bean is used to cumulate request for example during one second
    */
@@ -105,7 +106,7 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   stat _metric_stat;
   stat _status_stat;
 
-  /**
+  /*
    * @brief this cless calc an average over a period
    *
    */
