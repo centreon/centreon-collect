@@ -1,20 +1,21 @@
-/*
-** Copyright 2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2024 Centreon (https://www.centreon.com/)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #ifndef CCB_HTTP_CLIENT_CLIENT_HH__
 #define CCB_HTTP_CLIENT_CLIENT_HH__
@@ -23,12 +24,10 @@
 
 class client_test;
 
-namespace com::centreon::broker {
+namespace com::centreon::common::http {
 
-namespace http_client {
 /**
  * @class client
- * "broker/http_client/inc/com/centreon/broker/http_client/http_client.hh"
  *
  * @brief this class is the heart of the library
  * it dispatchs requests on connections to the server
@@ -48,11 +47,6 @@ namespace http_client {
  */
 class client : public std::enable_shared_from_this<client> {
  public:
-  using connection_creator = std::function<connection_base::pointer(
-      const std::shared_ptr<asio::io_context>& io_context,
-      const std::shared_ptr<spdlog::logger>& logger,
-      const http_config::pointer& conf)>;
-
   friend client_test;
 
  private:
@@ -120,7 +114,7 @@ class client : public std::enable_shared_from_this<client> {
   static pointer load(const std::shared_ptr<asio::io_context>& io_context,
                       const std::shared_ptr<spdlog::logger>& logger,
                       const http_config::pointer& conf,
-                      connection_creator conn_creator = http_connection::load);
+                      connection_creator conn_creator);
 
   template <class callback_type>
   bool send(const request_ptr& request, callback_type&& callback) {
@@ -146,9 +140,6 @@ void client::visit_queue(visitor_type& visitor) const {
     visitor(*cb->request);
   }
 }
-
-}  // namespace http_client
-
-}
+}  // namespace com::centreon::common::http
 
 #endif  // CCB_HTTP_CLIENT_CLIENT_HH__

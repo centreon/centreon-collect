@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,15 +23,13 @@
 
 #include "https_connection.hh"
 
-using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
-using namespace com::centreon::broker::http_client;
+using namespace com::centreon::common::http;
 
 namespace beast = boost::beast;
 
-namespace com::centreon::broker {
+namespace com::centreon::common::http::detail {
 
-namespace http_client::detail {
 /**
  * @brief to avoid read certificate on each request, this singleton do the job
  * it maintains a certificate cache
@@ -119,9 +117,7 @@ void certificate_cache::clean() {
   }
 }
 
-};  // namespace http_client::detail
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::common::http::detail
 
 /**
  * @brief Construct a new https connection::https connection object
@@ -134,23 +130,20 @@ void certificate_cache::clean() {
 https_connection::https_connection(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
-    const http_config::pointer& conf)
+    const http_config::pointer& conf,
+    const ssl_ctx_initializer& ssl_init)
     : connection_base(io_context, logger, conf),
-      _sslcontext(conf->get_ssl_method()),
-      _stream(std::make_unique<ssl_stream>(beast::net::make_strand(*io_context),
-                                           _sslcontext)) {
-  if (!_conf->get_certificate_path().empty()) {
-    std::shared_ptr<std::string> cert_content =
-        detail::certificate_cache::get_mutable_instance().get_certificate(
-            _conf->get_certificate_path());
-    _sslcontext.add_certificate_authority(
-        asio::buffer(cert_content->c_str(), cert_content->length()));
-  }
-  SPDLOG_LOGGER_DEBUG(_logger, "create https_connection to {}", *conf);
+      _sslcontext(conf->get_ssl_method()) {
+  ssl_init(_sslcontext, conf);
+  _stream = std::make_unique<ssl_stream>(beast::net::make_strand(*io_context),
+                                         _sslcontext);
+  SPDLOG_LOGGER_DEBUG(_logger, "create https_connection {:p} to {}",
+                      static_cast<void*>(this), *conf);
 }
 
 https_connection::~https_connection() {
-  SPDLOG_LOGGER_DEBUG(_logger, "delete https_connection to {}", *_conf);
+  SPDLOG_LOGGER_DEBUG(_logger, "delete https_connection {:p} to {}",
+                      static_cast<void*>(this), *_conf);
 }
 
 /**
@@ -164,8 +157,9 @@ https_connection::~https_connection() {
 https_connection::pointer https_connection::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
-    const http_config::pointer& conf) {
-  return pointer(new https_connection(io_context, logger, conf));
+    const http_config::pointer& conf,
+    const ssl_ctx_initializer& ssl_init) {
+  return pointer(new https_connection(io_context, logger, conf, ssl_init));
 }
 
 #define BAD_CONNECT_STATE_ERROR(error_string)                      \
@@ -188,7 +182,8 @@ void https_connection::connect(connect_callback_type&& callback) {
     BAD_CONNECT_STATE_ERROR("can connect to {}, bad state {}");
   }
 
-  SPDLOG_LOGGER_DEBUG(_logger, "connect to {}", *_conf);
+  SPDLOG_LOGGER_DEBUG(_logger, "{:p} connect to {}", static_cast<void*>(this),
+                      *_conf);
   std::lock_guard<std::mutex> l(_socket_m);
   beast::get_lowest_layer(*_stream).expires_after(_conf->get_connect_timeout());
   beast::get_lowest_layer(*_stream).async_connect(
@@ -219,6 +214,22 @@ void https_connection::on_connect(const beast::error_code& err,
   }
 
   std::lock_guard<std::mutex> l(_socket_m);
+
+  boost::system::error_code ec;
+  _peer = beast::get_lowest_layer(*_stream).socket().remote_endpoint(ec);
+
+  init_keep_alive();
+  SPDLOG_LOGGER_DEBUG(_logger, "{:p} connected to {}", static_cast<void*>(this),
+                      _peer);
+
+  // Perform the SSL handshake
+  _stream->async_handshake(
+      asio::ssl::stream_base::client,
+      [me = shared_from_this(), cb = std::move(callback)](
+          const beast::error_code& err) { me->on_handshake(err, cb); });
+}
+
+void https_connection::init_keep_alive() {
   boost::system::error_code err_keep_alive;
   asio::socket_base::keep_alive opt1(true);
   beast::get_lowest_layer(*_stream).socket().set_option(opt1, err_keep_alive);
@@ -238,11 +249,27 @@ void https_connection::on_connect(const beast::error_code& err,
           _logger, "fail to modify first keep alive delay for {}", *_conf);
     }
   }
-  SPDLOG_LOGGER_DEBUG(_logger, "connected to {}", _conf->get_endpoint());
+}
 
+/**
+ * @brief to call in case of we are an http server
+ * it initialize http keepalive and launch ssl handshake
+ *
+ * @param callback
+ */
+void https_connection::on_accept(connect_callback_type&& callback) {
+  unsigned expected = e_not_connected;
+  if (!_state.compare_exchange_strong(expected, e_handshake)) {
+    BAD_CONNECT_STATE_ERROR("on_tcp_connect to {}, bad state {}");
+  }
+
+  SPDLOG_LOGGER_DEBUG(_logger, "{:p} accepted from {}",
+                      static_cast<void*>(this), _peer);
+  std::lock_guard<std::mutex> l(_socket_m);
+  init_keep_alive();
   // Perform the SSL handshake
   _stream->async_handshake(
-      asio::ssl::stream_base::client,
+      asio::ssl::stream_base::server,
       [me = shared_from_this(), cb = std::move(callback)](
           const beast::error_code& err) { me->on_handshake(err, cb); });
 }
@@ -256,8 +283,8 @@ void https_connection::on_connect(const beast::error_code& err,
 void https_connection::on_handshake(const beast::error_code err,
                                     const connect_callback_type& callback) {
   if (err) {
-    std::string detail = fmt::format("fail handshake to {}: {}",
-                                     _conf->get_endpoint(), err.message());
+    std::string detail =
+        fmt::format("fail handshake with {}: {}", _peer, err.message());
     SPDLOG_LOGGER_ERROR(_logger, detail);
     callback(err, detail);
     shutdown();
@@ -266,9 +293,10 @@ void https_connection::on_handshake(const beast::error_code err,
 
   unsigned expected = e_handshake;
   if (!_state.compare_exchange_strong(expected, e_idle)) {
-    BAD_CONNECT_STATE_ERROR("on_handshake to {}, bad state {}");
+    BAD_CONNECT_STATE_ERROR("on_handshake with {}, bad state {}");
   }
-  SPDLOG_LOGGER_DEBUG(_logger, "handshake done to {}", _conf->get_endpoint());
+  SPDLOG_LOGGER_DEBUG(_logger, "{:p} handshake done with {}",
+                      static_cast<void*>(this), _peer);
   callback(err, {});
 }
 
@@ -297,11 +325,12 @@ void https_connection::send(request_ptr request,
 
   request->_send = system_clock::now();
   if (_logger->level() == spdlog::level::trace) {
-    SPDLOG_LOGGER_TRACE(_logger, "send request {} to {}",
-                        static_cast<request_type>(*request),
-                        _conf->get_endpoint());
+    SPDLOG_LOGGER_TRACE(_logger, "{:p} send request {} to {}",
+                        static_cast<void*>(this),
+                        static_cast<request_type>(*request), _peer);
   } else {
-    SPDLOG_LOGGER_DEBUG(_logger, "send request to {}", _conf->get_endpoint());
+    SPDLOG_LOGGER_DEBUG(_logger, "{:p} send request to {}",
+                        static_cast<void*>(this), _peer);
   }
 
   std::lock_guard<std::mutex> l(_socket_m);
@@ -388,11 +417,86 @@ void https_connection::on_read(const beast::error_code& err,
     SPDLOG_LOGGER_ERROR(_logger, "err response for {} \n\n {}",
                         static_cast<request_type>(*request), *resp);
   } else {
-    SPDLOG_LOGGER_DEBUG(_logger, "recv response from {} {}", *_conf, *resp);
+    SPDLOG_LOGGER_DEBUG(_logger, "{:p} recv response from {} {}",
+                        static_cast<void*>(this), *_conf, *resp);
   }
   gest_keepalive(resp);
 
   callback(err, {}, resp);
+}
+
+void https_connection::answer(const response_ptr& response,
+                              answer_callback_type&& callback) {
+  unsigned expected = e_idle;
+  if (!_state.compare_exchange_strong(expected, e_send)) {
+    std::string detail = fmt::format(
+        "{:p}"
+        "answer to {}, bad state {}",
+        static_cast<void*>(this), _peer, state_to_str(expected));
+    SPDLOG_LOGGER_ERROR(_logger, detail);
+    _io_context->post([cb = std::move(callback), detail]() {
+      cb(std::make_error_code(std::errc::invalid_argument), detail);
+    });
+    return;
+  }
+
+  std::lock_guard<std::mutex> l(_socket_m);
+  beast::get_lowest_layer(*_stream).expires_after(_conf->get_send_timeout());
+  beast::http::async_write(
+      *_stream, *response,
+      [me = shared_from_this(), response, cb = std::move(callback)](
+          const boost::beast::error_code& ec, size_t) mutable {
+        if (ec) {
+          SPDLOG_LOGGER_ERROR(me->_logger,
+                              "{:p} fail to send response {} to {}: {}",
+                              static_cast<void*>(me.get()), *response,
+                              me->get_peer(), ec.message());
+          me->shutdown();
+        } else {
+          unsigned expected = e_send;
+          me->_state.compare_exchange_strong(expected, e_idle);
+        }
+        SPDLOG_LOGGER_TRACE(me->_logger, "{:p} response sent: {}",
+                            static_cast<void*>(me.get()), *response);
+        cb(ec, "");
+      });
+}
+
+void https_connection::receive_request(request_callback_type&& callback) {
+  unsigned expected = e_idle;
+  if (!_state.compare_exchange_strong(expected, e_receive)) {
+    std::string detail = fmt::format(
+        "{:p}"
+        "receive_request from {}, bad state {}",
+        static_cast<void*>(this), _peer, state_to_str(expected));
+    SPDLOG_LOGGER_ERROR(_logger, detail);
+    _io_context->post([cb = std::move(callback), detail]() {
+      cb(std::make_error_code(std::errc::invalid_argument), detail,
+         std::shared_ptr<request_type>());
+    });
+    return;
+  }
+
+  std::lock_guard<std::mutex> l(_socket_m);
+  beast::get_lowest_layer(*_stream).expires_after(_conf->get_receive_timeout());
+  auto req = std::make_shared<request_type>();
+  beast::http::async_read(
+      *_stream, _recv_buffer, *req,
+      [me = shared_from_this(), req, cb = std::move(callback)](
+          const boost::beast::error_code& ec, std::size_t) mutable {
+        if (ec) {
+          SPDLOG_LOGGER_ERROR(
+              me->_logger, "{:p} fail to receive request from {}: {}",
+              static_cast<void*>(me.get()), me->get_peer(), ec.message());
+          me->shutdown();
+        } else {
+          unsigned expected = e_receive;
+          me->_state.compare_exchange_strong(expected, e_idle);
+        }
+        SPDLOG_LOGGER_TRACE(me->_logger, "{:p} receive: {}",
+                            static_cast<void*>(me.get()), *req);
+        cb(ec, "", req);
+      });
 }
 
 /**
@@ -403,7 +507,8 @@ void https_connection::on_read(const beast::error_code& err,
 void https_connection::shutdown() {
   unsigned old_state = _state.exchange(e_shutdown);
   if (old_state != e_shutdown) {
-    SPDLOG_LOGGER_DEBUG(_logger, "begin shutdown {}", *_conf);
+    SPDLOG_LOGGER_DEBUG(_logger, "{:p} begin shutdown {}",
+                        static_cast<void*>(this), *_conf);
     _state = e_shutdown;
     std::lock_guard<std::mutex> l(_socket_m);
     _stream->async_shutdown(
@@ -421,5 +526,41 @@ void https_connection::shutdown() {
               beast::net::make_strand(*_io_context), _sslcontext);
           _state = e_not_connected;
         });
+  }
+}
+
+/**
+ * @brief get underlay socket
+ *
+ * @return asio::ip::tcp::socket&
+ */
+asio::ip::tcp::socket& https_connection::get_socket() {
+  return beast::get_lowest_layer(*_stream).socket();
+}
+
+/**
+ * @brief This helper can be passed to https_connection constructor fourth param
+ * when implementing https client as:
+ * @code {.c++}
+ * auto conn = https_connection::load(g_io_context, logger,
+ * conf,[conf](asio::ssl::context& ctx) {
+ *   https_connection::load_client_certificate(ctx, conf);
+ * });
+ *
+ * @endcode
+ *
+ *
+ * @param ctx
+ * @param conf
+ */
+void https_connection::load_client_certificate(
+    asio::ssl::context& ctx,
+    const http_config::pointer& conf) {
+  if (!conf->get_certificate_path().empty()) {
+    std::shared_ptr<std::string> cert_content =
+        detail::certificate_cache::get_mutable_instance().get_certificate(
+            conf->get_certificate_path());
+    ctx.add_certificate_authority(
+        asio::buffer(cert_content->c_str(), cert_content->length()));
   }
 }
