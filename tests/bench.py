@@ -157,19 +157,19 @@ class App(tk.Tk):
         self.config(menu=menu)
         origins_label = tk.Label(self, text = "Origins")
         origins_label.grid(column=0, row=0)
-        self.origins_list = tk.Listbox(self, selectmode="SINGLE")
+        self.origins_list = tk.Listbox(self, selectmode="SINGLE", exportselection=False)
         self.origins_list.grid(column=0, row=1, sticky="ns")
         self.origins_list.bind('<<ListboxSelect>>', self.origins_list_changed)
 
         confs_label = tk.Label(self, text = "Configurations")
         confs_label.grid(column=0, row=2)
-        self.confs_list = tk.Listbox(self, selectmode="SINGLE")
+        self.confs_list = tk.Listbox(self, selectmode="SINGLE", exportselection=False)
         self.confs_list.grid(column=0, row=3, sticky="ns")
         self.confs_list.bind('<<ListboxSelect>>', self.confs_list_changed)
 
         metrics_label = tk.Label(self, text = "Metrics")
         metrics_label.grid(column=0, row=4)
-        self.metrics_list = tk.Listbox(self, selectmode="SINGLE")
+        self.metrics_list = tk.Listbox(self, selectmode="SINGLE", exportselection=False)
         self.metrics_list.grid(column=0, row=5, sticky="ns")
         self.metrics_list.bind('<<ListboxSelect>>', self.metrics_list_changed)
 
