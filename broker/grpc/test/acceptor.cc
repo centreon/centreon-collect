@@ -52,6 +52,8 @@ TEST_F(GrpcTlsTest, TlsStream) {
   /* Let's prepare certificates */
   std::string hostname = misc::exec("hostname --fqdn");
   hostname = misc::string::trim(hostname);
+  if (hostname.empty())
+    hostname = "localhost";
   std::string server_cmd(
       fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 "
                   "-keyout /tmp/server.key -out /tmp/server.crt -subj '/CN={}'",
