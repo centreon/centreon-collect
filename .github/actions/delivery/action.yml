@@ -72,13 +72,6 @@ runs:
           exit 1
         fi
 
-        # DEBUG
-        echo "[DEBUG] - Version: ${{ inputs.version }}"
-        echo "[DEBUG] - Distrib: ${{ inputs.distrib }}"
-        echo "[DEBUG] - module_name: ${{ inputs.module_name }}"
-        echo "[DEBUG] - release_cloud: ${{ inputs.release_cloud }}"
-        echo "[DEBUG] - release_type: ${{ inputs.release_type }}"
-
         # Create ARCH dirs
         mkdir noarch x86_64
 
