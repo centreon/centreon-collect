@@ -51,7 +51,7 @@ jobs:
 
           if [[ ${{ inputs.dispatch_target_release_branch }} =~ ^release-2[0-9]\.[0-9]+-next$ ]];then
             echo "Using ${{ inputs.dispatch_target_release_branch }} as release branch to build testing packages."
-            RUNS_URL="https://github.com/centreon/centreon/actions?query=branch%3A${{ inputs.dispatch_target_release_branch }}"
+            RUNS_URL="https://github.com/centreon/centreon-collect/actions?query=branch%3A${{ inputs.dispatch_target_release_branch }}"
           else
             echo "::error::Invalid release branch name, please check the release branch name."
             exit 1
