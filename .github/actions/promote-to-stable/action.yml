@@ -19,9 +19,6 @@ inputs:
   stability:
     description: "The package stability (stable, testing, unstable)"
     required: true
-  repository_name:
-    description: "The repository name"
-    required: true
   github_ref_name:
     description: "Release base ref name for push event"
     required: true
@@ -54,7 +51,7 @@ runs:
 
         # Cloud specific promote
         # delivery by default to onprem, override to internal if base branch is master
-        if [[ ${{ inputs.github_base_ref }} == "master" ]]; then
+        if [[ ${{ inputs.github_ref_name }} == "master" ]]; then
           ROOT_REPO_PATH="rpm-standard-internal"
         else
           ROOT_REPO_PATH="rpm-standard"
@@ -94,8 +91,6 @@ runs:
           # Download candidates for promote
           echo "[DEBUG] - Promoting $ARCH testing artifacts to stable."
           for ARTIFACT in ${SRC_PATHS[@]}; do
-            echo "[DEBUG] - Promoting $ARTIFACT to stable on artifactory."
-            jf rt cp $ARTIFACT $TARGET_PATH --flat=true
             echo "[DEBUG] - Downloading $ARTIFACT from TESTING."
             jf rt download $ARTIFACT --flat
           done
@@ -113,7 +108,7 @@ runs:
       shell: bash
 
     - name: Promote DEB packages to stable
-      if: ${{ contains(fromJSON('["bullseye", "bookworm"]') , inputs.distrib) }}
+      if: ${{ contains(fromJSON('["bullseye", "bookworm"]'), inputs.distrib) }}
       run: |
         set -eux
 
