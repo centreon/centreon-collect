@@ -65,6 +65,7 @@ runs:
           # New stable tags array
           TMP_STABLE_TAGS+=("$component-$MAJOR_VERSION.$MINOR_VERSION")
         done
+
         echo "Previous releases were: ${PREVIOUS_STABLE_TAGS[*]}"
         echo "Temporary new releases are: ${TMP_STABLE_TAGS[*]}"
         # Building final NEW_STABLE_TAGS with the new version tags only
@@ -103,16 +104,11 @@ runs:
         git config --global user.email "release@centreon.com"
         git config --global user.name "Centreon"
 
-        # Rebuild NEW_STABLE_TAGS as an array
-        for i in ${NEW_RELEASE_TAGS[@]}; do
-          NEW_RELEASE_TAGS+=("$i")
-        done
-
         # Create release tags on git for each release components
         # Abort if no tags or existing tag
         echo "Creating release tags."
         for TAG in ${NEW_STABLE_TAGS[@]}; do
-          if [ -n $TAG ] && [ -z $(git tag --list "$TAG" | head -n 1) ]; then
+          if [ -z $(git tag --list "$TAG" | head -n 1) ] && [ -n $TAG ]; then
             git tag -a "$TAG" -m "$TAG"
             git push --follow-tags
             echo "::notice::Tagging stable branch with $TAG."
@@ -156,6 +152,7 @@ runs:
           else
             echo "::error::Release tag $TAG was empty, exiting."
             exit 1
+          fi
         done
       shell: bash
       env:
