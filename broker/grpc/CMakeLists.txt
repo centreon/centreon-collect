@@ -56,6 +56,7 @@ target_link_libraries(
   pb_tag_lib
   pb_bam_lib
   pb_extcmd_lib
+  pb_open_telemetry_lib
   pb_rebuild_message_lib
   pb_remove_graph_message_lib
   pb_header_lib
@@ -86,6 +87,7 @@ add_custom_command(
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     grpc_stream.proto
   VERBATIM)
 
@@ -97,6 +99,7 @@ add_custom_command(
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --grpc_out=${SRC_DIR}
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     grpc_stream.proto
   VERBATIM
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})

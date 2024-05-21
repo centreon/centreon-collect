@@ -100,14 +100,14 @@ add_dependencies(
   pb_neb_lib
   pb_header_lib)
 
-target_link_libraries(
-  nebbase
+target_link_libraries(nebbase 
   -L${PROTOBUF_LIB_DIR}
-  pb_severity_lib
+  protobuf 
+  pb_severity_lib 
   pb_tag_lib
-  protobuf
-  pb_neb_lib
-  pb_header_lib)
+  pb_neb_lib 
+  pb_header_lib
+  pb_open_telemetry_lib)
 
 set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")
 set_property(TARGET nebbase PROPERTY COMPILE_FLAGS ${NEBBASE_CXXFLAGS})

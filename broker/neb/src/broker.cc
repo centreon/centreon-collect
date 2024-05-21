@@ -228,13 +228,13 @@ void broker_module_init(void const* arg) {
       e.register_event(
           neb::pb_service_group_member::static_type(), "ServiceGroupMember",
           &neb::pb_service_group_member::operations, "services_servicegroups");
-
       e.register_event(neb::pb_host_parent::static_type(), "HostParent",
                        &neb::pb_host_parent::operations, "hosts_hosts_parents");
-
       e.register_event(neb::pb_instance_configuration::static_type(),
                        "InstanceConfiguration",
                        &neb::pb_instance_configuration::operations, "no_table");
+      e.register_event(neb::pb_otl_metrics::static_type(), "OTLMetrics",
+                       &neb::pb_otl_metrics::operations, "otl_metrics");
     }
   }
 }
