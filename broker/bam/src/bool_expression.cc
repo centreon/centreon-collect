@@ -30,6 +30,7 @@ using namespace com::centreon::broker;
  * @param id Id of the boolean expression
  * @param impact_if True if impact is applied if the expression is true.False
  * otherwise.
+ * @param logger The logger to use.
  */
 bool_expression::bool_expression(uint32_t id,
                                  bool impact_if,

@@ -37,12 +37,13 @@ static constexpr double eps = 0.000001;
 /**
  *  Constructor.
  *
+ *  @param[in] id the id of this ba.
  *  @param[in] host_id the id of the associated host.
  *  @param[in] service_id the id of the associated service.
- *  @param[in] id the id of this ba.
  *  @param[in] generate_virtual_status  Whether or not the BA object
  *                                      should generate statuses of
  *                                      virtual hosts and services.
+ *  @param[in] logger The logger to use in this BA.
  */
 ba_ratio_percent::ba_ratio_percent(
     uint32_t id,

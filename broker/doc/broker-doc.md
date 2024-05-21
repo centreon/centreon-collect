@@ -67,6 +67,17 @@ This callback is rarely used. It is essentially used when we want to be sure tha
 * the `stop()` method of Engine: If we want to stop it, we must be sure that no events have to be written somewhere.
 * the `unsubscribe_muxer()` method of Engine: This method removes the muxer from the Engine list of subscribers. So if we remove one muxer from it but there are still events to write into it, we have the risk of an access to a removed muxer.
 
+#### Muxer filter
+
+To limit data in muxers, they work with filters. Each muxer is created with two filters:
+
+* mandatory filter: it contains data types mandatory for the good work of the muxer. Each stream defines its mandatory filter, and when the muxer is created, this filter is transferred to the muxer.
+* forbidden filter: This filter declares what event type we don't want to see in the muxer
+
+From these two filters, and with the configuration given by the user, a map of filters is defined in the muxer and each time an event arrives, we check that the event is authorized to go through the muxer.
+
+If the user allows events that make part of the forbidden filter, an error message is raised in the logs but the events are forbidden to be coherent with the forbidden filter. If the user doesn't declare events that are mandatory, broker will add them into the filter to allow them.
+
 ### Engine
 
 The Broker engine is hold by its subscriber muxers. Each one has a shared pointer

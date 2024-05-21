@@ -1,5 +1,5 @@
 /**
- * Copyright 2014, 2021 Centreon
+ * Copyright 2014, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,18 +21,17 @@
 #include "com/centreon/broker/misc/time.hh"
 #include "com/centreon/broker/sql/mysql_error.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
-using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
  *
  *  @param[in] db_cfg       Database configuration.
  *  @param[in] shared_map   A timeperiod map shared with the reporting.
+ *  @param[in] logger       The logger to use in availability_thread.
  */
 availability_thread::availability_thread(
     database_config const& db_cfg,

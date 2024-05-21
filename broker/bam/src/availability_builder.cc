@@ -57,6 +57,7 @@ availability_builder::~availability_builder() {}
  *  @param[in] end              The end of the event.
  *  @param[in] was_in_downtime  Was the event in downtime?
  *  @param[in] tp               The timeperiod of the event.
+ *  @param[in] logger           The logger to use.
  */
 void availability_builder::add_event(
     short status,

@@ -24,6 +24,7 @@ using namespace com::centreon::broker::bam;
  *  Default constructor.
  *
  *  @param[in] strict  Should the operator be strict?
+ *  @param[in] logger  The logger to use.
  */
 bool_less_than::bool_less_than(bool strict,
                                const std::shared_ptr<spdlog::logger>& logger)

@@ -88,7 +88,8 @@ static constexpr multiplexing::muxer_filter _reporting_forbidden_filter =
  * @param type A stream_type enum giving the following choices :
  * bam_monitoring_type or bam_reporting_type.
  * @param db_cfg The database configuration.
- * @param filter The mandatory filters of the underlying stream.
+ * @param mandatory_filter The mandatory filters of the underlying stream.
+ * @param forbidden_filter The forbidden filters of the underlying stream.
  */
 connector::connector(stream_type type,
                      const database_config& db_cfg,

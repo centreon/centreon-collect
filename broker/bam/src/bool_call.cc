@@ -25,6 +25,7 @@ using namespace com::centreon::broker::bam;
  *  Constructor.
  *
  *  @param[in] name  The name of the external expression.
+ *  @param[in] logger The logger to use in this boolean rule.
  */
 bool_call::bool_call(std::string const& name,
                      const std::shared_ptr<spdlog::logger>& logger)

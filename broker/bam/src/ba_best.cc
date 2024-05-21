@@ -41,6 +41,7 @@ using namespace com::centreon::broker::bam;
  *  @param[in] generate_virtual_status  Whether or not the BA object
  *                                      should generate statuses of
  *                                      virtual hosts and services.
+ *  @param[in] logger The logger to use in this BA.
  */
 ba_best::ba_best(uint32_t id,
                  uint32_t host_id,

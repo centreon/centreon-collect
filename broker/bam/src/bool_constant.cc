@@ -26,6 +26,7 @@ constexpr double eps = 0.000001;
  *  Constructor.
  *
  *  @param[in] val  The constant value to assign.
+ *  @param[in] logger  The logger to use in this boolean rule.
  */
 bool_constant::bool_constant(double val,
                              const std::shared_ptr<spdlog::logger>& logger)

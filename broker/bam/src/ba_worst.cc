@@ -35,12 +35,13 @@ using namespace com::centreon::broker::bam;
 /**
  *  Constructor.
  *
+ *  @param[in] id the id of this ba.
  *  @param[in] host_id the id of the associated host.
  *  @param[in] service_id the id of the associated service.
- *  @param[in] id the id of this ba.
  *  @param[in] generate_virtual_status  Whether or not the BA object
  *                                      should generate statuses of
  *                                      virtual hosts and services.
+ *  @param[in] logger The logger to use in this BA.
  */
 ba_worst::ba_worst(uint32_t id,
                    uint32_t host_id,

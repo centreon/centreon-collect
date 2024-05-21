@@ -1,5 +1,5 @@
 /**
- * Copyright 2014, 2021-2023 Centreon
+ * Copyright 2014, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,11 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
 /**
- *  Default constructor.
+ * @brief Constructor
+ *
+ * @param host_id The host ID of the service.
+ * @param service_id The service ID of the service.
+ * @param logger The logger to use.
  */
 bool_service::bool_service(uint32_t host_id,
                            uint32_t service_id,

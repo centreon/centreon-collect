@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2023 Centreon
+ * Copyright 2014-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,12 +21,10 @@
 #include "com/centreon/broker/bam/internal.hh"
 
 #include "com/centreon/broker/bam/exp_builder.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam::configuration;
-using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Get BA identifier for circular path search.
@@ -74,7 +72,9 @@ static std::string service_node_id(uint32_t host_id, uint32_t service_id) {
 }
 
 /**
- *  Default constructor.
+ * @brief Constructor
+ *
+ * @param logger The logger to use with this class.
  */
 applier::state::state(const std::shared_ptr<spdlog::logger>& logger)
     : _logger{logger},

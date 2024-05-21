@@ -28,11 +28,9 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
-using log_v2 = com::centreon::common::log_v2::log_v2;
 
 double ba::_normalize(double d) {
   if (d > 100.0)
@@ -49,12 +47,14 @@ static bool time_is_undefined(uint64_t t) {
 /**
  *  Constructor.
  *
+ *  @param[in] id the id of this ba.
  *  @param[in] host_id the id of the associated host.
  *  @param[in] service_id the id of the associated service.
- *  @param[in] id the id of this ba.
+ *  @param[in] source Source, i.e. the type of service.
  *  @param[in] generate_virtual_status  Whether or not the BA object
  *                                      should generate statuses of
  *                                      virtual hosts and services.
+ *  @param[in] logger The logger used in this ba.
  */
 ba::ba(uint32_t id,
        uint32_t host_id,

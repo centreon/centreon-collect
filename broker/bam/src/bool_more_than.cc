@@ -1,5 +1,5 @@
 /**
- * Copyright 2014, 2023 Centreon
+ * Copyright 2014, 2023-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ using namespace com::centreon::broker::bam;
  *  Default constructor.
  *
  *  @param[in] strict  Should the operator be strict?
+ *  @param[in] logger  The logger to use.
  */
 bool_more_than::bool_more_than(bool strict,
                                const std::shared_ptr<spdlog::logger>& logger)
