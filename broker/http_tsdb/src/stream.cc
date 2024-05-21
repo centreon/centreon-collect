@@ -131,9 +131,7 @@ stream::stream(const std::string& name,
       _metric_stat{{0, 0}, {0, 0}},
       _status_stat{{0, 0}, {0, 0}} {
   _http_client =
-==== BASE ====
-      http_client::client::load(io_context, logger, conf, conn_creator);
-==== BASE ====
+      common::http::client::load(io_context, logger, conf, conn_creator);
 }
 
 stream::~stream() {}
@@ -345,8 +343,7 @@ static time_point _epoch = system_clock::from_time_t(0);
 void stream::send_handler(const boost::beast::error_code& err,
                           const std::string& detail,
                           const request::pointer& request,
-                          const http_client::response_ptr& response
-                          [[maybe_unused]]) {
+                          const common::http::response_ptr& response) {
   auto actu_stat_avg = [&]() -> void {
     if (request->get_connect_time() > _epoch &&
         request->get_send_time() > _epoch) {

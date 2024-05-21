@@ -38,11 +38,10 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::common;
 using namespace nlohmann;
-using com::centreon::common::log_v2::log_v2;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
-class HttpTsdbStreamTest : public ::testing::Test {
+class http_tsdb_stream_test : public ::testing::Test {
  protected:
   static std::shared_ptr<spdlog::logger> _logger;
 
@@ -50,13 +49,13 @@ class HttpTsdbStreamTest : public ::testing::Test {
   static void SetUpTestSuite() {
     srand(time(nullptr));
 
-    _logger = log_v2::instance().get(log_v2::TCP);
+    _logger = log_v2::log_v2::instance().get(log_v2::log_v2::TCP);
     _logger->set_level(spdlog::level::info);
     file::disk_accessor::load(1000);
   }
 };
 
-std::shared_ptr<spdlog::logger> HttpTsdbStreamTest::_logger;
+std::shared_ptr<spdlog::logger> http_tsdb_stream_test::_logger;
 
 class request_test : public http_tsdb::request {
   uint _request_id;
@@ -66,7 +65,7 @@ class request_test : public http_tsdb::request {
   static std::atomic_uint id_gen;
 
   request_test() : _request_id(id_gen.fetch_add(1)) {
-    _logger = log_v2::instance().get(log_v2::TCP);
+    _logger = log_v2::log_v2::instance().get(log_v2::log_v2::TCP);
     SPDLOG_LOGGER_TRACE(_logger, "create request {}", _request_id);
   }
 
@@ -94,7 +93,7 @@ class stream_test : public http_tsdb::stream {
               http::connection_creator conn_creator)
       : http_tsdb::stream("stream_test",
                           g_io_context,
-                          log_v2::instance().get(log_v2::TCP),
+                          log_v2::log_v2::instance().get(log_v2::log_v2::TCP),
                           conf,
                           conn_creator) {}
   http_tsdb::request::pointer create_request() const override {
@@ -105,7 +104,9 @@ class stream_test : public http_tsdb::stream {
 TEST_F(http_tsdb_stream_test, NotRead) {
   auto conf = std::make_shared<http_tsdb::http_tsdb_config>();
   http::connection_creator conn_creator = [conf]() {
-    return http::http_connection::load(g_io_context, log_v2::tcp(), conf);
+    return http::http_connection::load(
+        g_io_context, log_v2::log_v2::instance().get(log_v2::log_v2::TCP),
+        conf);
   };
   stream_test test(conf, conn_creator);
 
@@ -194,7 +195,8 @@ TEST_F(http_tsdb_stream_test, all_event_sent) {
   std::shared_ptr<stream_test> str(
       std::make_shared<stream_test>(tsdb_conf, [tsdb_conf]() {
         auto dummy_conn = std::make_shared<connection_send_bagot>(
-            g_io_context, log_v2::tcp(), tsdb_conf);
+            g_io_context, log_v2::log_v2::instance().get(log_v2::log_v2::TCP),
+            tsdb_conf);
         return dummy_conn;
       }));
 

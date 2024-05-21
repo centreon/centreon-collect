@@ -18,13 +18,15 @@
  */
 
 #include "com/centreon/broker/victoria_metrics/connector.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/victoria_metrics/stream.hh"
 #include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
+
+using com::centreon::common::log_v2::log_v2;
 
 static constexpr multiplexing::muxer_filter _victoria_stream_filter = {
     storage::metric::static_type(), storage::status::static_type(),
@@ -45,14 +47,16 @@ std::shared_ptr<io::stream> connector::open() {
                         _account_id, [conf = _conf]() {
                           return http::http_connection::load(
                               com::centreon::common::pool::io_context_ptr(),
-                              log_v2::victoria_metrics(), conf);
+                              log_v2::instance().get(log_v2::VICTORIA_METRICS),
+                              conf);
                         });
   } else {
     return stream::load(com::centreon::common::pool::io_context_ptr(), _conf,
                         _account_id, [conf = _conf]() {
                           return http::https_connection::load(
                               com::centreon::common::pool::io_context_ptr(),
-                              log_v2::victoria_metrics(), conf,
+                              log_v2::instance().get(log_v2::VICTORIA_METRICS),
+                              conf,
                               http::https_connection::load_client_certificate);
                         });
   }
