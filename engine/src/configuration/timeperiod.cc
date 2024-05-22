@@ -26,7 +26,6 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
-using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
   &object::setter<timeperiod, type, &timeperiod::method>::generic
