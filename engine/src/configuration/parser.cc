@@ -99,7 +99,7 @@ void parser::parse(std::string const& path, state& config) {
           config.servicedependencies());
   _insert(_lst_objects[object::serviceescalation], config.serviceescalations());
   _insert(_map_objects[object::servicegroup], config.servicegroups());
-  _insert(_lst_objects[object::service], config.services());
+  _insert(_lst_objects[object::service], config.mut_services());
   _insert(_lst_objects[object::anomalydetection], config.anomalydetections());
   _insert(_map_objects[object::timeperiod], config.timeperiods());
   _insert(_lst_objects[object::severity], config.mut_severities());
@@ -363,8 +363,6 @@ void parser::_parse_directory_configuration(std::string const& path) {
  *  @param[in] path The configuration path.
  */
 void parser::_parse_global_configuration(std::string const& path) {
-  engine_logger(logging::log_info_message, logging::most)
-      << "Reading main configuration file '" << path << "'.";
   config_logger->info("Reading main configuration file '{}'.", path);
 
   std::ifstream stream(path.c_str(), std::ios::binary);
@@ -396,8 +394,6 @@ void parser::_parse_global_configuration(std::string const& path) {
  *  @param[in] path The object definitions path.
  */
 void parser::_parse_object_definitions(std::string const& path) {
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Processing object config file '" << path << "'";
   config_logger->info("Processing object config file '{}'", path);
 
   std::ifstream stream(path, std::ios::binary);
@@ -474,8 +470,6 @@ void parser::_parse_object_definitions(std::string const& path) {
  *  @param[in] path The resource file path.
  */
 void parser::_parse_resource_file(std::string const& path) {
-  engine_logger(logging::log_info_message, logging::most)
-      << "Reading resource file '" << path << "'";
   config_logger->info("Reading resource file '{}'", path);
 
   std::ifstream stream(path.c_str(), std::ios::binary);

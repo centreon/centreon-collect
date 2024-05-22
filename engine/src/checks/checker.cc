@@ -24,6 +24,7 @@
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/objects.hh"
@@ -37,12 +38,6 @@ using namespace com::centreon::engine::checks;
 
 checker* checker::_instance = nullptr;
 static constexpr time_t max_check_reaper_time = 30;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Get instance of the checker singleton.

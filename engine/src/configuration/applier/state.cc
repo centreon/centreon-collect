@@ -1468,7 +1468,7 @@ void applier::state::_processing(configuration::state& new_cfg,
         config->hostgroups());
 
     // Resolve services.
-    _resolve<configuration::service, applier::service>(config->services());
+    _resolve<configuration::service, applier::service>(config->mut_services());
 
     // Resolve anomalydetections.
     _resolve<configuration::anomalydetection, applier::anomalydetection>(
