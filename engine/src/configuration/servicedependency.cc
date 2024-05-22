@@ -19,16 +19,15 @@
  */
 
 #include "com/centreon/engine/configuration/servicedependency.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
 extern int config_errors;
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::engine::logging;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
   &object::setter<servicedependency, type, &servicedependency::method>::generic
@@ -152,20 +151,20 @@ servicedependency& servicedependency::operator=(
  */
 bool servicedependency::operator==(servicedependency const& right) const
     throw() {
-  return (
-      object::operator==(right) &&
-      _dependency_period == right._dependency_period &&
-      _dependency_type == right._dependency_type &&
-      _dependent_hostgroups == right._dependent_hostgroups &&
-      _dependent_hosts == right._dependent_hosts &&
-      _dependent_servicegroups == right._dependent_servicegroups &&
-      _dependent_service_description == right._dependent_service_description &&
-      _execution_failure_options == right._execution_failure_options &&
-      _inherits_parent == right._inherits_parent &&
-      _hostgroups == right._hostgroups && _hosts == right._hosts &&
-      _notification_failure_options == right._notification_failure_options &&
-      _servicegroups == right._servicegroups &&
-      _service_description == right._service_description);
+  return object::operator==(right) &&
+         _dependency_period == right._dependency_period &&
+         _dependency_type == right._dependency_type &&
+         _dependent_hostgroups == right._dependent_hostgroups &&
+         _dependent_hosts == right._dependent_hosts &&
+         _dependent_servicegroups == right._dependent_servicegroups &&
+         _dependent_service_description ==
+             right._dependent_service_description &&
+         _execution_failure_options == right._execution_failure_options &&
+         _inherits_parent == right._inherits_parent &&
+         _hostgroups == right._hostgroups && _hosts == right._hosts &&
+         _notification_failure_options == right._notification_failure_options &&
+         _servicegroups == right._servicegroups &&
+         _service_description == right._service_description;
 }
 
 /**
@@ -214,7 +213,7 @@ bool servicedependency::operator<(servicedependency const& right) const {
     return (_execution_failure_options < right._execution_failure_options);
   else if (_inherits_parent != right._inherits_parent)
     return _inherits_parent < right._inherits_parent;
-  return (_notification_failure_options < right._notification_failure_options);
+  return _notification_failure_options < right._notification_failure_options;
 }
 
 /**
@@ -226,31 +225,28 @@ void servicedependency::check_validity() const {
   // Check base service(s).
   if (_servicegroups->empty()) {
     if (_service_description->empty())
-      throw(engine_error() << "Service dependency is not attached to "
-                           << "any service or service group (properties "
-                           << "'service_description' or 'servicegroup_name', "
-                           << "respectively)");
+      throw msg_fmt(
+          "Service dependency is not attached to any service or service group "
+          "(properties 'service_description' or 'servicegroup_name', "
+          "respectively)");
     else if (_hosts->empty() && _hostgroups->empty())
-      throw(
-          engine_error() << "Service dependency is not attached to "
-                         << "any host or host group (properties 'host_name' or "
-                         << "'hostgroup_name', respectively)");
+      throw msg_fmt(
+          "Service dependency is not attached to any host or host group "
+          "(properties 'host_name' or 'hostgroup_name', respectively)");
   }
 
   // Check dependent service(s).
   if (_dependent_servicegroups->empty()) {
     if (_dependent_service_description->empty())
-      throw(
-          engine_error() << "Service dependency is not attached to "
-                         << "any dependent service or dependent service group "
-                         << "(properties 'dependent_service_description' or "
-                         << "'dependent_servicegroup_name', respectively)");
+      throw msg_fmt(
+          "Service dependency is not attached to any dependent service or "
+          "dependent service group (properties 'dependent_service_description' "
+          "or 'dependent_servicegroup_name', respectively)");
     else if (_dependent_hosts->empty() && _dependent_hostgroups->empty())
-      throw(engine_error()
-            << "Service dependency is not attached to "
-            << "any dependent host or dependent host group (properties "
-            << "'dependent_host_name' or 'dependent_hostgroup_name', "
-            << "respectively)");
+      throw msg_fmt(
+          "Service dependency is not attached to any dependent host or "
+          "dependent host group (properties 'dependent_host_name' or "
+          "'dependent_hostgroup_name', respectively)");
   }
 
   // With no execution or failure options this dependency is useless.
@@ -277,7 +273,6 @@ void servicedependency::check_validity() const {
       else
         msg << "host '" << _hosts->front() << "'";
     }
-    engine_logger(log_config_warning, basic) << msg.str();
     config_logger->warn(msg.str());
   }
 }
@@ -298,8 +293,8 @@ servicedependency::key_type const& servicedependency::key() const throw() {
  */
 void servicedependency::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge service dependency with '"
-                         << obj.type() << "'");
+    throw msg_fmt("Cannot merge service dependency with '{}'",
+                  static_cast<uint32_t>(obj.type()));
   servicedependency const& tmpl(static_cast<servicedependency const&>(obj));
 
   MRG_DEFAULT(_dependency_period);
@@ -340,7 +335,6 @@ bool servicedependency::parse(char const* key, char const* value) {
  */
 void servicedependency::dependency_period(std::string const& period) {
   _dependency_period = period;
-  return;
 }
 
 /**
@@ -360,7 +354,6 @@ std::string const& servicedependency::dependency_period() const throw() {
 void servicedependency::dependency_type(
     servicedependency::dependency_kind type) throw() {
   _dependency_type = type;
-  return;
 }
 
 /**
@@ -454,7 +447,6 @@ list_string const& servicedependency::dependent_service_description() const
 void servicedependency::execution_failure_options(
     unsigned int options) throw() {
   _execution_failure_options = options;
-  return;
 }
 
 /**
@@ -473,7 +465,6 @@ unsigned int servicedependency::execution_failure_options() const throw() {
  */
 void servicedependency::inherits_parent(bool inherit) throw() {
   _inherits_parent = inherit;
-  return;
 }
 
 /**
@@ -529,7 +520,6 @@ list_string const& servicedependency::hosts() const throw() {
 void servicedependency::notification_failure_options(
     unsigned int options) throw() {
   _notification_failure_options = options;
-  return;
 }
 
 /**
@@ -648,24 +638,22 @@ bool servicedependency::_set_dependent_service_description(
 bool servicedependency::_set_execution_failure_options(
     std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "ok")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& v : values) {
+    std::string_view sv = absl::StripAsciiWhitespace(v);
+    if (sv == "o" || sv == "ok")
       options |= ok;
-    else if (*it == "u" || *it == "unknown")
+    else if (sv == "u" || sv == "unknown")
       options |= unknown;
-    else if (*it == "w" || *it == "warning")
+    else if (sv == "w" || sv == "warning")
       options |= warning;
-    else if (*it == "c" || *it == "critical")
+    else if (sv == "c" || sv == "critical")
       options |= critical;
-    else if (*it == "p" || *it == "pending")
+    else if (sv == "p" || sv == "pending")
       options |= pending;
-    else if (*it == "n" || *it == "none")
+    else if (sv == "n" || sv == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (sv == "a" || sv == "all")
       options = ok | unknown | warning | critical | pending;
     else
       return false;
@@ -720,24 +708,22 @@ bool servicedependency::_set_hosts(std::string const& value) {
 bool servicedependency::_set_notification_failure_options(
     std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "ok")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& v : values) {
+    std::string_view sv = absl::StripAsciiWhitespace(v);
+    if (sv == "o" || sv == "ok")
       options |= ok;
-    else if (*it == "u" || *it == "unknown")
+    else if (sv == "u" || sv == "unknown")
       options |= unknown;
-    else if (*it == "w" || *it == "warning")
+    else if (sv == "w" || sv == "warning")
       options |= warning;
-    else if (*it == "c" || *it == "critical")
+    else if (sv == "c" || sv == "critical")
       options |= critical;
-    else if (*it == "p" || *it == "pending")
+    else if (sv == "p" || sv == "pending")
       options |= pending;
-    else if (*it == "n" || *it == "none")
+    else if (sv == "n" || sv == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (sv == "a" || sv == "all")
       options = ok | unknown | warning | critical | pending;
     else
       return false;
