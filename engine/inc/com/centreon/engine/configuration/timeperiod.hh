@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2013,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_TIMEPERIOD_HH
 #define CCE_CONFIGURATION_TIMEPERIOD_HH
@@ -64,7 +64,7 @@ class timeperiod : public object {
   bool _add_week_day(std::string const& key, std::string const& value);
   static bool _build_timeranges(std::string const& line,
                                 timerange_list& timeranges);
-  static bool _build_time_t(std::string const& time_str, unsigned long& ret);
+  static bool _build_time_t(std::string_view time_str, unsigned long& ret);
   static bool _has_similar_daterange(std::list<daterange> const& lst,
                                      daterange const& range) throw();
   static bool _get_month_id(std::string const& name, unsigned int& id);
@@ -85,6 +85,6 @@ typedef std::shared_ptr<timeperiod> timeperiod_ptr;
 typedef std::set<timeperiod> set_timeperiod;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_TIMEPERIOD_HH

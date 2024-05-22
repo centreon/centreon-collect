@@ -26,14 +26,14 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/logging/logger.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
 extern int config_errors;
 
-using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::engine::logging;
+using com::centreon::common::log_v2::log_v2;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) &object::setter<host, type, &host::method>::generic
 
@@ -123,7 +123,8 @@ static unsigned short const default_flap_detection_options(host::up |
                                                            host::unreachable);
 static unsigned int const default_freshness_threshold(0);
 static unsigned int const default_high_flap_threshold(0);
-static unsigned short const default_initial_state(engine::host::state_up);
+static unsigned short const default_initial_state(
+    com::centreon::engine::host::state_up);
 static unsigned int const default_low_flap_threshold(0);
 static unsigned int const default_max_check_attempts(3);
 static bool const default_notifications_enabled(true);
@@ -435,10 +436,9 @@ bool host::operator<(host const& other) const noexcept {
  */
 void host::check_validity() const {
   if (_host_name.empty())
-    throw engine_error() << "Host has no name (property 'host_name')";
+    throw msg_fmt("Host has no name (property 'host_name')");
   if (_address.empty())
-    throw engine_error() << "Host '" << _host_name
-                         << "' has no address (property 'address')";
+    throw msg_fmt("Host '{}' has no address (property 'address')", _host_name);
 }
 
 /**
@@ -474,7 +474,8 @@ void host::merge(configuration::hostextinfo const& tmpl) {
  */
 void host::merge(object const& obj) {
   if (obj.type() != _type)
-    throw engine_error() << "Cannot merge host with '" << obj.type() << "'";
+    throw msg_fmt("Cannot merge host with object of type '{}'",
+                  static_cast<uint32_t>(obj.type()));
   host const& tmpl(static_cast<host const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);
@@ -504,7 +505,6 @@ void host::merge(object const& obj) {
   MRG_DEFAULT(_host_name);
   MRG_DEFAULT(_icon_image);
   MRG_DEFAULT(_icon_image_alt);
-  MRG_OPTION(_initial_state);
   MRG_OPTION(_low_flap_threshold);
   MRG_OPTION(_max_check_attempts);
   MRG_DEFAULT(_notes);
@@ -543,7 +543,7 @@ bool host::parse(char const* key, char const* value) {
   if (it != _setters.end())
     return (it->second)(*this, value);
   if (key[0] == '_') {
-    map_customvar::iterator it(_customvariables.find(key + 1));
+    auto it = _customvariables.find(key + 1);
     if (it == _customvariables.end())
       _customvariables[key + 1] = customvariable(value);
     else
@@ -676,7 +676,8 @@ point_3d const& host::coords_3d() const noexcept {
  *
  *  @return The customvariables.
  */
-engine::map_customvar const& host::customvariables() const noexcept {
+const std::unordered_map<std::string, com::centreon::engine::customvariable>&
+host::customvariables() const noexcept {
   return _customvariables;
 }
 
@@ -685,7 +686,8 @@ engine::map_customvar const& host::customvariables() const noexcept {
  *
  *  @return The customvariables.
  */
-engine::map_customvar& host::customvariables() noexcept {
+std::unordered_map<std::string, com::centreon::engine::customvariable>&
+host::customvariables() noexcept {
   return _customvariables;
 }
 
@@ -1194,18 +1196,17 @@ bool host::_set_contacts(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool host::_set_coords_2d(std::string const& value) {
-  std::list<std::string> coords;
-  string::split(value, coords, ',');
+  std::list<std::string> coords = absl::StrSplit(value, ',');
   if (coords.size() != 2)
     return false;
 
   int x;
-  if (!string::to(string::trim(coords.front()).c_str(), x))
+  if (!absl::SimpleAtoi(coords.front(), &x))
     return false;
   coords.pop_front();
 
   int y;
-  if (!string::to(string::trim(coords.front()).c_str(), y))
+  if (!absl::SimpleAtoi(coords.front(), &y))
     return false;
 
   _coords_2d = point_2d(x, y);
@@ -1220,23 +1221,22 @@ bool host::_set_coords_2d(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool host::_set_coords_3d(std::string const& value) {
-  std::list<std::string> coords;
-  string::split(value, coords, ',');
+  std::list<std::string> coords = absl::StrSplit(value, ',');
   if (coords.size() != 3)
     return false;
 
   double x;
-  if (!string::to(string::trim(coords.front()).c_str(), x))
+  if (!absl::SimpleAtod(coords.front(), &x))
     return false;
   coords.pop_front();
 
   double y;
-  if (!string::to(string::trim(coords.front()).c_str(), y))
+  if (!absl::SimpleAtod(coords.front(), &y))
     return false;
   coords.pop_front();
 
   double z;
-  if (!string::to(string::trim(coords.front()).c_str(), z))
+  if (!absl::SimpleAtod(coords.front(), &z))
     return false;
 
   _coords_3d = point_3d(x, y, z);
@@ -1286,11 +1286,7 @@ bool host::_set_event_handler_enabled(bool value) {
  *
  *  @return True on success, otherwise false.
  */
-bool host::_set_failure_prediction_enabled(bool value) {
-  (void)value;
-  engine_logger(log_verification_error, basic)
-      << "Warning: host failure_prediction_enabled is deprecated"
-      << " This option will not be supported in 20.04.";
+bool host::_set_failure_prediction_enabled(bool value [[maybe_unused]]) {
   config_logger->warn(
       "Warning: host failure_prediction_enabled is deprecated This option will "
       "not be supported in 20.04.");
@@ -1305,11 +1301,8 @@ bool host::_set_failure_prediction_enabled(bool value) {
  *
  *  @return True on success, otherwise false.
  */
-bool host::_set_failure_prediction_options(std::string const& value) {
-  (void)value;
-  engine_logger(log_verification_error, basic)
-      << "Warning: service failure_prediction_options is deprecated"
-      << " This option will not be supported in 20.04.";
+bool host::_set_failure_prediction_options(std::string const& value
+                                           [[maybe_unused]]) {
   config_logger->warn(
       "Warning: service failure_prediction_options is deprecated This option "
       "will not be supported in 20.04.");
@@ -1350,20 +1343,18 @@ bool host::_set_flap_detection_enabled(bool value) {
  */
 bool host::_set_flap_detection_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "up")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "up")
       options |= up;
-    else if (*it == "d" || *it == "down")
+    else if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = up | down | unreachable;
     else
       return false;
@@ -1464,8 +1455,8 @@ bool host::_set_icon_image_alt(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool host::_set_initial_state(std::string const& value) {
-  std::string data(value);
-  string::trim(data);
+  std::string_view data(value);
+  data = absl::StripAsciiWhitespace(data);
   if (data == "o" || data == "up")
     _initial_state = engine::host::state_up;
   else if (data == "d" || data == "down")
@@ -1560,24 +1551,22 @@ bool host::_set_notification_interval(unsigned int value) {
  */
 bool host::_set_notification_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "d" || *it == "down")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "r" || *it == "recovery")
+    else if (v == "r" || v == "recovery")
       options |= up;
-    else if (*it == "f" || *it == "flapping")
+    else if (v == "f" || v == "flapping")
       options |= flapping;
-    else if (*it == "s" || *it == "downtime")
+    else if (v == "s" || v == "downtime")
       options |= downtime;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = down | unreachable | up | flapping | downtime;
     else
       return false;
@@ -1691,20 +1680,18 @@ bool host::_set_recovery_notification_delay(unsigned int value) {
  */
 bool host::_set_stalking_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "up")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "up")
       options |= up;
-    else if (*it == "d" || *it == "down")
+    else if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = up | down | unreachable;
     else
       return false;
