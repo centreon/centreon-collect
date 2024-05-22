@@ -32,70 +32,12 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
 /**
- *  Default constructor.
- */
-applier::command::command() {}
-
-/**
- *  Destructor.
- */
-applier::command::~command() throw() {}
-
-/**
- *  Add new command.
- *
- *  @param[in] obj  The new command to add into the monitoring engine.
- */
-void applier::command::add_object(configuration::command const& obj) {
-  // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new command '" << obj.command_name() << "'.";
-  config_logger->debug("Creating new command '{}'.", obj.command_name());
-
-  // Add command to the global configuration set.
-  config->commands().insert(obj);
-
-  if (obj.connector().empty()) {
-    std::shared_ptr<commands::raw> raw = std::make_shared<commands::raw>(
-        obj.command_name(), obj.command_line(), &checks::checker::instance());
-    commands::command::commands[raw->get_name()] = raw;
-  } else {
-    connector_map::iterator found_con{
-        commands::connector::connectors.find(obj.connector())};
-    if (found_con != commands::connector::connectors.end() &&
-        found_con->second) {
-      std::shared_ptr<commands::forward> forward{
-          std::make_shared<commands::forward>(
-              obj.command_name(), obj.command_line(), found_con->second)};
-      commands::command::commands[forward->get_name()] = forward;
-    } else
-      throw engine_error() << "Could not register command '"
-                           << obj.command_name() << "': unable to find '"
-                           << obj.connector() << "'";
-  }
-}
-
-/**
- *  @brief Expand command.
- *
- *  Command configuration objects do not need expansion. Therefore this
- *  method does nothing.
- *
- *  @param[in] s  Unused.
- */
-void applier::command::expand_objects(configuration::state& s) {
-  (void)s;
-}
-
-/**
  *  Modified command.
  *
  *  @param[in] obj The new command to modify into the monitoring engine.
  */
-void applier::command::modify_object(configuration::command const& obj) {
+void applier::command::modify_object(const configuration::command& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Modifying command '" << obj.command_name() << "'.";
   config_logger->debug("Modifying command '{}'.", obj.command_name());
 
   // Find old configuration.
@@ -149,14 +91,44 @@ void applier::command::modify_object(configuration::command const& obj) {
 }
 
 /**
+ *  Add new command.
+ *
+ *  @param[in] obj  The new command to add into the monitoring engine.
+ */
+void applier::command::add_object(configuration::command const& obj) {
+  // Logging.
+  config_logger->debug("Creating new command '{}'.", obj.command_name());
+
+  // Add command to the global configuration set.
+  config->commands().insert(obj);
+
+  if (obj.connector().empty()) {
+    std::shared_ptr<commands::raw> raw = std::make_shared<commands::raw>(
+        obj.command_name(), obj.command_line(), &checks::checker::instance());
+    commands::command::commands[raw->get_name()] = raw;
+  } else {
+    connector_map::iterator found_con{
+        commands::connector::connectors.find(obj.connector())};
+    if (found_con != commands::connector::connectors.end() &&
+        found_con->second) {
+      std::shared_ptr<commands::forward> forward{
+          std::make_shared<commands::forward>(
+              obj.command_name(), obj.command_line(), found_con->second)};
+      commands::command::commands[forward->get_name()] = forward;
+    } else
+      throw engine_error() << "Could not register command '"
+                           << obj.command_name() << "': unable to find '"
+                           << obj.connector() << "'";
+  }
+}
+
+/**
  *  Remove old command.
  *
  *  @param[in] obj The new command to remove from the monitoring engine.
  */
 void applier::command::remove_object(configuration::command const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing command '" << obj.command_name() << "'.";
   config_logger->debug("Removing command '{}'.", obj.command_name());
 
   // Find command.
@@ -179,6 +151,17 @@ void applier::command::remove_object(configuration::command const& obj) {
   // Remove command from the global configuration set.
   config->commands().erase(obj);
 }
+
+/**
+ *  @brief Expand command.
+ *
+ *  Command configuration objects do not need expansion. Therefore this
+ *  method does nothing.
+ *
+ *  @param[in] s  Unused.
+ */
+void applier::command::expand_objects(configuration::state& s
+                                      [[maybe_unused]]) {}
 
 /**
  *  @brief Resolve command.
