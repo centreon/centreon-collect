@@ -62,9 +62,6 @@ void applier::anomalydetection::add_object(
                          << obj.service_description() << "'";
 
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new anomalydetection '" << obj.service_description()
-      << "' of host '" << obj.host_name() << "'.";
   SPDLOG_LOGGER_DEBUG(config_logger,
                       "Creating new anomalydetection '{}' of host '{}'.",
                       obj.service_description(), obj.host_name());
@@ -203,9 +200,6 @@ void applier::anomalydetection::modify_object(
   std::string const& service_description(obj.service_description());
 
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Modifying new anomalydetection '" << service_description
-      << "' of host '" << host_name << "'.";
   SPDLOG_LOGGER_DEBUG(config_logger,
                       "Modifying new anomalydetection '{}' of host '{}'.",
                       service_description, host_name);
@@ -410,9 +404,6 @@ void applier::anomalydetection::remove_object(
 
   assert(obj.key().first);
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing anomalydetection '" << service_description << "' of host '"
-      << host_name << "'.";
   SPDLOG_LOGGER_DEBUG(config_logger,
                       "Removing anomalydetection '{}' of host '{}'.",
                       service_description, host_name);
@@ -460,9 +451,6 @@ void applier::anomalydetection::remove_object(
 void applier::anomalydetection::resolve_object(
     configuration::anomalydetection const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Resolving anomalydetection '" << obj.service_description()
-      << "' of host '" << obj.host_name() << "'.";
   SPDLOG_LOGGER_DEBUG(config_logger,
                       "Resolving anomalydetection '{}' of host '{}'.",
                       obj.service_description(), obj.host_name());

@@ -245,7 +245,6 @@ void applier::servicedependency::remove_object(
       engine::servicedependency::servicedependencies_find(obj.key()));
   if (it != engine::servicedependency::servicedependencies.end()) {
     // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
     broker_adaptive_dependency_data(NEBTYPE_SERVICEDEPENDENCY_DELETE,
                                     it->second.get());
 

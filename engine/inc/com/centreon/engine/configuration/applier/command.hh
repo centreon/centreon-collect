@@ -35,17 +35,22 @@ class state;
 namespace applier {
 class command {
  public:
-  command();
-  ~command() throw();
-  void add_object(configuration::command const& obj);
-  void expand_objects(configuration::state& s);
-  void modify_object(configuration::command const& obj);
-  void remove_object(configuration::command const& obj);
-  void resolve_object(configuration::command const& obj);
+  /**
+   * @brief Default constructor
+   */
+  command() = default;
 
- private:
-  command(command const& right);
-  command& operator=(command const& right);
+  /**
+   * @brief Destructor.
+   */
+  ~command() noexcept = default;
+  command(const command&) = delete;
+  command& operator=(const command&) = delete;
+  void add_object(const configuration::command& obj);
+  void modify_object(const configuration::command& obj);
+  void remove_object(const configuration::command& obj);
+  void expand_objects(configuration::state& s);
+  void resolve_object(const configuration::command& obj);
 };
 }  // namespace applier
 }  // namespace configuration

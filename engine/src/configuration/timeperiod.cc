@@ -21,7 +21,6 @@
 
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timerange.hh"
 
 using namespace com::centreon;
