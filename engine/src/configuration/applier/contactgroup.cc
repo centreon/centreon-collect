@@ -24,6 +24,7 @@
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;

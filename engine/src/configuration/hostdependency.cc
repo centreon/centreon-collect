@@ -20,6 +20,7 @@
 
 #include "com/centreon/engine/configuration/hostdependency.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;

@@ -25,6 +25,7 @@
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/severity.hh"
 
 using namespace com::centreon;
@@ -113,7 +114,7 @@ void applier::service::add_object(configuration::service const& obj) {
                        obj.service_description(), *obj.hosts().begin());
 
   // Add service to the global configuration set.
-  config->services().insert(obj);
+  config->mut_services().insert(obj);
 
   // Create service.
   engine::service* svc{add_service(
@@ -301,7 +302,7 @@ void applier::service::expand_objects(configuration::state& s) {
   }
 
   // Set expanded services in configuration state.
-  s.services().swap(expanded);
+  s.mut_services().swap(expanded);
 }
 
 /**
@@ -340,8 +341,8 @@ void applier::service::modify_object(configuration::service const& obj) {
 
   // Update the global configuration set.
   configuration::service obj_old(*it_cfg);
-  config->services().erase(it_cfg);
-  config->services().insert(obj);
+  config->mut_services().erase(it_cfg);
+  config->mut_services().insert(obj);
 
   // Modify properties.
   if (it_obj->second->get_hostname() != *obj.hosts().begin() ||
@@ -591,7 +592,7 @@ void applier::service::remove_object(configuration::service const& obj) {
   }
 
   // Remove service from the global configuration set.
-  config->services().erase(obj);
+  config->mut_services().erase(obj);
 }
 
 /**
