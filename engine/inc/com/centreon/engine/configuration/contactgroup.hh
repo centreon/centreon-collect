@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2013,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_CONTACTGROUP_HH
 #define CCE_CONFIGURATION_CONTACTGROUP_HH
@@ -24,31 +24,30 @@
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/opt.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::configuration {
 
-namespace configuration {
 class contactgroup : public object {
  public:
   typedef std::string key_type;
 
   contactgroup(key_type const& key = "");
   contactgroup(contactgroup const& right);
-  ~contactgroup() throw() override;
+  ~contactgroup() noexcept override;
   contactgroup& operator=(contactgroup const& right);
-  bool operator==(contactgroup const& right) const throw();
-  bool operator!=(contactgroup const& right) const throw();
-  bool operator<(contactgroup const& right) const throw();
+  bool operator==(contactgroup const& right) const noexcept;
+  bool operator!=(contactgroup const& right) const noexcept;
+  bool operator<(contactgroup const& right) const noexcept;
   void check_validity() const override;
-  key_type const& key() const throw();
+  key_type const& key() const noexcept;
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
 
-  std::string const& alias() const throw();
-  set_string& contactgroup_members() throw();
-  set_string const& contactgroup_members() const throw();
-  std::string const& contactgroup_name() const throw();
-  set_string& members() throw();
-  set_string const& members() const throw();
+  std::string const& alias() const noexcept;
+  set_string& contactgroup_members() noexcept;
+  set_string const& contactgroup_members() const noexcept;
+  std::string const& contactgroup_name() const noexcept;
+  set_string& members() noexcept;
+  set_string const& members() const noexcept;
 
  private:
   typedef bool (*setter_func)(contactgroup&, char const*);
@@ -67,8 +66,7 @@ class contactgroup : public object {
 
 typedef std::shared_ptr<contactgroup> contactgroup_ptr;
 typedef std::set<contactgroup> set_contactgroup;
-}  // namespace configuration
 
-}
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_CONTACTGROUP_HH

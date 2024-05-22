@@ -30,6 +30,8 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
+using com::centreon::common::log_v2::log_v2;
+
 /**
  *  Check if the contact group name matches the configuration object.
  */
@@ -48,37 +50,16 @@ class contactgroup_name_comparator {
 };
 
 /**
- *  Default constructor.
- */
-applier::contact::contact() {}
-
-/**
- *  Destructor.
- */
-applier::contact::~contact() throw() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-// applier::contact& applier::contact::operator=(
-//                                      applier::contact const& right) {
-//  (void)right;
-//  return *this;
-//}
-
-/**
  *  Add new contact.
  *
  *  @param[in] obj  The new contact to add into the monitoring engine.
  */
 void applier::contact::add_object(configuration::contact const& obj) {
+  // Make sure we have the data we need.
+  if (obj.contact_name().empty())
+    throw engine_error() << "Could not register contact with an empty name";
+
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new contact '" << obj.contact_name() << "'.";
   config_logger->debug("Creating new contact '{}'.", obj.contact_name());
 
   // Add contact to the global configuration set.
@@ -121,8 +102,8 @@ void applier::contact::add_object(configuration::contact const& obj) {
   engine::contact::contacts.insert({c->get_name(), c});
 
   // Add all custom variables.
-  for (map_customvar::const_iterator it(obj.customvariables().begin()),
-       end(obj.customvariables().end());
+  for (auto it = obj.customvariables().begin(),
+            end = obj.customvariables().end();
        it != end; ++it) {
     c->get_custom_variables()[it->first] = it->second;
 
@@ -136,64 +117,12 @@ void applier::contact::add_object(configuration::contact const& obj) {
 }
 
 /**
- *  @brief Expand a contact.
- *
- *  During expansion, the contact will be added to its contact groups.
- *  These will be modified in the state.
- *
- *  @param[in,out] s  Configuration state.
- */
-void applier::contact::expand_objects(configuration::state& s) {
-  // Browse all contacts.
-  for (configuration::set_contact::iterator it_contact(s.contacts().begin()),
-       end_contact(s.contacts().end());
-       it_contact != end_contact; ++it_contact) {
-    // Should custom variables be sent to broker ?
-    map_customvar& mcv(
-        const_cast<map_customvar&>(it_contact->customvariables()));
-    for (map_customvar::iterator it{mcv.begin()}, end{mcv.end()}; it != end;
-         ++it) {
-      if (!s.enable_macros_filter() ||
-          s.macros_filter().find(it->first) != s.macros_filter().end()) {
-        it->second.set_sent(true);
-      }
-    }
-
-    // Browse current contact's groups.
-    for (set_string::const_iterator
-             it_group(it_contact->contactgroups().begin()),
-         end_group(it_contact->contactgroups().end());
-         it_group != end_group; ++it_group) {
-      // Find contact group.
-      configuration::set_contactgroup::iterator group(
-          s.contactgroups_find(*it_group));
-      if (group == s.contactgroups().end())
-        throw(engine_error()
-              << "Could not add contact '" << it_contact->contact_name()
-              << "' to non-existing contact group '" << *it_group << "'");
-
-      // Remove contact group from state.
-      configuration::contactgroup backup(*group);
-      s.contactgroups().erase(group);
-
-      // Add contact to group members.
-      backup.members().insert(it_contact->contact_name());
-
-      // Reinsert contact group.
-      s.contactgroups().insert(backup);
-    }
-  }
-}
-
-/**
  *  Modified contact.
  *
  *  @param[in] obj  The new contact to modify into the monitoring engine.
  */
 void applier::contact::modify_object(configuration::contact const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Modifying contact '" << obj.contact_name() << "'.";
   config_logger->debug("Modifying contact '{}'.", obj.contact_name());
 
   // Find old configuration.
@@ -354,8 +283,6 @@ void applier::contact::modify_object(configuration::contact const& obj) {
  */
 void applier::contact::remove_object(configuration::contact const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing contact '" << obj.contact_name() << "'.";
   config_logger->debug("Removing contact '{}'.", obj.contact_name());
 
   // Find contact.
@@ -382,14 +309,61 @@ void applier::contact::remove_object(configuration::contact const& obj) {
 }
 
 /**
+ *  @brief Expand a contact.
+ *
+ *  During expansion, the contact will be added to its contact groups.
+ *  These will be modified in the state.
+ *
+ *  @param[in,out] s  Configuration state.
+ */
+void applier::contact::expand_objects(configuration::state& s) {
+  // Browse all contacts.
+  configuration::set_contact new_contacts;
+  // We loop on s.contacts() but we make a copy of each element because the
+  // container is a set and changing its element has an impact on the order
+  // they are stored. So we copy each element, modify them and move the result
+  // to a new set.
+  for (auto contact : s.contacts()) {
+    // Should custom variables be sent to broker ?
+    auto& mcv = contact.mutable_customvariables();
+    for (auto& cv : mcv) {
+      if (!s.enable_macros_filter() ||
+          s.macros_filter().find(cv.first) != s.macros_filter().end()) {
+        cv.second.set_sent(true);
+      }
+    }
+
+    // Browse current contact's groups.
+    for (auto& g : contact.contactgroups()) {
+      // Find contact group.
+      configuration::set_contactgroup::iterator group(s.contactgroups_find(g));
+      if (group == s.contactgroups().end())
+        throw(engine_error()
+              << "Could not add contact '" << contact.contact_name()
+              << "' to non-existing contact group '" << g << "'");
+
+      // Remove contact group from state.
+      configuration::contactgroup backup(*group);
+      s.contactgroups().erase(group);
+
+      // Add contact to group members.
+      backup.members().insert(contact.contact_name());
+
+      // Reinsert contact group.
+      s.contactgroups().insert(backup);
+    }
+    new_contacts.insert(std::move(contact));
+  }
+  s.contacts() = new_contacts;
+}
+
+/**
  *  Resolve a contact.
  *
  *  @param[in,out] obj  Object to resolve.
  */
-void applier::contact::resolve_object(configuration::contact const& obj) {
+void applier::contact::resolve_object(const configuration::contact& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Resolving contact '" << obj.contact_name() << "'.";
   config_logger->debug("Resolving contact '{}'.", obj.contact_name());
 
   // Find contact.

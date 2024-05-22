@@ -1,24 +1,24 @@
 /**
-* Copyright 2011-2013,2017 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/contactgroup.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
@@ -54,7 +54,7 @@ contactgroup::contactgroup(contactgroup const& right) : object(right) {
 /**
  *  Destructor.
  */
-contactgroup::~contactgroup() throw() {}
+contactgroup::~contactgroup() noexcept {}
 
 /**
  *  Copy constructor.
@@ -71,7 +71,7 @@ contactgroup& contactgroup::operator=(contactgroup const& right) {
     _contactgroup_name = right._contactgroup_name;
     _members = right._members;
   }
-  return (*this);
+  return *this;
 }
 
 /**
@@ -123,9 +123,8 @@ bool contactgroup::operator<(contactgroup const& right) const throw() {
  */
 void contactgroup::check_validity() const {
   if (_contactgroup_name.empty())
-    throw(engine_error() << "Contact group has no name "
-                            "(property 'contactgroup_name')");
-  return;
+    throw exceptions::msg_fmt(
+        "Contact group has no name (property 'contactgroup_name')");
 }
 
 /**
@@ -144,8 +143,9 @@ contactgroup::key_type const& contactgroup::key() const throw() {
  */
 void contactgroup::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge contact group with '" << obj.type()
-                         << "'");
+    throw exceptions::msg_fmt(
+        "Cannot merge contact group with object of type '{}'",
+        static_cast<uint32_t>(obj.type()));
   contactgroup const& tmpl(static_cast<contactgroup const&>(obj));
 
   MRG_DEFAULT(_alias);
@@ -176,7 +176,7 @@ bool contactgroup::parse(char const* key, char const* value) {
  *  @return The alias.
  */
 std::string const& contactgroup::alias() const throw() {
-  return (_alias);
+  return _alias;
 }
 
 /**
@@ -233,7 +233,7 @@ set_string const& contactgroup::members() const throw() {
  */
 bool contactgroup::_set_alias(std::string const& value) {
   _alias = value;
-  return (true);
+  return true;
 }
 
 /**
@@ -245,7 +245,7 @@ bool contactgroup::_set_alias(std::string const& value) {
  */
 bool contactgroup::_set_contactgroup_members(std::string const& value) {
   _contactgroup_members = value;
-  return (true);
+  return true;
 }
 
 /**

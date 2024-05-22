@@ -1,26 +1,25 @@
 /**
-* Copyright 2011-2013,2015,2018,2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2015,2018,2019 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/applier/globals.hh"
 
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
@@ -90,21 +89,16 @@ void applier::globals::clear() {
   delete[] ::ocsp_command;
   delete[] ::use_timezone;
 
-  ::debug_file = NULL;
-  ::global_host_event_handler = NULL;
-  ::global_service_event_handler = NULL;
-  ::illegal_object_chars = NULL;
-  ::illegal_output_chars = NULL;
-  ::log_file = NULL;
-  ::ochp_command = NULL;
-  ::ocsp_command = NULL;
-  ::use_timezone = NULL;
+  ::debug_file = nullptr;
+  ::global_host_event_handler = nullptr;
+  ::global_service_event_handler = nullptr;
+  ::illegal_object_chars = nullptr;
+  ::illegal_output_chars = nullptr;
+  ::log_file = nullptr;
+  ::ochp_command = nullptr;
+  ::ocsp_command = nullptr;
+  ::use_timezone = nullptr;
 }
-
-/**
- *  Default constructor.
- */
-applier::globals::globals() {}
 
 /**
  *  Destructor.
