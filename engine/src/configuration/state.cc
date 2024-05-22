@@ -36,13 +36,37 @@ struct setter : public setter_base {
   bool apply_from_cfg(state& obj, char const* value) override {
     try {
       U val(0);
-      if (!string::to(value, val))
-        return false;
-      (obj.*ptr)(val);
-    } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(config_logger, "fail to update {} with value {}: {}",
-                          setter_base::_field_name, value, e.what());
-      return false;
+      if constexpr (std::is_same_v<U, bool>) {
+        if (!absl::SimpleAtob(value, &val))
+          return false;
+        (obj.*ptr)(val);
+      } else if constexpr (std::is_same_v<U, uint16_t>) {
+        uint32_t v;
+        if (!absl::SimpleAtoi(value, &v))
+          return false;
+        if (v > 0xffffu)
+          return false;
+        else
+          val = v;
+        (obj.*ptr)(val);
+      } else if constexpr (std::is_integral<U>::value) {
+        if (!absl::SimpleAtoi(value, &val))
+          return false;
+        (obj.*ptr)(val);
+      } else if constexpr (std::is_same_v<U, float>) {
+        if (!absl::SimpleAtof(value, &val))
+          return false;
+        (obj.*ptr)(val);
+      } else if constexpr (std::is_same_v<U, double>) {
+        if (!absl::SimpleAtod(value, &val))
+          return false;
+        (obj.*ptr)(val);
+      } else {
+        static_assert(std::is_integral_v<U> || std::is_floating_point_v<U> ||
+                      std::is_same_v<U, bool>);
+      }
+    } catch (const std::exception& e) {
+      engine_logger(logging::log_config_error, logging::basic) << e.what();
     }
     return true;
   }
@@ -4486,7 +4510,7 @@ void state::_set_host_inter_check_delay_method(std::string const& value) {
     _host_inter_check_delay_method = icd_smart;
   else {
     _host_inter_check_delay_method = icd_user;
-    if (!string::to(value.c_str(), scheduling_info.host_inter_check_delay) ||
+    if (!absl::SimpleAtod(value, &scheduling_info.host_inter_check_delay) ||
         scheduling_info.host_inter_check_delay <= 0.0)
       throw exceptions::msg_fmt(
           "Invalid value for host_inter_check_delay_method, must be one of 'n' "
@@ -4665,7 +4689,7 @@ void state::_set_service_inter_check_delay_method(std::string const& value) {
     _service_inter_check_delay_method = icd_smart;
   else {
     _service_inter_check_delay_method = icd_user;
-    if (!string::to(value.c_str(), scheduling_info.service_inter_check_delay) ||
+    if (!absl::SimpleAtod(value, &scheduling_info.service_inter_check_delay) ||
         scheduling_info.service_inter_check_delay <= 0.0)
       throw exceptions::msg_fmt(
           "Invalid value for service_inter_check_delay_method, must be one of "
@@ -4685,7 +4709,7 @@ void state::_set_service_interleave_factor_method(std::string const& value) {
     _service_interleave_factor_method = ilf_smart;
   else {
     _service_interleave_factor_method = ilf_user;
-    if (!string::to(value.c_str(), scheduling_info.service_interleave_factor) ||
+    if (!absl::SimpleAtoi(value, &scheduling_info.service_interleave_factor) ||
         scheduling_info.service_interleave_factor < 1)
       scheduling_info.service_interleave_factor = 1;
   }
