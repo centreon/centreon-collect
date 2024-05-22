@@ -24,42 +24,9 @@
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
-
-/**
- *  Default constructor.
- */
-applier::contactgroup::contactgroup() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-applier::contactgroup::contactgroup(applier::contactgroup const& right) {
-  (void)right;
-}
-
-/**
- *  Destructor.
- */
-applier::contactgroup::~contactgroup() throw() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-applier::contactgroup& applier::contactgroup::operator=(
-    applier::contactgroup const& right) {
-  (void)right;
-  return (*this);
-}
 
 /**
  *  Add new contactgroup
@@ -70,8 +37,6 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
   std::string const& name(obj.contactgroup_name());
 
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new contactgroup '" << name << "'.";
   config_logger->debug("Creating new contactgroup '{}'.", name);
 
   if (engine::contactgroup::contactgroups.find(name) !=
@@ -89,9 +54,6 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
        it != end; ++it) {
     contact_map::iterator ct_it{engine::contact::contacts.find(*it)};
     if (ct_it == engine::contact::contacts.end()) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Contact '" << *it << "' specified in contact group '"
-          << cg->get_name() << "' is not defined anywhere!";
       config_logger->error(
           "Error: Contact '{}' specified in contact group '{}' is not defined "
           "anywhere!",
@@ -108,36 +70,14 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
 }
 
 /**
- *  Expand all contactgroups.
- *
- *  @param[in,out] s  State being applied.
- */
-void applier::contactgroup::expand_objects(configuration::state& s) {
-  // Resolve groups.
-  _resolved.clear();
-  for (configuration::set_contactgroup::iterator it(s.contactgroups().begin()),
-       end(s.contactgroups().end());
-       it != end; ++it)
-    _resolve_members(s, *it);
-
-  // Save resolved groups in the configuration set.
-  s.contactgroups().clear();
-  for (resolved_set::const_iterator it(_resolved.begin()), end(_resolved.end());
-       it != end; ++it)
-    s.contactgroups().insert(it->second);
-}
-
-/**
  *  Modified contactgroup.
  *
  *  @param[in] obj  The new contactgroup to modify into the monitoring
  *                  engine.
  */
 void applier::contactgroup::modify_object(
-    configuration::contactgroup const& obj) {
+    const configuration::contactgroup& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Modifying contactgroup '" << obj.contactgroup_name() << "'";
   config_logger->debug("Modifying contactgroup '{}'", obj.contactgroup_name());
 
   // Find old configuration.
@@ -173,9 +113,6 @@ void applier::contactgroup::modify_object(
          it != end; ++it) {
       contact_map::const_iterator ct_it{engine::contact::contacts.find(*it)};
       if (ct_it == engine::contact::contacts.end()) {
-        engine_logger(log_verification_error, basic)
-            << "Error: Contact '" << *it << "' specified in contact group '"
-            << it_obj->second->get_name() << "' is not defined anywhere!";
         config_logger->error(
             "Error: Contact '{}' specified in contact group '{}' is not "
             "defined anywhere!",
@@ -201,10 +138,8 @@ void applier::contactgroup::modify_object(
  *                  engine.
  */
 void applier::contactgroup::remove_object(
-    configuration::contactgroup const& obj) {
+    const configuration::contactgroup& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing contactgroup '" << obj.contactgroup_name() << "'";
   config_logger->debug("Removing contactgroup '{}'", obj.contactgroup_name());
 
   // Find contact group.
@@ -226,6 +161,26 @@ void applier::contactgroup::remove_object(
 }
 
 /**
+ *  Expand all contactgroups.
+ *
+ *  @param[in,out] s  State being applied.
+ */
+void applier::contactgroup::expand_objects(configuration::state& s) {
+  // Resolve groups.
+  _resolved.clear();
+  for (configuration::set_contactgroup::iterator it(s.contactgroups().begin()),
+       end(s.contactgroups().end());
+       it != end; ++it)
+    _resolve_members(s, *it);
+
+  // Save resolved groups in the configuration set.
+  s.contactgroups().clear();
+  for (resolved_set::const_iterator it(_resolved.begin()), end(_resolved.end());
+       it != end; ++it)
+    s.contactgroups().insert(it->second);
+}
+
+/**
  *  Resolve a contact group.
  *
  *  @param[in] obj  Contact group object.
@@ -233,8 +188,6 @@ void applier::contactgroup::remove_object(
 void applier::contactgroup::resolve_object(
     configuration::contactgroup const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Resolving contact group '" << obj.contactgroup_name() << "'";
   config_logger->debug("Resolving contact group '{}'", obj.contactgroup_name());
 
   // Find contact group.
@@ -260,9 +213,6 @@ void applier::contactgroup::_resolve_members(
   // Only process if contactgroup has not been resolved already.
   if (_resolved.find(obj.key()) == _resolved.end()) {
     // Logging.
-    engine_logger(logging::dbg_config, logging::more)
-        << "Resolving members of contact group '" << obj.contactgroup_name()
-        << "'";
     config_logger->debug("Resolving members of contact group '{}'",
                          obj.contactgroup_name());
 
