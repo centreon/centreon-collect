@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2015 Merethis
-** Copyright 2016-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2015 Merethis
+ * Copyright 2016-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCE_CONFIGURATION_OBJECT_HH
 #define CCE_CONFIGURATION_OBJECT_HH
@@ -60,7 +60,7 @@ class object {
   virtual void check_validity() const = 0;
   static std::shared_ptr<object> create(std::string const& type_name);
   virtual void merge(object const& obj) = 0;
-  std::string const& name() const noexcept;
+  const std::string& name() const noexcept;
   virtual bool parse(char const* key, char const* value);
   virtual bool parse(std::string const& line);
   void resolve_template(
@@ -72,24 +72,43 @@ class object {
  protected:
   struct setters {
     char const* name;
-    bool (*func)(object&, char const*);
+    bool (*func)(object&, const char*);
   };
 
   template <typename T, typename U, bool (T::*ptr)(U)>
   struct setter {
-    static bool generic(T& obj, char const* value) {
+    static bool generic(T& obj, const char* value) {
       U val(0);
-      if (!string::to(value, val))
-        return (false);
-      return ((obj.*ptr)(val));
+      if constexpr (std::is_same_v<U, bool>) {
+        if (absl::SimpleAtob(value, &val))
+          return (obj.*ptr)(val);
+        else
+          return false;
+      } else if constexpr (std::is_integral<U>::value) {
+        if (absl::SimpleAtoi(value, &val))
+          return (obj.*ptr)(val);
+        else
+          return false;
+      } else if constexpr (std::is_same_v<U, float>) {
+        if (absl::SimpleAtof(value, &val))
+          return (obj.*ptr)(val);
+        else
+          return false;
+      } else if constexpr (std::is_same_v<U, double>) {
+        if (absl::SimpleAtod(value, &val))
+          return (obj.*ptr)(val);
+        else
+          return false;
+      } else {
+        static_assert(std::is_integral_v<U> || std::is_floating_point_v<U> ||
+                      std::is_same_v<U, bool>);
+      }
     }
   };
 
   template <typename T, bool (T::*ptr)(std::string const&)>
   struct setter<T, std::string const&, ptr> {
-    static bool generic(T& obj, char const* value) {
-      return ((obj.*ptr)(value));
-    }
+    static bool generic(T& obj, const char* value) { return (obj.*ptr)(value); }
   };
 
   bool _set_name(std::string const& value);
@@ -109,7 +128,7 @@ typedef std::list<object_ptr> list_object;
 typedef std::unordered_map<std::string, object_ptr> map_object;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #define MRG_TAB(prop)                                       \
   do {                                                      \
