@@ -201,12 +201,6 @@ io::endpoint* factory::new_endpoint(
   if (it != cfg.params.end() && !strcasecmp(it->second.c_str(), "yes"))
     compression = true;
 
-  grpc_config::compression_active enable_compression;
-  if (cfg.get_io_type() == config::endpoint::output)
-    enable_compression = compression ? grpc_config::YES : grpc_config::NO;
-  else
-    enable_compression = grpc_config::AUTO;
-
   // keepalive conf
   int keepalive_interval = 30;
   it = cfg.params.find("keepalive_interval");
@@ -232,7 +226,7 @@ io::endpoint* factory::new_endpoint(
 
   grpc_config::pointer conf(std::make_shared<grpc_config>(
       hostport, encrypted, certificate, certificate_key, certificate_authority,
-      authorization, ca_name, enable_compression, keepalive_interval,
+      authorization, ca_name, compression, keepalive_interval,
       direct_grpc_serialized(cfg)));
 
   std::unique_ptr<io::endpoint> endp;
@@ -411,12 +405,6 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
           it->second);
   }
 
-  grpc_config::compression_active enable_compression;
-  if (cfg.get_io_type() == config::endpoint::output)
-    enable_compression = compression ? grpc_config::YES : grpc_config::NO;
-  else
-    enable_compression = grpc_config::AUTO;
-
   bool enable_retention = false;
   it = cfg.params.find("retention");
   if (it != cfg.params.end()) {
@@ -450,7 +438,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
 
   grpc_config::pointer conf(std::make_shared<grpc_config>(
       hostport, encryption, certificate, private_key, ca_certificate,
-      authorization, ca_name, enable_compression, keepalive_interval,
+      authorization, ca_name, compression, keepalive_interval,
       direct_grpc_serialized(cfg)));
 
   // Acceptor.

@@ -506,6 +506,7 @@ target_link_libraries(enginelog spdlog::spdlog)
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
 add_dependencies(cce_core engine_rpc)
 add_dependencies(cce_core centreon_clib)
+add_dependencies(cce_core pb_neb_lib)
 
 target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 

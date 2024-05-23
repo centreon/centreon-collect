@@ -65,6 +65,7 @@ set_property(TARGET centreon_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(centreon_common PRIVATE precomp_inc/precomp.hh)
 
 add_subdirectory(http)
+add_subdirectory(grpc)
 
 if(WITH_TESTING)
   add_subdirectory(test)

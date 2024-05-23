@@ -44,6 +44,7 @@ include_directories(${PROJECT_SOURCE_DIR}/tls2/inc)
 include_directories(${PROJECT_SOURCE_DIR}/grpc/inc)
 include_directories(${PROJECT_SOURCE_DIR}/grpc/src)
 include_directories(${CMAKE_SOURCE_DIR}/common/http/inc)
+include_directories(${CMAKE_SOURCE_DIR}/common/grpc/inc)
 include_directories(${PROJECT_SOURCE_DIR}/http_tsdb/inc)
 include_directories(${PROJECT_SOURCE_DIR}/victoria_metrics/inc)
 include_directories(${PROJECT_SOURCE_DIR}/test/test_util/inc)
@@ -141,6 +142,7 @@ target_link_libraries(
   ${TESTS_LIBRARIES}
   conflictmgr
   centreon_common
+  centreon_grpc
   stdc++fs
   nlohmann_json::nlohmann_json
   fmt::fmt
