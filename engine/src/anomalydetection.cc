@@ -1095,8 +1095,6 @@ bool anomalydetection::parse_perfdata(std::string const& perfdata,
   /* We should master this string, so no need to check if it is utf-8 */
   calculated_result.set_output(oss.str());
 
-  timestamp now(timestamp::now());
-
   // Update check result.
   timeval tv;
   gettimeofday(&tv, nullptr);

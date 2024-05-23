@@ -1688,7 +1688,7 @@ TEST_F(EngineRpc, ChangeHostObjectCustomVar) {
   th->join();
 
   ASSERT_EQ(_host->custom_variables.size(), 1u);
-  ASSERT_EQ(_host->custom_variables["TEST_VAR"].get_value(), "test_val");
+  ASSERT_EQ(_host->custom_variables["TEST_VAR"].value(), "test_val");
   _host->custom_variables.clear();
   ASSERT_EQ(_host->custom_variables.size(), 0u);
   erpc.shutdown();
@@ -1715,7 +1715,7 @@ TEST_F(EngineRpc, ChangeServiceObjectCustomVar) {
   th->join();
 
   ASSERT_EQ(_svc->custom_variables.size(), 1u);
-  ASSERT_EQ(_svc->custom_variables["TEST_VAR"].get_value(), "test_val");
+  ASSERT_EQ(_svc->custom_variables["TEST_VAR"].value(), "test_val");
   _svc->custom_variables.clear();
   ASSERT_EQ(_svc->custom_variables.size(), 0u);
   erpc.shutdown();
@@ -1740,8 +1740,7 @@ TEST_F(EngineRpc, ChangeContactObjectCustomVar) {
   condvar.notify_one();
   th->join();
   ASSERT_EQ(_contact->get_custom_variables().size(), 1u);
-  ASSERT_EQ(_contact->get_custom_variables()["TEST_VAR"].get_value(),
-            "test_val");
+  ASSERT_EQ(_contact->get_custom_variables()["TEST_VAR"].value(), "test_val");
 
   erpc.shutdown();
 }

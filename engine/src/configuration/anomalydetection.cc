@@ -1012,8 +1012,8 @@ bool anomalydetection::contacts_defined() const noexcept {
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar const& anomalydetection::customvariables()
-    const noexcept {
+const std::unordered_map<std::string, customvariable>&
+anomalydetection::customvariables() const noexcept {
   return _customvariables;
 }
 
@@ -1022,7 +1022,7 @@ com::centreon::engine::map_customvar const& anomalydetection::customvariables()
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar&
+std::unordered_map<std::string, customvariable>&
 anomalydetection::customvariables() noexcept {
   return _customvariables;
 }

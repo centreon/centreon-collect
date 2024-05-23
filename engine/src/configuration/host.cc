@@ -658,8 +658,8 @@ point_3d const& host::coords_3d() const noexcept {
  *
  *  @return The customvariables.
  */
-const std::unordered_map<std::string, com::centreon::engine::customvariable>&
-host::customvariables() const noexcept {
+const std::unordered_map<std::string, customvariable>& host::customvariables()
+    const noexcept {
   return _customvariables;
 }
 
@@ -668,8 +668,8 @@ host::customvariables() const noexcept {
  *
  *  @return The customvariables.
  */
-std::unordered_map<std::string, com::centreon::engine::customvariable>&
-host::customvariables() noexcept {
+std::unordered_map<std::string, customvariable>&
+host::mut_customvariables() noexcept {
   return _customvariables;
 }
 

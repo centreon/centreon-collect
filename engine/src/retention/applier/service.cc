@@ -264,7 +264,7 @@ void applier::service::update(configuration::state const& config,
       for (map_customvar::const_iterator it(state.customvariables().begin()),
            end(state.customvariables().end());
            it != end; ++it)
-        obj.custom_variables[it->first].update(it->second.get_value());
+        obj.custom_variables[it->first].update(it->second.value());
     }
   }
   // Adjust modified attributes if necessary.

@@ -937,7 +937,7 @@ bool service::contacts_defined() const noexcept {
  *
  *  @return The customvariables.
  */
-const std::unordered_map<std::string, com::centreon::engine::customvariable>&
+const std::unordered_map<std::string, customvariable>&
 service::customvariables() const noexcept {
   return _customvariables;
 }
@@ -947,8 +947,8 @@ service::customvariables() const noexcept {
  *
  *  @return The customvariables.
  */
-std::unordered_map<std::string, com::centreon::engine::customvariable>&
-service::customvariables() noexcept {
+std::unordered_map<std::string, customvariable>&
+service::mut_customvariables() noexcept {
   return _customvariables;
 }
 

@@ -43,7 +43,7 @@ class customvariable {
   void set_sent(bool sent);
   bool is_sent() const;
   void set_value(std::string const& value);
-  std::string const& get_value() const;
+  const std::string& value() const;
   bool has_been_modified() const;
   void update(std::string const& value);
 
@@ -55,6 +55,6 @@ class customvariable {
 
 typedef std::unordered_map<std::string, customvariable> map_customvar;
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_OBJECTS_CUSTOMVARIABLE_HH

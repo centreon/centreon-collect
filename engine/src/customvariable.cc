@@ -83,7 +83,7 @@ bool customvariable::is_sent() const {
  *
  * @return The value of the customvariable
  */
-std::string const& customvariable::get_value() const {
+const std::string& customvariable::value() const {
   return _value;
 }
 

@@ -21,11 +21,11 @@
 #define CCE_CONFIGURATION_HOST_HH
 
 #include "com/centreon/engine/common.hh"
+#include "com/centreon/engine/configuration/customvariable.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/configuration/point_2d.hh"
 #include "com/centreon/engine/configuration/point_3d.hh"
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/opt.hh"
 
 namespace com::centreon::engine {
@@ -70,7 +70,8 @@ class host : public object {
   point_3d const& coords_3d() const noexcept;
   const std::unordered_map<std::string, customvariable>& customvariables()
       const noexcept;
-  std::unordered_map<std::string, customvariable>& customvariables() noexcept;
+  std::unordered_map<std::string, customvariable>&
+  mut_customvariables() noexcept;
   std::string const& display_name() const noexcept;
   std::string const& event_handler() const noexcept;
   bool event_handler_enabled() const noexcept;
