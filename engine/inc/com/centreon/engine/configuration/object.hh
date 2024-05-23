@@ -38,12 +38,12 @@ class object {
     host = 4,
     hostdependency = 5,
     hostescalation = 6,
-    hostextinfo = 7,
+    hostextinfo = 7,  // no more used.
     hostgroup = 8,
     service = 9,
     servicedependency = 10,
     serviceescalation = 11,
-    serviceextinfo = 12,
+    serviceextinfo = 12,  // no more used.
     servicegroup = 13,
     timeperiod = 14,
     anomalydetection = 15,
