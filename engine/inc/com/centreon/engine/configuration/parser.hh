@@ -61,8 +61,8 @@ class parser {
   };
 
   parser(unsigned int read_options = read_all);
-  ~parser() throw();
-  void parse(std::string const& path, state& config);
+  ~parser() noexcept = default;
+  void parse(const std::string& path, state& config);
 
  private:
   typedef void (parser::*store)(object_ptr obj);
@@ -88,10 +88,10 @@ class parser {
   static void _insert(map_object const& from, std::set<T>& to);
   std::string const& _map_object_type(map_object const& objects) const throw();
   void _parse_directory_configuration(std::string const& path);
-  void _parse_global_configuration(std::string const& path);
-  void _parse_object_definitions(std::string const& path);
+  void _parse_object_definitions(const std::string& path);
   void _parse_resource_file(std::string const& path);
   void _resolve_template();
+  void _parse_global_configuration(std::string const& path);
   void _store_into_list(object_ptr obj);
   template <typename T, std::string const& (T::*ptr)() const throw()>
   void _store_into_map(object_ptr obj);
