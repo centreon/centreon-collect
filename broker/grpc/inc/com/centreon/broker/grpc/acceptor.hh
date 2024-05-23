@@ -20,6 +20,7 @@
 #define CCB_GRPC_ACCEPTOR_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
+#include "com/centreon/common/grpc/grpc_server.hh"
 #include "grpc_config.hh"
 
 namespace com::centreon::broker::grpc {
@@ -60,9 +61,9 @@ class service_impl
   void unregister(const std::shared_ptr<io::stream>& to_unregister);
 };
 
-class acceptor : public io::endpoint {
+class acceptor : public io::endpoint,
+                 public com::centreon::common::grpc::grpc_server_base {
   std::shared_ptr<service_impl> _service;
-  std::unique_ptr<::grpc::Server> _server;
 
  public:
   acceptor(const grpc_config::pointer& conf);
