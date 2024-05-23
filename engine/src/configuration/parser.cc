@@ -81,7 +81,7 @@ static bool get_next_line(std::ifstream& stream,
  *             (use to skip some object type).
  */
 parser::parser(unsigned int read_options)
-    : _config(NULL), _read_options(read_options) {}
+    : _config(nullptr), _read_options(read_options) {}
 
 /**
  *  Parse the object definition file.
@@ -511,9 +511,8 @@ void parser::_store_into_map(object_ptr obj) {
   std::shared_ptr<T> real(std::static_pointer_cast<T>(obj));
   map_object::iterator it(_map_objects[obj->type()].find((real.get()->*ptr)()));
   if (it != _map_objects[obj->type()].end())
-    throw engine_error() << "Parsing of " << obj->type_name() << " failed "
-                         << _get_file_info(obj.get()) << ": " << obj->name()
-                         << " alrealdy exists";
+    throw error("Parsing of {} failed {}: {} already exists", obj->type_name(),
+                _get_file_info(obj.get()), obj->name());
   _map_objects[obj->type()][(real.get()->*ptr)()] = real;
 }
 
@@ -528,78 +527,4 @@ void parser::_apply(std::list<std::string> const& lst,
   for (std::list<std::string>::const_iterator it(lst.begin()), end(lst.end());
        it != end; ++it)
     (this->*pfunc)(*it);
-}
-
-/**
- *  Apply the host extended info.
- *
- *  @warning This function is for compatibility and has very
- *           poor performance. Didn't use extended info. If you
- *           want to use the generic template system.
- */
-void parser::_apply_hostextinfo() {
-  map_object& gl_hosts(_map_objects[object::host]);
-  list_object const& hostextinfos(_lst_objects[object::hostextinfo]);
-  for (list_object::const_iterator it(hostextinfos.begin()),
-       end(hostextinfos.end());
-       it != end; ++it) {
-    // Get the current hostextinfo to check.
-    hostextinfo_ptr obj(std::static_pointer_cast<hostextinfo>(*it));
-
-    list_host hosts;
-    _get_objects_by_list_name(obj->hosts(), gl_hosts, hosts);
-    _get_hosts_by_hostgroups_name(obj->hostgroups(), hosts);
-
-    for (list_host::iterator it(hosts.begin()), end(hosts.end()); it != end;
-         ++it)
-      it->merge(*obj);
-  }
-}
-
-/**
- *  Apply the service extended info.
- *
- *  @warning This function is for compatibility and has very
- *           poor performance. Didn't use extended info. If you
- *           want to use the generic template system.
- */
-void parser::_apply_serviceextinfo() {
-  map_object& gl_hosts(_map_objects[object::host]);
-  list_object& gl_services(_lst_objects[object::service]);
-  list_object const& serviceextinfos(_lst_objects[object::serviceextinfo]);
-  for (list_object::const_iterator it(serviceextinfos.begin()),
-       end(serviceextinfos.end());
-       it != end; ++it) {
-    // Get the current serviceextinfo to check.
-    serviceextinfo_ptr obj(std::static_pointer_cast<serviceextinfo>(*it));
-
-    list_host hosts;
-    _get_objects_by_list_name(obj->hosts(), gl_hosts, hosts);
-    _get_hosts_by_hostgroups_name(obj->hostgroups(), hosts);
-
-    for (list_object::iterator it(gl_services.begin()), end(gl_services.end());
-         it != end; ++it) {
-      service_ptr svc(std::static_pointer_cast<service>(*it));
-      if (svc->service_description() != obj->service_description())
-        continue;
-
-      list_host svc_hosts;
-      _get_objects_by_list_name(svc->hosts(), gl_hosts, svc_hosts);
-      _get_hosts_by_hostgroups_name(svc->hostgroups(), svc_hosts);
-
-      bool found(false);
-      for (list_host::const_iterator it_host(hosts.begin()),
-           end_host(hosts.end());
-           !found && it_host != end_host; ++it_host) {
-        for (list_host::const_iterator it_svc_host(svc_hosts.begin()),
-             end_svc_host(svc_hosts.end());
-             it_svc_host != end_svc_host; ++it_svc_host) {
-          if (it_host->host_name() == it_svc_host->host_name()) {
-            svc->merge(*obj);
-            found = true;
-          }
-        }
-      }
-    }
-  }
 }

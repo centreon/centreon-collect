@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2013,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_PARSER_HH
 #define CCE_CONFIGURATION_PARSER_HH
@@ -48,13 +48,11 @@ class parser {
     read_host = (1 << 4),
     read_hostdependency = (1 << 5),
     read_hostescalation = (1 << 6),
-    read_hostextinfo = (1 << 7),
     read_hostgroup = (1 << 8),
     read_hostgroupescalation = (1 << 9),
     read_service = (1 << 10),
     read_servicedependency = (1 << 11),
     read_serviceescalation = (1 << 12),
-    read_serviceextinfo = (1 << 13),
     read_servicegroup = (1 << 14),
     read_timeperiod = (1 << 15),
     read_all = (~0)
