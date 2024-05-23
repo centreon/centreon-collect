@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2013,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_PARSER_HH
 #define CCE_CONFIGURATION_PARSER_HH
@@ -28,12 +28,10 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/hostdependency.hh"
 #include "com/centreon/engine/configuration/hostescalation.hh"
-#include "com/centreon/engine/configuration/hostextinfo.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/configuration/serviceescalation.hh"
-#include "com/centreon/engine/configuration/serviceextinfo.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 
@@ -50,13 +48,11 @@ class parser {
     read_host = (1 << 4),
     read_hostdependency = (1 << 5),
     read_hostescalation = (1 << 6),
-    read_hostextinfo = (1 << 7),
     read_hostgroup = (1 << 8),
     read_hostgroupescalation = (1 << 9),
     read_service = (1 << 10),
     read_servicedependency = (1 << 11),
     read_serviceescalation = (1 << 12),
-    read_serviceextinfo = (1 << 13),
     read_servicegroup = (1 << 14),
     read_timeperiod = (1 << 15),
     read_all = (~0)
@@ -75,8 +71,6 @@ class parser {
   void _add_template(object_ptr obj);
   void _apply(std::list<std::string> const& lst,
               void (parser::*pfunc)(std::string const&));
-  void _apply_hostextinfo();
-  void _apply_serviceextinfo();
   file_info const& _get_file_info(object* obj) const;
   void _get_hosts_by_hostgroups(hostgroup const& hostgroups, list_host& hosts);
   void _get_hosts_by_hostgroups_name(set_string const& lst_group,
