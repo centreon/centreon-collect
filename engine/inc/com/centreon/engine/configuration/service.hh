@@ -1,34 +1,32 @@
-/*
-** Copyright 2011-2013,2015-2017-2022 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2015-2017-2022 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_SERVICE_HH
 #define CCE_CONFIGURATION_SERVICE_HH
 
 #include "com/centreon/engine/common.hh"
+#include "com/centreon/engine/configuration/customvariable.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/opt.hh"
 
-namespace com::centreon::engine {
-
-namespace configuration {
+namespace com::centreon::engine::configuration {
 
 class service : public object {
  public:
@@ -68,8 +66,10 @@ class service : public object {
   set_string& contacts() noexcept;
   set_string const& contacts() const noexcept;
   bool contacts_defined() const noexcept;
-  map_customvar const& customvariables() const noexcept;
-  map_customvar& mut_customvariables() noexcept;
+  const std::unordered_map<std::string, customvariable>& customvariables()
+      const noexcept;
+  std::unordered_map<std::string, customvariable>&
+  mut_customvariables() noexcept;
   std::string const& display_name() const noexcept;
   std::string const& event_handler() const noexcept;
   bool event_handler_enabled() const noexcept;
@@ -185,7 +185,7 @@ class service : public object {
   std::string _check_period;
   group<set_string> _contactgroups;
   group<set_string> _contacts;
-  map_customvar _customvariables;
+  std::unordered_map<std::string, customvariable> _customvariables;
   std::string _display_name;
   std::string _event_handler;
   opt<bool> _event_handler_enabled;
@@ -231,8 +231,7 @@ typedef std::list<service_ptr> list_service;
 typedef std::set<service> set_service;
 typedef std::unordered_map<std::pair<std::string, std::string>, service_ptr>
     map_service;
-}  // namespace configuration
 
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_SERVICE_HH

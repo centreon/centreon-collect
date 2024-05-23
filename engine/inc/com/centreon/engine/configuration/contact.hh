@@ -21,9 +21,9 @@
 
 #include <absl/container/flat_hash_map.h>
 
+#include "com/centreon/engine/configuration/customvariable.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/opt.hh"
 
 typedef std::vector<std::string> tab_string;
