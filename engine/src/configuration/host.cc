@@ -22,16 +22,13 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/host.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
 extern int config_errors;
 
 using namespace com::centreon::engine::configuration;
-using com::centreon::common::log_v2::log_v2;
 using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) &object::setter<host, type, &host::method>::generic

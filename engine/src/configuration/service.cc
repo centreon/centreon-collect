@@ -21,9 +21,7 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <absl/strings/string_view.h>
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/host.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
