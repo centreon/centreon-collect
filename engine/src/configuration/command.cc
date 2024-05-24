@@ -18,10 +18,11 @@
  *
  */
 #include "com/centreon/engine/configuration/command.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::exceptions::error;
 
 #define SETTER(type, method) \
   &object::setter<command, type, &command::method>::generic
@@ -114,11 +115,10 @@ bool command::operator<(command const& right) const throw() {
  */
 void command::check_validity() const {
   if (_command_name.empty())
-    throw(engine_error() << "Command has no name (property 'command_name')");
+    throw error("Command has no name (property 'command_name')");
   if (_command_line.empty())
-    throw(engine_error() << "Command '" << _command_name
-                         << "' has no command line (property 'command_line')");
-  return;
+    throw error("Command '{}' has no command line (property 'command_line')",
+                _command_name);
 }
 
 /**
@@ -127,7 +127,7 @@ void command::check_validity() const {
  *  @return The command name.
  */
 command::key_type const& command::key() const throw() {
-  return (_command_name);
+  return _command_name;
 }
 
 /**
@@ -137,7 +137,8 @@ command::key_type const& command::key() const throw() {
  */
 void command::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge command with '" << obj.type() << "'");
+    throw error("Cannot merge command with type '{}'",
+                static_cast<uint32_t>(obj.type()));
   command const& tmpl(static_cast<command const&>(obj));
 
   MRG_DEFAULT(_command_line);

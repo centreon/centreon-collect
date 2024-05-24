@@ -18,9 +18,8 @@
  */
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
-#include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/configuration/logging.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/io/file_entry.hh"
 #include "compatibility/locations.h"
 
@@ -66,7 +65,7 @@ struct setter : public setter_base {
                       std::is_same_v<U, bool>);
       }
     } catch (const std::exception& e) {
-      engine_logger(logging::log_config_error, logging::basic) << e.what();
+      config_logger->error(e.what());
     }
     return true;
   }
@@ -4438,8 +4437,6 @@ void state::_set_date_format(std::string const& value) {
  */
 void state::_set_downtime_file(std::string const& value) {
   (void)value;
-  engine_logger(logging::log_config_warning, logging::basic)
-      << "Warning: downtime_file variable ignored";
   config_logger->warn("Warning: downtime_file variable ignored");
   ++config_warnings;
 }
@@ -4451,8 +4448,6 @@ void state::_set_downtime_file(std::string const& value) {
  */
 void state::_set_enable_embedded_perl(std::string const& value) {
   (void)value;
-  engine_logger(logging::log_config_warning, logging::basic)
-      << "Warning: enable_embedded_perl variable ignored";
   config_logger->warn("Warning: enable_embedded_perl variable ignored");
   ++config_warnings;
 }
@@ -4464,8 +4459,6 @@ void state::_set_enable_embedded_perl(std::string const& value) {
  */
 void state::_set_enable_failure_prediction(std::string const& value) {
   (void)value;
-  engine_logger(logging::log_config_warning, logging::basic)
-      << "Warning: enable_failure_prediction variable ignored";
   config_logger->warn("Warning: enable_failure_prediction variable ignored");
   ++config_warnings;
   return;
@@ -4480,9 +4473,9 @@ void state::_set_event_broker_options(std::string const& value) {
   if (value != "-1")
     detail::setter<unsigned long, &state::event_broker_options>("")
         .apply_from_cfg(*this, value.c_str());
-  else {
-    _event_broker_options = BROKER_EVERYTHING;
-  }
+  else
+    _event_broker_options =
+        static_cast<unsigned long>(-1);  // BROKER_EVERYTHING;
 }
 
 /**
