@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Centreon
+ * Copyright 2023-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  *
  * For more information : contact@centreon.com
  */
-
 
 #include "hex_dump.hh"
 

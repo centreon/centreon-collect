@@ -242,8 +242,10 @@ void service_impl::unregister(
  * @param conf
  */
 acceptor::acceptor(const grpc_config::pointer& conf)
-    : io::endpoint(true, {}),
-      com::centreon::common::grpc::grpc_server_base(conf, log_v2::instance().get(log_v2::GRPC) {
+    : io::endpoint(true, _grpc_stream_filter, _grpc_forbidden_filter),
+      com::centreon::common::grpc::grpc_server_base(
+          conf,
+          log_v2::instance().get(log_v2::GRPC)) {
   _init([this](::grpc::ServerBuilder& builder) {
     _service = std::make_shared<service_impl>(
         std::static_pointer_cast<grpc_config>(get_conf()));

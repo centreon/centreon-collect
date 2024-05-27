@@ -43,7 +43,7 @@ static constexpr multiplexing::muxer_filter _grpc_forbidden_filter =
  * @param port The port used for the connection.
  */
 connector::connector(const grpc_config::pointer& conf)
-    : io::limit_endpoint(false, {}),
+    : io::limit_endpoint(false, _grpc_stream_filter, _grpc_forbidden_filter),
       com::centreon::common::grpc::grpc_client_base(
           conf,
           log_v2::instance().get(log_v2::GRPC)) {
