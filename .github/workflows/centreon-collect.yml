@@ -21,6 +21,7 @@ on:
       - conanfile.txt
       - selinux/**
       - "!.veracode-exclusions"
+      - "!veracode.json"
   push:
     branches:
       - develop
@@ -41,6 +42,7 @@ on:
       - conanfile.txt
       - selinux/**
       - "!.veracode-exclusions"
+      - "!veracode.json"
 
 jobs:
   get-version:
@@ -191,7 +193,6 @@ jobs:
           major_version: ${{ needs.get-version.outputs.version }}
           minor_version: ${{ needs.get-version.outputs.patch }}
           stability: ${{ needs.get-version.outputs.stability }}
-          repository_name: standard
           github_ref_name: ${{ github.ref_name }}
           release_type: ${{ needs.get-version.outputs.release_type }}
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}

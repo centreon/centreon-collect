@@ -27,7 +27,7 @@ exporter_grpc::exporter_grpc(const std::string& url, const config::state& s)
   /* url should be of the form http://XX.XX.XX.XX:4317 */
   otlpOptions.endpoint = url;
   otlpOptions.aggregation_temporality =
-      opentelemetry::sdk::metrics::AggregationTemporality::kCumulative;
+      opentelemetry::v1::exporter::otlp::PreferredAggregationTemporality::kCumulative;
   auto exporter =
       opentelemetry::exporter::otlp::OtlpGrpcMetricExporterFactory::Create(
           otlpOptions);

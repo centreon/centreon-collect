@@ -22,9 +22,7 @@
 #include "com/centreon/broker/io/factory.hh"
 #include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
-
-namespace grpc {
+namespace com::centreon::broker::grpc {
 /**
  *  @class factory factory.hh "com/centreon/broker/grpc/factory.hh"
  *  @brief GRPC protocol factory.
@@ -49,8 +47,6 @@ class factory : public io::factory {
       std::shared_ptr<persistent_cache> cache =
           std::shared_ptr<persistent_cache>()) const override;
 };
-}  // namespace grpc
-
-CCB_END()
+}  // namespace com::centreon::broker::grpc
 
 #endif  // !CCB_GRPC_FACTORY_HH

@@ -1245,7 +1245,7 @@ def ctn_create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inher
     return dbconf.ctn_create_ba_with_services(name, typ, svc, dt_policy)
 
 
-def ctn_create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit"):
+def ctn_create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit", activate:int = 1):
     """
     Create a BA.
 
@@ -1255,12 +1255,25 @@ def ctn_create_ba(name: str, typ: str, critical_impact: int, warning_impact: int
         critical_impact (int): Impact weight in the event of a Critical condition, in real-time monitoring
         warning_impact (int): Impact weight in the event of a Warning condition, in real-time monitoring. Ignored if indicator is a boolean rule
         dt_policy (str, optional): Defaults to "inherit": inherit, ignore, ignore_all
+        activate: 1 for enable, 0 for disable
 
     Returns:
         A tuple(BA ID, virtual service associated to the BA).
     """
     global dbconf
-    return dbconf.ctn_create_ba(name, typ, critical_impact, warning_impact, dt_policy)
+    return dbconf.ctn_create_ba(name, typ, critical_impact, warning_impact, dt_policy, activate)
+
+def ctn_add_relations_ba_timeperiods(id_ba:int, id_time_period:int):
+    """
+    add a line in mod_bam_relations_ba_timeperiods table
+
+    Args:
+        id_ba: 
+        id_time_period:
+    """
+
+    global dbconf
+    return dbconf.ctn_add_relations_ba_timeperiods(id_ba,id_time_period)
 
 
 def ctn_add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):

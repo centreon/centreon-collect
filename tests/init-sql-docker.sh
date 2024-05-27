@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 database_type=$1
 
@@ -9,6 +10,8 @@ DBStorage=$(awk '($1=="${DBName}") {print $2}' /scripts/tests/resources/db_varia
 DBConf=$(awk '($1=="${DBNameConf}") {print $2}' /scripts/tests/resources/db_variables.robot)
 
 cd /scripts
+
+apt update && apt install -y mysql-client
 
 #create users
 if [ $database_type == 'mysql' ]; then

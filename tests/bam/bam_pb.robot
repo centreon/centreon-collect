@@ -14,7 +14,7 @@ Library             Telnet
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn BAM Setup
-Test Teardown       Ctn Save Logs If Failed
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -101,7 +101,12 @@ BAWORST
     Should Be True    ${result}    The BA test has not the expected output
 
     # check broker stats
-    ${res}    Ctn Get Broker Stats    central    1: 127.0.0.1:[0-9]+    10    endpoint central-broker-master-input    peers
+    ${res}    Ctn Get Broker Stats
+    ...    central
+    ...    1: 127.0.0.1:[0-9]+
+    ...    10
+    ...    endpoint central-broker-master-input
+    ...    peers
     Should Be True    ${res}    no central-broker-master-input.peers found in broker stat output
 
     ${res}    Ctn Get Broker Stats    central    listening    10    endpoint central-broker-master-input    state
@@ -117,7 +122,12 @@ BAWORST
     Ctn Reload Broker
 
     # check broker stats
-    ${res}    Ctn Get Broker Stats    central    1: 127.0.0.1:[0-9]+    10    endpoint central-broker-master-input    peers
+    ${res}    Ctn Get Broker Stats
+    ...    central
+    ...    1: 127.0.0.1:[0-9]+
+    ...    10
+    ...    endpoint central-broker-master-input
+    ...    peers
     Should Be True    ${res}    no central-broker-master-input.peers found in broker stat output
 
     ${res}    Ctn Get Broker Stats    central    listening    10    endpoint central-broker-master-input    state
@@ -131,13 +141,11 @@ BAWORST
 
     # Little check of the GetBa gRPC command
     ${result}    Run Keyword And Return Status    File Should Exist    /tmp/output
-    Run Keyword If    ${result} is True    Remove File    /tmp/output
+    IF    ${result} is True    Remove File    /tmp/output
     Ctn Broker Get Ba    51001    1    /tmp/output
     Wait Until Created    /tmp/output
     ${result}    Grep File    /tmp/output    digraph
     Should Not Be Empty    ${result}    /tmp/output does not contain the word 'digraph'
-
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BAWORST2
     [Documentation]    a worst ba with a boolean kpi and a ba kpi
@@ -229,8 +237,6 @@ BAWORST2
     ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Business Activity test_child is in CRITICAL state
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
-
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BABEST_SERVICE_CRITICAL
     [Documentation]    With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
@@ -337,8 +343,6 @@ BABEST_SERVICE_CRITICAL
     Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
-
 BA_IMPACT_2KPI_SERVICES
     [Documentation]    With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
     [Tags]    broker    engine    bam
@@ -439,8 +443,6 @@ BA_IMPACT_2KPI_SERVICES
     ...    Status is OK - Level = 40 (warn: 35 - crit: 20) - 2 KPIs out of 2 impact the BA: KPI Service host_16/service_303 (impact: 30), KPI Service host_16/service_302 (impact: 30)|BA_Level=40;35;20;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
-
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_RATIO_PERCENT_BA_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
@@ -543,8 +545,6 @@ BA_RATIO_PERCENT_BA_SERVICE
     ...    Status is CRITICAL - 100% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=100%;49;67;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
-
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_RATIO_NUMBER_BA_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
@@ -653,8 +653,6 @@ BA_RATIO_NUMBER_BA_SERVICE
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
-
 BA_BOOL_KPI
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with 1 boolean kpi
     [Tags]    broker    engine    bam
@@ -699,8 +697,6 @@ BA_BOOL_KPI
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
-
 BEPB_DIMENSION_BV_EVENT
     [Documentation]    bbdo_version 3 use pb_dimension_bv_event message.
     [Tags]    broker    engine    protobuf    bam    bbdo
@@ -730,7 +726,7 @@ BEPB_DIMENSION_BV_EVENT
 
     Should Not Be Empty    ${grep_res}    event not found
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_DIMENSION_BA_EVENT
     [Documentation]    bbdo_version 3 use pb_dimension_ba_event message.
@@ -762,7 +758,7 @@ BEPB_DIMENSION_BA_EVENT
 
     Should Not Be Empty    ${grep_res}    event not found
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_DIMENSION_BA_BV_RELATION_EVENT
     [Documentation]    bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
@@ -831,7 +827,7 @@ BEPB_DIMENSION_TIMEPERIOD
 
     Should Not Be Empty    ${grep_res}    event not found
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_DIMENSION_KPI_EVENT
     [Documentation]    bbdo_version 3 use pb_dimension_kpi_event message.
@@ -863,7 +859,7 @@ BEPB_DIMENSION_KPI_EVENT
 
     Should Be Equal As Strings    ${output}    ${expected}    mod_bam_reporting_kpi not filled
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_KPI_STATUS
     [Documentation]    bbdo_version 3 use kpi_status message.
@@ -899,7 +895,7 @@ BEPB_KPI_STATUS
 
     Should Be True    (${output} + 0.999) >= ${start}
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_BA_DURATION_EVENT
     [Documentation]    use of pb_ba_duration_event message.
@@ -945,7 +941,7 @@ BEPB_BA_DURATION_EVENT
     Should Be True    ${output[0][0]} >= ${start_event}
     Should Be True    ${output[0][1]} <= ${end_event}
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     [Documentation]    use of pb_dimension_ba_timeperiod_relation message.
@@ -976,7 +972,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     ...    len("""${output}""") > 5
     ...    "centreon_storage.mod_bam_reporting_relations_ba_timeperiods not updated"
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_DIMENSION_TRUNCATE_TABLE
     [Documentation]    use of pb_dimension_timeperiod message.
@@ -1008,7 +1004,7 @@ BEPB_DIMENSION_TRUNCATE_TABLE
     ...    "_type":393246, "category":6, "element":30, "update_started":false
     Should Not Be Empty    ${grep_res}    event not found
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BA_RATIO_NUMBER_BA_4_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
@@ -1132,12 +1128,11 @@ BA_RATIO_PERCENT_BA_4_SERVICE
 
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
-
 BA_CHANGED
     [Documentation]    A BA of type worst is configured with one service kpi.
-    ...                Then it is modified so that the service kpi is replaced
-    ...                by a boolean rule kpi. When cbd is reloaded, the BA is
-    ...                well updated.
+    ...    Then it is modified so that the service kpi is replaced
+    ...    by a boolean rule kpi. When cbd is reloaded, the BA is
+    ...    well updated.
     [Tags]    MON-34895
     Ctn Bam Init
 
@@ -1191,13 +1186,12 @@ BA_CHANGED
     Should Not Be Empty    ${result}
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
-
 BA_IMPACT_IMPACT
     [Documentation]    A BA of type impact is defined with two BAs of type impact
-    ...                as children. The first child has an impact of 90 and the
-    ...                second one of 10. When they are impacting both, the
-    ...                parent should be critical. When they are not impacting,
-    ...                the parent should be ok.
+    ...    as children. The first child has an impact of 90 and the
+    ...    second one of 10. When they are impacting both, the
+    ...    parent should be critical. When they are not impacting,
+    ...    the parent should be ok.
     [Tags]    MON-34895
     Ctn Bam Init
 
@@ -1220,9 +1214,9 @@ BA_IMPACT_IMPACT
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     FOR    ${state}    ${value}    IN
-    ...    OK          0
+    ...    OK    0
     ...    CRITICAL    2
-    ...    OK          0
+    ...    OK    0
     ...    CRITICAL    2
         # Both services ${state} => The BA parent is ${state}
         Ctn Process Service Result Hard
@@ -1230,7 +1224,7 @@ BA_IMPACT_IMPACT
         ...    service_302
         ...    ${value}
         ...    output ${state} for service 302
-        
+
         Ctn Process Service Result Hard
         ...    host_16
         ...    service_303
@@ -1272,6 +1266,32 @@ BA_IMPACT_IMPACT
     END
 
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+
+BA_DISABLED
+    [Documentation]    create a disabled BA with timeperiods and reporting filter don't create error message
+    [Tags]    broker    engine    bam    MON-38395
+    Ctn Bam Init
+    Ctn Create Ba    test    worst    100    100    ignore    0
+    Ctn Add Relations Ba Timeperiods    1    1
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+
+    ${content}    Create List    bam configuration loaded
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling 'bam configuration loaded' should be available.
+
+    ${res}    Grep File
+    ...    ${centralLog}
+    ...    could not insert relation of BA to timeperiod
+    Should Be Empty    ${res}    A mod_bam_reporting_relations_ba_timeperiods error had been found in log
+
+    ${res}    Grep File
+    ...    ${centralLog}
+    ...    The configured write filters for the endpoint 'centreon-bam-reporting' are too restrictive and will be ignored
+    Should Be Empty    ${res}    A filter error of centreon-bam-reporting had been found in log
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 
 *** Keywords ***

@@ -199,8 +199,9 @@ void failover::_run() {
           _stream = s;
           set_state(s ? "connected" : "connecting");
           if (s)
-            SPDLOG_LOGGER_DEBUG(log_v2::processing(), "{} stream connected",
-                                _name);
+            SPDLOG_LOGGER_DEBUG(log_v2::processing(),
+                                "{} stream {:p} connected", _name,
+                                static_cast<const void*>(s.get()));
           else
             SPDLOG_LOGGER_DEBUG(log_v2::processing(),
                                 "{} fail to create stream", _name);
@@ -466,6 +467,17 @@ void failover::_run() {
   // Clear stream.
   {
     std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
+    if (_stream) {
+      int32_t ack_events;
+      try {
+        ack_events = _stream->stop();
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(log_v2::processing(),
+                            "Failed to send stop event to stream: {}",
+                            e.what());
+      }
+      _muxer->ack_events(ack_events);
+    }
     _stream.reset();
     set_state("connecting");
   }
