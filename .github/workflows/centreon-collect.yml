@@ -25,6 +25,7 @@ on:
       - selinux/**
       - vcpkg/**
       - "!.veracode-exclusions"
+      - "!veracode.json"
   push:
     branches:
       - develop
@@ -49,6 +50,7 @@ on:
       - selinux/**
       - vcpkg/**
       - "!.veracode-exclusions"
+      - "!veracode.json"
 
 jobs:
   get-version:
