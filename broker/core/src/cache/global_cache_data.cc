@@ -17,11 +17,8 @@
  */
 
 #include "com/centreon/broker/cache/global_cache_data.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::cache;
-
-using log_v2 = com::centreon::common::log_v2::log_v2;
 
 void global_cache_data::managed_map(bool create) {
   global_cache::managed_map(create);

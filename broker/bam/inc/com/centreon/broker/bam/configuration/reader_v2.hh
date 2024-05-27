@@ -40,13 +40,9 @@ namespace bam::configuration {
  */
 class reader_v2 {
   std::shared_ptr<spdlog::logger> _logger;
+  mysql& _mysql;
+  database_config _storage_cfg;
 
- public:
-  reader_v2(mysql& centreon_db, const database_config& storage_cfg);
-  ~reader_v2() noexcept = default;
-  void read(state& state_obj);
-
- private:
   reader_v2(reader_v2 const& other);
   reader_v2& operator=(reader_v2 const& other);
   void _load(state::kpis& kpis);
@@ -56,8 +52,10 @@ class reader_v2 {
   void _load(bam::hst_svc_mapping& mapping);
   void _load_dimensions();
 
-  mysql& _mysql;
-  database_config _storage_cfg;
+ public:
+  reader_v2(mysql& centreon_db, const database_config& storage_cfg);
+  ~reader_v2() noexcept = default;
+  void read(state& state_obj);
 };
 }  // namespace bam::configuration
 

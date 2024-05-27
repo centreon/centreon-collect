@@ -50,16 +50,15 @@ class state {
     bool visited;
     std::set<std::string> targets;
   };
-
-  void _circular_check(configuration::state const& my_state);
-  void _circular_check(circular_check_node& n);
-  void _internal_copy(state const& other);
-
   ba _ba_applier;
   service_book _book_service;
   kpi _kpi_applier;
   bool_expression _bool_exp_applier;
   std::unordered_map<std::string, circular_check_node> _nodes;
+
+  void _circular_check(configuration::state const& my_state);
+  void _circular_check(circular_check_node& n);
+  void _internal_copy(state const& other);
 
  public:
   state(const std::shared_ptr<spdlog::logger>& logger);

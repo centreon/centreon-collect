@@ -305,6 +305,11 @@ uint32_t muxer::event_queue_max_size() noexcept {
   return _event_queue_max_size;
 }
 
+/**
+ * @brief Execute the data_handler() method if it exists and if its execution is
+ * needed, in other words, if there are no data available it is not necessary to
+ * execute the data handler.
+ */
 void muxer::_execute_reader_if_needed() {
   _logger->debug("muxer '{}' execute reader if needed data_handler: {}", _name,
                  static_cast<bool>(_data_handler));
@@ -789,18 +794,3 @@ void muxer::clear_action_on_new_data() {
   absl::MutexLock lck(&_events_m);
   _data_handler = nullptr;
 }
-
-// void muxer::remove_reader() {
-//   auto reader_finished = [this] {
-//     return !_reader_running.load();
-//   };
-//   bool cont = false;
-//   {
-//     absl::MutexLock lck(&_events_m);
-//     cont = _pos != _events.end();
-//   }
-//   if (cont) {
-//     absl::MutexLock lck(&_events_m);
-//     _reader = nullptr;
-//   }
-// }

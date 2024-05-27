@@ -18,13 +18,10 @@
 
 #include "com/centreon/broker/cache/global_cache_data.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::cache;
-
-using log_v2 = com::centreon::common::log_v2::log_v2;
 
 global_cache::lock::lock() : _lock(&global_cache::_instance->_protect) {}
 

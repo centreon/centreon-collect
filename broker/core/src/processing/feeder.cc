@@ -92,7 +92,7 @@ feeder::feeder(const std::string& name,
     throw msg_fmt("could not process '{}' with no client stream", _name);
 
   _muxer->set_action_on_new_data(
-      [this](std::vector<std::shared_ptr<io::data>> events) -> uint32_t {
+      [this](const std::vector<std::shared_ptr<io::data>>& events) -> uint32_t {
         return _write_to_client(events);
       });
   set_last_connection_attempt(timestamp::now());
@@ -142,69 +142,6 @@ void feeder::_forward_statistic(nlohmann::json& tree) {
     _muxer->statistics(tree);
     _protect.unlock();
   }
-}
-
-/*****************************************************************************
- * muxer => client
- *****************************************************************************/
-/**
- * @brief read event from muxer (both synchronous or asynchronous)
- * if an event is available => call _write_to_client
- * if not, _write_to_client will be called from muxer when event arrive
- */
-void feeder::_read_from_muxer() {
-  _logger->trace("feeder '{}':_read_from_muxer call", _name);
-  bool have_to_terminate = false;
-  bool other_event_to_read = true;
-  std::vector<std::shared_ptr<io::data>> events;
-  std::chrono::system_clock::time_point timeout_read =
-      std::chrono::system_clock::now() + std::chrono::milliseconds(100);
-  std::unique_lock<std::timed_mutex> l(_protect);
-  if (_state != state::running) {
-    _logger->trace("feeder '{}':_read_from_muxer not running - return", _name);
-    return;
-  }
-  // This size is surely too large...
-  events.reserve(_muxer->get_event_queue_size());
-  while (other_event_to_read && !have_to_terminate &&
-         std::chrono::system_clock::now() < timeout_read) {
-    other_event_to_read = _muxer->read(events, max_event_queue_size);
-
-    SPDLOG_LOGGER_TRACE(_logger, "feeder '{}': {} events read from muxer",
-                        _name, events.size());
-
-    if (!events.empty()) {
-      uint32_t written = _write_to_client(events);
-      /* The case written == 0 is possible if the filter did not allow the
-       * write of data. */
-      if (written > 0) {
-        _ack_events_on_muxer(written);
-        // as retention may fill queue we try to read once more
-        // This comment is wrong, we stop to read for now.
-        other_event_to_read = false;
-      }
-      if (written != events.size())  //_client failed to write events
-        have_to_terminate = true;
-      events.clear();
-    }
-  }
-  _logger->trace("feeder '{}':_read_from_muxer while loop finished", _name);
-  if (have_to_terminate) {
-    _logger->trace("feeder '{}':_read_from_muxer has to terminate - stopping",
-                   _name);
-    _stop_no_lock();
-    return;
-  }
-  //  FIXME DBO: I have the feeling that the muxer reader does already the
-  //  work.
-  //  if (other_event_to_read) {  // other events to read => give time to
-  //                              // asio to work
-  //    _logger->trace(
-  //        "feeder:_read_from_muxer others events to read, pop a new call");
-  //    _io_context->post([me = shared_from_this()]() { me->_read_from_muxer();
-  //    });
-  //  }
-  _logger->trace("feeder '{}':_read_from_muxer nothing to do", _name);
 }
 
 /**

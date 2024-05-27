@@ -63,7 +63,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   std::string _write_filters_str;
   const bool _persistent;
 
-  std::function<uint32_t(std::vector<std::shared_ptr<io::data>>)> _data_handler;
+  std::function<uint32_t(const std::vector<std::shared_ptr<io::data>>&)> _data_handler;
   std::atomic_bool _reader_running = false;
 
   /** Events are stacked into _events or into _file. Because several threads
@@ -154,11 +154,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
  * @tparam container list<std::shared_ptr<io::data>> or
  * vector<std::shared_ptr<io::data>>
  * @param to_fill container to  fill
- * @param max_to_read max events to read from muxer and to push_back in to_fill
- * @param handler handler that will be called if we can't read max_to_read data.
- * The handler is just the calling method of this method. if a() calls this
- * read() then when data will be available, a() will be automatically called
- * again as soon as data are available.
+ * @param max_to_read max events to read from muxer and to push_back in to_fill.
  *
  * @return A boolean if there are still events to read.
  */

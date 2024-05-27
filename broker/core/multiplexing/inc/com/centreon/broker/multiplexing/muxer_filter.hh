@@ -199,7 +199,7 @@ class muxer_filter {
   }
 
   /**
-   * @brief Remove all the events of a given category.
+   * @brief Add all the events of a given category.
    *
    * @param category A category given by its integer value.
    *

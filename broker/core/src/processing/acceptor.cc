@@ -237,8 +237,7 @@ void acceptor::_callback() noexcept {
       }
     }
   }
-  SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
-                     "processing acceptor '{}' finished", _name);
+  SPDLOG_LOGGER_INFO(logger, "processing acceptor '{}' finished", _name);
   _set_listening(false);
 
   lock.lock();

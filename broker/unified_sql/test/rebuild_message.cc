@@ -32,10 +32,12 @@
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/persistent_file.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 using namespace google::protobuf::util;
+using com::centreon::common::log_v2::log_v2;
 
 class into_memory : public io::stream {
  public:

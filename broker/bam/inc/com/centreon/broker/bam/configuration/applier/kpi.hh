@@ -44,6 +44,23 @@ class bool_expression;
  */
 class kpi {
   std::shared_ptr<spdlog::logger> _logger;
+  struct applied {
+    configuration::kpi cfg;
+    std::shared_ptr<bam::kpi> obj;
+  };
+  std::map<uint32_t, applied> _applied;
+  ba* _bas;
+  service_book* _book;
+  bool_expression* _boolexps;
+  hst_svc_mapping const* _mapping;
+
+  void _internal_copy(kpi const& other);
+  std::shared_ptr<bam::kpi> _new_kpi(configuration::kpi const& cfg);
+  void _invalidate_ba(configuration::kpi const& cfg);
+  std::map<uint32_t, applied>::iterator _remove_kpi(
+      std::map<uint32_t, applied>::iterator& kpi_it);
+  void _resolve_kpi(configuration::kpi const& cfg,
+                    const std::shared_ptr<bam::kpi>&);
 
  public:
   kpi(const std::shared_ptr<spdlog::logger>& logger);
@@ -56,26 +73,6 @@ class kpi {
              bool_expression& my_boolexps,
              service_book& book);
   void visit(io::stream* visitor);
-
- private:
-  struct applied {
-    configuration::kpi cfg;
-    std::shared_ptr<bam::kpi> obj;
-  };
-
-  void _internal_copy(kpi const& other);
-  std::shared_ptr<bam::kpi> _new_kpi(configuration::kpi const& cfg);
-  void _invalidate_ba(configuration::kpi const& cfg);
-  std::map<uint32_t, applied>::iterator _remove_kpi(
-      std::map<uint32_t, applied>::iterator& kpi_it);
-  void _resolve_kpi(configuration::kpi const& cfg,
-                    const std::shared_ptr<bam::kpi>&);
-
-  std::map<uint32_t, applied> _applied;
-  ba* _bas;
-  service_book* _book;
-  bool_expression* _boolexps;
-  hst_svc_mapping const* _mapping;
 };
 }  // namespace applier
 }  // namespace configuration

@@ -214,15 +214,6 @@ void engine::start() {
  */
 void engine::stop() {
   absl::ReleasableMutexLock lck(&_kiew_m);
-//  /* Here we wait for all the subscriber muxers to be stopped and removed from
-//   * the muxers array. Even if they execute asynchronous functions, they have
-//   * finished after that. */
-//  auto muxers_empty = [&m = _muxers, logger = _logger]() {
-//    logger->debug("Still {} muxers configured in Broker engine", m.size());
-//    return m.empty();
-//  };
-//  _logger->info("Waiting for the destruction of subscribers");
-//  _kiew_m.Await(absl::Condition(&muxers_empty));
 
   if (_state != stopped) {
     // Set writing method.
@@ -278,22 +269,16 @@ void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
  *  @param[in] subscriber  Subscriber.
  */
 void engine::unsubscribe_muxer(const muxer* subscriber) {
-  /* We wait for the events to be sent before removing the muxer. */
-  //  if (!_sending_to_subscribers) {
-  //    SPDLOG_LOGGER_INFO(
-  //        _logger,
-  //        "multiplexing: sending events to muxers before unsubscribe one ; "
-  //        "events to send",
-  //        _kiew.size());
-  //    _sending_to_subscribers = true;
-  std::promise<void> promise;
-  if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
-    promise.get_future().get();
-  }
-  //  }
+  auto sending_is_finished = [this]() {
+    return !_sending_to_subscribers;
+  };
+
+  _send_to_subscribers(nullptr);
+
+  absl::MutexLock lck(&_kiew_m);
+  _kiew_m.Await(absl::Condition(&sending_is_finished));
 
   auto logger = log_v2::instance().get(log_v2::CONFIG);
-  absl::MutexLock lck(&_kiew_m);
   for (auto it = _muxers.begin(); it != _muxers.end(); ++it) {
     auto w = it->lock();
     if (!w || w.get() == subscriber) {
@@ -342,9 +327,10 @@ std::string engine::_cache_file_path() const {
 namespace com::centreon::broker::multiplexing::detail {
 
 /**
- * @brief The goal of this class is to do the completion job once all muxer has
- * been fed a shared_ptr of one instance of this class is passed to worker. So
- * when all workers have finished, destructor is called and do the job
+ * @brief The goal of this class is to do the completion job once all muxer
+ * has been fed a shared_ptr of one instance of this class is passed to
+ * worker. So when all workers have finished, destructor is called and do the
+ * job
  *
  */
 class callback_caller {
@@ -365,8 +351,6 @@ class callback_caller {
     bool expected = true;
     if (_parent->_sending_to_subscribers.compare_exchange_strong(expected,
                                                                  false)) {
-      //      // if another data to publish redo the job
-      //      _parent->_send_to_subscribers(nullptr);
       if (_callback) {
         _callback();
       }
@@ -413,8 +397,8 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
     kiew = std::make_shared<std::deque<std::shared_ptr<io::data>>>();
     std::swap(_kiew, *kiew);
     // completion object
-    // it will be destroyed at the end of the scope of this function and at the
-    // end of lambdas posted
+    // it will be destroyed at the end of the scope of this function and at
+    // the end of lambdas posted
     cb = std::make_shared<detail::callback_caller>(std::move(callback),
                                                    _instance);
 

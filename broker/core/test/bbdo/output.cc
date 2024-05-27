@@ -29,10 +29,11 @@
 #include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/persistent_file.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
-
+using com::centreon::common::log_v2::log_v2;
 
 class into_memory : public io::stream {
  public:

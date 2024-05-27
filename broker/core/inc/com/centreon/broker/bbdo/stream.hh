@@ -23,9 +23,6 @@
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "common/log_v2/log_v2.hh"
-
-using log_v2 = com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::broker::bbdo {
 /**
