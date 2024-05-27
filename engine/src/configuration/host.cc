@@ -430,7 +430,9 @@ bool host::operator<(host const& other) const noexcept {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void host::check_validity() const {
+void host::check_validity(error_info* err) const {
+  object::check_validity(err);
+
   if (_host_name.empty())
     throw msg_fmt("Host has no name (property 'host_name')");
   if (_address.empty())

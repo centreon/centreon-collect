@@ -36,7 +36,7 @@ class command : public object {
   bool operator==(command const& right) const throw();
   bool operator!=(command const& right) const throw();
   bool operator<(command const& right) const throw();
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   key_type const& key() const throw();
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;

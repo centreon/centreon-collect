@@ -40,7 +40,7 @@ class servicegroup : public object {
   bool operator==(servicegroup const& right) const throw();
   bool operator!=(servicegroup const& right) const throw();
   bool operator<(servicegroup const& right) const throw();
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   key_type const& key() const throw();
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
@@ -83,6 +83,6 @@ typedef std::shared_ptr<servicegroup> servicegroup_ptr;
 typedef std::set<servicegroup> set_servicegroup;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_SERVICEGROUP_HH

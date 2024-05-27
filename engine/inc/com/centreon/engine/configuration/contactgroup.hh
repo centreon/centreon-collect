@@ -37,7 +37,7 @@ class contactgroup : public object {
   bool operator==(contactgroup const& right) const noexcept;
   bool operator!=(contactgroup const& right) const noexcept;
   bool operator<(contactgroup const& right) const noexcept;
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   key_type const& key() const noexcept;
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;

@@ -50,7 +50,7 @@ class hostdependency : public object {
   bool operator==(hostdependency const& right) const throw();
   bool operator!=(hostdependency const& right) const throw();
   bool operator<(hostdependency const& right) const;
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   key_type const& key() const throw();
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
@@ -102,6 +102,6 @@ typedef std::shared_ptr<hostdependency> hostdependency_ptr;
 typedef std::set<hostdependency> set_hostdependency;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_HOSTDEPENDENCY_HH

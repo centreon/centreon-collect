@@ -17,10 +17,12 @@
  *
  */
 #include "com/centreon/engine/configuration/state.hh"
+#include <memory>
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/engine/configuration/logging.hh"
-#include "com/centreon/engine/globals.hh"
+// #include "com/centreon/engine/globals.hh"
 #include "com/centreon/io/file_entry.hh"
+#include "common/log_v2/log_v2.hh"
 #include "compatibility/locations.h"
 
 using namespace com::centreon;
@@ -31,7 +33,11 @@ using com::centreon::common::log_v2::log_v2;
 namespace com::centreon::engine::configuration::detail {
 template <typename U, void (state::*ptr)(U)>
 struct setter : public setter_base {
-  setter(const std::string_view& field_name) : setter_base(field_name) {}
+  std::shared_ptr<spdlog::logger> _logger;
+
+  setter(const std::string_view& field_name,
+         const std::shared_ptr<spdlog::logger>& logger)
+      : setter_base(field_name), _logger{logger} {}
   bool apply_from_cfg(state& obj, char const* value) override {
     try {
       U val(0);
@@ -65,7 +71,7 @@ struct setter : public setter_base {
                       std::is_same_v<U, bool>);
       }
     } catch (const std::exception& e) {
-      config_logger->error(e.what());
+      _logger->error(e.what());
     }
     return true;
   }
@@ -76,7 +82,7 @@ struct setter : public setter_base {
           common::rapidjson_helper(doc).get<U>(setter_base::_field_name.data());
       (obj.*ptr)(val);
     } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(config_logger, "fail to update {} : {}",
+      SPDLOG_LOGGER_ERROR(_logger, "fail to update {} : {}",
                           setter_base::_field_name, e.what());
       return false;
     }
@@ -86,12 +92,15 @@ struct setter : public setter_base {
 
 template <void (state::*ptr)(std::string const&)>
 struct setter<std::string const&, ptr> : public setter_base {
-  setter(const std::string_view& field_name) : setter_base(field_name) {}
+  std::shared_ptr<spdlog::logger> _logger;
+  setter(const std::string_view& field_name,
+         const std::shared_ptr<spdlog::logger> logger)
+      : setter_base(field_name), _logger{logger} {}
   bool apply_from_cfg(state& obj, char const* value) override {
     try {
       (obj.*ptr)(value);
     } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(config_logger, "fail to update {} with value {}: {}",
+      SPDLOG_LOGGER_ERROR(_logger, "fail to update {} with value {}: {}",
                           _field_name, value, e.what());
       return false;
     }
@@ -103,7 +112,7 @@ struct setter<std::string const&, ptr> : public setter_base {
           common::rapidjson_helper(doc).get_string(_field_name.data());
       (obj.*ptr)(val);
     } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(config_logger, "fail to update {} : {}", _field_name,
+      SPDLOG_LOGGER_ERROR(_logger, "fail to update {} : {}", _field_name,
                           e.what());
       return false;
     }
@@ -112,9 +121,10 @@ struct setter<std::string const&, ptr> : public setter_base {
 };
 };  // namespace com::centreon::engine::configuration::detail
 
-#define SETTER(type, method, field) \
-  _setters.emplace(std::make_pair(  \
-      field, std::make_unique<detail::setter<type, &state::method>>(field)))
+#define SETTER(type, method, field)                                  \
+  _setters.emplace(std::make_pair(                                   \
+      field, std::make_unique<detail::setter<type, &state::method>>( \
+                 field, log_v2::instance().get(log_v2::CONFIG))))
 
 state::setter_map state::_setters;
 
@@ -465,7 +475,8 @@ static const std::string default_rpc_listen_address("localhost");
  *  Default constructor.
  */
 state::state()
-    : _accept_passive_host_checks(default_accept_passive_host_checks),
+    : _config_logger{log_v2::instance().get(log_v2::CONFIG)},
+      _accept_passive_host_checks(default_accept_passive_host_checks),
       _accept_passive_service_checks(default_accept_passive_service_checks),
       _additional_freshness_latency(default_additional_freshness_latency),
       _admin_email(default_admin_email),
@@ -3445,7 +3456,7 @@ std::string const& state::service_perfdata_file() const noexcept {
  *  @param[in] value The new service_perfdata_file value.
  */
 void state::service_perfdata_file(std::string const& value) {
-  config_logger->warn(
+  _config_logger->warn(
       "Warning: service_perfdata_command is no more used for a long time, you "
       "should not use it anymore.");
   _service_perfdata_file = value;
@@ -3640,7 +3651,7 @@ bool state::set(char const* key, char const* value) {
     if (it != _setters.end())
       return (it->second)->apply_from_cfg(*this, value);
   } catch (std::exception const& e) {
-    config_logger->error(e.what());
+    _config_logger->error(e.what());
     return false;
   }
   return true;
@@ -3774,11 +3785,11 @@ void state::user(unsigned int key, std::string const& value) {
  *  @param[in] value The new use_aggressive_host_checking value.
  */
 void state::use_aggressive_host_checking(bool value __attribute__((unused))) {
-  config_logger->warn(
+  _config_logger->warn(
       "Warning: use_aggressive_host_checking is deprecated. This option is "
       "no "
       "more supported since version 21.04.");
-  ++config_warnings;
+  _err.config_warnings++;
 }
 
 /**
@@ -4287,8 +4298,8 @@ void state::use_true_regexp_matching(bool value) {
  */
 void state::_set_aggregate_status_updates(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: aggregate_status_updates variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: aggregate_status_updates variable ignored");
+  _err.config_warnings++;
 }
 
 /**
@@ -4298,8 +4309,8 @@ void state::_set_aggregate_status_updates(std::string const& value) {
  */
 void state::_set_auth_file(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: auth_file variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: auth_file variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4309,8 +4320,8 @@ void state::_set_auth_file(std::string const& value) {
  */
 void state::_set_bare_update_check(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: bare_update_check variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: bare_update_check variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4359,8 +4370,8 @@ void state::_set_cfg_file(const std::string& value) {
  */
 void state::_set_check_for_updates(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: check_for_updates variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: check_for_updates variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4370,8 +4381,8 @@ void state::_set_check_for_updates(std::string const& value) {
  */
 void state::_set_child_processes_fork_twice(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: child_processes_fork_twice variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: child_processes_fork_twice variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4388,8 +4399,8 @@ void state::_set_command_check_interval(std::string const& value) {
     _command_check_interval_is_seconds = true;
     val.erase(val.begin() + pos);
   }
-  detail::setter<int, &state::command_check_interval>("").apply_from_cfg(
-      *this, val.c_str());
+  detail::setter<int, &state::command_check_interval>("", _config_logger)
+      .apply_from_cfg(*this, val.c_str());
 }
 
 /**
@@ -4399,8 +4410,8 @@ void state::_set_command_check_interval(std::string const& value) {
  */
 void state::_set_comment_file(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: comment_file variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: comment_file variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4410,8 +4421,8 @@ void state::_set_comment_file(std::string const& value) {
  */
 void state::_set_daemon_dumps_core(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: daemon_dumps_core variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: daemon_dumps_core variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4437,8 +4448,8 @@ void state::_set_date_format(std::string const& value) {
  */
 void state::_set_downtime_file(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: downtime_file variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: downtime_file variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4448,8 +4459,8 @@ void state::_set_downtime_file(std::string const& value) {
  */
 void state::_set_enable_embedded_perl(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: enable_embedded_perl variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: enable_embedded_perl variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4459,8 +4470,8 @@ void state::_set_enable_embedded_perl(std::string const& value) {
  */
 void state::_set_enable_failure_prediction(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: enable_failure_prediction variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: enable_failure_prediction variable ignored");
+  ++_err.config_warnings;
   return;
 }
 
@@ -4471,7 +4482,8 @@ void state::_set_enable_failure_prediction(std::string const& value) {
  */
 void state::_set_event_broker_options(std::string const& value) {
   if (value != "-1")
-    detail::setter<unsigned long, &state::event_broker_options>("")
+    detail::setter<unsigned long, &state::event_broker_options>("",
+                                                                _config_logger)
         .apply_from_cfg(*this, value.c_str());
   else
     _event_broker_options =
@@ -4485,8 +4497,8 @@ void state::_set_event_broker_options(std::string const& value) {
  */
 void state::_set_free_child_process_memory(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: free_child_process_memory variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: free_child_process_memory variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4503,8 +4515,8 @@ void state::_set_host_inter_check_delay_method(std::string const& value) {
     _host_inter_check_delay_method = icd_smart;
   else {
     _host_inter_check_delay_method = icd_user;
-    if (!absl::SimpleAtod(value, &scheduling_info.host_inter_check_delay) ||
-        scheduling_info.host_inter_check_delay <= 0.0)
+    if (!absl::SimpleAtod(value, &_scheduling_info.host_inter_check_delay) ||
+        _scheduling_info.host_inter_check_delay <= 0.0)
       throw exceptions::msg_fmt(
           "Invalid value for host_inter_check_delay_method, must be one of 'n' "
           "(none), 'd' (dumb), 's' (smart) or a stricly positive value ({} "
@@ -4534,8 +4546,8 @@ void state::_set_host_perfdata_file_mode(std::string const& value) {
  */
 void state::_set_lock_file(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: lock_file variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: lock_file variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4545,8 +4557,8 @@ void state::_set_lock_file(std::string const& value) {
  */
 void state::_set_log_archive_path(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: log_archive_path variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: log_archive_path variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4556,8 +4568,8 @@ void state::_set_log_archive_path(std::string const& value) {
  */
 void state::_set_log_initial_states(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: log_initial_states variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: log_initial_states variable ignored");
+  ++_err.config_warnings;
   return;
 }
 
@@ -4568,8 +4580,8 @@ void state::_set_log_initial_states(std::string const& value) {
  */
 void state::_set_log_rotation_method(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: log_rotation_method variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: log_rotation_method variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4579,8 +4591,8 @@ void state::_set_log_rotation_method(std::string const& value) {
  */
 void state::_set_nagios_group(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: nagios_group variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: nagios_group variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4590,8 +4602,8 @@ void state::_set_nagios_group(std::string const& value) {
  */
 void state::_set_nagios_user(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: nagios_user variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: nagios_user variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4601,8 +4613,8 @@ void state::_set_nagios_user(std::string const& value) {
  */
 void state::_set_object_cache_file(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: object_cache_file variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: object_cache_file variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4612,9 +4624,9 @@ void state::_set_object_cache_file(std::string const& value) {
  */
 void state::_set_p1_file(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: p1_file variable ignored");
+  _config_logger->warn("Warning: p1_file variable ignored");
 
-  ++config_warnings;
+  ++_err.config_warnings;
 }
 
 /**
@@ -4624,8 +4636,8 @@ void state::_set_p1_file(std::string const& value) {
  */
 void state::_set_precached_object_file(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: precached_object_file variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: precached_object_file variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4651,9 +4663,9 @@ void state::_set_resource_file(std::string const& value) {
 void state::_set_retained_process_service_attribute_mask(
     std::string const& value) {
   (void)value;
-  config_logger->warn(
+  _config_logger->warn(
       "Warning: retained_process_service_attribute_mask variable ignored");
-  ++config_warnings;
+  ++_err.config_warnings;
 }
 
 /**
@@ -4663,9 +4675,9 @@ void state::_set_retained_process_service_attribute_mask(
  */
 void state::_set_retained_service_attribute_mask(std::string const& value) {
   (void)value;
-  config_logger->warn(
+  _config_logger->warn(
       "Warning: retained_service_attribute_mask variable ignored");
-  ++config_warnings;
+  ++_err.config_warnings;
 }
 
 /**
@@ -4682,8 +4694,8 @@ void state::_set_service_inter_check_delay_method(std::string const& value) {
     _service_inter_check_delay_method = icd_smart;
   else {
     _service_inter_check_delay_method = icd_user;
-    if (!absl::SimpleAtod(value, &scheduling_info.service_inter_check_delay) ||
-        scheduling_info.service_inter_check_delay <= 0.0)
+    if (!absl::SimpleAtod(value, &_scheduling_info.service_inter_check_delay) ||
+        _scheduling_info.service_inter_check_delay <= 0.0)
       throw exceptions::msg_fmt(
           "Invalid value for service_inter_check_delay_method, must be one of "
           "'n' (none), 'd' (dumb), 's' (smart) or a strictly positive value "
@@ -4702,9 +4714,9 @@ void state::_set_service_interleave_factor_method(std::string const& value) {
     _service_interleave_factor_method = ilf_smart;
   else {
     _service_interleave_factor_method = ilf_user;
-    if (!absl::SimpleAtoi(value, &scheduling_info.service_interleave_factor) ||
-        scheduling_info.service_interleave_factor < 1)
-      scheduling_info.service_interleave_factor = 1;
+    if (!absl::SimpleAtoi(value, &_scheduling_info.service_interleave_factor) ||
+        _scheduling_info.service_interleave_factor < 1)
+      _scheduling_info.service_interleave_factor = 1;
   }
 }
 
@@ -4729,8 +4741,8 @@ void state::_set_service_perfdata_file_mode(std::string const& value) {
  */
 void state::_set_temp_file(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: temp_file variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: temp_file variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4740,8 +4752,8 @@ void state::_set_temp_file(std::string const& value) {
  */
 void state::_set_temp_path(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: temp_path variable ignored");
-  ++config_warnings;
+  _config_logger->warn("Warning: temp_path variable ignored");
+  ++_err.config_warnings;
 }
 
 /**
@@ -4751,8 +4763,9 @@ void state::_set_temp_path(std::string const& value) {
  */
 void state::_set_use_embedded_perl_implicitly(std::string const& value) {
   (void)value;
-  config_logger->warn("Warning: use_embedded_perl_implicitly variable ignored");
-  ++config_warnings;
+  _config_logger->warn(
+      "Warning: use_embedded_perl_implicitly variable ignored");
+  ++_err.config_warnings;
 }
 
 void state::macros_filter(std::string const& value) {
@@ -4833,19 +4846,28 @@ void state::use_send_recovery_notifications_anyways(bool value) {
  */
 void state::apply_extended_conf(const std::string& file_path,
                                 const rapidjson::Document& json_doc) {
-  SPDLOG_LOGGER_INFO(config_logger, "apply conf from file {}", file_path);
+  SPDLOG_LOGGER_INFO(_config_logger, "apply conf from file {}", file_path);
   for (rapidjson::Value::ConstMemberIterator member_iter =
            json_doc.MemberBegin();
        member_iter != json_doc.MemberEnd(); ++member_iter) {
     const std::string_view field_name = member_iter->name.GetString();
     auto setter = _setters.find(field_name);
     if (setter == _setters.end()) {
-      SPDLOG_LOGGER_ERROR(config_logger, "unknown field: {} in file {}",
+      SPDLOG_LOGGER_ERROR(_config_logger, "unknown field: {} in file {}",
                           field_name, file_path);
     } else if (!setter->second->apply_from_json(*this, json_doc)) {
-      SPDLOG_LOGGER_ERROR(config_logger,
+      SPDLOG_LOGGER_ERROR(_config_logger,
                           "fail to update field: {}  from file {}", field_name,
                           file_path);
     }
   }
+}
+
+void state::clear_error() {
+  _err.config_warnings = 0;
+  _err.config_errors = 0;
+}
+
+object::error_info* state::error_info() {
+  return &_err;
 }

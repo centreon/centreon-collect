@@ -120,7 +120,7 @@ bool contactgroup::operator<(contactgroup const& right) const throw() {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void contactgroup::check_validity() const {
+void contactgroup::check_validity(error_info* err [[maybe_unused]]) const {
   if (_contactgroup_name.empty())
     throw exceptions::msg_fmt(
         "Contact group has no name (property 'contactgroup_name')");
@@ -132,7 +132,7 @@ void contactgroup::check_validity() const {
  *  @return The contact group name.
  */
 contactgroup::key_type const& contactgroup::key() const throw() {
-  return (_contactgroup_name);
+  return _contactgroup_name;
 }
 
 /**

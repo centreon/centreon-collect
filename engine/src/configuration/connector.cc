@@ -18,6 +18,7 @@
  *
  */
 #include "com/centreon/engine/configuration/connector.hh"
+#include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/exceptions/error.hh"
 
 using namespace com::centreon;
@@ -112,7 +113,8 @@ bool connector::operator<(connector const& right) const throw() {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void connector::check_validity() const {
+void connector::check_validity(error_info* err) const {
+  object::check_validity(err);
   if (_connector_name.empty())
     throw error("Connector has no name (property 'connector_name')");
   if (_connector_line.empty())

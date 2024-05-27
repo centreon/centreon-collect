@@ -1,6 +1,6 @@
 /**
  * Copyright 2011-2015 Merethis
- * Copyright 2016-2022 Centreon
+ * Copyright 2016-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,10 @@ namespace com::centreon::engine {
 namespace configuration {
 class object {
  public:
+  struct error_info {
+    uint32_t config_warnings = 0;
+    uint32_t config_errors = 0;
+  };
   enum object_type {
     command = 0,
     connector = 1,
@@ -57,7 +61,10 @@ class object {
   object& operator=(object const& right);
   bool operator==(object const& right) const noexcept;
   bool operator!=(object const& right) const noexcept;
-  virtual void check_validity() const = 0;
+  virtual void check_validity(error_info* err) const {
+    err->config_errors += _err.config_errors;
+    err->config_warnings += _err.config_warnings;
+  }
   static std::shared_ptr<object> create(std::string const& type_name);
   virtual void merge(object const& obj) = 0;
   const std::string& name() const noexcept;
@@ -121,6 +128,8 @@ class object {
   bool _should_register;
   list_string _templates;
   object_type _type;
+  error_info _err;
+  std::shared_ptr<spdlog::logger> _logger;
 };
 
 typedef std::shared_ptr<object> object_ptr;

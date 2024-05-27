@@ -269,19 +269,20 @@ TEST_F(ApplierService, ServicesCheckValidity) {
   configuration::applier::service svc_aply;
   configuration::service csvc;
 
+  object::error_info err;
   // No service description
-  ASSERT_THROW(csvc.check_validity(), msg_fmt);
+  ASSERT_THROW(csvc.check_validity(&err), msg_fmt);
 
   ASSERT_TRUE(csvc.parse("service_description", "check description"));
   ASSERT_TRUE(csvc.parse("service_id", "53"));
 
   // No host attached to
-  ASSERT_THROW(csvc.check_validity(), msg_fmt);
+  ASSERT_THROW(csvc.check_validity(&err), msg_fmt);
 
   ASSERT_TRUE(csvc.parse("hosts", "test_host"));
 
   // No check command attached to
-  ASSERT_THROW(csvc.check_validity(), msg_fmt);
+  ASSERT_THROW(csvc.check_validity(&err), msg_fmt);
 
   configuration::applier::command cmd_aply;
   configuration::command cmd("cmd");
@@ -302,7 +303,7 @@ TEST_F(ApplierService, ServicesCheckValidity) {
   ASSERT_TRUE(csvc.parse("service_description", "foo"));
 
   // No check command
-  ASSERT_NO_THROW(csvc.check_validity());
+  ASSERT_NO_THROW(csvc.check_validity(&err));
   svc_aply.resolve_object(csvc);
 
   service_map const& sm(engine::service::services);
@@ -765,8 +766,9 @@ TEST_F(ApplierService, ServicesCheckValidityTags) {
   configuration::applier::service svc_aply;
   configuration::service csvc;
 
+  object::error_info err;
   // No service description
-  ASSERT_THROW(csvc.check_validity(), msg_fmt);
+  ASSERT_THROW(csvc.check_validity(&err), msg_fmt);
 
   ASSERT_TRUE(csvc.parse("service_description", "check description"));
   ASSERT_TRUE(csvc.parse("service_id", "53"));
@@ -774,12 +776,12 @@ TEST_F(ApplierService, ServicesCheckValidityTags) {
   ASSERT_TRUE(csvc.parse("category_tags", "3"));
 
   // No host attached to
-  ASSERT_THROW(csvc.check_validity(), msg_fmt);
+  ASSERT_THROW(csvc.check_validity(&err), msg_fmt);
 
   ASSERT_TRUE(csvc.parse("hosts", "test_host"));
 
   // No check command attached to
-  ASSERT_THROW(csvc.check_validity(), msg_fmt);
+  ASSERT_THROW(csvc.check_validity(&err), msg_fmt);
 
   configuration::applier::command cmd_aply;
   configuration::command cmd("cmd");
@@ -816,7 +818,7 @@ TEST_F(ApplierService, ServicesCheckValidityTags) {
   ASSERT_TRUE(csvc.parse("service_description", "foo"));
 
   // No check command
-  ASSERT_NO_THROW(csvc.check_validity());
+  ASSERT_NO_THROW(csvc.check_validity(&err));
   svc_aply.resolve_object(csvc);
 
   service_map const& sm(engine::service::services);
