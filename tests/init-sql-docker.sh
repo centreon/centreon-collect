@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 ss -nl | grep "0.0.0.0:3306"
 while [ $? -ne 0 ]
@@ -14,6 +15,8 @@ DBStorage=$(awk '($1=="${DBName}") {print $2}' /scripts/tests/resources/db_varia
 DBConf=$(awk '($1=="${DBNameConf}") {print $2}' /scripts/tests/resources/db_variables.robot)
 
 cd /scripts
+
+apt update && apt install -y mysql-client
 
 #create users
 mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "grant all privileges ON *.* to 'centreon'@'%' identified by 'centreon'"

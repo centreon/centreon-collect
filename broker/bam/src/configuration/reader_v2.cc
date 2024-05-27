@@ -1,20 +1,20 @@
-/*
-** Copyright 2014-2017, 2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2014-2017, 2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/configuration/reader_v2.hh"
 
@@ -506,7 +506,15 @@ void reader_v2::_load_dimensions() {
   std::promise<database::mysql_result> promise_ba_tp;
   std::future<database::mysql_result> future_ba_tp = promise_ba_tp.get_future();
   _mysql.run_query_and_get_result(
-      "SELECT ba_id, tp_id FROM mod_bam_relations_ba_timeperiods",
+      fmt::format(
+          "SELECT bt.ba_id, bt.tp_id FROM mod_bam_relations_ba_timeperiods bt"
+          " INNER JOIN mod_bam AS b"
+          " ON b.ba_id = bt.ba_id"
+          " INNER JOIN mod_bam_poller_relations AS pr"
+          " ON b.ba_id=pr.ba_id"
+          " WHERE b.activate='1'"
+          " AND pr.poller_id={}",
+          config::applier::state::instance().poller_id()),
       std::move(promise_ba_tp), 0);
 
   try {
