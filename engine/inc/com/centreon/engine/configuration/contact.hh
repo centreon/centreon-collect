@@ -43,7 +43,7 @@ class contact : public object {
   bool operator==(contact const& other) const noexcept;
   bool operator!=(contact const& other) const noexcept;
   bool operator<(contact const& other) const noexcept;
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   key_type const& key() const noexcept;
   void merge(object const& obj) override;
   bool parse(const char* key, const char* value) override;

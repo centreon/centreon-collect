@@ -152,7 +152,9 @@ bool hostescalation::operator<(hostescalation const& right) const {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void hostescalation::check_validity() const {
+void hostescalation::check_validity(error_info* err) const {
+  object::check_validity(err);
+
   if (_hosts->empty() && _hostgroups->empty())
     throw msg_fmt(
         "Host escalation is not attached to any host or host group (properties "

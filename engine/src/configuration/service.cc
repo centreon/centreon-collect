@@ -21,14 +21,13 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <absl/strings/string_view.h>
-#include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-
-extern int config_warnings;
-extern int config_errors;
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v2::log_v2;
 using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
@@ -121,7 +120,7 @@ static unsigned short const default_flap_detection_options(service::ok |
                                                            service::critical);
 static unsigned int const default_freshness_threshold(0);
 static unsigned int const default_high_flap_threshold(0);
-static unsigned int const default_initial_state(engine::service::state_ok);
+static unsigned int const default_initial_state(service::state_ok);
 static bool const default_is_volatile(false);
 static unsigned int const default_low_flap_threshold(0);
 static unsigned int const default_max_check_attempts(3);
@@ -303,271 +302,262 @@ service& service::operator=(service const& other) {
  */
 bool service::operator==(service const& other) const noexcept {
   if (!object::operator==(other)) {
-    config_logger->debug(
-        "configuration::service::equality => object don't match");
+    _logger->debug("configuration::service::equality => object don't match");
     return false;
   }
   if (_acknowledgement_timeout != other._acknowledgement_timeout) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "acknowledgement_timeout don't match");
     return false;
   }
   if (_action_url != other._action_url) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => action_url don't match");
     return false;
   }
   if (_checks_active != other._checks_active) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => checks_active don't match");
     return false;
   }
   if (_checks_passive != other._checks_passive) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => checks_passive don't match");
     return false;
   }
   if (_check_command != other._check_command) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => checks_passive don't match");
     return false;
   }
   if (_check_command_is_important != other._check_command_is_important) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => check_command don't match");
     return false;
   }
   if (_check_freshness != other._check_freshness) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => check_freshness don't match");
     return false;
   }
   if (_check_interval != other._check_interval) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => check_interval don't match");
     return false;
   }
   if (_check_period != other._check_period) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => check_period don't match");
     return false;
   }
   if (_contactgroups != other._contactgroups) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => contactgroups don't match");
     return false;
   }
   if (_contacts != other._contacts) {
-    config_logger->debug(
-        "configuration::service::equality => contacts don't match");
+    _logger->debug("configuration::service::equality => contacts don't match");
     return false;
   }
   if (std::operator!=(_customvariables, other._customvariables)) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => customvariables don't match");
     return false;
   }
   if (_display_name != other._display_name) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => display_name don't match");
     return false;
   }
   if (_event_handler != other._event_handler) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => event_handler don't match");
     return false;
   }
   if (_event_handler_enabled != other._event_handler_enabled) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => event_handler don't match");
     return false;
   }
   if (_first_notification_delay != other._first_notification_delay) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "first_notification_delay don't match");
     return false;
   }
   if (_flap_detection_enabled != other._flap_detection_enabled) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "flap_detection_enabled don't match");
     return false;
   }
   if (_flap_detection_options != other._flap_detection_options) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "flap_detection_options don't match");
     return false;
   }
   if (_freshness_threshold != other._freshness_threshold) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "freshness_threshold don't match");
     return false;
   }
   if (_high_flap_threshold != other._high_flap_threshold) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "high_flap_threshold don't match");
     return false;
   }
   if (_hostgroups != other._hostgroups) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => hostgroups don't match");
     return false;
   }
   if (_hosts != other._hosts) {
-    config_logger->debug(
-        "configuration::service::equality => _hosts don't match");
+    _logger->debug("configuration::service::equality => _hosts don't match");
     return false;
   }
   if (_icon_image != other._icon_image) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => icon_image don't match");
     return false;
   }
   if (_icon_image_alt != other._icon_image_alt) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => icon_image_alt don't match");
     return false;
   }
   if (_initial_state != other._initial_state) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => initial_state don't match");
     return false;
   }
   if (_is_volatile != other._is_volatile) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => is_volatile don't match");
     return false;
   }
   if (_low_flap_threshold != other._low_flap_threshold) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => low_flap_threshold don't match");
     return false;
   }
   if (_max_check_attempts != other._max_check_attempts) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => max_check_attempts don't match");
     return false;
   }
   if (_notes != other._notes) {
-    config_logger->debug(
-        "configuration::service::equality => notes don't match");
+    _logger->debug("configuration::service::equality => notes don't match");
     return false;
   }
   if (_notes_url != other._notes_url) {
-    config_logger->debug(
-        "configuration::service::equality => notes_url don't match");
+    _logger->debug("configuration::service::equality => notes_url don't match");
     return false;
   }
   if (_notifications_enabled != other._notifications_enabled) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "notifications_enabled don't match");
     return false;
   }
   if (_notification_interval != other._notification_interval) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "notification_interval don't match");
     return false;
   }
   if (_notification_options != other._notification_options) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "notification_options don't match");
     return false;
   }
   if (_notification_period != other._notification_period) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "notification_period don't match");
     return false;
   }
   if (_obsess_over_service != other._obsess_over_service) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "obsess_over_service don't match");
     return false;
   }
   if (_process_perf_data != other._process_perf_data) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => process_perf_data don't match");
     return false;
   }
   if (_retain_nonstatus_information != other._retain_nonstatus_information) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "retain_nonstatus_information don't match");
     return false;
   }
   if (_retain_status_information != other._retain_status_information) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "retain_status_information don't match");
     return false;
   }
   if (_retry_interval != other._retry_interval) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => retry_interval don't match");
     return false;
   }
   if (_recovery_notification_delay != other._recovery_notification_delay) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "recovery_notification_delay don't match");
     return false;
   }
   if (_servicegroups != other._servicegroups) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => servicegroups don't match");
     return false;
   }
   if (_service_description != other._service_description) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => "
         "service_description don't match");
     return false;
   }
   if (_host_id != other._host_id) {
-    config_logger->debug(
-        "configuration::service::equality => host_id don't match");
+    _logger->debug("configuration::service::equality => host_id don't match");
     return false;
   }
   if (_service_id != other._service_id) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => service_id don't match");
     return false;
   }
   if (_stalking_options != other._stalking_options) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => stalking_options don't match");
     return false;
   }
   if (_timezone != other._timezone) {
-    config_logger->debug(
-        "configuration::service::equality => timezone don't match");
+    _logger->debug("configuration::service::equality => timezone don't match");
     return false;
   }
   if (_severity_id != other._severity_id) {
-    config_logger->debug(
+    _logger->debug(
         "configuration::service::equality => severity id don't match");
     return false;
   }
   if (_icon_id != other._icon_id) {
-    config_logger->debug(
-        "configuration::service::equality => icon id don't match");
+    _logger->debug("configuration::service::equality => icon id don't match");
     return false;
   }
   if (_tags != other._tags) {
-    config_logger->debug(
-        "configuration::service::equality => tags don't match");
+    _logger->debug("configuration::service::equality => tags don't match");
     return false;
   }
-  config_logger->debug("configuration::service::equality => OK");
+  _logger->debug("configuration::service::equality => OK");
   return true;
 }
 
@@ -696,7 +686,9 @@ bool service::operator<(service const& other) const noexcept {
  *
  *  @return True if is a valid object, otherwise false.
  */
-void service::check_validity() const {
+void service::check_validity(error_info* err) const {
+  object::check_validity(err);
+
   if (_service_description.empty())
     throw msg_fmt(
         "Service has no description (property 'service_description')");
@@ -1537,10 +1529,11 @@ bool service::_set_event_handler_enabled(bool value) {
  */
 bool service::_set_failure_prediction_enabled(bool value) {
   (void)value;
-  config_logger->warn(
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->warn(
       "Warning: service failure_prediction_enabled is deprecated. This option "
       "will not be supported in 20.04.");
-  ++config_warnings;
+  ++_err.config_warnings;
   return true;
 }
 
@@ -1553,10 +1546,10 @@ bool service::_set_failure_prediction_enabled(bool value) {
  */
 bool service::_set_failure_prediction_options(std::string const& value) {
   (void)value;
-  config_logger->warn(
+  _logger->warn(
       "Warning: service failure_prediction_options is deprecated. This option "
       "will not be supported in 20.04.");
-  ++config_warnings;
+  ++_err.config_warnings;
   return true;
 }
 
@@ -1698,13 +1691,13 @@ bool service::_set_initial_state(std::string const& value) {
   std::string_view data(value);
   data = absl::StripAsciiWhitespace(data);
   if (data == "o" || data == "ok")
-    _initial_state = engine::service::state_ok;
+    _initial_state = service::state_ok;
   else if (data == "w" || data == "warning")
-    _initial_state = engine::service::state_warning;
+    _initial_state = service::state_warning;
   else if (data == "u" || data == "unknown")
-    _initial_state = engine::service::state_unknown;
+    _initial_state = service::state_unknown;
   else if (data == "c" || data == "critical")
-    _initial_state = engine::service::state_critical;
+    _initial_state = service::state_critical;
   else
     return false;
   return true;
@@ -1864,10 +1857,10 @@ bool service::_set_obsess_over_service(bool value) {
  */
 bool service::_set_parallelize_check(bool value) {
   (void)value;
-  config_logger->warn(
+  _logger->warn(
       "Warning: service parallelize_check is deprecated This option will not "
       "be supported in 20.04.");
-  ++config_warnings;
+  ++_err.config_warnings;
   return true;
 }
 
@@ -2038,8 +2031,8 @@ bool service::_set_category_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::servicecategory);
     } else {
-      config_logger->warn("Warning: service ({}, {}) error for parsing tag {}",
-                          _host_id, _service_id, value);
+      _logger->warn("Warning: service ({}, {}) error for parsing tag {}",
+                    _host_id, _service_id, value);
       ret = false;
     }
   }
@@ -2072,8 +2065,8 @@ bool service::_set_group_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::servicegroup);
     } else {
-      config_logger->warn("Warning: service ({}, {}) error for parsing tag {}",
-                          _host_id, _service_id, value);
+      _logger->warn("Warning: service ({}, {}) error for parsing tag {}",
+                    _host_id, _service_id, value);
       ret = false;
     }
   }

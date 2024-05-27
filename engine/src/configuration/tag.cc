@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/engine/configuration/tag.hh"
+#include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/exceptions/error.hh"
 
 using namespace com::centreon;
@@ -111,7 +112,9 @@ bool tag::operator<(const tag& other) const noexcept {
  *
  * If the object is not valid, an exception is thrown.
  */
-void tag::check_validity() const {
+void tag::check_validity(error_info* err) const {
+  object::check_validity(err);
+
   if (_tag_name.empty())
     throw error("Tag has no name (property 'tag_name')");
   if (_key.first == 0)

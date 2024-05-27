@@ -123,7 +123,7 @@ bool timeperiod::operator<(timeperiod const& right) const {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void timeperiod::check_validity() const {
+void timeperiod::check_validity(error_info* err) const {
   if (_timeperiod_name.empty())
     throw exceptions::msg_fmt(
         "Time period has no name (property 'timeperiod_name')");

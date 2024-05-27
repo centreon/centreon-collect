@@ -130,7 +130,7 @@ bool severity::operator<(const severity& other) const noexcept {
  *
  * If the object is not valid, an exception is thrown.
  */
-void severity::check_validity() const {
+void severity::check_validity(error_info* err) const {
   if (_severity_name.empty())
     throw error("Severity has no name (property 'severity_name')");
   if (_key.first == 0)

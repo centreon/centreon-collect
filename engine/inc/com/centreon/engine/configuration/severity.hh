@@ -56,7 +56,7 @@ class severity : public object {
   bool operator==(const severity& other) const noexcept;
   bool operator!=(const severity& other) const noexcept;
   bool operator<(const severity& other) const noexcept;
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   const key_type& key() const noexcept;
   void merge(const object& obj) override;
   bool parse(const char* key, const char* value) override;
@@ -72,6 +72,6 @@ class severity : public object {
 typedef std::set<severity> set_severity;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_SEVERITY_HH

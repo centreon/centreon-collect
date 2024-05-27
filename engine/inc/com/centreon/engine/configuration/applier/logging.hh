@@ -58,7 +58,7 @@ class logging {
   void _del_stderr();
 
   com::centreon::logging::file* _debug;
-  unsigned long long _debug_level;
+  int64_t _debug_level;
   unsigned long _debug_max_size;
   unsigned int _debug_verbosity;
   com::centreon::logging::file* _log;
@@ -69,6 +69,6 @@ class logging {
 }  // namespace applier
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_LOGGING_HH

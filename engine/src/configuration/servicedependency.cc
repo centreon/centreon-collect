@@ -19,14 +19,12 @@
  */
 
 #include "com/centreon/engine/configuration/servicedependency.hh"
-#include "com/centreon/engine/globals.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-
-extern int config_warnings;
-extern int config_errors;
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v2::log_v2;
 using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
@@ -221,7 +219,8 @@ bool servicedependency::operator<(servicedependency const& right) const {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void servicedependency::check_validity() const {
+void servicedependency::check_validity(error_info* err) const {
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   // Check base service(s).
   if (_servicegroups->empty()) {
     if (_service_description->empty())
@@ -251,7 +250,7 @@ void servicedependency::check_validity() const {
 
   // With no execution or failure options this dependency is useless.
   if (!_execution_failure_options && !_notification_failure_options) {
-    ++config_warnings;
+    ++err->config_warnings;
     std::ostringstream msg;
     msg << "Warning: Ignoring lame service dependency of ";
     if (!_dependent_servicegroups->empty())
@@ -273,7 +272,7 @@ void servicedependency::check_validity() const {
       else
         msg << "host '" << _hosts->front() << "'";
     }
-    config_logger->warn(msg.str());
+    logger->warn(msg.str());
   }
 }
 

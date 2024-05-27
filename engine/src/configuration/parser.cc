@@ -18,14 +18,17 @@
  */
 
 #include "com/centreon/engine/configuration/parser.hh"
-#include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/exceptions/error.hh"
+// #include "com/centreon/engine/globals.hh"
 #include "com/centreon/exceptions/error.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/io/directory_entry.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::io;
+using com::centreon::common::log_v2::log_v2;
 using com::centreon::exceptions::error;
 using com::centreon::exceptions::msg_fmt;
 
@@ -80,7 +83,9 @@ static bool get_next_line(std::ifstream& stream,
  *             (use to skip some object type).
  */
 parser::parser(unsigned int read_options)
-    : _config(nullptr), _read_options(read_options) {}
+    : _config(nullptr),
+      _read_options(read_options),
+      _logger{log_v2::instance().get(log_v2::CONFIG)} {}
 
 /**
  *  Parse the object definition file.
@@ -88,7 +93,7 @@ parser::parser(unsigned int read_options)
  *  @param[in] path The object definitions path.
  */
 void parser::_parse_object_definitions(std::string const& path) {
-  config_logger->info("Processing object config file '{}'", path);
+  _logger->info("Processing object config file '{}'", path);
 
   std::ifstream stream(path, std::ios::binary);
   if (!stream.is_open())
@@ -178,7 +183,7 @@ void parser::_parse_directory_configuration(std::string const& path) {
  *  @param[in] path The configuration path.
  */
 void parser::_parse_global_configuration(const std::string& path) {
-  config_logger->info("Reading main configuration file '{}'.", path);
+  _logger->info("Reading main configuration file '{}'.", path);
 
   std::ifstream stream(path, std::ios::binary);
   if (!stream.is_open())
@@ -215,7 +220,7 @@ void parser::_parse_global_configuration(const std::string& path) {
  *  @param[in] path The resource file path.
  */
 void parser::_parse_resource_file(std::string const& path) {
-  config_logger->info("Reading resource file '{}'", path);
+  _logger->info("Reading resource file '{}'", path);
 
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())
@@ -253,7 +258,7 @@ void parser::_parse_resource_file(std::string const& path) {
 /**
  *  Resolve template for register objects.
  */
-void parser::_resolve_template() {
+void parser::_resolve_template(object::error_info* err) {
   for (map_object& templates : _templates) {
     for (map_object::iterator it = templates.begin(), end = templates.end();
          it != end; ++it)
@@ -267,7 +272,7 @@ void parser::_resolve_template() {
          it != end; ++it) {
       (*it)->resolve_template(templates);
       try {
-        (*it)->check_validity();
+        (*it)->check_validity(err);
       } catch (std::exception const& e) {
         throw error("Configuration parsing failed {}: {}",
                     _get_file_info(it->get()), e.what());
@@ -282,7 +287,7 @@ void parser::_resolve_template() {
          it != end; ++it) {
       it->second->resolve_template(templates);
       try {
-        it->second->check_validity();
+        it->second->check_validity(err);
       } catch (const std::exception& e) {
         throw error("Configuration parsing failed {}: {}",
                     _get_file_info(it->second.get()), e.what());
@@ -299,6 +304,7 @@ void parser::_resolve_template() {
  */
 void parser::parse(const std::string& path, state& config) {
   _config = &config;
+  _config->clear_error();
 
   // parse the global configuration file.
   _parse_global_configuration(path);
@@ -311,7 +317,7 @@ void parser::parse(const std::string& path, state& config) {
   _apply(config.cfg_dir(), &parser::_parse_directory_configuration);
 
   // Apply template.
-  _resolve_template();
+  _resolve_template(config.error_info());
 
   // Fill state.
   _insert(_map_objects[object::command], config.commands());

@@ -61,6 +61,15 @@ class setter_base {
  *  to manage configuration data.
  */
 class state {
+  std::shared_ptr<spdlog::logger> _config_logger;
+  object::error_info _err;
+
+  struct sched_info_config {
+    double host_inter_check_delay;
+    double service_inter_check_delay;
+    int32_t service_interleave_factor;
+  } _scheduling_info;
+
  public:
   /**
    *  @enum state::date_format
@@ -449,6 +458,7 @@ class state {
   void use_true_regexp_matching(bool value);
   bool use_send_recovery_notifications_anyways() const;
   void use_send_recovery_notifications_anyways(bool value);
+  sched_info_config& sched_info_config() { return _scheduling_info; }
 
   using setter_map =
       absl::flat_hash_map<std::string_view, std::unique_ptr<setter_base>>;
@@ -456,6 +466,8 @@ class state {
 
   void apply_extended_conf(const std::string& file_path,
                            const rapidjson::Document& json_doc);
+  void clear_error();
+  object::error_info* error_info();
 
  private:
   static void _init_setter();

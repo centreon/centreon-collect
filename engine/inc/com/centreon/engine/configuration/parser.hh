@@ -88,7 +88,7 @@ class parser {
   void _parse_directory_configuration(std::string const& path);
   void _parse_object_definitions(const std::string& path);
   void _parse_resource_file(std::string const& path);
-  void _resolve_template();
+  void _resolve_template(object::error_info* err);
   void _parse_global_configuration(std::string const& path);
   void _store_into_list(object_ptr obj);
   template <typename T, std::string const& (T::*ptr)() const throw()>
@@ -103,6 +103,9 @@ class parser {
   unsigned int _read_options;
   static store _store[];
   std::array<map_object, 19> _templates;
+
+  /* Configuration Logger */
+  std::shared_ptr<spdlog::logger> _logger;
 };
 }  // namespace configuration
 
