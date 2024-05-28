@@ -26,13 +26,15 @@
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/cfile.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
+
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Build a new splitter.
@@ -157,17 +159,17 @@ long splitter::read(void* buffer, long max_size) {
   // Seek to current read position.
   fseek(_rfile.get(), _roffset, SEEK_SET);
 
+  auto logger = log_v2::instance().get(log_v2::BBDO);
   // Read data.
   long rb = disk_accessor::instance().fread(buffer, 1, max_size, _rfile.get());
   std::string file_path(get_file_path(_rid));
-  log_v2::bbdo()->debug("splitter: read {} bytes at offset {} from '{}'", rb,
-                        _roffset, file_path);
+  logger->debug("splitter: read {} bytes at offset {} from '{}'", rb, _roffset,
+                file_path);
   _roffset += rb;
   if (rb == 0) {
     if (feof(_rfile.get())) {
       if (_auto_delete) {
-        log_v2::bbdo()->info("file: end of file '{}' reached, erasing it",
-                             file_path);
+        logger->info("file: end of file '{}' reached, erasing it", file_path);
         /* Here we have to really verify that _wfile and _rfile are the same,
          * and then we close files before removing them. */
         if (lck.owns_lock() && _wfile == _rfile) {
@@ -235,11 +237,11 @@ long splitter::write(void const* buffer, long size) {
     if (!_open_write_file())
       return 0;
 
+  auto logger = log_v2::instance().get(log_v2::BBDO);
   // Open next write file is max file size is reached.
   if ((_woffset + size) > _max_file_size) {
     if (fflush(_wfile.get())) {
-      log_v2::bbdo()->error("splitter: cannot flush file '{}'",
-                            get_file_path(_wid));
+      logger->error("splitter: cannot flush file '{}'", get_file_path(_wid));
       char msg[1024];
       throw msg_fmt("cannot flush file '{}': {}", get_file_path(_wid),
                     strerror_r(errno, msg, sizeof(msg)));
@@ -253,16 +255,16 @@ long splitter::write(void const* buffer, long size) {
   fseek(_wfile.get(), _woffset, SEEK_SET);
 
   // Debug message.
-  log_v2::bbdo()->debug("file: write request of {} bytes for '{}'", size,
-                        get_file_path(_wid));
+  logger->debug("file: write request of {} bytes for '{}'", size,
+                get_file_path(_wid));
 
   // Write data.
   long wb = disk_accessor::instance().fwrite(buffer, 1, size, _wfile.get());
   if (wb != size) {
     std::string wfile(get_file_path(_wid));
     char msg[1024];
-    log_v2::bbdo()->critical("splitter: cannot write to file '{}': {}", wfile,
-                             strerror_r(errno, msg, sizeof(msg)));
+    logger->critical("splitter: cannot write to file '{}': {}", wfile,
+                     strerror_r(errno, msg, sizeof(msg)));
     return 0;
   }
   _woffset += size;
@@ -386,10 +388,11 @@ void splitter::_open_read_file() {
   if (!done) {
     std::string fname(get_file_path(_rid));
     FILE* f = disk_accessor::instance().fopen(fname, "r+b");
+    auto logger = log_v2::instance().get(log_v2::BBDO);
     if (f)
-      log_v2::bbdo()->debug("splitter: read open '{}'", fname);
+      logger->debug("splitter: read open '{}'", fname);
     else
-      log_v2::bbdo()->error("splitter: read fail open '{}'", fname);
+      logger->error("splitter: read fail open '{}'", fname);
 
     _rfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
   }
@@ -416,10 +419,11 @@ void splitter::_open_read_file() {
 bool splitter::_open_write_file() {
   std::string fname(get_file_path(_wid));
   FILE* f = disk_accessor::instance().fopen(fname, "a+b");
+  auto logger = log_v2::instance().get(log_v2::BBDO);
   if (f)
-    log_v2::bbdo()->debug("splitter: write open '{}'", fname);
+    logger->debug("splitter: write open '{}'", fname);
   else
-    log_v2::bbdo()->error("splitter: write fail open '{}'", fname);
+    logger->error("splitter: write fail open '{}'", fname);
 
   _wfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
 
@@ -446,8 +450,8 @@ bool splitter::_open_write_file() {
     if (size != sizeof(header)) {
       std::string wfile(get_file_path(_wid));
       char msg[1024];
-      log_v2::bbdo()->critical("splitter: cannot write to file '{}': {}", wfile,
-                               strerror_r(errno, msg, sizeof(msg)));
+      logger->critical("splitter: cannot write to file '{}': {}", wfile,
+                       strerror_r(errno, msg, sizeof(msg)));
       _wfile.reset();
       return false;
     }

@@ -1,25 +1,26 @@
 /**
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/dependency.hh"
+
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
@@ -42,8 +43,7 @@ dependency::dependency(std::string const& dependent_hostname,
   if (dependent_hostname.empty() || hostname.empty()) {
     engine_logger(log_config_error, basic)
         << "Error: NULL host name in host dependency definition";
-    log_v2::config()->error(
-        "Error: NULL host name in host dependency definition");
+    config_logger->error("Error: NULL host name in host dependency definition");
     throw engine_error() << "Could not create execution "
                          << "dependency of '" << dependent_hostname << "' on '"
                          << hostname << "'";

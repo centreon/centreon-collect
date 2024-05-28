@@ -1,21 +1,21 @@
 /**
-* Copyright 2020 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2020 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
 #include "com/centreon/engine/anomalydetection.hh"
@@ -25,7 +25,6 @@
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -100,7 +99,7 @@ void applier::anomalydetection::add_object(
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new anomalydetection '" << obj.service_description()
       << "' of host '" << obj.host_name() << "'.";
-  SPDLOG_LOGGER_DEBUG(log_v2::config(),
+  SPDLOG_LOGGER_DEBUG(config_logger,
                       "Creating new anomalydetection '{}' of host '{}'.",
                       obj.service_description(), obj.host_name());
 
@@ -239,7 +238,7 @@ void applier::anomalydetection::modify_object(
   engine_logger(logging::dbg_config, logging::more)
       << "Modifying new anomalydetection '" << service_description
       << "' of host '" << host_name << "'.";
-  SPDLOG_LOGGER_DEBUG(log_v2::config(),
+  SPDLOG_LOGGER_DEBUG(config_logger,
                       "Modifying new anomalydetection '{}' of host '{}'.",
                       service_description, host_name);
 
@@ -447,7 +446,7 @@ void applier::anomalydetection::remove_object(
   engine_logger(logging::dbg_config, logging::more)
       << "Removing anomalydetection '" << service_description << "' of host '"
       << host_name << "'.";
-  SPDLOG_LOGGER_DEBUG(log_v2::config(),
+  SPDLOG_LOGGER_DEBUG(config_logger,
                       "Removing anomalydetection '{}' of host '{}'.",
                       service_description, host_name);
 
@@ -497,7 +496,7 @@ void applier::anomalydetection::resolve_object(
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving anomalydetection '" << obj.service_description()
       << "' of host '" << obj.host_name() << "'.";
-  SPDLOG_LOGGER_DEBUG(log_v2::config(),
+  SPDLOG_LOGGER_DEBUG(config_logger,
                       "Resolving anomalydetection '{}' of host '{}'.",
                       obj.service_description(), obj.host_name());
 

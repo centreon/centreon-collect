@@ -21,7 +21,7 @@ set(MODULE_DIR "${PROJECT_SOURCE_DIR}/grpc")
 set(INC_DIR "${MODULE_DIR}/inc/com/centreon/broker/grpc")
 set(SRC_DIR "${MODULE_DIR}/src")
 set(TEST_DIR "${MODULE_DIR}/test")
-include_directories(${MODULE_DIR}/inc ${SRC_DIR} ${CMAKE_SOURCE_DIR}/bbdo)
+include_directories(${MODULE_DIR}/inc ${SRC_DIR} ${CMAKE_SOURCE_DIR}/bbdo ${CMAKE_SOURCE_DIR}/common)
 
 # Sources.
 set(SOURCES

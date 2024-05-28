@@ -1,26 +1,30 @@
-/*
-** Copyright 2014 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2014, 2022-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_BAM_CONFIGURATION_APPLIER_BOOL_EXPRESSION_HH
 #define CCB_BAM_CONFIGURATION_APPLIER_BOOL_EXPRESSION_HH
 
 #include "com/centreon/broker/bam/configuration/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
+
+#include "common/log_v2/log_v2.hh"
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::broker {
 
@@ -53,12 +57,16 @@ class bool_expression {
 
   std::map<uint32_t, applied> _applied;
 
+  /* Logger */
+  std::shared_ptr<spdlog::logger> _logger;
+
   std::shared_ptr<bam::bool_expression> _new_bool_exp(
       configuration::bool_expression const& cfg);
   void _resolve_expression_calls();
 
  public:
-  bool_expression() = default;
+  bool_expression(const std::shared_ptr<spdlog::logger>& logger)
+      : _logger{logger} {}
   bool_expression(const bool_expression&) = delete;
   ~bool_expression() noexcept = default;
   bool_expression& operator=(const bool_expression&) = delete;
@@ -71,6 +79,6 @@ class bool_expression {
 }  // namespace configuration
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_CONFIGURATION_APPLIER_BOOL_EXPRESSION_HH

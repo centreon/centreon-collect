@@ -1,27 +1,28 @@
 /**
-* Copyright 2011-2013 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/time/timerange.hh"
 #include <absl/strings/str_split.h>
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::time;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -163,8 +164,8 @@ uint64_t timerange::end_hour() const throw() {
  *
  *  @return The minute when the timerange ends.
  */
-uint64_t timerange::end_minute() const throw() {
-  return ((_end / 60) % 60);
+uint64_t timerange::end_minute() const noexcept {
+  return (_end / 60) % 60;
 }
 
 /**
@@ -187,7 +188,7 @@ bool timerange::to_time_t(struct tm const& midnight,
   my_tm.tm_hour = end_hour();
   my_tm.tm_min = end_minute();
   range_end = mktime(&my_tm);
-  return (true);
+  return true;
 }
 
 static bool _build_time_t(const std::string_view& time_str, uint64_t& ret) {
@@ -195,6 +196,7 @@ static bool _build_time_t(const std::string_view& time_str, uint64_t& ret) {
   const char* begin_str = time_str.data();
   char* endptr;
   char* endptr1;
+  auto logger = log_v2::instance().get(log_v2::CORE);
 
   // move cursor while we meet blanks
   while (std::isspace(*begin_str)) {
@@ -204,18 +206,16 @@ static bool _build_time_t(const std::string_view& time_str, uint64_t& ret) {
   uint64_t hours = strtoull(begin_str, &endptr, 10);
 
   if (endptr == begin_str || endptr + 2 >= endc || *endptr != ':') {
-    log_v2::core()->error(
-        "parser timeranges: error while reading hours '{}' at {}.", begin_str,
-        endptr - begin_str);
+    logger->error("parser timeranges: error while reading hours '{}' at {}.",
+                  begin_str, endptr - begin_str);
     return false;
   }
 
   uint64_t minutes = strtoull(endptr + 1, &endptr1, 10);
 
   if (endptr1 == endptr + 1) {
-    log_v2::core()->error(
-        "parser timeranges: error while reading minutes '{}' at {}.", begin_str,
-        endptr1 - begin_str);
+    logger->error("parser timeranges: error while reading minutes '{}' at {}.",
+                  begin_str, endptr1 - begin_str);
     return false;
   }
 
@@ -225,7 +225,7 @@ static bool _build_time_t(const std::string_view& time_str, uint64_t& ret) {
   }
 
   if (endptr1 != endc) {
-    log_v2::core()->error(
+    logger->error(
         "parser timeranges: error while reading end "
         "of your timerange '{}' at {}.",
         begin_str, endptr1 - begin_str);

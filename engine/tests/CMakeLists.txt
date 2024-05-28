@@ -21,7 +21,8 @@ if(WITH_TESTING)
   # Tests directory. Add root inclusion direction.
   set(MODULE_DIR "${PROJECT_SOURCE_DIR}/modules/external_commands")
   set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/external_commands")
-  include_directories(${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc)
+  include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/common/inc
+                      ${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc)
 
   # Set directory.
   set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
@@ -36,8 +37,12 @@ if(WITH_TESTING)
     cerpc
     centreon_common
     spdlog::spdlog
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-    crypto ssl
+    gRPC::gpr
+    gRPC::grpc
+    gRPC::grpc++
+    gRPC::grpc++_alts
+    crypto
+    ssl
     z
     dl
     pthread)
@@ -167,20 +172,27 @@ if(WITH_TESTING)
   endif()
 
   target_link_libraries(
-    ut_engine PRIVATE
-    -L${PROTOBUF_LIB_DIR}
-    ${ENGINERPC}
-    ut_engine_utils
-    cce_core
-    enginelog
-    pthread
-    ${GCOV}
-    GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-    crypto ssl
-    z
-    fmt::fmt
-    ryml::ryml
-    stdc++fs
-    dl)
+    ut_engine
+    PRIVATE -L${PROTOBUF_LIB_DIR}
+            ${ENGINERPC}
+            ut_engine_utils
+            cce_core
+            log_v2
+            pthread
+            ${GCOV}
+            GTest::gtest
+            GTest::gtest_main
+            GTest::gmock
+            GTest::gmock_main
+            gRPC::gpr
+            gRPC::grpc
+            gRPC::grpc++
+            gRPC::grpc++_alts
+            crypto
+            ssl
+            z
+            fmt::fmt
+            ryml::ryml
+            stdc++fs
+            dl)
 endif()

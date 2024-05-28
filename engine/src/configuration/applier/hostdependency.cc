@@ -1,20 +1,20 @@
 /**
- * Copyright 2011-2019 Centreon
+ * Copyright 2011-2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
+ *
  */
 
 #include "com/centreon/engine/configuration/applier/hostdependency.hh"
@@ -23,7 +23,6 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
 
@@ -65,7 +64,7 @@ void applier::hostdependency::add_object(
       << "Creating new host dependency of host '"
       << *obj.dependent_hosts().begin() << "' on host '" << *obj.hosts().begin()
       << "'.";
-  log_v2::config()->debug(
+  config_logger->debug(
       "Creating new host dependency of host '{}' on host '{}'.",
       *obj.dependent_hosts().begin(), *obj.hosts().begin());
 
@@ -156,8 +155,9 @@ void applier::hostdependency::expand_objects(configuration::state& s) {
             hdep.dependent_hosts().clear();
             hdep.dependent_hosts().insert(*it2);
             hdep.dependency_type(
-                i == 0 ? configuration::hostdependency::execution_dependency
-                   : configuration::hostdependency::notification_dependency);
+                i == 0
+                    ? configuration::hostdependency::execution_dependency
+                    : configuration::hostdependency::notification_dependency);
             if (i == 1)
               hdep.execution_failure_options(0);
             else
@@ -206,7 +206,7 @@ void applier::hostdependency::remove_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing a host dependency.";
-  log_v2::config()->debug("Removing a host dependency.");
+  config_logger->debug("Removing a host dependency.");
 
   // Find host dependency.
   hostdependency_mmap::iterator it(
@@ -235,7 +235,7 @@ void applier::hostdependency::resolve_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving a host dependency.";
-  log_v2::config()->debug("Resolving a host dependency.");
+  config_logger->debug("Resolving a host dependency.");
 
   // Find host escalation
   hostdependency_mmap::iterator it{

@@ -21,6 +21,7 @@
 #define CCB_TEMPORARY_ENDPOINT_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "temporary_stream.hh"
 
 namespace com::centreon::broker {
@@ -41,7 +42,11 @@ class temporary_endpoint : public io::endpoint {
    *  @param[in] id The temporary id.
    */
   temporary_endpoint(std::string const& id = "")
-      : io::endpoint(false, {}), _id(id) {}
+      : io::endpoint(false,
+                     {},
+                     multiplexing::muxer_filter(
+                         multiplexing::muxer_filter::zero_init())),
+        _id(id) {}
   /**
    *  Copy constructor.
    *
@@ -72,6 +77,6 @@ class temporary_endpoint : public io::endpoint {
   }
 };
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TEMPORARY_ENDPOINT_HH

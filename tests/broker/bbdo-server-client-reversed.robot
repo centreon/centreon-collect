@@ -31,6 +31,7 @@ BSCSSRR1
     Ctn Broker Config Output Set    central    centreon-broker-master-rrd    retention    yes
     Ctn Config Broker Bbdo Input    rrd    bbdo_client    5670    tcp    localhost
     Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    processing    trace
     ${start}    Ctn Get Round Current Date
     Repeat Keyword    5 times    Ctn Start Stop Service    0
     ${content}    Create List    failover 'centreon-broker-master-rrd' construction.
@@ -68,6 +69,7 @@ BSCSSGRR1
     Ctn Broker Config Output Set    central    centreon-broker-master-rrd    retention    yes
     Ctn Config Broker Bbdo Input    rrd    bbdo_client    5670    grpc    localhost
     Ctn Broker Config Log    central    config    info
+    Ctn Broker Config Log    central    processing    trace
     ${start}    Ctn Get Round Current Date
     Repeat Keyword    5 times    Ctn Start Stop Service    0
     ${content}    Create List

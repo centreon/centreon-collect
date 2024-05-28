@@ -28,6 +28,7 @@
 namespace com::centreon::broker {
 
 namespace bam {
+
 using pb_inherited_downtime =
     io::protobuf<InheritedDowntime,
                  make_type(io::bam, bam::de_pb_inherited_downtime)>;

@@ -198,7 +198,7 @@ def ctn_find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = ctn_find_in_log(log, date, content, True)
+        ok, c = ctn_find_in_log(log, date, content, regex=True)
         if ok:
             return True, c
         time.sleep(5)
@@ -206,12 +206,13 @@ def ctn_find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
     return False, c
 
 
-def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int):
-
+def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int, **kwargs):
     limit = time.time() + timeout
     c = ""
+    kwargs['regex'] = False
+
     while time.time() < limit:
-        ok, c = ctn_find_in_log(log, date, content, False)
+        ok, c = ctn_find_in_log(log, date, content, **kwargs)
         if ok:
             return True
         time.sleep(5)
@@ -230,7 +231,7 @@ def ctn_find_in_log_with_timeout_with_line(log: str, date, content, timeout: int
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = ctn_find_in_log(log, date, content, False)
+        ok, c = ctn_find_in_log(log, date, content, regex=False)
         if ok:
             return ok, c
         time.sleep(5)
@@ -238,7 +239,7 @@ def ctn_find_in_log_with_timeout_with_line(log: str, date, content, timeout: int
     return False, None
 
 
-def ctn_find_in_log(log: str, date, content, regex=False):
+def ctn_find_in_log(log: str, date, content, **kwargs):
     """Find content in log file from the given date
 
     Args:
@@ -249,13 +250,18 @@ def ctn_find_in_log(log: str, date, content, regex=False):
     Returns:
         boolean,str: The boolean is True on success, and the string contains the first string not found in logs otherwise.
     """
-    logger.info(f"regex={regex}")
+    verbose = True
+    regex = False
+    if 'verbose' in kwargs:
+        verbose = 'verbose' == 'True'
+    if 'regex' in kwargs:
+        regex = bool(kwargs['regex'])
+
     res = []
 
     try:
-        with open(log, "r", encoding="latin1") as f:
+        with open(log, "r") as f:
             lines = f.readlines()
-
         idx = ctn_find_line_from(lines, date)
 
         for c in content:
@@ -267,7 +273,8 @@ def ctn_find_in_log(log: str, date, content, regex=False):
                 else:
                     match = c in line
                 if match:
-                    logger.console(f"\"{c}\" found at line {i} from {idx}")
+                    if verbose:
+                        logger.console(f"\"{c}\" found at line {i} from {idx}")
                     found = True
                     res.append(line)
                     break

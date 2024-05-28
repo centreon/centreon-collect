@@ -21,12 +21,22 @@
 
 #include <fmt/format.h>
 
-#include "com/centreon/broker/log_v2.hh"
+#include "bbdo/events.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/tcp/stream.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
+using log_v2 = com::centreon::common::log_v2::log_v2;
+
+static constexpr multiplexing::muxer_filter _tcp_stream_filter =
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init());
+
+static constexpr multiplexing::muxer_filter _tcp_forbidden_filter =
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())
+        .add_category(io::local);
 
 /**
  * @brief Constructor of the connector that will connect to the given host at
@@ -37,12 +47,8 @@ using namespace com::centreon::broker::tcp;
  * @param read_timeout The read timeout in seconds or -1 if no duration.
  */
 connector::connector(const tcp_config::pointer& conf)
-    : io::limit_endpoint(false, {}), _conf(conf) {}
-
-/**
- *  Destructor.
- */
-connector::~connector() {}
+    : io::limit_endpoint(false, _tcp_stream_filter, _tcp_forbidden_filter),
+      _conf(conf) {}
 
 /**
  * @brief Connect to the remote host.
@@ -50,13 +56,15 @@ connector::~connector() {}
  * @return The TCP connection object.
  */
 std::shared_ptr<io::stream> connector::open() {
+  auto logger = log_v2::instance().get(log_v2::TCP);
+
   // Launch connection process.
-  log_v2::tcp()->info("TCP: connecting to {}:{}", _conf->get_host(),
-                      _conf->get_port());
+  logger->info("TCP: connecting to {}:{}", _conf->get_host(),
+               _conf->get_port());
   try {
     return limit_endpoint::open();
   } catch (const std::exception& e) {
-    log_v2::tcp()->debug(
+    logger->debug(
         "Unable to establish the connection to {}:{} (attempt {}): {}",
         _conf->get_host(), _conf->get_port(), _is_ready_count, e.what());
     return nullptr;

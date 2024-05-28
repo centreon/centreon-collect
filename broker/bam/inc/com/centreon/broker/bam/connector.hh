@@ -1,5 +1,5 @@
 /*
-** Copyright 2014-2015, 2020-2023 Centreon
+** Copyright 2014-2015, 2020-2024 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -22,9 +22,7 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class connector connector.hh "com/centreon/broker/bam/connector.hh"
  *  @brief Connect to a database.
@@ -42,7 +40,8 @@ class connector : public io::endpoint {
 
   connector(stream_type type,
             const database_config& db_cfg,
-            const multiplexing::muxer_filter& filter);
+            const multiplexing::muxer_filter& mandatory_filter,
+            const multiplexing::muxer_filter& forbidden_filter);
 
  public:
   static std::unique_ptr<connector> create_monitoring_connector(
@@ -64,8 +63,6 @@ class connector : public io::endpoint {
   void connect_reporting(database_config const& db_cfg);
   std::shared_ptr<io::stream> open() override;
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_CONNECTOR_HH

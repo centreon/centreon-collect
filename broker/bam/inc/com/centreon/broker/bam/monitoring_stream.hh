@@ -20,6 +20,7 @@
 #define CCB_BAM_MONITORING_STREAM_HH
 
 #include <absl/hash/hash.h>
+
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/sql/database_config.hh"
@@ -67,6 +68,10 @@ namespace bam {
  */
 class monitoring_stream : public io::stream {
   const std::string _ext_cmd_file;
+
+  /* Logger */
+  std::shared_ptr<spdlog::logger> _logger;
+
   configuration::applier::state _applier;
   /* This mutex is to protect writes to the external command named pipe. */
   mutable std::mutex _ext_cmd_file_m;
@@ -109,7 +114,8 @@ class monitoring_stream : public io::stream {
   monitoring_stream(std::string const& ext_cmd_file,
                     database_config const& db_cfg,
                     database_config const& storage_db_cfg,
-                    std::shared_ptr<persistent_cache> cache);
+                    std::shared_ptr<persistent_cache> cache,
+                    const std::shared_ptr<spdlog::logger>& logger);
   ~monitoring_stream();
   monitoring_stream(const monitoring_stream&) = delete;
   monitoring_stream& operator=(const monitoring_stream&) = delete;
@@ -121,7 +127,6 @@ class monitoring_stream : public io::stream {
   int write(std::shared_ptr<io::data> const& d) override;
 };
 }  // namespace bam
-
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_MONITORING_STREAM_HH

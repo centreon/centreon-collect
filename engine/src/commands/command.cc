@@ -22,7 +22,6 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/grab.hh"
 
@@ -193,8 +192,8 @@ bool commands::command::gest_call_interval(
   checks::checker::instance().add_check_result(command_id, to_push_to_checker);
   if (_listener && result_to_reuse) {
     _listener->finished(*result_to_reuse);
-    SPDLOG_LOGGER_TRACE(log_v2::commands(),
-                        "command::run: id={} , reuse result", command_id);
+    SPDLOG_LOGGER_TRACE(commands_logger, "command::run: id={} , reuse result",
+                        command_id);
     return false;
   }
   return true;

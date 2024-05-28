@@ -24,6 +24,7 @@ import boto3
 import os
 import re
 from unqlite import UnQLite
+import sys
 
 # With the following line, matplotlib can interact with Tkinter
 matplotlib.use('TkAgg')
@@ -122,8 +123,9 @@ def list_metrics(collection_name: str, origin: str):
     metrics = []
     if len(selected) > 0:
         metrics = list(selected[0].keys())
-    for m in ["cpu", "nb_core", "memory_size", "branch", "origin", "commit", "t", "__id"]:
-        metrics.remove(m)
+    for m in ["cpu", "nb_core", "memory_size", "branch", "origin", "commit", "t", "__id", "date_commit"]:
+        if m in metrics:
+            metrics.remove(m)
     return metrics
 
 
@@ -150,22 +152,24 @@ class App(tk.Tk):
             for kk in tests:
                 menu_collection.add_radiobutton(label=tests_tree[k][kk], variable=self.collection, value=tests_tree[k][kk], command=self.collection_chosen)
             menu_tests.add_cascade(label=k, menu=menu_collection)
+        menu_tests.add_separator()
+        menu_tests.add_command(label="Quit", command=self.exit)
         self.config(menu=menu)
         origins_label = tk.Label(self, text = "Origins")
         origins_label.grid(column=0, row=0)
-        self.origins_list = tk.Listbox(self, selectmode="SINGLE")
+        self.origins_list = tk.Listbox(self, selectmode="SINGLE", exportselection=False)
         self.origins_list.grid(column=0, row=1, sticky="ns")
         self.origins_list.bind('<<ListboxSelect>>', self.origins_list_changed)
 
         confs_label = tk.Label(self, text = "Configurations")
         confs_label.grid(column=0, row=2)
-        self.confs_list = tk.Listbox(self, selectmode="SINGLE")
+        self.confs_list = tk.Listbox(self, selectmode="SINGLE", exportselection=False)
         self.confs_list.grid(column=0, row=3, sticky="ns")
         self.confs_list.bind('<<ListboxSelect>>', self.confs_list_changed)
 
         metrics_label = tk.Label(self, text = "Metrics")
         metrics_label.grid(column=0, row=4)
-        self.metrics_list = tk.Listbox(self, selectmode="SINGLE")
+        self.metrics_list = tk.Listbox(self, selectmode="SINGLE", exportselection=False)
         self.metrics_list.grid(column=0, row=5, sticky="ns")
         self.metrics_list.bind('<<ListboxSelect>>', self.metrics_list_changed)
 
@@ -187,6 +191,8 @@ class App(tk.Tk):
         NavigationToolbar2Tk(figure_canvas, toolbar_frame)
 
         figure_canvas.get_tk_widget().grid(column=1, row=0, rowspan=6, sticky="nesw")
+
+        self.protocol('WM_DELETE_WINDOW', self.exit)
 
     def collection_chosen(self):
         self.origins_list.delete(0, self.origins_list.size())
@@ -213,6 +219,10 @@ class App(tk.Tk):
             self.metrics_list.delete(0, self.metrics_list.size())
             for i, m in enumerate(metrics):
                 self.metrics_list.insert(i, m)
+
+    def exit(self):
+        plt.close('all')
+        sys.exit()
 
     def confs_list_changed(self, evt):
         # Note here that Tkinter passes an event object to onselect()

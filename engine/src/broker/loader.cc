@@ -1,26 +1,27 @@
 /**
-* Copyright 2011-2013 Merethis
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013 Merethis
+ * Copyright 2017-2024 Centreon (https://www.centreon.com/)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/broker/handle.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/io/directory_entry.hh"
 #include "com/centreon/io/file_stream.hh"
@@ -118,16 +119,16 @@ unsigned int loader::load_directory(std::string const& dir) {
       engine_logger(log_info_message, basic)
           << "Event broker module '" << f.file_name()
           << "' initialized successfully.";
-      log_v2::events()->info(
-          "Event broker module '{}' initialized successfully.", f.file_name());
+      events_logger->info("Event broker module '{}' initialized successfully.",
+                          f.file_name());
       ++loaded;
     } catch (error const& e) {
       del_module(module);
       engine_logger(log_runtime_error, basic)
           << "Error: Could not load module '" << f.file_name() << "' -> "
           << e.what();
-      log_v2::runtime()->error("Error: Could not load module '{}' -> {}",
-                               f.file_name(), e.what());
+      runtime_logger->error("Error: Could not load module '{}' -> {}",
+                            f.file_name(), e.what());
     }
   }
   return loaded;
@@ -146,17 +147,11 @@ void loader::unload_modules() {
     }
     engine_logger(dbg_eventbroker, basic)
         << "Module '" << (*it)->get_filename() << "' unloaded successfully.";
-    log_v2::eventbroker()->trace("Module '{}' unloaded successfully.",
-                                 (*it)->get_filename());
+    eventbroker_logger->trace("Module '{}' unloaded successfully.",
+                              (*it)->get_filename());
   }
   _modules.clear();
 }
-
-/**************************************
- *                                     *
- *           Private Methods           *
- *                                     *
- **************************************/
 
 /**
  *  Default constructor.

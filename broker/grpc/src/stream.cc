@@ -26,17 +26,11 @@
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
-
-// namespace fmt {
-
-// // mandatory to log
-// template <>
-// struct formatter<io::raw> : ostream_formatter {};
-
-// }  // namespace fmt
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::broker {
 namespace stream {
@@ -126,8 +120,8 @@ std::mutex stream<bireactor_class>::_instances_m;
 template <class bireactor_class>
 stream<bireactor_class>::stream(const grpc_config::pointer& conf,
                                 const std::string_view& class_name)
-    : io::stream("GRPC"), _conf(conf), _class_name(class_name) {
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "create {} this={:p}", _class_name,
+    : io::stream("GRPC"), _conf(conf), _class_name(class_name), _logger{log_v2::instance().get(log_v2::GRPC)} {
+  SPDLOG_LOGGER_DEBUG(_logger, "create {} this={:p}", _class_name,
                       static_cast<const void*>(this));
 }
 
@@ -138,7 +132,7 @@ stream<bireactor_class>::stream(const grpc_config::pointer& conf,
  */
 template <class bireactor_class>
 stream<bireactor_class>::~stream() {
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "delete {} this={:p}", _class_name,
+  SPDLOG_LOGGER_DEBUG(_logger, "delete {} this={:p}", _class_name,
                       static_cast<const void*>(this));
 }
 
@@ -174,7 +168,7 @@ void stream<bireactor_class>::start_read() {
     }
     to_read = _read_current = std::make_shared<grpc_event_type>();
   }
-  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} Start read",
+  SPDLOG_LOGGER_TRACE(_logger, "{:p} {} Start read",
                       static_cast<const void*>(this), _class_name);
   bireactor_class::StartRead(to_read.get());
 }
@@ -191,7 +185,7 @@ void stream<bireactor_class>::OnReadDone(bool ok) {
   if (ok) {
     {
       std::unique_lock l(_read_m);
-      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} receive: {}",
+      SPDLOG_LOGGER_TRACE(_logger, "{:p} {} receive: {}",
                           static_cast<const void*>(this), _class_name,
                           *_read_current);
       _read_queue.push(_read_current);
@@ -200,7 +194,7 @@ void stream<bireactor_class>::OnReadDone(bool ok) {
     _read_cond.notify_one();
     start_read();
   } else {
-    SPDLOG_LOGGER_ERROR(log_v2::grpc(), "{:p} {} fail read from stream",
+    SPDLOG_LOGGER_ERROR(_logger, "{:p} {} fail read from stream",
                         static_cast<void*>(this), _class_name);
     stop();
   }
@@ -229,14 +223,14 @@ bool stream<bireactor_class>::read(std::shared_ptr<io::data>& d,
       d = std::make_shared<io::raw>();
       std::static_pointer_cast<io::raw>(d)->_buffer.assign(
           to_convert.buffer().begin(), to_convert.buffer().end());
-      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} read:{}",
+      SPDLOG_LOGGER_TRACE(_logger, "{:p} {} read:{}",
                           static_cast<void*>(this), _class_name,
                           *std::static_pointer_cast<io::raw>(d));
       return true;
     } else {
       d = protobuf_to_event(first);
       if (d) {
-        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} read:{}",
+        SPDLOG_LOGGER_TRACE(_logger, "{:p} {} read:{}",
                             static_cast<void*>(this), _class_name, *d);
       }
       return d ? true : false;
@@ -283,11 +277,11 @@ void stream<bireactor_class>::start_write() {
   }
 
   if (to_send->bbdo_event)
-    SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} write: {}",
+    SPDLOG_LOGGER_TRACE(_logger, "{:p} {} write: {}",
                         static_cast<void*>(this), _class_name,
                         *to_send->bbdo_event);
   else
-    SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} write: {}",
+    SPDLOG_LOGGER_TRACE(_logger, "{:p} {} write: {}",
                         static_cast<void*>(this), _class_name,
                         to_send->grpc_event);
 
@@ -309,11 +303,11 @@ void stream<bireactor_class>::OnWriteDone(bool ok) {
       std::unique_lock l(_write_m);
       event_with_data::pointer written = _write_queue.front();
       if (written->bbdo_event)
-        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} write done: {}",
+        SPDLOG_LOGGER_TRACE(_logger, "{:p} {} write done: {}",
                             static_cast<void*>(this), _class_name,
                             *written->bbdo_event);
       else
-        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "{:p} {} write done: {}",
+        SPDLOG_LOGGER_TRACE(_logger, "{:p} {} write done: {}",
                             static_cast<void*>(this), _class_name,
                             written->grpc_event);
 
@@ -323,7 +317,7 @@ void stream<bireactor_class>::OnWriteDone(bool ok) {
     _write_cond.notify_one();
     start_write();
   } else {
-    SPDLOG_LOGGER_ERROR(log_v2::grpc(), "{:p} {} fail write to stream",
+    SPDLOG_LOGGER_ERROR(_logger, "{:p} {} fail write to stream",
                         static_cast<void*>(this), _class_name);
     stop();
   }
@@ -377,9 +371,9 @@ void stream<bireactor_class>::OnDone() {
    */
   common::pool::io_context().post(
       [me = std::enable_shared_from_this<
-           stream<bireactor_class>>::shared_from_this()]() {
+           stream<bireactor_class>>::shared_from_this(), logger = _logger]() {
         std::lock_guard l(_instances_m);
-        SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{:p} server::OnDone()",
+        SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
                             static_cast<void*>(me.get()));
         _instances.erase(std::static_pointer_cast<stream<bireactor_class>>(me));
       });
@@ -404,9 +398,9 @@ void stream<bireactor_class>::OnDone(const ::grpc::Status& status) {
   common::pool::io_context().post(
       [me = std::enable_shared_from_this<
            stream<bireactor_class>>::shared_from_this(),
-       status]() {
+       status, logger=_logger]() {
         std::lock_guard l(_instances_m);
-        SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{:p} client::OnDone({}) {}",
+        SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
                             static_cast<void*>(me.get()),
                             status.error_message(), status.error_details());
         _instances.erase(std::static_pointer_cast<stream<bireactor_class>>(me));
@@ -420,7 +414,7 @@ void stream<bireactor_class>::OnDone(const ::grpc::Status& status) {
  */
 template <class bireactor_class>
 void stream<bireactor_class>::shutdown() {
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{:p} {}::shutdown",
+  SPDLOG_LOGGER_DEBUG(_logger, "{:p} {}::shutdown",
                       static_cast<void*>(this), _class_name);
 }
 
@@ -445,7 +439,7 @@ template <class bireactor_class>
 int32_t stream<bireactor_class>::stop() {
   std::lock_guard l(_protect);
   if (_alive) {
-    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{:p} {}::stop",
+    SPDLOG_LOGGER_DEBUG(_logger, "{:p} {}::stop",
                         static_cast<void*>(this), _class_name);
     _alive = false;
     this->shutdown();

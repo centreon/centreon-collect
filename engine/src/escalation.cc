@@ -1,25 +1,25 @@
 /**
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/escalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/timeperiod.hh"
 
@@ -126,7 +126,7 @@ void escalation::resolve(int& w __attribute__((unused)), int& e) {
       engine_logger(log_verification_error, basic)
           << "Error: Escalation period '" << get_escalation_period()
           << "' specified in escalation is not defined anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Escalation period '{}' specified in escalation is not "
           "defined anywhere!",
           get_escalation_period());
@@ -149,7 +149,7 @@ void escalation::resolve(int& w __attribute__((unused)), int& e) {
           << "Error: Contact group '" << it->first
           << "' specified in escalation for this notifier is not defined "
              "anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Contact group '{}' specified in escalation for this notifier "
           "is not defined "
           "anywhere!",

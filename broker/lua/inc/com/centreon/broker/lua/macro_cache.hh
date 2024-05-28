@@ -32,9 +32,8 @@
 #include "com/centreon/broker/neb/service_group_member.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::lua {
 
-namespace lua {
 /**
  *  @class macro_cache macro_cache.hh "com/centreon/broker/lua/macro_cache.hh"
  *  @brief Data cache for Lua macro.
@@ -68,7 +67,8 @@ class macro_cache {
       _dimension_bv_events;
 
  public:
-  macro_cache(std::shared_ptr<persistent_cache> const& cache);
+  macro_cache(const std::shared_ptr<persistent_cache>& cache);
+  macro_cache(const macro_cache&) = delete;
   ~macro_cache();
 
   void write(std::shared_ptr<io::data> const& data);
@@ -109,7 +109,6 @@ class macro_cache {
       uint64_t id) const;
 
  private:
-  macro_cache(macro_cache const& f);
   macro_cache& operator=(macro_cache const& f);
 
   void _process_instance(std::shared_ptr<io::data> const& data);
@@ -145,8 +144,6 @@ class macro_cache {
 
   void _save_to_disk();
 };
-}  // namespace lua
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::lua
 
 #endif  // !CCB_LUA_MACRO_CACHE_HH

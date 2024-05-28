@@ -54,9 +54,10 @@ TEST_F(StartStop, MultiplexingWorks) {
 
   try {
     // Subscriber.
-    absl::flat_hash_set<uint32_t> filters{io::raw::static_type()};
-    std::shared_ptr<multiplexing::muxer> mux(multiplexing::muxer::create("core_multiplexing_engine_start_stop", filters,
-                            filters, false));
+    multiplexing::muxer_filter filters{io::raw::static_type()};
+    std::shared_ptr<multiplexing::muxer> mux(multiplexing::muxer::create(
+        "core_multiplexing_engine_start_stop",
+        multiplexing::engine::instance_ptr(), filters, filters, false));
 
     // Send events through engine.
     std::array<std::string, 2> messages{MSG1, MSG2};

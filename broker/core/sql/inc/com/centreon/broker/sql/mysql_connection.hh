@@ -109,6 +109,9 @@ class mysql_connection {
   mutable std::mutex _error_m;
   database::mysql_error _error;
 
+  /* Logger */
+  std::shared_ptr<spdlog::logger> _logger;
+
   std::shared_ptr<stats::center> _center;
 
   /**************************************************************************/
@@ -153,7 +156,10 @@ class mysql_connection {
   /*                  Methods executed by the main thread                   */
   /**************************************************************************/
 
-  mysql_connection(const database_config& db_cfg, SqlConnectionStats* stats);
+  mysql_connection(const database_config& db_cfg,
+                   SqlConnectionStats* stats,
+                   const std::shared_ptr<spdlog::logger>& logger,
+                   std::shared_ptr<stats::center> center);
   ~mysql_connection();
 
   void prepare_query(int id, std::string const& query);
@@ -203,6 +209,6 @@ class mysql_connection {
   void stop();
 };
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // CCB_MYSQL_CONNECTION_HH

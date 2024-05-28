@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/bam/bool_constant.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
 
@@ -27,9 +26,11 @@ constexpr double eps = 0.000001;
  *  Constructor.
  *
  *  @param[in] val  The constant value to assign.
+ *  @param[in] logger  The logger to use in this boolean rule.
  */
-bool_constant::bool_constant(double val)
-    : _value(val), _boolean_value{std::abs(val) > ::eps} {}
+bool_constant::bool_constant(double val,
+                             const std::shared_ptr<spdlog::logger>& logger)
+    : bool_value(logger), _value(val), _boolean_value{std::abs(val) > ::eps} {}
 
 /**
  *  Get the hard value.
@@ -66,7 +67,7 @@ bool bool_constant::state_known() const {
  */
 void bool_constant::update_from(computable* child [[maybe_unused]],
                                 io::stream* visitor [[maybe_unused]]) {
-  log_v2::bam()->trace("bool_constant::update_from");
+  _logger->trace("bool_constant::update_from");
 }
 
 std::string bool_constant::object_info() const {

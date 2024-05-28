@@ -21,17 +21,18 @@ STUPID_FILTER
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Output Set Json    central    central-broker-unified-sql    filters    {"category": ["bbdo"]}
+    Ctn Clear Broker Logs
 
     ${start}    Get Current Date
     Ctn Start Broker    True
     Ctn Start engine
 
     ${content}    Create List
-    ...    The configured write filters for the endpoint 'central-broker-unified-sql' are too restrictive and will be ignored. neb,bbdo,extcmd categories are mandatory.
+    ...    The configured write filters for the endpoint 'central-broker-unified-sql' contain forbidden filters. These ones are removed    The configured read filters for the endpoint 'central-broker-unified-sql' contain forbidden filters. These ones are removed
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling bad filter should be available.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 STORAGE_ON_LUA
@@ -61,7 +62,7 @@ STORAGE_ON_LUA
     ${grep_res}    Grep File    /tmp/all_lua_event.log    "category":[^3]    regexp=True
     Should Be Empty    ${grep_res}    Events of category different than 'storage' found.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 FILTER_ON_LUA_EVENT
@@ -87,6 +88,7 @@ FILTER_ON_LUA_EVENT
     ...    test-filter
     ...    filters
     ...    {"category": [ "storage:pb_metric_mapping"]}
+    Ctn Clear Broker Logs
 
     Ctn Start Broker    True
     Ctn Start engine
@@ -107,11 +109,12 @@ FILTER_ON_LUA_EVENT
         ...    All the lines in all_lua_event.log should contain "_type":196620
     END
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 BAM_STREAM_FILTER
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. we watch its events
+    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is
+    ...    configured. The BA is in critical state, because of its service. we watch its events
     [Tags]    broker    engine    bam    filter
     Ctn Clear Commands Status
     Ctn Config Broker    module    ${1}
@@ -132,13 +135,12 @@ BAM_STREAM_FILTER
     ${cmd_1}    Ctn Get Service Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Ctn Set Command Status    ${cmd_1}    2
+    Ctn Clear Broker Logs
+
     Ctn Start Broker    True
     ${start}    Get Current Date
     Ctn Start engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
@@ -150,8 +152,8 @@ BAM_STREAM_FILTER
     ${result}    Ctn Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
 
-    # monitoring
-    FOR    ${cpt}    IN    RANGE 30
+    # Monitoring
+    FOR    ${cpt}    IN RANGE    30
         # pb_service
         ${grep_res1}    Grep File    ${centralLog}    centreon-bam-monitoring event of type 1001b written
         # pb_service_status
@@ -161,26 +163,27 @@ BAM_STREAM_FILTER
         # pb_kpi_status
         ${grep_res4}    Grep File    ${centralLog}    centreon-bam-monitoring event of type 6001b written
 
-        # reject KpiEvent
+        # Reject KpiEvent
         ${grep_res5}    Grep File
         ...    ${centralLog}
-        ...    muxer centreon-bam-monitoring event of type 60015 rejected by write filter
-        # reject storage
+        ...    muxer centreon-bam-monitoring event bam:KpiEvent .* rejected by write filter    regexp=True
+        # Reject storage
         ${grep_res6}    Grep File
         ...    ${centralLog}
-        ...    muxer centreon-bam-monitoring event of type 3[0-9a-f]{4} rejected by write filter    regexp=True
+        ...    muxer centreon-bam-monitoring event storage:.* rejected by write filter    regexp=True
 
         IF    len("""${grep_res1}""") > 0 and len("""${grep_res2}""") > 0 and len("""${grep_res3}""") > 0 and len("""${grep_res4}""") > 0 and len("""${grep_res5}""") > 0 and len("""${grep_res6}""") > 0
             BREAK
         END
+	Sleep    1s
     END
 
-    Should Not Be Empty    ${grep_res1}    no pb_service event
-    Should Not Be Empty    ${grep_res2}    no pb_service_status event
-    Should Not Be Empty    ${grep_res3}    no pb_ba_status event
-    Should Not Be Empty    ${grep_res4}    no pb_kpi_status event
-    Should Not Be Empty    ${grep_res5}    no KpiEvent event
-    Should Not Be Empty    ${grep_res6}    no storage event rejected
+    Should Not Be Empty    ${grep_res1}    We should receive pb_service events. Nothing received.
+    Should Not Be Empty    ${grep_res2}    We should receive pb_service_status events. Nothing received.
+    Should Not Be Empty    ${grep_res3}    We should receive pb_ba_status events. Nothing received.
+    Should Not Be Empty    ${grep_res4}    We should receive pb_kpi_status events. Nothing received.
+    Should Not Be Empty    ${grep_res5}    We should reject KpiEvent events. They are not rejected.
+    Should Not Be Empty    ${grep_res6}    We should reject events of Storage category. The are not rejected.
 
     # reporting
     # pb_ba_event
@@ -192,15 +195,15 @@ BAM_STREAM_FILTER
     # reject storage
     ${grep_res}    Grep File
     ...    ${centralLog}
-    ...    centreon-bam-reporting event of type 3[0-9a-f]{4} rejected by write filter    regexp=True
-    Should Not Be Empty    ${grep_res}    no rejected storage event
+    ...    centreon-bam-reporting event storage:.* rejected by write filter    regexp=True
+    Should Not Be Empty    ${grep_res}    We should reject events of Storage category. They are not rejected.
     # reject neb
     ${grep_res}    Grep File
     ...    ${centralLog}
-    ...    centreon-bam-reporting event of type 1[0-9a-f]{4} rejected by write filter    regexp=True
-    Should Not Be Empty    ${grep_res}    no rejected neb event
+    ...    centreon-bam-reporting event neb:.* rejected by write filter    regexp=True
+    Should Not Be Empty    ${grep_res}    We should reject events of Neb category. They are not rejected.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 UNIFIED_SQL_FILTER
@@ -213,6 +216,7 @@ UNIFIED_SQL_FILTER
     Ctn Broker Config Log    central    core    trace
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
+    Ctn Clear Broker Logs
 
     ${start}    Get Current Date
     Ctn Start Broker    True
@@ -236,7 +240,7 @@ UNIFIED_SQL_FILTER
         Should Not Be Empty    ${grep_res}
     END
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 CBD_RELOAD_AND_FILTERS
@@ -257,10 +261,7 @@ CBD_RELOAD_AND_FILTERS
     Ctn Start Broker
     Ctn Start engine
 
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
@@ -269,7 +270,7 @@ CBD_RELOAD_AND_FILTERS
 
     # We check that output filters to rrd are set to "all"
     ${content}    Create List
-    ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
+    ...    endpoint applier: The configured write filters for the endpoint 'centreon-broker-master-rrd' contain forbidden filters. These ones are removed
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
@@ -283,7 +284,7 @@ CBD_RELOAD_AND_FILTERS
     #wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    No creating endpoint centreon-broker-master-rrd.
+    Should Be True    ${result}    Endpoint 'centreon-broker-master-rrd' not created.
     ${start2}    Get Current Date
 
     # We check that output filters to rrd are set to "storage"
@@ -300,7 +301,7 @@ CBD_RELOAD_AND_FILTERS
     Should Be True    ${result}    No status from central broker for 1mn.
 
     # We check that output filters to rrd are set to "storage"
-    ${content}    Create List    rrd event of type .* rejected by write filter
+    ${content}    Create List    rrd event .* rejected by write filter
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    120
     Should Be True    ${result}    No event rejected by the rrd output whereas only storage category is enabled.
 
@@ -318,7 +319,7 @@ CBD_RELOAD_AND_FILTERS
 
     # We check that output filters to rrd are set to "all"
     ${content}    Create List
-    ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
+    ...    endpoint applier: The configured write filters for the endpoint 'centreon-broker-master-rrd' contain forbidden filters. These ones are removed
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
     ${start}    Get Current Date
@@ -329,14 +330,14 @@ CBD_RELOAD_AND_FILTERS
     Should Be True    ${result}    No status from central broker for 1mn.
 
     # We check that output filters to rrd doesn't filter anything
-    ${content}    Create List    rrd event of type .* rejected by write filter
+    ${content}    Create List    rrd event .* rejected by write filter
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    30
     Should Be Equal As Strings
     ...    ${result[0]}
     ...    False
     ...    Some events are rejected by the rrd output whereas all categories are enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 CBD_RELOAD_AND_FILTERS_WITH_OPR
@@ -360,10 +361,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Ctn Start Broker
     Ctn Start engine
 
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
@@ -372,8 +370,8 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     # We check that output filters to rrd are set to "all"
     ${content}    Create List
-    ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ...    Filters applied on endpoint:all
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # New configuration
@@ -403,7 +401,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Should Be True    ${result}    No status from central broker for 1mn.
 
     # We check that output filters to rrd are set to "storage"
-    ${content}    Create List    rrd event of type .* rejected by write filter
+    ${content}    Create List    rrd event .* rejected by write filter
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    120
     Should Be True    ${result}    No event rejected by the rrd output whereas only storage category is enabled.
 
@@ -420,8 +418,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     ${start2}    Get Current Date
 
     # We check that output filters to rrd are set to "all"
-    ${content}    Create List
-    ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
+    ${content}    Create List    Filters applied on endpoint:all
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
@@ -431,14 +428,14 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Should Be True    ${result}    No status from central broker for 1mn.
 
     # We check that output filters to rrd doesn't filter anything
-    ${content}    Create List    rrd event of type .* rejected by write filter
+    ${content}    Create List    rrd event .* rejected by write filter
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    30
     Should Be Equal As Strings
     ...    ${result[0]}
     ...    False
     ...    Some events are rejected by the rrd output whereas all categories are enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True
 
 SEVERAL_FILTERS_ON_LUA_EVENT
@@ -510,5 +507,5 @@ SEVERAL_FILTERS_ON_LUA_EVENT
         ...    "_type":65565
         ...    All the lines in all_lua_event-bis.log should contain "_type":65565
     END
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker    True

@@ -1,26 +1,26 @@
 /**
-* Copyright 2011-2013,2016 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2016 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/retention/host.hh"
 
 #include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
@@ -1102,7 +1102,7 @@ bool host::_set_last_time_down(time_t value) {
     engine_logger(log_verification_error, basic)
         << "Warning: Host last time down cannot be in the future (bad value: "
         << value << ")";
-    log_v2::config()->warn(
+    config_logger->warn(
         "Warning: Host last time down cannot be in the future (bad value: {})",
         value);
     value = now;
@@ -1123,7 +1123,7 @@ bool host::_set_last_time_unreachable(time_t value) {
         << "Warning: Host last time unreachable cannot be in the future (bad "
            "value: "
         << value << ")";
-    log_v2::config()->warn(
+    config_logger->warn(
         "Warning: Host last time unreachable cannot be in the future (bad "
         "value: {})",
         value);
@@ -1144,7 +1144,7 @@ bool host::_set_last_time_up(time_t value) {
     engine_logger(log_verification_error, basic)
         << "Warning: Host last time up cannot be in the future (bad value: "
         << value << ")";
-    log_v2::config()->warn(
+    config_logger->warn(
         "Warning: Host last time up cannot be in the future (bad value: {})",
         value);
     value = now;

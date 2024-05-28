@@ -1,28 +1,27 @@
 /**
-* Copyright 2001-2009 Ethan Galstad
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2001-2009 Ethan Galstad
+ * Copyright 2011-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 
@@ -38,7 +37,7 @@ void enable_flap_detection_routines() {
   unsigned long attr = MODATTR_FLAP_DETECTION_ENABLED;
 
   engine_logger(dbg_functions, basic) << "enable_flap_detection_routines()";
-  log_v2::functions()->trace("enable_flap_detection_routines()");
+  functions_logger->trace("enable_flap_detection_routines()");
 
   /* bail out if we're already set */
   if (config->enable_flap_detection())
@@ -76,7 +75,7 @@ void disable_flap_detection_routines() {
   unsigned long attr = MODATTR_FLAP_DETECTION_ENABLED;
 
   engine_logger(dbg_functions, basic) << "disable_flap_detection_routines()";
-  log_v2::functions()->trace("disable_flap_detection_routines()");
+  functions_logger->trace("disable_flap_detection_routines()");
 
   /* bail out if we're already set */
   if (!config->enable_flap_detection())
