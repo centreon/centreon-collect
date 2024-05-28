@@ -22,11 +22,12 @@
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 #include "temporary_endpoint.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
+using com::centreon::common::log_v2::log_v2;
 
 class ProcessingTest : public ::testing::Test {
  public:
@@ -37,7 +38,7 @@ class ProcessingTest : public ::testing::Test {
       (void)e;
     }
 
-    log_v2::core()->set_level(spdlog::level::info);
+    log_v2::instance().get(log_v2::CORE)->set_level(spdlog::level::info);
     _endpoint = std::make_shared<temporary_endpoint>();
   }
 

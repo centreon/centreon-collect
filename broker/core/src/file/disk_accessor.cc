@@ -1,24 +1,26 @@
 /**
-* Copyright 2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #include "com/centreon/broker/file/disk_accessor.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::file;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 disk_accessor* disk_accessor::_instance{nullptr};
 /**
@@ -34,7 +36,7 @@ void disk_accessor::load(size_t limit_size) {
   if (_instance == nullptr)
     _instance = new disk_accessor(limit_size);
   else
-    log_v2::core()->warn("disk accessor already loaded");
+    log_v2::instance().get(log_v2::CORE)->warn("disk accessor already loaded");
 }
 
 /**
@@ -88,10 +90,13 @@ size_t disk_accessor::fwrite(const void* ptr,
     return ::fwrite(ptr, size, nmemb, stream);
   } else {
     errno = ENOSPC;
-    log_v2::core()->error(
-        "disk_accessor: the limit size of {} bytes is reached for queue files. "
-        "New events written to disk are lost",
-        _limit_size);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->error(
+            "disk_accessor: the limit size of {} bytes is reached for queue "
+            "files. "
+            "New events written to disk are lost",
+            _limit_size);
     return 0;
   }
 }
@@ -106,7 +111,7 @@ size_t disk_accessor::fwrite(const void* ptr,
  * @param nmemb
  * @param stream
  *
- * @return 
+ * @return
  */
 size_t disk_accessor::fread(void* ptr, size_t size, size_t nmemb, fd stream) {
   return ::fread(ptr, size, nmemb, stream);
@@ -140,7 +145,7 @@ size_t disk_accessor::current_size() const {
  * @param name
  * @param mode
  *
- * @return 
+ * @return
  */
 disk_accessor::fd disk_accessor::fopen(const std::string& name,
                                        const char* mode) {

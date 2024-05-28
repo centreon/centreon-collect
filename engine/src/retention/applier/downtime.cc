@@ -1,26 +1,25 @@
 /**
-* Copyright 2011-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #include "com/centreon/engine/retention/applier/downtime.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/downtimes/host_downtime.hh"
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::retention;
@@ -60,7 +59,7 @@ void applier::downtime::_add_host_downtime(
     downtimes::downtime_manager::instance().register_downtime(
         downtimes::downtime::host_downtime, obj.downtime_id());
   } else
-    log_v2::downtimes()->error(
+    downtimes_logger->error(
         "Cannot add host downtime on host '{}' because it does not exist",
         obj.host_name());
 }
@@ -84,7 +83,7 @@ void applier::downtime::_add_service_downtime(
     downtimes::downtime_manager::instance().register_downtime(
         downtimes::downtime::service_downtime, obj.downtime_id());
   } else
-    log_v2::downtimes()->error(
+    downtimes_logger->error(
         "Cannot create service downtime on service ('{}', '{}') because it "
         "does not exist",
         obj.host_name(), obj.service_description());

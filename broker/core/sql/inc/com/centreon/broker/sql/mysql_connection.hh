@@ -1,20 +1,20 @@
-/*
-** Copyright 2018 - 2023 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2018 - 2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_MYSQL_CONNECTION_HH
 #define CCB_MYSQL_CONNECTION_HH
@@ -109,6 +109,11 @@ class mysql_connection {
   mutable std::mutex _error_m;
   database::mysql_error _error;
 
+  /* Logger */
+  std::shared_ptr<spdlog::logger> _logger;
+
+  std::shared_ptr<stats::center> _center;
+
   /**************************************************************************/
   /*                    Methods executed by this thread                     */
   /**************************************************************************/
@@ -151,7 +156,10 @@ class mysql_connection {
   /*                  Methods executed by the main thread                   */
   /**************************************************************************/
 
-  mysql_connection(const database_config& db_cfg, SqlConnectionStats* stats);
+  mysql_connection(const database_config& db_cfg,
+                   SqlConnectionStats* stats,
+                   const std::shared_ptr<spdlog::logger>& logger,
+                   std::shared_ptr<stats::center> center);
   ~mysql_connection();
 
   void prepare_query(int id, std::string const& query);
@@ -201,6 +209,6 @@ class mysql_connection {
   void stop();
 };
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // CCB_MYSQL_CONNECTION_HH

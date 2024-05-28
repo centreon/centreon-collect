@@ -20,10 +20,12 @@
 #include <gtest/gtest.h>
 #include "com/centreon/clib.hh"
 #include "com/centreon/common/pool.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
+
+using com::centreon::common::log_v2::log_v2;
 
 class CentreonEngineEnvironment : public testing::Environment {
  public:
@@ -50,9 +52,9 @@ int main(int argc, char* argv[]) {
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonEngineEnvironment());
 
-  com::centreon::engine::log_v2::load(g_io_context);
-  com::centreon::common::pool::load(g_io_context,
-                                    com::centreon::engine::log_v2::runtime());
+  com::centreon::common::log_v2::log_v2::load("engine-tests");
+  init_loggers();
+  com::centreon::common::pool::load(g_io_context, runtime_logger);
   com::centreon::common::pool::set_pool_size(0);
   // Run all tests.
   int ret = RUN_ALL_TESTS();

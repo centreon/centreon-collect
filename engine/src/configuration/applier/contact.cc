@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2015,2017-2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011-2015,2017-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -80,7 +79,7 @@ void applier::contact::add_object(configuration::contact const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new contact '" << obj.contact_name() << "'.";
-  log_v2::config()->debug("Creating new contact '{}'.", obj.contact_name());
+  config_logger->debug("Creating new contact '{}'.", obj.contact_name());
 
   // Add contact to the global configuration set.
   config->contacts().insert(obj);
@@ -195,7 +194,7 @@ void applier::contact::modify_object(configuration::contact const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Modifying contact '" << obj.contact_name() << "'.";
-  log_v2::config()->debug("Modifying contact '{}'.", obj.contact_name());
+  config_logger->debug("Modifying contact '{}'.", obj.contact_name());
 
   // Find old configuration.
   set_contact::iterator it_cfg(config->contacts_find(obj.key()));
@@ -357,7 +356,7 @@ void applier::contact::remove_object(configuration::contact const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing contact '" << obj.contact_name() << "'.";
-  log_v2::config()->debug("Removing contact '{}'.", obj.contact_name());
+  config_logger->debug("Removing contact '{}'.", obj.contact_name());
 
   // Find contact.
   contact_map::iterator it{engine::contact::contacts.find(obj.key())};
@@ -391,7 +390,7 @@ void applier::contact::resolve_object(configuration::contact const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving contact '" << obj.contact_name() << "'.";
-  log_v2::config()->debug("Resolving contact '{}'.", obj.contact_name());
+  config_logger->debug("Resolving contact '{}'.", obj.contact_name());
 
   // Find contact.
   contact_map::const_iterator ct_it{

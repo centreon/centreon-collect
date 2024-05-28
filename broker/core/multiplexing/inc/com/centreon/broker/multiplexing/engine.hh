@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2012,2015,2019-2023 Centreon
+ * Copyright 2009-2012,2015,2019-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #ifndef CCB_MULTIPLEXING_ENGINE_HH
 #define CCB_MULTIPLEXING_ENGINE_HH
 
+#include <absl/base/thread_annotations.h>
 #include "com/centreon/broker/persistent_cache.hh"
 #include "com/centreon/broker/stats/center.hh"
 
@@ -61,54 +62,56 @@ class callback_caller;
  *  @see muxer
  */
 class engine {
-  static std::mutex _load_m;
+  static absl::Mutex _load_m;
   static std::shared_ptr<engine> _instance;
 
   enum state { not_started, running, stopped };
 
   using send_to_mux_callback_type = std::function<void()>;
 
-  state _state;
-
   std::unique_ptr<persistent_cache> _cache_file;
 
-  // Mutex to lock _kiew and _state
-  std::mutex _engine_m;
-
-  // Data queue.
-  std::deque<std::shared_ptr<io::data>> _kiew;
+  // Data queue _kiew and engine state _state are protected by _kiew_m.
+  absl::Mutex _kiew_m;
+  state _state ABSL_GUARDED_BY(_kiew_m);
+  std::deque<std::shared_ptr<io::data>> _kiew ABSL_GUARDED_BY(_kiew_m);
+  uint32_t _unprocessed_events ABSL_GUARDED_BY(_kiew_m);
 
   // Subscriber.
-  std::vector<std::weak_ptr<muxer>> _muxers;
+  std::vector<std::weak_ptr<muxer>> _muxers ABSL_GUARDED_BY(_kiew_m);
 
   // Statistics.
+  std::shared_ptr<stats::center> _center;
   EngineStats* _stats;
-  uint32_t _unprocessed_events;
 
   std::atomic_bool _sending_to_subscribers;
 
-  engine();
+  std::shared_ptr<spdlog::logger> _logger;
+
+  engine(const std::shared_ptr<spdlog::logger>& logger);
   std::string _cache_file_path() const;
   bool _send_to_subscribers(send_to_mux_callback_type&& callback);
 
   friend class detail::callback_caller;
 
  public:
-  static void load();
-  static void unload();
+  static void load() ABSL_LOCKS_EXCLUDED(_load_m);
+  static void unload() ABSL_LOCKS_EXCLUDED(_load_m);
   static std::shared_ptr<engine> instance_ptr();
 
   engine(const engine&) = delete;
   engine& operator=(const engine&) = delete;
   ~engine() noexcept;
 
-  void clear();
-  void publish(const std::shared_ptr<io::data>& d);
-  void publish(const std::deque<std::shared_ptr<io::data>>& to_publish);
-  void start();
-  void stop();
-  void subscribe(const std::shared_ptr<muxer>& subscriber);
-  void unsubscribe_muxer(const muxer* subscriber);
+  void clear() ABSL_LOCKS_EXCLUDED(_kiew_m);
+  void publish(const std::shared_ptr<io::data>& d) ABSL_LOCKS_EXCLUDED(_kiew_m);
+  void publish(const std::deque<std::shared_ptr<io::data>>& to_publish)
+      ABSL_LOCKS_EXCLUDED(_kiew_m);
+  void start() ABSL_LOCKS_EXCLUDED(_kiew_m);
+  void stop() ABSL_LOCKS_EXCLUDED(_kiew_m);
+  void subscribe(const std::shared_ptr<muxer>& subscriber)
+      ABSL_LOCKS_EXCLUDED(_kiew_m);
+  void unsubscribe_muxer(const muxer* subscriber) ABSL_LOCKS_EXCLUDED(_kiew_m);
 };
 }  // namespace com::centreon::broker::multiplexing
 

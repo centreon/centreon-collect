@@ -25,12 +25,12 @@
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
+using com::centreon::common::log_v2::log_v2;
 
 #include "http_client.hh"
 
 using namespace com::centreon::common;
 using namespace com::centreon::common::http;
-
 extern std::shared_ptr<asio::io_context> g_io_context;
 
 const asio::ip::tcp::endpoint test_endpoint(asio::ip::make_address("127.0.0.1"),
@@ -40,12 +40,17 @@ static std::shared_ptr<spdlog::logger> logger =
     spdlog::stdout_color_mt("http_client_test");
 
 class http_client_test : public ::testing::Test {
+ protected:
+  static std::shared_ptr<spdlog::logger> _logger;
+
  public:
   static void SetUpTestSuite() {
     srand(time(nullptr));
     logger->set_level(spdlog::level::debug);
   };
 };
+
+std::shared_ptr<spdlog::logger> http_client_test::_logger;
 
 class connection_ok : public connection_base {
   unsigned _connect_counter;
@@ -75,7 +80,8 @@ class connection_ok : public connection_base {
         [me = shared_from_this(), cb = std::move(callback)]() { cb({}, {}); });
   }
 
-  void send(request_ptr request, send_callback_type&& callback) override {
+  void send(request_ptr request [[maybe_unused]],
+            send_callback_type&& callback) override {
     if (_state != e_idle) {
       _io_context->post([cb = std::move(callback)]() {
         cb(std::make_error_code(std::errc::invalid_argument), "bad state", {});
@@ -238,7 +244,8 @@ class connection_bagot : public connection_base {
     }
   }
 
-  void send(request_ptr request, send_callback_type&& callback) override {
+  void send(request_ptr request [[maybe_unused]],
+            send_callback_type&& callback) override {
     if (_state != e_idle) {
       _io_context->post([cb = std::move(callback)]() {
         cb(std::make_error_code(std::errc::invalid_argument), "bad state", {});

@@ -17,13 +17,23 @@
  *
  */
 
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "grpc_stream.grpc.pb.h"
 
 #include "com/centreon/broker/grpc/connector.hh"
 #include "com/centreon/broker/grpc/stream.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
+using log_v2 = com::centreon::common::log_v2::log_v2;
+
+static constexpr multiplexing::muxer_filter _grpc_stream_filter =
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init());
+
+static constexpr multiplexing::muxer_filter _grpc_forbidden_filter =
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())
+        .add_category(io::local);
 
 /**
  * @brief Constructor of the connector that will connect to the given host at
@@ -33,7 +43,9 @@ using namespace com::centreon::broker::grpc;
  * @param port The port used for the connection.
  */
 connector::connector(const grpc_config::pointer& conf)
-    : io::limit_endpoint(false, {}), _conf(conf) {
+    : io::limit_endpoint(false, _grpc_stream_filter, _grpc_forbidden_filter),
+      _conf(conf) {
+  auto logger = log_v2::instance().get(log_v2::GRPC);
   ::grpc::ChannelArguments args;
   args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
   args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS,
@@ -49,11 +61,11 @@ connector::connector(const grpc_config::pointer& conf)
 
     const char* algo_name;
     if (grpc_compression_algorithm_name(algo, &algo_name)) {
-      log_v2::grpc()->debug("client this={:p} activate compression {}",
-                            static_cast<void*>(this), algo_name);
+      logger->debug("client this={:p} activate compression {}",
+                    static_cast<void*>(this), algo_name);
     } else {
-      log_v2::grpc()->debug("client this={:p} activate compression unknown",
-                            static_cast<void*>(this));
+      logger->debug("client this={:p} activate compression unknown",
+                    static_cast<void*>(this));
     }
     args.SetCompressionAlgorithm(algo);
   }
@@ -62,8 +74,7 @@ connector::connector(const grpc_config::pointer& conf)
     ::grpc::SslCredentialsOptions ssl_opts = {conf->get_ca(), conf->get_key(),
                                               conf->get_cert()};
     SPDLOG_LOGGER_INFO(
-        log_v2::grpc(),
-        "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
+        logger, "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
         conf->get_hostport(), conf->get_cert().substr(0, 10),
         conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
     creds = ::grpc::SslCredentials(ssl_opts);
@@ -75,7 +86,7 @@ connector::connector(const grpc_config::pointer& conf)
     }
 #endif
   } else {
-    SPDLOG_LOGGER_INFO(log_v2::grpc(), "unencrypted connection to {}",
+    SPDLOG_LOGGER_INFO(logger, "unencrypted connection to {}",
                        conf->get_hostport());
     creds = ::grpc::InsecureChannelCredentials();
   }
@@ -91,13 +102,13 @@ connector::connector(const grpc_config::pointer& conf)
  * @return std::unique_ptr<io::stream>
  */
 std::shared_ptr<io::stream> connector::open() {
-  SPDLOG_LOGGER_INFO(log_v2::grpc(), "Connecting to {}", _conf->get_hostport());
+  auto logger = log_v2::instance().get(log_v2::GRPC);
+  SPDLOG_LOGGER_INFO(logger, "Connecting to {}", _conf->get_hostport());
   try {
     return limit_endpoint::open();
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_DEBUG(
-        log_v2::tcp(),
-        "Unable to establish the connection to {} (attempt {}): {}",
+        logger, "Unable to establish the connection to {} (attempt {}): {}",
         _conf->get_hostport(), _is_ready_count, e.what());
     return nullptr;
   }

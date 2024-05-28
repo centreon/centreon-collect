@@ -1,5 +1,5 @@
 /**
- * Copyright 2015-2017 Centreon
+ * Copyright 2015-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,12 +35,22 @@ namespace com::centreon::broker::influxdb {
  */
 class influxdb {
  public:
-  influxdb(std::string const& user, std::string const& passwd,
-           std::string const& addr, uint16_t port, std::string const& db,
-           std::string const& status_ts, std::vector<column> const& status_cols,
-           std::string const& metric_ts, std::vector<column> const& metric_cols,
-           macro_cache const& cache);
-  ~influxdb();
+  influxdb(std::string const& user,
+           std::string const& passwd,
+           std::string const& addr,
+           uint16_t port,
+           std::string const& db,
+           std::string const& status_ts,
+           std::vector<column> const& status_cols,
+           std::string const& metric_ts,
+           std::vector<column> const& metric_cols,
+           macro_cache const& cache,
+           const std::shared_ptr<spdlog::logger>& logger);
+
+  /**
+   *  Destructor.
+   */
+  ~influxdb() noexcept = default;
 
   influxdb(influxdb const& f) = delete;
   influxdb& operator=(influxdb const& f) = delete;
@@ -66,11 +76,17 @@ class influxdb {
 
   macro_cache const& _cache;
 
+  /* Logger */
+  std::shared_ptr<spdlog::logger> _logger;
+
   void _connect_socket();
-  bool _check_answer_string(std::string const& ans, const std::string& addr,
+  bool _check_answer_string(std::string const& ans,
+                            const std::string& addr,
                             uint16_t port);
-  void _create_queries(std::string const& user, std::string const& passwd,
-                       std::string const& db, std::string const& status_ts,
+  void _create_queries(std::string const& user,
+                       std::string const& passwd,
+                       std::string const& db,
+                       std::string const& status_ts,
                        std::vector<column> const& status_cols,
                        std::string const& metric_ts,
                        std::vector<column> const& metric_cols);

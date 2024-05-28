@@ -1,20 +1,20 @@
-/*
-** Copyright 2018-2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2018-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_LUA_STREAM_HH
 #define CCB_LUA_STREAM_HH
@@ -25,9 +25,7 @@
 #include "com/centreon/broker/lua/macro_cache.hh"
 #include "com/centreon/broker/misc/variant.hh"
 
-namespace com::centreon::broker {
-
-namespace lua {
+namespace com::centreon::broker::lua {
 
 /**
  *  @class stream stream.hh "com/centreon/broker/lua/stream.hh"
@@ -51,11 +49,13 @@ namespace lua {
  *  exit, the thread waits for 500ms before rechecking events.
  */
 class stream : public io::stream {
-  /* Macro cache */
-  macro_cache _cache;
-
   /* The Lua engine */
   luabinding _luabinding;
+
+  std::shared_ptr<spdlog::logger> _logger;
+
+  /* Macro cache */
+  macro_cache _cache;
 
  public:
   stream(std::string const& lua_script,
@@ -69,8 +69,7 @@ class stream : public io::stream {
   int32_t flush() override;
   int32_t stop() override;
 };
-}  // namespace lua
 
-}
+}  // namespace com::centreon::broker::lua
 
 #endif  // !CCB_LUA_STREAM_HH

@@ -1,29 +1,29 @@
-/*
-** Copyright 2011-2012,2017, 2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2012,2017, 2021-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_CONFIG_STATE_HH
 #define CCB_CONFIG_STATE_HH
 
-#include <absl/container/flat_hash_map.h>
 #include <fmt/format.h>
 
 #include "bbdo/bbdo/bbdo_version.hh"
 #include "com/centreon/broker/config/endpoint.hh"
+#include "common/log_v2/config.hh"
 
 namespace com::centreon::broker::config {
 
@@ -54,19 +54,7 @@ class state {
   std::string _poller_name;
   size_t _pool_size;
 
-  struct log {
-    std::string directory;
-    std::string filename;
-    std::size_t max_size;
-    uint32_t flush_period;
-    bool log_pid;
-    bool log_source;
-    absl::flat_hash_map<std::string, std::string> loggers;
-
-    std::string log_path() const {
-      return fmt::format("{}/{}", directory, filename);
-    }
-  } _log_conf;
+  common::log_v2::config _log_conf;
 
  public:
   /**
@@ -142,8 +130,8 @@ class state {
   int pool_size() const noexcept;
   void poller_name(std::string const& name);
   std::string const& poller_name() const noexcept;
-  log& mut_log_conf();
-  const log& log_conf() const;
+  common::log_v2::config& mut_log_conf();
+  const common::log_v2::config& log_conf() const;
   stats_exporter_conf& mut_stats_exporter();
   const stats_exporter_conf& get_stats_exporter() const;
 };

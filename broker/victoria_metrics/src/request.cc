@@ -1,26 +1,25 @@
 /**
-* Copyright 2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2022-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/victoria_metrics/request.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
@@ -55,11 +54,13 @@ static std::string string_filter(const string_class& to_filter) {
 request::request(boost::beast::http::verb method,
                  const std::string& server_name,
                  boost::beast::string_view target,
+                 const std::shared_ptr<spdlog::logger>& logger,
                  unsigned size_to_reserve,
                  const http_tsdb::line_protocol_query& metric_formatter,
                  const http_tsdb::line_protocol_query& status_formatter,
                  const std::string& authorization)
     : http_tsdb::request(method, server_name, target),
+      _logger{logger},
       _metric_formatter(metric_formatter),
       _status_formatter(status_formatter) {
   body().reserve(size_to_reserve);
@@ -96,8 +97,7 @@ void request::add_status(const storage::pb_status& status) {
   if (status_obj.state() < 0 || status_obj.state() > 2) {
     if (status_obj.state() !=
         3) {  // we don't write unknown but it's not an error
-      SPDLOG_LOGGER_ERROR(log_v2::victoria_metrics(), "unknown state: {}",
-                          status_obj.state());
+      SPDLOG_LOGGER_ERROR(_logger, "unknown state: {}", status_obj.state());
     }
     ++_nb_status;
     return;

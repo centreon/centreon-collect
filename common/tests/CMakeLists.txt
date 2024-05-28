@@ -1,0 +1,66 @@
+#
+# Copyright 2023-2024 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+#
+# For more information : contact@centreon.com
+#
+
+add_executable(ut_common
+  process_stat_test.cc
+  hex_dump_test.cc
+  log_v2/log_v2.cc
+  node_allocator_test.cc
+  rapidjson_helper_test.cc
+)
+
+set_target_properties(
+  ut_common
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
+
+if(WITH_COVERAGE)
+  set(COVERAGE_EXCLUDES '${PROJECT_SOURCE_DIR}/test/*' '/usr/include/*')
+  setup_target_for_coverage(NAME clib-test-coverage EXECUTABLE ut_clib
+                            DEPENDENCIES ut_clib)
+  set(GCOV gcov)
+endif()
+
+add_test(NAME tests COMMAND ut_common)
+
+target_link_libraries(
+  ut_common
+  PRIVATE centreon_common
+  crypto
+  ssl
+  re2::re2
+  log_v2
+  GTest::gtest
+  GTest::gtest_main
+  GTest::gmock
+  GTest::gmock_main
+  absl::any
+  absl::log
+  absl::base
+  absl::bits
+  fmt::fmt
+  pthread)
+
+add_dependencies(ut_common centreon_common)
+
+set_property(TARGET ut_common PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+target_precompile_headers(ut_common PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)

@@ -22,6 +22,7 @@
 #include "broker.pb.h"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/io/stream.hh"
+#include "com/centreon/broker/stats/center.hh"
 
 namespace com::centreon::broker::file {
 /**
@@ -41,12 +42,15 @@ class stream : public io::stream {
   std::array<std::pair<int64_t, double>, 10> _stats_perc;
   size_t _stats_idx;
   size_t _stats_size;
+  std::shared_ptr<com::centreon::broker::stats::center> _center;
 
   void _update_stats();
 
  public:
-  stream(const std::string& path, QueueFileStats* s,
-         uint32_t max_file_size = 100000000u, bool auto_delete = false);
+  stream(const std::string& path,
+         QueueFileStats* s,
+         uint32_t max_file_size = 100000000u,
+         bool auto_delete = false);
   ~stream() noexcept = default;
   stream(const stream&) = delete;
   stream& operator=(const stream&) = delete;

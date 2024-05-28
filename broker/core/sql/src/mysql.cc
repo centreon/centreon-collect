@@ -1,30 +1,31 @@
 /**
-* Copyright 2018 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2018-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <absl/strings/str_split.h>
 
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -32,11 +33,14 @@ using namespace com::centreon::broker::database;
  *  @param[in] db_cfg  Database configuration.
  */
 mysql::mysql(database_config const& db_cfg)
-    : _db_cfg(db_cfg), _pending_queries(0), _current_connection(0) {
+    : _db_cfg(db_cfg),
+      _pending_queries(0),
+      _current_connection(0),
+      _logger{log_v2::instance().get(log_v2::SQL)} {
   mysql_manager& mgr(mysql_manager::instance());
   _connection = mgr.get_connections(db_cfg);
-  log_v2::sql()->info("mysql connector configured with {} connection(s)",
-                      db_cfg.get_connections_count());
+  _logger->info("mysql connector configured with {} connection(s)",
+                db_cfg.get_connections_count());
   _get_server_infos();
 }
 
@@ -44,17 +48,17 @@ mysql::mysql(database_config const& db_cfg)
  *  Destructor
  */
 mysql::~mysql() {
-  log_v2::sql()->trace("mysql: destruction");
+  _logger->trace("mysql: destruction");
   try {
     commit();
   } catch (const std::exception& e) {
-    log_v2::sql()->warn(
+    _logger->warn(
         "Unable to commit on the database server. Probably not connected: {}",
         e.what());
   }
   _connection.clear();
   mysql_manager::instance().update_connections();
-  log_v2::sql()->trace("mysql object destroyed");
+  _logger->trace("mysql object destroyed");
 }
 
 /**
@@ -397,16 +401,15 @@ void mysql::_get_server_infos() {
     std::string_view server = v[3];
     if (absl::SimpleAtoi(v[0], &major) && absl::SimpleAtoi(v[1], &minor) &&
         absl::SimpleAtoi(v[2], &patch)) {
-      log_v2::sql()->info("connected to '{}' Server, version {}.{}.{}",
-                          fmt::string_view(server.data(), server.size()), major,
-                          minor, patch);
+      _logger->info("connected to '{}' Server, version {}.{}.{}",
+                    fmt::string_view(server.data(), server.size()), major,
+                    minor, patch);
       if (server == "MariaDB" && (major > 10 || (major == 10 && minor >= 2))) {
-        log_v2::sql()->info(
-            "it supports column-wise binding in prepared statements");
+        _logger->info("it supports column-wise binding in prepared statements");
         _support_bulk_statement = true;
       }
     }
   } else {
-    log_v2::sql()->info("connected to '{}' Server", _server_version);
+    _logger->info("connected to '{}' Server", _server_version);
   }
 }

@@ -28,9 +28,7 @@ extern "C" {
 #include "lualib.h"
 }
 
-namespace com::centreon::broker {
-
-namespace lua {
+namespace com::centreon::broker::lua {
 /**
  *  @class luabinding luabinding.hh
  * "com/centreon/broker/luabinding/luabinding.hh"
@@ -101,6 +99,9 @@ class luabinding {
   // Api version among (1, 2)
   uint32_t _broker_api_version;
 
+  // logger.
+  std::shared_ptr<spdlog::logger> _logger;
+
   lua_State* _load_interpreter();
   void _load_script(const std::string& lua_script);
   void _init_script(std::map<std::string, misc::variant> const& conf_params);
@@ -123,8 +124,6 @@ class luabinding {
 // Event conversion to Lua table.
 void push_event_as_table(lua_State* L, io::data const& d);
 
-}  // namespace lua
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::lua
 
 #endif  // !CCB_LUA_LUA_HH

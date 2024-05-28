@@ -1,21 +1,22 @@
 /**
-* Copyright 2011-2013,2015-2017,2019,2022 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2015-2017,2019,2022-2024 Centreon
+ * Copyright 2017 - 2024 Centreon (https://www.centreon.com/)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #include "com/centreon/engine/configuration/host.hh"
 #include "absl/strings/numbers.h"
@@ -23,8 +24,8 @@
 #include "absl/strings/string_view.h"
 #include "com/centreon/engine/configuration/hostextinfo.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 
@@ -1291,7 +1292,7 @@ bool host::_set_failure_prediction_enabled(bool value) {
   engine_logger(log_verification_error, basic)
       << "Warning: host failure_prediction_enabled is deprecated"
       << " This option will not be supported in 20.04.";
-  log_v2::config()->warn(
+  config_logger->warn(
       "Warning: host failure_prediction_enabled is deprecated This option will "
       "not be supported in 20.04.");
   ++config_warnings;
@@ -1310,7 +1311,7 @@ bool host::_set_failure_prediction_options(std::string const& value) {
   engine_logger(log_verification_error, basic)
       << "Warning: service failure_prediction_options is deprecated"
       << " This option will not be supported in 20.04.";
-  log_v2::config()->warn(
+  config_logger->warn(
       "Warning: service failure_prediction_options is deprecated This option "
       "will not be supported in 20.04.");
   ++config_warnings;
@@ -1763,8 +1764,8 @@ bool host::_set_category_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::hostcategory);
     } else {
-      log_v2::config()->warn("Warning: host ({}) error for parsing tag {}",
-                             _host_id, value);
+      config_logger->warn("Warning: host ({}) error for parsing tag {}",
+                          _host_id, value);
       ret = false;
     }
   }
@@ -1797,8 +1798,8 @@ bool host::_set_group_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::hostgroup);
     } else {
-      log_v2::config()->warn("Warning: host ({}) error for parsing tag {}",
-                             _host_id, value);
+      config_logger->warn("Warning: host ({}) error for parsing tag {}",
+                          _host_id, value);
       ret = false;
     }
   }

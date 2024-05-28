@@ -24,9 +24,7 @@
 
 #define COMPARE_EPSILON 0.0001
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_binary_operator bool_binary_operator.hh
  * "com/centreon/broker/bam/bool_binary_operator.hh"
@@ -48,7 +46,8 @@ class bool_binary_operator : public bool_value {
  public:
   typedef std::shared_ptr<bool_binary_operator> ptr;
 
-  bool_binary_operator() = default;
+  bool_binary_operator(const std::shared_ptr<spdlog::logger>& logger)
+      : bool_value(logger) {}
   bool_binary_operator(bool_binary_operator const&) = delete;
   ~bool_binary_operator() noexcept override = default;
   bool_binary_operator& operator=(const bool_binary_operator&) = delete;
@@ -59,8 +58,6 @@ class bool_binary_operator : public bool_value {
   void update_from(computable* child, io::stream* visitor) override;
   void dump(std::ofstream& output) const override;
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_BINARY_OPERATOR_HH

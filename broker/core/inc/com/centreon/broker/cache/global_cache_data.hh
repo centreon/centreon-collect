@@ -1,20 +1,20 @@
-/*
-** Copyright 2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2022-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_GLOBAL_CACHE_DATA_HH
 #define CCB_GLOBAL_CACHE_DATA_HH
@@ -27,8 +27,11 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/unordered/unordered_set.hpp>
 #include <com/centreon/common/node_allocator.hh>
+#include "common/log_v2/log_v2.hh"
 
 #include "global_cache.hh"
+
+using com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::broker {
 
@@ -227,7 +230,8 @@ class global_cache_data : public global_cache {
   void managed_map(bool create) override;
 
  public:
-  global_cache_data(const std::string& file_path) : global_cache(file_path) {}
+  global_cache_data(const std::string& file_path)
+      : global_cache(file_path, log_v2::instance().get(log_v2::CORE)) {}
 
   void set_metric_info(uint64_t metric_id,
                        uint64_t index_id,

@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2019,2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/contactgroup.hh"
 #include "com/centreon/engine/broker.hh"
@@ -24,7 +24,6 @@
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 
@@ -33,12 +32,6 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
 contactgroup_map contactgroup::contactgroups;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  * Constructor.
@@ -128,7 +121,7 @@ void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
       engine_logger(log_verification_error, basic)
           << "Error: Contact '" << it->first << "' specified in contact group '"
           << _name << "' is not defined anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Contact '{}' specified in contact group '{}' is not defined "
           "anywhere!",
           it->first, _name);
@@ -142,7 +135,7 @@ void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
     engine_logger(log_verification_error, basic)
         << "Error: The name of contact group '" << _name
         << "' contains one or more illegal characters.";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: The name of contact group '{}' contains one or more illegal "
         "characters.",
         _name);

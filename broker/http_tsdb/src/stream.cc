@@ -185,8 +185,6 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t) {
  * @param tree
  */
 void stream::statistics(nlohmann::json& tree) const {
-  time_t now = time(nullptr);
-
   auto extract_stat = [&](const char* label, const stat_average& data) {
     if (!data.empty()) {
       tree[label] = data.get_average();

@@ -1,5 +1,5 @@
 #
-# Copyright 2011-2023 Centreon
+# Copyright 2011-2024 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -47,8 +47,7 @@ set(PRECOMP_HEADER "${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh")
 
 set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 
-include_directories("${INC_DIR}"
-"${INC_DIR}/compatibility")
+include_directories("${INC_DIR}" "${INC_DIR}/compatibility")
 
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
@@ -148,9 +147,6 @@ set(CREATE_FILES "${WITH_CREATE_FILES}")
 
 set(PREFIX_ENGINE_CONF "${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-engine")
 
-# # Library directory. if (WITH_PREFIX_LIB_ENGINE) set(PREFIX_LIB
-# "${WITH_PREFIX_LIB_ENGINE}") else () set(PREFIX_LIB
-# "${CMAKE_INSTALL_PREFIX}/lib/centreon-engine") endif ()
 #
 
 # User used to run Centreon Engine.
@@ -498,10 +494,6 @@ include_directories(enginerpc
   ${CMAKE_SOURCE_DIR}/common/inc)
 
 # Library engine target.
-add_library(enginelog STATIC src/log_v2.cc)
-target_precompile_headers(enginelog PRIVATE ${PRECOMP_HEADER})
-set_target_properties(enginelog PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(enginelog spdlog::spdlog)
 
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
 add_dependencies(cce_core engine_rpc)
@@ -521,8 +513,8 @@ target_link_libraries(
   spdlog::spdlog)
 
 # centengine target.
-add_executable("centengine" "${SRC_DIR}/main.cc")
-set_property(TARGET "centengine" PROPERTY ENABLE_EXPORTS "1")
+add_executable(centengine "${SRC_DIR}/main.cc")
+set_property(TARGET centengine PROPERTY ENABLE_EXPORTS "1")
 add_dependencies(centengine centreon_clib)
 
 # Link centengine with required libraries.
@@ -531,15 +523,22 @@ target_link_libraries(
   -L${PROTOBUF_LIB_DIR}
   "-rdynamic"
   centreon_clib
-  enginelog
+  log_v2
   "-Wl,-whole-archive"
   enginerpc
   cce_core
   gRPC::grpc++
   "-Wl,--no-whole-archive"
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-  absl::any absl::log absl::base absl::bits
-  crypto ssl
+  gRPC::gpr
+  gRPC::grpc
+  gRPC::grpc++
+  gRPC::grpc++_alts
+  absl::any
+  absl::log
+  absl::base
+  absl::bits
+  crypto
+  ssl
   ${c-ares_LIBS}
   z
   ryml::ryml
