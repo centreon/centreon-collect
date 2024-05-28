@@ -20,14 +20,14 @@
 #define CCB_GRPC_CONNECTOR_HH
 
 #include "com/centreon/broker/io/limit_endpoint.hh"
+#include "com/centreon/common/grpc/grpc_client.hh"
 #include "grpc_config.hh"
 
 namespace com::centreon::broker {
 
 namespace grpc {
-class connector : public io::limit_endpoint {
-  grpc_config::pointer _conf;
-  std::shared_ptr<::grpc::Channel> _channel;
+class connector : public io::limit_endpoint,
+                  public com::centreon::common::grpc::grpc_client_base {
   std::unique_ptr<com::centreon::broker::stream::centreon_bbdo::Stub> _stub;
 
  public:

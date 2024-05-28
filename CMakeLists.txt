@@ -178,6 +178,24 @@ set(OTLP_LIB_DIR ${opentelemetry-cpp_DIR}/../../lib)
 set(VCPKG_INCLUDE_DIR ${Protobuf_INCLUDE_DIR})
 include(GNUInstallDirs)
 
+#import opentelemetry-proto
+add_custom_command(
+  OUTPUT ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/collector/metrics/v1/metrics_service.proto
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/metrics/v1/metrics.proto
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/common/v1/common.proto
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/resource/v1/resource.proto
+  COMMENT "get opentelemetry proto files from git repository"
+  COMMAND /bin/rm -rf  ${CMAKE_SOURCE_DIR}/opentelemetry-proto
+  COMMAND git ARGS clone --depth=1 --single-branch https://github.com/open-telemetry/opentelemetry-proto.git ${CMAKE_SOURCE_DIR}/opentelemetry-proto
+  WORKING_DIRECTORY  ${CMAKE_SOURCE_DIR}
+)
+
+add_custom_target(opentelemetry-proto-files DEPENDS  ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/collector/metrics/v1/metrics_service.proto
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/metrics/v1/metrics.proto
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/common/v1/common.proto
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/resource/v1/resource.proto
+)
+
 # var directories.
 set(BROKER_VAR_LOG_DIR
     "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-broker")

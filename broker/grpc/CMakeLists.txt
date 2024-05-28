@@ -21,7 +21,11 @@ set(MODULE_DIR "${PROJECT_SOURCE_DIR}/grpc")
 set(INC_DIR "${MODULE_DIR}/inc/com/centreon/broker/grpc")
 set(SRC_DIR "${MODULE_DIR}/src")
 set(TEST_DIR "${MODULE_DIR}/test")
-include_directories(${MODULE_DIR}/inc ${SRC_DIR} ${CMAKE_SOURCE_DIR}/bbdo ${CMAKE_SOURCE_DIR}/common)
+include_directories(${MODULE_DIR}/inc 
+  ${SRC_DIR} 
+  ${CMAKE_SOURCE_DIR}/bbdo
+  ${CMAKE_SOURCE_DIR}/common 
+  ${CMAKE_SOURCE_DIR}/common/grpc/inc)
 
 # Sources.
 set(SOURCES
@@ -43,6 +47,7 @@ add_library(${GRPC} SHARED ${SOURCES} )
 set_target_properties(${GRPC} PROPERTIES PREFIX "")
 target_link_libraries(
   ${GRPC}
+  centreon_grpc
   "-Wl,--whole-archive"
   pb_neb_lib
   pb_storage_lib
@@ -51,6 +56,7 @@ target_link_libraries(
   pb_tag_lib
   pb_bam_lib
   pb_extcmd_lib
+  pb_open_telemetry_lib
   pb_rebuild_message_lib
   pb_remove_graph_message_lib
   pb_header_lib
@@ -81,6 +87,7 @@ add_custom_command(
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     grpc_stream.proto
   VERBATIM)
 
@@ -92,6 +99,7 @@ add_custom_command(
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --grpc_out=${SRC_DIR}
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     grpc_stream.proto
   VERBATIM
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})

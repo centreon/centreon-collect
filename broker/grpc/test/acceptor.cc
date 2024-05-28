@@ -76,7 +76,7 @@ TEST_F(GrpcTlsTest, TlsStream) {
     auto conf{std::make_shared<grpc_config>(
         "0.0.0.0:4141", true, read_file("/tmp/server.crt"),
         read_file("/tmp/server.key"), read_file("/tmp/client.crt"), "",
-        "centreon", grpc_config::NO, 30, false)};
+        "centreon", false, 30, false)};
     auto a{std::make_unique<acceptor>(conf)};
 
     /* Nominal case, cbd is acceptor and read on the socket */
@@ -108,7 +108,7 @@ TEST_F(GrpcTlsTest, TlsStream) {
     auto conf{std::make_shared<grpc_config>(
         fmt::format("{}:4141", hostname), true, read_file("/tmp/client.crt"),
         read_file("/tmp/client.key"), read_file("/tmp/server.crt"), "", "",
-        grpc_config::NO, 30, false)};
+        false, 30, false)};
     auto c{std::make_unique<connector>(conf)};
 
     /* Nominal case, centengine is connector and write on the socket */
@@ -160,7 +160,7 @@ TEST_F(GrpcTlsTest, TlsStreamBadCaHostname) {
     auto conf{std::make_shared<grpc_config>(
         "0.0.0.0:4141", true, read_file("/tmp/server.crt"),
         read_file("/tmp/server.key"), read_file("/tmp/client.crt"), "",
-        "centreon", grpc_config::NO, 30, false)};
+        "centreon", false, 30, false)};
     auto a{std::make_unique<acceptor>(conf)};
 
     /* Nominal case, cbd is acceptor and read on the socket */
@@ -175,7 +175,7 @@ TEST_F(GrpcTlsTest, TlsStreamBadCaHostname) {
     auto conf{std::make_shared<grpc_config>(
         "localhost:4141", true, read_file("/tmp/client.crt"),
         read_file("/tmp/client.key"), read_file("/tmp/server.crt"), "",
-        "bad_name", grpc_config::NO, 30, false)};
+        "bad_name", false, 30, false)};
     auto c{std::make_unique<connector>(conf)};
 
     /* Nominal case, centengine is connector and write on the socket */
