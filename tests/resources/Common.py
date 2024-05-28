@@ -9,6 +9,11 @@ from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
 from robot.libraries.BuiltIn import BuiltIn
+from concurrent import futures
+import grpc
+import grpc_stream_pb2_grpc
+import grpc_stream_pb2
+
 
 
 TIMEOUT = 30
@@ -65,7 +70,7 @@ def ctn_wait_for_connections(port: int, nb: int, timeout: int = 60):
     """
     limit = time.time() + timeout
     r = re.compile(
-        r"^ESTAB.*127\.0\.0\.1\]*:{}\s|^ESTAB.*\[::1\]*:{}\s".format(port, port))
+        fr"^ESTAB.*127\.0\.0\.1:{port}\s|^ESTAB.*\[::ffff:127\.0\.0\.1\]:{port}\s|^ESTAB.*\[::1\]*:{port}\s")
 
     while time.time() < limit:
         out = getoutput("ss -plant")
@@ -1508,3 +1513,36 @@ def ctn_compare_dot_files(file1: str, file2: str):
                 f"Files are different at line {i + 1}: first => << {content1[i].strip()} >> and second => << {content2[i].strip()} >>")
             return False
     return True
+
+def ctn_create_bbdo_grpc_server(port : int, ):
+    """
+    start a bbdo streamming grpc server.
+    It answers nothing and simulates proxy behavior when cbd is down
+    Args:
+        port: port to listen
+    Returns: grpc server
+    """
+
+    class service_implementation(grpc_stream_pb2_grpc.centreon_bbdoServicer):
+        """
+        bbdo grpc service that does nothing
+        """
+        def exchange(self, request_iterator, context):
+            time.sleep(0.01)
+            for request in request_iterator:
+                logger.console(request)
+            context.abort(grpc.StatusCode.UNAVAILABLE, "unavailable")
+
+    private_key = open('/tmp/server_1234.key', 'rb').read()
+    certificate_chain = open('/tmp/server_1234.crt', 'rb').read()
+    ca_cert = open('/tmp/ca_1234.crt', 'rb').read()
+
+
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
+    grpc_stream_pb2_grpc.add_centreon_bbdoServicer_to_server(service_implementation(), server)
+    creds = grpc.ssl_server_credentials([(private_key, certificate_chain)],
+            root_certificates=ca_cert)
+    
+    server.add_secure_port("0.0.0.0:5669", creds)
+    server.start()
+    return server

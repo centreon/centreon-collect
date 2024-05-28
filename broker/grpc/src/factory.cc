@@ -17,9 +17,11 @@
  *
  */
 
-#include "com/centreon/broker/grpc/factory.hh"
-
 #include <absl/strings/match.h>
+
+#include "grpc_stream.grpc.pb.h"
+
+#include "com/centreon/broker/grpc/factory.hh"
 
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/grpc/acceptor.hh"

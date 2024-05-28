@@ -43,7 +43,7 @@ not1
     Should Be True    ${result}    check_for_external_commands() should be available.
 
     ## Time to set the service to CRITICAL HARD.
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
@@ -84,7 +84,7 @@ not2
 
     ## Time to set the service to CRITICAL HARD.
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
@@ -96,9 +96,9 @@ not2
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No notification has been sent concerning a critical service
 
-    ## Time to set the service to UP  hard
+    ## Time to set the service to UP    hard
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Service Check Result    host_1    service_1    0    ok
         Sleep    1s
     END
@@ -143,15 +143,16 @@ not3
     ${result}    Ctn Check Number Of Downtimes    ${1}    ${start}    ${60}
     Should Be True    ${result}    We should have 1 downtime enabled.
 
-     ## Time to set the service to CRITICAL HARD.
+    ## Time to set the service to CRITICAL HARD.
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    10s
     END
 
     # Let's wait for the external command check start
-    ${content}    Create List    SERVICE DOWNTIME ALERT: host_1;service_1;STOPPED; Service has exited from a period of scheduled downtime
+    ${content}    Create List
+    ...    SERVICE DOWNTIME ALERT: host_1;service_1;STOPPED; Service has exited from a period of scheduled downtime
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The downtime has not finished .
 
@@ -189,7 +190,7 @@ not4
     Should Be True    ${result}    check_for_external_commands() should be available.
 
     # Time to set the service to CRITICAL HARD.
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
@@ -201,7 +202,8 @@ not4
     Ctn Acknowledge Service Problem    host_1    service_1    STICKY
 
     # Let's wait for the external command check start
-    ${content}    Create List    ACKNOWLEDGE_SVC_PROBLEM;host_1;service_1;2;0;0;admin;Service (host_1,service_1) acknowledged
+    ${content}    Create List
+    ...    ACKNOWLEDGE_SVC_PROBLEM;host_1;service_1;2;0;0;admin;Service (host_1,service_1) acknowledged
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands() should be available.
 
@@ -252,7 +254,7 @@ not5
 
     ## Time to set the service to CRITICAL HARD.
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
         Ctn Process Service Check Result    host_2    service_2    2    critical
@@ -277,7 +279,7 @@ not5
     Ctn Kindly Stop Broker
 
 not6
-    [Documentation]     This test case validates the behavior when the notification time period is set to null.
+    [Documentation]    This test case validates the behavior when the notification time period is set to null.
     [Tags]    broker    engine    services    hosts    notification
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Config Notifications
@@ -301,7 +303,7 @@ not6
     Should Be True    ${result}    check_for_external_commands() should be available.
 
     ## Time to set the service to CRITICAL HARD.
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
@@ -320,9 +322,9 @@ not6
     Ctn Reload Broker
     Ctn Reload Engine
 
-    ## Time to set the service to UP  hard
+    ## Time to set the service to UP    hard
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Service Check Result    host_1    service_1    0    ok
         Sleep    1s
     END
@@ -358,7 +360,7 @@ not7
 
     ## Time to set the host to CRITICAL HARD.
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_1    1    host_1 DOWN
         Sleep    1s
     END
@@ -399,7 +401,7 @@ not8
 
     ## Time to set the host to CRITICAL HARD.
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_1    1    host_1 DOWN
         Sleep    1s
     END
@@ -440,7 +442,7 @@ not9
 
     ## Time to set the host to CRITICAL HARD.
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_1    1    host_1 DOWN
         Sleep    1s
     END
@@ -481,7 +483,7 @@ not10
 
     ## Time to set the host to CRITICAL HARD.
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_1    0    host_1 UP
         Sleep    1s
     END
@@ -491,12 +493,11 @@ not10
         Sleep    5s
     END
 
-
     Ctn Schedule Host Downtime    ${0}    host_1    ${3600}
 
     Sleep    10s
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_1    1    host_1 DOWN
         Sleep    1s
     END
@@ -534,7 +535,7 @@ not11
 
     ## Time to set the host to UP HARD.
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_1    1    host_1 DOWN
         Sleep    1s
     END
@@ -544,12 +545,11 @@ not11
         Sleep    5s
     END
 
-
     Ctn Schedule Host Downtime    ${0}    host_1    ${3600}
 
     Sleep    10s
     ## Time to set the host to CRITICAL HARD.
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_1    0    host_1 UP
         Sleep    1s
     END
@@ -566,7 +566,6 @@ not11
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-
 
 not12
     [Documentation]    This test case involves configuring one service and checking that three alerts are sent for it.
@@ -594,7 +593,7 @@ not12
 
     ## Time to set the service to CRITICAL HARD.
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
@@ -604,7 +603,7 @@ not12
 
     ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;1;critical
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The first service alert SOFT1 is not sent 
+    Should Be True    ${result}    The first service alert SOFT1 is not sent
 
     ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;2;critical
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -616,7 +615,6 @@ not12
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-
 
 not13
     [Documentation]    Escalations
@@ -646,7 +644,7 @@ not13
     Ctn Start Broker
     Ctn Start Engine
 
-  # Let's wait for the external command check start
+    # Let's wait for the external command check start
     ${content}    Create List    check
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands() is not available.
@@ -654,11 +652,11 @@ not13
     Ctn Service Check
 
     # Let's wait for the first notification of the user U1
-    ${content}    Create List    SERVICE NOTIFICATION: U1;host_1;service_1;CRITICAL;command_notif;critical_0;
+    ${content}    Create List    SERVICE NOTIFICATION: U1;host_1;service_1;CRITICAL;command_notif;critical;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The first notification of U1 is not sent
     # Let's wait for the first notification of the contact group 1
-    ${content}    Create List    SERVICE NOTIFICATION: U1;host_2;service_2;CRITICAL;command_notif;critical_0;
+    ${content}    Create List    SERVICE NOTIFICATION: U1;host_2;service_2;CRITICAL;command_notif;critical;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The first notification of contact group 1 is not sent
 
@@ -666,11 +664,11 @@ not13
 
     # Let's wait for the first notification of the contact group 2 U3 ET U2
 
-    ${content}    Create List     SERVICE NOTIFICATION: U2;host_1;service_1;CRITICAL;command_notif;critical_0;
+    ${content}    Create List    SERVICE NOTIFICATION: U2;host_1;service_1;CRITICAL;command_notif;critical;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The first notification of U2 is not sent
 
-    ${content}    Create List    SERVICE NOTIFICATION: U3;host_1;service_1;CRITICAL;command_notif;critical_0;
+    ${content}    Create List    SERVICE NOTIFICATION: U3;host_1;service_1;CRITICAL;command_notif;critical;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The first notification of U3 is not sent
 
@@ -678,11 +676,11 @@ not13
 
     # Let's wait for the second notification of the contact group 2 U3 ET U2
 
-    ${content}    Create List    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;critical_0;
+    ${content}    Create List    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;critical;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The second notification of U2 is not sent
 
-    ${content}    Create List    SERVICE NOTIFICATION: U3;host_2;service_2;CRITICAL;command_notif;critical_0;
+    ${content}    Create List    SERVICE NOTIFICATION: U3;host_2;service_2;CRITICAL;command_notif;critical;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The second notification of U3 is not sent
 
@@ -690,15 +688,13 @@ not13
 
     # Let's wait for the first notification of the contact group 3 U4
 
-    ${content}    Create List    SERVICE NOTIFICATION: U4;host_1;service_1;CRITICAL;command_notif;critical_0;
+    ${content}    Create List    SERVICE NOTIFICATION: U4;host_1;service_1;CRITICAL;command_notif;critical;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The first notification of U4 is not sent
 
-    ${content}    Create List    SERVICE NOTIFICATION: U4;host_2;service_2;CRITICAL;command_notif;critical_0;
+    ${content}    Create List    SERVICE NOTIFICATION: U4;host_2;service_2;CRITICAL;command_notif;critical;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The second notification of U4 is not sent
-
-
 
 
 *** Keywords ***
@@ -738,28 +734,28 @@ Ctn Config Escalations
     Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
     Ctn Engine Config Set Value In Services    0    service_1    contact_groups    contactgroup_1
     Ctn Engine Config Replace Value In Services    0    service_1    active_checks_enabled    0
-    Ctn Engine Config Replace Value In Services    0    service_1    max_check_attempts     1
-    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval     1
+    Ctn Engine Config Replace Value In Services    0    service_1    max_check_attempts    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
     Ctn Engine Config Set Value In Services    0    service_1    notification_interval    1
-    Ctn Engine Config Replace Value In Services    0    service_1    check_interval     1
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
     Ctn Engine Config Replace Value In Services    0    service_1    check_command    command_4
     Ctn Engine Config Set Value In Services    0    service_2    contact_groups    contactgroup_1
-    Ctn Engine Config Replace Value In Services    0    service_2    max_check_attempts     1
+    Ctn Engine Config Replace Value In Services    0    service_2    max_check_attempts    1
     Ctn Engine Config Set Value In Services    0    service_2    notification_options    c
     Ctn Engine Config Set Value In Services    0    service_2    notifications_enabled    1
     Ctn Engine Config Set Value In Services    0    service_2    first_notification_delay    0
     Ctn Engine Config Set Value In Services    0    service_2    notification_period    24x7
     Ctn Engine Config Set Value In Services    0    service_2    notification_interval    1
     Ctn Engine Config Replace Value In Services    0    service_2    first_notification_delay    0
-    Ctn Engine Config Replace Value In Services    0    service_2    check_interval     1
+    Ctn Engine Config Replace Value In Services    0    service_2    check_interval    1
     Ctn Engine Config Replace Value In Services    0    service_2    active_checks_enabled    0
-    Ctn Engine Config Replace Value In Services    0    service_2    retry_interval     1
+    Ctn Engine Config Replace Value In Services    0    service_2    retry_interval    1
     Ctn Engine Config Replace Value In Services    0    service_2    check_command    command_4
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
 Ctn Service Check
-    FOR   ${i}    IN RANGE    ${4}
+    FOR    ${i}    IN RANGE    ${4}
         Ctn Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
@@ -767,7 +763,7 @@ Ctn Service Check
     ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
-    FOR   ${i}    IN RANGE    ${4}
+    FOR    ${i}    IN RANGE    ${4}
         Ctn Process Service Check Result    host_2    service_2    2    critical
         Sleep    1s
     END
