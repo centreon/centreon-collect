@@ -159,7 +159,7 @@ else()
 endif()
 
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
-target_precompile_headers(${CBMOD} REUSE_FROM nebbase)
+target_precompile_headers(${CBMOD} PRIVATE precomp_inc/precomp.hpp)
 
 # Testing.
 if(WITH_TESTING)

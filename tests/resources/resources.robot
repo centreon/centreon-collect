@@ -94,6 +94,7 @@ Ctn Kindly Stop Broker
     ${result}    Wait For Process    b1    timeout=60s
     # In case of process not stopping
     IF    "${result}" == "${None}"
+        Log To Console    "fail to stop central broker"
         Ctn Save Logs
         Ctn Dump Process    b1    /usr/sbin/cbd    broker-central
         Send Signal To Process    SIGKILL    b1
@@ -111,6 +112,7 @@ Ctn Kindly Stop Broker
         ${result}    Wait For Process    b2    timeout=60s    on_timeout=kill
         # In case of process not stopping
         IF    "${result}" == "${None}"
+            Log To Console    "fail to stop rrd broker"
             Ctn Save Logs
             Ctn Dump Process    b2    /usr/sbin/cbd    broker-rrd
             Send Signal To Process    SIGKILL    b2
@@ -192,7 +194,8 @@ Ctn Stop Custom Engine
     ...    ${result.rc} == -15 or ${result.rc} == 0
     ...    Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
-Ctn Stop Engine
+Ctn Stop engine
+    Log To Console    "stop centengine"
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -202,6 +205,7 @@ Ctn Stop Engine
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${result}    Wait For Process    ${alias}    timeout=60s
         IF    "${result}" == "${None}"
+            Log To Console    "fail to stop centengine"
             ${name}    Catenate    SEPARATOR=    centengine    ${idx}
             Ctn Dump Process    ${alias}    /usr/sbin/centengine    ${name}
             Send Signal To Process    SIGKILL    ${alias}
@@ -286,7 +290,7 @@ Ctn Save Logs
 Ctn Dump Process
     [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${pid}    Get Process Id    ${process_name}
-    IF    ${pid} is not ${None}
+    IF    ${{$pid is not None}}
         ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
         Create Directory    ${failDir}
         ${output}    Catenate    SEPARATOR=    /tmp/core-    ${name}

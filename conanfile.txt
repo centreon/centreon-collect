@@ -2,14 +2,14 @@
 abseil/20230125.3
 boost/1.82.0
 fmt/9.1.0
-grpc/1.50.1
+grpc/1.54.3
 gtest/cci.20210126
 libcurl/8.0.1
 libssh2/1.10.0
 mariadb-connector-c/3.3.3
 nlohmann_json/3.11.2
 openssl/1.1.1t
-opentelemetry-cpp/1.8.1
+opentelemetry-cpp/1.14.2
 protobuf/3.21.9
 rapidjson/cci.20230929
 rapidyaml/0.5.0
