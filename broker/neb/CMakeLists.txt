@@ -117,7 +117,6 @@ add_library(
 target_link_libraries(${NEB} nebbase CONAN_PKG::spdlog)
 
 set_target_properties("${NEB}" PROPERTIES PREFIX "")
-target_precompile_headers(${NEB} REUSE_FROM nebbase)
 install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
 
 # Centreon Engine/Nagios module.

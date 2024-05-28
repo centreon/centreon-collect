@@ -16,6 +16,18 @@
 ** For more information : contact@centreon.com
 */
 
+#include <string>
+
+#include <absl/strings/string_view.h>
+#include <absl/container/flat_hash_set.h>
+
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
+
+#include <boost/asio.hpp>
+
+namespace asio = boost::asio;
+
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
