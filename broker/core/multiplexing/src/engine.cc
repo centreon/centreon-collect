@@ -269,14 +269,13 @@ void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
  *  @param[in] subscriber  Subscriber.
  */
 void engine::unsubscribe_muxer(const muxer* subscriber) {
-  auto sending_is_finished = [this]() {
-    return !_sending_to_subscribers;
-  };
+  std::promise<void> promise;
 
-  _send_to_subscribers(nullptr);
+  if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
+    promise.get_future().wait();
+  }
 
   absl::MutexLock lck(&_kiew_m);
-  _kiew_m.Await(absl::Condition(&sending_is_finished));
 
   auto logger = log_v2::instance().get(log_v2::CONFIG);
   for (auto it = _muxers.begin(); it != _muxers.end(); ++it) {

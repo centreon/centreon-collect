@@ -1055,12 +1055,14 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
         break;
       case stop::static_type():
       case pb_stop::static_type(): {
-        SPDLOG_LOGGER_INFO(_logger, "BBDO: received stop from peer");
+        SPDLOG_LOGGER_INFO(
+            _logger, "BBDO: received stop from peer with ID {}",
+            std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
         send_event_acknowledgement();
         /* Now, we send a local::pb_stop to ask unified_sql to update the
          * database since the poller is going away. */
         auto loc_stop = std::make_shared<local::pb_stop>();
-        auto obj = loc_stop->mut_obj();
+        auto& obj = loc_stop->mut_obj();
         obj.set_poller_id(
             std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
         multiplexing::publisher pblshr;

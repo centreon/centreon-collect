@@ -499,7 +499,9 @@ static void send_pb_service_list() {
  */
 static void send_instance_configuration() {
   neb_logger->info(
-      "init: sending initial instance configuration loading event");
+      "init: sending initial instance configuration loading event, poller id: "
+      "{}",
+      config::applier::state::instance().poller_id());
   std::shared_ptr<neb::instance_configuration> ic(
       new neb::instance_configuration);
   ic->loaded = true;
