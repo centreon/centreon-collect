@@ -375,7 +375,7 @@ define command {
         ff.close()
 
     @staticmethod
-    def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+    def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
         config_file = f"{CONF_DIR}/config{poller}/escalations.cfg"
         with open(config_file, "a+") as ff:
             content = """define serviceescalation {{
@@ -386,6 +386,72 @@ define command {
     contact_groups                 {2}
     }}
     """.format(name, SG, contactgroup)
+            ff.write(content)
+
+    @staticmethod
+    def create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
+        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define servicedependency {{
+    ;dependency_name               HD_test
+    execution_failure_criteria     n 
+    notification_failure_criteria  c 
+    inherits_parent                1 
+    dependent_host_name            {0} 
+    host_name                      {1} 
+    dependent_service_description  {2} 
+    service_description            {3} 
+
+    }}
+    """.format(dependenthost, host, dependentservice, service)
+            ff.write(content)
+
+    @staticmethod
+    def create_dependenciesgrp_file(poller: int, dependentservicegroup: str, servicegroup: str):
+        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define servicedependency {{
+    ;dependency_name               MSD_test 
+    execution_failure_criteria     n 
+    notification_failure_criteria  c 
+    inherits_parent                1 
+    dependent_servicegroup_name    {0} 
+    servicegroup_name              {1} 
+
+    }}
+    """.format(dependentservicegroup, servicegroup)
+            ff.write(content)
+
+    @staticmethod
+    def create_dependencieshst_file(poller: int, dependenthost: str, host: str):
+        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define hostdependency {{
+    ;dependency_name               HD_test2 
+    execution_failure_criteria     n 
+    notification_failure_criteria  d 
+    inherits_parent                1 
+    dependent_host_name            {0} 
+    host_name                      {1} 
+
+    }}
+    """.format(dependenthost, host)
+            ff.write(content)
+
+    @staticmethod
+    def create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostgrp: str):
+        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define hostdependency {{
+    ;dependency_name               HD_test2 
+    execution_failure_criteria     n 
+    notification_failure_criteria  d 
+    inherits_parent                1 
+    dependent_hostgroup_name       {0} 
+    hostgroup_name                 {1} 
+
+    }}
+    """.format(dependenthostgrp, hostgrp)
             ff.write(content)
 
     @staticmethod
@@ -2226,7 +2292,49 @@ def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: s
         SG (str): name of a service group.
         contactgroup (str): name of a contact group.
     """
-    engine.ctn_create_escalations_file(poller, name, SG, contactgroup)
+    engine.create_escalations_file(poller, name, SG, contactgroup)
+
+def ctn_create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
+    """
+    Create an dependencies.cfg file for a given poller.
+    Args:
+        poller (int): Index of the poller.
+        dependenthost (str): name of the dependent host that we are gonna test
+        host (str): name of the host master
+        dependentservice (str): name of the dependent service that we are gonna test
+        service (str): name of the service master
+    """    
+    engine.create_dependencies_file(poller, dependenthost, host, dependentservice, service)
+
+def ctn_create_dependenciesgrp_file(poller: int, dependentservicegroup: str, servicegroup: str):
+    """
+    Create an dependenciesgrp.cfg file for a given poller.
+    Args:
+        poller (int): Index of the poller.
+        dependentservicegroup (str): Dependent service group names list defines the group(s) of dependent services
+        servicegroup (str): Service group names list defines the group(s) of master services
+    """    
+    engine.create_dependenciesgrp_file(poller, dependentservicegroup, servicegroup)
+
+def ctn_create_dependencieshst_file(poller: int, dependenthost: str, host: str):
+    """
+    Create an dependencies.cfg file for a given poller.
+    Args:
+        poller (int): Index of the poller.
+        dependenthost (str): Dependent Host Name
+        host (str): master host name
+    """    
+    engine.create_dependencieshst_file(poller, dependenthost, host)
+
+def ctn_create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostgrp: str):
+    """
+    Create an dependencieshstgrp.cfg file for a given poller.
+    Args:
+        poller (int): Index of the poller.
+        dependenthostgrp (str): Dependent host group name list defines the dependent host group(s)
+        hostgrp (str): Host groups name list defines the master host group(s)
+    """    
+    engine.create_dependencieshstgrp_file(poller, dependenthostgrp, hostgrp)
 
 
 def ctn_create_template_file(poller: int, typ: str, what: str, ids: list):
@@ -3212,3 +3320,15 @@ define timeperiod {{
     {my_date.date().isoformat()}  {begin.strftime("%H:%M")}-{end.time().strftime("%H:%M")}
 }}
 """)
+def ctn_get_service_command_id(service: int):
+    """
+    Get the command ID of the service with the given ID.
+
+    Args:
+        service (int): ID of the service.
+
+    Returns:
+        The command ID.
+    """
+    global engine
+    return engine.service_cmd[service][8:]
