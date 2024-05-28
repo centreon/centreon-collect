@@ -22,7 +22,7 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
@@ -119,8 +119,7 @@ static unsigned short const default_flap_detection_options(host::up |
                                                            host::unreachable);
 static unsigned int const default_freshness_threshold(0);
 static unsigned int const default_high_flap_threshold(0);
-static unsigned short const default_initial_state(
-    com::centreon::engine::host::state_up);
+static unsigned short const default_initial_state(host::state_up);
 static unsigned int const default_low_flap_threshold(0);
 static unsigned int const default_max_check_attempts(3);
 static bool const default_notifications_enabled(true);
@@ -1268,7 +1267,7 @@ bool host::_set_event_handler_enabled(bool value) {
  *  @return True on success, otherwise false.
  */
 bool host::_set_failure_prediction_enabled(bool value [[maybe_unused]]) {
-  config_logger->warn(
+  _logger->warn(
       "Warning: host failure_prediction_enabled is deprecated This option will "
       "not be supported in 20.04.");
   ++config_warnings;
@@ -1284,7 +1283,7 @@ bool host::_set_failure_prediction_enabled(bool value [[maybe_unused]]) {
  */
 bool host::_set_failure_prediction_options(std::string const& value
                                            [[maybe_unused]]) {
-  config_logger->warn(
+  _logger->warn(
       "Warning: service failure_prediction_options is deprecated This option "
       "will not be supported in 20.04.");
   ++config_warnings;
@@ -1439,11 +1438,11 @@ bool host::_set_initial_state(std::string const& value) {
   std::string_view data(value);
   data = absl::StripAsciiWhitespace(data);
   if (data == "o" || data == "up")
-    _initial_state = engine::host::state_up;
+    _initial_state = host::state_up;
   else if (data == "d" || data == "down")
-    _initial_state = engine::host::state_down;
+    _initial_state = host::state_down;
   else if (data == "u" || data == "unreachable")
-    _initial_state = engine::host::state_unreachable;
+    _initial_state = host::state_unreachable;
   else
     return false;
   return true;
@@ -1731,8 +1730,8 @@ bool host::_set_category_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::hostcategory);
     } else {
-      config_logger->warn("Warning: host ({}) error for parsing tag {}",
-                          _host_id, value);
+      _logger->warn("Warning: host ({}) error for parsing tag {}", _host_id,
+                    value);
       ret = false;
     }
   }
@@ -1765,8 +1764,8 @@ bool host::_set_group_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::hostgroup);
     } else {
-      config_logger->warn("Warning: host ({}) error for parsing tag {}",
-                          _host_id, value);
+      _logger->warn("Warning: host ({}) error for parsing tag {}", _host_id,
+                    value);
       ret = false;
     }
   }

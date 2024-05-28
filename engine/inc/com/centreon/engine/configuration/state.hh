@@ -102,12 +102,6 @@ class state {
     ilf_smart      // smart interleave
   };
 
-  /**
-   *  @enum state::perdata_file_mode
-   *
-   */
-  enum perfdata_file_mode { mode_pipe = 0, mode_file, mode_file_append };
-
   state();
   state(state const& right);
   ~state() noexcept;
@@ -247,15 +241,9 @@ class state {
   void host_inter_check_delay_method(inter_check_delay value);
   std::string const& host_perfdata_command() const noexcept;
   void host_perfdata_command(std::string const& value);
-  std::string const& host_perfdata_file() const noexcept;
   void host_perfdata_file(std::string const& value);
-  perfdata_file_mode host_perfdata_file_mode() const noexcept;
-  void host_perfdata_file_mode(perfdata_file_mode value);
-  std::string const& host_perfdata_file_processing_command() const noexcept;
   void host_perfdata_file_processing_command(std::string const& value);
-  unsigned int host_perfdata_file_processing_interval() const noexcept;
   void host_perfdata_file_processing_interval(unsigned int value);
-  std::string const& host_perfdata_file_template() const noexcept;
   void host_perfdata_file_template(std::string const& value);
   std::string const& illegal_object_chars() const noexcept;
   void illegal_object_chars(std::string const& value);
@@ -373,15 +361,9 @@ class state {
   void service_interleave_factor_method(interleave_factor value);
   std::string const& service_perfdata_command() const noexcept;
   void service_perfdata_command(std::string const& value);
-  std::string const& service_perfdata_file() const noexcept;
   void service_perfdata_file(std::string const& value);
-  perfdata_file_mode service_perfdata_file_mode() const noexcept;
-  void service_perfdata_file_mode(perfdata_file_mode value);
-  std::string const& service_perfdata_file_processing_command() const noexcept;
   void service_perfdata_file_processing_command(std::string const& value);
-  unsigned int service_perfdata_file_processing_interval() const noexcept;
   void service_perfdata_file_processing_interval(unsigned int value);
-  std::string const& service_perfdata_file_template() const noexcept;
   void service_perfdata_file_template(std::string const& value);
   float sleep_time() const noexcept;
   void sleep_time(float value);
@@ -569,7 +551,6 @@ class state {
   inter_check_delay _host_inter_check_delay_method;
   std::string _host_perfdata_command;
   std::string _host_perfdata_file;
-  perfdata_file_mode _host_perfdata_file_mode;
   std::string _host_perfdata_file_processing_command;
   unsigned int _host_perfdata_file_processing_interval;
   std::string _host_perfdata_file_template;
@@ -626,10 +607,7 @@ class state {
   interleave_factor _service_interleave_factor_method;
   std::string _service_perfdata_command;
   std::string _service_perfdata_file;
-  perfdata_file_mode _service_perfdata_file_mode;
   std::string _service_perfdata_file_processing_command;
-  unsigned int _service_perfdata_file_processing_interval;
-  std::string _service_perfdata_file_template;
   static setter_map _setters;
   float _sleep_time;
   bool _soft_state_dependencies;

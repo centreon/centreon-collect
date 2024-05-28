@@ -31,6 +31,12 @@ namespace configuration {
 
 class anomalydetection : public object {
  public:
+  enum state {
+    state_ok = 0,
+    state_warning = 1,
+    state_critical = 2,
+    state_unknown = 3,
+  };
   enum action_on {
     none = 0,
     ok = (1 << 0),

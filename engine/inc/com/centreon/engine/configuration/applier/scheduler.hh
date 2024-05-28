@@ -95,7 +95,6 @@ class scheduler {
   timed_event* _evt_reschedule_checks;
   timed_event* _evt_retention_save;
   timed_event* _evt_sfreshness_check;
-  timed_event* _evt_service_perfdata;
   timed_event* _evt_status_save;
   unsigned int _old_auto_rescheduling_interval;
   unsigned int _old_check_reaper_interval;
@@ -106,7 +105,6 @@ class scheduler {
   unsigned int _old_retention_update_interval;
   unsigned int _old_service_freshness_check_interval;
   std::string _old_service_perfdata_file_processing_command;
-  unsigned int _old_service_perfdata_file_processing_interval;
   unsigned int _old_status_update_interval;
 };
 }  // namespace applier
