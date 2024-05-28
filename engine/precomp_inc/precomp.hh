@@ -70,6 +70,7 @@
 #include <boost/optional.hpp>
 
 #include <asio.hpp>
+#include <nlohmann/json.hpp>
 
 #include "com/centreon/engine/namespace.hh"
 
