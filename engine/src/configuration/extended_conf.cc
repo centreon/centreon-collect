@@ -33,6 +33,7 @@ std::list<std::unique_ptr<extended_conf>> extended_conf::_confs;
 extended_conf::extended_conf(const std::string& path) : _path(path) {
   if (::stat(_path.c_str(), &_file_info)) {
     SPDLOG_LOGGER_ERROR(log_v2::config(), "can't access to {}", _path);
+    throw exceptions::msg_fmt("can't access to {}", _path);
   }
   try {
     _content = common::rapidjson_helper::read_from_file(_path);
@@ -42,6 +43,7 @@ extended_conf::extended_conf(const std::string& path) : _path(path) {
         log_v2::config(),
         "extended_conf::extended_conf : fail to read json content from {}: {}",
         _path, e.what());
+    throw;
   }
 }
 
