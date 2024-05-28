@@ -2348,7 +2348,7 @@ def ctn_create_template_file(poller: int, typ: str, what: str, ids: list):
         what (str): A string. It depends on what type of template.
         ids (list): For each integer in this list, a template is defined.
     """
-    engine.ctn_create_template_file(poller, typ, what, ids)
+    engine.create_template_file(poller, typ, what, ids)
 
 
 def ctn_create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
