@@ -852,22 +852,12 @@ struct grab_value_redirection {
       routines[datetime_ids[i]] = &handle_datetime_macro;
 
     // Static macros.
-    static unsigned int const static_ids[] = {MACRO_ADMINEMAIL,
-                                              MACRO_ADMINPAGER,
-                                              MACRO_MAINCONFIGFILE,
-                                              MACRO_STATUSDATAFILE,
-                                              MACRO_RETENTIONDATAFILE,
-                                              MACRO_TEMPFILE,
-                                              MACRO_LOGFILE,
-                                              MACRO_RESOURCEFILE,
-                                              MACRO_COMMANDFILE,
-                                              MACRO_HOSTPERFDATAFILE,
-                                              MACRO_SERVICEPERFDATAFILE,
-                                              MACRO_PROCESSSTARTTIME,
-                                              MACRO_TEMPPATH,
-                                              MACRO_EVENTSTARTTIME,
-                                              MACRO_POLLERNAME,
-                                              MACRO_POLLERID};
+    static unsigned int const static_ids[] = {
+        MACRO_ADMINEMAIL,       MACRO_ADMINPAGER,        MACRO_MAINCONFIGFILE,
+        MACRO_STATUSDATAFILE,   MACRO_RETENTIONDATAFILE, MACRO_TEMPFILE,
+        MACRO_LOGFILE,          MACRO_RESOURCEFILE,      MACRO_COMMANDFILE,
+        MACRO_PROCESSSTARTTIME, MACRO_TEMPPATH,          MACRO_EVENTSTARTTIME,
+        MACRO_POLLERNAME,       MACRO_POLLERID};
     for (unsigned int i = 0; i < sizeof(static_ids) / sizeof(*static_ids); ++i)
       routines[static_ids[i]] = &handle_static_macro;
 

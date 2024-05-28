@@ -19,7 +19,6 @@
  */
 
 #include "com/centreon/engine/configuration/hostdependency.hh"
-#include "com/centreon/engine/globals.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
@@ -197,7 +196,7 @@ void hostdependency::check_validity(error_info* err) const {
     std::string dependend_host_name(!_dependent_hosts->empty()
                                         ? *_dependent_hosts->begin()
                                         : *_dependent_hostgroups->begin());
-    config_logger->warn(
+    _logger->warn(
         "Warning: Ignoring lame host dependency of '{}' on host/hostgroups "
         "'{}'.",
         dependend_host_name, host_name);

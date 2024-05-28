@@ -161,25 +161,19 @@ void applier::scheduler::apply(
   // Check if we need to add or modify objects into the scheduler.
   if (!hst_to_schedule.empty() || !svc_to_schedule.empty() ||
       !ad_to_schedule.empty()) {
-    // Reset scheduling info.
-    // Keep data that has been set manually by the user
-    // (service interleave and intercheck delays).
-    int old_service_leave_factor = scheduling_info.service_interleave_factor;
-    double old_service_inter_check_delay =
-        scheduling_info.service_inter_check_delay;
-    double old_host_inter_check_delay_method =
-        scheduling_info.host_inter_check_delay;
     memset(&scheduling_info, 0, sizeof(scheduling_info));
     if (config.service_interleave_factor_method() ==
         configuration::state::ilf_user)
-      scheduling_info.service_interleave_factor = old_service_leave_factor;
+      scheduling_info.service_interleave_factor =
+          config.sched_info_config().service_interleave_factor;
     if (config.service_inter_check_delay_method() ==
         configuration::state::icd_user)
-      scheduling_info.service_inter_check_delay = old_service_inter_check_delay;
+      scheduling_info.service_inter_check_delay =
+          config.sched_info_config().service_inter_check_delay;
     if (config.host_inter_check_delay_method() ==
         configuration::state::icd_user)
       scheduling_info.host_inter_check_delay =
-          old_host_inter_check_delay_method;
+          config.sched_info_config().host_inter_check_delay;
 
     // Calculate scheduling parameters.
     _calculate_host_scheduling_params();
@@ -227,7 +221,6 @@ void applier::scheduler::clear() {
   _evt_reschedule_checks = nullptr;
   _evt_retention_save = nullptr;
   _evt_sfreshness_check = nullptr;
-  _evt_service_perfdata = nullptr;
   _evt_status_save = nullptr;
   _old_auto_rescheduling_interval = 0;
   _old_check_reaper_interval = 0;
@@ -236,7 +229,6 @@ void applier::scheduler::clear() {
   _old_host_perfdata_file_processing_interval = 0;
   _old_retention_update_interval = 0;
   _old_service_freshness_check_interval = 0;
-  _old_service_perfdata_file_processing_interval = 0;
   _old_status_update_interval = 0;
   _old_host_perfdata_file_processing_command.clear();
   _old_service_perfdata_file_processing_command.clear();
@@ -287,7 +279,6 @@ applier::scheduler::scheduler()
       _evt_reschedule_checks(nullptr),
       _evt_retention_save(nullptr),
       _evt_sfreshness_check(nullptr),
-      _evt_service_perfdata(nullptr),
       _evt_status_save(nullptr),
       _old_auto_rescheduling_interval(0),
       _old_check_reaper_interval(0),
@@ -296,7 +287,6 @@ applier::scheduler::scheduler()
       _old_host_perfdata_file_processing_interval(0),
       _old_retention_update_interval(0),
       _old_service_freshness_check_interval(0),
-      _old_service_perfdata_file_processing_interval(0),
       _old_status_update_interval(0) {}
 
 /**
@@ -415,53 +405,6 @@ void applier::scheduler::_apply_misc_event() {
         timed_event::EVENT_STATUS_SAVE, now + _config->status_update_interval(),
         _config->status_update_interval());
     _old_status_update_interval = _config->status_update_interval();
-  }
-
-  union {
-    int (*func)();
-    void* data;
-  } type;
-
-  // Remove and add process host perfdata file.
-  if (!_evt_host_perfdata ||
-      (_old_host_perfdata_file_processing_interval !=
-       _config->host_perfdata_file_processing_interval()) ||
-      (_old_host_perfdata_file_processing_command !=
-       _config->host_perfdata_file_processing_command())) {
-    _remove_misc_event(_evt_host_perfdata);
-    if (_config->host_perfdata_file_processing_interval() > 0 &&
-        !_config->host_perfdata_file_processing_command().empty()) {
-      type.func = &xpddefault_process_host_perfdata_file;
-      _evt_host_perfdata = _create_misc_event(
-          timed_event::EVENT_USER_FUNCTION,
-          now + _config->host_perfdata_file_processing_interval(),
-          _config->host_perfdata_file_processing_interval(), type.data);
-    }
-    _old_host_perfdata_file_processing_interval =
-        _config->host_perfdata_file_processing_interval();
-    _old_host_perfdata_file_processing_command =
-        _config->host_perfdata_file_processing_command();
-  }
-
-  // Remove and add process service perfdata file.
-  if (!_evt_service_perfdata ||
-      (_old_service_perfdata_file_processing_interval !=
-       _config->service_perfdata_file_processing_interval()) ||
-      (_old_service_perfdata_file_processing_command !=
-       _config->service_perfdata_file_processing_command())) {
-    _remove_misc_event(_evt_service_perfdata);
-    if (_config->service_perfdata_file_processing_interval() > 0 &&
-        !_config->service_perfdata_file_processing_command().empty()) {
-      type.func = &xpddefault_process_service_perfdata_file;
-      _evt_service_perfdata = _create_misc_event(
-          timed_event::EVENT_USER_FUNCTION,
-          now + _config->service_perfdata_file_processing_interval(),
-          _config->service_perfdata_file_processing_interval(), type.data);
-    }
-    _old_service_perfdata_file_processing_interval =
-        _config->service_perfdata_file_processing_interval();
-    _old_service_perfdata_file_processing_command =
-        _config->service_perfdata_file_processing_command();
   }
 }
 
@@ -905,14 +848,11 @@ void applier::scheduler::_schedule_host_events(
   // get current time.
   time_t const now(time(nullptr));
 
-  unsigned int const end(hosts.size());
-
   // determine check times for host checks.
   int mult_factor(0);
-  for (unsigned int i(0); i < end; ++i) {
-    com::centreon::engine::host& hst(*hosts[i]);
+  for (auto hst_ptr : hosts) {
+    com::centreon::engine::host& hst = *hst_ptr;
 
-    engine_logger(dbg_events, most) << "Host '" << hst.name() << "'";
     events_logger->debug("Host '{}'", hst.name());
 
     // skip hosts that shouldn't be scheduled.

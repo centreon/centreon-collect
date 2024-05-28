@@ -21,8 +21,9 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <absl/strings/string_view.h>
-#include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 extern int config_warnings;
 extern int config_errors;
@@ -126,7 +127,7 @@ static unsigned short const default_flap_detection_options(
     anomalydetection::unknown | anomalydetection::critical);
 static unsigned int const default_freshness_threshold(0);
 static unsigned int const default_high_flap_threshold(0);
-static unsigned int const default_initial_state(engine::service::state_ok);
+static unsigned int const default_initial_state(anomalydetection::state_ok);
 static bool const default_is_volatile(false);
 static unsigned int const default_low_flap_threshold(0);
 static unsigned int const default_max_check_attempts(3);
@@ -1775,13 +1776,13 @@ bool anomalydetection::_set_initial_state(std::string const& value) {
   std::string_view data(value);
   data = absl::StripAsciiWhitespace(data);
   if (data == "o" || data == "ok")
-    _initial_state = engine::service::state_ok;
+    _initial_state = anomalydetection::state_ok;
   else if (data == "w" || data == "warning")
-    _initial_state = engine::service::state_warning;
+    _initial_state = anomalydetection::state_warning;
   else if (data == "u" || data == "unknown")
-    _initial_state = engine::service::state_unknown;
+    _initial_state = anomalydetection::state_unknown;
   else if (data == "c" || data == "critical")
-    _initial_state = engine::service::state_critical;
+    _initial_state = anomalydetection::state_critical;
   else
     return false;
   return true;

@@ -34,6 +34,11 @@ namespace configuration {
 
 class host : public object {
  public:
+  enum state {
+    state_up = 0,
+    state_down = 1,
+    state_unreachable = 2,
+  };
   enum action_on {
     none = 0,
     up = (1 << 0),

@@ -20,7 +20,6 @@
 #include <memory>
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/engine/configuration/logging.hh"
-// #include "com/centreon/engine/globals.hh"
 #include "com/centreon/io/file_entry.hh"
 #include "common/log_v2/log_v2.hh"
 #include "compatibility/locations.h"
@@ -383,13 +382,6 @@ static unsigned int const default_host_check_timeout(30);
 static unsigned int const default_host_freshness_check_interval(60);
 static state::inter_check_delay const default_host_inter_check_delay_method(
     state::icd_smart);
-static state::perfdata_file_mode const default_host_perfdata_file_mode(
-    state::mode_pipe);
-static unsigned int const default_host_perfdata_file_processing_interval(0);
-static std::string const default_host_perfdata_file_template(
-    "[HOSTPERFDATA]\t$TIMET$\t$HOSTNAME$\t$HOSTEXECUTIONTIME$\t$HOSTOUTPUT$"
-    "\t$"
-    "HOSTPERFDATA$");
 static std::string const default_illegal_object_chars("");
 static std::string const default_illegal_output_chars("`~$&|'\"<>");
 static unsigned int const default_interval_length(60);
@@ -431,13 +423,6 @@ static state::inter_check_delay const default_service_inter_check_delay_method(
     state::icd_smart);
 static state::interleave_factor const default_service_interleave_factor_method(
     state::ilf_smart);
-static state::perfdata_file_mode const default_service_perfdata_file_mode(
-    state::mode_pipe);
-static unsigned int const default_service_perfdata_file_processing_interval(0);
-static std::string const default_service_perfdata_file_template(
-    "[SERVICEPERFDATA]\t$TIMET$\t$HOSTNAME$\t$SERVICEDESC$\t$"
-    "SERVICEEXECUTIONTIME$\t$SERVICELATENCY$\t$SERVICEOUTPUT$\t$"
-    "SERVICEPERFDATA$");
 static float const default_sleep_time(0.5);
 static bool const default_soft_state_dependencies(false);
 static std::string const default_state_retention_file(DEFAULT_RETENTION_FILE);
@@ -522,10 +507,6 @@ state::state()
       _host_check_timeout(default_host_check_timeout),
       _host_freshness_check_interval(default_host_freshness_check_interval),
       _host_inter_check_delay_method(default_host_inter_check_delay_method),
-      _host_perfdata_file_mode(default_host_perfdata_file_mode),
-      _host_perfdata_file_processing_interval(
-          default_host_perfdata_file_processing_interval),
-      _host_perfdata_file_template(default_host_perfdata_file_template),
       _illegal_object_chars(default_illegal_object_chars),
       _illegal_output_chars(default_illegal_output_chars),
       _interval_length(default_interval_length),
@@ -576,10 +557,6 @@ state::state()
           default_service_inter_check_delay_method),
       _service_interleave_factor_method(
           default_service_interleave_factor_method),
-      _service_perfdata_file_mode(default_service_perfdata_file_mode),
-      _service_perfdata_file_processing_interval(
-          default_service_perfdata_file_processing_interval),
-      _service_perfdata_file_template(default_service_perfdata_file_template),
       _sleep_time(default_sleep_time),
       _soft_state_dependencies(default_soft_state_dependencies),
       _state_retention_file(default_state_retention_file),
@@ -696,13 +673,6 @@ state& state::operator=(state const& right) {
     _host_freshness_check_interval = right._host_freshness_check_interval;
     _host_inter_check_delay_method = right._host_inter_check_delay_method;
     _host_perfdata_command = right._host_perfdata_command;
-    _host_perfdata_file = right._host_perfdata_file;
-    _host_perfdata_file_mode = right._host_perfdata_file_mode;
-    _host_perfdata_file_processing_command =
-        right._host_perfdata_file_processing_command;
-    _host_perfdata_file_processing_interval =
-        right._host_perfdata_file_processing_interval;
-    _host_perfdata_file_template = right._host_perfdata_file_template;
     _illegal_object_chars = right._illegal_object_chars;
     _illegal_output_chars = right._illegal_output_chars;
     _interval_length = right._interval_length;
@@ -755,13 +725,6 @@ state& state::operator=(state const& right) {
     _service_inter_check_delay_method = right._service_inter_check_delay_method;
     _service_interleave_factor_method = right._service_interleave_factor_method;
     _service_perfdata_command = right._service_perfdata_command;
-    _service_perfdata_file = right._service_perfdata_file;
-    _service_perfdata_file_mode = right._service_perfdata_file_mode;
-    _service_perfdata_file_processing_command =
-        right._service_perfdata_file_processing_command;
-    _service_perfdata_file_processing_interval =
-        right._service_perfdata_file_processing_interval;
-    _service_perfdata_file_template = right._service_perfdata_file_template;
     _sleep_time = right._sleep_time;
     _soft_state_dependencies = right._soft_state_dependencies;
     _state_retention_file = right._state_retention_file;
@@ -863,13 +826,6 @@ bool state::operator==(state const& right) const noexcept {
       _host_freshness_check_interval == right._host_freshness_check_interval &&
       _host_inter_check_delay_method == right._host_inter_check_delay_method &&
       _host_perfdata_command == right._host_perfdata_command &&
-      _host_perfdata_file == right._host_perfdata_file &&
-      _host_perfdata_file_mode == right._host_perfdata_file_mode &&
-      _host_perfdata_file_processing_command ==
-          right._host_perfdata_file_processing_command &&
-      _host_perfdata_file_processing_interval ==
-          right._host_perfdata_file_processing_interval &&
-      _host_perfdata_file_template == right._host_perfdata_file_template &&
       _illegal_object_chars == right._illegal_object_chars &&
       _illegal_output_chars == right._illegal_output_chars &&
       _interval_length == right._interval_length &&
@@ -922,14 +878,6 @@ bool state::operator==(state const& right) const noexcept {
       _service_interleave_factor_method ==
           right._service_interleave_factor_method &&
       _service_perfdata_command == right._service_perfdata_command &&
-      _service_perfdata_file == right._service_perfdata_file &&
-      _service_perfdata_file_mode == right._service_perfdata_file_mode &&
-      _service_perfdata_file_processing_command ==
-          right._service_perfdata_file_processing_command &&
-      _service_perfdata_file_processing_interval ==
-          right._service_perfdata_file_processing_interval &&
-      _service_perfdata_file_template ==
-          right._service_perfdata_file_template &&
       _sleep_time == right._sleep_time &&
       _soft_state_dependencies == right._soft_state_dependencies &&
       _state_retention_file == right._state_retention_file &&
@@ -2275,49 +2223,15 @@ void state::host_perfdata_command(std::string const& value) {
 }
 
 /**
- *  Get host_perfdata_file value.
- *
- *  @return The host_perfdata_file value.
- */
-std::string const& state::host_perfdata_file() const noexcept {
-  return _host_perfdata_file;
-}
-
-/**
  *  Set host_perfdata_file value.
  *
  *  @param[in] value The new host_perfdata_file value.
  */
 void state::host_perfdata_file(std::string const& value) {
-  _host_perfdata_file = value;
-}
-
-/**
- *  Get host_perfdata_file_mode value.
- *
- *  @return The host_perfdata_file_mode value.
- */
-state::perfdata_file_mode state::host_perfdata_file_mode() const noexcept {
-  return _host_perfdata_file_mode;
-}
-
-/**
- *  Set host_perfdata_file_mode value.
- *
- *  @param[in] value The new host_perfdata_file_mode value.
- */
-void state::host_perfdata_file_mode(perfdata_file_mode value) {
-  _host_perfdata_file_mode = value;
-}
-
-/**
- *  Get host_perfdata_file_processing_command value.
- *
- *  @return The host_perfdata_file_processing_command value.
- */
-std::string const& state::host_perfdata_file_processing_command()
-    const noexcept {
-  return _host_perfdata_file_processing_command;
+  _config_logger->warn(
+      "warning: host_perfdata_file is no more used for a long time, you "
+      "should not use it anymore.");
+  _err.config_warnings++;
 }
 
 /**
@@ -2326,16 +2240,10 @@ std::string const& state::host_perfdata_file_processing_command()
  *  @param[in] value The new host_perfdata_file_processing_command value.
  */
 void state::host_perfdata_file_processing_command(std::string const& value) {
-  _host_perfdata_file_processing_command = value;
-}
-
-/**
- *  Get host_perfdata_file_processing_interval value.
- *
- *  @return The host_perfdata_file_processing_interval value.
- */
-unsigned int state::host_perfdata_file_processing_interval() const noexcept {
-  return _host_perfdata_file_processing_interval;
+  _config_logger->warn(
+      "warning: host_perfdata_file_processing_command is no more used for a "
+      "long time, you should not use it anymore.");
+  _err.config_warnings++;
 }
 
 /**
@@ -2344,16 +2252,10 @@ unsigned int state::host_perfdata_file_processing_interval() const noexcept {
  *  @param[in] value The new host_perfdata_file_processing_interval value.
  */
 void state::host_perfdata_file_processing_interval(unsigned int value) {
-  _host_perfdata_file_processing_interval = value;
-}
-
-/**
- *  Get host_perfdata_file_template value.
- *
- *  @return The host_perfdata_file_template value.
- */
-std::string const& state::host_perfdata_file_template() const noexcept {
-  return _host_perfdata_file_template;
+  _config_logger->warn(
+      "warning: host_perfdata_file_processing_interval is no more used for a "
+      "long time, you should not use it anymore.");
+  _err.config_warnings++;
 }
 
 /**
@@ -2362,7 +2264,10 @@ std::string const& state::host_perfdata_file_template() const noexcept {
  *  @param[in] value The new host_perfdata_file_template value.
  */
 void state::host_perfdata_file_template(std::string const& value) {
-  _host_perfdata_file_template = value;
+  _config_logger->warn(
+      "warning: host_perfdata_file_template is no more used for a long time, "
+      "you should not use it anymore.");
+  _err.config_warnings++;
 }
 
 /**
@@ -3442,52 +3347,15 @@ void state::service_perfdata_command(std::string const& value) {
 }
 
 /**
- *  Get service_perfdata_file value.
- *
- *  @return The service_perfdata_file value.
- */
-std::string const& state::service_perfdata_file() const noexcept {
-  return _service_perfdata_file;
-}
-
-/**
  *  Set service_perfdata_file value.
  *
  *  @param[in] value The new service_perfdata_file value.
  */
 void state::service_perfdata_file(std::string const& value) {
   _config_logger->warn(
-      "Warning: service_perfdata_command is no more used for a long time, you "
+      "Warning: service_perfdata_file is no more used for a long time, you "
       "should not use it anymore.");
-  _service_perfdata_file = value;
-}
-
-/**
- *  Get service_perfdata_file_mode value.
- *
- *  @return The service_perfdata_file_mode value.
- */
-state::perfdata_file_mode state::service_perfdata_file_mode() const noexcept {
-  return _service_perfdata_file_mode;
-}
-
-/**
- *  Set service_perfdata_file_mode value.
- *
- *  @param[in] value The new service_perfdata_file_mode value.
- */
-void state::service_perfdata_file_mode(perfdata_file_mode value) {
-  _service_perfdata_file_mode = value;
-}
-
-/**
- *  Get service_perfdata_file_processing_command value.
- *
- *  @return The service_perfdata_file_processing_command value.
- */
-std::string const& state::service_perfdata_file_processing_command()
-    const noexcept {
-  return _service_perfdata_file_processing_command;
+  _err.config_warnings++;
 }
 
 /**
@@ -3496,16 +3364,10 @@ std::string const& state::service_perfdata_file_processing_command()
  *  @param[in] value The new service_perfdata_file_processing_command value.
  */
 void state::service_perfdata_file_processing_command(std::string const& value) {
-  _service_perfdata_file_processing_command = value;
-}
-
-/**
- *  Get service_perfdata_file_processing_interval value.
- *
- *  @return The service_perfdata_file_processing_interval value.
- */
-unsigned int state::service_perfdata_file_processing_interval() const noexcept {
-  return _service_perfdata_file_processing_interval;
+  _config_logger->warn(
+      "warning: service_perfdata_file_processing_command is no more used for a "
+      "long time, you should not use it anymore.");
+  _err.config_warnings++;
 }
 
 /**
@@ -3513,17 +3375,12 @@ unsigned int state::service_perfdata_file_processing_interval() const noexcept {
  *
  *  @param[in] value The new service_perfdata_file_processing_interval value.
  */
-void state::service_perfdata_file_processing_interval(unsigned int value) {
-  _service_perfdata_file_processing_interval = value;
-}
-
-/**
- *  Get service_perfdata_file_template value.
- *
- *  @return The service_perfdata_file_template value.
- */
-std::string const& state::service_perfdata_file_template() const noexcept {
-  return _service_perfdata_file_template;
+void state::service_perfdata_file_processing_interval(unsigned int value
+                                                      [[maybe_unused]]) {
+  _config_logger->warn(
+      "Warning: service_perfdata_file_processing_interval is no more used for "
+      "a long time, you should not use it anymore.");
+  _err.config_warnings++;
 }
 
 /**
@@ -3532,7 +3389,10 @@ std::string const& state::service_perfdata_file_template() const noexcept {
  *  @param[in] value The new service_perfdata_file_template value.
  */
 void state::service_perfdata_file_template(std::string const& value) {
-  _service_perfdata_file_template = value;
+  _config_logger->warn(
+      "Warning: service_perfdata_file_template is no more used for a long "
+      "time, you should not use it anymore.");
+  _err.config_warnings++;
 }
 
 /**
@@ -4531,12 +4391,10 @@ void state::_set_host_inter_check_delay_method(std::string const& value) {
  *  @param[in] value The new host_inter_check_delay_method value.
  */
 void state::_set_host_perfdata_file_mode(std::string const& value) {
-  if (value == "p")
-    _host_perfdata_file_mode = mode_pipe;
-  else if (value == "w")
-    _host_perfdata_file_mode = mode_file;
-  else
-    _host_perfdata_file_mode = mode_file_append;
+  _config_logger->warn(
+      "Warning: host_perfdata_file_mode is no more used for a long time, you "
+      "should not use it anymore.");
+  _err.config_warnings++;
 }
 
 /**
@@ -4726,12 +4584,10 @@ void state::_set_service_interleave_factor_method(std::string const& value) {
  *  @param[in] value The new service_inter_check_delay_method value.
  */
 void state::_set_service_perfdata_file_mode(std::string const& value) {
-  if (value == "p")
-    _service_perfdata_file_mode = mode_pipe;
-  else if (value == "w")
-    _service_perfdata_file_mode = mode_file;
-  else
-    _service_perfdata_file_mode = mode_file_append;
+  _config_logger->warn(
+      "warning: service_perfdata_file_mode is no more used for a long time, "
+      "you should not use it anymore.");
+  _err.config_warnings++;
 }
 
 /**

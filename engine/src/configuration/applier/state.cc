@@ -161,8 +161,6 @@ void applier::state::clear() {
   engine::comment::comments.clear();
   engine::comment::set_next_comment_id(1llu);
 
-  xpddefault_cleanup_performance_data();
-
   applier::scheduler::instance().clear();
   applier::macros::instance().clear();
   applier::globals::instance().clear();
@@ -198,8 +196,6 @@ applier::state::~state() noexcept {
   engine::timeperiod::timeperiods.clear();
   engine::comment::comments.clear();
   engine::comment::set_next_comment_id(1llu);
-
-  xpddefault_cleanup_performance_data();
 }
 
 /**
@@ -287,25 +283,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   bool modify_perfdata(false);
   if (!has_already_been_loaded ||
       config->host_perfdata_command() != new_cfg.host_perfdata_command() ||
-      config->host_perfdata_file() != new_cfg.host_perfdata_file() ||
-      config->host_perfdata_file_mode() != new_cfg.host_perfdata_file_mode() ||
-      config->host_perfdata_file_processing_command() !=
-          new_cfg.host_perfdata_file_processing_command() ||
-      config->host_perfdata_file_processing_interval() !=
-          new_cfg.host_perfdata_file_processing_interval() ||
-      config->host_perfdata_file_template() !=
-          new_cfg.host_perfdata_file_template() ||
-      config->service_perfdata_command() !=
-          new_cfg.service_perfdata_command() ||
-      config->service_perfdata_file() != new_cfg.service_perfdata_file() ||
-      config->service_perfdata_file_mode() !=
-          new_cfg.service_perfdata_file_mode() ||
-      config->service_perfdata_file_processing_command() !=
-          new_cfg.service_perfdata_file_processing_command() ||
-      config->service_perfdata_file_processing_interval() !=
-          new_cfg.service_perfdata_file_processing_interval() ||
-      config->service_perfdata_file_template() !=
-          new_cfg.service_perfdata_file_template())
+      config->service_perfdata_command() != new_cfg.service_perfdata_command())
     modify_perfdata = true;
 
   // Initialize status file.
@@ -315,8 +293,6 @@ void applier::state::_apply(configuration::state const& new_cfg) {
     modify_status = true;
 
   // Cleanup.
-  if (modify_perfdata)
-    xpddefault_cleanup_performance_data();
   if (modify_status)
     xsddefault_cleanup_status_data(true);
 
@@ -369,13 +345,6 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->host_inter_check_delay_method(
       new_cfg.host_inter_check_delay_method());
   config->host_perfdata_command(new_cfg.host_perfdata_command());
-  config->host_perfdata_file(new_cfg.host_perfdata_file());
-  config->host_perfdata_file_mode(new_cfg.host_perfdata_file_mode());
-  config->host_perfdata_file_processing_command(
-      new_cfg.host_perfdata_file_processing_command());
-  config->host_perfdata_file_processing_interval(
-      new_cfg.host_perfdata_file_processing_interval());
-  config->host_perfdata_file_template(new_cfg.host_perfdata_file_template());
   config->illegal_object_chars(new_cfg.illegal_object_chars());
   config->illegal_output_chars(new_cfg.illegal_output_chars());
   config->interval_length(new_cfg.interval_length());
@@ -421,14 +390,6 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->service_interleave_factor_method(
       new_cfg.service_interleave_factor_method());
   config->service_perfdata_command(new_cfg.service_perfdata_command());
-  config->service_perfdata_file(new_cfg.service_perfdata_file());
-  config->service_perfdata_file_mode(new_cfg.service_perfdata_file_mode());
-  config->service_perfdata_file_processing_command(
-      new_cfg.service_perfdata_file_processing_command());
-  config->service_perfdata_file_processing_interval(
-      new_cfg.service_perfdata_file_processing_interval());
-  config->service_perfdata_file_template(
-      new_cfg.service_perfdata_file_template());
   config->sleep_time(new_cfg.sleep_time());
   config->soft_state_dependencies(new_cfg.soft_state_dependencies());
   config->state_retention_file(new_cfg.state_retention_file());
