@@ -387,7 +387,7 @@ define command {
             ff.write(content)
 
     @staticmethod
-    def ctn_create_template_file(poller: int, typ: str, what: str, ids):
+    def create_template_file(poller: int, typ: str, what: str, ids):
         config_file = "{}/config{}/{}Templates.cfg".format(
             CONF_DIR, poller, typ)
         ff = open(config_file, "w+")
