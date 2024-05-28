@@ -16,13 +16,22 @@
 # For more information : contact@centreon.com
 #
 
-add_executable(ut_common process_stat_test.cc hex_dump_test.cc
-                         node_allocator_test.cc)
+add_executable(ut_common 
+  process_stat_test.cc 
+  hex_dump_test.cc
+  node_allocator_test.cc
+  rapidjson_helper_test.cc
+)
 
-# target_include_directories(ut_common ${CONAN_INCLUDE_DIRS_GTEST})
+add_test(NAME tests COMMAND ut_common)
 
-target_link_libraries(ut_common centreon_common CONAN_PKG::gtest
-                      CONAN_PKG::abseil CONAN_PKG::fmt pthread)
+target_link_libraries(ut_common 
+  centreon_common 
+  CONAN_PKG::gtest
+  CONAN_PKG::abseil 
+  CONAN_PKG::fmt 
+  CONAN_PKG::openssl
+  pthread)
 
 add_dependencies(ut_common centreon_common)
 
@@ -33,3 +42,10 @@ set_target_properties(
              RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
              RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
              RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
+
+add_dependencies(ut_common centreon_common)
+
+set_property(TARGET ut_common PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+target_precompile_headers(ut_common PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
+

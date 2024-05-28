@@ -44,4 +44,6 @@ namespace asio = boost::asio;
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
+#include <rapidjson/document.h>
+
 #endif  // CCE_EXTERNAL_COMMANDS_PRECOMP_HH
