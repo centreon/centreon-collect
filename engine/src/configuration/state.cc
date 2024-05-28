@@ -376,6 +376,8 @@ void state::_init_setter() {
   SETTER(bool, use_true_regexp_matching, "use_true_regexp_matching");
   SETTER(std::string const&, _set_comment_file, "xcddefault_comment_file");
   SETTER(std::string const&, _set_downtime_file, "xdddefault_downtime_file");
+  SETTER(bool, use_send_recovery_notifications_anyways,
+         "send_recovery_notifications_anyways");
 }
 
 // Default values.
@@ -650,7 +652,8 @@ state::state()
       _log_level_process(default_log_level_process),
       _log_level_runtime(default_log_level_runtime),
       _use_timezone(default_use_timezone),
-      _use_true_regexp_matching(default_use_true_regexp_matching) {
+      _use_true_regexp_matching(default_use_true_regexp_matching),
+      _send_recovery_notifications_anyways(false) {
   static absl::once_flag _init_call_once;
   absl::call_once(_init_call_once, _init_setter);
 }
@@ -833,6 +836,8 @@ state& state::operator=(state const& right) {
     _log_level_runtime = right._log_level_runtime;
     _use_timezone = right._use_timezone;
     _use_true_regexp_matching = right._use_true_regexp_matching;
+    _send_recovery_notifications_anyways =
+        right._send_recovery_notifications_anyways;
   }
   return *this;
 }
@@ -997,7 +1002,9 @@ bool state::operator==(state const& right) const noexcept {
       _log_level_process == right._log_level_process &&
       _log_level_runtime == right._log_level_runtime &&
       _use_timezone == right._use_timezone &&
-      _use_true_regexp_matching == right._use_true_regexp_matching);
+      _use_true_regexp_matching == right._use_true_regexp_matching &&
+      _send_recovery_notifications_anyways ==
+          right._send_recovery_notifications_anyways);
 }
 
 /**
@@ -4882,6 +4889,37 @@ bool state::enable_macros_filter() const noexcept {
  */
 void state::enable_macros_filter(bool value) {
   _enable_macros_filter = value;
+}
+
+/**
+ * @brief Get _send_recovery_notifications_anyways
+ *
+ * Having a resource that has entered a non-OK state during a notification
+ * period and goes back to an OK state out of a notification period, then only
+ * if send_recovery_notifications_anyways is set to 1, the recovery notification
+ * must be sent to all users that have previously received the alert
+ * notification.
+ *
+ * @return true
+ * @return false
+ */
+bool state::use_send_recovery_notifications_anyways() const {
+  return _send_recovery_notifications_anyways;
+}
+
+/**
+ * @brief
+ *
+ * Having a resource that has entered a non-OK state during a notification
+ * period and goes back to an OK state out of a notification period, then only
+ * if send_recovery_notifications_anyways is set to 1, the recovery notification
+ * must be sent to all users that have previously received the alert
+ * notification.
+ *
+ * @param value true if have to nitify anyway
+ */
+void state::use_send_recovery_notifications_anyways(bool value) {
+  _send_recovery_notifications_anyways = value;
 }
 
 /**

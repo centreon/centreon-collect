@@ -20,11 +20,7 @@ EXT_CONF1
     Config Broker    module    ${1}
     Create File    /tmp/centengine_extend.json    {"log_level_checks": "trace", "log_level_comments": "debug"}
     ${start}    Get Current Date
-    Start Process
-    ...    /usr/sbin/centengine
-    ...    --config-file\=/tmp/centengine_extend.json
-    ...    ${EtcRoot}/centreon-engine/config0/centengine.cfg
-    ...    alias=e0
+    Ctn Start Engine With Extend Conf
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     ${level}    Ctn Get Engine Log Level    50001    checks
     Should Be Equal    ${level}    trace    log_level_checks must be the extended conf value
@@ -38,11 +34,7 @@ EXT_CONF2
     Config Broker    module    ${1}
     Create File    /tmp/centengine_extend.json    {}
     ${start}    Get Current Date
-    Start Process
-    ...    /usr/sbin/centengine
-    ...    --config-file\=/tmp/centengine_extend.json
-    ...    ${EtcRoot}/centreon-engine/config0/centengine.cfg
-    ...    alias=e0
+    Ctn Start Engine With Extend Conf
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     Create File    /tmp/centengine_extend.json    {"log_level_checks": "trace", "log_level_comments": "debug"}
 
