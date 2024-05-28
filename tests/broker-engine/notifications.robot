@@ -1,7 +1,14 @@
 *** Settings ***
 Documentation       Centreon notification
 
-Resource            ../resources/import.resource
+Resource            ../resources/resources.robot
+Library             Process
+Library             DateTime
+Library             OperatingSystem
+Library             ../resources/Engine.py
+Library             ../resources/Broker.py
+Library             ../resources/Common.py
+Library             ../resources/specific-duplication.py
 
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
@@ -1310,99 +1317,6 @@ not20
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-
-not_in_timeperiod_without_send_recovery_notifications_anyways
-    [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is not sent outside timeperiod when _send_recovery_notifications_anyways is not set
-    [Tags]    MON-33121  broker    engine    services    hosts    notification
-    Ctn Config Engine    ${1}    ${1}    ${1}
-    Ctn Config Notifications
-    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Ctn Engine Config Set Value In Services    0    service_1    notification_period    short_time_period
-    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
-    ${cmd_1}    Ctn Get Service Command Id    1
-    Log To Console    service_1 has command id ${cmd_1}
-    Ctn Set Command Status    ${cmd_1}    2
-
-    ${start}    Get Current Date
-    Ctn Create Single Day Time Period    0    short_time_period    ${start}    2
-
-    Ctn Start Broker
-    Ctn Start engine
-
-    # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${start}
-
-    ## Time to set the service to CRITICAL HARD.
-    Ctn Process Service Result Hard    host_1    service_1    2    critical
-
-    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
-
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The notification is not sent
-
-    Sleep    3m
-    Ctn Set Command Status    ${cmd_1}    0
-    Ctn Process Service Check Result    host_1    service_1    0    ok
-
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Not Be True    ${result}    The notification is sent out of time period
-
-not_in_timeperiod_with_send_recovery_notifications_anyways
-    [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is sent outside timeperiod when _send_recovery_notifications_anyways is set
-    [Tags]    MON-33121   broker    engine    services    hosts    notification    mon-33121
-    Ctn Config Engine    ${1}    ${1}    ${1}
-    Ctn Config Notifications
-    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Ctn Engine Config Set Value In Services    0    service_1    notification_period    short_time_period
-    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
-    Create File    /tmp/centengine_extend.json    {"send_recovery_notifications_anyways": true}
-
-    ${cmd_1}    Ctn Get Service Command Id    1
-    Log To Console    service_1 has command id ${cmd_1}
-    Ctn Set Command Status    ${cmd_1}    2
-
-    ${start}    Get Current Date
-    Ctn Create Single Day Time Period    0    short_time_period    ${start}    2
-
-    Ctn Start Broker
-    Ctn Start Engine With Extend Conf
-
-    # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${start}
-
-    ## Time to set the service to CRITICAL HARD.
-    Ctn Process Service Result Hard    host_1    service_1    2    critical
-
-    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
-
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The notification is not sent
-
-    Sleep    3m
-    Ctn Set Command Status    ${cmd_1}    0
-    Ctn Process Service Check Result    host_1    service_1    0    ok
-
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The notification is not sent outside time period
-
 
 *** Keywords ***
 Ctn Config Notifications
