@@ -913,7 +913,7 @@ nlohmann::json conflict_manager::get_statistics() {
  * @brief Delete the conflict_manager singleton.
  */
 int32_t conflict_manager::unload(stream_type type) {
-  auto logger = log_v2::instance().get(log_v2::SQL);
+  auto logger = _singleton->_logger_sql;
   if (!_singleton) {
     logger->info("conflict_manager: already unloaded.");
     return 0;

@@ -44,15 +44,9 @@ constexpr uint32_t log_v2_configuration = 3;
  * a mutex which is more expensive.
  *
  * With the ID, we can get the logger with the static internal function get(ID).
- * We could also keep the shared_ptr to the logger, but in case of modification
- * of the logger, this shared_ptr would not be updated, that's why it is
- * needed to call regularly this get() function. So in a function, we can get
- * the logger and then all along the function use directly the shared_ptr.
+ * During a reload, only atomic changes are allowed. So we cannot change the
+ * log file, but we can change levels.
  *
- * It is possible to change sinks of a logger on the fly, during the changes,
- * some logs may be lost, instead of getting the logger, we get a null logger,
- * and when the changes are done, we newly get the logger. That's why it is
- * important not to store forever the logger's shared_ptr.
  */
 class log_v2 {
   std::atomic_bool _not_threadsafe_configuration = false;
