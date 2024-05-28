@@ -22,6 +22,17 @@ yum install "Development Tools" python3-devel -y
 
 pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
 
+#you need also to provide opentelemetry proto files at the project root with this command
+git clone https://github.com/open-telemetry/opentelemetry-proto.git opentelemetry-proto
+          
+#Then you must have something like that:
+#root directory/bbdo
+#              /broker
+#              /engine
+#              /opentelemetry-proto
+#              /tests
+
+
 ./init-proto.sh
 ./init-sql.sh
 ```

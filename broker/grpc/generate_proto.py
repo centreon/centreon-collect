@@ -25,6 +25,7 @@ import argparse
 
 file_begin_content = """syntax = "proto3";
 
+import "opentelemetry/proto/collector/metrics/v1/metrics_service.proto";
 """
 
 file_message_centreon_event = """
@@ -216,6 +217,34 @@ for directory in args.proto_directory:
             ret->grpc_event.set_allocated_{lower_mess}_(&std::static_pointer_cast<io::protobuf<{mess}, make_type({id})>>(event)->mut_obj());
             break;
 
+"""
+
+#The following message is not in bbdo protobuff files so we need to add manually.
+                    
+file_message_centreon_event += f"        opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest ExportMetricsServiceRequest_ = {one_of_index};\n"
+
+cc_file_protobuf_to_event_function += """
+        case ::stream::CentreonEvent::kExportMetricsServiceRequest:
+        return std::make_shared<detail::received_protobuf<
+            ::opentelemetry::proto::collector::metrics::v1::
+                ExportMetricsServiceRequest,
+            make_type(io::storage, storage::de_pb_otl_metrics)>>(
+            stream_content, &grpc_event_type::exportmetricsservicerequest_,
+            &grpc_event_type::mutable_exportmetricsservicerequest_);
+"""
+
+cc_file_create_event_with_data_function += """
+        case make_type(io::storage, storage::de_pb_otl_metrics):
+        ret = std::make_shared<event_with_data>(
+            event, reinterpret_cast<event_with_data::releaser_type>(
+                        &grpc_event_type::release_exportmetricsservicerequest_));
+        ret->grpc_event.set_allocated_exportmetricsservicerequest_(
+            &std::static_pointer_cast<io::protobuf<
+                ::opentelemetry::proto::collector::metrics::v1::
+                    ExportMetricsServiceRequest,
+                make_type(io::storage, storage::de_pb_otl_metrics)>>(event)
+                ->mut_obj());
+        break;
 """
 
 with open(args.proto_file, 'w', encoding="utf-8") as fp:

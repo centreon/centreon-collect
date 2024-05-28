@@ -24,14 +24,14 @@
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
+#include "common/log_v2/log_v2.hh"
 
+using log_v2 = com::centreon::common::log_v2::log_v2;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
 class BamMonitoringStream : public testing::Test {
-  void SetUp() override {
-    config::applier::init(0, "test_broker", 0);
-  }
+  void SetUp() override { config::applier::init(0, "test_broker", 0); }
   void TearDown() override { config::applier::deinit(); }
 };
 
@@ -44,7 +44,8 @@ TEST_F(BamMonitoringStream, WriteKpi) {
   std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
 
-  ASSERT_NO_THROW(ms.reset(new monitoring_stream("", cfg, storage, cache)));
+  ASSERT_NO_THROW(ms.reset(new monitoring_stream(
+      "", cfg, storage, cache, log_v2::instance().get(log_v2::BAM))));
 
   std::shared_ptr<pb_kpi_status> st{std::make_shared<pb_kpi_status>()};
   st->mut_obj().set_kpi_id(1);
@@ -61,7 +62,8 @@ TEST_F(BamMonitoringStream, WriteBA) {
   std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
 
-  ASSERT_NO_THROW(ms.reset(new monitoring_stream("", cfg, storage, cache)));
+  ASSERT_NO_THROW(ms.reset(new monitoring_stream(
+      "", cfg, storage, cache, log_v2::instance().get(log_v2::BAM))));
 
   std::shared_ptr<ba_status> st{std::make_shared<ba_status>(ba_status())};
 
@@ -77,7 +79,8 @@ TEST_F(BamMonitoringStream, WorkWithNoPendigMysqlRequest) {
   std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
 
-  ASSERT_NO_THROW(ms.reset(new monitoring_stream("", cfg, storage, cache)));
+  ASSERT_NO_THROW(ms.reset(new monitoring_stream(
+      "", cfg, storage, cache, log_v2::instance().get(log_v2::BAM))));
 
   std::shared_ptr<ba_status> st{std::make_shared<ba_status>(ba_status())};
 
@@ -98,7 +101,8 @@ TEST_F(BamMonitoringStream, WorkWithPendigMysqlRequest) {
   std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
 
-  ASSERT_NO_THROW(ms.reset(new monitoring_stream("", cfg, storage, cache)));
+  ASSERT_NO_THROW(ms.reset(new monitoring_stream(
+      "", cfg, storage, cache, log_v2::instance().get(log_v2::BAM))));
 
   std::shared_ptr<ba_status> st{std::make_shared<ba_status>(ba_status())};
 
