@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
     bool display_license(false);
     bool error(false);
     bool diagnose(false);
-    std::set<std::string> extended_conf_file;
+    std::vector<std::string> extended_conf_file;
 
     // Process all command line arguments.
     int c;
@@ -161,7 +161,7 @@ int main(int argc, char* argv[]) {
           break;
         case 'c':
           if (optarg)
-            extended_conf_file.insert(optarg);
+            extended_conf_file.emplace_back(optarg);
           break;
         default:
           error = true;
