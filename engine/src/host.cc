@@ -2636,16 +2636,24 @@ int host::notify_contact(nagios_macros* mac,
     }
 
     /* run the notification command */
-    try {
-      std::string out;
-      my_system_r(mac, processed_command, config->notification_timeout(),
-                  &early_timeout, &exectime, out, 0);
-    } catch (std::exception const& e) {
-      engine_logger(log_runtime_error, basic)
-          << "Error: can't execute host notification '" << cntct->get_name()
-          << "' : " << e.what();
-      runtime_logger->error("Error: can't execute host notification '{}' : {}",
-                            cntct->get_name(), e.what());
+    if (is_whitelist_allowed(processed_command)) {
+      try {
+        std::string out;
+        my_system_r(mac, processed_command, config->notification_timeout(),
+                    &early_timeout, &exectime, out, 0);
+      } catch (std::exception const& e) {
+        engine_logger(log_runtime_error, basic)
+            << "Error: can't execute host notification '" << cntct->get_name()
+            << "' : " << e.what();
+        runtime_logger->error(
+            "Error: can't execute host notification '{}' : {}",
+            cntct->get_name(), e.what());
+      }
+    } else {
+      runtime_logger->error(
+          "Error: can't execute host notification '{}' : it is not allowed by "
+          "the whitelist",
+          cntct->get_name());
     }
 
     /* check to see if the notification timed out */

@@ -44,7 +44,7 @@ int obsessive_compulsive_host_check_processor(
     com::centreon::engine::host* hst) {
   std::string raw_command;
   std::string processed_command;
-  int early_timeout = false;
+  bool early_timeout = false;
   double exectime = 0.0;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
   nagios_macros* mac(get_global_macros());
@@ -99,23 +99,31 @@ int obsessive_compulsive_host_check_processor(
       "command line: {}",
       processed_command);
 
-  /* run the command */
-  try {
-    std::string tmp;
-    my_system_r(mac, processed_command, config->ochp_timeout(), &early_timeout,
-                &exectime, tmp, 0);
-  } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: can't execute compulsive host processor command line '"
-        << processed_command << "' : " << e.what();
+  if (hst->is_whitelist_allowed(processed_command)) {
+    /* run the command */
+    try {
+      std::string tmp;
+      my_system_r(mac, processed_command, config->ochp_timeout(),
+                  &early_timeout, &exectime, tmp, 0);
+    } catch (std::exception const& e) {
+      engine_logger(log_runtime_error, basic)
+          << "Error: can't execute compulsive host processor command line '"
+          << processed_command << "' : " << e.what();
+      runtime_logger->error(
+          "Error: can't execute compulsive host processor command line '{}' : "
+          "{}",
+          processed_command, e.what());
+    }
+  } else {
     runtime_logger->error(
-        "Error: can't execute compulsive host processor command line '{}' : {}",
-        processed_command, e.what());
+        "Error: can't execute compulsive host processor command line '{}' : it "
+        "is not allowed by the whitelist",
+        processed_command);
   }
   clear_volatile_macros_r(mac);
 
   /* check to see if the command timed out */
-  if (early_timeout == true)
+  if (early_timeout)
     engine_logger(log_runtime_warning, basic)
         << "Warning: OCHP command '" << processed_command << "' for host '"
         << hst->name() << "' timed out after " << config->ochp_timeout()
@@ -138,7 +146,7 @@ int run_global_service_event_handler(nagios_macros* mac,
   std::string processed_command;
   std::string processed_logentry;
   std::string command_output;
-  int early_timeout = false;
+  bool early_timeout = false;
   double exectime = 0.0;
   struct timeval start_time;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
@@ -204,23 +212,30 @@ int run_global_service_event_handler(nagios_macros* mac,
     events_logger->debug(processed_logentry);
   }
 
-  /* run the command */
-  try {
-    my_system_r(mac, processed_command, config->event_handler_timeout(),
-                &early_timeout, &exectime, command_output, 0);
-  } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: can't execute global service event handler "
-           "command line '"
-        << processed_command << "' : " << e.what();
+  if (svc->is_whitelist_allowed(processed_command)) {
+    /* run the command */
+    try {
+      my_system_r(mac, processed_command, config->event_handler_timeout(),
+                  &early_timeout, &exectime, command_output, 0);
+    } catch (std::exception const& e) {
+      engine_logger(log_runtime_error, basic)
+          << "Error: can't execute global service event handler "
+             "command line '"
+          << processed_command << "' : " << e.what();
+      runtime_logger->error(
+          "Error: can't execute global service event handler "
+          "command line '{}' : {}",
+          processed_command, e.what());
+    }
+  } else {
     runtime_logger->error(
         "Error: can't execute global service event handler "
-        "command line '{}' : {}",
-        processed_command, e.what());
+        "command line '{}' : it is not allowed by the whitelist",
+        processed_command);
   }
 
   /* check to see if the event handler timed out */
-  if (early_timeout == true) {
+  if (early_timeout) {
     engine_logger(log_event_handler | log_runtime_warning, basic)
         << "Warning: Global service event handler command '"
         << processed_command << "' timed out after "
@@ -240,7 +255,7 @@ int run_service_event_handler(nagios_macros* mac,
   std::string processed_command;
   std::string processed_logentry;
   std::string command_output;
-  int early_timeout = false;
+  bool early_timeout = false;
   double exectime = 0.0;
   struct timeval start_time;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
@@ -297,21 +312,28 @@ int run_service_event_handler(nagios_macros* mac,
     events_logger->info(processed_logentry);
   }
 
-  /* run the command */
-  try {
-    my_system_r(mac, processed_command, config->event_handler_timeout(),
-                &early_timeout, &exectime, command_output, 0);
-  } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: can't execute service event handler command line '"
-        << processed_command << "' : " << e.what();
+  if (svc->is_whitelist_allowed(processed_command)) {
+    /* run the command */
+    try {
+      my_system_r(mac, processed_command, config->event_handler_timeout(),
+                  &early_timeout, &exectime, command_output, 0);
+    } catch (std::exception const& e) {
+      engine_logger(log_runtime_error, basic)
+          << "Error: can't execute service event handler command line '"
+          << processed_command << "' : " << e.what();
+      runtime_logger->error(
+          "Error: can't execute service event handler command line '{}' : {}",
+          processed_command, e.what());
+    }
+  } else {
     runtime_logger->error(
-        "Error: can't execute service event handler command line '{}' : {}",
-        processed_command, e.what());
+        "Error: can't execute service event handler command line '{}' : it is "
+        "not allowed by the whitelist",
+        processed_command);
   }
 
   /* check to see if the event handler timed out */
-  if (early_timeout == true) {
+  if (early_timeout) {
     engine_logger(log_event_handler | log_runtime_warning, basic)
         << "Warning: Service event handler command '" << processed_command
         << "' timed out after " << config->event_handler_timeout()
@@ -374,7 +396,7 @@ int run_global_host_event_handler(nagios_macros* mac,
   std::string processed_command;
   std::string processed_logentry;
   std::string command_output;
-  int early_timeout = false;
+  bool early_timeout = false;
   double exectime = 0.0;
   struct timeval start_time;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
@@ -435,21 +457,29 @@ int run_global_host_event_handler(nagios_macros* mac,
     events_logger->info(processed_logentry);
   }
 
-  /* run the command */
-  try {
-    my_system_r(mac, processed_command, config->event_handler_timeout(),
-                &early_timeout, &exectime, command_output, 0);
-  } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: can't execute global host event handler command line '"
-        << processed_command << "' : " << e.what();
+  if (hst->is_whitelist_allowed(processed_command)) {
+    /* run the command */
+    try {
+      my_system_r(mac, processed_command, config->event_handler_timeout(),
+                  &early_timeout, &exectime, command_output, 0);
+    } catch (std::exception const& e) {
+      engine_logger(log_runtime_error, basic)
+          << "Error: can't execute global host event handler command line '"
+          << processed_command << "' : " << e.what();
+      runtime_logger->error(
+          "Error: can't execute global host event handler command line '{}' : "
+          "{}",
+          processed_command, e.what());
+    }
+  } else {
     runtime_logger->error(
-        "Error: can't execute global host event handler command line '{}' : {}",
-        processed_command, e.what());
+        "Error: can't execute global host event handler command line '{}' : it "
+        "is not allowed by the whitelist",
+        processed_command);
   }
 
   /* check for a timeout in the execution of the event handler command */
-  if (early_timeout == true) {
+  if (early_timeout) {
     engine_logger(log_event_handler | log_runtime_warning, basic)
         << "Warning: Global host event handler command '" << processed_command
         << "' timed out after " << config->event_handler_timeout()
@@ -470,7 +500,7 @@ int run_host_event_handler(nagios_macros* mac,
   std::string processed_command;
   std::string processed_logentry;
   std::string command_output;
-  int early_timeout = false;
+  bool early_timeout = false;
   double exectime = 0.0;
   struct timeval start_time;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
@@ -523,21 +553,28 @@ int run_host_event_handler(nagios_macros* mac,
     events_logger->info(processed_logentry);
   }
 
-  /* run the command */
-  try {
-    my_system_r(mac, processed_command, config->event_handler_timeout(),
-                &early_timeout, &exectime, command_output, 0);
-  } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: can't execute host event handler command line '"
-        << processed_command << "' : " << e.what();
+  if (hst->is_whitelist_allowed(processed_command)) {
+    /* run the command */
+    try {
+      my_system_r(mac, processed_command, config->event_handler_timeout(),
+                  &early_timeout, &exectime, command_output, 0);
+    } catch (std::exception const& e) {
+      engine_logger(log_runtime_error, basic)
+          << "Error: can't execute host event handler command line '"
+          << processed_command << "' : " << e.what();
+      runtime_logger->error(
+          "Error: can't execute host event handler command line '{}' : {}",
+          processed_command, e.what());
+    }
+  } else {
     runtime_logger->error(
-        "Error: can't execute host event handler command line '{}' : {}",
-        processed_command, e.what());
+        "Error: can't execute host event handler command line '{}' : it is not "
+        "allowed by the whitelist",
+        processed_command);
   }
 
   /* check to see if the event handler timed out */
-  if (early_timeout == true) {
+  if (early_timeout) {
     engine_logger(log_event_handler | log_runtime_warning, basic)
         << "Warning: Host event handler command '" << processed_command
         << "' timed out after " << config->event_handler_timeout()

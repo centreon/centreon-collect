@@ -3259,17 +3259,25 @@ int service::notify_contact(nagios_macros* mac,
     }
 
     /* run the notification command */
-    try {
-      std::string tmp;
-      my_system_r(mac, processed_command, config->notification_timeout(),
-                  &early_timeout, &exectime, tmp, 0);
-    } catch (std::exception const& e) {
-      engine_logger(log_runtime_error, basic)
-          << "Error: can't execute service notification '" << cntct->get_name()
-          << "' : " << e.what();
+    if (is_whitelist_allowed(processed_command)) {
+      try {
+        std::string tmp;
+        my_system_r(mac, processed_command, config->notification_timeout(),
+                    &early_timeout, &exectime, tmp, 0);
+      } catch (std::exception const& e) {
+        engine_logger(log_runtime_error, basic)
+            << "Error: can't execute service notification '"
+            << cntct->get_name() << "' : " << e.what();
+        SPDLOG_LOGGER_ERROR(
+            runtime_logger,
+            "Error: can't execute service notification '{}' : {}",
+            cntct->get_name(), e.what());
+      }
+    } else {
       SPDLOG_LOGGER_ERROR(runtime_logger,
-                          "Error: can't execute service notification '{}' : {}",
-                          cntct->get_name(), e.what());
+                          "Error: can't execute service notification '{}' : it "
+                          "is not allowed by the whitelist",
+                          cntct->get_name());
     }
 
     /* check to see if the notification command timed out */
