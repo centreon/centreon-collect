@@ -17,6 +17,7 @@
  *
  */
 #include "com/centreon/engine/configuration/servicegroup.hh"
+#include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/exceptions/error.hh"
 
 using namespace com::centreon;
@@ -142,10 +143,10 @@ bool servicegroup::operator<(servicegroup const& right) const throw() {
  *  If the object is not valid, an exception is thrown.
  */
 void servicegroup::check_validity(error_info* err) const {
+  object::check_validity(err);
+
   if (_servicegroup_name.empty())
-    throw error(
-        "Service group has no name "
-        "(property 'servicegroup_name')");
+    throw error("Service group has no name (property 'servicegroup_name')");
 }
 
 /**
