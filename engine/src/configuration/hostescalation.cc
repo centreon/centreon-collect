@@ -69,7 +69,7 @@ hostescalation::hostescalation(hostescalation const& right) : object(right) {
 /**
  *  Destructor.
  */
-hostescalation::~hostescalation() throw() {}
+hostescalation::~hostescalation() noexcept {}
 
 /**
  *  Copy constructor.
@@ -101,7 +101,7 @@ hostescalation& hostescalation::operator=(hostescalation const& right) {
  *
  *  @return True if is the same hostescalation, otherwise false.
  */
-bool hostescalation::operator==(hostescalation const& right) const throw() {
+bool hostescalation::operator==(hostescalation const& right) const noexcept {
   return (object::operator==(right) && _contactgroups == right._contactgroups &&
           _escalation_options == right._escalation_options &&
           _escalation_period == right._escalation_period &&
@@ -118,7 +118,7 @@ bool hostescalation::operator==(hostescalation const& right) const throw() {
  *
  *  @return True if is not the same hostescalation, otherwise false.
  */
-bool hostescalation::operator!=(hostescalation const& right) const throw() {
+bool hostescalation::operator!=(hostescalation const& right) const noexcept {
   return !operator==(right);
 }
 
@@ -166,7 +166,7 @@ void hostescalation::check_validity(error_info* err) const {
  *
  *  @return This object.
  */
-hostescalation::key_type const& hostescalation::key() const throw() {
+hostescalation::key_type const& hostescalation::key() const noexcept {
   return *this;
 }
 
@@ -212,7 +212,7 @@ bool hostescalation::parse(char const* key, char const* value) {
  *
  *  @return The contact groups.
  */
-set_string& hostescalation::contactgroups() throw() {
+set_string& hostescalation::contactgroups() noexcept {
   return *_contactgroups;
 }
 
@@ -221,7 +221,7 @@ set_string& hostescalation::contactgroups() throw() {
  *
  *  @return The contactgroups.
  */
-set_string const& hostescalation::contactgroups() const throw() {
+set_string const& hostescalation::contactgroups() const noexcept {
   return *_contactgroups;
 }
 
@@ -230,7 +230,7 @@ set_string const& hostescalation::contactgroups() const throw() {
  *
  *  @return True if contact groups were defined.
  */
-bool hostescalation::contactgroups_defined() const throw() {
+bool hostescalation::contactgroups_defined() const noexcept {
   return _contactgroups.is_set();
 }
 
@@ -239,7 +239,7 @@ bool hostescalation::contactgroups_defined() const throw() {
  *
  *  @param[in] options New escalation options.
  */
-void hostescalation::escalation_options(unsigned short options) throw() {
+void hostescalation::escalation_options(unsigned short options) noexcept {
   _escalation_options = options;
 }
 
@@ -248,7 +248,7 @@ void hostescalation::escalation_options(unsigned short options) throw() {
  *
  *  @return The escalation_options.
  */
-unsigned short hostescalation::escalation_options() const throw() {
+unsigned short hostescalation::escalation_options() const noexcept {
   return _escalation_options;
 }
 
@@ -266,7 +266,7 @@ void hostescalation::escalation_period(std::string const& period) {
  *
  *  @return The escalation_period.
  */
-std::string const& hostescalation::escalation_period() const throw() {
+std::string const& hostescalation::escalation_period() const noexcept {
   return _escalation_period;
 }
 
@@ -275,7 +275,7 @@ std::string const& hostescalation::escalation_period() const throw() {
  *
  *  @return True if escalation period was defined.
  */
-bool hostescalation::escalation_period_defined() const throw() {
+bool hostescalation::escalation_period_defined() const noexcept {
   return _escalation_period.is_set();
 }
 
@@ -284,7 +284,7 @@ bool hostescalation::escalation_period_defined() const throw() {
  *
  *  @param[in] n New first notification number.
  */
-void hostescalation::first_notification(unsigned int n) throw() {
+void hostescalation::first_notification(unsigned int n) noexcept {
   _first_notification = n;
 }
 
@@ -293,7 +293,7 @@ void hostescalation::first_notification(unsigned int n) throw() {
  *
  *  @return The first_notification.
  */
-unsigned int hostescalation::first_notification() const throw() {
+unsigned int hostescalation::first_notification() const noexcept {
   return _first_notification;
 }
 
@@ -302,7 +302,7 @@ unsigned int hostescalation::first_notification() const throw() {
  *
  *  @return The host groups.
  */
-set_string& hostescalation::hostgroups() throw() {
+set_string& hostescalation::hostgroups() noexcept {
   return *_hostgroups;
 }
 
@@ -311,7 +311,7 @@ set_string& hostescalation::hostgroups() throw() {
  *
  *  @return The hostgroups.
  */
-set_string const& hostescalation::hostgroups() const throw() {
+set_string const& hostescalation::hostgroups() const noexcept {
   return *_hostgroups;
 }
 
@@ -320,7 +320,7 @@ set_string const& hostescalation::hostgroups() const throw() {
  *
  *  @return The hosts.
  */
-set_string& hostescalation::hosts() throw() {
+set_string& hostescalation::hosts() noexcept {
   return *_hosts;
 }
 
@@ -329,7 +329,7 @@ set_string& hostescalation::hosts() throw() {
  *
  *  @return The hosts.
  */
-set_string const& hostescalation::hosts() const throw() {
+set_string const& hostescalation::hosts() const noexcept {
   return *_hosts;
 }
 
@@ -338,7 +338,7 @@ set_string const& hostescalation::hosts() const throw() {
  *
  *  @param[in] n New last notification number.
  */
-void hostescalation::last_notification(unsigned int n) throw() {
+void hostescalation::last_notification(unsigned int n) noexcept {
   _last_notification = n;
 }
 
@@ -347,7 +347,7 @@ void hostescalation::last_notification(unsigned int n) throw() {
  *
  *  @return The last_notification.
  */
-unsigned int hostescalation::last_notification() const throw() {
+unsigned int hostescalation::last_notification() const noexcept {
   return _last_notification;
 }
 
@@ -365,7 +365,7 @@ void hostescalation::notification_interval(unsigned int interval) {
  *
  *  @return The notification_interval.
  */
-unsigned int hostescalation::notification_interval() const throw() {
+unsigned int hostescalation::notification_interval() const noexcept {
   return _notification_interval;
 }
 
@@ -374,7 +374,7 @@ unsigned int hostescalation::notification_interval() const throw() {
  *
  *  @return True if the notification interval was defined.
  */
-bool hostescalation::notification_interval_defined() const throw() {
+bool hostescalation::notification_interval_defined() const noexcept {
   return _notification_interval.is_set();
 }
 

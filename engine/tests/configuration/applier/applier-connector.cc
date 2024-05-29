@@ -83,7 +83,6 @@ TEST_F(ApplierConnector, ModifyNonExistingConnector) {
 // When a non existing connector is removed
 // Then nothing is done.
 TEST_F(ApplierConnector, RemoveNonExistingConnector) {
-  configuration::applier::connector aply;
   configuration::connector cnn("connector");
   cnn.parse("connector_line", "echo 1");
 
