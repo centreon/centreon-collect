@@ -29,13 +29,13 @@
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/mysql_bulk_stmt.hh"
 #include "com/centreon/broker/sql/mysql_result.hh"
 #include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
+#include "com/centreon/common/perfdata.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -909,7 +909,8 @@ void stream::process_stop(const std::shared_ptr<io::data>& d) {
  */
 void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
   SPDLOG_LOGGER_INFO(_logger_sql, "remove graphs call");
-  asio::post(com::centreon::common::pool::instance().io_context(), [this, data = d] {
+  asio::post(com::centreon::common::pool::instance().io_context(), [this,
+                                                                    data = d] {
     mysql ms(_dbcfg);
     bbdo::pb_remove_graphs* ids =
         static_cast<bbdo::pb_remove_graphs*>(data.get());

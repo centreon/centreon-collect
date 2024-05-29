@@ -121,7 +121,6 @@ add_executable(
   ${TESTS_DIR}/misc/filesystem.cc
   ${TESTS_DIR}/misc/math.cc
   ${TESTS_DIR}/misc/misc.cc
-  ${TESTS_DIR}/misc/perfdata.cc
   ${TESTS_DIR}/misc/string.cc
   ${TESTS_DIR}/modules/module.cc
   ${TESTS_DIR}/processing/acceptor.cc

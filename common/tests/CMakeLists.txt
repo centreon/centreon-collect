@@ -21,6 +21,8 @@ add_executable(ut_common
   hex_dump_test.cc
   log_v2/log_v2.cc
   node_allocator_test.cc
+  perfdata_test.cc
+  process_test.cc
   rapidjson_helper_test.cc
   test_main.cc
   ${TESTS_SOURCES})

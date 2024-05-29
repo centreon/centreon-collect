@@ -21,7 +21,7 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
+#include "com/centreon/common/perfdata.hh"
 
 using namespace com::centreon::broker;
 
@@ -60,6 +60,6 @@ TEST(StorageMetric, DefaultCtor) {
   ASSERT_FALSE(!m.name.empty());
   ASSERT_FALSE(m.rrd_len != 0);
   ASSERT_FALSE(!std::isnan(m.value));
-  ASSERT_FALSE(m.value_type != misc::perfdata::gauge);
+  ASSERT_FALSE(m.value_type != com::centreon::common::perfdata::gauge);
   ASSERT_FALSE(m.type() != val);
 }
