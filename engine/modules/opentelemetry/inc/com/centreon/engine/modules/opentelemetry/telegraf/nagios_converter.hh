@@ -91,19 +91,19 @@ namespace com::centreon::engine::modules::opentelemetry::telegraf {
  *
  *
  */
-class otl_nagios_converter : public otl_converter {
+class nagios_converter : public otl_converter {
  protected:
   bool _build_result_from_metrics(metric_name_to_fifo& fifos,
                                   commands::result& res) override;
 
  public:
-  otl_nagios_converter(const std::string& cmd_line,
-                       uint64_t command_id,
-                       const host& host,
-                       const service* service,
-                       std::chrono::system_clock::time_point timeout,
-                       commands::otel::result_callback&& handler,
-                       const std::shared_ptr<spdlog::logger>& logger)
+  nagios_converter(const std::string& cmd_line,
+                   uint64_t command_id,
+                   const host& host,
+                   const service* service,
+                   std::chrono::system_clock::time_point timeout,
+                   commands::otel::result_callback&& handler,
+                   const std::shared_ptr<spdlog::logger>& logger)
       : otl_converter(cmd_line,
                       command_id,
                       host,

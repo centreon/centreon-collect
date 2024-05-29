@@ -81,7 +81,7 @@ void otl_converter_test::TearDown() {
 
 TEST_F(otl_converter_test, empty_fifo) {
   data_point_fifo_container empty;
-  telegraf::otl_nagios_converter conv(
+  telegraf::nagios_converter conv(
       "", 1, *host::hosts.begin()->second,
       service::services.begin()->second.get(),
       std::chrono::system_clock::time_point(), [&](const commands::result&) {},
@@ -586,7 +586,7 @@ TEST_F(otl_converter_test, nagios_telegraf) {
                             data_pt.get_metric().name(), data_pt);
   });
 
-  telegraf::otl_nagios_converter conv(
+  telegraf::nagios_converter conv(
       "", 1, *host::hosts.begin()->second,
       service::services.begin()->second.get(),
       std::chrono::system_clock::time_point(), [&](const commands::result&) {},
@@ -621,7 +621,7 @@ TEST_F(otl_converter_test, nagios_telegraf_le_ge) {
                             data_pt.get_metric().name(), data_pt);
   });
 
-  telegraf::otl_nagios_converter conv(
+  telegraf::nagios_converter conv(
       "", 1, *host::hosts.begin()->second,
       service::services.begin()->second.get(),
       std::chrono::system_clock::time_point(), [&](const commands::result&) {},
@@ -654,7 +654,7 @@ TEST_F(otl_converter_test, nagios_telegraf_max) {
                             data_pt.get_metric().name(), data_pt);
   });
 
-  telegraf::otl_nagios_converter conv(
+  telegraf::nagios_converter conv(
       "", 1, *host::hosts.begin()->second,
       service::services.begin()->second.get(),
       std::chrono::system_clock::time_point(), [&](const commands::result&) {},

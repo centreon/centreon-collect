@@ -532,6 +532,7 @@ target_link_libraries(
   boost_url
   cce_core
   gRPC::grpc++
+  boost_program_options
   "-Wl,--no-whole-archive"
   gRPC::gpr
   gRPC::grpc

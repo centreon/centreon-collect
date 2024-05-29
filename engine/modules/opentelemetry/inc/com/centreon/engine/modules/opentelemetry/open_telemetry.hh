@@ -127,6 +127,7 @@ class open_telemetry : public commands::otel::open_telemetry_base {
   static void unload(const std::shared_ptr<spdlog::logger>& logger);
 
   bool check(const std::string& processed_cmd,
+             const std::shared_ptr<commands::otel::converter_config>& conv_conf,
              uint64_t command_id,
              nagios_macros& macros,
              uint32_t timeout,
@@ -136,6 +137,9 @@ class open_telemetry : public commands::otel::open_telemetry_base {
   std::shared_ptr<commands::otel::host_serv_extractor> create_extractor(
       const std::string& cmdline,
       const commands::otel::host_serv_list::pointer& host_serv_list) override;
+
+  std::shared_ptr<commands::otel::converter_config> create_converter_config(
+      const std::string& cmd_line) override;
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry

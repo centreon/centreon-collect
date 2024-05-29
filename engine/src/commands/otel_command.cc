@@ -109,16 +109,6 @@ void otel_command::init_all() {
 }
 
 /**
- * @brief to call after otel module unload
- *
- */
-void otel_command::reset_all_extractor() {
-  for (auto& to_init : _commands) {
-    to_init.second->reset_extractor();
-  }
-}
-
-/**
  * @brief Construct a new otel command::otel command object
  * at engine startup, otel module is not yet loaded
  * So we can't init some members
@@ -182,6 +172,14 @@ uint64_t otel_command::run(const std::string& processed_cmd,
     return command_id;
   }
 
+  if (!_conv_conf) {
+    SPDLOG_LOGGER_ERROR(
+        _logger, "{} unable to do a check without a converter configuration",
+        get_name());
+    throw exceptions::msg_fmt(
+        "{} unable to do a check without a converter configuration",
+        get_name());
+  }
   SPDLOG_LOGGER_TRACE(_logger,
                       "otel_command::async_run: connector='{}', command_id={}, "
                       "cmd='{}', timeout={}",
@@ -189,7 +187,7 @@ uint64_t otel_command::run(const std::string& processed_cmd,
 
   result res;
   bool res_available = otel->check(
-      processed_cmd, command_id, macros, timeout, res,
+      processed_cmd, _conv_conf, command_id, macros, timeout, res,
       [me = shared_from_this(), command_id](const result& async_res) {
         SPDLOG_LOGGER_TRACE(
             me->_logger, "otel_command async_run callback: connector='{}' {}",
@@ -248,11 +246,12 @@ void otel_command::run(const std::string& processed_cmd,
   std::condition_variable cv;
   std::mutex cv_m;
 
-  bool res_available = otel->check(processed_cmd, command_id, macros, timeout,
-                                   res, [&res, &cv](const result& async_res) {
-                                     res = async_res;
-                                     cv.notify_one();
-                                   });
+  bool res_available =
+      otel->check(processed_cmd, _conv_conf, command_id, macros, timeout, res,
+                  [&res, &cv](const result& async_res) {
+                    res = async_res;
+                    cv.notify_one();
+                  });
 
   // no data_point available => wait util available or timeout
   if (!res_available) {
@@ -272,21 +271,35 @@ void otel_command::run(const std::string& processed_cmd,
  *
  */
 void otel_command::init() {
-  if (!_extractor) {
-    std::shared_ptr<otel::open_telemetry_base> otel =
-        otel::open_telemetry_base::instance();
-    if (otel) {
-      _extractor = otel->create_extractor(get_command_line(), _host_serv_list);
+  try {
+    if (!_extractor) {
+      std::shared_ptr<otel::open_telemetry_base> otel =
+          otel::open_telemetry_base::instance();
+      if (otel) {
+        _extractor =
+            otel->create_extractor(get_command_line(), _host_serv_list);
+      }
     }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_TRACE(_logger,
+                        "fail to parse host serv extractor configuration for "
+                        "open-telemetry connector {} command line:{}",
+                        get_name(), get_command_line());
   }
-}
-
-/**
- * @brief reset _extractor attribute, called when otel module is unloaded
- *
- */
-void otel_command::reset_extractor() {
-  _extractor.reset();
+  try {
+    if (!_conv_conf) {
+      std::shared_ptr<otel::open_telemetry_base> otel =
+          otel::open_telemetry_base::instance();
+      if (otel) {
+        _conv_conf = otel->create_converter_config(get_command_line());
+      }
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_TRACE(_logger,
+                        "fail to parse converter configuration for "
+                        "open-telemetry connector {} command line:{}",
+                        get_name(), get_command_line());
+  }
 }
 
 /**

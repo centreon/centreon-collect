@@ -28,22 +28,6 @@
 
 using namespace com::centreon::engine::modules::opentelemetry;
 
-/**
- * @brief create a otl_converter_config from a command line
- * first field identify type of config
- * Example:
- * @code {.c++}
- * std::shared_ptr<otl_converter_config> conf =
- * otl_converter_config::load("nagios_telegraf");
- * @endcode
- *
- * @param cmd_line
- * @return std::shared_ptr<otl_converter_config>
- * @throw if cmd_line can't be parsed
- */
-/******************************************************************
- * otl_converter base
- ******************************************************************/
 otl_converter::otl_converter(const std::string& cmd_line,
                              uint64_t command_id,
                              const host& host,
@@ -111,38 +95,37 @@ void otl_converter::async_time_out() {
  * Example:
  * @code {.c++}
  * std::shared_ptr<otl_converter> converter =
- * otl_converter::create("nagios_telegraf --fifo_depth=5", 5, *host, serv,
+ * otl_converter::create("--processor=nagios_telegraf --fifo_depth=5", conf, 5, *host, serv,
  * timeout_point, [](const commads::result &res){}, _logger);
  * @endcode
  *
  * @param cmd_line
+ * @param conf  bean configuration object created by create_converter_config
  * @param command_id
  * @param host
  * @param service
  * @param timeout
- * @param handler
+ * @param handler handler that will be called once we have all metrics mandatory
+ * to create a check_result
  * @return std::shared_ptr<otl_converter>
  */
 std::shared_ptr<otl_converter> otl_converter::create(
     const std::string& cmd_line,
+    const std::shared_ptr<converter_config>& conf,
     uint64_t command_id,
     const host& host,
     const service* service,
     std::chrono::system_clock::time_point timeout,
     commands::otel::result_callback&& handler,
     const std::shared_ptr<spdlog::logger>& logger) {
-  // type of the converter is the first field
-  size_t sep_pos = cmd_line.find(' ');
-  std::string conf_type =
-      sep_pos == std::string::npos ? cmd_line : cmd_line.substr(0, sep_pos);
-  boost::trim(conf_type);
-  if (conf_type == "nagios_telegraf") {
-    return std::make_shared<telegraf::otl_nagios_converter>(
-        cmd_line, command_id, host, service, timeout, std::move(handler),
-        logger);
-  } else {
-    SPDLOG_LOGGER_ERROR(config_logger, "unknown converter type:{}", conf_type);
-    throw exceptions::msg_fmt("unknown converter type:{}", conf_type);
+  switch (conf->get_type()) {
+    case converter_config::converter_type::nagios_converter:
+      return std::make_shared<telegraf::nagios_converter>(
+          cmd_line, command_id, host, service, timeout, std::move(handler),
+          logger);
+    default:
+      SPDLOG_LOGGER_ERROR(logger, "unknown converter type:{}", cmd_line);
+      throw exceptions::msg_fmt("unknown converter type:{}", cmd_line);
   }
 }
 
@@ -158,16 +141,47 @@ void otl_converter::dump(std::string& output) const {
 }
 
 /**
- * @brief remove converter_type from command_line
+ * @brief create a otl_converter_config from a command line
+ * --processor flag identifies type of converter
+ * Example:
+ * @code {.c++}
+ * std::shared_ptr<otl_converter> converter =
+ * otl_converter::create("--processor=nagios_telegraf --fifo_depth=5");
+ * @endcode
  *
- * @param cmd_line exemple nagios_telegraf
- * @return std::string
+ * @param cmd_line
+ * @return std::shared_ptr<converter_config>
  */
-std::string otl_converter::remove_converter_type(const std::string& cmd_line) {
-  size_t sep_pos = cmd_line.find(' ');
-  std::string params =
-      sep_pos == std::string::npos ? "" : cmd_line.substr(sep_pos + 1);
+std::shared_ptr<converter_config> otl_converter::create_converter_config(
+    const std::string& cmd_line) {
+  static initialized_data_class<po::options_description> desc(
+      [](po::options_description& desc) {
+        desc.add_options()("processor", po::value<std::string>(),
+                           "processor type");
+      });
 
-  boost::trim(params);
-  return params;
+  try {
+    po::variables_map vm;
+    po::store(po::command_line_parser(po::split_unix(cmd_line))
+                  .options(desc)
+                  .allow_unregistered()
+                  .run(),
+              vm);
+    if (!vm.count("processor")) {
+      throw exceptions::msg_fmt("processor flag not found in {}", cmd_line);
+    }
+    std::string extractor_type = vm["processor"].as<std::string>();
+    if (extractor_type == "nagios_telegraf") {
+      return std::make_shared<converter_config>(
+          converter_config::converter_type::nagios_converter);
+    } else {
+      throw exceptions::msg_fmt("unknown processor in {}", cmd_line);
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
+        "fail to get opentelemetry converter configuration from {}: {}",
+        cmd_line, e.what());
+    throw;
+  }
 }

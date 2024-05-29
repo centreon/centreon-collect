@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/common/rapidjson_helper.hh"
+#include "com/centreon/engine/globals.hh"
 
 #include "otl_config.hh"
 #include "otl_fmt.hh"
@@ -54,7 +55,7 @@ static constexpr std::string_view _grpc_config_schema(R"(
             "type": "integer",
             "min": 1
         },
-        "server": {
+        "otel_server": {
             "description": "otel grpc config",
             "type": "object"
         },
@@ -64,7 +65,7 @@ static constexpr std::string_view _grpc_config_schema(R"(
         }
     },
     "required": [
-        "server"
+        "otel_server"
     ],
     "type": "object"
 }
@@ -80,8 +81,14 @@ static constexpr std::string_view _grpc_config_schema(R"(
 otl_config::otl_config(const std::string_view& file_path,
                        asio::io_context& io_context) {
   static json_validator validator(_grpc_config_schema);
-  rapidjson::Document file_content_d =
-      rapidjson_helper::read_from_file(file_path);
+  rapidjson::Document file_content_d;
+  try {
+    file_content_d = rapidjson_helper::read_from_file(file_path);
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(config_logger, "incorrect json file {}: {}", file_path,
+                        e.what());
+    throw;
+  }
 
   rapidjson_helper file_content(file_content_d);
 
@@ -90,7 +97,8 @@ otl_config::otl_config(const std::string_view& file_path,
   _json_grpc_log = file_content.get_bool("grpc_json_log", false);
   _second_fifo_expiry = file_content.get_unsigned("second_fifo_expiry", 600);
   _max_fifo_size = file_content.get_unsigned("max_fifo_size", 5);
-  _grpc_conf = std::make_shared<grpc_config>(file_content.get_member("server"));
+  _grpc_conf =
+      std::make_shared<grpc_config>(file_content.get_member("otel_server"));
   if (file_content.has_member("telegraf_conf_server")) {
     _telegraf_conf_server_config =
         std::make_shared<telegraf::conf_server_config>(
