@@ -236,6 +236,7 @@ add_subdirectory(bbdo)
 add_subdirectory(engine)
 add_subdirectory(connectors)
 add_subdirectory(ccc)
+add_subdirectory(agent)
 
 if (WITH_MALLOC_TRACE)
   add_subdirectory(malloc-trace)
@@ -247,9 +248,10 @@ add_custom_target(test-engine COMMAND tests/ut_engine)
 add_custom_target(test-clib COMMAND tests/ut_clib)
 add_custom_target(test-connector COMMAND tests/ut_connector)
 add_custom_target(test-common COMMAND tests/ut_common)
+add_custom_target(test-agent COMMAND tests/ut_agent)
 
 add_custom_target(test DEPENDS test-broker test-engine test-clib test-connector
-                               test-common)
+                               test-common test-agent)
 
 add_custom_target(test-coverage DEPENDS broker-test-coverage
                                         engine-test-coverage clib-test-coverage)
