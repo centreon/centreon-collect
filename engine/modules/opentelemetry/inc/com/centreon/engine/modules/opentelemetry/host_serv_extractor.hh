@@ -50,7 +50,7 @@ class host_serv_extractor : public commands::otel::host_serv_extractor {
       const commands::otel::host_serv_list::pointer& host_serv_list);
 
   virtual host_serv_metric extract_host_serv_metric(
-      const data_point&) const = 0;
+      const otl_data_point&) const = 0;
 
   bool is_allowed(const std::string& host,
                   const std::string& service_description) const;
@@ -64,12 +64,12 @@ template <typename host_set, typename service_set>
 host_serv_metric host_serv_extractor::is_allowed(
     const host_set& hosts,
     const service_set& services) const {
-  return _host_serv_list->is_allowed(hosts, services);
+  return _host_serv_list->contains(hosts, services);
 }
 
 /**
  * @brief this class try to find host service in opentelemetry attributes object
- * It may search in data resource attributes, scope attributes or data_point
+ * It may search in data resource attributes, scope attributes or otl_data_point
  * attributes
  * An example of telegraf otel data:
  * @code {.json}
@@ -108,7 +108,7 @@ host_serv_metric host_serv_extractor::is_allowed(
  *
  */
 class host_serv_attributes_extractor : public host_serv_extractor {
-  enum class attribute_owner { resource, scope, data_point };
+  enum class attribute_owner { resource, scope, otl_data_point };
   attribute_owner _host_path;
   std::string _host_key;
   attribute_owner _serv_path;
@@ -120,7 +120,7 @@ class host_serv_attributes_extractor : public host_serv_extractor {
       const commands::otel::host_serv_list::pointer& host_serv_list);
 
   host_serv_metric extract_host_serv_metric(
-      const data_point& data_pt) const override;
+      const otl_data_point& data_pt) const override;
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry

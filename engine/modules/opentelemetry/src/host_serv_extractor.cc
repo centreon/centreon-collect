@@ -35,7 +35,7 @@ using namespace com::centreon::engine::modules::opentelemetry;
 bool host_serv_extractor::is_allowed(
     const std::string& host,
     const std::string& service_description) const {
-  return _host_serv_list->is_allowed(host, service_description);
+  return _host_serv_list->contains(host, service_description);
 }
 
 std::shared_ptr<host_serv_extractor> host_serv_extractor::create(
@@ -77,7 +77,7 @@ std::shared_ptr<host_serv_extractor> host_serv_extractor::create(
  *
  * @param command_line command line that contains options used by extractor
  * @param host_serv_list list that will be shared bu host_serv_extractor and
- * otel_command
+ * otel_connector
  */
 host_serv_attributes_extractor::host_serv_attributes_extractor(
     const std::string& command_line,
@@ -113,7 +113,7 @@ host_serv_attributes_extractor::host_serv_attributes_extractor(
     } else if (sz_attr == "scope") {
       attr = attribute_owner::scope;
     } else {
-      attr = attribute_owner::data_point;
+      attr = attribute_owner::otl_data_point;
     }
   };
 
@@ -125,13 +125,13 @@ host_serv_attributes_extractor::host_serv_attributes_extractor(
                   .run(),
               vm);
     if (!vm.count("host_path")) {
-      _host_path = attribute_owner::data_point;
+      _host_path = attribute_owner::otl_data_point;
       _host_key = "host";
     } else {
       parse_path(vm["host_path"].as<std::string>(), _host_path, _host_key);
     }
     if (!vm.count("service_path")) {
-      _serv_path = attribute_owner::data_point;
+      _serv_path = attribute_owner::otl_data_point;
       _serv_key = "service";
     } else {
       parse_path(vm["service_path"].as<std::string>(), _serv_path, _serv_key);
@@ -154,15 +154,15 @@ host_serv_attributes_extractor::host_serv_attributes_extractor(
  * found
  */
 host_serv_metric host_serv_attributes_extractor::extract_host_serv_metric(
-    const data_point& data_pt) const {
+    const otl_data_point& data_pt) const {
   auto extract =
-      [](const data_point& data_pt, attribute_owner owner,
+      [](const otl_data_point& data_pt, attribute_owner owner,
          const std::string& key) -> absl::flat_hash_set<std::string_view> {
     absl::flat_hash_set<std::string_view> ret;
     const ::google::protobuf::RepeatedPtrField<
         ::opentelemetry::proto::common::v1::KeyValue>* attributes = nullptr;
     switch (owner) {
-      case attribute_owner::data_point:
+      case attribute_owner::otl_data_point:
         attributes = &data_pt.get_data_point_attributes();
         break;
       case attribute_owner::scope:

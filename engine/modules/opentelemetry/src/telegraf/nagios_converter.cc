@@ -17,7 +17,7 @@
  */
 
 #include "data_point_fifo_container.hh"
-#include "otl_converter.hh"
+#include "otl_check_result_builder.hh"
 
 #include "telegraf/nagios_converter.hh"
 

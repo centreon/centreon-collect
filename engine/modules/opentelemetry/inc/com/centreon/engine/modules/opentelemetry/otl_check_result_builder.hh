@@ -16,8 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCE_MOD_OTL_CONVERTER_HH
-#define CCE_MOD_OTL_CONVERTER_HH
+#ifndef CCE_MOD_OTL_CHECK_RESULT_BUILDER_HH
+#define CCE_MOD_OTL_CHECK_RESULT_BUILDER_HH
 
 #include "com/centreon/engine/commands/otel_interface.hh"
 #include "data_point_fifo.hh"
@@ -32,7 +32,8 @@ class data_point_fifo_container;
  * create a converter config that will be used to create converter
  *
  */
-class converter_config : public commands::otel::converter_config {
+class check_result_builder_config
+    : public commands::otel::check_result_builder_config {
  public:
   enum class converter_type { nagios_converter };
 
@@ -40,7 +41,7 @@ class converter_config : public commands::otel::converter_config {
   const converter_type _type;
 
  public:
-  converter_config(converter_type conv_type) : _type(conv_type) {}
+  check_result_builder_config(converter_type conv_type) : _type(conv_type) {}
   converter_type get_type() const { return _type; }
 };
 
@@ -52,7 +53,8 @@ class converter_config : public commands::otel::converter_config {
  * These objects are oneshot, their lifetime is the check duration
  *
  */
-class otl_converter : public std::enable_shared_from_this<otl_converter> {
+class otl_check_result_builder
+    : public std::enable_shared_from_this<otl_check_result_builder> {
   const std::string _cmd_line;
   const uint64_t _command_id;
   const std::pair<std::string /*host*/, std::string /*service*/> _host_serv;
@@ -66,15 +68,15 @@ class otl_converter : public std::enable_shared_from_this<otl_converter> {
                                           commands::result& res) = 0;
 
  public:
-  otl_converter(const std::string& cmd_line,
-                uint64_t command_id,
-                const host& host,
-                const service* service,
-                std::chrono::system_clock::time_point timeout,
-                commands::otel::result_callback&& handler,
-                const std::shared_ptr<spdlog::logger>& logger);
+  otl_check_result_builder(const std::string& cmd_line,
+                           uint64_t command_id,
+                           const host& host,
+                           const service* service,
+                           std::chrono::system_clock::time_point timeout,
+                           commands::otel::result_callback&& handler,
+                           const std::shared_ptr<spdlog::logger>& logger);
 
-  virtual ~otl_converter() = default;
+  virtual ~otl_check_result_builder() = default;
 
   const std::string& get_cmd_line() const { return _cmd_line; }
 
@@ -101,9 +103,9 @@ class otl_converter : public std::enable_shared_from_this<otl_converter> {
 
   virtual void dump(std::string& output) const;
 
-  static std::shared_ptr<otl_converter> create(
+  static std::shared_ptr<otl_check_result_builder> create(
       const std::string& cmd_line,
-      const std::shared_ptr<converter_config>& conf,
+      const std::shared_ptr<check_result_builder_config>& conf,
       uint64_t command_id,
       const host& host,
       const service* service,
@@ -111,8 +113,8 @@ class otl_converter : public std::enable_shared_from_this<otl_converter> {
       commands::otel::result_callback&& handler,
       const std::shared_ptr<spdlog::logger>& logger);
 
-  static std::shared_ptr<converter_config> create_converter_config(
-      const std::string& cmd_line);
+  static std::shared_ptr<check_result_builder_config>
+  create_check_result_builder_config(const std::string& cmd_line);
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry
@@ -120,12 +122,13 @@ class otl_converter : public std::enable_shared_from_this<otl_converter> {
 namespace fmt {
 
 template <>
-struct formatter<com::centreon::engine::modules::opentelemetry::otl_converter>
+struct formatter<
+    com::centreon::engine::modules::opentelemetry::otl_check_result_builder>
     : formatter<std::string> {
   template <typename FormatContext>
-  auto format(
-      const com::centreon::engine::modules::opentelemetry::otl_converter& cont,
-      FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const com::centreon::engine::modules::opentelemetry::
+                  otl_check_result_builder& cont,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
     std::string output;
     (&cont)->dump(output);
     return formatter<std::string>::format(output, ctx);

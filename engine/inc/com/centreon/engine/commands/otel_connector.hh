@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  */
 
-#ifndef CCE_COMMANDS_OTEL_COMMAND_HH
-#define CCE_COMMANDS_OTEL_COMMAND_HH
+#ifndef CCE_COMMANDS_OTEL_CONNECTOR_HH
+#define CCE_COMMANDS_OTEL_CONNECTOR_HH
 
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/commands/otel_interface.hh"
@@ -31,19 +31,19 @@ namespace com::centreon::engine::commands {
  * open telemetry request run command line configure converter who converts
  * data_points to result
  */
-class otel_command : public command,
-                     public std::enable_shared_from_this<otel_command> {
+class otel_connector : public command,
+                       public std::enable_shared_from_this<otel_connector> {
   otel::host_serv_list::pointer _host_serv_list;
 
  public:
-  using otel_command_container =
-      absl::flat_hash_map<std::string, std::shared_ptr<otel_command>>;
+  using otel_connector_container =
+      absl::flat_hash_map<std::string, std::shared_ptr<otel_connector>>;
 
  private:
-  static otel_command_container _commands;
+  static otel_connector_container _commands;
 
   std::shared_ptr<otel::host_serv_extractor> _extractor;
-  std::shared_ptr<otel::converter_config> _conv_conf;
+  std::shared_ptr<otel::check_result_builder_config> _conv_conf;
 
   std::shared_ptr<spdlog::logger> _logger;
 
@@ -59,18 +59,20 @@ class otel_command : public command,
   static bool update(const std::string& connector_name,
                      const std::string& cmd_line);
 
-  static std::shared_ptr<otel_command> get_otel_command(
+  static std::shared_ptr<otel_connector> get_otel_connector(
       const std::string& connector_name);
 
   static void clear();
 
   static void init_all();
 
-  static const otel_command_container& get_otel_commands() { return _commands; }
+  static const otel_connector_container& get_otel_connectors() {
+    return _commands;
+  }
 
-  otel_command(const std::string& connector_name,
-               const std::string& cmd_line,
-               commands::command_listener* listener);
+  otel_connector(const std::string& connector_name,
+                 const std::string& cmd_line,
+                 commands::command_listener* listener);
 
   void update(const std::string& cmd_line);
 

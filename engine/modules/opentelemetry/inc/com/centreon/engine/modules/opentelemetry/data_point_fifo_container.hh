@@ -57,7 +57,7 @@ class data_point_fifo_container {
   void add_data_point(const std::string_view& host,
                       const std::string_view& service,
                       const std::string_view& metric,
-                      const data_point& data_pt);
+                      const otl_data_point& data_pt);
 
   const metric_name_to_fifo& get_fifos(const std::string& host,
                                        const std::string& service) const;

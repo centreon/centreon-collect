@@ -55,8 +55,8 @@ void host_serv_list::unregister_host_serv(
  * @return true found
  * @return false  not found
  */
-bool host_serv_list::is_allowed(const std::string& host,
-                                const std::string& service_description) const {
+bool host_serv_list::contains(const std::string& host,
+                              const std::string& service_description) const {
   absl::ReaderMutexLock l(&_data_m);
   auto host_search = _data.find(host);
   if (host_search != _data.end()) {
