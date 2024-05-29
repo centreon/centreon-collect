@@ -505,7 +505,6 @@ target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 # Link target with required libraries.
 target_link_libraries(
   cce_core
-  nlohmann_json::nlohmann_json
   ${MATH_LIBRARIES}
   ${PTHREAD_LIBRARIES}
   ${SOCKET_LIBRARIES}
@@ -527,6 +526,7 @@ target_link_libraries(
   log_v2
   "-Wl,-whole-archive"
   enginerpc
+  centreon_grpc
   cce_core
   gRPC::grpc++
   "-Wl,--no-whole-archive"

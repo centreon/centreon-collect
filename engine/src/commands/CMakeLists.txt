@@ -32,6 +32,7 @@ set(
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/environment.cc"
   "${SRC_DIR}/forward.cc"
+  "${SRC_DIR}/otel_interface.cc"
   "${SRC_DIR}/processing.cc"
   "${SRC_DIR}/raw.cc"
   "${SRC_DIR}/result.cc"

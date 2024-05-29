@@ -22,6 +22,10 @@
 
 namespace com::centreon::common::http {
 
+using system_clock = std::chrono::system_clock;
+using time_point = system_clock::time_point;
+using duration = system_clock::duration;
+
 /**
  * @brief this class is a bean that contains all config parameters
  *
@@ -42,6 +46,8 @@ class http_config {
   asio::ssl::context_base::method _ssl_method;
   // path of certificate file
   std::string _certificate_path;
+  // path to key file (server case)
+  std::string _key_path;
 
  public:
   using pointer = std::shared_ptr<http_config>;
@@ -59,7 +65,8 @@ class http_config {
               unsigned max_connections = 10,
               asio::ssl::context_base::method ssl_method =
                   asio::ssl::context_base::tlsv13_client,
-              const std::string& certificate_path = "")
+              const std::string& certificate_path = "",
+              const std::string& key_path = "")
       : _endpoint(endpoint),
         _server_name(server_name),
         _crypted(crypted),
@@ -72,7 +79,8 @@ class http_config {
         _default_http_keepalive_duration(default_http_keepalive_duration),
         _max_connections(max_connections),
         _ssl_method(ssl_method),
-        _certificate_path(certificate_path) {}
+        _certificate_path(certificate_path),
+        _key_path(key_path) {}
 
   http_config()
       : _crypted(false),
@@ -97,6 +105,7 @@ class http_config {
   unsigned get_max_connections() const { return _max_connections; }
   asio::ssl::context_base::method get_ssl_method() const { return _ssl_method; }
   const std::string& get_certificate_path() const { return _certificate_path; }
+  const std::string& get_key_path() const { return _key_path; }
 };
 
 }  // namespace com::centreon::common::http

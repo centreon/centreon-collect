@@ -32,14 +32,6 @@ std::ostream& operator<<(std::ostream&, const CentreonEvent&);
 namespace grpc {
 
 extern const std::string authorization_header;
-constexpr uint32_t calc_accept_all_compression_mask() {
-  uint32_t ret = 0;
-  for (size_t algo_ind = 0; algo_ind < GRPC_COMPRESS_ALGORITHMS_COUNT;
-       algo_ind++) {
-    ret += (1u << algo_ind);
-  }
-  return ret;
-}
 
 struct detail_centreon_event;
 std::ostream& operator<<(std::ostream&, const detail_centreon_event&);

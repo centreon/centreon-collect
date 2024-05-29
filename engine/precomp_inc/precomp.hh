@@ -63,6 +63,7 @@
 #include <spdlog/spdlog.h>
 
 #include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <re2/re2.h>

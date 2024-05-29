@@ -92,12 +92,24 @@ void grpc_server_base::_init(const builder_option& options) {
  *
  */
 grpc_server_base::~grpc_server_base() {
-  if (_server) {
-    SPDLOG_LOGGER_DEBUG(_logger, "begin shutdown of grpc server {} ",
-                        _conf->get_hostport());
-    _server->Shutdown(std::chrono::system_clock::now() +
-                      std::chrono::seconds(15));
-    SPDLOG_LOGGER_DEBUG(_logger, "end shutdown of grpc server {} ",
-                        _conf->get_hostport());
+  shutdown(std::chrono::seconds(15));
+}
+
+/**
+ * @brief shutdown server
+ *
+ * @param timeout after this timeout, grpc server will be stopped
+ */
+void grpc_server_base::shutdown(
+    const std::chrono::system_clock::duration& timeout) {
+  std::unique_ptr<::grpc::Server> to_shutdown;
+  if (!_server) {
+    return;
   }
+  to_shutdown = std::move(_server);
+  _server.reset();
+  SPDLOG_LOGGER_INFO(_logger, "{:p} shutdown {}",
+                     static_cast<const void*>(this), _conf->get_hostport());
+  to_shutdown->Shutdown(std::chrono::system_clock::now() + timeout);
+  to_shutdown->Wait();
 }
