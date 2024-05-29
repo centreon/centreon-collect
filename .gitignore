@@ -139,3 +139,6 @@ tests/logs/*
 tests/bench.unqlite
 tests/resources/process_stat_pb2.py
 tests/resources/process_stat_pb2_grpc.py
+**/*_pb2.py
+**/*_pb2_grpc.py
+tests/resources/grpc_stream.proto
