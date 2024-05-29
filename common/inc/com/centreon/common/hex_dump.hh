@@ -19,7 +19,6 @@
 #ifndef CCCM_HEX_DUMP_HH
 #define CCCM_HEX_DUMP_HH
 
-#include <string>
 
 namespace com::centreon::common {
 
