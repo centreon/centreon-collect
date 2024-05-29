@@ -24,7 +24,7 @@ Whitelist_No_Whitelist_Directory
     Should Be True    ${result}    no whitelist directory found must be found in logs
 
 Whitelist_Empty_Directory
-    [Documentation]    log if /etc/centreon-engine-whitelist if empty
+    [Documentation]    log if /etc/centreon-engine-whitelist is empty
     [Tags]    whitelist    engine
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    module    ${1}
@@ -42,7 +42,7 @@ Whitelist_Directory_Rights
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    module    ${1}
     Run    chown root:root /etc/centreon-engine-whitelist
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start engine
     ${content}    Create List
     ...    directory /etc/centreon-engine-whitelist must be owned by root@centreon-engine
@@ -120,6 +120,57 @@ Whitelist_Host
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    totozea not found
+
+Whitelist_Service_EH
+    [Documentation]    test allowed and forbidden event handler for services
+    [Tags]    whitelist    engine    MON-75741
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Empty Directory    /etc/centreon-engine-whitelist
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Engine Config Set Value    0    log_level_checks    trace    True
+    Ctn Engine Config Set Value    0    log_level_commands    trace    True
+    # service_1 uses command_1
+    Ctn Engine Config Replace Value In Services    0    service_1    check_command    command_2
+    Ctn Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/totozea 0 $HOSTADDRESS$
+    Ctn Engine Config Set Value In Services    0    service_1    event_handler_enabled    1
+    # command_1 poits to the command totozea that is not allowed.
+    Ctn Engine Config Set Value In Services    0    service_1    event_handler    command_1
+
+    # create non matching file
+    ${whitelist_content}    Catenate
+    ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/check.pl * *"], "regex":["/tmp/var/lib/centreon-engine/check.pl [1-9] .*"]}}
+    Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
+    ${start}    Get Current Date
+    Ctn Start Broker    only_central=${True}
+    Ctn Start engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    ${cmd}    Ctn Get Service Command Id    1
+    Ctn Set Command Status    ${cmd}    0
+    Repeat Keyword    3 times    Ctn Schedule Forced Svc Check    host_1    service_1
+    Ctn Set Command Status    ${cmd}    2
+    Repeat Keyword    3 times    Ctn Schedule Forced Svc Check    host_1    service_1
+    ${content}    Create List
+    ...    Error: can't execute service event handler command line '/tmp/var/lib/centreon-engine/totozea 0 1.0.0.0' : it is not allowed by the whitelist
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The event handler for service_1 should be forbidden to execute
+
+    # Now, we allow totozea as event handler.
+    ${whitelist_content}    Catenate
+    ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/totozea * *"], "regex":["/tmp/var/lib/centreon-engine/check.pl [1-9] .*"]}}
+    Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
+    Ctn Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    ${cmd}    Ctn Get Service Command Id    1
+    Ctn Set Command Status    ${cmd}    0
+    Repeat Keyword    3 times    Ctn Schedule Forced Svc Check    host_1    service_1
+    Ctn Set Command Status    ${cmd}    2
+    Repeat Keyword    3 times    Ctn Schedule Forced Svc Check    host_1    service_1
+    ${content}    Create List    SERVICE EVENT HANDLER: host_1;service_1;.*;command_1    my_system_r
+    ${result}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result[0]}    The event handler with command totozea should be OK.
 
 Whitelist_Service
     [Documentation]    test allowed and forbidden commands for services

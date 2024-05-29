@@ -541,21 +541,26 @@ void checkable::set_name(const std::string& name) {
  * it tries to use last whitelist check result
  *
  * @param process_cmd final command line (macros replaced)
+ * @param typ a value among CHECK_TYPE, NOTIF_TYPE, EVH_TYPE or OBSESS_TYPE.
  * @return true allowed
  * @return false
  */
-bool checkable::is_whitelist_allowed(const std::string& process_cmd) {
-  if (process_cmd == _whitelist_last_result.process_cmd &&
+bool checkable::command_is_allowed_by_whitelist(const std::string& process_cmd,
+                                                command_type typ) {
+  checks_logger->info("is_allowed: {}", process_cmd);
+  auto& cmd = _whitelist_last_result.command[typ];
+  if (process_cmd == cmd.process_cmd &&
       configuration::whitelist::instance().instance_id() ==
           _whitelist_last_result.whitelist_instance_id) {
-    return _whitelist_last_result.allowed;
+    checks_logger->info("with cache: allowed? {}", cmd.allowed);
+    return cmd.allowed;
   }
 
   // something has changed => call whitelist
-  _whitelist_last_result.process_cmd = process_cmd;
-  _whitelist_last_result.allowed =
-      configuration::whitelist::instance().is_allowed(process_cmd);
+  cmd.process_cmd = process_cmd;
+  cmd.allowed = configuration::whitelist::instance().is_allowed(process_cmd);
   _whitelist_last_result.whitelist_instance_id =
       configuration::whitelist::instance().instance_id();
-  return _whitelist_last_result.allowed;
+  checks_logger->info("without cache: allowed? {}", cmd.allowed);
+  return cmd.allowed;
 }

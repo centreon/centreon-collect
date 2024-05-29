@@ -23,6 +23,7 @@
 #include <fmt/chrono.h>
 
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
@@ -1817,7 +1818,7 @@ int host::run_async_check(int check_options,
   };
 
   // allowed by whitelist?
-  if (!is_whitelist_allowed(processed_cmd)) {
+  if (!command_is_allowed_by_whitelist(processed_cmd, CHECK_TYPE)) {
     SPDLOG_LOGGER_ERROR(commands_logger,
                         "host {}: this command cannot be executed because of "
                         "security restrictions on the poller. A whitelist has "
@@ -2530,7 +2531,7 @@ int host::notify_contact(nagios_macros* mac,
                          int escalated) {
   std::string raw_command;
   std::string processed_command;
-  int early_timeout = false;
+  bool early_timeout = false;
   double exectime;
   struct timeval start_time, end_time;
   struct timeval method_start_time, method_end_time;
@@ -2636,23 +2637,23 @@ int host::notify_contact(nagios_macros* mac,
     }
 
     /* run the notification command */
-    if (is_whitelist_allowed(processed_command)) {
+    if (command_is_allowed_by_whitelist(processed_command, NOTIF_TYPE)) {
       try {
         std::string out;
         my_system_r(mac, processed_command, config->notification_timeout(),
                     &early_timeout, &exectime, out, 0);
       } catch (std::exception const& e) {
         engine_logger(log_runtime_error, basic)
-            << "Error: can't execute host notification '" << cntct->get_name()
-            << "' : " << e.what();
+            << "Error: can't execute host notification for contact '"
+            << cntct->get_name() << "' : " << e.what();
         runtime_logger->error(
-            "Error: can't execute host notification '{}' : {}",
+            "Error: can't execute host notification for contact '{}' : {}",
             cntct->get_name(), e.what());
       }
     } else {
       runtime_logger->error(
-          "Error: can't execute host notification '{}' : it is not allowed by "
-          "the whitelist",
+          "Error: can't execute host notification for contact '{}' : it is not "
+          "allowed by the whitelist",
           cntct->get_name());
     }
 

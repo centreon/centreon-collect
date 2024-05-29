@@ -291,7 +291,7 @@ int xpddefault_run_service_performance_data_command(
     com::centreon::engine::service* svc) {
   std::string raw_command_line;
   std::string processed_command_line;
-  int early_timeout(false);
+  bool early_timeout = false;
   double exectime;
   int result(OK);
   int macro_options(STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
@@ -346,7 +346,7 @@ int xpddefault_run_service_performance_data_command(
   }
 
   // check to see if the command timed out.
-  if (early_timeout == true)
+  if (early_timeout)
     engine_logger(log_runtime_warning, basic)
         << "Warning: Service performance data command '"
         << processed_command_line << "' for service '" << svc->description()
@@ -366,7 +366,7 @@ int xpddefault_run_host_performance_data_command(nagios_macros* mac,
                                                  host* hst) {
   std::string raw_command_line;
   std::string processed_command_line;
-  int early_timeout(false);
+  bool early_timeout = false;
   double exectime;
   int result(OK);
   int macro_options(STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
@@ -421,7 +421,7 @@ int xpddefault_run_host_performance_data_command(nagios_macros* mac,
     return ERROR;
 
   // check to see if the command timed out.
-  if (early_timeout == true)
+  if (early_timeout)
     engine_logger(log_runtime_warning, basic)
         << "Warning: Host performance data command '" << processed_command_line
         << "' for host '" << hst->name() << "' timed out after "
@@ -659,7 +659,7 @@ int xpddefault_update_host_performance_data_file(nagios_macros* mac,
 int xpddefault_process_host_perfdata_file() {
   std::string raw_command_line;
   std::string processed_command_line;
-  int early_timeout(false);
+  bool early_timeout = false;
   double exectime(0.0);
   int result(OK);
   int macro_options(STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
@@ -731,7 +731,7 @@ int xpddefault_process_host_perfdata_file() {
   pthread_mutex_unlock(&xpddefault_host_perfdata_fp_lock);
 
   // check to see if the command timed out.
-  if (early_timeout == true)
+  if (early_timeout)
     engine_logger(log_runtime_warning, basic)
         << "Warning: Host performance data file processing command '"
         << processed_command_line << "' timed out after "
@@ -747,7 +747,7 @@ int xpddefault_process_host_perfdata_file() {
 int xpddefault_process_service_perfdata_file() {
   std::string raw_command_line;
   std::string processed_command_line;
-  int early_timeout(false);
+  bool early_timeout = false;
   double exectime(0.0);
   int result(OK);
   int macro_options(STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
@@ -821,7 +821,7 @@ int xpddefault_process_service_perfdata_file() {
   clear_volatile_macros_r(mac);
 
   // check to see if the command timed out.
-  if (early_timeout == true)
+  if (early_timeout)
     engine_logger(log_runtime_warning, basic)
         << "Warning: Service performance data file processing command '"
         << processed_command_line << "' timed out after "

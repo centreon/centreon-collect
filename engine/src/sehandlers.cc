@@ -21,6 +21,7 @@
 
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/downtimes/downtime.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
@@ -99,7 +100,8 @@ int obsessive_compulsive_host_check_processor(
       "command line: {}",
       processed_command);
 
-  if (hst->is_whitelist_allowed(processed_command)) {
+  if (hst->command_is_allowed_by_whitelist(processed_command,
+                                           checkable::OBSESS_TYPE)) {
     /* run the command */
     try {
       std::string tmp;
@@ -212,7 +214,8 @@ int run_global_service_event_handler(nagios_macros* mac,
     events_logger->debug(processed_logentry);
   }
 
-  if (svc->is_whitelist_allowed(processed_command)) {
+  if (svc->command_is_allowed_by_whitelist(processed_command,
+                                           checkable::EVH_TYPE)) {
     /* run the command */
     try {
       my_system_r(mac, processed_command, config->event_handler_timeout(),
@@ -301,7 +304,7 @@ int run_service_event_handler(nagios_macros* mac,
   events_logger->debug("Processed service event handler command line: {}",
                        processed_command);
 
-  if (config->log_event_handlers() == true) {
+  if (config->log_event_handlers()) {
     std::ostringstream oss;
     oss << "SERVICE EVENT HANDLER: " << svc->get_hostname() << ';'
         << svc->description()
@@ -312,7 +315,8 @@ int run_service_event_handler(nagios_macros* mac,
     events_logger->info(processed_logentry);
   }
 
-  if (svc->is_whitelist_allowed(processed_command)) {
+  if (svc->command_is_allowed_by_whitelist(processed_command,
+                                           checkable::EVH_TYPE)) {
     /* run the command */
     try {
       my_system_r(mac, processed_command, config->event_handler_timeout(),
@@ -457,7 +461,8 @@ int run_global_host_event_handler(nagios_macros* mac,
     events_logger->info(processed_logentry);
   }
 
-  if (hst->is_whitelist_allowed(processed_command)) {
+  if (hst->command_is_allowed_by_whitelist(processed_command,
+                                           checkable::EVH_TYPE)) {
     /* run the command */
     try {
       my_system_r(mac, processed_command, config->event_handler_timeout(),
@@ -553,7 +558,8 @@ int run_host_event_handler(nagios_macros* mac,
     events_logger->info(processed_logentry);
   }
 
-  if (hst->is_whitelist_allowed(processed_command)) {
+  if (hst->command_is_allowed_by_whitelist(processed_command,
+                                           checkable::EVH_TYPE)) {
     /* run the command */
     try {
       my_system_r(mac, processed_command, config->event_handler_timeout(),

@@ -42,6 +42,16 @@ class checkable {
 
   enum state_type { soft, hard };
 
+  /* This enum is used to store the whitelist cache. A checkable can execute
+   * all the following types of command, so for each one, we store if the
+   * whitelist allows it or not. */
+  enum command_type {
+    CHECK_TYPE = 0,
+    NOTIF_TYPE = 1,
+    EVH_TYPE = 2,
+    OBSESS_TYPE = 3,
+  };
+
   checkable(const std::string& name,
             std::string const& display_name,
             std::string const& check_command,
@@ -172,7 +182,8 @@ class checkable {
   std::forward_list<std::shared_ptr<tag>>& mut_tags();
   const std::forward_list<std::shared_ptr<tag>>& tags() const;
 
-  bool is_whitelist_allowed(const std::string& process_cmd);
+  bool command_is_allowed_by_whitelist(const std::string& process_cmd,
+                                       command_type typ);
 
   timeperiod* check_period_ptr;
 
@@ -182,11 +193,16 @@ class checkable {
    * check in order to not check command line each time
    *
    */
-  struct whitelist_last_result {
-    whitelist_last_result() : whitelist_instance_id(0), allowed(false) {}
-    unsigned whitelist_instance_id;
+  struct command_allowed {
     std::string process_cmd;
     bool allowed;
+  };
+  struct whitelist_last_result {
+    unsigned whitelist_instance_id;
+    /* We need a command for each type of command */
+    std::array<command_allowed, 4> command;
+    // std::string process_cmd;
+    // bool allowed;
   };
 
   std::string _name;

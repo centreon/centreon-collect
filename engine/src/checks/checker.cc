@@ -21,6 +21,7 @@
 #include "com/centreon/engine/checks/checker.hh"
 
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
@@ -535,7 +536,8 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     res.start_time = res.end_time;
   };
 
-  if (!hst->is_whitelist_allowed(processed_cmd)) {
+  if (!hst->command_is_allowed_by_whitelist(processed_cmd,
+                                            checkable::CHECK_TYPE)) {
     SPDLOG_LOGGER_ERROR(commands_logger,
                         "host {}: this command cannot be executed because of "
                         "security restrictions on the poller. A whitelist has "
