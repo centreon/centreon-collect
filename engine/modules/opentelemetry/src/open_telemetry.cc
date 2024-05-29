@@ -60,6 +60,8 @@ void open_telemetry::_reload() {
     fmt::formatter<::opentelemetry::proto::collector::metrics::v1::
                        ExportMetricsServiceRequest>::json_grpc_format =
         new_conf->get_json_grpc_log();
+    data_point_fifo::update_fifo_limit(new_conf->get_second_fifo_expiry(),
+                                       new_conf->get_max_fifo_size());
 
     _conf = std::move(new_conf);
   }
@@ -155,6 +157,110 @@ void open_telemetry::_shutdown() {
 }
 
 /**
+ * @brief create an host serv extractor from connector command line
+ *
+ * @param cmdline witch begins with name of extractor, following parameters
+ * are used by extractor
+ * @param host_serv_list list that will be shared bu host_serv_extractor and
+ * otel_command
+ * @return
+ * std::shared_ptr<com::centreon::engine::commands::otel::host_serv_extractor>
+ * @throw if extractor type is unknown
+ */
+std::shared_ptr<com::centreon::engine::commands::otel::host_serv_extractor>
+open_telemetry::create_extractor(
+    const std::string& cmdline,
+    const commands::otel::host_serv_list::pointer& host_serv_list) {
+  // erase host serv extractors that are only owned by this object
+  auto clean = [this]() {
+    for (cmd_line_to_extractor_map::const_iterator to_test =
+             _extractors.begin();
+         !_extractors.empty() && to_test != _extractors.end();) {
+      if (to_test->second.use_count() <= 1) {
+        SPDLOG_LOGGER_DEBUG(_logger, "remove extractor:{}", *to_test->second);
+        to_test = _extractors.erase(to_test);
+      } else {
+        ++to_test;
+      }
+    }
+  };
+  std::lock_guard l(_protect);
+  auto exist = _extractors.find(cmdline);
+  if (exist != _extractors.end()) {
+    std::shared_ptr<com::centreon::engine::commands::otel::host_serv_extractor>
+        to_ret = exist->second;
+    clean();
+    return to_ret;
+  }
+  clean();
+  try {
+    std::shared_ptr<host_serv_extractor> new_extractor =
+        host_serv_extractor::create(cmdline, host_serv_list);
+    _extractors.emplace(cmdline, new_extractor);
+    SPDLOG_LOGGER_DEBUG(_logger, "create extractor:{}", *new_extractor);
+    return new_extractor;
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "fail to create extractor \"{}\" : {}",
+                        cmdline, e.what());
+    throw;
+  }
+}
+
+/**
+ * @brief simulate a check by reading in metrics fifos
+ * It creates an otel_converter, the first word of processed_cmd is the name
+ * of converter such as nagios_telegraf. Following parameters are used by
+ * converter
+ *
+ * @param processed_cmd converter type with arguments
+ * @param command_id command id
+ * @param macros
+ * @param timeout
+ * @param res filled if it returns true
+ * @param handler called later if it returns false
+ * @return true res is filled with a result
+ * @return false result will be passed to handler as soon as available or
+ * timeout
+ * @throw  if converter type is unknown
+ */
+bool open_telemetry::check(const std::string& processed_cmd,
+                           uint64_t command_id,
+                           nagios_macros& macros,
+                           uint32_t timeout,
+                           commands::result& res,
+                           commands::otel::result_callback&& handler) {
+  std::shared_ptr<otl_converter> to_use;
+  try {
+    to_use = otl_converter::create(
+        processed_cmd, command_id, *macros.host_ptr, macros.service_ptr,
+        std::chrono::system_clock::now() + std::chrono::seconds(timeout),
+        std::move(handler), _logger);
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "fail to create converter for {} : {}",
+                        processed_cmd, e.what());
+    throw;
+  };
+
+  bool res_available = to_use->sync_build_result_from_metrics(_fifo, res);
+
+  if (res_available) {
+    SPDLOG_LOGGER_TRACE(_logger, "data available for command {} converter:{}",
+                        command_id, *to_use);
+    return true;
+  }
+
+  SPDLOG_LOGGER_TRACE(
+      _logger, "data unavailable for command {} timeout: {} converter:{}",
+      command_id, timeout, *to_use);
+
+  // metrics not yet available = wait for data or until timeout
+  std::lock_guard l(_protect);
+  _waiting.insert(to_use);
+
+  return false;
+}
+
+/**
  * @brief called on metric reception
  * we first fill data_point fifos and then if a converter of a service is
  * waiting for data_point, we call him. If it achieve to generate a check
@@ -167,62 +273,61 @@ void open_telemetry::_on_metric(const metric_request_ptr& metrics) {
   std::vector<data_point> unknown;
   {
     std::lock_guard l(_protect);
-    // if (_extractors.empty()) {
-    //   data_point::extract_data_points(metrics,
-    //                                   [&unknown](const data_point& data_pt) {
-    //                                     unknown.push_back(data_pt);
-    //                                   });
-    // } else {
-    //   waiting_converter::nth_index<0>::type& host_serv_index =
-    //       _waiting.get<0>();
-    //   std::vector<std::shared_ptr<otl_converter>> to_notify;
-    //   auto last_success = _extractors.begin();
-    //   data_point::extract_data_points(metrics, [this, &unknown,
-    //   &last_success,
-    //                                             &host_serv_index,
-    //                                             &to_notify](
-    //                                                const data_point& data_pt)
-    //                                                {
-    //     bool data_point_known = false;
-    //     // we try all extractors and we begin with the last witch has
-    //     // achieved to extract host
-    //     for (unsigned tries = 0; tries < _extractors.size(); ++tries) {
-    //       host_serv_metric hostservmetric =
-    //           last_success->second->extract_host_serv_metric(data_pt);
+    if (_extractors.empty()) {  // no extractor configured => all unknown
+      data_point::extract_data_points(metrics,
+                                      [&unknown](const data_point& data_pt) {
+                                        unknown.push_back(data_pt);
+                                      });
+    } else {
+      waiting_converter::nth_index<0>::type& host_serv_index =
+          _waiting.get<0>();
+      std::vector<std::shared_ptr<otl_converter>> to_notify;
+      auto last_success = _extractors.begin();
+      data_point::extract_data_points(metrics, [this, &unknown, &last_success,
+                                                &host_serv_index, &to_notify](
+                                                   const data_point& data_pt) {
+        bool data_point_known = false;
+        // we try all extractors and we begin with the last witch has
+        // achieved to extract host
+        for (unsigned tries = 0; tries < _extractors.size(); ++tries) {
+          host_serv_metric hostservmetric =
+              last_success->second->extract_host_serv_metric(data_pt);
 
-    //       if (!hostservmetric.host.empty()) {
-    //         _fifo.add_data_point(hostservmetric.host, hostservmetric.service,
-    //                              hostservmetric.metric, data_pt);
+          if (!hostservmetric.host.empty()) {  // match
+            _fifo.add_data_point(hostservmetric.host, hostservmetric.service,
+                                 hostservmetric.metric, data_pt);
 
-    //         auto waiting = host_serv_index.equal_range(
-    //             host_serv{hostservmetric.host, hostservmetric.service});
-    //         while (waiting.first != waiting.second) {
-    //           to_notify.push_back(*waiting.first);
-    //           waiting.first = host_serv_index.erase(waiting.first);
-    //         }
-    //         data_point_known = true;
-    //         break;
-    //       }
-    //       ++last_success;
-    //       if (last_success == _extractors.end()) {
-    //         last_success = _extractors.begin();
-    //       }
-    //     }
-    //     if (!data_point_known) {
-    //       unknown.push_back(data_pt);  // unknown metric => forward to broker
-    //     }
-    //   });
-    //   SPDLOG_LOGGER_TRACE(_logger, "fifos:{}", _fifo);
-    //   // we wait that all request datas have been computed to give us more
-    //   // chance of converter success
-    //   for (auto to_callback : to_notify) {
-    //     if (!to_callback->async_build_result_from_metrics(
-    //             _fifo)) {  // not enough data => repush in _waiting
-    //       _waiting.insert(to_callback);
-    //     }
-    //   }
-    //   SPDLOG_LOGGER_TRACE(_logger, "fifos:{}", _fifo);
-    // }
+            // converters waiting this metric?
+            auto waiting = host_serv_index.equal_range(
+                host_serv{hostservmetric.host, hostservmetric.service});
+            while (waiting.first != waiting.second) {
+              to_notify.push_back(*waiting.first);
+              waiting.first = host_serv_index.erase(waiting.first);
+            }
+            data_point_known = true;
+            break;
+          }
+          // no match => we try next extractor
+          ++last_success;
+          if (last_success == _extractors.end()) {
+            last_success = _extractors.begin();
+          }
+        }
+        if (!data_point_known) {
+          unknown.push_back(data_pt);  // unknown metric => forward to broker
+        }
+      });
+      SPDLOG_LOGGER_TRACE(_logger, "fifos:{}", _fifo);
+      // we wait that all request datas have been computed to give us more
+      // chance of converter success
+      for (auto to_callback : to_notify) {
+        if (!to_callback->async_build_result_from_metrics(
+                _fifo)) {  // not enough data => repush in _waiting
+          _waiting.insert(to_callback);
+        }
+      }
+      SPDLOG_LOGGER_TRACE(_logger, "fifos:{}", _fifo);
+    }
   }
   if (!unknown.empty()) {
     SPDLOG_LOGGER_TRACE(_logger, "{} unknown data_points", unknown.size());
@@ -250,30 +355,35 @@ void open_telemetry::_start_second_timer() {
  *
  */
 void open_telemetry::_second_timer_handler() {
-  //  std::vector<std::shared_ptr<otl_converter>> to_notify;
+  std::vector<std::shared_ptr<otl_converter>> to_notify;
   {
     std::lock_guard l(_protect);
     std::chrono::system_clock::time_point now =
         std::chrono::system_clock::now();
-    // waiting_converter::nth_index<1>::type& expiry_index = _waiting.get<1>();
-    // while (!_waiting.empty()) {
-    //   auto oldest = expiry_index.begin();
-    //   if ((*oldest)->get_time_out() > now) {
-    //     break;
-    //   }
-    //   to_notify.push_back(*oldest);
-    //   expiry_index.erase(oldest);
-    // }
+    waiting_converter::nth_index<1>::type& expiry_index = _waiting.get<1>();
+    while (!_waiting.empty()) {
+      auto oldest = expiry_index.begin();
+      if ((*oldest)->get_time_out() > now) {
+        break;
+      }
+      to_notify.push_back(*oldest);
+      expiry_index.erase(oldest);
+    }
   }
 
   // notify all timeout
-  // for (std::shared_ptr<otl_converter> to_not : to_notify) {
-  //   SPDLOG_LOGGER_DEBUG(_logger, "time out: {}", *to_not);
-  //   to_not->async_time_out();
-  // }
+  for (std::shared_ptr<otl_converter> to_not : to_notify) {
+    SPDLOG_LOGGER_DEBUG(_logger, "time out: {}", *to_not);
+    to_not->async_time_out();
+  }
 
   _start_second_timer();
 }
 
+/**
+ * @brief unknown metrics are directly forwarded to broker
+ *
+ * @param unknown
+ */
 void open_telemetry::_forward_to_broker(
     const std::vector<data_point>& unknown) {}

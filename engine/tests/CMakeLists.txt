@@ -1,5 +1,5 @@
 #
-# Copyright 2016, 2020-2023 Centreon
+# Copyright 2016, 2020-2024 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -112,7 +112,10 @@ if(WITH_TESTING)
       "${TESTS_DIR}/notifications/service_flapping_notification.cc"
       "${TESTS_DIR}/notifications/service_downtime_notification_test.cc"
       "${TESTS_DIR}/opentelemetry/grpc_config_test.cc"
+      "${TESTS_DIR}/opentelemetry/host_serv_extractor_test.cc"
       "${TESTS_DIR}/opentelemetry/otl_server_test.cc"
+      "${TESTS_DIR}/opentelemetry/otl_converter_test.cc"
+      "${TESTS_DIR}/opentelemetry/open_telemetry_test.cc"
       "${TESTS_DIR}/perfdata/perfdata.cc"
       "${TESTS_DIR}/retention/host.cc"
       "${TESTS_DIR}/retention/service.cc"

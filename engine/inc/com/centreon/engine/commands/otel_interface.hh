@@ -101,10 +101,26 @@ host_serv_metric host_serv_list::is_allowed(const host_set& hosts,
   return ret;
 }
 
+/**
+ * @brief When we receive an opentelemetry metric, we have to extract host and
+ * service name in order to convert ti in check_result This is the job of the
+ * daughters of this class
+ *
+ */
+class host_serv_extractor {
+ public:
+  virtual ~host_serv_extractor() = default;
+};
+
 using result_callback = std::function<void(const result&)>;
 
 class open_telemetry_base;
 
+/**
+ * @brief access point of opentelemetry module used by engine
+ * All calls use open_telemetry_base::_instance
+ *
+ */
 class open_telemetry_base
     : public std::enable_shared_from_this<open_telemetry_base> {
  protected:
@@ -114,6 +130,17 @@ class open_telemetry_base
   virtual ~open_telemetry_base() = default;
 
   static std::shared_ptr<open_telemetry_base>& instance() { return _instance; }
+
+  virtual std::shared_ptr<host_serv_extractor> create_extractor(
+      const std::string& cmdline,
+      const host_serv_list::pointer& host_serv_list) = 0;
+
+  virtual bool check(const std::string& processed_cmd,
+                     uint64_t command_id,
+                     nagios_macros& macros,
+                     uint32_t timeout,
+                     commands::result& res,
+                     result_callback&& handler) = 0;
 };
 
 };  // namespace com::centreon::engine::commands::otel

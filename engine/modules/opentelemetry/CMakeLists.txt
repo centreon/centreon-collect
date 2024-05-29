@@ -45,9 +45,13 @@ endforeach()
 
 # mod_externalcmd target.
 add_library(opentelemetry SHARED 
+${SRC_DIR}/data_point_fifo.cc
+${SRC_DIR}/data_point_fifo_container.cc
 ${SRC_DIR}/grpc_config.cc
+${SRC_DIR}/host_serv_extractor.cc
 ${SRC_DIR}/open_telemetry.cc
 ${SRC_DIR}/otl_config.cc
+${SRC_DIR}/otl_converter.cc
 ${SRC_DIR}/otl_data_point.cc
 ${SRC_DIR}/otl_server.cc
 ${SRC_DIR}/main.cc

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019,2022 Centreon (https://www.centreon.com/)
+ * Copyright 2019,2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -160,7 +160,7 @@ class checkable {
   std::string const& get_display_name() const;
   void set_display_name(std::string const& name);
   const std::string& name() const;
-  void set_name(const std::string& name);
+  virtual void set_name(const std::string& name);
   std::string const& check_command() const;
   void set_check_command(std::string const& check_command);
   uint32_t check_interval() const;
@@ -246,7 +246,8 @@ class checkable {
   virtual bool is_in_downtime() const = 0;
   void set_event_handler_ptr(commands::command* cmd);
   commands::command* get_event_handler_ptr() const;
-  void set_check_command_ptr(const std::shared_ptr<commands::command>& cmd);
+  virtual void set_check_command_ptr(
+      const std::shared_ptr<commands::command>& cmd);
   inline const std::shared_ptr<commands::command>& get_check_command_ptr()
       const {
     return _check_command_ptr;
