@@ -1,5 +1,5 @@
 #
-# Copyright 2023-2024 Centreon
+# Copyright 2024 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -22,7 +22,8 @@ add_executable(ut_common
   log_v2/log_v2.cc
   node_allocator_test.cc
   rapidjson_helper_test.cc
-)
+  test_main.cc
+  ${TESTS_SOURCES})
 
 set_target_properties(
   ut_common
@@ -41,13 +42,16 @@ endif()
 
 add_test(NAME tests COMMAND ut_common)
 
+
+
 target_link_libraries(
   ut_common
   PRIVATE centreon_common
-  crypto
-  ssl
+  centreon_http
   re2::re2
   log_v2
+  crypto 
+  ssl
   GTest::gtest
   GTest::gtest_main
   GTest::gmock
@@ -56,10 +60,9 @@ target_link_libraries(
   absl::log
   absl::base
   absl::bits
-  fmt::fmt
-  pthread)
+  fmt::fmt pthread)
 
-add_dependencies(ut_common centreon_common)
+add_dependencies(ut_common centreon_common centreon_http)
 
 set_property(TARGET ut_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 

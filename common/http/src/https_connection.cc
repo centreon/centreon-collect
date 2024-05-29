@@ -134,7 +134,12 @@ https_connection::https_connection(
     const ssl_ctx_initializer& ssl_init)
     : connection_base(io_context, logger, conf),
       _sslcontext(conf->get_ssl_method()) {
-  ssl_init(_sslcontext, conf);
+  try {
+    if (ssl_init)
+      ssl_init(_sslcontext, conf);
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(logger, "fail to init ssl context: {}", e.what());
+  }
   _stream = std::make_unique<ssl_stream>(beast::net::make_strand(*io_context),
                                          _sslcontext);
   SPDLOG_LOGGER_DEBUG(_logger, "create https_connection {:p} to {}",
@@ -300,14 +305,15 @@ void https_connection::on_handshake(const beast::error_code err,
   callback(err, {});
 }
 
-#define BAD_SEND_STATE_ERROR(error_string)                        \
-  std::string detail =                                            \
-      fmt::format(error_string, *_conf, state_to_str(expected));  \
-  SPDLOG_LOGGER_ERROR(_logger, detail);                           \
-  _io_context->post([cb = std::move(callback), detail]() {        \
-    cb(std::make_error_code(std::errc::invalid_argument), detail, \
-       response_ptr());                                           \
-  });                                                             \
+#define BAD_SEND_STATE_ERROR(error_string)                              \
+  std::string detail =                                                  \
+      fmt::format(error_string, static_cast<const void*>(this), *_conf, \
+                  state_to_str(expected));                              \
+  SPDLOG_LOGGER_ERROR(_logger, detail);                                 \
+  _io_context->post([cb = std::move(callback), detail]() {              \
+    cb(std::make_error_code(std::errc::invalid_argument), detail,       \
+       response_ptr());                                                 \
+  });                                                                   \
   return;
 
 /**
@@ -320,7 +326,7 @@ void https_connection::send(request_ptr request,
                             send_callback_type&& callback) {
   unsigned expected = e_idle;
   if (!_state.compare_exchange_strong(expected, e_send)) {
-    BAD_SEND_STATE_ERROR("send to {}, bad state {}");
+    BAD_SEND_STATE_ERROR("{:p} send to {}, bad state {}");
   }
 
   request->_send = system_clock::now();
@@ -338,7 +344,7 @@ void https_connection::send(request_ptr request,
   beast::http::async_write(
       *_stream, *request,
       [me = shared_from_this(), request, cb = std::move(callback)](
-          const beast::error_code& err, size_t bytes_transfered) mutable {
+          const beast::error_code& err, size_t) mutable {
         me->on_sent(err, request, cb);
       });
 }
@@ -364,7 +370,7 @@ void https_connection::on_sent(const beast::error_code& err,
 
   unsigned expected = e_send;
   if (!_state.compare_exchange_strong(expected, e_receive)) {
-    BAD_SEND_STATE_ERROR("on_sent to {}, bad state {}");
+    BAD_SEND_STATE_ERROR("{:p} on_sent to {}, bad state {}");
   }
 
   if (_logger->level() == spdlog::level::trace) {
@@ -376,6 +382,10 @@ void https_connection::on_sent(const beast::error_code& err,
   request->_sent = system_clock::now();
 
   std::lock_guard<std::mutex> l(_socket_m);
+  if (_conf->get_receive_timeout() >= std::chrono::seconds(1)) {
+    beast::get_lowest_layer(*_stream).expires_after(
+        _conf->get_receive_timeout());
+  }
   response_ptr resp = std::make_shared<response_type>();
   beast::http::async_read(
       *_stream, _recv_buffer, *resp,
@@ -400,7 +410,9 @@ void https_connection::on_read(const beast::error_code& err,
   if (err) {
     std::string detail = fmt::format("fail receive {} from {}: {}", *request,
                                      *_conf, err.message());
-    SPDLOG_LOGGER_ERROR(_logger, detail);
+    if (err != boost::asio::error::operation_aborted) {
+      SPDLOG_LOGGER_ERROR(_logger, detail);
+    }
     callback(err, detail, response_ptr());
     shutdown();
     return;
@@ -408,7 +420,7 @@ void https_connection::on_read(const beast::error_code& err,
 
   unsigned expected = e_receive;
   if (!_state.compare_exchange_strong(expected, e_idle)) {
-    BAD_SEND_STATE_ERROR("on_read to {}, bad state {}");
+    BAD_SEND_STATE_ERROR("{:p} on_read to {}, bad state {}");
   }
 
   request->_receive = system_clock::now();
@@ -425,6 +437,13 @@ void https_connection::on_read(const beast::error_code& err,
   callback(err, {}, resp);
 }
 
+/**
+ * @brief server part, send response to client
+ * in case of receive time out < 1s, socket is closed after response sent
+ *
+ * @param response
+ * @param callback
+ */
 void https_connection::answer(const response_ptr& response,
                               answer_callback_type&& callback) {
   unsigned expected = e_idle;
@@ -439,6 +458,8 @@ void https_connection::answer(const response_ptr& response,
     });
     return;
   }
+
+  add_keep_alive_to_server_response(response);
 
   std::lock_guard<std::mutex> l(_socket_m);
   beast::get_lowest_layer(*_stream).expires_after(_conf->get_send_timeout());
@@ -455,6 +476,9 @@ void https_connection::answer(const response_ptr& response,
         } else {
           unsigned expected = e_send;
           me->_state.compare_exchange_strong(expected, e_idle);
+          if (me->_conf->get_receive_timeout() < std::chrono::seconds(1)) {
+            me->shutdown();
+          }
         }
         SPDLOG_LOGGER_TRACE(me->_logger, "{:p} response sent: {}",
                             static_cast<void*>(me.get()), *response);
@@ -462,6 +486,11 @@ void https_connection::answer(const response_ptr& response,
       });
 }
 
+/**
+ * @brief server part: wait for incoming request
+ *
+ * @param callback
+ */
 void https_connection::receive_request(request_callback_type&& callback) {
   unsigned expected = e_idle;
   if (!_state.compare_exchange_strong(expected, e_receive)) {
@@ -478,16 +507,24 @@ void https_connection::receive_request(request_callback_type&& callback) {
   }
 
   std::lock_guard<std::mutex> l(_socket_m);
-  beast::get_lowest_layer(*_stream).expires_after(_conf->get_receive_timeout());
+  if (_conf->get_receive_timeout() >= std::chrono::seconds(1))
+    beast::get_lowest_layer(*_stream).expires_after(
+        _conf->get_receive_timeout());
   auto req = std::make_shared<request_type>();
   beast::http::async_read(
       *_stream, _recv_buffer, *req,
       [me = shared_from_this(), req, cb = std::move(callback)](
           const boost::beast::error_code& ec, std::size_t) mutable {
         if (ec) {
-          SPDLOG_LOGGER_ERROR(
-              me->_logger, "{:p} fail to receive request from {}: {}",
-              static_cast<void*>(me.get()), me->get_peer(), ec.message());
+          if (ec == boost::beast::http::error::end_of_stream) {
+            SPDLOG_LOGGER_DEBUG(
+                me->_logger, "{:p} fail to receive request from {}: {}",
+                static_cast<void*>(me.get()), me->get_peer(), ec.message());
+          } else {
+            SPDLOG_LOGGER_ERROR(
+                me->_logger, "{:p} fail to receive request from {}: {}",
+                static_cast<void*>(me.get()), me->get_peer(), ec.message());
+          }
           me->shutdown();
         } else {
           unsigned expected = e_receive;
@@ -543,7 +580,7 @@ asio::ip::tcp::socket& https_connection::get_socket() {
  * when implementing https client as:
  * @code {.c++}
  * auto conn = https_connection::load(g_io_context, logger,
- * conf,[conf](asio::ssl::context& ctx) {
+ * conf,(asio::ssl::context& ctx, const http_config::pointer & conf) {
  *   https_connection::load_client_certificate(ctx, conf);
  * });
  *
@@ -562,5 +599,48 @@ void https_connection::load_client_certificate(
             conf->get_certificate_path());
     ctx.add_certificate_authority(
         asio::buffer(cert_content->c_str(), cert_content->length()));
+  }
+}
+
+/**
+ * @brief This helper can be passed to https_connection constructor fourth param
+ * when implementing https server as:
+ * @code {.c++}
+ * auto conn = https_connection::load(g_io_context, logger,
+ * conf,(asio::ssl::context& ctx, const http_config::pointer & conf) {
+ *   https_connection::load_client_certificate(ctx, conf);
+ * });
+ *
+ * @endcode
+ * You can generate cert and key with this command:
+ * @code {.shell}
+ * openssl req -newkey rsa:2048 -nodes -keyout ../server.key -x509 -days 10000
+ * -out ../server.crt
+ * -subj "/C=US/ST=CA/L=Los Angeles/O=Beast/CN=www.example.com"
+ * -addext "subjectAltName=DNS:localhost,IP:172.17.0.1"
+ * @endcode
+ *
+ *
+ * @param ctx
+ * @param conf
+ */
+void https_connection::load_server_certificate(
+    asio::ssl::context& ctx,
+    const http_config::pointer& conf) {
+  if (!conf->get_certificate_path().empty() && !conf->get_key_path().empty()) {
+    std::shared_ptr<std::string> cert_content =
+        detail::certificate_cache::get_mutable_instance().get_certificate(
+            conf->get_certificate_path());
+    std::shared_ptr<std::string> key_content =
+        detail::certificate_cache::get_mutable_instance().get_certificate(
+            conf->get_key_path());
+
+    ctx.use_certificate_chain(
+        boost::asio::buffer(cert_content->c_str(), cert_content->length()));
+    ctx.use_private_key(
+        boost::asio::buffer(key_content->c_str(), key_content->length()),
+        boost::asio::ssl::context::file_format::pem);
+    ctx.set_options(boost::asio::ssl::context::default_workarounds |
+                    boost::asio::ssl::context::no_sslv2);
   }
 }

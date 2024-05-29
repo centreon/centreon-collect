@@ -92,6 +92,9 @@ class https_connection : public connection_base {
 
   static void load_client_certificate(asio::ssl::context& ctx,
                                       const http_config::pointer& conf);
+
+  static void load_server_certificate(asio::ssl::context& ctx,
+                                      const http_config::pointer& conf);
 };
 
 }  // namespace com::centreon::common::http

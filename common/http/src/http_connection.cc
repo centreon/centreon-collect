@@ -33,6 +33,8 @@ std::string connection_base::state_to_str(unsigned state) {
       return "e_send";
     case http_connection::e_state::e_receive:
       return "e_receive";
+    case http_connection::e_state::e_shutdown:
+      return "e_shutdown";
     default:
       return fmt::format("unknown state {}", state);
   }
@@ -102,6 +104,27 @@ void connection_base::gest_keepalive(const response_ptr& resp) {
                         std::chrono::duration_cast<std::chrono::seconds>(
                             _keep_alive_end.time_since_epoch())
                             .count());
+  }
+}
+
+/**
+ * @brief used on server side
+ * it adds keepalive header with the value of receive timeout
+ *
+ * @param response
+ */
+void connection_base::add_keep_alive_to_server_response(
+    const response_ptr& response) const {
+  if (_conf->get_default_http_keepalive_duration() >= std::chrono::seconds(1)) {
+    response->keep_alive(true);
+    response->insert(
+        boost::beast::http::field::keep_alive,
+        fmt::format("timeout={}",
+                    std::chrono::duration_cast<std::chrono::seconds>(
+                        _conf->get_default_http_keepalive_duration())
+                        .count()));
+  } else {
+    response->keep_alive(false);
   }
 }
 
@@ -291,8 +314,9 @@ void http_connection::send(request_ptr request, send_callback_type&& callback) {
   boost::beast::http::async_write(
       _socket, *request,
       [me = shared_from_this(), request, cb = std::move(callback)](
-          const boost::beast::error_code& err,
-          size_t bytes_transfered) mutable { me->on_sent(err, request, cb); });
+          const boost::beast::error_code& err, size_t) mutable {
+        me->on_sent(err, request, cb);
+      });
 }
 
 /**
@@ -331,6 +355,10 @@ void http_connection::on_sent(const boost::beast::error_code& err,
   request->_sent = system_clock::now();
 
   response_ptr resp = std::make_shared<response_type>();
+  std::lock_guard<std::mutex> l(_socket_m);
+  if (_conf->get_receive_timeout() >= std::chrono::seconds(1)) {
+    _socket.expires_after(_conf->get_receive_timeout());
+  }
   boost::beast::http::async_read(
       _socket, _recv_buffer, *resp,
       [me = shared_from_this(), request, cb = std::move(callback), resp](
@@ -355,7 +383,9 @@ void http_connection::on_read(const boost::beast::error_code& err,
     std::string detail =
         fmt::format("{:p} fail receive {} from {}: {}",
                     static_cast<void*>(this), *request, *_conf, err.message());
-    SPDLOG_LOGGER_ERROR(_logger, detail);
+    if (err != boost::asio::error::operation_aborted) {
+      SPDLOG_LOGGER_ERROR(_logger, detail);
+    }
     callback(err, detail, response_ptr());
     shutdown();
     return;
@@ -384,6 +414,13 @@ void http_connection::on_read(const boost::beast::error_code& err,
   callback(err, {}, resp);
 }
 
+/**
+ * @brief server side, send response to client
+ * in case of receive time out < 1s, socket is closed after response sent
+ *
+ * @param response
+ * @param callback
+ */
 void http_connection::answer(const response_ptr& response,
                              answer_callback_type&& callback) {
   unsigned expected = e_idle;
@@ -398,6 +435,8 @@ void http_connection::answer(const response_ptr& response,
     });
     return;
   }
+
+  add_keep_alive_to_server_response(response);
 
   std::lock_guard<std::mutex> l(_socket_m);
   _socket.expires_after(_conf->get_send_timeout());
@@ -414,6 +453,9 @@ void http_connection::answer(const response_ptr& response,
         } else {
           unsigned expected = e_send;
           me->_state.compare_exchange_strong(expected, e_idle);
+          if (me->_conf->get_receive_timeout() < std::chrono::seconds(1)) {
+            me->shutdown();
+          }
         }
         SPDLOG_LOGGER_TRACE(me->_logger, "{:p} response sent: {}",
                             static_cast<void*>(me.get()), *response);
@@ -421,6 +463,11 @@ void http_connection::answer(const response_ptr& response,
       });
 }
 
+/**
+ * @brief wait for incoming request
+ *
+ * @param callback
+ */
 void http_connection::receive_request(request_callback_type&& callback) {
   unsigned expected = e_idle;
   if (!_state.compare_exchange_strong(expected, e_receive)) {
@@ -437,16 +484,24 @@ void http_connection::receive_request(request_callback_type&& callback) {
   }
 
   std::lock_guard<std::mutex> l(_socket_m);
-  _socket.expires_after(_conf->get_receive_timeout());
+  if (_conf->get_receive_timeout() >= std::chrono::seconds(1))
+    _socket.expires_after(_conf->get_receive_timeout());
+
   auto req = std::make_shared<request_type>();
   boost::beast::http::async_read(
       _socket, _recv_buffer, *req,
       [me = shared_from_this(), req, cb = std::move(callback)](
           const boost::beast::error_code& ec, std::size_t) mutable {
         if (ec) {
-          SPDLOG_LOGGER_ERROR(
-              me->_logger, "{:p} fail to receive request from {}: {}",
-              static_cast<void*>(me.get()), me->get_peer(), ec.message());
+          if (ec == boost::beast::http::error::end_of_stream) {
+            SPDLOG_LOGGER_DEBUG(
+                me->_logger, "{:p} fail to receive request from {}: {}",
+                static_cast<void*>(me.get()), me->get_peer(), ec.message());
+          } else {
+            SPDLOG_LOGGER_ERROR(
+                me->_logger, "{:p} fail to receive request from {}: {}",
+                static_cast<void*>(me.get()), me->get_peer(), ec.message());
+          }
           me->shutdown();
         } else {
           unsigned expected = e_receive;

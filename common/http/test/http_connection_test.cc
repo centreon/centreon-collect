@@ -24,7 +24,6 @@
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
-using com::centreon::common::log_v2::log_v2;
 
 #include "http_connection.hh"
 #include "http_server.hh"
@@ -217,7 +216,6 @@ class dummy_connection : public connection_base {
 };
 
 TEST(http_keepalive_test, ConnectionClose) {
-  auto logger = log_v2::instance().get(log_v2::TCP);
   dummy_connection conn(
       g_io_context, logger,
       std::make_shared<http_config>(test_endpoint, "localhost"));
@@ -229,7 +227,6 @@ TEST(http_keepalive_test, ConnectionClose) {
 }
 
 TEST(http_keepalive_test, KeepAliveWithoutTimeout) {
-  auto logger = log_v2::instance().get(log_v2::TCP);
   auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   dummy_connection conn(g_io_context, logger, conf);
   response_ptr resp(std::make_shared<response_type>());
@@ -246,7 +243,6 @@ TEST(http_keepalive_test, KeepAliveWithoutTimeout) {
 }
 
 TEST(http_keepalive_test, KeepAliveWithTimeout) {
-  auto logger = log_v2::instance().get(log_v2::TCP);
   auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   dummy_connection conn(g_io_context, logger, conf);
   response_ptr resp(std::make_shared<response_type>());
@@ -343,6 +339,8 @@ class answer_no_keep_alive : public base_class {
       });
     });
   }
+  void add_keep_alive_to_server_response(
+      const response_ptr& response) const override {}
 };
 
 TEST_P(http_test, connect_send_answer_without_keepalive) {

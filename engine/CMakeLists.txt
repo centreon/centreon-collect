@@ -527,6 +527,9 @@ target_link_libraries(
   "-Wl,-whole-archive"
   enginerpc
   centreon_grpc
+  centreon_http
+  -L${Boost_LIBRARY_DIR_RELEASE}
+  boost_url
   cce_core
   gRPC::grpc++
   "-Wl,--no-whole-archive"

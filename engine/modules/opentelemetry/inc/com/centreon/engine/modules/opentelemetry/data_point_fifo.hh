@@ -71,6 +71,8 @@ class data_point_fifo {
 
   void clean();
 
+  void clean_oldest(uint64_t expiry);
+
   static void update_fifo_limit(time_t second_datapoint_expiry,
                                 size_t max_size);
 };

@@ -25,7 +25,6 @@
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
-using com::centreon::common::log_v2::log_v2;
 
 #include "http_client.hh"
 

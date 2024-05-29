@@ -198,6 +198,9 @@ class connection_base : public std::enable_shared_from_this<connection_base> {
 
   asio::ip::tcp::endpoint& get_peer() { return _peer; }
   const asio::ip::tcp::endpoint& get_peer() const { return _peer; }
+
+  virtual void add_keep_alive_to_server_response(
+      const response_ptr& response) const;
 };
 
 /**

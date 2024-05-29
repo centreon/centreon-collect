@@ -24,9 +24,12 @@ from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
 from pwd import getpwnam
+from google.protobuf.json_format import MessageToJson
 import time
 import json
 import psutil
+import random
+import string
 from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
@@ -985,6 +988,44 @@ def ctn_check_service_check_with_timeout(hostname: str, service_desc: str,  time
     return False
 
 
+def ctn_check_service_check_status_with_timeout(hostname: str, service_desc: str,  timeout: int,  min_last_check: int, state: int, output: str):
+    """
+    check_service_check_status_with_timeout
+
+    check if service checks infos have been updated
+
+    Args:
+        host_name:
+        service_desc:
+        timeout: time to wait expected check in seconds
+        min_last_check: time point after last_check will be accepted
+        state: expected service state
+        output: expected output
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT s.last_check, s.state, s.output FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    logger.console(
+                        f"last_check={result[0]['last_check']} state={result[0]['state']} output={result[0]['output']} ")
+                    if result[0]['last_check'] is not None and result[0]['last_check'] >= min_last_check and output in result[0]['output'] and result[0]['state'] == state:
+                        return True
+        time.sleep(1)
+    return False
+
+
 def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1005,6 +1046,42 @@ def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line:
                     logger.console(
                         f"command_line={result[0]['command_line']} ")
                     if result[0]['command_line'] is not None and command_line in result[0]['command_line']:
+                        return True
+        time.sleep(1)
+    return False
+
+def ctn_check_host_check_status_with_timeout(hostname: str, timeout: int, min_last_check: int, state: int, output: str):
+    """
+    ctn_check_host_check_status_with_timeout
+
+    check if host checks infos have been updated
+
+    Args:
+        hostname:
+        timeout: time to wait expected check in seconds
+        min_last_check: time point after last_check will be accepted
+        state: expected host state
+        output: expected output
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT last_check, state, output FROM hosts WHERE name='{hostname}'")
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    logger.console(
+                        f"last_check={result[0]['last_check']} state={result[0]['state']} output={result[0]['output']} ")
+                    if result[0]['last_check'] is not None and result[0]['last_check'] >= min_last_check and output in result[0]['output'] and result[0]['state'] == state:
                         return True
         time.sleep(1)
     return False
@@ -1670,3 +1747,108 @@ def ctn_create_bbdo_grpc_server(port : int, ):
     server.add_secure_port("0.0.0.0:5669", creds)
     server.start()
     return server
+
+
+def create_random_string(length:int):
+    """
+    create_random_string
+
+    create a string with random char
+    Args:
+        length output string length
+    Returns: a string
+    """
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(length))
+
+
+def ctn_create_random_dictionary(nb_entries: int):
+    """
+    create_random_dictionary
+
+    create a dictionary with random keys and random string values
+    
+    Args:
+        nb_entries  dictionary size
+    Returns: a dictionary
+    """
+    dict_ret = {}
+    for ii in range(nb_entries):
+        dict_ret[create_random_string(10)] = create_random_string(10)
+
+    return dict_ret;
+
+
+def ctn_extract_event_from_lua_log(file_path:str, field_name: str):
+    """
+    extract_event_from_lua_log
+
+    extract a json object from a lua log file 
+    Example: Wed Feb  7 15:30:11 2024: INFO: {"_type":196621, "category":3, "element":13, "resource_metrics":{}
+
+    Args:
+        file1: The first file to compare.
+        file2: The second file to compare.
+
+    Returns: True if they have the same content, False otherwise.
+    """
+
+    with open(file1, "r") as f1:
+        content1 = f1.readlines()
+    with open(file2, "r") as f2:
+        content2 = f2.readlines()
+    r = re.compile(r"(.*) 0x[0-9a-f]+")
+
+    def replace_ptr(line):
+        m = r.match(line)
+        if m:
+            return m.group(1)
+        else:
+            return line
+
+    content1 = list(map(replace_ptr, content1))
+    content2 = list(map(replace_ptr, content2))
+
+    if len(content1) != len(content2):
+        return False
+    for i in range(len(content1)):
+        if content1[i] != content2[i]:
+            logger.console(
+                f"Files are different at line {i + 1}: first => << {content1[i].strip()} >> and second => << {content2[i].strip()} >>")
+            return False
+    return True
+
+
+
+def ctn_protobuf_to_json(protobuf_obj):
+    """
+    protobuf_to_json
+
+    Convert a protobuf object to json
+    it replaces uppercase letters in keys by _<lower>
+    """
+    converted = MessageToJson(protobuf_obj)
+    return json.loads(converted)
+
+
+def ctn_compare_string_with_file(string_to_compare:str, file_path:str):
+    """
+    ctn_compare_string_with_file
+
+    compare a multiline string with a file content
+    Args:
+        string_to_compare: multiline string to compare
+        file_path: path of the file to compare
+
+    Returns: True if contents are identical
+    """
+    str_lines = string_to_compare.splitlines(keepends=True)
+    with open(file_path) as f:
+        file_lines = f.readlines()
+    if len(str_lines) != len(file_lines):
+        return False
+    for str_line, file_line in zip(str_lines, file_lines):
+        if str_line != file_line:
+            return False
+    return True
+
