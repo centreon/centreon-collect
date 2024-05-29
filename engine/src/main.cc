@@ -113,11 +113,11 @@ int main(int argc, char* argv[]) {
       {NULL, no_argument, nullptr, '\0'}};
 #endif  // HAVE_GETOPT_H
 
+  log_v2::load("centengine");
+
   // Load singletons and global variable.
   config = new configuration::state;
 
-  // Hack to instanciate the logger.
-  log_v2::load("centengine");
   auto config_logger = log_v2::instance().get(log_v2::CONFIG);
   auto process_logger = log_v2::instance().get(log_v2::PROCESS);
   init_loggers();
