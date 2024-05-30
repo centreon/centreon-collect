@@ -547,12 +547,10 @@ void checkable::set_name(const std::string& name) {
  */
 bool checkable::command_is_allowed_by_whitelist(const std::string& process_cmd,
                                                 command_type typ) {
-  checks_logger->info("is_allowed: {}", process_cmd);
   auto& cmd = _whitelist_last_result.command[typ];
   if (process_cmd == cmd.process_cmd &&
       configuration::whitelist::instance().instance_id() ==
           _whitelist_last_result.whitelist_instance_id) {
-    checks_logger->info("with cache: allowed? {}", cmd.allowed);
     return cmd.allowed;
   }
 
@@ -561,6 +559,5 @@ bool checkable::command_is_allowed_by_whitelist(const std::string& process_cmd,
   cmd.allowed = configuration::whitelist::instance().is_allowed(process_cmd);
   _whitelist_last_result.whitelist_instance_id =
       configuration::whitelist::instance().instance_id();
-  checks_logger->info("without cache: allowed? {}", cmd.allowed);
   return cmd.allowed;
 }
