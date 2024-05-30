@@ -462,10 +462,6 @@ target_link_libraries(
   rokerbase
   crypto
   ssl
-  gRPC::gpr
-  gRPC::grpc
-  gRPC::grpc++
-  gRPC::grpc++_alts
   pthread
   dl)
 
@@ -496,7 +492,6 @@ target_link_libraries(
   # spdlog::spdlog
   gRPC::gpr
   gRPC::grpc
-  gRPC::grpc++
   gRPC::grpc++_alts)
 
 # Centreon Broker Watchdog

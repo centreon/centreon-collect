@@ -47,6 +47,10 @@ class otl_config {
   size_t get_max_fifo_size() const { return _max_fifo_size; }
 
   bool operator==(const otl_config& right) const;
+
+  inline bool operator!=(const otl_config& right) const {
+    return !(*this == right);
+  }
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry

@@ -532,7 +532,6 @@ target_link_libraries(
   "-Wl,--no-whole-archive"
   gRPC::gpr
   gRPC::grpc
-  gRPC::grpc++
   gRPC::grpc++_alts
   absl::any
   absl::log

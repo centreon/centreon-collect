@@ -97,6 +97,20 @@ void server_stream::OnDone() {
 service_impl::service_impl(const grpc_config::pointer& conf) : _conf(conf) {}
 
 /**
+ * @brief to call after construction
+ *
+ */
+void service_impl::init() {
+  ::grpc::Service::MarkMethodCallback(
+      0, new ::grpc::internal::CallbackBidiHandler<
+             ::com::centreon::broker::stream::CentreonEvent,
+             ::com::centreon::broker::stream::CentreonEvent>(
+             [me = shared_from_this()](::grpc::CallbackServerContext* context) {
+               return me->exchange(context);
+             }));
+}
+
+/**
  * @brief called on every stream creation
  * every accepted stream is pushed in _wait_to_open queue
  *
@@ -250,6 +264,7 @@ acceptor::acceptor(const grpc_config::pointer& conf)
   _init([this](::grpc::ServerBuilder& builder) {
     _service = std::make_shared<service_impl>(
         std::static_pointer_cast<grpc_config>(get_conf()));
+    _service->init();
     builder.RegisterService(_service.get());
   });
 }
@@ -259,10 +274,6 @@ acceptor::acceptor(const grpc_config::pointer& conf)
  *
  */
 acceptor::~acceptor() {
-  //_service may be used after acceptor destruction by grpc threads so we embed
-  //it in an lambda and will live until lambda execution
-  common::pool::io_context().post([serv_copy = _service]() {});
-
   if (initialized()) {
     SPDLOG_LOGGER_DEBUG(get_logger(), "begin shutdown of acceptor {} ",
                         _service->get_conf()->get_hostport());

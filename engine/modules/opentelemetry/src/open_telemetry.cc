@@ -53,7 +53,7 @@ void open_telemetry::_reload() {
     this->_create_otl_server(new_conf->get_grpc_config());
   }
 
-  if (!_conf || !(*_conf == *new_conf)) {
+  if (!_conf || *_conf != *new_conf) {
     fmt::formatter<::opentelemetry::proto::collector::metrics::v1::
                        ExportMetricsServiceRequest>::max_length_log =
         new_conf->get_max_length_grpc_log();
