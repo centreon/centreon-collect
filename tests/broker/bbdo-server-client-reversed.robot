@@ -151,7 +151,8 @@ BSCSSTGRR2
     Ctn Broker Config Log    central    core    off
     Ctn Broker Config Log    rrd    core    off
     Ctn Broker Config Log    central    tls    debug
-    Ctn Broker Config Log    central    grpc    debug
+    Ctn Broker Config Log    central    grpc    trace
+    Ctn Broker Config Log    rrd    grpc    trace
     Ctn Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key

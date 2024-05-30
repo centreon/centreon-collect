@@ -19,7 +19,6 @@
 #ifndef CCCM_HEX_DUMP_HH
 #define CCCM_HEX_DUMP_HH
 
-#include <string>
 
 #include "namespace.hh"
 

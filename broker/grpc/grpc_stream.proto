@@ -3,7 +3,7 @@ syntax = "proto3";
 package com.centreon.broker.stream;
 
 
-message centreon_event {
+message CentreonEvent {
     oneof content {
         bytes buffer = 1;
     }
@@ -11,5 +11,5 @@ message centreon_event {
 
 service centreon_bbdo {
     //emitter connect to receiver
-    rpc exchange(stream centreon_event) returns (stream centreon_event) {}
+    rpc exchange(stream CentreonEvent) returns (stream CentreonEvent) {}
 }

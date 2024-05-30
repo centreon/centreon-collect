@@ -16,9 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#include <fmt/format.h>
 
-#include "com/centreon/common/hex_dump.hh"
+#include "hex_dump.hh"
 
 inline void char_to_hex(unsigned char c, std::string& output) noexcept {
   unsigned char val = c >> 4;
@@ -30,7 +29,7 @@ inline void char_to_hex(unsigned char c, std::string& output) noexcept {
 /**
  * @brief return a string in an hex format
  * format depends on nb_char_per_line
- * if nb_char_per_line <= 0 dump is only an haxa string
+ * if nb_char_per_line <= 0 dump is only an hexa string
  * if nb_char_per_line > 0 dump is like 0000 xxxxxxxx abcd
  *
  * @param buffer

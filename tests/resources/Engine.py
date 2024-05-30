@@ -6,6 +6,8 @@ from google.protobuf.timestamp_pb2 import Timestamp
 import engine_pb2
 import engine_pb2_grpc
 from array import array
+from dateutil import parser
+import datetime
 from os import makedirs, chmod
 from os.path import exists, dirname
 from robot.api import logger
@@ -3154,3 +3156,59 @@ def ctn_config_host_command_status(idx: int, cmd_name: str, status: int):
 
     with open(filename, "w") as f:
         f.writelines(lines)
+
+def ctn_get_engine_log_level(port, log, timeout=TIMEOUT):
+    """
+    Get the log level of a given logger. The timeout is due to the way we ask
+    for this information ; we use gRPC and the server may not be correctly
+    started.
+
+    Args:
+        port: The gRPC port to use.
+        log: The logger name.
+
+    Returns:
+        A string with the log level.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call GetLogInfo")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            try:
+                logs = stub.GetLogInfo(empty_pb2.Empty())
+                return logs.loggers[0].level[log]
+
+            except:
+                logger.console("gRPC server not ready")
+
+
+
+def ctn_create_single_day_time_period(idx: int, time_period_name: str, date, minute_duration: int):
+    """
+    Create a single day time period with a single time range from date to date + minute_duration
+    Args
+        idx: poller index
+        time_period_name: must be unique
+        date: time range start
+        minute_duration: time range length in minutes
+    """
+    try:
+        my_date = parser.parse(date)
+    except:
+        my_date = datetime.fromtimestamp(date)
+
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/timeperiods.cfg"
+    
+    begin = my_date.time()
+    end = my_date + datetime.timedelta(minutes=minute_duration)
+
+    with open(filename, "a+") as f:
+        f.write(f"""
+define timeperiod {{
+    timeperiod_name     {time_period_name}
+    alias               {time_period_name}
+    {my_date.date().isoformat()}  {begin.strftime("%H:%M")}-{end.time().strftime("%H:%M")}
+}}
+""")

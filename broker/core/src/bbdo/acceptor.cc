@@ -88,7 +88,7 @@ std::shared_ptr<io::stream> acceptor::open() {
       assert(!_coarse);
       // if _is_output, the stream is an output
       auto my_bbdo = std::make_unique<bbdo::stream>(!_is_output, _extensions);
-      my_bbdo->set_substream(std::move(u));
+      my_bbdo->set_substream(u);
       my_bbdo->set_coarse(_coarse);
       my_bbdo->set_negotiate(_negotiate);
       my_bbdo->set_timeout(_timeout);
@@ -96,6 +96,7 @@ std::shared_ptr<io::stream> acceptor::open() {
       try {
         my_bbdo->negotiate(bbdo::stream::negotiate_second);
       } catch (const std::exception& e) {
+        u->stop();
         throw;
       }
 

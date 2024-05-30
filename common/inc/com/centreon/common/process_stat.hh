@@ -19,8 +19,6 @@
 #ifndef CCCM_PROCESS_STAT_HH
 #define CCCM_PROCESS_STAT_HH
 
-#include <time.h>
-
 #include <chrono>
 #include <string>
 
