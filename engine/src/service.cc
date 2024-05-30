@@ -2329,20 +2329,27 @@ int service::obsessive_compulsive_service_check_processor() {
                       "processor command line: {}",
                       processed_command);
 
-  /* run the command */
-  try {
-    std::string tmp;
-    my_system_r(mac, processed_command, config->ocsp_timeout(), &early_timeout,
-                &exectime, tmp, 0);
-  } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: can't execute compulsive service processor command line '"
-        << processed_command << "' : " << e.what();
-    SPDLOG_LOGGER_ERROR(
-        runtime_logger,
+  if (command_is_allowed_by_whitelist(processed_command, OBSESS_TYPE)) {
+    /* run the command */
+    try {
+      std::string tmp;
+      my_system_r(mac, processed_command, config->ocsp_timeout(),
+                  &early_timeout, &exectime, tmp, 0);
+    } catch (std::exception const& e) {
+      engine_logger(log_runtime_error, basic)
+          << "Error: can't execute compulsive service processor command line '"
+          << processed_command << "' : " << e.what();
+      SPDLOG_LOGGER_ERROR(runtime_logger,
+                          "Error: can't execute compulsive service processor "
+                          "command line '{}' : "
+                          "{}",
+                          processed_command, e.what());
+    }
+  } else {
+    runtime_logger->error(
         "Error: can't execute compulsive service processor command line '{}' : "
-        "{}",
-        processed_command, e.what());
+        "it is not allowed by the whitelist",
+        processed_command);
   }
 
   clear_volatile_macros_r(mac);
