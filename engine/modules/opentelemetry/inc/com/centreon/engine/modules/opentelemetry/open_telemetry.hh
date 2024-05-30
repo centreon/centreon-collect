@@ -20,8 +20,8 @@
 
 #include "com/centreon/engine/commands/otel_interface.hh"
 
-#include "otl_data_point.hh"
 #include "otl_config.hh"
+#include "otl_data_point.hh"
 
 namespace com::centreon::engine::modules::opentelemetry {
 
@@ -30,10 +30,13 @@ using host_serv_metric = commands::otel::host_serv_metric;
 class otl_server;
 
 /**
- * @brief This class is the high level main class of otel module
- * It needs a json config file witch path is passed to load and an io_context
- * for second timer
- * The two methods used during runtime is create_extractor and check
+ * @brief This class is the main high-level class of the otel module.
+ * It needs a json configuration file whose path is passed on loading, and an
+ * io_context for the second timer. The two methods used at runtime are
+ * create_extractor() and check(). a second period timer is also used to process
+ * check timeouts
+ * All attributes are (timers, _conf, _otl_server) are protected by _protect
+ * mutex
  *
  */
 class open_telemetry : public commands::otel::open_telemetry_base {

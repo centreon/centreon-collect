@@ -1,20 +1,20 @@
-/*
-** Copyright 2024 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCE_MOD_OTL_SERVER_OTLCONFIG_HH
 #define CCE_MOD_OTL_SERVER_OTLCONFIG_HH
@@ -25,9 +25,13 @@ namespace com::centreon::engine::modules::opentelemetry {
 class otl_config {
   grpc_config::pointer _grpc_conf;
 
-  int _max_length_grpc_log = -1;
-  bool _json_grpc_log = false;
+  int _max_length_grpc_log = -1;  // all otel are logged if negative
+  bool _json_grpc_log = false;    // if true, otel object are logged in json
+                                  // format instead of protobuf debug format
 
+  // this two attributes are limits used by otel data_point fifos
+  // if fifo size exceed _max_fifo_size, oldest data_points are removed
+  // Also, data_points older than _second_fifo_expiry are removed from fifos
   unsigned _second_fifo_expiry;
   size_t _max_fifo_size;
 

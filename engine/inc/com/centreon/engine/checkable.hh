@@ -183,6 +183,7 @@ class checkable {
    *
    */
   struct whitelist_last_result {
+    whitelist_last_result() : whitelist_instance_id(0), allowed(false) {}
     unsigned whitelist_instance_id;
     std::string process_cmd;
     bool allowed;
@@ -240,6 +241,6 @@ class checkable {
   whitelist_last_result _whitelist_last_result;
 };
 
-}
+}  // namespace com::centreon::engine
 
 #endif /* !CCE_CHECKABLE */

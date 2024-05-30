@@ -18,7 +18,7 @@
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-#include "com/centreon/engine/modules/opentelemetry/opentelemetry.hh"
+#include "com/centreon/engine/modules/opentelemetry/open_telemetry.hh"
 
 #include "otl_fmt.hh"
 #include "otl_server.hh"
@@ -35,9 +35,9 @@ open_telemetry::open_telemetry(
     const std::string_view config_file_path,
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger)
-    : _config_file_path(config_file_path),
+    : _second_timer(*io_context),
+      _config_file_path(config_file_path),
       _logger(logger),
-      _second_timer(*io_context),
       _io_context(io_context) {
   SPDLOG_LOGGER_INFO(_logger, "load of open telemetry module");
 }
@@ -49,7 +49,7 @@ open_telemetry::open_telemetry(
 void open_telemetry::_reload() {
   std::unique_ptr<otl_config> new_conf =
       std::make_unique<otl_config>(_config_file_path, *_io_context);
-  if (!_conf || !(*new_conf->get_grpc_config() == *_conf->get_grpc_config())) {
+  if (!_conf || *new_conf->get_grpc_config() != *_conf->get_grpc_config()) {
     this->_create_otl_server(new_conf->get_grpc_config());
   }
 

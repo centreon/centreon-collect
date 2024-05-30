@@ -93,7 +93,7 @@ otl_config::otl_config(const std::string_view& file_path,
  * @brief compare two otl_config
  *
  * @param right
- * @return true
+ * @return true if are equals
  * @return false
  */
 bool otl_config::operator==(const otl_config& right) const {
@@ -105,4 +105,5 @@ bool otl_config::operator==(const otl_config& right) const {
              _json_grpc_log == right._json_grpc_log &&
              _second_fifo_expiry == right._second_fifo_expiry &&
              _max_fifo_size == right._max_fifo_size;
+  return ret;
 }

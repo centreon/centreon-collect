@@ -21,6 +21,7 @@
 
 #include "com/centreon/broker/grpc/acceptor.hh"
 #include "com/centreon/broker/grpc/stream.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -136,7 +137,7 @@ service_impl::exchange(::grpc::CallbackServerContext* context) {
   server_stream::register_stream(next_stream);
   next_stream->start_read();
   {
-    std::unique_lock l(_wait_m);
+    std::lock_guard l(_wait_m);
     _wait_to_open.push_back(next_stream);
   }
   _wait_cond.notify_one();
@@ -258,6 +259,10 @@ acceptor::acceptor(const grpc_config::pointer& conf)
  *
  */
 acceptor::~acceptor() {
+  //_service may be used after acceptor destruction by grpc threads so we embed
+  //it in an lambda and will live until lambda execution
+  common::pool::io_context().post([serv_copy = _service]() {});
+
   if (initialized()) {
     SPDLOG_LOGGER_DEBUG(get_logger(), "begin shutdown of acceptor {} ",
                         _service->get_conf()->get_hostport());

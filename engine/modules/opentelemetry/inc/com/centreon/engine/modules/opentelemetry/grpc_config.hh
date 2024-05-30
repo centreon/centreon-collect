@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,6 @@
 namespace com::centreon::engine::modules::opentelemetry {
 
 class grpc_config : public common::grpc::grpc_config {
- private:
   static void read_file(const rapidjson::Value& json_config,
                         const std::string_view& key,
                         std::string& file_content);
@@ -39,6 +38,10 @@ class grpc_config : public common::grpc::grpc_config {
   grpc_config(const rapidjson::Value& json_config);
 
   bool operator==(const grpc_config& right) const;
+
+  inline bool operator!=(const grpc_config& right) const {
+    return !(*this == right);
+  }
 };
 }  // namespace com::centreon::engine::modules::opentelemetry
 

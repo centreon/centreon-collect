@@ -46,7 +46,7 @@ endforeach()
 # mod_externalcmd target.
 add_library(opentelemetry SHARED 
 ${SRC_DIR}/grpc_config.cc
-${SRC_DIR}/opentelemetry.cc
+${SRC_DIR}/open_telemetry.cc
 ${SRC_DIR}/otl_config.cc
 ${SRC_DIR}/otl_data_point.cc
 ${SRC_DIR}/otl_server.cc
