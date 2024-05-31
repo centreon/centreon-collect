@@ -11,8 +11,9 @@ Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 not1
-    [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state.
+    [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK HARD state.
     [Tags]    broker    engine    services    hosts    notification
+    Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -22,92 +23,90 @@ not1
     Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
     Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
     Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
     ## Time to set the service to CRITICAL HARD.
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Service Check Result    host_1    service_1    2    critical
-        Sleep    1s
-    END
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
-    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The notification is not sent
-
-    Ctn Stop engine
-    Ctn Kindly Stop Broker
-
-not2
-    [Documentation]    This test case configures a single service and verifies that a recovery notification is sent after a service recovers from a non-OK state.
-    [Tags]    broker    engine    services    hosts    notification
-    Ctn Config Engine    ${1}    ${1}    ${1}
-    Ctn Config Notifications
-    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
-    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
-    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
-
-    ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start engine
-
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    check_for_external_commands() should be available.
-
-    ## Time to set the service to CRITICAL HARD.
-
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Service Check Result    host_1    service_1    2    critical
-        Sleep    1s
-    END
-
-    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
-
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No notification has been sent concerning a critical service
 
-    ## Time to set the service to UP    hard
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Service Check Result    host_1    service_1    0    ok
-        Sleep    1s
-    END
+not2
+    [Documentation]    This test case configures a single service and verifies that a recovery notification is sent
+    [Tags]    broker    engine    services    hosts    notification
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Notifications
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
-    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
+    ## Time to set the service to CRITICAL HARD.
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No notification has been sent concerning a critical service
+
+    ## Time to set the service to UP hard
+    ${start}    Ctn Get Round Current Date
+
+    Ctn Set Command Status    ${cmd_service_1}    ${0}
+    Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification recovery is not sent
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 not3
-    [Documentation]    This test case configures a single service and verifies that a non-OK notification is sent after the service exits downtime.
+    [Documentation]    This test case configures a single service and verifies the notification system's behavior during and after downtime
     [Tags]    broker    engine    services    hosts    notification
+    Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -117,49 +116,59 @@ not3
     Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
     Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
     Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
 
     # It's time to schedule a downtime
-    Ctn Schedule Service Downtime    host_1    service_1    ${60}
+    Ctn Schedule Service Fixed Downtime    host_1    service_1    60
 
-    ${result}    Ctn Check Number Of Downtimes    ${1}    ${start}    ${60}
-    Should Be True    ${result}    We should have 1 downtime enabled.
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    1    90
+    Should Be True    ${result}    service must be in downtime
 
-    ## Time to set the service to CRITICAL HARD.
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Service Check Result    host_1    service_1    2    critical
-        Sleep    10s
-    END
+    ${content}    Create List    We shouldn't notify about DOWNTIME events for this notifier
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The critical notification is sent while downtime
 
-    # Let's wait for the external command check start
-    ${content}    Create List
-    ...    SERVICE DOWNTIME ALERT: host_1;service_1;STOPPED; Service has exited from a period of scheduled downtime
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The downtime has not finished .
+    ${start}    Ctn Get Round Current Date
+    Ctn Delete Service Downtime    host_1    service_1
 
-    Ctn Process Service Check Result    host_1    service_1    2    critical
-
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The critical notification is not sent
 
-    Ctn Stop engine
+    ${start}    Ctn Get Round Current Date
+    Ctn Set Command Status    ${cmd_service_1}    ${0}
+
+    Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The notification recovery is not sent
+
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 not4
-    [Documentation]    This test case configures a single service and verifies that a non-OK notification is sent when the acknowledgement is completed.
-    [Tags]    broker    engine    services    hosts    notification
+    [Documentation]    This test case configures a single service and verifies the notification system's behavior during and after acknowledgement
+    [Tags]    broker    engine    services    acknowledgement    notification
+    Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -169,51 +178,55 @@ not4
     Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
     Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
     Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
 
     # Time to set the service to CRITICAL HARD.
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Service Check Result    host_1    service_1    2    critical
-        Sleep    1s
-    END
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
-    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     # Acknowledge the service with critical status
     Ctn Acknowledge Service Problem    host_1    service_1    STICKY
 
     # Let's wait for the external command check start
-    ${content}    Create List
-    ...    ACKNOWLEDGE_SVC_PROBLEM;host_1;service_1;2;0;0;admin;Service (host_1,service_1) acknowledged
+    ${content}    Create List    ACKNOWLEDGE_SVC_PROBLEM;host_1;service_1;2;0;0;admin;Service (host_1,service_1) acknowledged
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands() should be available.
 
-    Ctn Process Service Check Result    host_1    service_1    0    ok
+    # Time to set the service to OK HARD.
+    ${start}    Ctn Get Round Current Date
+    Ctn Set Command Status    ${cmd_service_1}    ${0}
 
-    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
-    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+    Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
 
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The recovery notification for service_1 is not sent
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 not5
     [Documentation]    This test case configures two services with two different users being notified when the services transition to a critical state.
     [Tags]    broker    engine    services    hosts    notification
+    Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -223,6 +236,8 @@ not5
     Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
     Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
     Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
     Ctn Engine Config Set Value In Hosts    0    host_2    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_2    notification_options    d,r
     Ctn Engine Config Set Value In Hosts    0    host_2    contacts    U2
@@ -230,6 +245,8 @@ not5
     Ctn Engine Config Set Value In Services    0    service_2    notification_options    w,c,r
     Ctn Engine Config Set Value In Services    0    service_2    notifications_enabled    1
     Ctn Engine Config Set Value In Services    0    service_2    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_2    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_2    retry_interval    1
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    U2    host_notification_commands    command_notif
@@ -237,42 +254,45 @@ not5
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
 
-    ## Time to set the service to CRITICAL HARD.
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    ${cmd_service_2}    Ctn Get Service Command Id    ${2}
 
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Service Check Result    host_1    service_1    2    critical
-        Sleep    1s
-        Ctn Process Service Check Result    host_2    service_2    2    critical
-        Sleep    1s
-    END
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
+    Ctn Set Command Status    ${cmd_service_2}    ${2}
 
-    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
+    ## Time to set the services to CRITICAL HARD.
+
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    70    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
-    ${result}    Ctn Check Service Status With Timeout    host_2    service_2    ${2}    70    HARD
+    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    70    HARD
     Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
+    # Notification for the first user john
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The critical notification of service_1 is not sent
 
-    ${content}    Create List    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;critical
+    # Notification for the second user U2
+    ${content}    Create List    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The critical notification of service_2 is not sent
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 not6
-    [Documentation]    This test case validates the behavior when the notification time period is set to null.
+    [Documentation]     This test case validate the behavior when the notification time period is set to null.
     [Tags]    broker    engine    services    hosts    notification
+    Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -282,57 +302,60 @@ not6
     Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
     Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
     Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
 
     ## Time to set the service to CRITICAL HARD.
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Service Check Result    host_1    service_1    2    critical
-        Sleep    1s
-    END
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
-    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The critical notification of service_1 is not sent
 
     Ctn Engine Config Replace Value In Services    0    service_1    notification_period    none
     Sleep    5s
 
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Broker
     Ctn Reload Engine
 
-    ## Time to set the service to UP    hard
+    ## Time to set the service to OK hard
+    Ctn Set Command Status    ${cmd_service_1}    ${0}
 
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Service Check Result    host_1    service_1    0    ok
-        Sleep    1s
-    END
+    Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
 
     ${content}    Create List    This notifier shouldn't have notifications sent out at this time
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The timeperiod is not working
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 not7
     [Documentation]    This test case simulates a host alert scenario.
-    [Tags]    broker    engine    host    hosts    notification
+    [Tags]    broker    engine    host    notification
+    Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}
     Ctn Config Notifications
+    Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
@@ -342,21 +365,11 @@ not7
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Ctn Wait For Engine To Be Ready    ${1}
 
-    ## Time to set the host to CRITICAL HARD.
-
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Host Check Result    host_1    1    host_1 DOWN
-        Sleep    1s
-    END
-
+    ## Time to set the host to DOWN HARD.
     FOR    ${i}    IN RANGE    ${4}
         Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
@@ -366,14 +379,16 @@ not7
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    the host alert is not sent
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 not8
     [Documentation]    This test validates the critical host notification.
     [Tags]    broker    engine    host    notification
+    Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}
     Ctn Config Notifications
+    Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
@@ -383,38 +398,30 @@ not8
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Ctn Wait For Engine To Be Ready    ${1}
 
-    ## Time to set the host to CRITICAL HARD.
-
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Host Check Result    host_1    1    host_1 DOWN
-        Sleep    1s
-    END
-
+    ## Time to set the host to DOWN HARD.
     FOR    ${i}    IN RANGE    ${4}
         Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
 
-    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;host_1 DOWN;
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The down notification of host_1 is not sent
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 not9
     [Documentation]    This test case configures a single host and verifies that a recovery notification is sent after the host recovers from a non-OK state.
     [Tags]    broker    engine    host    notification
+    Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}
     Ctn Config Notifications
+    Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
@@ -424,90 +431,45 @@ not9
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Ctn Wait For Engine To Be Ready    ${1}
 
-    ## Time to set the host to CRITICAL HARD.
-
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Host Check Result    host_1    1    host_1 DOWN
-        Sleep    1s
-    END
-
+     ## Time to set the host to CRITICAL HARD.
     FOR    ${i}    IN RANGE    ${4}
         Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
 
-    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;RECOVERY (UP);command_notif;Host
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The recovery notification of host_1 is not sent
-
-    Ctn Stop engine
-    Ctn Kindly Stop Broker
-
-not10
-    [Documentation]    This test case involves scheduling downtime on a down host. After the downtime is finished and the host is still critical, we should receive a critical notification.
-    [Tags]    broker    engine    host    notification
-    Ctn Config Engine    ${1}    ${1}    ${1}
-    Ctn Config Notifications
-    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
-    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
-    Ctn Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
-    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
-    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
-
-    ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start engine
-
-    ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
-
-    ## Time to set the host to CRITICAL HARD.
-
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Host Check Result    host_1    0    host_1 UP
-        Sleep    1s
-    END
-
-    FOR    ${i}    IN RANGE    ${4}
-        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
-        Sleep    5s
-    END
-
-    Ctn Schedule Host Downtime    ${0}    host_1    ${3600}
-
-    Sleep    10s
-
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Host Check Result    host_1    1    host_1 DOWN
-        Sleep    1s
-    END
-
-    Ctn Delete Host Downtimes    ${0}    host_1
-
-    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;host_1 DOWN;
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The down notification of host_1 is not sent
 
-    Ctn Stop engine
+    ## Time to set the host to UP HARD.
+    ${start}    Ctn Get Round Current Date
+    Ctn Process Host Check Result    host_1    0    host_1 UP
+
+    FOR    ${i}    IN RANGE    ${4}
+        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Sleep    5s
+    END
+
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;RECOVERY (UP);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The recovery notification of host_1 is not sent
+
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not11
-    [Documentation]    This test case involves scheduling downtime on a down host that already had a critical notification. After putting it in the UP state when the downtime is finished and the host is UP, we should receive a recovery notification.
+not10
+    [Documentation]    This test case involves scheduling downtime on a down host that already had
+    ...    a critical notification. When The Host return to UP state we should receive a recovery
+    ...    notification.
     [Tags]    broker    engine    host    notification
+    Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Config Notifications
+    Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
@@ -517,51 +479,60 @@ not11
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ## Time to set the host to CRITICAL HARD.
+    FOR    ${i}    IN RANGE    ${4}
+        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Sleep    5s
+    END
+
+    Ctn Schedule Host Downtime    ${0}    host_1    ${60}
+    ${content}    Create List    Notifications for the service will not be sent out during that time period.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    Should Be True    ${result}    The downtime has not be sent.
+
+    Ctn Process Host Check Result    host_1    2    host_1 DOWN
+
+    ${content}    Create List    We shouldn't notify about DOWNTIME events for this notifier
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The down notification of host_1 is sent
+
+    Ctn Delete Host Downtimes    ${0}    host_1
+    ${content}    Create List    cmd_delete_downtime_full() args = host_1
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    Should Be True    ${result}    Downtimes not removed in host_1
 
     ## Time to set the host to UP HARD.
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The down notification of host_1 is not sent
 
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Host Check Result    host_1    1    host_1 DOWN
-        Sleep    1s
-    END
+    ## Time to set the host to UP HARD.
+    ${start}    Ctn Get Round Current Date
 
-    FOR    ${i}    IN RANGE    ${4}
-        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
-        Sleep    5s
-    END
-
-    Ctn Schedule Host Downtime    ${0}    host_1    ${3600}
-
-    Sleep    10s
-    ## Time to set the host to CRITICAL HARD.
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Host Check Result    host_1    0    host_1 UP
-        Sleep    1s
-    END
+    Ctn Process Host Check Result    host_1    0    host_1 UP
 
     FOR    ${i}    IN RANGE    ${4}
         Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
-    Ctn Delete Host Downtimes    ${0}    host_1
 
-    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;RECOVERY (UP);command_notif;Host
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Ctn Process Host Check Result    host_1    0    host_1 UP
+
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;RECOVERY (UP);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The recovery notification of host_1 is not sent
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not12
+not11
     [Documentation]    This test case involves configuring one service and checking that three alerts are sent for it.
     [Tags]    broker    engine    services    hosts    notification
+    Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -576,43 +547,40 @@ not12
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() is not available.
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
 
     ## Time to set the service to CRITICAL HARD.
 
-    FOR    ${i}    IN RANGE    ${3}
-        Ctn Process Service Check Result    host_1    service_1    2    critical
-        Sleep    1s
-    END
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
-    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
-
-    ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;1;critical
+    ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;1;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The first service alert SOFT1 is not sent
 
-    ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;2;critical
+    ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;2;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The second service alert SOFT2 is not sent
 
-    ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;HARD;3;critical
+    ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;HARD;3;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The third service alert hard is not sent
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not13
+
+not12
     [Documentation]    Escalations
     [Tags]    broker    engine    services    hosts    notification
+    Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
-    Ctn Engine Config Set Value    0    interval_length    10    True
+    Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
     Ctn Config Notifications
@@ -634,59 +602,836 @@ not13
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
-    # Let's wait for the external command check start
-    ${content}    Create List    check
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands() is not available.
+  # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
 
-    Ctn Service Check
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    ${cmd_service_2}    Ctn Get Service Command Id    ${2}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
+    Ctn Set Command Status    ${cmd_service_2}    ${2}
+
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     # Let's wait for the first notification of the user U1
-    ${content}    Create List    SERVICE NOTIFICATION: U1;host_1;service_1;CRITICAL;command_notif;critical;
+    ${content}    Create List    SERVICE NOTIFICATION: U1;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The first notification of U1 is not sent
     # Let's wait for the first notification of the contact group 1
-    ${content}    Create List    SERVICE NOTIFICATION: U1;host_2;service_2;CRITICAL;command_notif;critical;
+    ${content}    Create List    SERVICE NOTIFICATION: U1;host_2;service_2;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The first notification of contact group 1 is not sent
 
-    Ctn Service Check
+    ${start}    Ctn Get Round Current Date
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     # Let's wait for the first notification of the contact group 2 U3 ET U2
-
-    ${content}    Create List    SERVICE NOTIFICATION: U2;host_1;service_1;CRITICAL;command_notif;critical;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    ${content}    Create List     SERVICE NOTIFICATION: U2;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The first notification of U2 is not sent
 
-    ${content}    Create List    SERVICE NOTIFICATION: U3;host_1;service_1;CRITICAL;command_notif;critical;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    ${content}    Create List    SERVICE NOTIFICATION: U3;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The first notification of U3 is not sent
 
-    Ctn Service Check
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     # Let's wait for the second notification of the contact group 2 U3 ET U2
-
-    ${content}    Create List    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;critical;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    ${content}    Create List    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The second notification of U2 is not sent
 
-    ${content}    Create List    SERVICE NOTIFICATION: U3;host_2;service_2;CRITICAL;command_notif;critical;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    ${content}    Create List    SERVICE NOTIFICATION: U3;host_2;service_2;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The second notification of U3 is not sent
 
-    Ctn Service Check
+    ${start}    Ctn Get Round Current Date
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     # Let's wait for the first notification of the contact group 3 U4
-
-    ${content}    Create List    SERVICE NOTIFICATION: U4;host_1;service_1;CRITICAL;command_notif;critical;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    ${content}    Create List    SERVICE NOTIFICATION: U4;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The first notification of U4 is not sent
 
-    ${content}    Create List    SERVICE NOTIFICATION: U4;host_2;service_2;CRITICAL;command_notif;critical;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    ${content}    Create List    SERVICE NOTIFICATION: U4;host_2;service_2;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The second notification of U4 is not sent
+
+not13
+    [Documentation]    notification for a dependensies host
+    [Tags]    broker    engine    host    unified_sql
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${2}    ${1}
+    Ctn Config Notifications
+    Ctn Config Engine Add Cfg File    ${0}    dependencies.cfg
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r,s
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Hosts    0    host_1    first_notification_delay    0
+    Ctn Engine Config Set Value In Hosts    0    host_1    recovery_notification_delay    0
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_interval    0
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    n
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Set Value In Services    0    service_1    first_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_1    recovery_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_1    notification_interval    0
+    Ctn Engine Config Set Value In Hosts    0    host_2    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_2    notification_options    d,r,s
+    Ctn Engine Config Set Value In Hosts    0    host_2    contacts    John_Doe
+    Ctn Engine Config Set Value In Hosts    0    host_2    first_notification_delay    0
+    Ctn Engine Config Set Value In Hosts    0    host_2    recovery_notification_delay    0
+    Ctn Engine Config Set Value In Hosts    0    host_2    notification_interval    0
+    Ctn Engine Config Set Value In Services    0    service_2    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_2    notification_options    n
+    Ctn Engine Config Set Value In Services    0    service_2    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_2    notification_period    24x7
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Config Host Command Status    ${0}    checkh1    2
+    Ctn Config Host Command Status    ${0}    checkh2    2
+
+    Ctn Create Dependencieshst File    0    host_2    host_1
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
+
+     ## Time to set the host to CRITICAL HARD.
+
+    FOR    ${i}    IN RANGE    ${3}
+        Ctn Schedule Forced Host Check    host_2    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Sleep    5s
+    END
+
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_2;DOWN;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The down notification of host_2 is not sent
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Process Host Check Result    host_2    0    host_2 UP
+
+    FOR    ${i}    IN RANGE    ${3}
+        Ctn Schedule Forced Host Check    host_2    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Sleep    5s
+    END
+
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_2;RECOVERY (UP);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The down notification of host_2 is not sent
+
+    FOR    ${i}    IN RANGE    ${3}
+        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Sleep    5s
+    END
+
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The down notification of host_1 is not sent
+
+    ${new_date}    Get Current Date
+
+    Ctn Process Host Check Result    host_2    1    host_2 DOWN
+
+    FOR    ${i}    IN RANGE    ${3}
+        Ctn Schedule Forced Host Check    host_2    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Sleep    5s
+    END
+
+    ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    60
+    Should Be True    ${result}    The down notification of host_2 is sent dependency not working
+
+    Ctn Process Host Check Result    host_1    0    host_1 UP
+
+    FOR    ${i}    IN RANGE    ${3}
+        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Sleep    5s
+    END
+
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;RECOVERY (UP);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    60
+    Should Be True    ${result}    The down notification of host_1 is not sent
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+not14
+    [Documentation]    notification for a Service dependency
+    [Tags]    broker    engine    services    unified_sql
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${2}    ${1}
+    Ctn Config Notifications
+    Ctn Config Engine Add Cfg File    ${0}    dependencies.cfg
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    n
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Set Value In Services    0    service_1    first_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_1    recovery_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_1    notification_interval    0
+    Ctn Engine Config Set Value In Hosts    0    host_2    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_2    notification_options    n
+    Ctn Engine Config Set Value In Hosts    0    host_2    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_2    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_2    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_2    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_2    notification_period    24x7
+    Ctn Engine Config Set Value In Services    0    service_2    first_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_2    recovery_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_2    notification_interval    0
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    Ctn Create Dependencies File    0    host_2    host_1    service_2    service_1
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    ${cmd_service_2}    Ctn Get Service Command Id    ${2}
+    Ctn Set Command Status    ${cmd_service_2}    ${2}
+
+    ## Time to set the service2 to CRITICAL HARD.
+    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_2;service_2;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The notification is not sent
+
+    ## Time to set the service2 to OK  hard
+    ${start}    Ctn Get Round Current Date
+    Ctn Set Command Status    ${cmd_service_2}    ${0}
+
+    Ctn Process Service Result Hard    host_2    service_2    ${0}    The service_2 is OK
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be OK HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_2;service_2;RECOVERY (OK);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The notification is not sent
+
+   ## Time to set the service1 to CRITICAL HARD.
+    ${start}    Ctn Get Round Current Date
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
+
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The notification is not sent
+
+    ${new_date}    Get Current Date
+    ## Time to set the service2 to CRITICAL HARD.
+    Ctn Set Command Status    ${cmd_service_2}    ${2}
+
+    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
+
+    ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    60
+    Should Be True    ${result}     the dependency not working and the service_é has recieved a notification
+
+    ## Time to set the service1 to OK  hard
+    Ctn Set Command Status    ${cmd_service_1}    ${0}
+
+    Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    60
+    Should Be True    ${result}    The notification is not sent
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+
+not15
+    [Documentation]    several notification commands for the same user.
+    [Tags]    broker    engine    services    unified_sql
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Notifications
+    Ctn Engine Config Add Command
+    ...    0
+    ...    command_notif1
+    ...    /usr/bin/false
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif,command_notif1
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif,command_notif1
+
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
+
+    ## Time to set the service to CRITICAL HARD.
+
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling that notification is not sent
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif1;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The notification is not sent
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+not16
+    [Documentation]    notification for a dependensies services group
+    [Tags]    broker    engine    services    unified_sql
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${4}    ${1}
+    Ctn Engine Config Set Value    0    interval_length    1    True
+    Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
+    Ctn Add service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
+    Ctn Add service Group    ${0}    ${2}    ["host_3","service_3", "host_4","service_4"]
+    Ctn Config Notifications
+    Ctn Config Engine Add Cfg File    ${0}    dependencies.cfg
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    n
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Set Value In Services    0    service_1    first_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_1    recovery_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_1    notification_interval    0
+    Ctn Engine Config Set Value In Hosts    0    host_2    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_2    notification_options    n
+    Ctn Engine Config Set Value In Hosts    0    host_2    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_2    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_2    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_2    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_2    notification_period    24x7
+    Ctn Engine Config Set Value In Services    0    service_2    first_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_2    recovery_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_2    notification_interval    0
+    Ctn Engine Config Set Value In Hosts    0    host_3    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_3    notification_options    n
+    Ctn Engine Config Set Value In Hosts    0    host_3    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_3    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_3    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_3    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_3    notification_period    24x7
+    Ctn Engine Config Set Value In Services    0    service_3    first_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_3    recovery_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_3    notification_interval    0
+    Ctn Engine Config Set Value In Hosts    0    host_4    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_4    notification_options    n
+    Ctn Engine Config Set Value In Hosts    0    host_4    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_4    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_4    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_4    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_4    notification_period    24x7
+    Ctn Engine Config Set Value In Services    0    service_4    first_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_4    recovery_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_4    notification_interval    0
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    Ctn Create Dependenciesgrp File    0    servicegroup_2    servicegroup_1
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ## Time to set the service3 to CRITICAL HARD.
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    ${cmd_service_3}    Ctn Get Service Command Id    ${3}
+    ${cmd_service_4}    Ctn Get Service Command Id    ${4}
+
+    Ctn Set Command Status    ${cmd_service_3}    ${0}
+
+    Ctn Process Service Result Hard    host_3    service_3    ${0}    The service_3 is OK
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_3    service_3    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_3,service_3) should be OK HARD
+
+    ##Time to set the service3 to CRITICAL HARD.
+    Ctn Set Command Status    ${cmd_service_3}    ${2}
+
+    Ctn Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_3    service_3    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_3,service_3) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_3;service_3;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The notification is not sent for service3
+
+    ## Time to set the service3 to OK hard
+    ${start}    Ctn Get Round Current Date
+    Ctn Set Command Status    ${cmd_service_3}    ${0}
+
+    Ctn Process Service Result Hard    host_3    service_3    ${0}    The service_3 is OK
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_3    service_3    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_3,service_3) should be OK HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_3;service_3;RECOVERY (OK);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The notification is not sent for service3
+
+    ## Time to set the service1 to CRITICAL HARD.
+    ${start}    Ctn Get Round Current Date
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The notification is not sent for service1
+
+    ## Time to set the service3 to CRITICAL HARD.
+    ${start}    Ctn Get Round Current Date
+    Ctn Set Command Status    ${cmd_service_3}    ${2}
+
+    Ctn Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_3    service_3    ${2}    90    HARD
+    Should Be True    ${result}    Service (host_3,service_3) should be CRITICAL HARD
+
+    ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The notification is sent for service3: dependency not working
+
+    ## Time to set the service4 to CRITICAL HARD.
+    ${start}    Ctn Get Round Current Date
+    Ctn Set Command Status    ${cmd_service_4}    ${2}
+
+    Ctn Process Service Result Hard    host_4    service_4    ${2}    The service_4 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_4    service_4    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_4,service_4) should be CRITICAL HARD
+
+
+    ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The notification is sent for service4: dependency not working
+
+    ## Time to set the service1 to OK hard
+    ${start}    Ctn Get Round Current Date
+    Ctn Set Command Status    ${cmd_service_1}    ${0}
+
+    Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
+
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The notification is not sent for service1
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+
+not17
+    [Documentation]    notification for a dependensies host group
+    [Tags]    broker    engine    host    unified_sql
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${4}    ${0}
+    Ctn Engine Config Set Value    0    interval_length    10    True
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2"]
+    Ctn Add Host Group    ${0}    ${2}    ["host_3", "host_4"]
+    Ctn Config Notifications
+    Ctn Config Engine Add Cfg File    ${0}    dependencies.cfg
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r,s
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Hosts    0    host_1    first_notification_delay    0
+    Ctn Engine Config Set Value In Hosts    0    host_1    recovery_notification_delay    0
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_interval    0
+    Ctn Engine Config Set Value In Hosts    0    host_2    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_2    notification_options    d,r,s
+    Ctn Engine Config Set Value In Hosts    0    host_2    contacts    John_Doe
+    Ctn Engine Config Set Value In Hosts    0    host_2    first_notification_delay    0
+    Ctn Engine Config Set Value In Hosts    0    host_2    recovery_notification_delay    0
+    Ctn Engine Config Set Value In Hosts    0    host_2    notification_interval    0
+    Ctn Engine Config Set Value In Hosts    0    host_3    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_3    notification_options    d,r,s
+    Ctn Engine Config Set Value In Hosts    0    host_3    contacts    John_Doe
+    Ctn Engine Config Set Value In Hosts    0    host_3    first_notification_delay    0
+    Ctn Engine Config Set Value In Hosts    0    host_3    recovery_notification_delay    0
+    Ctn Engine Config Set Value In Hosts    0    host_3    notification_interval    0
+    Ctn Engine Config Set Value In Hosts    0    host_4    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_4    notification_options    d,r,s
+    Ctn Engine Config Set Value In Hosts    0    host_4    contacts    John_Doe
+    Ctn Engine Config Set Value In Hosts    0    host_4    first_notification_delay    0
+    Ctn Engine Config Set Value In Hosts    0    host_4    recovery_notification_delay    0
+    Ctn Engine Config Set Value In Hosts    0    host_4    notification_interval    0
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    Ctn Create Dependencieshstgrp File    0    hostgroup_2    hostgroup_1
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    # Time to set the host to CRITICAL HARD.
+
+    FOR   ${i}    IN RANGE    ${3}
+        Ctn Process Host Check Result    host_3    1    host_3 DOWN
+        Sleep    1s
+    END
+
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_3;DOWN;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The down notification of host_3 is not sent
+
+    ${start}    Ctn Get Round Current Date
+    FOR   ${i}    IN RANGE    ${3}
+        Ctn Process Host Check Result    host_3    0    host_3 UP
+        Sleep    1s
+    END
+
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_3;RECOVERY (UP);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The recovery notification of host_3 is not sent
+
+    ${start}    Ctn Get Round Current Date
+    FOR   ${i}    IN RANGE    ${3}
+        Ctn Process Host Check Result    host_1    1    host_1 DOWN
+        Sleep    1s
+    END
+    FOR   ${i}    IN RANGE    ${3}
+        Ctn Process Host Check Result    host_3    1    host_3 DOWN
+        Sleep    1s
+    END
+
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The down notification of host_1 is not sent
+
+    ${new_date}    Get Current Date
+
+    ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    90
+    Should Be True    ${result}    The down notification of host_3 is sent dependency not working
+
+    FOR   ${i}    IN RANGE    ${3}
+        Ctn Process Host Check Result    host_4    1    host_4 DOWN
+        Sleep    1s
+    END
+
+    ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    60
+    Should Be True    ${result}    The down notification of host_4 is sent dependency not working
+
+    FOR   ${i}    IN RANGE    ${3}
+        Ctn Process Host Check Result    host_1    0    host_1 UP
+        Sleep    1s
+    END
+
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;RECOVERY (UP);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    60
+    Should Be True    ${result}    The recovery notification of host_1 is not sent
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+not18
+    [Documentation]    notification delay where first notification delay equal retry check
+    [Tags]    broker    engine    services    hosts    notification
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Engine Config Set Value    0    interval_length    1    True
+    Ctn Config Notifications
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Set Value In Services    0    service_1    first_notification_delay    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
+
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No notification has been sent concerning a critical service
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+not19
+    [Documentation]    notification delay where first notification delay greater than retry check 
+    [Tags]    broker    engine    services    hosts    notification
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Engine Config Set Value    0    interval_length    1    True
+    Ctn Config Notifications
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Set Value In Services    0    service_1    first_notification_delay    3
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    2
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
+
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    100
+    Should Be True    ${result}    No notification has been sent concerning a critical service
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+not20
+    [Documentation]    notification delay where first notification delay samller than retry check
+    [Tags]    broker    engine    services    hosts    notification
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Engine Config Set Value    0    interval_length    1    True
+    Ctn Config Notifications
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Set Value In Services    0    service_1    first_notification_delay    1
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    2
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
+
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No notification has been sent concerning a critical service
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+not_in_timeperiod_without_send_recovery_notifications_anyways
+    [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is not sent outside timeperiod when _send_recovery_notifications_anyways is not set
+    [Tags]    MON-33121  broker    engine    services    hosts    notification
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Notifications
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    short_time_period
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    ${cmd_1}    Ctn Get Service Command Id    1
+    Log To Console    service_1 has command id ${cmd_1}
+    Ctn Set Command Status    ${cmd_1}    2
+
+    ${start}    Get Current Date
+    Ctn Create Single Day Time Period    0    short_time_period    ${start}    2
+
+    Ctn Start Broker
+    Ctn Start engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    ## Time to set the service to CRITICAL HARD.
+    Ctn Process Service Result Hard    host_1    service_1    2    critical
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The notification is not sent
+
+    Sleep    3m
+    Ctn Set Command Status    ${cmd_1}    0
+    Ctn Process Service Check Result    host_1    service_1    0    ok
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Not Be True    ${result}    The notification is sent out of time period
+
+not_in_timeperiod_with_send_recovery_notifications_anyways
+    [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is sent outside timeperiod when _send_recovery_notifications_anyways is set
+    [Tags]    MON-33121   broker    engine    services    hosts    notification    mon-33121
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Notifications
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    short_time_period
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Create File    /tmp/centengine_extend.json    {"send_recovery_notifications_anyways": true}
+
+    ${cmd_1}    Ctn Get Service Command Id    1
+    Log To Console    service_1 has command id ${cmd_1}
+    Ctn Set Command Status    ${cmd_1}    2
+
+    ${start}    Get Current Date
+    Ctn Create Single Day Time Period    0    short_time_period    ${start}    2
+
+    Ctn Start Broker
+    Ctn Start Engine With Extend Conf
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    ## Time to set the service to CRITICAL HARD.
+    Ctn Process Service Result Hard    host_1    service_1    2    critical
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The notification is not sent
+
+    Sleep    3m
+    Ctn Set Command Status    ${cmd_1}    0
+    Ctn Process Service Check Result    host_1    service_1    0    ok
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The notification is not sent outside time period
 
 
 *** Keywords ***
@@ -726,39 +1471,22 @@ Ctn Config Escalations
     Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
     Ctn Engine Config Set Value In Services    0    service_1    contact_groups    contactgroup_1
     Ctn Engine Config Replace Value In Services    0    service_1    active_checks_enabled    0
-    Ctn Engine Config Replace Value In Services    0    service_1    max_check_attempts    1
-    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    max_check_attempts     1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval     1
     Ctn Engine Config Set Value In Services    0    service_1    notification_interval    1
-    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval     1
     Ctn Engine Config Replace Value In Services    0    service_1    check_command    command_4
     Ctn Engine Config Set Value In Services    0    service_2    contact_groups    contactgroup_1
-    Ctn Engine Config Replace Value In Services    0    service_2    max_check_attempts    1
+    Ctn Engine Config Replace Value In Services    0    service_2    max_check_attempts     1
     Ctn Engine Config Set Value In Services    0    service_2    notification_options    c
     Ctn Engine Config Set Value In Services    0    service_2    notifications_enabled    1
     Ctn Engine Config Set Value In Services    0    service_2    first_notification_delay    0
     Ctn Engine Config Set Value In Services    0    service_2    notification_period    24x7
     Ctn Engine Config Set Value In Services    0    service_2    notification_interval    1
     Ctn Engine Config Replace Value In Services    0    service_2    first_notification_delay    0
-    Ctn Engine Config Replace Value In Services    0    service_2    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_2    check_interval     1
     Ctn Engine Config Replace Value In Services    0    service_2    active_checks_enabled    0
-    Ctn Engine Config Replace Value In Services    0    service_2    retry_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_2    retry_interval     1
     Ctn Engine Config Replace Value In Services    0    service_2    check_command    command_4
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
-
-Ctn Service Check
-    FOR    ${i}    IN RANGE    ${4}
-        Ctn Process Service Check Result    host_1    service_1    2    critical
-        Sleep    1s
-    END
-
-    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
-
-    FOR    ${i}    IN RANGE    ${4}
-        Ctn Process Service Check Result    host_2    service_2    2    critical
-        Sleep    1s
-    END
-
-    ${result}    Ctn Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
