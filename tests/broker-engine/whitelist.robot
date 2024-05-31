@@ -147,9 +147,11 @@ Whitelist_Service_EH
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     ${cmd}    Ctn Get Service Command Id    1
     Ctn Set Command Status    ${cmd}    0
-    Repeat Keyword    3 times    Ctn Schedule Forced Svc Check    host_1    service_1
+    Ctn Process Service Result Hard    host_1    service_1    0    output OK
+    #Repeat Keyword    3 times    Ctn Schedule Forced Svc Check    host_1    service_1
     Ctn Set Command Status    ${cmd}    2
-    Repeat Keyword    3 times    Ctn Schedule Forced Svc Check    host_1    service_1
+    Ctn Process Service Result Hard    host_1    service_1    2    output CRITICAL
+    #Repeat Keyword    3 times    Ctn Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List
     ...    Error: can't execute service event handler command line '/tmp/var/lib/centreon-engine/totozea 0 1.0.0.0' : it is not allowed by the whitelist
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -165,9 +167,11 @@ Whitelist_Service_EH
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     ${cmd}    Ctn Get Service Command Id    1
     Ctn Set Command Status    ${cmd}    0
-    Repeat Keyword    3 times    Ctn Schedule Forced Svc Check    host_1    service_1
+    Ctn Process Service Result Hard    host_1    service_1    0    output OK
+    #Repeat Keyword    3 times    Ctn Schedule Forced Svc Check    host_1    service_1
     Ctn Set Command Status    ${cmd}    2
-    Repeat Keyword    3 times    Ctn Schedule Forced Svc Check    host_1    service_1
+    Ctn Process Service Result Hard    host_1    service_1    2    output CRITICAL
+    #Repeat Keyword    3 times    Ctn Schedule Forced Svc Check    host_1    service_1
     ${content}    Create List    SERVICE EVENT HANDLER: host_1;service_1;.*;command_1    my_system_r
     ${result}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result[0]}    The event handler with command totozea should be OK.
