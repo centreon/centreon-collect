@@ -951,7 +951,9 @@ BEEXTCMD_REVERSE_GRPC1
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start engine
-	Ctn Wait For Engine To Be Ready    ${1}
+        Ctn Wait For Engine To Be Ready    ${1}
+        #lets time to grpc to start
+        Sleep  0.1
 
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 

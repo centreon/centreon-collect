@@ -19,6 +19,7 @@
 
 #include "com/centreon/engine/anomalydetection.hh"
 
+#include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/globals.hh"
@@ -33,6 +34,8 @@
 #include "com/centreon/exceptions/interruption.hh"
 
 using namespace com::centreon::engine;
+
+using com::centreon::common::rapidjson_helper;
 using namespace com::centreon::engine::logging;
 
 namespace com::centreon::engine {
@@ -53,19 +56,20 @@ anomalydetection::threshold_point::threshold_point(time_t timepoint)
 anomalydetection::threshold_point::threshold_point(
     time_t timepoint,
     double factor,
-    const nlohmann::json& json_data)
+    const rapidjson::Value& json_data)
     : threshold_point(timepoint) {
-  if (json_data.contains("upper") && json_data.contains("lower")) {
-    _upper = json_data.at("upper").get<double>();
-    _lower = json_data.at("lower").get<double>();
-    if (json_data.contains("fit")) {
-      _fit = json_data.at("fit").get<double>();
+  rapidjson_helper json(json_data);
+  if (json.has_member("upper") && json.has_member("lower")) {
+    _upper = json.get_double("upper");
+    _lower = json.get_double("lower");
+    if (json_data.HasMember("fit")) {
+      _fit = json.get_double("fit");
     }
     _format = e_format::V1;
   } else {
-    _fit = json_data.at("fit").get<double>();
-    _lower_margin = json_data.at("lower_margin").get<double>();
-    _upper_margin = json_data.at("upper_margin").get<double>();
+    _fit = json.get_double("fit");
+    _lower_margin = json.get_double("lower_margin");
+    _upper_margin = json.get_double("upper_margin");
     _format = e_format::V2;
     set_factor(factor);
   }
@@ -1112,39 +1116,17 @@ void anomalydetection::init_thresholds() {
       << "Trying to read thresholds file '" << _thresholds_file << "'";
   SPDLOG_LOGGER_DEBUG(config_logger, "Trying to read thresholds file '{}'",
                       _thresholds_file);
-  std::ifstream t;
-  t.exceptions(t.exceptions() | std::ios::failbit);
+
+  rapidjson::Document json_doc;
   try {
-    t.open(_thresholds_file);
-  } catch (const std::system_error& e) {
-    if (!verify_config) {
-      SPDLOG_LOGGER_ERROR(config_logger,
-                          "Fail to read thresholds file '{}' : {}",
-                          _thresholds_file, e.code().message());
-    }
-    return;
+    json_doc = rapidjson_helper::read_from_file(_thresholds_file);
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(config_logger, "Fail to read thresholds file '{}' : {}",
-                        _thresholds_file, e.what());
+    SPDLOG_LOGGER_ERROR(config_logger, "Fail to load {}: {}", _thresholds_file,
+                        e.what());
     return;
   }
 
-  std::stringstream buffer;
-  buffer << t.rdbuf();
-  std::string err;
-  nlohmann::json json;
-  try {
-    json = nlohmann::json::parse(buffer.str());
-  } catch (const nlohmann::json::parse_error& e) {
-    engine_logger(log_config_error, basic)
-        << "Error: the file '" << _thresholds_file
-        << "' contains errors: " << e.what();
-    SPDLOG_LOGGER_ERROR(config_logger,
-                        "Error: the file '{}' contains errors: {}",
-                        _thresholds_file, e.what());
-    return;
-  }
-  if (!json.is_array()) {
+  if (!json_doc.IsArray()) {
     engine_logger(log_config_error, basic)
         << "Error: the file '" << _thresholds_file
         << "' is not a thresholds file. Its global structure is not an array.";
@@ -1156,21 +1138,23 @@ void anomalydetection::init_thresholds() {
     return;
   }
 
+  rapidjson_helper json(json_doc);
+
   bool found = false;
-  for (auto it = json.begin(); it != json.end(); ++it) {
+  for (const auto& value : json) {
     uint64_t host_id, service_id;
-    std::string metric_name;
-    nlohmann::json predict;
-    auto item = it.value();
+    std::string_view metric_name;
+    const rapidjson::Value* predict = nullptr;
+    rapidjson_helper item(value);
     double sensitivity = 0.0;
     try {
-      host_id = stoull(item.at("host_id").get<std::string>());
-      service_id = stoull(item.at("service_id").get<std::string>());
-      metric_name = item.at("metric_name").get<std::string>();
-      predict = item.at("predict");
+      host_id = item.get_double("host_id");
+      service_id = item.get_double("service_id");
+      metric_name = item.get_string("metric_name");
+      predict = &item.get_member("predict");
       try {
-        sensitivity = item.at("sensitivity").get<double>();
-      } catch (std::exception const&) {  // json sensitivity is not mandatory
+        sensitivity = item.get_double("sensitivity");
+      } catch (const std::exception&) {  // sensitivity is not mandatory
       }
     } catch (std::exception const& e) {
       engine_logger(log_config_error, basic)
@@ -1187,11 +1171,11 @@ void anomalydetection::init_thresholds() {
     }
     if (host_id == this->host_id() && service_id == this->service_id() &&
         metric_name == _metric_name) {
-      set_thresholds_no_lock(_thresholds_file, sensitivity, predict);
+      set_thresholds_no_lock(_thresholds_file, sensitivity, *predict);
       if (!_thresholds_file_viable) {
         SPDLOG_LOGGER_ERROR(config_logger,
                             "{} don't contain at least 2 thresholds datas for "
-                            "host_id {} and service_id {}",
+                            "host_id{} and service_id {} ",
                             _thresholds_file, this->host_id(),
                             this->service_id());
       }
@@ -1220,37 +1204,16 @@ int anomalydetection::update_thresholds(const std::string& filename) {
       << "Reading thresholds file '" << filename << "'.";
   SPDLOG_LOGGER_INFO(checks_logger, "Reading thresholds file '{}'.", filename);
 
-  std::ifstream t;
-  t.exceptions(t.exceptions() | std::ios::failbit);
+  rapidjson::Document json_doc;
   try {
-    t.open(filename);
-  } catch (const std::system_error& e) {
-    SPDLOG_LOGGER_ERROR(config_logger, "Fail to read thresholds file '{}' : {}",
-                        filename, e.code().message());
-    return -1;
+    json_doc = rapidjson_helper::read_from_file(filename);
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(config_logger, "Fail to read thresholds file '{}' : {}",
-                        filename, e.what());
+    SPDLOG_LOGGER_ERROR(config_logger, "Fail to load {}: {}", filename,
+                        e.what());
     return -1;
   }
 
-  std::stringstream buffer;
-  buffer << t.rdbuf();
-  nlohmann::json json;
-  try {
-    json = nlohmann::json::parse(buffer.str());
-  } catch (const nlohmann::json::parse_error& e) {
-    engine_logger(log_config_error, basic)
-        << "Error: The thresholds file '" << filename
-        << "' should be a json file: " << e.what();
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "Error: The thresholds file '{}' should be a json file: {}", filename,
-        e.what());
-    return -2;
-  }
-
-  if (!json.is_array()) {
+  if (!json_doc.IsArray()) {
     engine_logger(log_config_error, basic)
         << "Error: the file '" << filename
         << "' is not a thresholds file. Its global structure is not an array.";
@@ -1262,19 +1225,20 @@ int anomalydetection::update_thresholds(const std::string& filename) {
     return -3;
   }
 
-  for (auto it = json.begin(); it != json.end(); ++it) {
+  rapidjson_helper json(json_doc);
+  for (const auto& value : json) {
     uint64_t host_id, svc_id;
-    auto item = it.value();
     double sensitivity = 0.0;
-    std::string metric_name;
-    nlohmann::json predict;
+    std::string_view metric_name;
+    rapidjson_helper item(value);
+    const rapidjson::Value* predict = nullptr;
     try {
-      host_id = stoull(item.at("host_id").get<std::string>());
-      svc_id = stoull(item.at("service_id").get<std::string>());
-      metric_name = item.at("metric_name");
-      predict = item.at("predict");
+      host_id = item.get_double("host_id");
+      svc_id = item.get_double("service_id");
+      metric_name = item.get_string("metric_name");
+      predict = &item.get_member("predict");
       try {
-        sensitivity = item.at("sensitivity").get<double>();
+        sensitivity = item.get_double("sensitivity");
       } catch (const std::exception&) {  // sensitivity is not mandatory
       }
     } catch (std::exception const& e) {
@@ -1314,13 +1278,6 @@ int anomalydetection::update_thresholds(const std::string& filename) {
         std::static_pointer_cast<anomalydetection>(found->second);
 
     if (ad->get_metric_name() != metric_name) {
-      engine_logger(log_config_error, basic)
-          << "Error: The thresholds file contains thresholds for the anomaly "
-             "detection service (host_id: "
-          << ad->host_id() << ", service_id: " << ad->service_id()
-          << ") with metric_name='" << metric_name
-          << "' whereas the configured metric name is '"
-          << ad->get_metric_name() << "'";
       SPDLOG_LOGGER_ERROR(
           config_logger,
           "Error: The thresholds file contains thresholds for the anomaly "
@@ -1329,24 +1286,20 @@ int anomalydetection::update_thresholds(const std::string& filename) {
           ad->host_id(), ad->service_id(), metric_name, ad->get_metric_name());
       continue;
     }
-    engine_logger(log_info_message, basic)
-        << "Filling thresholds in anomaly detection (host_id: " << ad->host_id()
-        << ", service_id: " << ad->service_id()
-        << ", metric: " << ad->get_metric_name() << ")";
     SPDLOG_LOGGER_INFO(
         checks_logger,
         "Filling thresholds in anomaly detection (host_id: {}, service_id: {}, "
         "metric: {})",
         ad->host_id(), ad->service_id(), ad->get_metric_name());
 
-    ad->set_thresholds_lock(filename, sensitivity, predict);
+    ad->set_thresholds_lock(filename, sensitivity, *predict);
   }
   return 0;
 }
 
 void anomalydetection::set_thresholds_lock(const std::string& filename,
                                            double json_sensitivity,
-                                           const nlohmann::json& thresholds) {
+                                           const rapidjson::Value& thresholds) {
   std::lock_guard<std::mutex> _lock(_thresholds_m);
   set_thresholds_no_lock(filename, json_sensitivity, thresholds);
 }
@@ -1361,7 +1314,7 @@ void anomalydetection::set_thresholds_lock(const std::string& filename,
 void anomalydetection::set_thresholds_no_lock(
     const std::string& filename,
     double json_sensitivity,
-    const nlohmann::json& thresholds) {
+    const rapidjson::Value& thresholds_val) {
   if (_thresholds_file != filename) {
     _thresholds_file = filename;
   }
@@ -1372,22 +1325,17 @@ void anomalydetection::set_thresholds_no_lock(
   if (_sensitivity > 0) {
     sensitivity = _sensitivity;
   }
-  for (const nlohmann::json& threshold_obj : thresholds) {
+  rapidjson_helper thresholds(thresholds_val);
+  for (const auto& threshold_obj : thresholds) {
     try {
-      time_t timepoint =
-          static_cast<time_t>(threshold_obj.at("timestamp").get<uint64_t>());
+      time_t timepoint = static_cast<time_t>(
+          rapidjson_helper(threshold_obj).get_uint64_t("timestamp"));
       _thresholds.emplace_hint(
           _thresholds.end(), timepoint,
           threshold_point(timepoint, sensitivity, threshold_obj));
-    } catch (const nlohmann::json::exception& e) {
-      SPDLOG_LOGGER_ERROR(config_logger, "fail to parse predict:{} cause:{}",
-                          threshold_obj.dump(), e.what());
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(config_logger, "fail to parse predict:{} cause {}",
-                          threshold_obj.dump(), e.what());
-    } catch (...) {
-      SPDLOG_LOGGER_ERROR(config_logger, "unknown exception {}",
-                          threshold_obj.dump());
+                          thresholds_val, e.what());
     }
   }
   if (_thresholds.size() > 1) {

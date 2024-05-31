@@ -44,6 +44,8 @@ class grpc_server_base {
 
   virtual ~grpc_server_base();
 
+  void shutdown(const std::chrono::system_clock::duration& timeout);
+
   grpc_server_base(const grpc_server_base&) = delete;
   grpc_server_base& operator=(const grpc_server_base&) = delete;
 

@@ -66,7 +66,8 @@ const std::array<std::string, log_v2::LOGGER_SIZE> log_v2::_logger_name = {
     "downtimes",
     "comments",
     "macros",
-    "runtime"};
+    "runtime",
+    "otel"};
 
 /**
  * @brief this function is passed to grpc in order to log grpc layer's events to
@@ -112,11 +113,9 @@ static void grpc_logger(gpr_log_func_args* args) {
 }
 
 /**
- * @brief Initialization of the log_v2 instance. Initialized loggers are given
- * in ilist.
+ * @brief Initialization of the log_v2 instance.
  *
  * @param name The name of the logger.
- * @param ilist The list of loggers to initialize.
  */
 void log_v2::load(std::string name) {
   if (!_instance)
@@ -145,6 +144,15 @@ void log_v2::unload() {
  */
 log_v2::log_v2(std::string name) : _log_name{std::move(name)} {
   create_loggers(config::logger_type::LOGGER_STDOUT);
+}
+
+/**
+ * @brief Destroy the log v2::log v2 object
+ *
+ */
+log_v2::~log_v2() noexcept {
+  // grpc_logger mustn't be called after log_v2 destruction
+  gpr_set_log_function(nullptr);
 }
 
 /**

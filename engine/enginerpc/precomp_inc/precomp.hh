@@ -24,6 +24,7 @@
 #include <string>
 
 #include <fmt/format.h>
+#include <spdlog/fmt/ostr.h>
 
 #include <absl/strings/string_view.h>
 

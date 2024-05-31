@@ -21,6 +21,7 @@
 
 #include "com/centreon/broker/grpc/acceptor.hh"
 #include "com/centreon/broker/grpc/stream.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -96,6 +97,20 @@ void server_stream::OnDone() {
 service_impl::service_impl(const grpc_config::pointer& conf) : _conf(conf) {}
 
 /**
+ * @brief to call after construction
+ *
+ */
+void service_impl::init() {
+  ::grpc::Service::MarkMethodCallback(
+      0, new ::grpc::internal::CallbackBidiHandler<
+             ::com::centreon::broker::stream::CentreonEvent,
+             ::com::centreon::broker::stream::CentreonEvent>(
+             [me = shared_from_this()](::grpc::CallbackServerContext* context) {
+               return me->exchange(context);
+             }));
+}
+
+/**
  * @brief called on every stream creation
  * every accepted stream is pushed in _wait_to_open queue
  *
@@ -136,7 +151,7 @@ service_impl::exchange(::grpc::CallbackServerContext* context) {
   server_stream::register_stream(next_stream);
   next_stream->start_read();
   {
-    std::unique_lock l(_wait_m);
+    std::lock_guard l(_wait_m);
     _wait_to_open.push_back(next_stream);
   }
   _wait_cond.notify_one();
@@ -249,6 +264,7 @@ acceptor::acceptor(const grpc_config::pointer& conf)
   _init([this](::grpc::ServerBuilder& builder) {
     _service = std::make_shared<service_impl>(
         std::static_pointer_cast<grpc_config>(get_conf()));
+    _service->init();
     builder.RegisterService(_service.get());
   });
 }
