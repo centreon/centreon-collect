@@ -490,7 +490,7 @@ not10
     END
 
     Ctn Schedule Host Downtime    ${0}    host_1    ${60}
-    ${content}    Create List    Notifications for the service will not be sent out during that time period.
+    ${content}    Create List    Scheduled Downtime Details:     Type: Host Downtime ; Host: host_1
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    The downtime has not be sent.
 
