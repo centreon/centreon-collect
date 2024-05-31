@@ -110,7 +110,8 @@ add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc"
                                                   "${SRC_DIR}/broker.pb.h")
 
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
-                    ${CMAKE_SOURCE_DIR}/common/inc)
+                    ${CMAKE_SOURCE_DIR}/common/inc
+                    ${CMAKE_SOURCE_DIR}/bbdo)
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
@@ -446,6 +447,7 @@ target_link_libraries(
   bbdo_bbdo
   pb_bbdo_lib
   pb_extcmd_lib
+  pb_open_telemetry_lib
   berpc
   z
   spdlog::spdlog
@@ -460,10 +462,6 @@ target_link_libraries(
   rokerbase
   crypto
   ssl
-  gRPC::gpr
-  gRPC::grpc
-  gRPC::grpc++
-  gRPC::grpc++_alts
   pthread
   dl)
 
@@ -494,7 +492,6 @@ target_link_libraries(
   # spdlog::spdlog
   gRPC::gpr
   gRPC::grpc
-  gRPC::grpc++
   gRPC::grpc++_alts)
 
 # Centreon Broker Watchdog
@@ -513,7 +510,7 @@ add_subdirectory(core/sql)
 # Generator module.
 add_broker_module(GENERATOR OFF)
 add_broker_module(STATS ON)
-add_broker_module(STATS_EXPORTER ON)
+#add_broker_module(STATS_EXPORTER OFF)
 add_broker_module(NEB ON)
 add_broker_module(RRD ON)
 add_broker_module(UNIFIED_SQL ON)

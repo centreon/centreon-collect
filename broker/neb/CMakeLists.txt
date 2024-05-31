@@ -175,6 +175,8 @@ endif()
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
 target_precompile_headers(${CBMOD} PRIVATE precomp_inc/precomp.hpp)
 
+target_include_directories(${CBMOD} PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
+
 # Testing.
 if(WITH_TESTING)
   set(TESTS_SOURCES

@@ -146,6 +146,7 @@ target_link_libraries("${BAM}" bbdo_storage bbdo_bam pb_bam_lib
                       spdlog::spdlog)
 target_precompile_headers(${BAM} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${BAM}" PROPERTIES PREFIX "")
+add_dependencies("${BAM}" pb_open_telemetry_lib)
 
 # Testing.
 if(WITH_TESTING)

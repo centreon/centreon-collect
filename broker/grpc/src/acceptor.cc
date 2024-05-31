@@ -21,6 +21,7 @@
 
 #include "com/centreon/broker/grpc/acceptor.hh"
 #include "com/centreon/broker/grpc/stream.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;

@@ -82,6 +82,7 @@ class log_v2 {
     COMMENTS = 26,
     MACROS = 27,
     RUNTIME = 28,
+    OTEL = 29,
     LOGGER_SIZE
   };
 
@@ -104,7 +105,7 @@ class log_v2 {
   log_v2(std::string name);
   log_v2(const log_v2&) = delete;
   log_v2& operator=(const log_v2&) = delete;
-  ~log_v2() noexcept = default;
+  ~log_v2() noexcept;
   logger_id get_id(const std::string& name) const noexcept;
 
   std::chrono::seconds flush_interval();

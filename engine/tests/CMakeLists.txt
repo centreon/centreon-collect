@@ -21,8 +21,12 @@ if(WITH_TESTING)
   # Tests directory. Add root inclusion direction.
   set(MODULE_DIR "${PROJECT_SOURCE_DIR}/modules/external_commands")
   set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/external_commands")
-  include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/common/inc
-                      ${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc)
+  set(MODULE_DIR_OTL "${PROJECT_SOURCE_DIR}/modules/opentelemetry")
+
+  include_directories(${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc
+                      ${MODULE_DIR_OTL}/inc
+                      ${CMAKE_SOURCE_DIR}/bbdo
+                      ${CMAKE_SOURCE_DIR}/common/http/inc)
 
   # Set directory.
   set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
@@ -107,6 +111,8 @@ if(WITH_TESTING)
       "${TESTS_DIR}/notifications/service_timeperiod_notification.cc"
       "${TESTS_DIR}/notifications/service_flapping_notification.cc"
       "${TESTS_DIR}/notifications/service_downtime_notification_test.cc"
+      "${TESTS_DIR}/opentelemetry/grpc_config_test.cc"
+      "${TESTS_DIR}/opentelemetry/otl_server_test.cc"
       "${TESTS_DIR}/perfdata/perfdata.cc"
       "${TESTS_DIR}/retention/host.cc"
       "${TESTS_DIR}/retention/service.cc"
@@ -146,6 +152,10 @@ if(WITH_TESTING)
   add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
 
   add_executable(ut_engine ${ut_sources})
+  target_include_directories(ut_engine PRIVATE 
+    ${MODULE_DIR_OTL}/src 
+    ${CMAKE_SOURCE_DIR}/common/grpc/inc)
+
   target_precompile_headers(ut_engine REUSE_FROM cce_core)
 
   set_target_properties(
@@ -176,8 +186,13 @@ if(WITH_TESTING)
     PRIVATE -L${PROTOBUF_LIB_DIR}
             ${ENGINERPC}
             ut_engine_utils
+            "-Wl,-whole-archive"
             cce_core
             log_v2
+            opentelemetry
+            "-Wl,-no-whole-archive"
+            pb_open_telemetry_lib
+            centreon_grpc
             pthread
             ${GCOV}
             GTest::gtest
