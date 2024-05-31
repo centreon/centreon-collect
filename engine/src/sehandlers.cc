@@ -214,8 +214,10 @@ int run_global_service_event_handler(nagios_macros* mac,
     events_logger->debug(processed_logentry);
   }
 
-  if (svc->command_is_allowed_by_whitelist(processed_command,
-                                           checkable::EVH_TYPE)) {
+  static checkable::static_whitelist_last_result cached_cmd;
+
+  if (checkable::command_is_allowed_by_whitelist(processed_command,
+                                                 cached_cmd)) {
     /* run the command */
     try {
       my_system_r(mac, processed_command, config->event_handler_timeout(),
@@ -461,8 +463,9 @@ int run_global_host_event_handler(nagios_macros* mac,
     events_logger->info(processed_logentry);
   }
 
-  if (hst->command_is_allowed_by_whitelist(processed_command,
-                                           checkable::EVH_TYPE)) {
+  static checkable::static_whitelist_last_result cached_cmd;
+
+  if (host::command_is_allowed_by_whitelist(processed_command, cached_cmd)) {
     /* run the command */
     try {
       my_system_r(mac, processed_command, config->event_handler_timeout(),

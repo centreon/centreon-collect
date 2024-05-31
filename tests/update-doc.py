@@ -47,9 +47,9 @@ def complete_doc(dico, ff):
             if line.startswith("***"):
                 break
             if len(test_name) != 0 and "[Documentation]" in line:
-                in_documentation = True
                 m = r.match(line)
                 if m:
+                    in_documentation = True
                     dico[test_name] = m.group(1)
             if not line.startswith('\t') and not line.startswith("  "):
                 test_name = line.strip()

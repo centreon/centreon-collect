@@ -541,6 +541,35 @@ void checkable::set_name(const std::string& name) {
  * it tries to use last whitelist check result
  *
  * @param process_cmd final command line (macros replaced)
+ * @param cached_cmd the static cached command (in case of a cache stored
+ * in another place than in this). The cached command is writable to be updated
+ * if needed. This method should be used with care, usually the other method
+ * with the same name should be preferred.
+ * @return A boolean true if allowed, false otherwise.
+ */
+bool checkable::command_is_allowed_by_whitelist(
+    const std::string& process_cmd,
+    static_whitelist_last_result& cached_cmd) {
+  if (process_cmd == cached_cmd.command.process_cmd &&
+      configuration::whitelist::instance().instance_id() ==
+          cached_cmd.whitelist_instance_id) {
+    return cached_cmd.command.allowed;
+  }
+
+  // something has changed => call whitelist
+  cached_cmd.command.process_cmd = process_cmd;
+  cached_cmd.command.allowed =
+      configuration::whitelist::instance().is_allowed(process_cmd);
+  cached_cmd.whitelist_instance_id =
+      configuration::whitelist::instance().instance_id();
+  return cached_cmd.command.allowed;
+}
+
+/**
+ * @brief check if a command is allowed by whitelist
+ * it tries to use last whitelist check result
+ *
+ * @param process_cmd final command line (macros replaced)
  * @param typ a value among CHECK_TYPE, NOTIF_TYPE, EVH_TYPE or OBSESS_TYPE.
  * @return true allowed
  * @return false
