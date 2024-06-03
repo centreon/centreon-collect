@@ -1,6 +1,6 @@
 /**
  * Copyright 1999-2010 Ethan Galstad
- * Copyright 2011-2019 Centreon
+ * Copyright 2011-2024 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -538,7 +538,8 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     res.start_time = res.end_time;
   };
 
-  if (!hst->is_whitelist_allowed(processed_cmd)) {
+  if (!hst->command_is_allowed_by_whitelist(processed_cmd,
+                                            checkable::CHECK_TYPE)) {
     SPDLOG_LOGGER_ERROR(log_v2::commands(),
                         "host {}: this command cannot be executed because of "
                         "security restrictions on the poller. A whitelist has "

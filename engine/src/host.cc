@@ -1,5 +1,5 @@
 /**
- * Copyright 2011 - 2020 Centreon
+ * Copyright 2011 - 2024 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -1823,7 +1823,7 @@ int host::run_async_check(int check_options,
   };
 
   // allowed by whitelist?
-  if (!is_whitelist_allowed(processed_cmd)) {
+  if (!command_is_allowed_by_whitelist(processed_cmd, CHECK_TYPE)) {
     SPDLOG_LOGGER_ERROR(log_v2::commands(),
                         "host {}: this command cannot be executed because of "
                         "security restrictions on the poller. A whitelist has "
@@ -1840,8 +1840,8 @@ int host::run_async_check(int check_options,
       retry = false;
       try {
         // Run command.
-        uint64_t id = cmd->run(processed_cmd, *macros,
-                               config->host_check_timeout(), check_result_info);
+        cmd->run(processed_cmd, *macros, config->host_check_timeout(),
+                 check_result_info);
       } catch (com::centreon::exceptions::interruption const& e) {
         retry = true;
       } catch (std::exception const& e) {
@@ -2536,7 +2536,7 @@ int host::notify_contact(nagios_macros* mac,
                          int escalated) {
   std::string raw_command;
   std::string processed_command;
-  int early_timeout = false;
+  bool early_timeout = false;
   double exectime;
   struct timeval start_time, end_time;
   struct timeval method_start_time, method_end_time;
@@ -2643,17 +2643,24 @@ int host::notify_contact(nagios_macros* mac,
     }
 
     /* run the notification command */
-    try {
-      std::string out;
-      my_system_r(mac, processed_command, config->notification_timeout(),
-                  &early_timeout, &exectime, out, 0);
-    } catch (std::exception const& e) {
-      engine_logger(log_runtime_error, basic)
-          << "Error: can't execute host notification '" << cntct->get_name()
-          << "' : " << e.what();
+    if (command_is_allowed_by_whitelist(processed_command, NOTIF_TYPE)) {
+      try {
+        std::string out;
+        my_system_r(mac, processed_command, config->notification_timeout(),
+                    &early_timeout, &exectime, out, 0);
+      } catch (std::exception const& e) {
+        engine_logger(log_runtime_error, basic)
+            << "Error: can't execute host notification '" << cntct->get_name()
+            << "' : " << e.what();
+        log_v2::runtime()->error(
+            "Error: can't execute host notification '{}' : {}",
+            cntct->get_name(), e.what());
+      }
+    } else {
       log_v2::runtime()->error(
-          "Error: can't execute host notification '{}' : {}", cntct->get_name(),
-          e.what());
+          "Error: can't execute host notification for contact '{}' : it is not "
+          "allowed by the whitelist",
+          cntct->get_name());
     }
 
     /* check to see if the notification timed out */

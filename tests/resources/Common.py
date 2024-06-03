@@ -1,3 +1,24 @@
+#!/usr/bin/python3
+#
+# Copyright 2023-2024 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
+# This script is a little tcp server working on port 5669. It can simulate
+# a cbd instance. It is useful to test the validity of BBDO packets sent by
+# centengine.
 from robot.api import logger
 from subprocess import getoutput, Popen, DEVNULL
 import re
@@ -13,7 +34,6 @@ from robot.libraries.BuiltIn import BuiltIn
 from concurrent import futures
 import grpc
 import grpc_stream_pb2_grpc
-import grpc_stream_pb2
 
 
 TIMEOUT = 30
@@ -393,6 +413,10 @@ def ctn_clear_retention():
 
 def ctn_clear_cache():
     getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
+
+def ctn_clear_logs():
+    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-engine/config*")
+    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-broker")
 
 
 def ctn_engine_log_table_duplicate(result: list):

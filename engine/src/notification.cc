@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -206,7 +206,8 @@ int notification::execute(std::unordered_set<contact*> const& to_notify) {
 
   engine_logger(dbg_notifications, basic)
       << contacts_notified << " contacts were notified.";
-  log_v2::notifications()->trace(" contacts were notified.");
+  log_v2::notifications()->trace("{} contacts were notified.",
+                                 contacts_notified);
   return OK;
 }
 
