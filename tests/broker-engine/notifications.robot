@@ -50,6 +50,96 @@ not1
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+not1_WL_OK
+    [Documentation]    This test case configures a single service. When it is in non-OK HARD state
+    ...    a notification is sent because it is allowed by the whitelist
+    [Tags]    broker    engine    services    hosts    notification    whitelist    MON-103880
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Notifications
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    # create non matching file with /tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0
+    ${whitelist_content}    Catenate
+    ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/toto* * *"], "regex":["/usr/bin/true", "/tmp/var/lib/centreon-engine/check.pl .*"]}}
+    Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+    ## Time to set the service to CRITICAL HARD.
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;    my_system_r
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No notification has been sent concerning a critical service
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+not1_WL_KO
+    [Documentation]    This test case configures a single service. When it is in non-OK HARD state
+    ...    a notification should be sent but it is not allowed by the whitelist
+    [Tags]    broker    engine    services    hosts    notification    whitelist    MON-75741
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Notifications
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    # create non matching file with /tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0
+    ${whitelist_content}    Catenate
+    ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/toto* * *"], "regex":["/usr/bin/good", "/tmp/var/lib/centreon-engine/check.pl .*"]}}
+    Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+    ## Time to set the service to CRITICAL HARD.
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;    Error: can't execute service notification for contact 'John_Doe' : it is not allowed by the whitelist
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No notification has been sent concerning a critical service
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
 not2
     [Documentation]    This test case configures a single service and verifies that a recovery notification is sent
     [Tags]    broker    engine    services    hosts    notification
@@ -463,7 +553,7 @@ not9
 
 not10
     [Documentation]    This test case involves scheduling downtime on a down host that already had
-    ...    a critical notification. When The Host return to UP state we should receive a recovery
+    ...    a critical notification. When The Host returns to UP state we should receive a recovery
     ...    notification.
     [Tags]    broker    engine    host    notification
     Ctn Clear Commands Status
@@ -490,9 +580,9 @@ not10
     END
 
     Ctn Schedule Host Downtime    ${0}    host_1    ${60}
-    ${content}    Create List    Scheduled Downtime Details:     Type: Host Downtime ; Host: host_1
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
-    Should Be True    ${result}    The downtime has not be sent.
+    Should Be True    ${result}    The downtime has not been sent.
 
     Ctn Process Host Check Result    host_1    2    host_1 DOWN
 

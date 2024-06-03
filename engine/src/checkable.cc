@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2019,2022 Centreon
+ * Copyright 2011-2019,2022-2024 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -541,21 +541,52 @@ void checkable::set_name(const std::string& name) {
  * it tries to use last whitelist check result
  *
  * @param process_cmd final command line (macros replaced)
- * @return true allowed
- * @return false
+ * @param cached_cmd the static cached command (in case of a cache stored
+ * in another place than in this). The cached command is writable to be updated
+ * if needed. This method should be used with care, usually the other method
+ * with the same name should be preferred.
+ * @return A boolean true if allowed, false otherwise.
  */
-bool checkable::is_whitelist_allowed(const std::string& process_cmd) {
-  if (process_cmd == _whitelist_last_result.process_cmd &&
+bool checkable::command_is_allowed_by_whitelist(
+    const std::string& process_cmd,
+    static_whitelist_last_result& cached_cmd) {
+  if (process_cmd == cached_cmd.command.process_cmd &&
       configuration::whitelist::instance().instance_id() ==
-          _whitelist_last_result.whitelist_instance_id) {
-    return _whitelist_last_result.allowed;
+          cached_cmd.whitelist_instance_id) {
+    return cached_cmd.command.allowed;
   }
 
   // something has changed => call whitelist
-  _whitelist_last_result.process_cmd = process_cmd;
-  _whitelist_last_result.allowed =
+  cached_cmd.command.process_cmd = process_cmd;
+  cached_cmd.command.allowed =
       configuration::whitelist::instance().is_allowed(process_cmd);
+  cached_cmd.whitelist_instance_id =
+      configuration::whitelist::instance().instance_id();
+  return cached_cmd.command.allowed;
+}
+
+/**
+ * @brief check if a command is allowed by whitelist
+ * it tries to use last whitelist check result
+ *
+ * @param process_cmd final command line (macros replaced)
+ * @param typ a value among CHECK_TYPE, NOTIF_TYPE, EVH_TYPE or OBSESS_TYPE.
+ * @return true allowed
+ * @return false
+ */
+bool checkable::command_is_allowed_by_whitelist(const std::string& process_cmd,
+                                                command_type typ) {
+  auto& cmd = _whitelist_last_result.command[typ];
+  if (process_cmd == cmd.process_cmd &&
+      configuration::whitelist::instance().instance_id() ==
+          _whitelist_last_result.whitelist_instance_id) {
+    return cmd.allowed;
+  }
+
+  // something has changed => call whitelist
+  cmd.process_cmd = process_cmd;
+  cmd.allowed = configuration::whitelist::instance().is_allowed(process_cmd);
   _whitelist_last_result.whitelist_instance_id =
       configuration::whitelist::instance().instance_id();
-  return _whitelist_last_result.allowed;
+  return cmd.allowed;
 }
