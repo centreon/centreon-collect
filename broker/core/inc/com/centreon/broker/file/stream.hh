@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2015,2017, 2020-2021 Centreon
+** Copyright 2011-2015,2017, 2020-2024 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/stats/center.hh"
 
 CCB_BEGIN()
 
@@ -44,6 +45,7 @@ class stream : public io::stream {
   std::array<std::pair<int64_t, double>, 10> _stats_perc;
   size_t _stats_idx;
   size_t _stats_size;
+  std::shared_ptr<com::centreon::broker::stats::center> _center;
 
   void _update_stats();
 

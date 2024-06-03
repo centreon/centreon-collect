@@ -1,19 +1,19 @@
-/*
-** Copyright 2019-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+ * Copyright 2019-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
 */
 #include "com/centreon/broker/storage/conflict_manager.hh"
 
@@ -97,16 +97,16 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
       _max_pending_queries(dbcfg.get_queries_per_transaction()),
       _mysql{dbcfg},
       _instance_timeout{instance_timeout},
-      _stats{stats::center::instance().register_conflict_manager()},
+      _center{stats::center::instance_ptr()},
+      _stats{_center->register_conflict_manager()},
       _ref_count{0},
       _group_clean_timer{pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("conflict_manager: class instanciation");
-  stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
-                                   _stats, _loop_timeout);
-  stats::center::instance().update(
-      &ConflictManagerStats::set_max_pending_events, _stats,
-      _max_pending_queries);
+  _center->update(&ConflictManagerStats::set_loop_timeout, _stats,
+                  _loop_timeout);
+  _center->update(&ConflictManagerStats::set_max_pending_events, _stats,
+                  _max_pending_queries);
 }
 
 conflict_manager::~conflict_manager() {
@@ -674,7 +674,7 @@ void conflict_manager::_callback() {
               {
                 std::lock_guard<std::mutex> lk(_stat_m);
                 _speed = s / _stats_count.size();
-                stats::center::instance().execute(
+                _center->execute(
                     [s = this->_stats, spd = _speed] { s->set_speed(spd); });
               }
             }
@@ -855,7 +855,7 @@ void conflict_manager::_update_stats(const std::uint32_t size,
                                      const std::size_t ev_size,
                                      const std::size_t sql_size,
                                      const std::size_t stor_size) noexcept {
-  stats::center::instance().execute(
+  _center->execute(
       [s = this->_stats, size, mpdq, ev_size, sql_size, stor_size] {
         s->set_events_handled(size);
         s->set_max_perfdata_events(mpdq);
