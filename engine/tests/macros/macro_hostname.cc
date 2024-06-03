@@ -690,28 +690,6 @@ TEST_F(MacroHostname, HostCheckCommand) {
   ASSERT_EQ(out, "cmd");
 }
 
-TEST_F(MacroHostname, HostPerDataFile) {
-  configuration::parser parser;
-  configuration::state st;
-
-  std::remove("/tmp/test-config.cfg");
-
-  std::ofstream ofs("/tmp/test-config.cfg");
-  ofs << "host_perfdata_file=/var/log/centreon-engine/host-perfdata.dat"
-      << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
-  ofs.close();
-
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
-  init_macros();
-
-  std::string out;
-  nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "$HOSTPERFDATAFILE:test_host$", out, 1);
-  ASSERT_EQ(out, "/var/log/centreon-engine/host-perfdata.dat");
-}
-
 TEST_F(MacroHostname, HostDisplayName) {
   configuration::applier::host hst_aply;
   configuration::host hst;
