@@ -146,11 +146,6 @@ log_v2::log_v2(std::string name) : _log_name{std::move(name)} {
   create_loggers(config::logger_type::LOGGER_STDOUT);
 }
 
-log_v2::~log_v2() noexcept {
-  /* When log_v2 is stopped, grpc mustn't log anymore. */
-  gpr_set_log_function(nullptr);
-}
-
 /**
  * @brief Destructor.
  */
