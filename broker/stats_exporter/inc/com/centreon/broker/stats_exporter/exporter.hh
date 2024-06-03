@@ -51,6 +51,7 @@ namespace stats_exporter {
  * instrument_i64s.
  */
 class exporter {
+  std::shared_ptr<stats::center> _center;
   /**
    * @brief Class to work on ObservableGauge with double values.
    */
@@ -78,7 +79,7 @@ class exporter {
                               void* state) {
       std::function<double()> query =
           *reinterpret_cast<std::function<double()>*>(state);
-      std::lock_guard<stats::center> lck(stats::center::instance());
+      std::lock_guard<stats::center> lck(*stats::center::instance_ptr());
 
       auto observer_long =
           opentelemetry::nostd::get<opentelemetry::nostd::shared_ptr<
@@ -109,7 +110,7 @@ class exporter {
                              void* state) {
       std::function<int64_t()> query =
           *reinterpret_cast<std::function<int64_t()>*>(state);
-      std::lock_guard<stats::center> lck(stats::center::instance());
+      std::lock_guard<stats::center> lck(*stats::center::instance_ptr());
 
       auto observer_long =
           opentelemetry::nostd::get<opentelemetry::nostd::shared_ptr<
