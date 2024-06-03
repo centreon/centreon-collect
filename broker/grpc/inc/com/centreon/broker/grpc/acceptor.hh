@@ -32,7 +32,7 @@ namespace com::centreon::broker::grpc {
  *
  */
 class service_impl
-    : public com::centreon::broker::stream::centreon_bbdo::CallbackService,
+    : public com::centreon::broker::stream::centreon_bbdo::Service,
       public std::enable_shared_from_this<service_impl> {
   grpc_config::pointer _conf;
 
@@ -45,9 +45,22 @@ class service_impl
  public:
   service_impl(const grpc_config::pointer& conf);
 
+  void init();
+
+  // disable synchronous version of this method
+  ::grpc::Status exchange(
+      ::grpc::ServerContext* /*context*/,
+      ::grpc::ServerReaderWriter<
+          ::com::centreon::broker::stream::CentreonEvent,
+          ::com::centreon::broker::stream::CentreonEvent>* /*stream*/)
+      override {
+    abort();
+    return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+  }
+
   ::grpc::ServerBidiReactor<::com::centreon::broker::stream::CentreonEvent,
                             ::com::centreon::broker::stream::CentreonEvent>*
-  exchange(::grpc::CallbackServerContext* context) override;
+  exchange(::grpc::CallbackServerContext* context);
 
   const grpc_config::pointer& get_conf() const { return _conf; }
 
