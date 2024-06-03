@@ -1,22 +1,22 @@
 /**
  * Copyright 2011-2014 Merethis
+ * Copyright 2015-2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
+ *
  */
-
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/configuration/anomalydetection.hh"
 #include "com/centreon/engine/configuration/command.hh"
@@ -36,11 +36,11 @@
 #include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
-#include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/string.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
   &object::setter<object, type, &object::method>::generic
@@ -223,7 +223,7 @@ void object::resolve_template(map_object& templates) {
   for (std::string& s : _templates) {
     map_object::iterator tmpl = templates.find(s);
     if (tmpl == templates.end())
-      throw engine_error() << "Cannot merge object of type '" << s << "'";
+      throw msg_fmt("Cannot merge object of type '{}'", s);
     tmpl->second->resolve_template(templates);
     merge(*tmpl->second);
   }
@@ -268,7 +268,9 @@ std::string const& object::type_name() const noexcept {
                                     "serviceextinfo",
                                     "servicegroup",
                                     "timeperiod",
-                                    "anomalydetection"};
+                                    "anomalydetection",
+                                    "severity",
+                                    "tag"};
   return tab[_type];
 }
 
@@ -305,6 +307,6 @@ bool object::_set_should_register(bool value) {
  */
 bool object::_set_templates(std::string const& value) {
   _templates.clear();
-  string::split(value, _templates, ',');
+  _templates = absl::StrSplit(value, ',');
   return true;
 }

@@ -1,22 +1,21 @@
 /**
- * Copyright 2011-2013,2017 Centreon
+ * Copyright 2011-2013,2017-2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
+ *
  */
-
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
@@ -29,24 +28,12 @@
 using namespace com::centreon::engine::configuration;
 
 /**
- *  Default constructor.
- */
-applier::connector::connector() {}
-
-/**
- *  Destructor.
- */
-applier::connector::~connector() noexcept {}
-
-/**
  *  Add new connector.
  *
  *  @param[in] obj  The new connector to add into the monitoring engine.
  */
 void applier::connector::add_object(configuration::connector const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new connector '" << obj.connector_name() << "'.";
   config_logger->debug("Creating new connector '{}'.", obj.connector_name());
 
   // Expand command line.
@@ -65,26 +52,12 @@ void applier::connector::add_object(configuration::connector const& obj) {
 }
 
 /**
- *  @brief Expand connector.
- *
- *  Connector configuration objects do not need expansion. Therefore
- *  this method only copy obj to expanded.
- *
- *  @param[in] s  Unused.
- */
-void applier::connector::expand_objects(configuration::state& s) {
-  (void)s;
-}
-
-/**
  *  Modify connector.
  *
  *  @param[in] obj  The connector to modify in the monitoring engine.
  */
 void applier::connector::modify_object(configuration::connector const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Modifying connector '" << obj.connector_name() << "'.";
   config_logger->debug("Modifying connector '{}'.", obj.connector_name());
 
   // Find old configuration.
@@ -124,8 +97,6 @@ void applier::connector::modify_object(configuration::connector const& obj) {
  */
 void applier::connector::remove_object(configuration::connector const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing connector '" << obj.connector_name() << "'.";
   config_logger->debug("Removing connector '{}'.", obj.connector_name());
 
   // Find connector.
@@ -140,6 +111,18 @@ void applier::connector::remove_object(configuration::connector const& obj) {
 }
 
 /**
+ *  @brief Expand connector.
+ *
+ *  Connector configuration objects do not need expansion. Therefore
+ *  this method only copy obj to expanded.
+ *
+ *  @param[in] s  Unused.
+ */
+void applier::connector::expand_objects(configuration::state& s) {
+  (void)s;
+}
+
+/**
  *  @brief Resolve a connector.
  *
  *  Connector objects do not need resolution. Therefore this method does
@@ -147,6 +130,5 @@ void applier::connector::remove_object(configuration::connector const& obj) {
  *
  *  @param[in] obj Unused.
  */
-void applier::connector::resolve_object(configuration::connector const& obj) {
-  (void)obj;
-}
+void applier::connector::resolve_object(const configuration::connector& obj
+                                        [[maybe_unused]]) {}

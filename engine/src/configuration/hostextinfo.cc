@@ -1,25 +1,25 @@
 /**
-* Copyright 2011-2013 Merethis
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+ * Copyright 2011-2013 Merethis
+ * Copyright 2014-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #include "com/centreon/engine/configuration/hostextinfo.hh"
+#include <absl/strings/numbers.h>
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
@@ -296,18 +296,14 @@ bool hostextinfo::_set_action_url(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool hostextinfo::_set_coords_2d(std::string const& value) {
-  std::list<std::string> coords;
-  string::split(value, coords, ',');
+  std::list<std::string_view> coords = absl::StrSplit(value, ',');
   if (coords.size() != 2)
     return false;
 
-  int x;
-  if (!string::to(string::trim(coords.front()).c_str(), x))
+  int32_t x, y;
+  if (!absl::SimpleAtoi(coords.front(), &x))
     return false;
-  coords.pop_front();
-
-  int y;
-  if (!string::to(string::trim(coords.front()).c_str(), y))
+  if (!absl::SimpleAtoi(coords.back(), &y))
     return false;
 
   _coords_2d = point_2d(x, y);
@@ -322,23 +318,19 @@ bool hostextinfo::_set_coords_2d(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool hostextinfo::_set_coords_3d(std::string const& value) {
-  std::list<std::string> coords;
-  string::split(value, coords, ',');
+  std::list<std::string_view> coords = absl::StrSplit(value, ',');
   if (coords.size() != 3)
     return false;
 
-  double x;
-  if (!string::to(string::trim(coords.front()).c_str(), x))
+  int32_t x, y, z;
+  auto it = coords.begin();
+  if (!absl::SimpleAtoi(*it, &x))
     return false;
-  coords.pop_front();
-
-  double y;
-  if (!string::to(string::trim(coords.front()).c_str(), y))
+  ++it;
+  if (!absl::SimpleAtoi(*it, &y))
     return false;
-  coords.pop_front();
-
-  double z;
-  if (!string::to(string::trim(coords.front()).c_str(), z))
+  ++it;
+  if (!absl::SimpleAtoi(*it, &z))
     return false;
 
   _coords_3d = point_3d(x, y, z);
