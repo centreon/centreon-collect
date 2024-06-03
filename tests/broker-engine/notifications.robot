@@ -739,7 +739,6 @@ not12
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The first notification of U3 is not sent
 
-    ${start}    Get Round Current Date
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
     Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
 
