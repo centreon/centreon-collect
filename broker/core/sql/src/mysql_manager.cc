@@ -1,20 +1,20 @@
 /**
-* Copyright 2018 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2018 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #include "com/centreon/broker/sql/mysql_manager.hh"
 
 #include "com/centreon/broker/log_v2.hh"
@@ -57,7 +57,9 @@ void mysql_manager::unload() {
 /**
  *  The default constructor
  */
-mysql_manager::mysql_manager() : _stats_connections_timestamp(time(nullptr)) {
+mysql_manager::mysql_manager()
+    : _stats_connections_timestamp(time(nullptr)),
+      _center{stats::center::instance_ptr()} {
   log_v2::sql()->trace("mysql_manager instanciation");
 }
 
@@ -118,12 +120,12 @@ std::vector<std::shared_ptr<mysql_connection>> mysql_manager::get_connections(
 
     // We are still missing threads in the configuration to return
     while (retval.size() < connection_count) {
-      SqlConnectionStats* s = stats::center::instance().add_connection();
+      SqlConnectionStats* s = _center->add_connection();
       std::shared_ptr<mysql_connection> c;
       try {
         c = std::make_shared<mysql_connection>(db_cfg, s);
       } catch (const std::exception& e) {
-        stats::center::instance().remove_connection(s);
+        _center->remove_connection(s);
         throw;
       }
       _connection.push_back(c);

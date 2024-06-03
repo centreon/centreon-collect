@@ -82,6 +82,7 @@ class engine {
   std::vector<std::weak_ptr<muxer>> _muxers;
 
   // Statistics.
+  std::shared_ptr<stats::center> _center;
   EngineStats* _stats;
   uint32_t _unprocessed_events;
 

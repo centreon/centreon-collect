@@ -71,6 +71,7 @@ class muxer : public io::stream {
   std::list<std::shared_ptr<io::data>> _events;
   size_t _events_size;
   std::list<std::shared_ptr<io::data>>::iterator _pos;
+  std::shared_ptr<stats::center> _center;
   std::time_t _last_stats;
 
   static std::mutex _running_muxers_m;

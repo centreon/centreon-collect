@@ -195,11 +195,12 @@ grpc::Status broker_impl::GetSqlManagerStats(grpc::ServerContext* context
                                              __attribute__((unused)),
                                              const SqlConnection* request,
                                              SqlManagerStats* response) {
+  auto center = stats::center::instance_ptr();
   if (!request->has_id())
-    stats::center::instance().get_sql_manager_stats(response);
+    center->get_sql_manager_stats(response);
   else {
     try {
-      stats::center::instance().get_sql_manager_stats(response, request->id());
+      center->get_sql_manager_stats(response, request->id());
     } catch (const std::exception& e) {
       return grpc::Status(grpc::StatusCode::NOT_FOUND, e.what());
     }
@@ -225,7 +226,8 @@ grpc::Status broker_impl::GetConflictManagerStats(
     grpc::ServerContext* context __attribute__((unused)),
     const ::google::protobuf::Empty* request __attribute__((unused)),
     ConflictManagerStats* response) {
-  stats::center::instance().get_conflict_manager_stats(response);
+  auto center = stats::center::instance_ptr();
+  center->get_conflict_manager_stats(response);
   return grpc::Status::OK;
 }
 
@@ -234,7 +236,8 @@ grpc::Status broker_impl::GetMuxerStats(grpc::ServerContext* context
                                         const GenericString* request,
                                         MuxerStats* response) {
   const std::string name = request->str_arg();
-  bool status = stats::center::instance().muxer_stats(name, response);
+  auto center = stats::center::instance_ptr();
+  bool status = center->muxer_stats(name, response);
   return status ? grpc::Status::OK
                 : grpc::Status(
                       grpc::StatusCode::NOT_FOUND,
@@ -291,7 +294,8 @@ grpc::Status broker_impl::GetProcessingStats(
     grpc::ServerContext* context [[maybe_unused]],
     const ::google::protobuf::Empty* request [[maybe_unused]],
     ::ProcessingStats* response) {
-  stats::center::instance().get_processing_stats(response);
+  auto center = stats::center::instance_ptr();
+  center->get_processing_stats(response);
   return grpc::Status::OK;
 }
 

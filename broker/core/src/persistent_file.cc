@@ -52,7 +52,7 @@ persistent_file::persistent_file(const std::string& path, QueueFileStats* stats)
   // Set stream.
   io::stream::set_substream(bs);
   if (stats)
-    stats::center::instance().execute(
+    stats::center::instance_ptr()->execute(
         [path, stats, max_file_size = _splitter->max_file_size()] {
           stats->set_name(path);
           stats->set_max_file_size(max_file_size);
