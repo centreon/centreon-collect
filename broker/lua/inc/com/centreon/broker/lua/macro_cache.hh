@@ -1,20 +1,20 @@
-/*
-** Copyright 2018-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2018-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_LUA_MACRO_CACHE_HH
 #define CCB_LUA_MACRO_CACHE_HH
@@ -116,6 +116,7 @@ class macro_cache {
   void _process_pb_instance(std::shared_ptr<io::data> const& data);
   void _process_host(std::shared_ptr<io::data> const& data);
   void _process_pb_host(std::shared_ptr<io::data> const& data);
+  void _process_pb_host_status(std::shared_ptr<io::data> const& data);
   void _process_pb_adaptive_host(std::shared_ptr<io::data> const& data);
   void _process_host_group(std::shared_ptr<io::data> const& data);
   void _process_pb_host_group(std::shared_ptr<io::data> const& data);
@@ -125,6 +126,7 @@ class macro_cache {
   void _process_pb_custom_variable(std::shared_ptr<io::data> const& data);
   void _process_service(std::shared_ptr<io::data> const& data);
   void _process_pb_service(std::shared_ptr<io::data> const& data);
+  void _process_pb_service_status(std::shared_ptr<io::data> const& data);
   void _process_pb_adaptive_service(std::shared_ptr<io::data> const& data);
   void _process_service_group(std::shared_ptr<io::data> const& data);
   void _process_pb_service_group(std::shared_ptr<io::data> const& data);
@@ -145,6 +147,6 @@ class macro_cache {
 };
 }  // namespace lua
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_LUA_MACRO_CACHE_HH
