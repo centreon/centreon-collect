@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2023 Centreon
+ * Copyright 2022-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -147,11 +147,10 @@ log_v2::log_v2(std::string name) : _log_name{std::move(name)} {
 }
 
 /**
- * @brief Destroy the log v2::log v2 object
- *
+ * @brief Destructor.
  */
 log_v2::~log_v2() noexcept {
-  // grpc_logger mustn't be called after log_v2 destruction
+  /* When log_v2 is stopped, grpc mustn't log anymore. */
   gpr_set_log_function(nullptr);
 }
 

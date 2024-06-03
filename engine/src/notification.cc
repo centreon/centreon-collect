@@ -206,7 +206,7 @@ int notification::execute(std::unordered_set<contact*> const& to_notify) {
 
   engine_logger(dbg_notifications, basic)
       << contacts_notified << " contacts were notified.";
-  notifications_logger->trace(" contacts were notified.");
+  notifications_logger->trace("{} contacts were notified.", contacts_notified);
   return OK;
 }
 

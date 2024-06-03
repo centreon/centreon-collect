@@ -42,6 +42,95 @@ class checkable {
 
   enum state_type { soft, hard };
 
+ private:
+  /**
+   * @brief we store in this struct the last result of whitelist
+   * check in order to not check command line each time
+   *
+   */
+  struct command_allowed {
+    std::string process_cmd;
+    bool allowed;
+  };
+
+  struct whitelist_last_result {
+    unsigned whitelist_instance_id;
+    /* We need a command for each type of command */
+    std::array<command_allowed, 4> command;
+  };
+
+  std::string _name;
+  std::string _display_name;
+  std::string _check_command;
+  uint32_t _check_interval;
+  uint32_t _retry_interval;
+  int _max_attempts;
+  std::string _check_period;
+  std::string _event_handler;
+  bool _event_handler_enabled;
+  std::string _action_url;
+  std::string _icon_image;
+  std::string _icon_image_alt;
+  std::string _notes;
+  std::string _notes_url;
+  std::string _plugin_output;
+  std::string _long_plugin_output;
+  std::string _perf_data;
+  bool _flap_detection_enabled;
+  double _low_flap_threshold;
+  double _high_flap_threshold;
+  bool _obsess_over;
+  std::string _timezone;
+  bool _checks_enabled;
+  bool _accept_passive_checks;
+  bool _check_freshness;
+  int _freshness_threshold;
+  check_type _check_type;
+  int _current_attempt;
+  bool _has_been_checked;
+  int _scheduled_downtime_depth;
+  double _execution_time;
+  bool _is_flapping;
+  int _last_check;
+  double _latency;
+  std::time_t _next_check;
+  bool _should_be_scheduled;
+  uint32_t _state_history_index;
+  std::time_t _last_state_change;
+  std::time_t _last_hard_state_change;
+  enum state_type _state_type;
+  double _percent_state_change;
+  commands::command* _event_handler_ptr;
+  std::shared_ptr<commands::command> _check_command_ptr;
+  bool _is_executing;
+  std::shared_ptr<severity> _severity;
+  uint64_t _icon_id;
+  std::forward_list<std::shared_ptr<tag>> _tags;
+
+  // whitelist cache
+  whitelist_last_result _whitelist_last_result;
+
+ public:
+  /**
+   * This structure is used by the static command_is_allowed_by_whitelist()
+   * method. You have to maintain your own following structure and use it with
+   * the static method. */
+  struct static_whitelist_last_result {
+    unsigned whitelist_instance_id;
+    /* We need a command for each type of command */
+    command_allowed command;
+  };
+
+  /* This enum is used to store the whitelist cache. A checkable can execute
+   * all the following types of command, so for each one, we store if the
+   * whitelist allows it or not. */
+  enum command_type {
+    CHECK_TYPE = 0,
+    NOTIF_TYPE = 1,
+    EVH_TYPE = 2,
+    OBSESS_TYPE = 3,
+  };
+
   checkable(const std::string& name,
             std::string const& display_name,
             std::string const& check_command,
@@ -172,73 +261,13 @@ class checkable {
   std::forward_list<std::shared_ptr<tag>>& mut_tags();
   const std::forward_list<std::shared_ptr<tag>>& tags() const;
 
-  bool is_whitelist_allowed(const std::string& process_cmd);
+  bool command_is_allowed_by_whitelist(const std::string& process_cmd,
+                                       command_type typ);
+  static bool command_is_allowed_by_whitelist(
+      const std::string& process_cmd,
+      static_whitelist_last_result& cached_cmd);
 
   timeperiod* check_period_ptr;
-
- private:
-  /**
-   * @brief we store in this struct the last result of whitelist
-   * check in order to not check command line each time
-   *
-   */
-  struct whitelist_last_result {
-    whitelist_last_result() : whitelist_instance_id(0), allowed(false) {}
-    unsigned whitelist_instance_id;
-    std::string process_cmd;
-    bool allowed;
-  };
-
-  std::string _name;
-  std::string _display_name;
-  std::string _check_command;
-  uint32_t _check_interval;
-  uint32_t _retry_interval;
-  int _max_attempts;
-  std::string _check_period;
-  std::string _event_handler;
-  bool _event_handler_enabled;
-  std::string _action_url;
-  std::string _icon_image;
-  std::string _icon_image_alt;
-  std::string _notes;
-  std::string _notes_url;
-  std::string _plugin_output;
-  std::string _long_plugin_output;
-  std::string _perf_data;
-  bool _flap_detection_enabled;
-  double _low_flap_threshold;
-  double _high_flap_threshold;
-  bool _obsess_over;
-  std::string _timezone;
-  bool _checks_enabled;
-  bool _accept_passive_checks;
-  bool _check_freshness;
-  int _freshness_threshold;
-  check_type _check_type;
-  int _current_attempt;
-  bool _has_been_checked;
-  int _scheduled_downtime_depth;
-  double _execution_time;
-  bool _is_flapping;
-  int _last_check;
-  double _latency;
-  std::time_t _next_check;
-  bool _should_be_scheduled;
-  uint32_t _state_history_index;
-  std::time_t _last_state_change;
-  std::time_t _last_hard_state_change;
-  enum state_type _state_type;
-  double _percent_state_change;
-  commands::command* _event_handler_ptr;
-  std::shared_ptr<commands::command> _check_command_ptr;
-  bool _is_executing;
-  std::shared_ptr<severity> _severity;
-  uint64_t _icon_id;
-  std::forward_list<std::shared_ptr<tag>> _tags;
-
-  // whitelist cache
-  whitelist_last_result _whitelist_last_result;
 };
 
 }  // namespace com::centreon::engine

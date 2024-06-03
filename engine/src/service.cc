@@ -22,6 +22,7 @@
 #include <absl/strings/match.h>
 
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
@@ -2268,7 +2269,7 @@ int service::obsessive_compulsive_service_check_processor() {
   std::string raw_command;
   std::string processed_command;
   host* temp_host{get_host_ptr()};
-  int early_timeout = false;
+  bool early_timeout = false;
   double exectime = 0.0;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
   nagios_macros* mac(get_global_macros());
@@ -2328,26 +2329,33 @@ int service::obsessive_compulsive_service_check_processor() {
                       "processor command line: {}",
                       processed_command);
 
-  /* run the command */
-  try {
-    std::string tmp;
-    my_system_r(mac, processed_command, config->ocsp_timeout(), &early_timeout,
-                &exectime, tmp, 0);
-  } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: can't execute compulsive service processor command line '"
-        << processed_command << "' : " << e.what();
-    SPDLOG_LOGGER_ERROR(
-        runtime_logger,
+  if (command_is_allowed_by_whitelist(processed_command, OBSESS_TYPE)) {
+    /* run the command */
+    try {
+      std::string tmp;
+      my_system_r(mac, processed_command, config->ocsp_timeout(),
+                  &early_timeout, &exectime, tmp, 0);
+    } catch (std::exception const& e) {
+      engine_logger(log_runtime_error, basic)
+          << "Error: can't execute compulsive service processor command line '"
+          << processed_command << "' : " << e.what();
+      SPDLOG_LOGGER_ERROR(runtime_logger,
+                          "Error: can't execute compulsive service processor "
+                          "command line '{}' : "
+                          "{}",
+                          processed_command, e.what());
+    }
+  } else {
+    runtime_logger->error(
         "Error: can't execute compulsive service processor command line '{}' : "
-        "{}",
-        processed_command, e.what());
+        "it is not allowed by the whitelist",
+        processed_command);
   }
 
   clear_volatile_macros_r(mac);
 
   /* check to see if the command timed out */
-  if (early_timeout == true)
+  if (early_timeout)
     engine_logger(log_runtime_warning, basic)
         << "Warning: OCSP command '" << processed_command << "' for service '"
         << name() << "' on host '" << _hostname << "' timed out after "
@@ -2669,7 +2677,7 @@ int service::run_async_check_local(int check_options,
   };
 
   // allowed by whitelist?
-  if (!is_whitelist_allowed(processed_cmd)) {
+  if (!command_is_allowed_by_whitelist(processed_cmd, CHECK_TYPE)) {
     SPDLOG_LOGGER_ERROR(
         commands_logger,
         "service {}: this command cannot be executed because of "
@@ -3153,7 +3161,7 @@ int service::notify_contact(nagios_macros* mac,
                             int escalated) {
   std::string raw_command;
   std::string processed_command;
-  int early_timeout = false;
+  bool early_timeout = false;
   double exectime;
   struct timeval start_time, end_time;
   struct timeval method_start_time, method_end_time;
@@ -3259,17 +3267,25 @@ int service::notify_contact(nagios_macros* mac,
     }
 
     /* run the notification command */
-    try {
-      std::string tmp;
-      my_system_r(mac, processed_command, config->notification_timeout(),
-                  &early_timeout, &exectime, tmp, 0);
-    } catch (std::exception const& e) {
-      engine_logger(log_runtime_error, basic)
-          << "Error: can't execute service notification '" << cntct->get_name()
-          << "' : " << e.what();
+    if (command_is_allowed_by_whitelist(processed_command, NOTIF_TYPE)) {
+      try {
+        std::string tmp;
+        my_system_r(mac, processed_command, config->notification_timeout(),
+                    &early_timeout, &exectime, tmp, 0);
+      } catch (std::exception const& e) {
+        engine_logger(log_runtime_error, basic)
+            << "Error: can't execute service notification for contact '"
+            << cntct->get_name() << "' : " << e.what();
+        SPDLOG_LOGGER_ERROR(
+            runtime_logger,
+            "Error: can't execute service notification for contact '{}': {}",
+            cntct->get_name(), e.what());
+      }
+    } else {
       SPDLOG_LOGGER_ERROR(runtime_logger,
-                          "Error: can't execute service notification '{}' : {}",
-                          cntct->get_name(), e.what());
+                          "Error: can't execute service notification for "
+                          "contact '{}' : it is not allowed by the whitelist",
+                          cntct->get_name());
     }
 
     /* check to see if the notification command timed out */
