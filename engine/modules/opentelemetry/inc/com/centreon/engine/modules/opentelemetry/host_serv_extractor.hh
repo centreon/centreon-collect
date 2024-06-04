@@ -1,20 +1,20 @@
-/*
-** Copyright 2024 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCE_MOD_OTL_SERVER_HOST_SERV_EXTRACTOR_HH
 #define CCE_MOD_OTL_SERVER_HOST_SERV_EXTRACTOR_HH
@@ -67,6 +67,46 @@ host_serv_metric host_serv_extractor::is_allowed(
   return _host_serv_list->is_allowed(hosts, services);
 }
 
+/**
+ * @brief this class try to find host service in opentelemetry attributes object
+ * It may search in data resource attributes, scope attributes or data_point
+ * attributes
+ * An example of telegraf otel data:
+ * @code {.json}
+ *   "dataPoints": [
+ *     {
+ *         "timeUnixNano": "1707744430000000000",
+ *         "asDouble": 500,
+ *         "attributes": [
+ *             {
+ *                 "key": "unit",
+ *                 "value": {
+ *                     "stringValue": "ms"
+ *                 }
+ *             },
+ *             {
+ *                 "key": "host",
+ *                 "value": {
+ *                     "stringValue": "localhost"
+ *                 }
+ *             },
+ *             {
+ *                 "key": "perfdata",
+ *                 "value": {
+ *                     "stringValue": "rta"
+ *                 }
+ *             },
+ *             {
+ *                 "key": "service",
+ *                 "value": {
+ *                     "stringValue": "check_icmp"
+ *                 }
+ *             }
+ *         ]
+ *     },
+ * @endcode
+ *
+ */
 class host_serv_attributes_extractor : public host_serv_extractor {
   enum class attribute_owner { resource, scope, data_point };
   attribute_owner _host_path;

@@ -34,13 +34,11 @@ class state;
 
 namespace applier {
 class command {
-  void _create_command(const configuration::command& conf_obj);
-
  public:
   command();
 
-  command(command const& right) = delete;
-  command& operator=(command const& right) = delete;
+  command(command const&) = delete;
+  command& operator=(command const&) = delete;
 
   ~command() throw();
 

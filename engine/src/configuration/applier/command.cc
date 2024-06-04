@@ -43,11 +43,18 @@ applier::command::command() {}
 applier::command::~command() throw() {}
 
 /**
- * @brief create a raw command or a forward command if connector is configured
+ *  Add new command.
  *
- * @param obj
+ *  @param[in] obj  The new command to add into the monitoring engine.
  */
-void applier::command::_create_command(const configuration::command& obj) {
+void applier::command::add_object(configuration::command const& obj) {
+  // Logging.
+  engine_logger(logging::dbg_config, logging::more)
+      << "Creating new command '" << obj.command_name() << "'.";
+  config_logger->debug("Creating new command '{}'.", obj.command_name());
+
+  // Add command to the global configuration set.
+  config->commands().insert(obj);
   if (obj.connector().empty()) {
     std::shared_ptr<commands::raw> raw = std::make_shared<commands::raw>(
         obj.command_name(), obj.command_line(), &checks::checker::instance());
@@ -77,22 +84,6 @@ void applier::command::_create_command(const configuration::command& obj) {
       }
     }
   }
-}
-
-/**
- *  Add new command.
- *
- *  @param[in] obj  The new command to add into the monitoring engine.
- */
-void applier::command::add_object(configuration::command const& obj) {
-  // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new command '" << obj.command_name() << "'.";
-  config_logger->debug("Creating new command '{}'.", obj.command_name());
-
-  // Add command to the global configuration set.
-  config->commands().insert(obj);
-  _create_command(obj);
 }
 
 /**

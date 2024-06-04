@@ -24,12 +24,20 @@
 namespace com::centreon::engine::modules::opentelemetry {
 
 /**
- * @brief This class is a map host_serv -> map metric -> data_point_fifo
+ * @brief This class is a
+ * map host_serv -> map metric -> data_point_fifo (list of data_points)
  *
  */
 class data_point_fifo_container {
  public:
  private:
+  /**
+   * @brief
+   * metrics are ordered like this:
+   * <host, serv> => metric1 => data_points list
+   *              => metric2 => data_points list
+   *
+   */
   using host_serv_to_metrics = absl::flat_hash_map<host_serv,
                                                    metric_name_to_fifo,
                                                    host_serv_hash_eq,

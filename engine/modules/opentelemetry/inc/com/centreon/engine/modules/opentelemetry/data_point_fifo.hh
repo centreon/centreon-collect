@@ -29,6 +29,12 @@ namespace com::centreon::engine::modules::opentelemetry {
  */
 class data_point_fifo {
   struct time_unix_nano_compare {
+    /**
+     * @brief mandatory for heterogenous search (abseil or standard associative
+     * (C++20))
+     * https://en.cppreference.com/w/cpp/utility/functional
+     *
+     */
     using is_transparent = void;
     bool operator()(const data_point& left, const data_point& right) const {
       return left.get_nano_timestamp() < right.get_nano_timestamp();

@@ -27,7 +27,7 @@ namespace com::centreon::engine {
 namespace commands {
 class command;
 }
-}
+}  // namespace com::centreon::engine
 
 typedef std::unordered_map<
     std::string,
@@ -115,7 +115,11 @@ class command {
                    result& res) = 0;
 
   /**
-   * @brief notify a command of host service owner
+   * @brief connector and host serv extractor share a list of host serv witch is
+   * updated by this method and unregister_host_serv
+   * This method add an entry in this list
+   * Command is the only thing that hosts and service knows.
+   * So we use it to update host serv list used by host serv extractors
    *
    * @param host
    * @param service_description empty for host command
@@ -124,7 +128,8 @@ class command {
                                   const std::string& service_description){};
 
   /**
-   * @brief notify a command that a service is not using it anymore
+   * @brief Remove an entry for host serv list shared between this connector and
+   * host serv extractor
    *
    * @param host
    * @param service_description empty for host command

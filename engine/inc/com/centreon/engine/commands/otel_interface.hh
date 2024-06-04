@@ -57,7 +57,7 @@ struct host_serv_metric {
  */
 class host_serv_list {
   absl::flat_hash_map<std::string, absl::flat_hash_set<std::string>> _data;
-  mutable std::mutex _data_m;
+  mutable absl::Mutex _data_m;
 
  public:
   using pointer = std::shared_ptr<host_serv_list>;
@@ -79,7 +79,7 @@ template <typename host_set, typename service_set>
 host_serv_metric host_serv_list::is_allowed(const host_set& hosts,
                                             const service_set& services) const {
   host_serv_metric ret;
-  std::lock_guard l(_data_m);
+  absl::ReaderMutexLock l(&_data_m);
   for (const auto& host : hosts) {
     auto host_search = _data.find(host);
     if (host_search != _data.end()) {
@@ -103,8 +103,8 @@ host_serv_metric host_serv_list::is_allowed(const host_set& hosts,
 
 /**
  * @brief When we receive an opentelemetry metric, we have to extract host and
- * service name in order to convert ti in check_result This is the job of the
- * daughters of this class
+ * service name in order to convert it in check_result.
+ *  This is the job of the daughters of this class
  *
  */
 class host_serv_extractor {
