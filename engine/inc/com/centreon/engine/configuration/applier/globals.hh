@@ -34,17 +34,19 @@ namespace applier {
  *  Simple configuration applier for globals class.
  */
 class globals {
+  /**
+   *  Default constructor.
+   */
+  globals() = default;
+  globals(globals const&) = delete;
+  ~globals() noexcept;
+  globals& operator=(globals const&) = delete;
+  void _set_global(char*& property, std::string const& value);
+
  public:
   void apply(configuration::state& globals);
   static globals& instance();
   void clear();
-
- private:
-  globals();
-  globals(globals const&);
-  ~globals() throw();
-  globals& operator=(globals const&);
-  void _set_global(char*& property, std::string const& value);
 };
 }  // namespace applier
 }  // namespace configuration

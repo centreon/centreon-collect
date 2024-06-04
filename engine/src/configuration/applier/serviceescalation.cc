@@ -26,16 +26,6 @@
 using namespace com::centreon::engine::configuration;
 
 /**
- *  Default constructor.
- */
-applier::serviceescalation::serviceescalation() {}
-
-/**
- *  Destructor.
- */
-applier::serviceescalation::~serviceescalation() throw() {}
-
-/**
  *  Add new service escalation.
  *
  *  @param[in] obj  The new service escalation to add into the

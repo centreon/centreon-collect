@@ -28,16 +28,6 @@
 using namespace com::centreon::engine::configuration;
 
 /**
- *  Default constructor.
- */
-applier::connector::connector() {}
-
-/**
- *  Destructor.
- */
-applier::connector::~connector() noexcept {}
-
-/**
  *  Add new connector.
  *
  *  @param[in] obj  The new connector to add into the monitoring engine.

@@ -48,39 +48,6 @@ class servicegroup_name_comparator {
 };
 
 /**
- *  Default constructor.
- */
-applier::anomalydetection::anomalydetection() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-applier::anomalydetection::anomalydetection(
-    applier::anomalydetection const& right) {
-  (void)right;
-}
-
-/**
- *  Destructor.
- */
-applier::anomalydetection::~anomalydetection() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-applier::anomalydetection& applier::anomalydetection::operator=(
-    applier::anomalydetection const& right) {
-  (void)right;
-  return *this;
-}
-
-/**
  *  Add new anomalydetection.
  *
  *  @param[in] obj  The new anomalydetection to add into the monitoring engine.

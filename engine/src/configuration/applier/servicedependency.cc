@@ -30,16 +30,6 @@
 using namespace com::centreon::engine::configuration;
 
 /**
- *  Default constructor.
- */
-applier::servicedependency::servicedependency() {}
-
-/**
- *  Destructor.
- */
-applier::servicedependency::~servicedependency() throw() {}
-
-/**
  *  Add new service dependency.
  *
  *  @param[in] obj  The new servicedependency to add into the monitoring

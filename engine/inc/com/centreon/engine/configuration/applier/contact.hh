@@ -30,17 +30,23 @@ class state;
 namespace applier {
 class contact {
  public:
-  contact();
-  ~contact() throw();
-  void add_object(configuration::contact const& obj);
-  void expand_objects(configuration::state& s);
-  void modify_object(configuration::contact const& obj);
-  void remove_object(configuration::contact const& obj);
-  void resolve_object(configuration::contact const& obj);
+  /**
+   * @brief Default constructor.
+   */
+  contact() = default;
 
- private:
-  contact(contact const& right);
-  contact& operator=(contact const& right);
+  /**
+   * @brief Destructor
+   */
+  ~contact() noexcept = default;
+  contact(contact const&) = delete;
+  contact& operator=(const contact&) = delete;
+
+  void add_object(const configuration::contact& obj);
+  void modify_object(const configuration::contact& obj);
+  void remove_object(const configuration::contact& obj);
+  void expand_objects(configuration::state& s);
+  void resolve_object(const configuration::contact& obj);
 };
 }  // namespace applier
 }  // namespace configuration

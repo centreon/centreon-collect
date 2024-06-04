@@ -30,38 +30,6 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
 
 /**
- *  Default constructor.
- */
-applier::contactgroup::contactgroup() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-applier::contactgroup::contactgroup(applier::contactgroup const& right) {
-  (void)right;
-}
-
-/**
- *  Destructor.
- */
-applier::contactgroup::~contactgroup() throw() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-applier::contactgroup& applier::contactgroup::operator=(
-    applier::contactgroup const& right) {
-  (void)right;
-  return (*this);
-}
-
-/**
  *  Add new contactgroup
  *
  *  @param[in] obj  The new contactgroup to add into the monitoring engine.

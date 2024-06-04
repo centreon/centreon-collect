@@ -48,29 +48,6 @@ class contactgroup_name_comparator {
 };
 
 /**
- *  Default constructor.
- */
-applier::contact::contact() {}
-
-/**
- *  Destructor.
- */
-applier::contact::~contact() throw() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-// applier::contact& applier::contact::operator=(
-//                                      applier::contact const& right) {
-//  (void)right;
-//  return *this;
-//}
-
-/**
  *  Add new contact.
  *
  *  @param[in] obj  The new contact to add into the monitoring engine.

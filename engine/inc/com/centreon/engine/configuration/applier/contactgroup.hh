@@ -30,26 +30,31 @@ class state;
 
 namespace applier {
 class contactgroup {
- public:
-  contactgroup();
-  contactgroup(contactgroup const& right);
-  ~contactgroup() throw();
-  contactgroup& operator=(contactgroup const& right);
-  void add_object(configuration::contactgroup const& obj);
-  void expand_objects(configuration::state& s);
-  void modify_object(configuration::contactgroup const& obj);
-  void remove_object(configuration::contactgroup const& obj);
-  void resolve_object(configuration::contactgroup const& obj);
-
- private:
   typedef std::map<configuration::contactgroup::key_type,
                    configuration::contactgroup>
       resolved_set;
 
+  resolved_set _resolved;
+
   void _resolve_members(configuration::state& s,
                         configuration::contactgroup const& obj);
 
-  resolved_set _resolved;
+ public:
+  /**
+   * @brief Default constructor.
+   */
+  contactgroup() = default;
+  /**
+   * @brief Destructor.
+   */
+  ~contactgroup() noexcept = default;
+  contactgroup(const contactgroup&) = delete;
+  contactgroup& operator=(const contactgroup&) = delete;
+  void add_object(configuration::contactgroup const& obj);
+  void modify_object(configuration::contactgroup const& obj);
+  void remove_object(configuration::contactgroup const& obj);
+  void expand_objects(configuration::state& s);
+  void resolve_object(configuration::contactgroup const& obj);
 };
 }  // namespace applier
 }  // namespace configuration
