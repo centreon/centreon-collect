@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/engine/configuration/severity.hh"
+#include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/exceptions/error.hh"
 
 using namespace com::centreon;
@@ -131,6 +132,8 @@ bool severity::operator<(const severity& other) const noexcept {
  * If the object is not valid, an exception is thrown.
  */
 void severity::check_validity(error_info* err) const {
+  object::check_validity(err);
+
   if (_severity_name.empty())
     throw error("Severity has no name (property 'severity_name')");
   if (_key.first == 0)

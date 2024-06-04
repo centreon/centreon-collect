@@ -373,19 +373,6 @@ void parser::_add_template(object_ptr obj) {
 }
 
 /**
- *  Apply parse method into list.
- *
- *  @param[in] lst   The list to apply action.
- *  @param[in] pfunc The method to apply.
- */
-void parser::_apply(std::list<std::string> const& lst,
-                    void (parser::*pfunc)(std::string const&)) {
-  for (std::list<std::string>::const_iterator it(lst.begin()), end(lst.end());
-       it != end; ++it)
-    (this->*pfunc)(*it);
-}
-
-/**
  *  Get the file information.
  *
  *  @param[in] obj The object to get file informations.
