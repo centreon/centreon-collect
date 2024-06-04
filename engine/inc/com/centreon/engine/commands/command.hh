@@ -115,7 +115,7 @@ class command {
                    result& res) = 0;
 
   /**
-   * @brief connector and host serv extractor share a list of host serv witch is
+   * @brief connector and host serv extractor share a list of host serv which is
    * updated by this method and unregister_host_serv
    * This method add an entry in this list
    * Command is the only thing that hosts and service knows.

@@ -223,7 +223,7 @@ def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int, **kwargs
 def ctn_find_in_log_with_timeout_with_line(log: str, date, content, timeout: int):
     """! search a pattern in log from date param
     @param log: path of the log file
-    @param date: date from witch it begins search
+    @param date: date from which it begins search
     @param content: array of pattern to search
     @param timeout: time out in second
     @return  True/False, array of lines found for each pattern

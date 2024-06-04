@@ -88,7 +88,7 @@ std::shared_ptr<open_telemetry> open_telemetry::load(
 }
 
 /**
- * @brief create grpc server witch accept otel collector connections
+ * @brief create grpc server which accept otel collector connections
  *
  * @param server_conf json server config
  */
@@ -159,7 +159,7 @@ void open_telemetry::_shutdown() {
 /**
  * @brief create an host serv extractor from connector command line
  *
- * @param cmdline witch begins with name of extractor, following parameters
+ * @param cmdline which begins with name of extractor, following parameters
  * are used by extractor
  * @param host_serv_list list that will be shared bu host_serv_extractor and
  * otel_command
@@ -287,7 +287,7 @@ void open_telemetry::_on_metric(const metric_request_ptr& metrics) {
                                                 &host_serv_index, &to_notify](
                                                    const data_point& data_pt) {
         bool data_point_known = false;
-        // we try all extractors and we begin with the last witch has
+        // we try all extractors and we begin with the last which has
         // achieved to extract host
         for (unsigned tries = 0; tries < _extractors.size(); ++tries) {
           host_serv_metric hostservmetric =
