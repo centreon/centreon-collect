@@ -29,18 +29,6 @@ class state;
 
 namespace applier {
 class serviceescalation {
- public:
-  serviceescalation();
-  serviceescalation(serviceescalation const& right) = delete;
-  ~serviceescalation() throw();
-  serviceescalation& operator=(serviceescalation const& right) = delete;
-  void add_object(configuration::serviceescalation const& obj);
-  void expand_objects(configuration::state& s);
-  void modify_object(configuration::serviceescalation const& obj);
-  void remove_object(configuration::serviceescalation const& obj);
-  void resolve_object(configuration::serviceescalation const& obj);
-
- private:
   void _expand_services(
       std::list<std::string> const& hst,
       std::list<std::string> const& hg,
@@ -50,6 +38,17 @@ class serviceescalation {
       std::set<std::pair<std::string, std::string> >& expanded);
   void _inherits_special_vars(configuration::serviceescalation& obj,
                               configuration::state const& s);
+
+ public:
+  serviceescalation() = default;
+  serviceescalation(const serviceescalation&) = delete;
+  ~serviceescalation() noexcept = default;
+  serviceescalation& operator=(const serviceescalation&) = delete;
+  void add_object(const configuration::serviceescalation& obj);
+  void modify_object(const configuration::serviceescalation& obj);
+  void remove_object(const configuration::serviceescalation& obj);
+  void expand_objects(configuration::state& s);
+  void resolve_object(const configuration::serviceescalation& obj);
 };
 }  // namespace applier
 }  // namespace configuration

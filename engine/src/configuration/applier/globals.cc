@@ -101,11 +101,6 @@ void applier::globals::clear() {
 }
 
 /**
- *  Default constructor.
- */
-applier::globals::globals() {}
-
-/**
  *  Destructor.
  */
 applier::globals::~globals() noexcept {

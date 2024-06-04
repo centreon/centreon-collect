@@ -35,14 +35,14 @@ class anomalydetection {
                               configuration::state const& s);
 
  public:
-  anomalydetection();
-  anomalydetection(anomalydetection const& right);
-  ~anomalydetection();
-  anomalydetection& operator=(anomalydetection const& right);
+  anomalydetection() = default;
+  anomalydetection(const anomalydetection&) = delete;
+  ~anomalydetection() noexcept = default;
+  anomalydetection& operator=(const anomalydetection&) = delete;
   void add_object(configuration::anomalydetection const& obj);
-  void expand_objects(configuration::state& s);
   void modify_object(configuration::anomalydetection const& obj);
   void remove_object(configuration::anomalydetection const& obj);
+  void expand_objects(configuration::state& s);
   void resolve_object(configuration::anomalydetection const& obj);
 };
 }  // namespace applier

@@ -30,17 +30,21 @@ class state;
 namespace applier {
 class connector {
  public:
-  connector();
-  ~connector() throw();
+  /**
+   * @brief Default constructor.
+   */
+  connector() = default;
+  /**
+   * @brief Destructor.
+   */
+  ~connector() noexcept = default;
+  connector(const connector&) = delete;
+  connector& operator=(const connector&) = delete;
   void add_object(configuration::connector const& obj);
-  void expand_objects(configuration::state& s);
-  void modify_object(configuration::connector const& obj);
+  void modify_object(const configuration::connector& obj);
   void remove_object(configuration::connector const& obj);
+  void expand_objects(configuration::state& s);
   void resolve_object(configuration::connector const& obj);
-
- private:
-  connector(connector const& right);
-  connector& operator=(connector const& right);
 };
 }  // namespace applier
 }  // namespace configuration
