@@ -62,6 +62,6 @@ typedef std::shared_ptr<command> command_ptr;
 typedef std::set<command> set_command;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_COMMAND_HH

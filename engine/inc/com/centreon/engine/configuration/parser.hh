@@ -28,12 +28,10 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/hostdependency.hh"
 #include "com/centreon/engine/configuration/hostescalation.hh"
-#include "com/centreon/engine/configuration/hostextinfo.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/configuration/serviceescalation.hh"
-#include "com/centreon/engine/configuration/serviceextinfo.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 
@@ -75,8 +73,6 @@ class parser {
   void _add_template(object_ptr obj);
   void _apply(std::list<std::string> const& lst,
               void (parser::*pfunc)(std::string const&));
-  void _apply_hostextinfo();
-  void _apply_serviceextinfo();
   file_info const& _get_file_info(object* obj) const;
   void _get_hosts_by_hostgroups(hostgroup const& hostgroups, list_host& hosts);
   void _get_hosts_by_hostgroups_name(set_string const& lst_group,
@@ -112,6 +108,6 @@ class parser {
 };
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_PARSER_HH

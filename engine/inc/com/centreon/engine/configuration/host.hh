@@ -31,7 +31,6 @@
 namespace com::centreon::engine {
 
 namespace configuration {
-class hostextinfo;
 
 class host : public object {
  public:
@@ -53,7 +52,6 @@ class host : public object {
   bool operator<(host const& other) const noexcept;
   void check_validity() const override;
   key_type key() const noexcept;
-  void merge(configuration::hostextinfo const& obj);
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
 
@@ -230,6 +228,6 @@ typedef std::list<host> list_host;
 typedef std::set<host> set_host;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_HOST_HH
