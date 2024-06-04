@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2012,2015,2019-2021 Centreon
+ * Copyright 2009-2012,2015,2019-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,6 +85,7 @@ class engine {
   std::vector<std::weak_ptr<muxer>> _muxers;
 
   // Statistics.
+  std::shared_ptr<stats::center> _center;
   EngineStats* _stats;
   uint32_t _unprocessed_events;
 

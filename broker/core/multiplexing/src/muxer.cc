@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2013,2015-2017,2019-2021 Centreon
+ * Copyright 2009-2013,2015-2017,2019-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,6 +85,7 @@ muxer::muxer(std::string name,
       _write_filters_str{misc::dump_filters(w_filter)},
       _persistent(persistent),
       _events_size{0u},
+      _center{stats::center::instance_ptr()},
       _last_stats{std::time(nullptr)} {
   // Load head queue file back in memory.
   DEBUG(fmt::format("CONSTRUCTOR muxer {:p} {}", static_cast<void*>(this),
@@ -111,8 +112,7 @@ muxer::muxer(std::string name,
   _pos = _events.begin();
   // Load queue file back in memory.
   try {
-    QueueFileStats* stats =
-        stats::center::instance().muxer_stats(_name)->mutable_queue_file();
+    QueueFileStats* stats = _center->muxer_stats(_name)->mutable_queue_file();
     _file = std::make_unique<persistent_file>(_queue_file_name, stats);
     std::shared_ptr<io::data> e;
     // The following do-while might read an extra event from the queue
@@ -207,7 +207,7 @@ muxer::~muxer() noexcept {
       fmt::format("DESTRUCTOR muxer {:p} {}", static_cast<void*>(this), _name));
   // caution, unregister_muxer must be the last center method called at muxer
   // destruction to avoid re create a muxer stat entry
-  stats::center::instance().unregister_muxer(_name);
+  _center->unregister_muxer(_name);
 }
 
 /**
@@ -376,8 +376,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
                            _queue_file_name, io::data::dump_json{*event});
       }
       if (!_file) {
-        QueueFileStats* s =
-            stats::center::instance().muxer_stats(_name)->mutable_queue_file();
+        QueueFileStats* s = _center->muxer_stats(_name)->mutable_queue_file();
         _file = std::make_unique<persistent_file>(_queue_file_name, s);
       }
       try {
@@ -585,9 +584,9 @@ void muxer::write(std::deque<std::shared_ptr<io::data>>& to_publish) {
  */
 void muxer::_clean() {
   _file.reset();
-  stats::center::instance().clear_muxer_queue_file(_name);
-  //  stats::center::instance().execute([name=this->_name] {
-  //      stats::center::instance().muxer_stats(name)->mutable_queue_file()->Clear();
+  _center->clear_muxer_queue_file(_name);
+  //  _center->execute([name=this->_name] {
+  //      _center->muxer_stats(name)->mutable_queue_file()->Clear();
   //  });
   if (_persistent && !_events.empty()) {
     try {
@@ -629,7 +628,7 @@ void muxer::_get_event_from_file(std::shared_ptr<io::data>& event) {
       // The file end was reach.
       (void)e;
       _file.reset();
-      stats::center::instance().clear_muxer_queue_file(_name);
+      _center->clear_muxer_queue_file(_name);
     }
   }
 }
@@ -690,9 +689,8 @@ void muxer::_update_stats() noexcept {
     /* Since _mutex is locked, we can get interesting values and copy them
      * in the capture. Then the execute() function can put them in the stats
      * object asynchronously. */
-    stats::center::instance().update_muxer(
-        _name, _file ? _queue_file_name : "", _events_size,
-        std::distance(_events.begin(), _pos));
+    _center->update_muxer(_name, _file ? _queue_file_name : "", _events_size,
+                          std::distance(_events.begin(), _pos));
   }
 }
 
@@ -704,8 +702,7 @@ void muxer::remove_queue_files() {
                      _queue_file_name);
 
   /* Here _file is already destroyed */
-  QueueFileStats* stats =
-      stats::center::instance().muxer_stats(_name)->mutable_queue_file();
+  QueueFileStats* stats = _center->muxer_stats(_name)->mutable_queue_file();
   persistent_file file(_queue_file_name, stats);
   file.remove_all_files();
 }

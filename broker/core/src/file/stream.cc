@@ -1,20 +1,20 @@
-/*
-** Copyright 2011-2017 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/file/stream.hh"
 
@@ -51,7 +51,8 @@ stream::stream(const std::string& path,
       _last_write_offset(0),
       _stats_perc{},
       _stats_idx{0u},
-      _stats_size{0u} {}
+      _stats_size{0u},
+      _center{stats::center::instance_ptr()} {}
 
 /**
  *  Get peer name.
@@ -195,7 +196,7 @@ void stream::_update_stats() {
       }
 
       if (reg) {
-        stats::center::instance().execute(
+        _center->execute(
             [s = this->_stats, now, wid, woffset, rid, roffset, perc, m, p] {
               s->set_file_write_path(wid);
               s->set_file_write_offset(woffset);
@@ -234,14 +235,13 @@ void stream::_update_stats() {
                     std::numeric_limits<int64_t>::max());
             });
       } else {
-        stats::center::instance().execute(
-            [s = this->_stats, wid, woffset, rid, roffset, perc] {
-              s->set_file_write_path(wid);
-              s->set_file_write_offset(woffset);
-              s->set_file_read_path(rid);
-              s->set_file_read_offset(roffset);
-              s->set_file_percent_processed(perc);
-            });
+        _center->execute([s = this->_stats, wid, woffset, rid, roffset, perc] {
+          s->set_file_write_path(wid);
+          s->set_file_write_offset(woffset);
+          s->set_file_read_path(rid);
+          s->set_file_read_offset(roffset);
+          s->set_file_percent_processed(perc);
+        });
       }
     }
   }
