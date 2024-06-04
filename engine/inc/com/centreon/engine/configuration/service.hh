@@ -29,7 +29,6 @@
 namespace com::centreon::engine {
 
 namespace configuration {
-class serviceextinfo;
 
 class service : public object {
  public:
@@ -52,7 +51,6 @@ class service : public object {
   bool operator<(service const& other) const noexcept;
   void check_validity() const override;
   key_type key() const;
-  void merge(configuration::serviceextinfo const& obj);
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
 
@@ -235,6 +233,6 @@ typedef std::unordered_map<std::pair<std::string, std::string>, service_ptr>
     map_service;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_SERVICE_HH
