@@ -362,7 +362,7 @@ void applier::contact::expand_objects(configuration::state& s) {
     }
     new_contacts.insert(std::move(contact));
   }
-  s.contacts() = new_contacts;
+  s.contacts() = std::move(new_contacts);
 }
 
 /**

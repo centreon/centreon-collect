@@ -188,7 +188,7 @@ void applier::anomalydetection::expand_objects(configuration::state& s) {
     }
     new_ads.insert(std::move(ad));
   }
-  s.anomalydetections() = new_ads;
+  s.anomalydetections() = std::move(new_ads);
 }
 
 /**
