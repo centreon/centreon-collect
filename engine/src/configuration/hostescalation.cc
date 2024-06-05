@@ -19,7 +19,6 @@
  */
 #include "com/centreon/engine/configuration/hostescalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "develop/build/vcpkg_installed/x64-linux-release/include/absl/strings/ascii.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
