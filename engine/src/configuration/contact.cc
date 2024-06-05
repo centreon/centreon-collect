@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -234,7 +234,6 @@ bool contact::operator<(contact const& other) const noexcept {
 void contact::check_validity() const {
   if (_contact_name.empty())
     throw(engine_error() << "Contact has no name (property 'contact_name')");
-  return;
 }
 
 /**
@@ -293,7 +292,7 @@ bool contact::parse(char const* key, char const* value) {
   if (!strncmp(key, ADDRESS_PROPERTY, sizeof(ADDRESS_PROPERTY) - 1))
     return _set_address(key + sizeof(ADDRESS_PROPERTY) - 1, value);
   else if (key[0] == '_') {
-    map_customvar::iterator it(_customvariables.find(key + 1));
+    auto it = _customvariables.find(key + 1);
     if (it == _customvariables.end())
       _customvariables[key + 1] = customvariable(value);
     else
@@ -363,7 +362,8 @@ std::string const& contact::contact_name() const noexcept {
  *
  *  @return The customvariables.
  */
-map_customvar const& contact::customvariables() const noexcept {
+const std::unordered_map<std::string, customvariable>&
+contact::customvariables() const noexcept {
   return _customvariables;
 }
 
@@ -372,7 +372,8 @@ map_customvar const& contact::customvariables() const noexcept {
  *
  *  @return The customvariables.
  */
-map_customvar& contact::customvariables() noexcept {
+std::unordered_map<std::string, customvariable>&
+contact::mutable_customvariables() noexcept {
   return _customvariables;
 }
 
@@ -501,7 +502,7 @@ std::string const& contact::timezone() const noexcept {
  *
  *  @return True on success, otherwise false.
  */
-bool contact::_set_address(std::string const& key, std::string const& value) {
+bool contact::_set_address(const std::string& key, const std::string& value) {
   unsigned int id;
   if (!string::to(key.c_str(), id) || (id < 1) || (id > MAX_ADDRESSES))
     return false;

@@ -1,31 +1,30 @@
-/*
-** Copyright 2011-2013,2015-2017,2022 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
-
+/**
+ * Copyright 2011-2013,2015-2017,2022-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #ifndef CCE_CONFIGURATION_HOST_HH
 #define CCE_CONFIGURATION_HOST_HH
 
 #include "com/centreon/engine/common.hh"
+#include "com/centreon/engine/configuration/customvariable.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/configuration/point_2d.hh"
 #include "com/centreon/engine/configuration/point_3d.hh"
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/opt.hh"
 
 namespace com::centreon::engine {
@@ -68,8 +67,10 @@ class host : public object {
   set_string const& contacts() const noexcept;
   point_2d const& coords_2d() const noexcept;
   point_3d const& coords_3d() const noexcept;
-  map_customvar const& customvariables() const noexcept;
-  map_customvar& customvariables() noexcept;
+  const std::unordered_map<std::string, customvariable>& customvariables()
+      const noexcept;
+  std::unordered_map<std::string, customvariable>&
+  mut_customvariables() noexcept;
   std::string const& display_name() const noexcept;
   std::string const& event_handler() const noexcept;
   bool event_handler_enabled() const noexcept;
@@ -183,7 +184,7 @@ class host : public object {
   group<set_string> _contacts;
   opt<point_2d> _coords_2d;
   opt<point_3d> _coords_3d;
-  map_customvar _customvariables;
+  std::unordered_map<std::string, customvariable> _customvariables;
   std::string _display_name;
   std::string _event_handler;
   opt<bool> _event_handler_enabled;
@@ -197,7 +198,7 @@ class host : public object {
   std::string _host_name;
   std::string _icon_image;
   std::string _icon_image_alt;
-  opt<unsigned int> _initial_state;
+  uint32_t _initial_state;
   opt<unsigned int> _low_flap_threshold;
   opt<unsigned int> _max_check_attempts;
   std::string _notes;
@@ -225,7 +226,7 @@ class host : public object {
 
 typedef std::shared_ptr<host> host_ptr;
 typedef std::list<host> list_host;
-typedef std::set<host> set_host;
+using set_host = std::set<host>;
 }  // namespace configuration
 
 }  // namespace com::centreon::engine

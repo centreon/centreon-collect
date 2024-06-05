@@ -994,7 +994,7 @@ bool anomalydetection::parse(char const* key, char const* value) {
     return (it->second)(*this, value);
 
   if (key[0] == '_') {
-    map_customvar::iterator it{_customvariables.find(key + 1)};
+    auto it = _customvariables.find(key + 1);
     if (it == _customvariables.end())
       _customvariables[key + 1] = customvariable(value);
     else
@@ -1136,8 +1136,8 @@ bool anomalydetection::contacts_defined() const noexcept {
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar const& anomalydetection::customvariables()
-    const noexcept {
+const std::unordered_map<std::string, customvariable>&
+anomalydetection::customvariables() const noexcept {
   return _customvariables;
 }
 
@@ -1146,7 +1146,7 @@ com::centreon::engine::map_customvar const& anomalydetection::customvariables()
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar&
+std::unordered_map<std::string, customvariable>&
 anomalydetection::customvariables() noexcept {
   return _customvariables;
 }
@@ -1329,7 +1329,6 @@ bool anomalydetection::notifications_enabled() const noexcept {
  */
 void anomalydetection::notification_interval(unsigned int interval) noexcept {
   _notification_interval = interval;
-  return;
 }
 
 /**
@@ -1529,7 +1528,6 @@ unsigned short anomalydetection::stalking_options() const noexcept {
  */
 void anomalydetection::timezone(std::string const& time_zone) {
   _timezone = time_zone;
-  return;
 }
 
 /**

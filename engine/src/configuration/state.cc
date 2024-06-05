@@ -3218,7 +3218,7 @@ set_service const& state::services() const noexcept {
  *
  *  @return All engine services.
  */
-set_service& state::services() noexcept {
+set_service& state::mut_services() noexcept {
   return _services;
 }
 
