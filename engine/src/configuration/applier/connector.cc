@@ -18,14 +18,18 @@
  */
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/commands/otel_command.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros/misc.hh"
 #include "com/centreon/engine/macros/process.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::engine::configuration;
+
+constexpr std::string_view _otel_fake_exe("open_telemetry");
 
 /**
  *  Add new connector.
@@ -48,9 +52,24 @@ void applier::connector::add_object(configuration::connector const& obj) {
   config->connectors().insert(obj);
 
   // Create connector.
-  auto cmd = std::make_shared<commands::connector>(
-      obj.connector_name(), processed_cmd, &checks::checker::instance());
-  commands::connector::connectors[obj.connector_name()] = cmd;
+  boost::trim(processed_cmd);
+
+  // if executable connector path ends with open_telemetry, it's a fake
+  // opentelemetry connector
+  size_t end_path = processed_cmd.find(' ');
+  size_t otel_pos = processed_cmd.find(_otel_fake_exe);
+
+  if (otel_pos < end_path) {
+    commands::otel_command::create(
+        obj.connector_name(),
+        boost::algorithm::trim_copy(
+            processed_cmd.substr(otel_pos + _otel_fake_exe.length())),
+        &checks::checker::instance());
+  } else {
+    auto cmd = std::make_shared<commands::connector>(
+        obj.connector_name(), processed_cmd, &checks::checker::instance());
+    commands::connector::connectors[obj.connector_name()] = cmd;
+  }
 }
 
 /**
@@ -82,27 +101,58 @@ void applier::connector::modify_object(configuration::connector const& obj) {
     throw(engine_error() << "Cannot modify non-existing connector '"
                          << obj.connector_name() << "'");
 
-  // Find connector object.
-  connector_map::iterator it_obj(
-      commands::connector::connectors.find(obj.key()));
-  if (it_obj == commands::connector::connectors.end())
-    throw(engine_error() << "Could not modify non-existing "
-                         << "connector object '" << obj.connector_name()
-                         << "'");
-  commands::connector* c(it_obj->second.get());
-
-  // Update the global configuration set.
-  config->connectors().erase(it_cfg);
-  config->connectors().insert(obj);
-
   // Expand command line.
   nagios_macros* macros(get_global_macros());
   std::string command_line;
   process_macros_r(macros, obj.connector_line(), command_line, 0);
   std::string processed_cmd(command_line);
 
-  // Set the new command line.
-  c->set_command_line(processed_cmd);
+  boost::trim(processed_cmd);
+
+  // if executable connector path ends with open_telemetry, it's a fake
+  // opentelemetry connector
+  size_t end_path = processed_cmd.find(' ');
+  size_t otel_pos = processed_cmd.find(_otel_fake_exe);
+
+  connector_map::iterator exist_connector(
+      commands::connector::connectors.find(obj.key()));
+
+  if (otel_pos < end_path) {
+    std::string otel_cmdline = boost::algorithm::trim_copy(
+        processed_cmd.substr(otel_pos + _otel_fake_exe.length()));
+
+    if (!commands::otel_command::update(obj.key(), processed_cmd)) {
+      // connector object become an otel fake connector
+      if (exist_connector != commands::connector::connectors.end()) {
+        commands::connector::connectors.erase(exist_connector);
+        commands::otel_command::create(obj.key(), processed_cmd,
+                                       &checks::checker::instance());
+      } else {
+        throw com::centreon::exceptions::msg_fmt(
+            "unknown open telemetry command to update: {}", obj.key());
+      }
+    }
+  } else {
+    if (exist_connector != commands::connector::connectors.end()) {
+      // Set the new command line.
+      exist_connector->second->set_command_line(processed_cmd);
+    } else {
+      // old otel_command => connector
+      if (commands::otel_command::remove(obj.key())) {
+        auto cmd = std::make_shared<commands::connector>(
+            obj.connector_name(), processed_cmd, &checks::checker::instance());
+        commands::connector::connectors[obj.connector_name()] = cmd;
+
+      } else {
+        throw com::centreon::exceptions::msg_fmt(
+            "unknown connector to update: {}", obj.key());
+      }
+    }
+  }
+
+  // Update the global configuration set.
+  config->connectors().erase(it_cfg);
+  config->connectors().insert(obj);
 }
 
 /**
@@ -123,6 +173,8 @@ void applier::connector::remove_object(configuration::connector const& obj) {
     // Remove connector object.
     commands::connector::connectors.erase(it);
   }
+
+  commands::otel_command::remove(obj.key());
 
   // Remove connector from the global configuration set.
   config->connectors().erase(obj);

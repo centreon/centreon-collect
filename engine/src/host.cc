@@ -1,20 +1,19 @@
 /**
- * Copyright 2011 - 2024 Centreon
+ * Copyright 2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
  */
 
 #include "com/centreon/engine/host.hh"
@@ -299,12 +298,38 @@ host::host(uint64_t host_id,
                 (flap_detection_on_up > 0 ? up : 0));
 }
 
+host::~host() {
+  std::shared_ptr<commands::command> cmd = get_check_command_ptr();
+  if (cmd) {
+    cmd->unregister_host_serv(name(), "");
+  }
+}
+
 uint64_t host::host_id() const {
   return _id;
 }
 
 void host::set_host_id(uint64_t id) {
   _id = id;
+}
+
+/**
+ * @brief change name of the host
+ *
+ * @param new_name
+ */
+void host::set_name(const std::string& new_name) {
+  if (new_name == name()) {
+    return;
+  }
+  std::shared_ptr<commands::command> cmd = get_check_command_ptr();
+  if (cmd) {
+    cmd->unregister_host_serv(name(), "");
+  }
+  notifier::set_name(new_name);
+  if (cmd) {
+    cmd->register_host_serv(name(), "");
+  }
 }
 
 void host::add_child_host(host* child) {
@@ -1215,7 +1240,9 @@ int host::handle_async_check_result_3x(
   struct timeval end_time_hires;
 
   engine_logger(dbg_functions, basic) << "handle_async_host_check_result_3x()";
-  SPDLOG_LOGGER_TRACE(functions_logger, "handle_async_host_check_result_3x()");
+  SPDLOG_LOGGER_TRACE(functions_logger,
+                      "handle_async_host_check_result_3x() host {} res:{}",
+                      name(), queued_check_result);
 
   /* get the current time */
   time_t current_time = std::time(nullptr);
@@ -1760,10 +1787,8 @@ int host::run_async_check(int check_options,
 
   // Get current host macros.
   nagios_macros* macros(get_global_macros());
-  grab_host_macros_r(macros, this);
-  std::string tmp;
-  get_raw_command_line_r(macros, get_check_command_ptr(),
-                         check_command().c_str(), tmp, 0);
+
+  std::string processed_cmd = get_check_command_line(macros);
 
   // Time to start command.
   gettimeofday(&start_time, nullptr);
@@ -1778,10 +1803,6 @@ int host::run_async_check(int check_options,
 
   // Set the execution flag.
   set_is_executing(true);
-
-  // Get command object.
-  commands::command* cmd = get_check_command_ptr().get();
-  std::string processed_cmd(cmd->process_cmd(macros));
 
   // Send event broker.
   broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, this, checkable::check_active,
@@ -1834,8 +1855,9 @@ int host::run_async_check(int check_options,
       retry = false;
       try {
         // Run command.
-        cmd->run(processed_cmd, *macros, config->host_check_timeout(),
-                 check_result_info);
+        get_check_command_ptr()->run(processed_cmd, *macros,
+                                                   config->host_check_timeout(),
+                                                   check_result_info);
       } catch (com::centreon::exceptions::interruption const& e) {
         retry = true;
       } catch (std::exception const& e) {
@@ -4018,4 +4040,38 @@ void host::resolve(int& w, int& e) {
 timeperiod* host::get_notification_timeperiod() const {
   /* if the service has no notification period, inherit one from the host */
   return get_notification_period_ptr();
+}
+
+/**
+ * @brief update check command
+ *
+ * @param cmd
+ */
+void host::set_check_command_ptr(
+    const std::shared_ptr<commands::command>& cmd) {
+  std::shared_ptr<commands::command> old = get_check_command_ptr();
+  if (cmd == old) {
+    return;
+  }
+
+  if (old) {
+    old->unregister_host_serv(name(), "");
+  }
+  notifier::set_check_command_ptr(cmd);
+  if (cmd) {
+    cmd->register_host_serv(name(), "");
+  }
+}
+
+/**
+ * @brief calculate final check command with macros replaced
+ *
+ * @return std::string
+ */
+std::string host::get_check_command_line(nagios_macros* macros) {
+  grab_host_macros_r(macros, this);
+  std::string tmp;
+  get_raw_command_line_r(macros, get_check_command_ptr(),
+                         check_command().c_str(), tmp, 0);
+  return get_check_command_ptr()->process_cmd(macros);
 }

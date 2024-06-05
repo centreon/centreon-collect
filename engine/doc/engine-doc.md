@@ -27,7 +27,7 @@ whitelist:
 ```
 
 The main main job is done by whitelist class, it parses file and compares final commands to regular expressions
-This class is a singleton witch is replace by another instance each time conf is reloaded.
+This class is a singleton which is replace by another instance each time conf is reloaded.
 
 Checkable class inherited by service and host classes keeps the last result of whitelist's check in cache in order to reduce CPU whitelist usage.
 

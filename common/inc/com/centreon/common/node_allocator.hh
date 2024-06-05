@@ -245,7 +245,9 @@ template <class T, class byte_allocator_type, size_t block_size>
 node_allocator<T, byte_allocator_type, block_size>::node_allocator(
     const byte_allocator_type& allocator)
     : _allocator(allocator) {
-  _first = reinterpret_cast<allocator_value_type_pointer>(_create_chunk());
+  chunk* first_chunk = _create_chunk();
+  first_chunk->next = nullptr;
+  _first = reinterpret_cast<allocator_value_type_pointer>(first_chunk);
 }
 
 /**

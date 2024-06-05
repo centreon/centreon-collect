@@ -22,6 +22,7 @@
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/forward.hh"
+#include "com/centreon/engine/commands/otel_command.hh"
 #include "com/centreon/engine/commands/raw.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -54,12 +55,12 @@ void applier::command::add_object(configuration::command const& obj) {
 
   // Add command to the global configuration set.
   config->commands().insert(obj);
-
   if (obj.connector().empty()) {
     std::shared_ptr<commands::raw> raw = std::make_shared<commands::raw>(
         obj.command_name(), obj.command_line(), &checks::checker::instance());
     commands::command::commands[raw->get_name()] = raw;
-  } else {
+  } else {  // connector or otel, we search it to create the forward command
+            // that will use it
     connector_map::iterator found_con{
         commands::connector::connectors.find(obj.connector())};
     if (found_con != commands::connector::connectors.end() &&
@@ -68,10 +69,20 @@ void applier::command::add_object(configuration::command const& obj) {
           std::make_shared<commands::forward>(
               obj.command_name(), obj.command_line(), found_con->second)};
       commands::command::commands[forward->get_name()] = forward;
-    } else
-      throw engine_error() << "Could not register command '"
-                           << obj.command_name() << "': unable to find '"
-                           << obj.connector() << "'";
+    } else {
+      std::shared_ptr<commands::otel_command> otel_cmd =
+          commands::otel_command::get_otel_command(obj.connector());
+      if (otel_cmd) {
+        std::shared_ptr<commands::forward> forward{
+            std::make_shared<commands::forward>(obj.command_name(),
+                                                obj.command_line(), otel_cmd)};
+        commands::command::commands[forward->get_name()] = forward;
+      } else {
+        throw engine_error()
+            << "Could not register command '" << obj.command_name()
+            << "': unable to find '" << obj.connector() << "'";
+      }
+    }
   }
 }
 
@@ -137,10 +148,20 @@ void applier::command::modify_object(configuration::command const& obj) {
           std::make_shared<commands::forward>(
               obj.command_name(), obj.command_line(), found_con->second)};
       commands::command::commands[forward->get_name()] = forward;
-    } else
-      throw engine_error() << "Could not register command '"
-                           << obj.command_name() << "': unable to find '"
-                           << obj.connector() << "'";
+    } else {
+      std::shared_ptr<commands::otel_command> otel_cmd =
+          commands::otel_command::get_otel_command(obj.connector());
+      if (otel_cmd) {
+        std::shared_ptr<commands::forward> forward{
+            std::make_shared<commands::forward>(obj.command_name(),
+                                                obj.command_line(), otel_cmd)};
+        commands::command::commands[forward->get_name()] = forward;
+      } else {
+        throw engine_error()
+            << "Could not register command '" << obj.command_name()
+            << "': unable to find '" << obj.connector() << "'";
+      }
+    }
   }
   // Notify event broker.
   timeval tv(get_broker_timestamp(NULL));
@@ -192,7 +213,9 @@ void applier::command::resolve_object(configuration::command const& obj) {
   if (!obj.connector().empty()) {
     connector_map::iterator found{
         commands::connector::connectors.find(obj.connector())};
-    if (found == commands::connector::connectors.end() || !found->second)
-      throw engine_error() << "unknow command " << obj.connector();
+    if (found == commands::connector::connectors.end() || !found->second) {
+      if (!commands::otel_command::get_otel_command(obj.connector()))
+        throw engine_error() << "unknow command " << obj.connector();
+    }
   }
 }

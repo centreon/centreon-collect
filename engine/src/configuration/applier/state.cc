@@ -21,6 +21,7 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/connector.hh"
+#include "com/centreon/engine/commands/otel_command.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
@@ -149,6 +150,7 @@ void applier::state::clear() {
   engine::hostgroup::hostgroups.clear();
   engine::commands::command::commands.clear();
   engine::commands::connector::connectors.clear();
+  engine::commands::otel_command::clear();
   engine::service::services.clear();
   engine::service::services_by_id.clear();
   engine::servicedependency::servicedependencies.clear();
@@ -187,6 +189,7 @@ applier::state::~state() noexcept {
   engine::hostgroup::hostgroups.clear();
   engine::commands::command::commands.clear();
   engine::commands::connector::connectors.clear();
+  engine::commands::otel_command::clear();
   engine::service::services.clear();
   engine::service::services_by_id.clear();
   engine::servicedependency::servicedependencies.clear();

@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2013,2015-2017, 2021-2024 Centreon
+ * Copyright 2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -298,6 +298,7 @@ void state::_init_setter() {
   SETTER(std::string const&, log_level_macros, "log_level_macros");
   SETTER(std::string const&, log_level_process, "log_level_process");
   SETTER(std::string const&, log_level_runtime, "log_level_runtime");
+  SETTER(std::string const&, log_level_otl, "log_level_otl");
   SETTER(std::string const&, use_timezone, "use_timezone");
   SETTER(bool, use_true_regexp_matching, "use_true_regexp_matching");
   SETTER(std::string const&, _set_comment_file, "xcddefault_comment_file");
@@ -436,6 +437,7 @@ static std::string const default_log_level_comments("error");
 static std::string const default_log_level_macros("error");
 static std::string const default_log_level_process("info");
 static std::string const default_log_level_runtime("error");
+static std::string const default_log_level_otl("error");
 static std::string const default_use_timezone("");
 static bool const default_use_true_regexp_matching(false);
 static const std::string default_rpc_listen_address("localhost");
@@ -577,6 +579,7 @@ state::state()
       _log_level_macros(default_log_level_macros),
       _log_level_process(default_log_level_process),
       _log_level_runtime(default_log_level_runtime),
+      _log_level_otl(default_log_level_otl),
       _use_timezone(default_use_timezone),
       _use_true_regexp_matching(default_use_true_regexp_matching),
       _send_recovery_notifications_anyways(false) {
@@ -760,6 +763,7 @@ state& state::operator=(state const& right) {
     _log_level_macros = right._log_level_macros;
     _log_level_process = right._log_level_process;
     _log_level_runtime = right._log_level_runtime;
+    _log_level_otl = right._log_level_otl;
     _use_timezone = right._use_timezone;
     _use_true_regexp_matching = right._use_true_regexp_matching;
     _send_recovery_notifications_anyways =
@@ -927,6 +931,7 @@ bool state::operator==(state const& right) const noexcept {
       _log_level_macros == right._log_level_macros &&
       _log_level_process == right._log_level_process &&
       _log_level_runtime == right._log_level_runtime &&
+      _log_level_otl == right._log_level_otl &&
       _use_timezone == right._use_timezone &&
       _use_true_regexp_matching == right._use_true_regexp_matching &&
       _send_recovery_notifications_anyways ==
@@ -4215,6 +4220,27 @@ void state::log_level_runtime(std::string const& value) {
     _log_level_runtime = value;
   else
     throw engine_error() << "error wrong level setted for log_level_runtime";
+}
+
+/**
+ *  Get log_level_otl value.
+ *
+ *  @return The log_level_otl value.
+ */
+std::string const& state::log_level_otl() const noexcept {
+  return _log_level_otl;
+}
+
+/**
+ *  Set log_level_otl value.
+ *
+ *  @param[in] value The new log_level_otl value.
+ */
+void state::log_level_otl(std::string const& value) {
+  if (log_v2::instance().contains_level(value))
+    _log_level_otl = value;
+  else
+    throw engine_error() << "error wrong level setted for log_level_otl";
 }
 
 /**
