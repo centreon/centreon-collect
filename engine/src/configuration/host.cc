@@ -487,7 +487,6 @@ void host::merge(object const& obj) {
   MRG_DEFAULT(_host_name);
   MRG_DEFAULT(_icon_image);
   MRG_DEFAULT(_icon_image_alt);
-  MRG_OPTION(_initial_state);
   MRG_OPTION(_low_flap_threshold);
   MRG_OPTION(_max_check_attempts);
   MRG_DEFAULT(_notes);
@@ -526,7 +525,7 @@ bool host::parse(char const* key, char const* value) {
   if (it != _setters.end())
     return (it->second)(*this, value);
   if (key[0] == '_') {
-    map_customvar::iterator it(_customvariables.find(key + 1));
+    auto it = _customvariables.find(key + 1);
     if (it == _customvariables.end())
       _customvariables[key + 1] = customvariable(value);
     else
@@ -659,7 +658,8 @@ point_3d const& host::coords_3d() const noexcept {
  *
  *  @return The customvariables.
  */
-engine::map_customvar const& host::customvariables() const noexcept {
+const std::unordered_map<std::string, customvariable>& host::customvariables()
+    const noexcept {
   return _customvariables;
 }
 
@@ -668,7 +668,8 @@ engine::map_customvar const& host::customvariables() const noexcept {
  *
  *  @return The customvariables.
  */
-engine::map_customvar& host::customvariables() noexcept {
+std::unordered_map<std::string, customvariable>&
+host::mut_customvariables() noexcept {
   return _customvariables;
 }
 

@@ -900,7 +900,7 @@ bool service::parse(char const* key, char const* value) {
     return (it->second)(*this, value);
 
   if (key[0] == '_') {
-    map_customvar::iterator it{_customvariables.find(key + 1)};
+    auto it = _customvariables.find(key + 1);
     if (it == _customvariables.end())
       _customvariables[key + 1] = customvariable(value);
     else
@@ -1042,8 +1042,8 @@ bool service::contacts_defined() const noexcept {
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar const& service::customvariables()
-    const noexcept {
+const std::unordered_map<std::string, customvariable>&
+service::customvariables() const noexcept {
   return _customvariables;
 }
 
@@ -1052,7 +1052,8 @@ com::centreon::engine::map_customvar const& service::customvariables()
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar& service::mut_customvariables() noexcept {
+std::unordered_map<std::string, customvariable>&
+service::mut_customvariables() noexcept {
   return _customvariables;
 }
 
@@ -1261,7 +1262,6 @@ bool service::notifications_enabled() const noexcept {
  */
 void service::notification_interval(unsigned int interval) noexcept {
   _notification_interval = interval;
-  return;
 }
 
 /**
@@ -1298,7 +1298,6 @@ unsigned short service::notification_options() const noexcept {
  */
 void service::notification_period(std::string const& period) {
   _notification_period = period;
-  return;
 }
 
 /**
@@ -1434,7 +1433,6 @@ unsigned short service::stalking_options() const noexcept {
  */
 void service::timezone(std::string const& time_zone) {
   _timezone = time_zone;
-  return;
 }
 
 /**
