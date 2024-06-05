@@ -346,7 +346,7 @@ class state {
   // const set_anomalydetection& anomalydetections() const noexcept;
   set_anomalydetection& anomalydetections() noexcept;
   set_service const& services() const noexcept;
-  set_service& services() noexcept;
+  set_service& mut_services() noexcept;
   set_anomalydetection::iterator anomalydetections_find(
       anomalydetection::key_type const& k);
   set_service::iterator services_find(service::key_type const& k);

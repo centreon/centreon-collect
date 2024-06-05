@@ -98,15 +98,17 @@ void applier::contact::add_object(configuration::contact const& obj) {
   engine::contact::contacts.insert({c->get_name(), c});
 
   // Add all custom variables.
-  for (map_customvar::const_iterator it(obj.customvariables().begin()),
-       end(obj.customvariables().end());
+  for (auto it = obj.customvariables().begin(),
+            end = obj.customvariables().end();
        it != end; ++it) {
-    c->get_custom_variables()[it->first] = it->second;
+    auto& cv = c->get_custom_variables()[it->first];
+    cv.set_value(it->second.value());
+    cv.set_sent(it->second.is_sent());
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
       broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_ADD, c.get(),
-                             it->first.c_str(), it->second.get_value().c_str(),
+                             it->first.c_str(), it->second.value().c_str(),
                              &tv);
     }
   }
@@ -298,20 +300,22 @@ void applier::contact::modify_object(configuration::contact const& obj) {
       if (cus.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_DELETE, c,
-                               cus.first.c_str(),
-                               cus.second.get_value().c_str(), &tv);
+                               cus.first.c_str(), cus.second.value().c_str(),
+                               &tv);
       }
     }
     c->get_custom_variables().clear();
 
     for (auto& cus : obj.customvariables()) {
-      c->get_custom_variables()[cus.first] = cus.second;
+      auto& cv = c->get_custom_variables()[cus.first];
+      cv.set_value(cus.second.value());
+      cv.set_sent(cus.second.is_sent());
 
       if (cus.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_ADD, c,
-                               cus.first.c_str(),
-                               cus.second.get_value().c_str(), &tv);
+                               cus.first.c_str(), cus.second.value().c_str(),
+                               &tv);
       }
     }
   }

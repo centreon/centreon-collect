@@ -69,7 +69,7 @@ class service : public object {
   set_string const& contacts() const noexcept;
   bool contacts_defined() const noexcept;
   map_customvar const& customvariables() const noexcept;
-  map_customvar& customvariables() noexcept;
+  map_customvar& mut_customvariables() noexcept;
   std::string const& display_name() const noexcept;
   std::string const& event_handler() const noexcept;
   bool event_handler_enabled() const noexcept;

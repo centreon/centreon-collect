@@ -1052,7 +1052,7 @@ com::centreon::engine::map_customvar const& service::customvariables()
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar& service::customvariables() noexcept {
+com::centreon::engine::map_customvar& service::mut_customvariables() noexcept {
   return _customvariables;
 }
 
