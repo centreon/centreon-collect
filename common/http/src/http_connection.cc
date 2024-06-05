@@ -232,7 +232,7 @@ void http_connection::on_accept(connect_callback_type&& callback) {
 
 void http_connection::init_keep_alive() {
   // we put first keepalive option and then keepalive intervals
-  // system default interval are 7200s witch is too long to maintain a NAT
+  // system default interval are 7200s which is too long to maintain a NAT
   boost::system::error_code err_keep_alive;
   asio::socket_base::keep_alive opt1(true);
   _socket.socket().set_option(opt1, err_keep_alive);

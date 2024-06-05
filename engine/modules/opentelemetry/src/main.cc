@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include "com/centreon/engine/commands/otel_command.hh"
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/nebmodules.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

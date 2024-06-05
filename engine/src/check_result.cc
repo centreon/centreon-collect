@@ -1,5 +1,5 @@
 /**
- * Copyright 2011 - 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ using namespace com::centreon::engine;
 
 check_result::check_result()
     : _object_check_type{check_source::service_check},
+      _command_id(0),
       _notifier{nullptr},
       _check_type(checkable::check_type::check_passive),
       _check_options{0},
@@ -51,6 +52,7 @@ check_result::check_result(enum check_source object_check_type,
                            int return_code,
                            std::string output)
     : _object_check_type{object_check_type},
+      _command_id(0),
       _notifier{notifier},
       _check_type(check_type),
       _check_options{check_options},
@@ -118,3 +120,16 @@ void check_result::set_latency(double latency) {
 void check_result::set_check_options(unsigned check_options) {
   _check_options = check_options;
 }
+
+namespace com::centreon::engine {
+
+std::ostream& operator<<(std::ostream& stream, const check_result& res) {
+  stream << "command_id=" << res.get_command_id()
+         << " timeout=" << res.get_early_timeout()
+         << " ok=" << res.get_exited_ok()
+         << " ret_code=" << res.get_return_code()
+         << " output:" << res.get_output();
+  return stream;
+}
+
+}  // namespace com::centreon::engine

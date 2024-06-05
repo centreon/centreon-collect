@@ -120,7 +120,10 @@ std::mutex stream<bireactor_class>::_instances_m;
 template <class bireactor_class>
 stream<bireactor_class>::stream(const grpc_config::pointer& conf,
                                 const std::string_view& class_name)
-    : io::stream("GRPC"), _conf(conf), _class_name(class_name), _logger{log_v2::instance().get(log_v2::GRPC)} {
+    : io::stream("GRPC"),
+      _conf(conf),
+      _class_name(class_name),
+      _logger{log_v2::instance().get(log_v2::GRPC)} {
   SPDLOG_LOGGER_DEBUG(_logger, "create {} this={:p}", _class_name,
                       static_cast<const void*>(this));
 }
@@ -223,9 +226,8 @@ bool stream<bireactor_class>::read(std::shared_ptr<io::data>& d,
       d = std::make_shared<io::raw>();
       std::static_pointer_cast<io::raw>(d)->_buffer.assign(
           to_convert.buffer().begin(), to_convert.buffer().end());
-      SPDLOG_LOGGER_TRACE(_logger, "{:p} {} read:{}",
-                          static_cast<void*>(this), _class_name,
-                          *std::static_pointer_cast<io::raw>(d));
+      SPDLOG_LOGGER_TRACE(_logger, "{:p} {} read:{}", static_cast<void*>(this),
+                          _class_name, *std::static_pointer_cast<io::raw>(d));
       return true;
     } else {
       d = protobuf_to_event(first);
@@ -277,13 +279,11 @@ void stream<bireactor_class>::start_write() {
   }
 
   if (to_send->bbdo_event)
-    SPDLOG_LOGGER_TRACE(_logger, "{:p} {} write: {}",
-                        static_cast<void*>(this), _class_name,
-                        *to_send->bbdo_event);
+    SPDLOG_LOGGER_TRACE(_logger, "{:p} {} write: {}", static_cast<void*>(this),
+                        _class_name, *to_send->bbdo_event);
   else
-    SPDLOG_LOGGER_TRACE(_logger, "{:p} {} write: {}",
-                        static_cast<void*>(this), _class_name,
-                        to_send->grpc_event);
+    SPDLOG_LOGGER_TRACE(_logger, "{:p} {} write: {}", static_cast<void*>(this),
+                        _class_name, to_send->grpc_event);
 
   bireactor_class::StartWrite(&to_send->grpc_event);
 }
@@ -365,12 +365,13 @@ void stream<bireactor_class>::OnDone() {
   stop();
   /**grpc has a bug, sometimes if we delete this class in this handler as it is
    * described in examples, it also deletes used channel and does a pthread_join
-   * of the current thread witch go to a EDEADLOCK error and call grpc::Crash.
+   * of the current thread which go to a EDEADLOCK error and call grpc::Crash.
    * So we uses asio thread to do the job
    */
   common::pool::io_context().post(
       [me = std::enable_shared_from_this<
-           stream<bireactor_class>>::shared_from_this(), logger = _logger]() {
+           stream<bireactor_class>>::shared_from_this(),
+       logger = _logger]() {
         std::lock_guard l(_instances_m);
         SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
                             static_cast<void*>(me.get()));
@@ -390,13 +391,13 @@ void stream<bireactor_class>::OnDone(const ::grpc::Status& status) {
   stop();
   /**grpc has a bug, sometimes if we delete this class in this handler as it is
    * described in examples, it also deletes used channel and does a
-   * pthread_join of the current thread witch go to a EDEADLOCK error and call
+   * pthread_join of the current thread which go to a EDEADLOCK error and call
    * grpc::Crash. So we uses asio thread to do the job
    */
   common::pool::io_context().post(
       [me = std::enable_shared_from_this<
            stream<bireactor_class>>::shared_from_this(),
-       status, logger=_logger]() {
+       status, logger = _logger]() {
         std::lock_guard l(_instances_m);
         SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
                             static_cast<void*>(me.get()),
@@ -412,8 +413,8 @@ void stream<bireactor_class>::OnDone(const ::grpc::Status& status) {
  */
 template <class bireactor_class>
 void stream<bireactor_class>::shutdown() {
-  SPDLOG_LOGGER_DEBUG(_logger, "{:p} {}::shutdown",
-                      static_cast<void*>(this), _class_name);
+  SPDLOG_LOGGER_DEBUG(_logger, "{:p} {}::shutdown", static_cast<void*>(this),
+                      _class_name);
 }
 
 /**
@@ -437,8 +438,8 @@ template <class bireactor_class>
 int32_t stream<bireactor_class>::stop() {
   std::lock_guard l(_protect);
   if (_alive) {
-    SPDLOG_LOGGER_DEBUG(_logger, "{:p} {}::stop",
-                        static_cast<void*>(this), _class_name);
+    SPDLOG_LOGGER_DEBUG(_logger, "{:p} {}::stop", static_cast<void*>(this),
+                        _class_name);
     _alive = false;
     this->shutdown();
   }

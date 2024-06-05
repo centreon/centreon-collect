@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2013,2015,2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011-2013,2015,2019,2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ connector_map connector::connectors;
 connector::connector(const std::string& connector_name,
                      const std::string& connector_line,
                      command_listener* listener)
-    : command(connector_name, connector_line, listener),
+    : command(connector_name, connector_line, listener, e_type::connector),
       process_listener(),
       _is_running(false),
       _query_quit_ok(false),

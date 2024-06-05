@@ -1,5 +1,5 @@
 /**
- * Copyright 2011 - 2013, 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2013, 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -108,12 +108,26 @@ void result::_internal_copy(result const& right) {
   output = right.output;
 }
 
+static const char* status_to_string(com::centreon::process::status status) {
+  switch (status) {
+    case com::centreon::process::status::normal:
+      return "normal";
+    case com::centreon::process::status::crash:
+      return "crash";
+    case com::centreon::process::status::timeout:
+      return "timeout";
+    default:
+      return "unknown status";
+  }
+}
+
 namespace com::centreon::engine::commands {
 std::ostream& operator<<(std::ostream& s, const result& to_dump) {
-  s << "start_time=" << to_dump.start_time << ", end_time=" << to_dump.end_time
+  s << "command_id=" << to_dump.command_id
+    << " start_time=" << to_dump.start_time << ", end_time=" << to_dump.end_time
     << ", exit_code=" << to_dump.exit_code
-    << ", exit_status=" << to_dump.exit_status << ", output='" << to_dump.output
-    << '\'';
+    << ", exit_status=" << status_to_string(to_dump.exit_status) << ", output='"
+    << to_dump.output << '\'';
   return s;
 }
 
