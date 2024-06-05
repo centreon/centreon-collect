@@ -34,8 +34,6 @@ using namespace com::centreon::engine::configuration;
  */
 void applier::connector::add_object(configuration::connector const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new connector '" << obj.connector_name() << "'.";
   config_logger->debug("Creating new connector '{}'.", obj.connector_name());
 
   // Expand command line.
@@ -54,26 +52,12 @@ void applier::connector::add_object(configuration::connector const& obj) {
 }
 
 /**
- *  @brief Expand connector.
- *
- *  Connector configuration objects do not need expansion. Therefore
- *  this method only copy obj to expanded.
- *
- *  @param[in] s  Unused.
- */
-void applier::connector::expand_objects(configuration::state& s) {
-  (void)s;
-}
-
-/**
  *  Modify connector.
  *
  *  @param[in] obj  The connector to modify in the monitoring engine.
  */
 void applier::connector::modify_object(configuration::connector const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Modifying connector '" << obj.connector_name() << "'.";
   config_logger->debug("Modifying connector '{}'.", obj.connector_name());
 
   // Find old configuration.
@@ -113,8 +97,6 @@ void applier::connector::modify_object(configuration::connector const& obj) {
  */
 void applier::connector::remove_object(configuration::connector const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing connector '" << obj.connector_name() << "'.";
   config_logger->debug("Removing connector '{}'.", obj.connector_name());
 
   // Find connector.
@@ -129,6 +111,18 @@ void applier::connector::remove_object(configuration::connector const& obj) {
 }
 
 /**
+ *  @brief Expand connector.
+ *
+ *  Connector configuration objects do not need expansion. Therefore
+ *  this method only copy obj to expanded.
+ *
+ *  @param[in] s  Unused.
+ */
+void applier::connector::expand_objects(configuration::state& s) {
+  (void)s;
+}
+
+/**
  *  @brief Resolve a connector.
  *
  *  Connector objects do not need resolution. Therefore this method does
@@ -136,6 +130,5 @@ void applier::connector::remove_object(configuration::connector const& obj) {
  *
  *  @param[in] obj Unused.
  */
-void applier::connector::resolve_object(configuration::connector const& obj) {
-  (void)obj;
-}
+void applier::connector::resolve_object(const configuration::connector& obj
+                                        [[maybe_unused]]) {}

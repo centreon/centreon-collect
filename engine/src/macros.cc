@@ -644,7 +644,7 @@ int grab_custom_object_macro_r(nagios_macros* mac,
   /* get the custom variable */
   for (auto const& cv : vars) {
     if (macro_name == cv.first) {
-      output = cv.second.get_value();
+      output = cv.second.value();
       result = OK;
       break;
     }
@@ -786,8 +786,6 @@ int init_macrox_names() {
   add_macrox_name(LOGFILE);
   add_macrox_name(RESOURCEFILE);
   add_macrox_name(COMMANDFILE);
-  add_macrox_name(HOSTPERFDATAFILE);
-  add_macrox_name(SERVICEPERFDATAFILE);
   add_macrox_name(HOSTACTIONURL);
   add_macrox_name(HOSTNOTESURL);
   add_macrox_name(HOSTNOTES);
@@ -916,8 +914,6 @@ int clear_volatile_macros_r(nagios_macros* mac) {
       case MACRO_LOGFILE:
       case MACRO_RESOURCEFILE:
       case MACRO_COMMANDFILE:
-      case MACRO_HOSTPERFDATAFILE:
-      case MACRO_SERVICEPERFDATAFILE:
       case MACRO_PROCESSSTARTTIME:
       case MACRO_TEMPPATH:
       case MACRO_EVENTSTARTTIME:

@@ -34,11 +34,13 @@
 #include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
-#include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/string.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v2::log_v2;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
   &object::setter<object, type, &object::method>::generic
@@ -54,7 +56,10 @@ object::setters const object::_setters[] = {
  *  @param[in] type      The object type.
  */
 object::object(object::object_type type)
-    : _is_resolve(false), _should_register(true), _type(type) {}
+    : _is_resolve(false),
+      _should_register(true),
+      _type(type),
+      _logger{log_v2::instance().get(log_v2::CONFIG)} {}
 
 /**
  *  Copy constructor.
@@ -84,6 +89,7 @@ object& object::operator=(object const& right) {
     _should_register = right._should_register;
     _templates = right._templates;
     _type = right._type;
+    _logger = right._logger;
   }
   return *this;
 }
@@ -217,7 +223,7 @@ void object::resolve_template(map_object& templates) {
   for (std::string& s : _templates) {
     map_object::iterator tmpl = templates.find(s);
     if (tmpl == templates.end())
-      throw engine_error() << "Cannot merge object of type '" << s << "'";
+      throw msg_fmt("Cannot merge object of type '{}'", s);
     tmpl->second->resolve_template(templates);
     merge(*tmpl->second);
   }
@@ -262,7 +268,9 @@ std::string const& object::type_name() const noexcept {
                                     "serviceextinfo",
                                     "servicegroup",
                                     "timeperiod",
-                                    "anomalydetection"};
+                                    "anomalydetection",
+                                    "severity",
+                                    "tag"};
   return tab[_type];
 }
 
@@ -299,6 +307,6 @@ bool object::_set_should_register(bool value) {
  */
 bool object::_set_templates(std::string const& value) {
   _templates.clear();
-  string::split(value, _templates, ',');
+  _templates = absl::StrSplit(value, ',');
   return true;
 }

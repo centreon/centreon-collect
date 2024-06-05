@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2013,2017 Centreon
+ * Copyright 2011-2013,2017-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,12 @@
  *
  */
 #include "com/centreon/engine/configuration/servicegroup.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/configuration/object.hh"
+#include "com/centreon/exceptions/error.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::exceptions::error;
 
 #define SETTER(type, method) \
   &object::setter<servicegroup, type, &servicegroup::method>::generic
@@ -140,11 +142,11 @@ bool servicegroup::operator<(servicegroup const& right) const throw() {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void servicegroup::check_validity() const {
+void servicegroup::check_validity(error_info* err) const {
+  object::check_validity(err);
+
   if (_servicegroup_name.empty())
-    throw(engine_error() << "Service group has no name "
-                            "(property 'servicegroup_name')");
-  return;
+    throw error("Service group has no name (property 'servicegroup_name')");
 }
 
 /**
@@ -163,8 +165,8 @@ servicegroup::key_type const& servicegroup::key() const throw() {
  */
 void servicegroup::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge service group with '" << obj.type()
-                         << "'");
+    throw error("Cannot merge service group with type '{}'",
+                static_cast<uint32_t>(obj.type()));
   servicegroup const& tmpl(static_cast<servicegroup const&>(obj));
 
   MRG_DEFAULT(_action_url);

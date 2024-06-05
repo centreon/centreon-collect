@@ -18,13 +18,13 @@
  */
 
 #include "com/centreon/engine/configuration/hostgroup.hh"
-#include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
+#include "com/centreon/exceptions/error.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::engine::logging;
+using com::centreon::common::log_v2::log_v2;
+using com::centreon::exceptions::error;
 
 #define SETTER(type, method) \
   &object::setter<hostgroup, type, &hostgroup::method>::generic
@@ -90,59 +90,40 @@ hostgroup& hostgroup::operator=(hostgroup const& right) {
  *  @return True if is the same hostgroup, otherwise false.
  */
 bool hostgroup::operator==(hostgroup const& right) const throw() {
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   if (!object::operator==(right)) {
-    engine_logger(dbg_config, more)
-        << "configuration::hostgroup::equality => object don't match";
-    config_logger->debug(
-        "configuration::hostgroup::equality => object don't match");
+    logger->debug("configuration::hostgroup::equality => object don't match");
     return false;
   }
   if (_action_url != right._action_url) {
-    engine_logger(dbg_config, more)
-        << "configuration::hostgroup::equality => action url don't match";
-    config_logger->debug(
+    logger->debug(
         "configuration::hostgroup::equality => action url don't match");
     return false;
   }
   if (_alias != right._alias) {
-    engine_logger(dbg_config, more)
-        << "configuration::hostgroup::equality => alias don't match";
-    config_logger->debug(
-        "configuration::hostgroup::equality => alias don't match");
+    logger->debug("configuration::hostgroup::equality => alias don't match");
     return false;
   }
   if (_hostgroup_id != right._hostgroup_id) {
-    engine_logger(dbg_config, more)
-        << "configuration::hostgroup::equality => hostgroup id don't match";
-    config_logger->debug(
+    logger->debug(
         "configuration::hostgroup::equality => hostgroup id don't match");
     return false;
   }
   if (_hostgroup_name != right._hostgroup_name) {
-    engine_logger(dbg_config, more)
-        << "configuration::hostgroup::equality => hostgroup name don't match";
-    config_logger->debug(
+    logger->debug(
         "configuration::hostgroup::equality => hostgroup name don't match");
     return false;
   }
   if (_members != right._members) {
-    engine_logger(dbg_config, more)
-        << "configuration::hostgroup::equality => members don't match";
-    config_logger->debug(
-        "configuration::hostgroup::equality => members don't match");
+    logger->debug("configuration::hostgroup::equality => members don't match");
     return false;
   }
   if (_notes != right._notes) {
-    engine_logger(dbg_config, more)
-        << "configuration::hostgroup::equality => notes don't match";
-    config_logger->debug(
-        "configuration::hostgroup::equality => notes don't match");
+    logger->debug("configuration::hostgroup::equality => notes don't match");
     return false;
   }
   if (_notes_url != right._notes_url) {
-    engine_logger(dbg_config, more)
-        << "configuration::hostgroup::equality => notes url don't match";
-    config_logger->debug(
+    logger->debug(
         "configuration::hostgroup::equality => notes url don't match");
     return false;
   }
@@ -190,11 +171,11 @@ bool hostgroup::operator<(hostgroup const& right) const throw() {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void hostgroup::check_validity() const {
+void hostgroup::check_validity(error_info* err) const {
+  object::check_validity(err);
+
   if (_hostgroup_name.empty())
-    throw(engine_error() << "Host group has no name "
-                            "(property 'hostgroup_name')");
-  return;
+    throw error("Host group has no name (property 'hostgroup_name')");
 }
 
 /**
@@ -213,8 +194,8 @@ hostgroup::key_type const& hostgroup::key() const throw() {
  */
 void hostgroup::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge host group with '" << obj.type()
-                         << "'");
+    throw error("Cannot merge host group with type '{}'",
+                static_cast<uint32_t>(obj.type()));
   hostgroup const& tmpl(static_cast<hostgroup const&>(obj));
   MRG_DEFAULT(_action_url);
   MRG_DEFAULT(_alias);

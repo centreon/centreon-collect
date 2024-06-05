@@ -18,11 +18,13 @@
  */
 
 #include "com/centreon/engine/configuration/severity.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/configuration/object.hh"
+#include "com/centreon/exceptions/error.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
+using com::centreon::exceptions::error;
 
 #define SETTER(type, method) \
   &object::setter<severity, type, &severity::method>::generic
@@ -129,17 +131,17 @@ bool severity::operator<(const severity& other) const noexcept {
  *
  * If the object is not valid, an exception is thrown.
  */
-void severity::check_validity() const {
+void severity::check_validity(error_info* err) const {
+  object::check_validity(err);
+
   if (_severity_name.empty())
-    throw engine_error() << "Severity has no name (property 'severity_name')";
+    throw error("Severity has no name (property 'severity_name')");
   if (_key.first == 0)
-    throw engine_error()
-        << "Severity id must not be less than 1 (property 'id')";
+    throw error("Severity id must not be less than 1 (property 'id')");
   if (_level == 0)
-    throw engine_error()
-        << "Severity level must not be less than 1 (property 'level')";
+    throw error("Severity level must not be less than 1 (property 'level')");
   if (_key.second == severity::none)
-    throw engine_error() << "Severity type must be one of 'service' or 'host'";
+    throw error("Severity type must be one of 'service' or 'host'");
 }
 
 /**

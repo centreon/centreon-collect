@@ -29,6 +29,7 @@
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
@@ -191,7 +192,7 @@ std::ostream& dump::customvariables(std::ostream& os,
                                     map_customvar const& obj) {
   for (auto const& cv : obj)
     os << "_" << cv.first << "=" << cv.second.has_been_modified() << ","
-       << cv.second.get_value() << "\n";
+       << cv.second.value() << "\n";
   return os;
 }
 

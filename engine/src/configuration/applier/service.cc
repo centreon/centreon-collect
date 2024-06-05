@@ -25,6 +25,7 @@
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/severity.hh"
 
 using namespace com::centreon;
@@ -113,7 +114,7 @@ void applier::service::add_object(configuration::service const& obj) {
                        obj.service_description(), *obj.hosts().begin());
 
   // Add service to the global configuration set.
-  config->services().insert(obj);
+  config->mut_services().insert(obj);
 
   // Create service.
   engine::service* svc{add_service(
@@ -185,15 +186,16 @@ void applier::service::add_object(configuration::service const& obj) {
     svc->get_contactgroups().insert({*it, nullptr});
 
   // Add custom variables.
-  for (map_customvar::const_iterator it(obj.customvariables().begin()),
-       end(obj.customvariables().end());
+  for (auto it = obj.customvariables().begin(),
+            end = obj.customvariables().end();
        it != end; ++it) {
-    svc->custom_variables[it->first] = it->second;
+    svc->custom_variables[it->first] =
+        engine::customvariable(it->second.value(), it->second.is_sent());
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
       broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, svc,
-                             it->first.c_str(), it->second.get_value().c_str(),
+                             it->first.c_str(), it->second.value().c_str(),
                              &tv);
     }
   }
@@ -238,13 +240,10 @@ void applier::service::add_object(configuration::service const& obj) {
 void applier::service::expand_objects(configuration::state& s) {
   // Browse all services.
   configuration::set_service expanded;
-  for (configuration::set_service::iterator it_svc(s.services().begin()),
-       end_svc(s.services().end());
-       it_svc != end_svc; ++it_svc) {
+  for (auto svc_cfg : s.services()) {
     // Should custom variables be sent to broker ?
-    for (map_customvar::iterator
-             it(const_cast<map_customvar&>(it_svc->customvariables()).begin()),
-         end(const_cast<map_customvar&>(it_svc->customvariables()).end());
+    for (auto it = svc_cfg.mut_customvariables().begin(),
+              end = svc_cfg.mut_customvariables().end();
          it != end; ++it) {
       if (!s.enable_macros_filter() ||
           s.macros_filter().find(it->first) != s.macros_filter().end()) {
@@ -256,24 +255,24 @@ void applier::service::expand_objects(configuration::state& s) {
     std::set<std::string> target_hosts;
 
     // Hosts members.
-    target_hosts = it_svc->hosts();
+    target_hosts = svc_cfg.hosts();
 
     // Host group members.
-    for (set_string::const_iterator it(it_svc->hostgroups().begin()),
-         end(it_svc->hostgroups().end());
+    for (set_string::const_iterator it(svc_cfg.hostgroups().begin()),
+         end(svc_cfg.hostgroups().end());
          it != end; ++it) {
       // Find host group.
       set_hostgroup::iterator it2(s.hostgroups_find(*it));
       if (it2 == s.hostgroups().end())
         throw(engine_error() << "Could not find host group '" << *it
                              << "' on which to apply service '"
-                             << it_svc->service_description() << "'");
+                             << svc_cfg.service_description() << "'");
 
       // Check host group and user configuration.
       if (it2->members().empty() && !s.allow_empty_hostgroup_assignment())
         throw(engine_error() << "Could not expand host group '" << *it
                              << "' specified in service '"
-                             << it_svc->service_description() << "'");
+                             << svc_cfg.service_description() << "'");
 
       // Add host group members.
       target_hosts.insert(it2->members().begin(), it2->members().end());
@@ -284,7 +283,7 @@ void applier::service::expand_objects(configuration::state& s) {
          end(target_hosts.end());
          it != end; ++it) {
       // Create service instance.
-      configuration::service svc(*it_svc);
+      configuration::service svc(svc_cfg);
       svc.hostgroups().clear();
       svc.hosts().clear();
       svc.hosts().insert(*it);
@@ -301,7 +300,7 @@ void applier::service::expand_objects(configuration::state& s) {
   }
 
   // Set expanded services in configuration state.
-  s.services().swap(expanded);
+  s.mut_services().swap(expanded);
 }
 
 /**
@@ -340,8 +339,8 @@ void applier::service::modify_object(configuration::service const& obj) {
 
   // Update the global configuration set.
   configuration::service obj_old(*it_cfg);
-  config->services().erase(it_cfg);
-  config->services().insert(obj);
+  config->mut_services().erase(it_cfg);
+  config->mut_services().insert(obj);
 
   // Modify properties.
   if (it_obj->second->get_hostname() != *obj.hosts().begin() ||
@@ -482,20 +481,19 @@ void applier::service::modify_object(configuration::service const& obj) {
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_DELETE, s.get(),
-                               c.first.c_str(), c.second.get_value().c_str(),
-                               &tv);
+                               c.first.c_str(), c.second.value().c_str(), &tv);
       }
     }
     s->custom_variables.clear();
 
     for (auto& c : obj.customvariables()) {
-      s->custom_variables[c.first] = c.second;
+      s->custom_variables[c.first] =
+          engine::customvariable(c.second.value(), c.second.is_sent());
 
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, s.get(),
-                               c.first.c_str(), c.second.get_value().c_str(),
-                               &tv);
+                               c.first.c_str(), c.second.value().c_str(), &tv);
       }
     }
   }
@@ -591,7 +589,7 @@ void applier::service::remove_object(configuration::service const& obj) {
   }
 
   // Remove service from the global configuration set.
-  config->services().erase(obj);
+  config->mut_services().erase(obj);
 }
 
 /**

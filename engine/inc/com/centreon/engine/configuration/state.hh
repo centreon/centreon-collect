@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2022 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_STATE_HH
 #define CCE_CONFIGURATION_STATE_HH
@@ -36,7 +36,6 @@
 #include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 namespace com::centreon::engine::configuration {
 
@@ -62,6 +61,15 @@ class setter_base {
  *  to manage configuration data.
  */
 class state {
+  std::shared_ptr<spdlog::logger> _config_logger;
+  object::error_info _err;
+
+  struct sched_info_config {
+    double host_inter_check_delay;
+    double service_inter_check_delay;
+    int32_t service_interleave_factor;
+  } _scheduling_info;
+
  public:
   /**
    *  @enum state::date_format
@@ -93,12 +101,6 @@ class state {
     ilf_user = 0,  // user-specified interleave factor
     ilf_smart      // smart interleave
   };
-
-  /**
-   *  @enum state::perdata_file_mode
-   *
-   */
-  enum perfdata_file_mode { mode_pipe = 0, mode_file, mode_file_append };
 
   state();
   state(state const& right);
@@ -181,8 +183,8 @@ class state {
   void date_format(date_type value);
   std::string const& debug_file() const noexcept;
   void debug_file(std::string const& value);
-  uint64_t debug_level() const noexcept;
-  void debug_level(uint64_t value);
+  int64_t debug_level() const noexcept;
+  void debug_level(int64_t value);
   unsigned int debug_verbosity() const noexcept;
   void debug_verbosity(unsigned int value);
   bool enable_environment_macros() const noexcept;
@@ -239,15 +241,9 @@ class state {
   void host_inter_check_delay_method(inter_check_delay value);
   std::string const& host_perfdata_command() const noexcept;
   void host_perfdata_command(std::string const& value);
-  std::string const& host_perfdata_file() const noexcept;
   void host_perfdata_file(std::string const& value);
-  perfdata_file_mode host_perfdata_file_mode() const noexcept;
-  void host_perfdata_file_mode(perfdata_file_mode value);
-  std::string const& host_perfdata_file_processing_command() const noexcept;
   void host_perfdata_file_processing_command(std::string const& value);
-  unsigned int host_perfdata_file_processing_interval() const noexcept;
   void host_perfdata_file_processing_interval(unsigned int value);
-  std::string const& host_perfdata_file_template() const noexcept;
   void host_perfdata_file_template(std::string const& value);
   std::string const& illegal_object_chars() const noexcept;
   void illegal_object_chars(std::string const& value);
@@ -345,8 +341,8 @@ class state {
       servicegroup::key_type const& k);
   // const set_anomalydetection& anomalydetections() const noexcept;
   set_anomalydetection& anomalydetections() noexcept;
+  set_service& mut_services() noexcept;
   set_service const& services() const noexcept;
-  set_service& services() noexcept;
   set_anomalydetection::iterator anomalydetections_find(
       anomalydetection::key_type const& k);
   set_service::iterator services_find(service::key_type const& k);
@@ -365,15 +361,9 @@ class state {
   void service_interleave_factor_method(interleave_factor value);
   std::string const& service_perfdata_command() const noexcept;
   void service_perfdata_command(std::string const& value);
-  std::string const& service_perfdata_file() const noexcept;
   void service_perfdata_file(std::string const& value);
-  perfdata_file_mode service_perfdata_file_mode() const noexcept;
-  void service_perfdata_file_mode(perfdata_file_mode value);
-  std::string const& service_perfdata_file_processing_command() const noexcept;
   void service_perfdata_file_processing_command(std::string const& value);
-  unsigned int service_perfdata_file_processing_interval() const noexcept;
   void service_perfdata_file_processing_interval(unsigned int value);
-  std::string const& service_perfdata_file_template() const noexcept;
   void service_perfdata_file_template(std::string const& value);
   float sleep_time() const noexcept;
   void sleep_time(float value);
@@ -450,6 +440,7 @@ class state {
   void use_true_regexp_matching(bool value);
   bool use_send_recovery_notifications_anyways() const;
   void use_send_recovery_notifications_anyways(bool value);
+  sched_info_config& sched_info_config() { return _scheduling_info; }
 
   using setter_map =
       absl::flat_hash_map<std::string_view, std::unique_ptr<setter_base>>;
@@ -457,6 +448,8 @@ class state {
 
   void apply_extended_conf(const std::string& file_path,
                            const rapidjson::Document& json_doc);
+  void clear_error();
+  object::error_info* error_info();
 
  private:
   static void _init_setter();
@@ -478,7 +471,6 @@ class state {
   void _set_event_broker_options(std::string const& value);
   void _set_free_child_process_memory(std::string const& value);
   void _set_host_inter_check_delay_method(std::string const& value);
-  void _set_host_perfdata_file_mode(std::string const& value);
   void _set_lock_file(std::string const& value);
   void _set_log_archive_path(std::string const& value);
   void _set_log_initial_states(std::string const& value);
@@ -497,6 +489,7 @@ class state {
   void _set_temp_file(std::string const& value);
   void _set_temp_path(std::string const& value);
   void _set_use_embedded_perl_implicitly(std::string const& value);
+  void _set_host_perfdata_file_mode(std::string const& value);
 
   bool _accept_passive_host_checks;
   bool _accept_passive_service_checks;
@@ -531,7 +524,7 @@ class state {
   set_contact _contacts;
   date_type _date_format;
   std::string _debug_file;
-  uint64_t _debug_level;
+  int64_t _debug_level;
   unsigned int _debug_verbosity;
   bool _enable_environment_macros;
   bool _enable_event_handlers;
@@ -558,7 +551,6 @@ class state {
   inter_check_delay _host_inter_check_delay_method;
   std::string _host_perfdata_command;
   std::string _host_perfdata_file;
-  perfdata_file_mode _host_perfdata_file_mode;
   std::string _host_perfdata_file_processing_command;
   unsigned int _host_perfdata_file_processing_interval;
   std::string _host_perfdata_file_template;
@@ -615,10 +607,7 @@ class state {
   interleave_factor _service_interleave_factor_method;
   std::string _service_perfdata_command;
   std::string _service_perfdata_file;
-  perfdata_file_mode _service_perfdata_file_mode;
   std::string _service_perfdata_file_processing_command;
-  unsigned int _service_perfdata_file_processing_interval;
-  std::string _service_perfdata_file_template;
   static setter_map _setters;
   float _sleep_time;
   bool _soft_state_dependencies;

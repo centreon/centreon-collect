@@ -39,14 +39,16 @@ class ConfigTag : public ::testing::Test {
 // Then an exception is thrown.
 TEST_F(ConfigTag, NewTagWithNoKey) {
   configuration::tag tg({0, 0});
-  ASSERT_THROW(tg.check_validity(), std::exception);
+  object::error_info err;
+  ASSERT_THROW(tg.check_validity(&err), std::exception);
 }
 
 // When I create a configuration::tag with a null type
 // Then an exception is thrown.
 TEST_F(ConfigTag, NewTagWithNoLevel) {
   configuration::tag tg({1, 0});
-  ASSERT_THROW(tg.check_validity(), std::exception);
+  object::error_info err;
+  ASSERT_THROW(tg.check_validity(&err), std::exception);
 }
 
 // When I create a configuration::tag with an empty name
@@ -54,7 +56,8 @@ TEST_F(ConfigTag, NewTagWithNoLevel) {
 TEST_F(ConfigTag, NewTagWithNoName) {
   configuration::tag tg({1, 0});
   tg.parse("type", "hostcategory");
-  ASSERT_THROW(tg.check_validity(), std::exception);
+  object::error_info err;
+  ASSERT_THROW(tg.check_validity(&err), std::exception);
 }
 
 // When I create a configuration::tag with a non empty name,
@@ -67,7 +70,8 @@ TEST_F(ConfigTag, NewTagWellFilled) {
   ASSERT_EQ(tg.key().first, 1);
   ASSERT_EQ(tg.key().second, engine::configuration::tag::servicegroup);
   ASSERT_EQ(tg.tag_name(), "foobar");
-  ASSERT_NO_THROW(tg.check_validity());
+  object::error_info err;
+  ASSERT_NO_THROW(tg.check_validity(&err));
 }
 
 // When I create a configuration::tag with a non empty name,
@@ -78,5 +82,6 @@ TEST_F(ConfigTag, NewTagIconId) {
   tg.parse("type", "hostgroup");
   tg.parse("tag_name", "foobar");
   ASSERT_EQ(tg.key().second, engine::configuration::tag::hostgroup);
-  ASSERT_NO_THROW(tg.check_validity());
+  object::error_info err;
+  ASSERT_NO_THROW(tg.check_validity(&err));
 }

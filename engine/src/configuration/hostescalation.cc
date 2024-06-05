@@ -20,9 +20,11 @@
 #include "com/centreon/engine/configuration/hostescalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
   &object::setter<hostescalation, type, &hostescalation::method>::generic
@@ -152,11 +154,14 @@ bool hostescalation::operator<(hostescalation const& right) const {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void hostescalation::check_validity() const {
+void hostescalation::check_validity(error_info* err) const {
+  object::check_validity(err);
+
   if (_hosts->empty() && _hostgroups->empty())
-    throw(engine_error() << "Host escalation is not attached to any "
-                         << "host or host group (properties 'host_name' or "
-                         << "'hostgroup_name', respectively)");
+    throw msg_fmt(
+        "Host escalation is not attached to any "
+        "host or host group (properties 'host_name' or "
+        "'hostgroup_name', respectively)");
 }
 
 /**

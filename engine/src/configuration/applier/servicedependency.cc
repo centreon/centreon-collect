@@ -25,7 +25,6 @@
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine::configuration;
 
@@ -61,12 +60,6 @@ void applier::servicedependency::add_object(
         << obj.hosts().front() << "'";
 
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new service dependency of service '"
-      << obj.dependent_service_description().front() << "' of host '"
-      << obj.dependent_hosts().front() << "' on service '"
-      << obj.service_description().front() << "' of host '"
-      << obj.hosts().front() << "'.";
   config_logger->debug(
       "Creating new service dependency of service '{}' of host '{}' on service "
       "'{}' of host '{}'.",
@@ -236,8 +229,6 @@ void applier::servicedependency::modify_object(
 void applier::servicedependency::remove_object(
     configuration::servicedependency const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing a service dependency.";
   config_logger->debug("Removing a service dependency.");
 
   // Find service dependency.
@@ -245,7 +236,6 @@ void applier::servicedependency::remove_object(
       engine::servicedependency::servicedependencies_find(obj.key()));
   if (it != engine::servicedependency::servicedependencies.end()) {
     // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
     broker_adaptive_dependency_data(NEBTYPE_SERVICEDEPENDENCY_DELETE,
                                     it->second.get());
 
@@ -265,8 +255,6 @@ void applier::servicedependency::remove_object(
 void applier::servicedependency::resolve_object(
     configuration::servicedependency const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Resolving a service dependency.";
   config_logger->debug("Resolving a service dependency.");
 
   // Find service dependency.

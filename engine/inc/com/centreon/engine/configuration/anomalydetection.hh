@@ -20,9 +20,9 @@
 #define CCE_CONFIGURATION_ANOMALYDETECTION_HH
 
 #include "com/centreon/engine/common.hh"
+#include "com/centreon/engine/configuration/customvariable.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/opt.hh"
 
 namespace com::centreon::engine {
@@ -31,6 +31,12 @@ namespace configuration {
 
 class anomalydetection : public object {
  public:
+  enum state {
+    state_ok = 0,
+    state_warning = 1,
+    state_critical = 2,
+    state_unknown = 3,
+  };
   enum action_on {
     none = 0,
     ok = (1 << 0),
@@ -49,7 +55,7 @@ class anomalydetection : public object {
   bool operator==(anomalydetection const& other) const noexcept;
   bool operator!=(anomalydetection const& other) const noexcept;
   bool operator<(anomalydetection const& other) const noexcept;
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   key_type key() const;
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
@@ -68,8 +74,9 @@ class anomalydetection : public object {
   set_string& contacts() noexcept;
   set_string const& contacts() const noexcept;
   bool contacts_defined() const noexcept;
-  map_customvar const& customvariables() const noexcept;
-  map_customvar& customvariables() noexcept;
+  const std::unordered_map<std::string, customvariable>& customvariables()
+      const noexcept;
+  std::unordered_map<std::string, customvariable>& customvariables() noexcept;
   std::string const& display_name() const noexcept;
   std::string const& event_handler() const noexcept;
   bool event_handler_enabled() const noexcept;
@@ -189,7 +196,7 @@ class anomalydetection : public object {
   opt<unsigned int> _check_interval;
   group<set_string> _contactgroups;
   group<set_string> _contacts;
-  map_customvar _customvariables;
+  std::unordered_map<std::string, customvariable> _customvariables;
   std::string _display_name;
   std::string _event_handler;
   opt<bool> _event_handler_enabled;

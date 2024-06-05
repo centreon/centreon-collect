@@ -1,22 +1,21 @@
-/*
-** Copyright 2011-2013,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
-
+/**
+ * Copyright 2011-2013,2017-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #ifndef CCE_CONFIGURATION_SERVICEDEPENDENCY_HH
 #define CCE_CONFIGURATION_SERVICEDEPENDENCY_HH
 
@@ -46,42 +45,42 @@ class servicedependency : public object {
 
   servicedependency();
   servicedependency(servicedependency const& right);
-  ~servicedependency() throw() override;
+  ~servicedependency() noexcept override;
   servicedependency& operator=(servicedependency const& right);
-  bool operator==(servicedependency const& right) const throw();
-  bool operator!=(servicedependency const& right) const throw();
+  bool operator==(servicedependency const& right) const noexcept;
+  bool operator!=(servicedependency const& right) const noexcept;
   bool operator<(servicedependency const& right) const;
-  void check_validity() const override;
-  key_type const& key() const throw();
+  void check_validity(error_info* err) const override;
+  key_type const& key() const noexcept;
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
 
   void dependency_period(std::string const& period);
-  std::string const& dependency_period() const throw();
-  void dependency_type(dependency_kind type) throw();
-  dependency_kind dependency_type() const throw();
-  list_string& dependent_hostgroups() throw();
-  list_string const& dependent_hostgroups() const throw();
-  list_string& dependent_hosts() throw();
-  list_string const& dependent_hosts() const throw();
-  list_string& dependent_servicegroups() throw();
-  list_string const& dependent_servicegroups() const throw();
-  list_string& dependent_service_description() throw();
-  list_string const& dependent_service_description() const throw();
-  void execution_failure_options(unsigned int options) throw();
-  unsigned int execution_failure_options() const throw();
-  void inherits_parent(bool inherit) throw();
-  bool inherits_parent() const throw();
-  list_string& hostgroups() throw();
-  list_string const& hostgroups() const throw();
-  list_string& hosts() throw();
-  list_string const& hosts() const throw();
-  void notification_failure_options(unsigned int options) throw();
-  unsigned int notification_failure_options() const throw();
-  list_string& servicegroups() throw();
-  list_string const& servicegroups() const throw();
-  list_string& service_description() throw();
-  list_string const& service_description() const throw();
+  std::string const& dependency_period() const noexcept;
+  void dependency_type(dependency_kind type) noexcept;
+  dependency_kind dependency_type() const noexcept;
+  list_string& dependent_hostgroups() noexcept;
+  list_string const& dependent_hostgroups() const noexcept;
+  list_string& dependent_hosts() noexcept;
+  list_string const& dependent_hosts() const noexcept;
+  list_string& dependent_servicegroups() noexcept;
+  list_string const& dependent_servicegroups() const noexcept;
+  list_string& dependent_service_description() noexcept;
+  list_string const& dependent_service_description() const noexcept;
+  void execution_failure_options(unsigned int options) noexcept;
+  unsigned int execution_failure_options() const noexcept;
+  void inherits_parent(bool inherit) noexcept;
+  bool inherits_parent() const noexcept;
+  list_string& hostgroups() noexcept;
+  list_string const& hostgroups() const noexcept;
+  list_string& hosts() noexcept;
+  list_string const& hosts() const noexcept;
+  void notification_failure_options(unsigned int options) noexcept;
+  unsigned int notification_failure_options() const noexcept;
+  list_string& servicegroups() noexcept;
+  list_string const& servicegroups() const noexcept;
+  list_string& service_description() noexcept;
+  list_string const& service_description() const noexcept;
 
  private:
   typedef bool (*setter_func)(servicedependency&, char const*);
@@ -119,6 +118,6 @@ typedef std::shared_ptr<servicedependency> servicedependency_ptr;
 typedef std::set<servicedependency> set_servicedependency;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_SERVICEDEPENDENCY_HH

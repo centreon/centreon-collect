@@ -27,6 +27,7 @@
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/severity.hh"
 
 using namespace com::centreon;
@@ -119,15 +120,16 @@ void applier::host::add_object(configuration::host const& obj) {
     h->get_contactgroups().insert({*it, nullptr});
 
   // Custom variables.
-  for (map_customvar::const_iterator it(obj.customvariables().begin()),
-       end(obj.customvariables().end());
+  for (auto it = obj.customvariables().begin(),
+            end = obj.customvariables().end();
        it != end; ++it) {
-    h->custom_variables[it->first] = it->second;
+    h->custom_variables[it->first] =
+        engine::customvariable(it->second.value(), it->second.is_sent());
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
       broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD, h.get(),
-                             it->first.c_str(), it->second.get_value().c_str(),
+                             it->first.c_str(), it->second.value().c_str(),
                              &tv);
     }
   }
@@ -167,53 +169,6 @@ void applier::host::add_object(configuration::host const& obj) {
   // Notify event broker.
   broker_adaptive_host_data(NEBTYPE_HOST_ADD, NEBFLAG_NONE, NEBATTR_NONE,
                             h.get(), MODATTR_ALL);
-}
-
-/**
- *  @brief Expand a host.
- *
- *  During expansion, the host will be added to its host groups. These
- *  will be modified in the state.
- *
- *  @param[int,out] s   Configuration state.
- */
-void applier::host::expand_objects(configuration::state& s) {
-  // Browse all hosts.
-  for (auto& host_cfg : s.hosts()) {
-    // Should custom variables be sent to broker ?
-    for (map_customvar::iterator
-             it(const_cast<map_customvar&>(host_cfg.customvariables()).begin()),
-         end(const_cast<map_customvar&>(host_cfg.customvariables()).end());
-         it != end; ++it) {
-      if (!s.enable_macros_filter() ||
-          s.macros_filter().find(it->first) != s.macros_filter().end()) {
-        it->second.set_sent(true);
-      }
-    }
-
-    // Browse current host's groups.
-    for (set_string::const_iterator it_group(host_cfg.hostgroups().begin()),
-         end_group(host_cfg.hostgroups().end());
-         it_group != end_group; ++it_group) {
-      // Find host group.
-      configuration::set_hostgroup::iterator group(
-          s.hostgroups_find(*it_group));
-      if (group == s.hostgroups().end())
-        throw(engine_error()
-              << "Could not add host '" << host_cfg.host_name()
-              << "' to non-existing host group '" << *it_group << "'");
-
-      // Remove host group from state.
-      configuration::hostgroup backup(*group);
-      s.hostgroups().erase(group);
-
-      // Add host to group members.
-      backup.members().insert(host_cfg.host_name());
-
-      // Reinsert host group.
-      s.hostgroups().insert(backup);
-    }
-  }
 }
 
 /**
@@ -381,19 +336,20 @@ void applier::host::modify_object(configuration::host const& obj) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_DELETE,
                                it_obj->second.get(), c.first.c_str(),
-                               c.second.get_value().c_str(), &tv);
+                               c.second.value().c_str(), &tv);
       }
     }
     it_obj->second->custom_variables.clear();
 
     for (auto& c : obj.customvariables()) {
-      it_obj->second->custom_variables[c.first] = c.second;
+      it_obj->second->custom_variables[c.first] =
+          engine::customvariable(c.second.value(), c.second.is_sent());
 
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD,
                                it_obj->second.get(), c.first.c_str(),
-                               c.second.get_value().c_str(), &tv);
+                               c.second.value().c_str(), &tv);
       }
     }
   }
@@ -539,4 +495,53 @@ void applier::host::resolve_object(configuration::host const& obj) {
 
   // Resolve host.
   it->second->resolve(config_warnings, config_errors);
+}
+
+/**
+ *  @brief Expand a host.
+ *
+ *  During expansion, the host will be added to its host groups. These
+ *  will be modified in the state.
+ *
+ *  @param[int,out] s   Configuration state.
+ */
+void applier::host::expand_objects(configuration::state& s) {
+  // Browse all hosts.
+  set_host new_hosts;
+  for (auto host_cfg : s.hosts()) {
+    // Should custom variables be sent to broker ?
+    for (auto it = host_cfg.mut_customvariables().begin(),
+              end = host_cfg.mut_customvariables().end();
+         it != end; ++it) {
+      if (!s.enable_macros_filter() ||
+          s.macros_filter().find(it->first) != s.macros_filter().end()) {
+        it->second.set_sent(true);
+      }
+    }
+
+    // Browse current host's groups.
+    for (set_string::const_iterator it_group(host_cfg.hostgroups().begin()),
+         end_group(host_cfg.hostgroups().end());
+         it_group != end_group; ++it_group) {
+      // Find host group.
+      configuration::set_hostgroup::iterator group(
+          s.hostgroups_find(*it_group));
+      if (group == s.hostgroups().end())
+        throw(engine_error()
+              << "Could not add host '" << host_cfg.host_name()
+              << "' to non-existing host group '" << *it_group << "'");
+
+      // Remove host group from state.
+      configuration::hostgroup backup(*group);
+      s.hostgroups().erase(group);
+
+      // Add host to group members.
+      backup.members().insert(host_cfg.host_name());
+
+      // Reinsert host group.
+      s.hostgroups().insert(backup);
+    }
+    new_hosts.insert(host_cfg);
+  }
+  s.hosts() = std::move(new_hosts);
 }
