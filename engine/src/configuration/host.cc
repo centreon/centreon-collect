@@ -26,7 +26,6 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/string.hh"
 
 extern int config_warnings;
 extern int config_errors;
@@ -1178,18 +1177,17 @@ bool host::_set_contacts(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool host::_set_coords_2d(std::string const& value) {
-  std::list<std::string> coords;
-  string::split(value, coords, ',');
+  std::list<std::string> coords = absl::StrSplit(value, ',');
   if (coords.size() != 2)
     return false;
 
   int x;
-  if (!string::to(string::trim(coords.front()).c_str(), x))
+  if (!absl::SimpleAtoi(coords.front(), &x))
     return false;
   coords.pop_front();
 
   int y;
-  if (!string::to(string::trim(coords.front()).c_str(), y))
+  if (!absl::SimpleAtoi(coords.front(), &y))
     return false;
 
   _coords_2d = point_2d(x, y);
@@ -1204,23 +1202,22 @@ bool host::_set_coords_2d(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool host::_set_coords_3d(std::string const& value) {
-  std::list<std::string> coords;
-  string::split(value, coords, ',');
+  std::list<std::string> coords = absl::StrSplit(value, ',');
   if (coords.size() != 3)
     return false;
 
   double x;
-  if (!string::to(string::trim(coords.front()).c_str(), x))
+  if (!absl::SimpleAtod(coords.front(), &x))
     return false;
   coords.pop_front();
 
   double y;
-  if (!string::to(string::trim(coords.front()).c_str(), y))
+  if (!absl::SimpleAtod(coords.front(), &y))
     return false;
   coords.pop_front();
 
   double z;
-  if (!string::to(string::trim(coords.front()).c_str(), z))
+  if (!absl::SimpleAtod(coords.front(), &z))
     return false;
 
   _coords_3d = point_3d(x, y, z);
@@ -1334,20 +1331,18 @@ bool host::_set_flap_detection_enabled(bool value) {
  */
 bool host::_set_flap_detection_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "up")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "up")
       options |= up;
-    else if (*it == "d" || *it == "down")
+    else if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = up | down | unreachable;
     else
       return false;
@@ -1448,8 +1443,8 @@ bool host::_set_icon_image_alt(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool host::_set_initial_state(std::string const& value) {
-  std::string data(value);
-  string::trim(data);
+  std::string_view data(value);
+  data = absl::StripAsciiWhitespace(data);
   if (data == "o" || data == "up")
     _initial_state = engine::host::state_up;
   else if (data == "d" || data == "down")
@@ -1544,24 +1539,22 @@ bool host::_set_notification_interval(unsigned int value) {
  */
 bool host::_set_notification_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "d" || *it == "down")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "r" || *it == "recovery")
+    else if (v == "r" || v == "recovery")
       options |= up;
-    else if (*it == "f" || *it == "flapping")
+    else if (v == "f" || v == "flapping")
       options |= flapping;
-    else if (*it == "s" || *it == "downtime")
+    else if (v == "s" || v == "downtime")
       options |= downtime;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = down | unreachable | up | flapping | downtime;
     else
       return false;
@@ -1675,20 +1668,18 @@ bool host::_set_recovery_notification_delay(unsigned int value) {
  */
 bool host::_set_stalking_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "up")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "up")
       options |= up;
-    else if (*it == "d" || *it == "down")
+    else if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = up | down | unreachable;
     else
       return false;

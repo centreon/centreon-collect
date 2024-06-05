@@ -64,7 +64,7 @@ class timeperiod : public object {
   bool _add_week_day(std::string const& key, std::string const& value);
   static bool _build_timeranges(std::string const& line,
                                 timerange_list& timeranges);
-  static bool _build_time_t(std::string const& time_str, unsigned long& ret);
+  static bool _build_time_t(std::string_view time_str, unsigned long& ret);
   static bool _has_similar_daterange(std::list<daterange> const& lst,
                                      daterange const& range) throw();
   static bool _get_month_id(std::string const& name, unsigned int& id);
@@ -85,6 +85,6 @@ typedef std::shared_ptr<timeperiod> timeperiod_ptr;
 typedef std::set<timeperiod> set_timeperiod;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_TIMEPERIOD_HH

@@ -22,7 +22,6 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/string.hh"
 
 extern int config_warnings;
 extern int config_errors;
@@ -205,8 +204,6 @@ void hostdependency::check_validity() const {
         "'{}'.",
         dependend_host_name, host_name);
   }
-
-  return;
 }
 
 /**
@@ -214,7 +211,7 @@ void hostdependency::check_validity() const {
  *
  *  @return This object.
  */
-hostdependency::key_type const& hostdependency::key() const throw() {
+hostdependency::key_type const& hostdependency::key() const noexcept {
   return *this;
 }
 
@@ -262,7 +259,6 @@ bool hostdependency::parse(char const* key, char const* value) {
  */
 void hostdependency::dependency_period(std::string const& period) {
   _dependency_period = period;
-  return;
 }
 
 /**
@@ -270,7 +266,7 @@ void hostdependency::dependency_period(std::string const& period) {
  *
  *  @return The dependency_period.
  */
-std::string const& hostdependency::dependency_period() const throw() {
+std::string const& hostdependency::dependency_period() const noexcept {
   return _dependency_period;
 }
 
@@ -280,9 +276,8 @@ std::string const& hostdependency::dependency_period() const throw() {
  *  @param[in] type Dependency type.
  */
 void hostdependency::dependency_type(
-    hostdependency::dependency_kind type) throw() {
+    hostdependency::dependency_kind type) noexcept {
   _dependency_type = type;
-  return;
 }
 
 /**
@@ -290,8 +285,8 @@ void hostdependency::dependency_type(
  *
  *  @return Dependency type.
  */
-hostdependency::dependency_kind hostdependency::dependency_type() const
-    throw() {
+hostdependency::dependency_kind hostdependency::dependency_type()
+    const noexcept {
   return _dependency_type;
 }
 
@@ -300,7 +295,7 @@ hostdependency::dependency_kind hostdependency::dependency_type() const
  *
  *  @return Dependent host groups.
  */
-set_string& hostdependency::dependent_hostgroups() throw() {
+set_string& hostdependency::dependent_hostgroups() noexcept {
   return *_dependent_hostgroups;
 }
 
@@ -309,7 +304,7 @@ set_string& hostdependency::dependent_hostgroups() throw() {
  *
  *  @return The dependent_hostgroups.
  */
-set_string const& hostdependency::dependent_hostgroups() const throw() {
+set_string const& hostdependency::dependent_hostgroups() const noexcept {
   return *_dependent_hostgroups;
 }
 
@@ -318,7 +313,7 @@ set_string const& hostdependency::dependent_hostgroups() const throw() {
  *
  *  @return The dependent hosts.
  */
-set_string& hostdependency::dependent_hosts() throw() {
+set_string& hostdependency::dependent_hosts() noexcept {
   return *_dependent_hosts;
 }
 
@@ -327,7 +322,7 @@ set_string& hostdependency::dependent_hosts() throw() {
  *
  *  @return The dependent_hosts.
  */
-set_string const& hostdependency::dependent_hosts() const throw() {
+set_string const& hostdependency::dependent_hosts() const noexcept {
   return *_dependent_hosts;
 }
 
@@ -336,9 +331,8 @@ set_string const& hostdependency::dependent_hosts() const throw() {
  *
  *  @param[in] options New options.
  */
-void hostdependency::execution_failure_options(unsigned int options) throw() {
+void hostdependency::execution_failure_options(unsigned int options) noexcept {
   _execution_failure_options.set(options);
-  return;
 }
 
 /**
@@ -346,7 +340,7 @@ void hostdependency::execution_failure_options(unsigned int options) throw() {
  *
  *  @return The execution_failure_options.
  */
-unsigned int hostdependency::execution_failure_options() const throw() {
+unsigned int hostdependency::execution_failure_options() const noexcept {
   return _execution_failure_options;
 }
 
@@ -355,7 +349,7 @@ unsigned int hostdependency::execution_failure_options() const throw() {
  *
  *  @return The host groups.
  */
-set_string& hostdependency::hostgroups() throw() {
+set_string& hostdependency::hostgroups() noexcept {
   return *_hostgroups;
 }
 
@@ -364,7 +358,7 @@ set_string& hostdependency::hostgroups() throw() {
  *
  *  @return The hostgroups.
  */
-set_string const& hostdependency::hostgroups() const throw() {
+set_string const& hostdependency::hostgroups() const noexcept {
   return *_hostgroups;
 }
 
@@ -373,7 +367,7 @@ set_string const& hostdependency::hostgroups() const throw() {
  *
  *  @return The hosts.
  */
-set_string& hostdependency::hosts() throw() {
+set_string& hostdependency::hosts() noexcept {
   return *_hosts;
 }
 
@@ -382,7 +376,7 @@ set_string& hostdependency::hosts() throw() {
  *
  *  @return The hosts.
  */
-set_string const& hostdependency::hosts() const throw() {
+set_string const& hostdependency::hosts() const noexcept {
   return *_hosts;
 }
 
@@ -391,9 +385,8 @@ set_string const& hostdependency::hosts() const throw() {
  *
  *  @param[in] inherit True if dependency inherits parent.
  */
-void hostdependency::inherits_parent(bool inherit) throw() {
+void hostdependency::inherits_parent(bool inherit) noexcept {
   _inherits_parent = inherit;
-  return;
 }
 
 /**
@@ -401,7 +394,7 @@ void hostdependency::inherits_parent(bool inherit) throw() {
  *
  *  @return The inherits_parent.
  */
-bool hostdependency::inherits_parent() const throw() {
+bool hostdependency::inherits_parent() const noexcept {
   return _inherits_parent;
 }
 
@@ -413,7 +406,6 @@ bool hostdependency::inherits_parent() const throw() {
 void hostdependency::notification_failure_options(
     unsigned int options) throw() {
   _notification_failure_options.set(options);
-  return;
 }
 
 /**
@@ -470,22 +462,20 @@ bool hostdependency::_set_dependent_hosts(std::string const& value) {
  */
 bool hostdependency::_set_execution_failure_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "up")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "up")
       options |= up;
-    else if (*it == "d" || *it == "down")
+    else if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "p" || *it == "pending")
+    else if (v == "p" || v == "pending")
       options |= pending;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = up | down | unreachable | pending;
     else
       return false;
@@ -540,22 +530,20 @@ bool hostdependency::_set_inherits_parent(bool value) {
 bool hostdependency::_set_notification_failure_options(
     std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "up")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "up")
       options |= up;
-    else if (*it == "d" || *it == "down")
+    else if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "p" || *it == "pending")
+    else if (v == "p" || v == "pending")
       options |= pending;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = up | down | unreachable | pending;
     else
       return false;

@@ -40,7 +40,7 @@ class command {
   command(command const&) = delete;
   command& operator=(command const&) = delete;
 
-  ~command() throw();
+  ~command() noexcept;
 
   void add_object(configuration::command const& obj);
   void expand_objects(configuration::state& s);

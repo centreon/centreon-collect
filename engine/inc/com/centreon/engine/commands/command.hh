@@ -124,8 +124,9 @@ class command {
    * @param host
    * @param service_description empty for host command
    */
-  virtual void register_host_serv(const std::string& /*host*/,
-                                  const std::string& /*service_description*/){};
+  virtual void register_host_serv(const std::string& host [[maybe_unused]],
+                                  const std::string& service_description
+                                  [[maybe_unused]]) {}
 
   /**
    * @brief Remove an entry for host serv list shared between this connector and
@@ -134,9 +135,9 @@ class command {
    * @param host
    * @param service_description empty for host command
    */
-  virtual void unregister_host_serv(
-      const std::string& /*host*/,
-      const std::string& /*service_description*/){};
+  virtual void unregister_host_serv(const std::string& host [[maybe_unused]],
+                                    const std::string& service_description
+                                    [[maybe_unused]]) {}
 
   template <typename caller_iterator>
   void add_caller_group(caller_iterator begin, caller_iterator end);
