@@ -907,14 +907,13 @@ BEPB_BA_DURATION_EVENT
     Ctn Start engine
 
     # KPI set to critical
-    # as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
     ${start_event}    Ctn Get Round Current Date
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
+    ${result}    Ctn Check Service Resource Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
     Sleep    2s
     Ctn Process Service Check Result    host_16    service_314    0    output ok for 314
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    0    60    HARD
+    ${result}    Ctn Check Service Resource Status With Timeout    host_16    service_314    0    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not OK as expected
     ${end_event}    Get Current Date    result_format=epoch
 
@@ -926,6 +925,13 @@ BEPB_BA_DURATION_EVENT
         IF    "${output}" != "()"    BREAK
     END
 
+    IF    "${output}" == "()"
+	Log To Console    "Bad return for this test, the content of the table is"
+        ${output}    Query
+        ...    SELECT start_time, end_time, duration, sla_duration, timeperiod_is_default FROM mod_bam_reporting_ba_events_durations
+        Log To Console    ${output}
+    END
+    Should Be True    "${output}" != "()"    No row recorded in mod_bam_reporting_ba_events_durations with ba_event_id=1
     Should Be True    ${output[0][2]} == ${output[0][1]} - ${output[0][0]}
     Should Be True    ${output[0][3]} == ${output[0][1]} - ${output[0][0]}
     Should Be True    ${output[0][4]} == 1

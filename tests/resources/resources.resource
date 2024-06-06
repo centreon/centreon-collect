@@ -195,12 +195,11 @@ Ctn Stop Custom Engine
     ...    ${result.rc} == -15 or ${result.rc} == 0
     ...    Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
-Ctn Stop engine
+Ctn Stop Engine
     Log To Console    "stop centengine"
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
-        ${alias}    Catenate    SEPARATOR=    e    ${idx}
-        Send Signal To Process    SIGTERM    ${alias}
+        Send Signal To Process    SIGTERM    e${idx}
     END
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}

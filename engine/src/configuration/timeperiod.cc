@@ -21,7 +21,6 @@
 
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timerange.hh"
 
 using namespace com::centreon;
@@ -57,7 +56,7 @@ timeperiod::timeperiod(timeperiod const& right) : object(right) {
 /**
  *  Destructor.
  */
-timeperiod::~timeperiod() throw() {}
+timeperiod::~timeperiod() noexcept {}
 
 /**
  *  Copy constructor.
@@ -86,10 +85,10 @@ timeperiod& timeperiod::operator=(timeperiod const& right) {
  *  @return True if is the same timeperiod, otherwise false.
  */
 bool timeperiod::operator==(timeperiod const& right) const {
-  return (object::operator==(right) && _alias == right._alias &&
-          _exceptions == right._exceptions && _exclude == right._exclude &&
-          _timeperiod_name == right._timeperiod_name &&
-          _timeranges == right._timeranges);
+  return object::operator==(right) && _alias == right._alias &&
+         _exceptions == right._exceptions && _exclude == right._exclude &&
+         _timeperiod_name == right._timeperiod_name &&
+         _timeranges == right._timeranges;
 }
 
 /**
@@ -139,7 +138,7 @@ void timeperiod::check_validity() const {
  *
  *  @return The time period name.
  */
-timeperiod::key_type const& timeperiod::key() const throw() {
+timeperiod::key_type const& timeperiod::key() const noexcept {
   return _timeperiod_name;
 }
 
@@ -199,12 +198,11 @@ bool timeperiod::parse(std::string const& line) {
   if (pos == std::string::npos)
     return false;
   std::string key(line.substr(0, pos));
-  std::string value(line.substr(pos + 1));
-  string::trim(value);
+  std::string value(absl::StripAsciiWhitespace(line.substr(pos + 1)));
 
   if (object::parse(key.c_str(), value.c_str()) ||
-      parse(key.c_str(), string::trim(value).c_str()) ||
-      _add_calendar_date(line) || _add_other_date(line))
+      parse(key.c_str(), value.c_str()) || _add_calendar_date(line) ||
+      _add_other_date(line))
     return true;
   return false;
 }
@@ -214,7 +212,7 @@ bool timeperiod::parse(std::string const& line) {
  *
  *  @return The alias value.
  */
-std::string const& timeperiod::alias() const throw() {
+std::string const& timeperiod::alias() const noexcept {
   return _alias;
 }
 
@@ -223,7 +221,7 @@ std::string const& timeperiod::alias() const throw() {
  *
  *  @return The exceptions value.
  */
-exception_array const& timeperiod::exceptions() const throw() {
+exception_array const& timeperiod::exceptions() const noexcept {
   return _exceptions;
 }
 
@@ -232,7 +230,7 @@ exception_array const& timeperiod::exceptions() const throw() {
  *
  *  @return The exclude value.
  */
-set_string const& timeperiod::exclude() const throw() {
+set_string const& timeperiod::exclude() const noexcept {
   return *_exclude;
 }
 
@@ -241,7 +239,7 @@ set_string const& timeperiod::exclude() const throw() {
  *
  *  @return The timeperiod_name value.
  */
-std::string const& timeperiod::timeperiod_name() const throw() {
+std::string const& timeperiod::timeperiod_name() const noexcept {
   return _timeperiod_name;
 }
 
@@ -264,19 +262,17 @@ days_array const& timeperiod::timeranges() const {
  */
 bool timeperiod::_build_timeranges(std::string const& line,
                                    timerange_list& timeranges) {
-  list_string timeranges_str;
-  string::split(line, timeranges_str, ',');
-  for (list_string::const_iterator it(timeranges_str.begin()),
-       end(timeranges_str.end());
-       it != end; ++it) {
-    std::size_t pos(it->find('-'));
+  auto timeranges_str = absl::StrSplit(line, ',');
+  for (auto tr : timeranges_str) {
+    tr = absl::StripAsciiWhitespace(tr);
+    std::size_t pos(tr.find('-'));
     if (pos == std::string::npos)
       return false;
     unsigned long start_time;
-    if (!_build_time_t(it->substr(0, pos), start_time))
+    if (!_build_time_t(tr.substr(0, pos), start_time))
       return false;
     unsigned long end_time;
-    if (!_build_time_t(it->substr(pos + 1), end_time))
+    if (!_build_time_t(tr.substr(pos + 1), end_time))
       return false;
     timeranges.emplace_back(start_time, end_time);
   }
@@ -291,16 +287,15 @@ bool timeperiod::_build_timeranges(std::string const& line,
  *
  *  @return True on success, otherwise false.
  */
-bool timeperiod::_build_time_t(std::string const& time_str,
-                               unsigned long& ret) {
+bool timeperiod::_build_time_t(std::string_view time_str, unsigned long& ret) {
   std::size_t pos(time_str.find(':'));
   if (pos == std::string::npos)
     return false;
   unsigned long hours;
-  if (!string::to(time_str.substr(0, pos).c_str(), hours))
+  if (!absl::SimpleAtoi(time_str.substr(0, pos), &hours))
     return false;
   unsigned long minutes;
-  if (!string::to(time_str.substr(pos + 1).c_str(), minutes))
+  if (!absl::SimpleAtoi(time_str.substr(pos + 1), &minutes))
     return false;
   ret = hours * 3600 + minutes * 60;
   return true;
@@ -316,7 +311,7 @@ bool timeperiod::_build_time_t(std::string const& time_str,
  *  @return True on success, otherwise false.
  */
 bool timeperiod::_has_similar_daterange(std::list<daterange> const& lst,
-                                        daterange const& range) throw() {
+                                        daterange const& range) noexcept {
   for (std::list<daterange>::const_iterator it(lst.begin()), end(lst.end());
        it != end; ++it)
     if (it->is_date_data_equal(range))
@@ -594,7 +589,7 @@ bool timeperiod::_add_week_day(std::string const& key,
  *  @return True on success, otherwise false.
  */
 bool timeperiod::_get_month_id(std::string const& name, unsigned int& id) {
-  static std::string const months[] = {
+  static std::string_view const months[] = {
       "january", "february", "march",     "april",   "may",      "june",
       "july",    "august",   "september", "october", "november", "december"};
   for (id = 0; id < sizeof(months) / sizeof(months[0]); ++id)

@@ -21,7 +21,6 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/string.hh"
 #include "com/centreon/io/file_entry.hh"
 #include "compatibility/locations.h"
 
@@ -38,13 +37,38 @@ struct setter : public setter_base {
   bool apply_from_cfg(state& obj, char const* value) override {
     try {
       U val(0);
-      if (!string::to(value, val))
-        return false;
-      (obj.*ptr)(val);
-    } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(config_logger, "fail to update {} with value {}: {}",
-                          setter_base::_field_name, value, e.what());
-      return false;
+      if constexpr (std::is_same_v<U, bool>) {
+        if (!absl::SimpleAtob(value, &val))
+          return false;
+        (obj.*ptr)(val);
+      } else if constexpr (std::is_same_v<U, uint16_t>) {
+        uint32_t v;
+        if (!absl::SimpleAtoi(value, &v))
+          return false;
+        if (v > 0xffffu)
+          return false;
+        else
+          val = v;
+        (obj.*ptr)(val);
+      } else if constexpr (std::is_integral<U>::value) {
+        if (!absl::SimpleAtoi(value, &val))
+          return false;
+        (obj.*ptr)(val);
+      } else if constexpr (std::is_same_v<U, float>) {
+        if (!absl::SimpleAtof(value, &val))
+          return false;
+        (obj.*ptr)(val);
+      } else if constexpr (std::is_same_v<U, double>) {
+        if (!absl::SimpleAtod(value, &val))
+          return false;
+        (obj.*ptr)(val);
+      } else {
+        static_assert(std::is_integral_v<U> || std::is_floating_point_v<U> ||
+                      std::is_same_v<U, bool>);
+      }
+    } catch (const std::exception& e) {
+      config_logger->error("Failed to parse '{}={}': {}",
+                           setter_base::_field_name, value, e.what());
     }
     return true;
   }
@@ -137,7 +161,7 @@ void state::_init_setter() {
   SETTER(std::string const&, _set_daemon_dumps_core, "daemon_dumps_core");
   SETTER(std::string const&, _set_date_format, "date_format");
   SETTER(std::string const&, debug_file, "debug_file");
-  SETTER(uint64_t, debug_level, "debug_level");
+  SETTER(int64_t, debug_level, "debug_level");
   SETTER(unsigned int, debug_verbosity, "debug_verbosity");
   SETTER(std::string const&, _set_downtime_file, "downtime_file");
   SETTER(std::string const&, _set_enable_embedded_perl, "enable_embedded_perl");
@@ -330,7 +354,7 @@ static int const default_command_check_interval(-1);
 static std::string const default_command_file(DEFAULT_COMMAND_FILE);
 static state::date_type const default_date_format(state::us);
 static std::string const default_debug_file(DEFAULT_DEBUG_FILE);
-static uint64_t const default_debug_level(0);
+static int64_t const default_debug_level(0);
 static unsigned int const default_debug_verbosity(1);
 static bool const default_enable_environment_macros(false);
 static bool const default_enable_event_handlers(true);
@@ -1703,7 +1727,7 @@ void state::debug_file(std::string const& value) {
  *
  *  @return The debug_level value.
  */
-uint64_t state::debug_level() const noexcept {
+int64_t state::debug_level() const noexcept {
   return _debug_level;
 }
 
@@ -1712,9 +1736,9 @@ uint64_t state::debug_level() const noexcept {
  *
  *  @param[in] value The new debug_level value.
  */
-void state::debug_level(uint64_t value) {
-  if (value == std::numeric_limits<unsigned long>::max())
-    _debug_level = static_cast<uint64_t>(all);
+void state::debug_level(int64_t value) {
+  if (value == -1)
+    _debug_level = all;
   else
     _debug_level = value;
 }
@@ -3743,7 +3767,7 @@ void state::user(std::string const& key, std::string const& value) {
  *  @param[in] value The user value.
  */
 void state::user(unsigned int key, std::string const& value) {
-  _users[string::from(key)] = value;
+  _users[fmt::format("{}", key)] = value;
 }
 
 /**
@@ -4524,7 +4548,7 @@ void state::_set_host_inter_check_delay_method(std::string const& value) {
     _host_inter_check_delay_method = icd_smart;
   else {
     _host_inter_check_delay_method = icd_user;
-    if (!string::to(value.c_str(), scheduling_info.host_inter_check_delay) ||
+    if (!absl::SimpleAtod(value, &scheduling_info.host_inter_check_delay) ||
         scheduling_info.host_inter_check_delay <= 0.0)
       throw engine_error()
           << "Invalid value for host_inter_check_delay_method, must "
@@ -4724,7 +4748,7 @@ void state::_set_service_inter_check_delay_method(std::string const& value) {
     _service_inter_check_delay_method = icd_smart;
   else {
     _service_inter_check_delay_method = icd_user;
-    if (!string::to(value.c_str(), scheduling_info.service_inter_check_delay) ||
+    if (!absl::SimpleAtod(value, &scheduling_info.service_inter_check_delay) ||
         scheduling_info.service_inter_check_delay <= 0.0)
       throw engine_error()
           << "Invalid value for service_inter_check_delay_method, "
@@ -4743,7 +4767,7 @@ void state::_set_service_interleave_factor_method(std::string const& value) {
     _service_interleave_factor_method = ilf_smart;
   else {
     _service_interleave_factor_method = ilf_user;
-    if (!string::to(value.c_str(), scheduling_info.service_interleave_factor) ||
+    if (!absl::SimpleAtoi(value, &scheduling_info.service_interleave_factor) ||
         scheduling_info.service_interleave_factor < 1)
       scheduling_info.service_interleave_factor = 1;
   }
