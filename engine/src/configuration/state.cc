@@ -160,7 +160,7 @@ void state::_init_setter() {
   SETTER(std::string const&, _set_daemon_dumps_core, "daemon_dumps_core");
   SETTER(std::string const&, _set_date_format, "date_format");
   SETTER(std::string const&, debug_file, "debug_file");
-  SETTER(uint64_t, debug_level, "debug_level");
+  SETTER(int64_t, debug_level, "debug_level");
   SETTER(unsigned int, debug_verbosity, "debug_verbosity");
   SETTER(std::string const&, _set_downtime_file, "downtime_file");
   SETTER(std::string const&, _set_enable_embedded_perl, "enable_embedded_perl");
@@ -353,7 +353,7 @@ static int const default_command_check_interval(-1);
 static std::string const default_command_file(DEFAULT_COMMAND_FILE);
 static state::date_type const default_date_format(state::us);
 static std::string const default_debug_file(DEFAULT_DEBUG_FILE);
-static uint64_t const default_debug_level(0);
+static int64_t const default_debug_level(0);
 static unsigned int const default_debug_verbosity(1);
 static bool const default_enable_environment_macros(false);
 static bool const default_enable_event_handlers(true);
@@ -1726,7 +1726,7 @@ void state::debug_file(std::string const& value) {
  *
  *  @return The debug_level value.
  */
-uint64_t state::debug_level() const noexcept {
+int64_t state::debug_level() const noexcept {
   return _debug_level;
 }
 
@@ -1735,9 +1735,9 @@ uint64_t state::debug_level() const noexcept {
  *
  *  @param[in] value The new debug_level value.
  */
-void state::debug_level(uint64_t value) {
-  if (value == std::numeric_limits<unsigned long>::max())
-    _debug_level = static_cast<uint64_t>(all);
+void state::debug_level(int64_t value) {
+  if (value == -1)
+    _debug_level = all;
   else
     _debug_level = value;
 }
