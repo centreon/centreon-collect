@@ -1037,7 +1037,7 @@ not15
     Ctn Kindly Stop Broker
 
 not16
-    [Documentation]    notification for a dependensies services group
+    [Documentation]    notification for dependencies services group
     [Tags]    broker    engine    services    unified_sql
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${4}    ${1}
