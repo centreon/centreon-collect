@@ -140,6 +140,8 @@ class connection_base : public std::enable_shared_from_this<connection_base> {
 
   http_config::pointer _conf;
 
+  virtual void _on_accept(connect_callback_type&& callback) = 0;
+
  public:
   enum e_state {
     e_not_connected,
@@ -176,13 +178,11 @@ class connection_base : public std::enable_shared_from_this<connection_base> {
   // server version
   /**
    * @brief to override in accepted session objects
-   * It has to call on_accept(connect_callback_type&& callback) in order to
+   * It has to call _on_accept(connect_callback_type&& callback) in order to
    * receive
    *
    */
   virtual void on_accept() {}
-
-  virtual void on_accept(connect_callback_type&& callback) = 0;
 
   virtual void answer(const response_ptr& response,
                       answer_callback_type&& callback) = 0;
@@ -198,6 +198,9 @@ class connection_base : public std::enable_shared_from_this<connection_base> {
 
   asio::ip::tcp::endpoint& get_peer() { return _peer; }
   const asio::ip::tcp::endpoint& get_peer() const { return _peer; }
+
+  virtual void add_keep_alive_to_server_response(
+      const response_ptr& response) const;
 };
 
 /**
@@ -247,6 +250,8 @@ class http_connection : public connection_base {
                send_callback_type& callback,
                const response_ptr& resp);
 
+  void _on_accept(connect_callback_type&& callback) override;
+
  public:
   std::shared_ptr<http_connection> shared_from_this() {
     return std::static_pointer_cast<http_connection>(
@@ -265,8 +270,6 @@ class http_connection : public connection_base {
   void connect(connect_callback_type&& callback) override;
 
   void send(request_ptr request, send_callback_type&& callback) override;
-
-  void on_accept(connect_callback_type&& callback) override;
 
   void answer(const response_ptr& response,
               answer_callback_type&& callback) override;

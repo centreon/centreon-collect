@@ -131,7 +131,7 @@ void applier::command::modify_object(configuration::command const& obj) {
     c->set_command_line(obj.command_line());
 
   // Command will be temporarily removed from the command set but
-  // will be added back right after with _create_command. This does
+  // will be added back right after. This does
   // not create dangling pointers since commands::command object are
   // not referenced anywhere, only ::command objects are.
   commands::command::commands.erase(obj.command_name());

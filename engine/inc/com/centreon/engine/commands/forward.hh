@@ -63,6 +63,6 @@ class forward : public command {
 };
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_COMMANDS_FORWARD_HH

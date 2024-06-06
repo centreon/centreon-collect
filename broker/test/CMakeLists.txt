@@ -150,6 +150,7 @@ target_link_libraries(
           ${TESTS_LIBRARIES}
           conflictmgr
           centreon_common
+          centreon_grpc
           stdc++fs
           nlohmann_json::nlohmann_json
           fmt::fmt

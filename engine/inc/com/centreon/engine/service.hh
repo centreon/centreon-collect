@@ -45,8 +45,8 @@ using service_map_unsafe =
     absl::flat_hash_map<std::pair<std::string, std::string>,
                         com::centreon::engine::service*>;
 using service_id_map =
-    absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
-                        std::shared_ptr<com::centreon::engine::service>>;
+    absl::btree_map<std::pair<uint64_t, uint64_t>,
+                    std::shared_ptr<com::centreon::engine::service>>;
 
 namespace com::centreon::engine {
 

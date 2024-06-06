@@ -62,6 +62,8 @@ class https_connection : public connection_base {
                send_callback_type& callback,
                const response_ptr& resp);
 
+  void _on_accept(connect_callback_type&& callback) override;
+
  public:
   std::shared_ptr<https_connection> shared_from_this() {
     return std::static_pointer_cast<https_connection>(
@@ -82,8 +84,6 @@ class https_connection : public connection_base {
 
   void send(request_ptr request, send_callback_type&& callback) override;
 
-  void on_accept(connect_callback_type&& callback) override;
-
   void answer(const response_ptr& response,
               answer_callback_type&& callback) override;
   void receive_request(request_callback_type&& callback) override;
@@ -91,6 +91,9 @@ class https_connection : public connection_base {
   asio::ip::tcp::socket& get_socket() override;
 
   static void load_client_certificate(asio::ssl::context& ctx,
+                                      const http_config::pointer& conf);
+
+  static void load_server_certificate(asio::ssl::context& ctx,
                                       const http_config::pointer& conf);
 };
 

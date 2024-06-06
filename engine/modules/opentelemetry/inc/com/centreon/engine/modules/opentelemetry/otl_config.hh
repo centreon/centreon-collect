@@ -20,10 +20,12 @@
 #define CCE_MOD_OTL_SERVER_OTLCONFIG_HH
 
 #include "grpc_config.hh"
+#include "telegraf/conf_server.hh"
 
 namespace com::centreon::engine::modules::opentelemetry {
 class otl_config {
   grpc_config::pointer _grpc_conf;
+  telegraf::conf_server_config::pointer _telegraf_conf_server_config;
 
   int _max_length_grpc_log = -1;  // all otel are logged if negative
   bool _json_grpc_log = false;    // if true, otel object are logged in json
@@ -39,6 +41,10 @@ class otl_config {
   otl_config(const std::string_view& file_path, asio::io_context& io_context);
 
   grpc_config::pointer get_grpc_config() const { return _grpc_conf; }
+  telegraf::conf_server_config::pointer get_telegraf_conf_server_config()
+      const {
+    return _telegraf_conf_server_config;
+  }
 
   int get_max_length_grpc_log() const { return _max_length_grpc_log; }
   bool get_json_grpc_log() const { return _json_grpc_log; }
