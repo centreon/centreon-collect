@@ -22,7 +22,6 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/string.hh"
 
 extern int config_warnings;
 extern int config_errors;
@@ -215,7 +214,7 @@ bool servicedependency::operator<(servicedependency const& right) const {
     return (_execution_failure_options < right._execution_failure_options);
   else if (_inherits_parent != right._inherits_parent)
     return _inherits_parent < right._inherits_parent;
-  return (_notification_failure_options < right._notification_failure_options);
+  return _notification_failure_options < right._notification_failure_options;
 }
 
 /**
@@ -341,7 +340,6 @@ bool servicedependency::parse(char const* key, char const* value) {
  */
 void servicedependency::dependency_period(std::string const& period) {
   _dependency_period = period;
-  return;
 }
 
 /**
@@ -361,7 +359,6 @@ std::string const& servicedependency::dependency_period() const throw() {
 void servicedependency::dependency_type(
     servicedependency::dependency_kind type) throw() {
   _dependency_type = type;
-  return;
 }
 
 /**
@@ -455,7 +452,6 @@ list_string const& servicedependency::dependent_service_description() const
 void servicedependency::execution_failure_options(
     unsigned int options) throw() {
   _execution_failure_options = options;
-  return;
 }
 
 /**
@@ -474,7 +470,6 @@ unsigned int servicedependency::execution_failure_options() const throw() {
  */
 void servicedependency::inherits_parent(bool inherit) throw() {
   _inherits_parent = inherit;
-  return;
 }
 
 /**
@@ -530,7 +525,6 @@ list_string const& servicedependency::hosts() const throw() {
 void servicedependency::notification_failure_options(
     unsigned int options) throw() {
   _notification_failure_options = options;
-  return;
 }
 
 /**
@@ -649,24 +643,22 @@ bool servicedependency::_set_dependent_service_description(
 bool servicedependency::_set_execution_failure_options(
     std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "ok")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& v : values) {
+    std::string_view sv = absl::StripAsciiWhitespace(v);
+    if (sv == "o" || sv == "ok")
       options |= ok;
-    else if (*it == "u" || *it == "unknown")
+    else if (sv == "u" || sv == "unknown")
       options |= unknown;
-    else if (*it == "w" || *it == "warning")
+    else if (sv == "w" || sv == "warning")
       options |= warning;
-    else if (*it == "c" || *it == "critical")
+    else if (sv == "c" || sv == "critical")
       options |= critical;
-    else if (*it == "p" || *it == "pending")
+    else if (sv == "p" || sv == "pending")
       options |= pending;
-    else if (*it == "n" || *it == "none")
+    else if (sv == "n" || sv == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (sv == "a" || sv == "all")
       options = ok | unknown | warning | critical | pending;
     else
       return false;
@@ -721,24 +713,22 @@ bool servicedependency::_set_hosts(std::string const& value) {
 bool servicedependency::_set_notification_failure_options(
     std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "ok")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& v : values) {
+    std::string_view sv = absl::StripAsciiWhitespace(v);
+    if (sv == "o" || sv == "ok")
       options |= ok;
-    else if (*it == "u" || *it == "unknown")
+    else if (sv == "u" || sv == "unknown")
       options |= unknown;
-    else if (*it == "w" || *it == "warning")
+    else if (sv == "w" || sv == "warning")
       options |= warning;
-    else if (*it == "c" || *it == "critical")
+    else if (sv == "c" || sv == "critical")
       options |= critical;
-    else if (*it == "p" || *it == "pending")
+    else if (sv == "p" || sv == "pending")
       options |= pending;
-    else if (*it == "n" || *it == "none")
+    else if (sv == "n" || sv == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (sv == "a" || sv == "all")
       options = ok | unknown | warning | critical | pending;
     else
       return false;

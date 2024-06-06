@@ -20,7 +20,6 @@
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/string.hh"
 #include "com/centreon/io/directory_entry.hh"
 
 using namespace com::centreon;
@@ -46,6 +45,30 @@ parser::store parser::_store[] = {
     &parser::_store_into_list,
     &parser::_store_into_list,
     &parser::_store_into_list};
+
+/**
+ *  Get the next valid line.
+ *
+ *  @param[in, out] stream The current stream to read new line.
+ *  @param[out]     line   The line to fill.
+ *  @param[in, out] pos    The current position.
+ *
+ *  @return True if data is available, false if no data.
+ */
+static bool get_next_line(std::ifstream& stream,
+                          std::string& line,
+                          uint32_t& pos) {
+  while (std::getline(stream, line, '\n')) {
+    ++pos;
+    line = absl::StripAsciiWhitespace(line);
+    if (!line.empty()) {
+      char c = line[0];
+      if (c != '#' && c != ';' && c != '\x0')
+        return true;
+    }
+  }
+  return false;
+}
 
 /**
  *  Default constructor.
@@ -285,7 +308,7 @@ void parser::_parse_directory_configuration(std::string const& path) {
  *
  *  @param[in] path The configuration path.
  */
-void parser::_parse_global_configuration(std::string const& path) {
+void parser::_parse_global_configuration(const std::string& path) {
   engine_logger(logging::log_info_message, logging::most)
       << "Reading main configuration file '" << path << "'.";
   config_logger->info("Reading main configuration file '{}'.", path);
@@ -302,14 +325,20 @@ void parser::_parse_global_configuration(std::string const& path) {
   _current_path = path;
 
   std::string input;
-  while (string::get_next_line(stream, input, _current_line)) {
-    char const* key;
-    char const* value;
-    if (!string::split(input, &key, &value, '=') || !_config->set(key, value))
-      throw engine_error() << "Parsing of global "
-                              "configuration failed in file '"
-                           << path << "' on line " << _current_line
-                           << ": Invalid line '" << input << "'";
+  while (get_next_line(stream, input, _current_line)) {
+    std::list<std::string> values =
+        absl::StrSplit(input, absl::MaxSplits('=', 1));
+    if (values.size() == 2) {
+      auto it = values.begin();
+      char const* key = it->c_str();
+      ++it;
+      char const* value = it->c_str();
+      if (_config->set(key, value))
+        continue;
+    }
+    throw engine_error() << "Parsing of global configuration failed in file '"
+                         << path << "' on line " << _current_line
+                         << ": Invalid line '" << input << "'";
   }
 }
 
@@ -334,12 +363,12 @@ void parser::_parse_object_definitions(std::string const& path) {
   bool parse_object = false;
   object_ptr obj;
   std::string input;
-  while (string::get_next_line(stream, input, _current_line)) {
+  while (get_next_line(stream, input, _current_line)) {
     // Multi-line.
     while ('\\' == input[input.size() - 1]) {
       input.resize(input.size() - 1);
       std::string addendum;
-      if (!string::get_next_line(stream, addendum, _current_line))
+      if (!get_next_line(stream, addendum, _current_line))
         break;
       input.append(addendum);
     }
@@ -351,20 +380,21 @@ void parser::_parse_object_definitions(std::string const& path) {
             << "Parsing of object definition failed "
             << "in file '" << _current_path << "' on line " << _current_line
             << ": Unexpected start definition";
-      string::trim_left(input.erase(0, 6));
-      std::size_t last(input.size() - 1);
+      input.erase(0, 6);
+      absl::StripLeadingAsciiWhitespace(&input);
+      std::size_t last = input.size() - 1;
       if (input.empty() || input[last] != '{')
         throw engine_error()
-            << "Parsing of object definition failed "
-            << "in file '" << _current_path << "' on line " << _current_line
-            << ": Unexpected start definition";
-      std::string const& type(string::trim_right(input.erase(last)));
-      obj = object::create(type);
+            << "Parsing of object definition failed in file '" << _current_path
+            << "' on line " << _current_line << ": Unexpected start definition";
+      input.erase(last);
+      absl::StripTrailingAsciiWhitespace(&input);
+      obj = object::create(input);
       if (obj == nullptr)
         throw engine_error()
             << "Parsing of object definition failed "
             << "in file '" << _current_path << "' on line " << _current_line
-            << ": Unknown object type name '" << type << "'";
+            << ": Unknown object type name '" << input << "'";
       parse_object = (_read_options & (1 << obj->type()));
       _objects_info[obj.get()] = file_info(path, _current_line);
     }
@@ -410,15 +440,20 @@ void parser::_parse_resource_file(std::string const& path) {
   _current_path = path;
 
   std::string input;
-  while (string::get_next_line(stream, input, _current_line)) {
+  while (get_next_line(stream, input, _current_line)) {
     try {
-      std::string key;
-      std::string value;
-      if (!string::split(input, key, value, '='))
+      std::list<std::string> key_value =
+          absl::StrSplit(input, absl::MaxSplits('=', 1));
+      if (key_value.size() == 2) {
+        auto it = key_value.begin();
+        std::string& key = *it;
+        ++it;
+        std::string value = *it;
+        _config->user(key, value);
+      } else
         throw engine_error() << "Parsing of resource file '" << _current_path
                              << "' failed on line " << _current_line
                              << ": Invalid line '" << input << "'";
-      _config->user(key, value);
     } catch (std::exception const& e) {
       (void)e;
       throw engine_error() << "Parsing of resource file '" << _current_path

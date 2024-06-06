@@ -21,12 +21,10 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <absl/strings/string_view.h>
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/string.hh"
 
 extern int config_warnings;
 extern int config_errors;
@@ -1706,22 +1704,20 @@ bool service::_set_flap_detection_enabled(bool value) {
  */
 bool service::_set_flap_detection_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "ok")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "ok")
       options |= ok;
-    else if (*it == "w" || *it == "warning")
+    else if (v == "w" || v == "warning")
       options |= warning;
-    else if (*it == "u" || *it == "unknown")
+    else if (v == "u" || v == "unknown")
       options |= unknown;
-    else if (*it == "c" || *it == "critical")
+    else if (v == "c" || v == "critical")
       options |= critical;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = ok | warning | unknown | critical;
     else
       return false;
@@ -1810,8 +1806,8 @@ bool service::_set_icon_image_alt(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool service::_set_initial_state(std::string const& value) {
-  std::string data(value);
-  string::trim(data);
+  std::string_view data(value);
+  data = absl::StripAsciiWhitespace(data);
   if (data == "o" || data == "ok")
     _initial_state = engine::service::state_ok;
   else if (data == "w" || data == "warning")
@@ -1908,26 +1904,24 @@ bool service::_set_notifications_enabled(bool value) {
  */
 bool service::_set_notification_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "u" || *it == "unknown")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "u" || v == "unknown")
       options |= unknown;
-    else if (*it == "w" || *it == "warning")
+    else if (v == "w" || v == "warning")
       options |= warning;
-    else if (*it == "c" || *it == "critical")
+    else if (v == "c" || v == "critical")
       options |= critical;
-    else if (*it == "r" || *it == "recovery")
+    else if (v == "r" || v == "recovery")
       options |= ok;
-    else if (*it == "f" || *it == "flapping")
+    else if (v == "f" || v == "flapping")
       options |= flapping;
-    else if (*it == "s" || *it == "downtime")
+    else if (v == "s" || v == "downtime")
       options |= downtime;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = unknown | warning | critical | ok | flapping | downtime;
     else
       return false;
@@ -2098,22 +2092,20 @@ bool service::set_service_id(uint64_t value) {
  */
 bool service::_set_stalking_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "ok")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "ok")
       options |= ok;
-    else if (*it == "w" || *it == "warning")
+    else if (v == "w" || v == "warning")
       options |= warning;
-    else if (*it == "u" || *it == "unknown")
+    else if (v == "u" || v == "unknown")
       options |= unknown;
-    else if (*it == "c" || *it == "critical")
+    else if (v == "c" || v == "critical")
       options |= critical;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = ok | warning | unknown | critical;
     else
       return false;

@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-
 #ifndef CCE_CONFIGURATION_STATE_HH
 #define CCE_CONFIGURATION_STATE_HH
 
@@ -181,8 +180,8 @@ class state {
   void date_format(date_type value);
   std::string const& debug_file() const noexcept;
   void debug_file(std::string const& value);
-  uint64_t debug_level() const noexcept;
-  void debug_level(uint64_t value);
+  int64_t debug_level() const noexcept;
+  void debug_level(int64_t value);
   unsigned int debug_verbosity() const noexcept;
   void debug_verbosity(unsigned int value);
   bool enable_environment_macros() const noexcept;
@@ -533,7 +532,7 @@ class state {
   set_contact _contacts;
   date_type _date_format;
   std::string _debug_file;
-  uint64_t _debug_level;
+  int64_t _debug_level;
   unsigned int _debug_verbosity;
   bool _enable_environment_macros;
   bool _enable_event_handlers;

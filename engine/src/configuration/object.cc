@@ -35,7 +35,6 @@
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
@@ -299,6 +298,6 @@ bool object::_set_should_register(bool value) {
  */
 bool object::_set_templates(std::string const& value) {
   _templates.clear();
-  string::split(value, _templates, ',');
+  _templates = absl::StrSplit(value, ',');
   return true;
 }
