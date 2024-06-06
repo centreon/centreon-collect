@@ -99,7 +99,7 @@ class connection_ok : public connection_base {
     ++_request_counter;
   }
 
-  void on_accept(connect_callback_type&& callback) override {}
+  void _on_accept(connect_callback_type&& callback) override {}
 
   void answer(const response_ptr& response,
               answer_callback_type&& callback) override {}
@@ -272,7 +272,7 @@ class connection_bagot : public connection_base {
     }
   }
 
-  void on_accept(connect_callback_type&& callback) override {}
+  void _on_accept(connect_callback_type&& callback) override {}
 
   void answer(const response_ptr& response,
               answer_callback_type&& callback) override {}

@@ -145,7 +145,7 @@ class session_test : public connection_class {
 
   void wait_for_request();
 
-  void answer(const std::shared_ptr<request_type>& request);
+  void answer_to_request(const std::shared_ptr<request_type>& request);
 
  public:
   session_test(const std::shared_ptr<asio::io_context>& io_context,
@@ -168,7 +168,7 @@ class session_test : public connection_class {
 
 template <class connection_class>
 void session_test<connection_class>::on_accept() {
-  connection_class::on_accept(
+  connection_class::_on_accept(
       [me = shared_from_this()](const boost::beast::error_code& err,
                                 const std::string&) {
         if (!err)
@@ -188,12 +188,12 @@ void session_test<connection_class>::wait_for_request() {
                               err.what());
           return;
         }
-        me->answer(request);
+        me->answer_to_request(request);
       });
 }
 
 template <class connection_class>
-void session_test<connection_class>::answer(
+void session_test<connection_class>::answer_to_request(
     const std::shared_ptr<request_type>& request) {
   response_ptr resp(std::make_shared<response_type>());
   resp->version(request->version());

@@ -230,33 +230,23 @@ bool otl_nagios_converter::_build_result_from_metrics(
   res.output.push_back('|');
   for (const auto& perf : perfs) {
     if (perf.second.val) {
-      res.output += perf.first;
-      res.output.push_back('=');
-      absl::StrAppend(&res.output, *perf.second.val);
-      res.output += perf.second.unit;
-      res.output.push_back(';');
+      absl::StrAppend(&res.output, perf.first, "=", *perf.second.val,
+                      perf.second.unit, ";");
       if (perf.second.warning_le) {
-        res.output.push_back('@');
-        absl::StrAppend(&res.output, *perf.second.warning_le);
-        res.output.push_back(':');
-        absl::StrAppend(&res.output, *perf.second.warning_ge);
+        absl::StrAppend(&res.output, "@", *perf.second.warning_le, ":",
+                        *perf.second.warning_ge);
 
       } else if (perf.second.warning_lt) {
-        absl::StrAppend(&res.output, *perf.second.warning_lt);
-        res.output.push_back(':');
-        absl::StrAppend(&res.output, *perf.second.warning_gt);
+        absl::StrAppend(&res.output, *perf.second.warning_lt, ":",
+                        *perf.second.warning_gt);
       }
       res.output.push_back(';');
       if (perf.second.critical_le) {
-        res.output.push_back('@');
-        absl::StrAppend(&res.output, *perf.second.critical_le);
-        res.output.push_back(':');
-        absl::StrAppend(&res.output, *perf.second.critical_ge);
-
+        absl::StrAppend(&res.output, "@", *perf.second.critical_le, ":",
+                        *perf.second.critical_ge);
       } else if (perf.second.critical_lt) {
-        absl::StrAppend(&res.output, *perf.second.critical_lt);
-        res.output.push_back(':');
-        absl::StrAppend(&res.output, *perf.second.critical_gt);
+        absl::StrAppend(&res.output, *perf.second.critical_lt, ":",
+                        *perf.second.critical_gt);
       }
       res.output.push_back(';');
       if (perf.second.min) {
@@ -266,7 +256,6 @@ bool otl_nagios_converter::_build_result_from_metrics(
       if (perf.second.max) {
         absl::StrAppend(&res.output, *perf.second.max);
       }
-
       res.output.push_back(' ');
     }
   }

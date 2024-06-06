@@ -171,7 +171,7 @@ class connection_send_bagot : public http::connection_base {
     }
   }
 
-  void on_accept(http::connect_callback_type&& callback) override{};
+  void _on_accept(http::connect_callback_type&& callback) override{};
 
   void answer(const http::response_ptr& response,
               http::answer_callback_type&& callback) override {}

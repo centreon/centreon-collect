@@ -260,9 +260,9 @@ void https_connection::init_keep_alive() {
  * @brief to call in case of we are an http server
  * it initialize http keepalive and launch ssl handshake
  *
- * @param callback
+ * @param callback (called once handshake os done)
  */
-void https_connection::on_accept(connect_callback_type&& callback) {
+void https_connection::_on_accept(connect_callback_type&& callback) {
   unsigned expected = e_not_connected;
   if (!_state.compare_exchange_strong(expected, e_handshake)) {
     BAD_CONNECT_STATE_ERROR("on_tcp_connect to {}, bad state {}");

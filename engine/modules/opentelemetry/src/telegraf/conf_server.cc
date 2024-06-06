@@ -184,7 +184,7 @@ bool conf_server_config::operator==(const conf_server_config& right) const {
  */
 template <class connection_class>
 void conf_session<connection_class>::on_accept() {
-  connection_class::on_accept(
+  connection_class::_on_accept(
       [me = shared_from_this()](const boost::beast::error_code& err,
                                 const std::string&) {
         if (!err)
@@ -202,7 +202,7 @@ template <class connection_class>
 void conf_session<connection_class>::wait_for_request() {
   connection_class::receive_request(
       [me = shared_from_this()](
-          const boost::beast::error_code& err, const std::string& detail,
+          const boost::beast::error_code& err, const std::string&,
           const std::shared_ptr<http::request_type>& request) {
         if (err) {
           SPDLOG_LOGGER_DEBUG(me->_logger,
@@ -237,7 +237,7 @@ void conf_session<connection_class>::on_receive_request(
        hosts = std::move(host_list)]() mutable -> int32_t {
         // then we are in the main thread
         // services, hosts and commands are stable
-        me->answer(request, std::move(hosts));
+        me->answer_to_request(request, std::move(hosts));
         return 0;
       });
   command_manager::instance().enqueue(std::move(to_call));
@@ -380,7 +380,7 @@ bool conf_session<connection_class>::_get_commands(const std::string& host_name,
  * @param host_list hosts extracted from get parameters
  */
 template <class connection_class>
-void conf_session<connection_class>::answer(
+void conf_session<connection_class>::answer_to_request(
     const std::shared_ptr<http::request_type>& request,
     std::vector<std::string>&& host_list) {
   http::response_ptr resp(std::make_shared<http::response_type>());
@@ -398,7 +398,7 @@ void conf_session<connection_class>::answer(
   interval = "{}s"
 
 [[outputs.opentelemetry]]
-   service_address = "{}"
+  service_address = "{}"
 
 )",
                              _telegraf_conf->get_check_interval(),
@@ -429,5 +429,7 @@ void conf_session<connection_class>::answer(
       });
 }
 
+namespace com::centreon::engine::modules::opentelemetry::telegraf {
 template class conf_session<http::http_connection>;
 template class conf_session<http::https_connection>;
+};  // namespace com::centreon::engine::modules::opentelemetry::telegraf

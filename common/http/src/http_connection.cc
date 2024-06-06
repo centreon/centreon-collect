@@ -236,9 +236,9 @@ void http_connection::on_connect(const boost::beast::error_code& err,
  * callback is useless in this case but is mandatory to have the same interface
  * than https_connection
  *
- * @param callback called via io_context::post
+ * @param callback called via io_context::post (must have the same signature as https)
  */
-void http_connection::on_accept(connect_callback_type&& callback) {
+void http_connection::_on_accept(connect_callback_type&& callback) {
   unsigned expected = e_not_connected;
   if (!_state.compare_exchange_strong(expected, e_idle)) {
     BAD_CONNECT_STATE_ERROR("on_tcp_connect to {}, bad state {}");
