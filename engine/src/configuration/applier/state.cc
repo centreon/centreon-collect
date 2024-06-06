@@ -1142,7 +1142,7 @@ void applier::state::apply_log_config(configuration::state& new_cfg) {
   /* During the verification, loggers write to stdout. After this step, they
    * will log as it is written in their configurations. So if we check the
    * configuration, we don't want to change them. */
-  if (verify_config)
+  if (verify_config || test_scheduling)
     return;
 
   using log_v2_config = com::centreon::common::log_v2::config;
