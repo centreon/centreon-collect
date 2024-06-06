@@ -67,7 +67,8 @@ struct setter : public setter_base {
                       std::is_same_v<U, bool>);
       }
     } catch (const std::exception& e) {
-      config_logger->error(e.what());
+      config_logger->error("Failed to parse '{}={}': {}",
+                           setter_base::_field_name, value, e.what());
     }
     return true;
   }
