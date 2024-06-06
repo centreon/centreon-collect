@@ -262,13 +262,7 @@ days_array const& timeperiod::timeranges() const {
  */
 bool timeperiod::_build_timeranges(std::string const& line,
                                    timerange_list& timeranges) {
-  size_t pos = line.find_first_of(';');
-  std::string_view lst;
-  if (pos != std::string::npos)
-    lst = std::string_view(line.data(), pos);
-  else
-    lst = line;
-  auto timeranges_str = absl::StrSplit(lst, ',');
+  auto timeranges_str = absl::StrSplit(line, ',');
   for (auto tr : timeranges_str) {
     tr = absl::StripAsciiWhitespace(tr);
     std::size_t pos(tr.find('-'));
