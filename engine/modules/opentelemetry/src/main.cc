@@ -108,6 +108,7 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
 
   open_telemetry::load(conf_file_path, g_io_context,
                        log_v2::instance().get(log_v2::OTEL));
+  commands::otel_command::init_all();
 
   return 0;
 }

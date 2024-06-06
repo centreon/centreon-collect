@@ -18,6 +18,7 @@
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
+#include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/engine/modules/opentelemetry/open_telemetry.hh"
 
 #include "otl_fmt.hh"
@@ -51,6 +52,17 @@ void open_telemetry::_reload() {
       std::make_unique<otl_config>(_config_file_path, *_io_context);
   if (!_conf || *new_conf->get_grpc_config() != *_conf->get_grpc_config()) {
     this->_create_otl_server(new_conf->get_grpc_config());
+  }
+
+  if (!new_conf->get_telegraf_conf_server_config()) {
+    if (_telegraf_conf_server) {
+      _telegraf_conf_server->shutdown();
+      _telegraf_conf_server.reset();
+    }
+  } else if (!_conf || !_conf->get_telegraf_conf_server_config() ||
+             !(*new_conf->get_telegraf_conf_server_config() ==
+               *_conf->get_telegraf_conf_server_config())) {
+    _create_telegraf_conf_server(new_conf->get_telegraf_conf_server_config());
   }
 
   if (!_conf || *_conf != *new_conf) {
@@ -109,6 +121,50 @@ void open_telemetry::_create_otl_server(
     SPDLOG_LOGGER_ERROR(_logger, "fail to create opentelemetry grpc server: {}",
                         e.what());
     throw;
+  }
+}
+
+/**
+ * @brief create an http(s) server to give configuration to telegraf
+ *
+ * @param telegraf_conf
+ */
+void open_telemetry::_create_telegraf_conf_server(
+    const telegraf::conf_server_config::pointer& telegraf_conf) {
+  try {
+    http::server::pointer to_shutdown = _telegraf_conf_server;
+    if (to_shutdown) {
+      to_shutdown->shutdown();
+    }
+    http::http_config::pointer conf = std::make_shared<http::http_config>(
+        telegraf_conf->get_listen_endpoint(), "", telegraf_conf->is_crypted(),
+        std::chrono::seconds(10), std::chrono::seconds(30),
+        std::chrono::seconds(300), 30, std::chrono::seconds(10), 0,
+        std::chrono::hours(1), 1, asio::ssl::context::tlsv12,
+        telegraf_conf->get_certificate_path(), telegraf_conf->get_key_path());
+
+    if (telegraf_conf->is_crypted()) {
+      _telegraf_conf_server = http::server::load(
+          _io_context, _logger, conf,
+          [conf, io_ctx = _io_context, telegraf_conf, logger = _logger]() {
+            return std::make_shared<
+                telegraf::conf_session<http::https_connection>>(
+                io_ctx, logger, conf,
+                http::https_connection::load_server_certificate, telegraf_conf);
+          });
+    } else {
+      _telegraf_conf_server = http::server::load(
+          _io_context, _logger, conf,
+          [conf, io_ctx = _io_context, telegraf_conf, logger = _logger]() {
+            return std::make_shared<
+                telegraf::conf_session<http::http_connection>>(
+                io_ctx, logger, conf, nullptr, telegraf_conf);
+          });
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(
+        _logger, "fail to create telegraf http(s) conf server: {}", e.what());
+    _telegraf_conf_server.reset();
   }
 }
 

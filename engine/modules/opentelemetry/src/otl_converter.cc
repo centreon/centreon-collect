@@ -21,6 +21,7 @@
 
 #include "data_point_fifo_container.hh"
 #include "otl_converter.hh"
+#include "telegraf/nagios_converter.hh"
 
 #include "absl/flags/commandlineflag.h"
 #include "absl/strings/str_split.h"
@@ -135,15 +136,14 @@ std::shared_ptr<otl_converter> otl_converter::create(
   std::string conf_type =
       sep_pos == std::string::npos ? cmd_line : cmd_line.substr(0, sep_pos);
   boost::trim(conf_type);
-  // NEXT PR
-  // if (conf_type == "nagios_telegraf") {
-  //   return std::make_shared<telegraf::otl_nagios_converter>(
-  //       cmd_line, command_id, host, service, timeout, std::move(handler),
-  //       logger);
-  // } else {
-  SPDLOG_LOGGER_ERROR(config_logger, "unknown converter type:{}", conf_type);
-  throw exceptions::msg_fmt("unknown converter type:{}", conf_type);
-  // }
+  if (conf_type == "nagios_telegraf") {
+    return std::make_shared<telegraf::otl_nagios_converter>(
+        cmd_line, command_id, host, service, timeout, std::move(handler),
+        logger);
+  } else {
+    SPDLOG_LOGGER_ERROR(config_logger, "unknown converter type:{}", conf_type);
+    throw exceptions::msg_fmt("unknown converter type:{}", conf_type);
+  }
 }
 
 /**

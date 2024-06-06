@@ -68,3 +68,14 @@ void data_point_fifo::clean() {
     }
   }
 }
+
+/**
+ * @brief erase oldest element
+ *
+ * @param expiry  data points oldest than this nano timestamp are erased
+ */
+void data_point_fifo::clean_oldest(uint64_t expiry) {
+  while (!_fifo.empty() && _fifo.begin()->get_nano_timestamp() <= expiry) {
+    _fifo.erase(_fifo.begin());
+  }
+}

@@ -196,6 +196,9 @@ if(WITH_TESTING)
             "-Wl,-no-whole-archive"
             pb_open_telemetry_lib
             centreon_grpc
+            centreon_http
+            -L${Boost_LIBRARY_DIR_RELEASE}
+            boost_url
             pthread
             ${GCOV}
             GTest::gtest

@@ -18,6 +18,8 @@
 #ifndef CCE_MOD_OTL_SERVER_OPENTELEMETRY_HH
 #define CCE_MOD_OTL_SERVER_OPENTELEMETRY_HH
 
+#include "com/centreon/common/http/http_server.hh"
+
 #include "com/centreon/engine/commands/otel_interface.hh"
 
 #include "data_point_fifo_container.hh"
@@ -28,6 +30,7 @@
 namespace com::centreon::engine::modules::opentelemetry {
 
 using host_serv_metric = commands::otel::host_serv_metric;
+namespace http = com::centreon::common::http;
 
 class otl_server;
 
@@ -44,6 +47,7 @@ class otl_server;
 class open_telemetry : public commands::otel::open_telemetry_base {
   asio::system_timer _second_timer;
   std::shared_ptr<otl_server> _otl_server;
+  std::shared_ptr<http::server> _telegraf_conf_server;
 
   using cmd_line_to_extractor_map =
       absl::btree_map<std::string, std::shared_ptr<host_serv_extractor>>;
@@ -88,6 +92,9 @@ class open_telemetry : public commands::otel::open_telemetry_base {
   void _forward_to_broker(const std::vector<data_point>& unknown);
 
   void _second_timer_handler();
+
+  void _create_telegraf_conf_server(
+      const telegraf::conf_server_config::pointer& conf);
 
  protected:
   virtual void _create_otl_server(const grpc_config::pointer& server_conf);

@@ -25,7 +25,6 @@
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
-using com::centreon::common::log_v2::log_v2;
 
 #include "http_client.hh"
 
@@ -100,7 +99,7 @@ class connection_ok : public connection_base {
     ++_request_counter;
   }
 
-  void on_accept(connect_callback_type&& callback) override {}
+  void _on_accept(connect_callback_type&& callback) override {}
 
   void answer(const response_ptr& response,
               answer_callback_type&& callback) override {}
@@ -273,7 +272,7 @@ class connection_bagot : public connection_base {
     }
   }
 
-  void on_accept(connect_callback_type&& callback) override {}
+  void _on_accept(connect_callback_type&& callback) override {}
 
   void answer(const response_ptr& response,
               answer_callback_type&& callback) override {}

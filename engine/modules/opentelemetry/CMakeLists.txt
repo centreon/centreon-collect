@@ -55,6 +55,8 @@ ${SRC_DIR}/otl_converter.cc
 ${SRC_DIR}/otl_data_point.cc
 ${SRC_DIR}/otl_server.cc
 ${SRC_DIR}/main.cc
+${SRC_DIR}/telegraf/conf_server.cc
+${SRC_DIR}/telegraf/nagios_converter.cc
 ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
 )
 

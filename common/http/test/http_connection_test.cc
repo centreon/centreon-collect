@@ -24,7 +24,6 @@
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
-using com::centreon::common::log_v2::log_v2;
 
 #include "http_connection.hh"
 #include "http_server.hh"
@@ -208,7 +207,7 @@ class dummy_connection : public connection_base {
 
   void send(request_ptr request, send_callback_type&& callback) override {}
 
-  void on_accept(connect_callback_type&& callback) override{};
+  void _on_accept(connect_callback_type&& callback) override{};
   void answer(const response_ptr& response,
               answer_callback_type&& callback) override{};
   void receive_request(request_callback_type&& callback) override{};
@@ -217,7 +216,6 @@ class dummy_connection : public connection_base {
 };
 
 TEST(http_keepalive_test, ConnectionClose) {
-  auto logger = log_v2::instance().get(log_v2::TCP);
   dummy_connection conn(
       g_io_context, logger,
       std::make_shared<http_config>(test_endpoint, "localhost"));
@@ -229,7 +227,6 @@ TEST(http_keepalive_test, ConnectionClose) {
 }
 
 TEST(http_keepalive_test, KeepAliveWithoutTimeout) {
-  auto logger = log_v2::instance().get(log_v2::TCP);
   auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   dummy_connection conn(g_io_context, logger, conf);
   response_ptr resp(std::make_shared<response_type>());
@@ -246,7 +243,6 @@ TEST(http_keepalive_test, KeepAliveWithoutTimeout) {
 }
 
 TEST(http_keepalive_test, KeepAliveWithTimeout) {
-  auto logger = log_v2::instance().get(log_v2::TCP);
   auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   dummy_connection conn(g_io_context, logger, conf);
   response_ptr resp(std::make_shared<response_type>());
@@ -324,9 +320,9 @@ class answer_no_keep_alive : public base_class {
       : base_class(io_context, logger, conf, ssl_initializer) {}
 
   void on_accept() override {
-    base_class::on_accept([me = base_class::shared_from_this()](
-                              const boost::beast::error_code ec,
-                              const std::string&) {
+    base_class::_on_accept([me = base_class::shared_from_this()](
+                               const boost::beast::error_code ec,
+                               const std::string&) {
       ASSERT_FALSE(ec);
       me->receive_request([me](const boost::beast::error_code ec,
                                const std::string&,
@@ -343,6 +339,8 @@ class answer_no_keep_alive : public base_class {
       });
     });
   }
+  void add_keep_alive_to_server_response(
+      const response_ptr& response) const override {}
 };
 
 TEST_P(http_test, connect_send_answer_without_keepalive) {
@@ -422,9 +420,9 @@ class answer_keep_alive : public base_class {
       : base_class(io_context, logger, conf, ssl_initializer), _counter(0) {}
 
   void on_accept() override {
-    base_class::on_accept([me = base_class::shared_from_this()](
-                              const boost::beast::error_code ec,
-                              const std::string&) {
+    base_class::_on_accept([me = base_class::shared_from_this()](
+                               const boost::beast::error_code ec,
+                               const std::string&) {
       ASSERT_FALSE(ec);
       me->receive_request([me](const boost::beast::error_code ec,
                                const std::string&,
@@ -432,33 +430,33 @@ class answer_keep_alive : public base_class {
         ASSERT_FALSE(ec);
         ASSERT_EQ(request->body(), "hello server");
         SPDLOG_LOGGER_DEBUG(logger, "request receiver => answer");
-        std::static_pointer_cast<my_type>(me)->answer(request);
+        std::static_pointer_cast<my_type>(me)->answer_to_request(request);
       });
     });
   }
 
-  void answer(const std::shared_ptr<request_type>& request) {
+  void answer_to_request(const std::shared_ptr<request_type>& request) {
     response_ptr resp(std::make_shared<response_type>(beast::http::status::ok,
                                                       request->version()));
     resp->keep_alive(true);
     resp->body() = fmt::format("hello client {}", _counter++);
     resp->content_length(resp->body().length());
     SPDLOG_LOGGER_DEBUG(logger, "answer to client");
-    base_class::answer(
-        resp, [me = base_class::shared_from_this()](
-                  const boost::beast::error_code ec, const std::string&) {
-          ASSERT_FALSE(ec);
-          me->receive_request(
-              [me](const boost::beast::error_code ec, const std::string&,
-                   const std::shared_ptr<request_type>& request) {
-                if (ec) {
-                  return;
-                }
-                ASSERT_EQ(request->body(), "hello server");
-                SPDLOG_LOGGER_DEBUG(logger, "request receiver => answer");
-                std::static_pointer_cast<my_type>(me)->answer(request);
-              });
-        });
+    base_class::answer(resp, [me = base_class::shared_from_this()](
+                                 const boost::beast::error_code ec,
+                                 const std::string&) {
+      ASSERT_FALSE(ec);
+      me->receive_request([me](const boost::beast::error_code ec,
+                               const std::string&,
+                               const std::shared_ptr<request_type>& request) {
+        if (ec) {
+          return;
+        }
+        ASSERT_EQ(request->body(), "hello server");
+        SPDLOG_LOGGER_DEBUG(logger, "request receiver => answer");
+        std::static_pointer_cast<my_type>(me)->answer_to_request(request);
+      });
+    });
   }
 };
 
