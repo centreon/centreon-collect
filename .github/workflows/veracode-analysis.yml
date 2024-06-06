@@ -169,7 +169,7 @@ jobs:
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
       - name: Sandbox scan
-        uses: veracode/veracode-uploadandscan-action@v1.0
+        uses: veracode/veracode-uploadandscan-action@f7e1fbf02c5c899fba9f12e3f537b62f2f1230e1 # master using 0.2.6
         continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' }}
         with:
           appname: "${{ inputs.module_name }}"
