@@ -365,7 +365,7 @@ void parser::_parse_object_definitions(std::string const& path) {
   std::string input;
   while (get_next_line(stream, input, _current_line)) {
     // Multi-line.
-    while (!input.empty() && '\\' == input[input.size() - 1]) {
+    while ('\\' == input[input.size() - 1]) {
       input.resize(input.size() - 1);
       std::string addendum;
       if (!get_next_line(stream, addendum, _current_line))
