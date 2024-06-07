@@ -116,12 +116,12 @@ int main(int argc, char* argv[]) {
 #endif  // HAVE_GETOPT_H
 
   // Load singletons and global variable.
+  log_v2::load("centengine");
+
+  /* It's time to set the logger. Later, we will have acceses from multiple
+   * threads and we'll only be able to change atomic values. */
   config = new configuration::state;
 
-  // Hack to instanciate the logger.
-  log_v2::load("centengine");
-  auto config_logger = log_v2::instance().get(log_v2::CONFIG);
-  auto process_logger = log_v2::instance().get(log_v2::PROCESS);
   init_loggers();
   configuration::applier::logging::instance();
   com::centreon::common::pool::load(g_io_context, runtime_logger);
