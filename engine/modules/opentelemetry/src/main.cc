@@ -16,7 +16,7 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/engine/commands/otel_command.hh"
+#include "com/centreon/engine/commands/otel_connector.hh"
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/nebmodules.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -108,7 +108,7 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
 
   open_telemetry::load(conf_file_path, g_io_context,
                        log_v2::instance().get(log_v2::OTEL));
-  commands::otel_command::init_all();
+  commands::otel_connector::init_all();
 
   return 0;
 }

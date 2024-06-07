@@ -18,7 +18,7 @@
  */
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/checks/checker.hh"
-#include "com/centreon/engine/commands/otel_command.hh"
+#include "com/centreon/engine/commands/otel_connector.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -60,7 +60,7 @@ void applier::connector::add_object(configuration::connector const& obj) {
   size_t otel_pos = processed_cmd.find(_otel_fake_exe);
 
   if (otel_pos < end_path) {
-    commands::otel_command::create(
+    commands::otel_connector::create(
         obj.connector_name(),
         boost::algorithm::trim_copy(
             processed_cmd.substr(otel_pos + _otel_fake_exe.length())),
@@ -121,12 +121,12 @@ void applier::connector::modify_object(configuration::connector const& obj) {
     std::string otel_cmdline = boost::algorithm::trim_copy(
         processed_cmd.substr(otel_pos + _otel_fake_exe.length()));
 
-    if (!commands::otel_command::update(obj.key(), processed_cmd)) {
+    if (!commands::otel_connector::update(obj.key(), processed_cmd)) {
       // connector object become an otel fake connector
       if (exist_connector != commands::connector::connectors.end()) {
         commands::connector::connectors.erase(exist_connector);
-        commands::otel_command::create(obj.key(), processed_cmd,
-                                       &checks::checker::instance());
+        commands::otel_connector::create(obj.key(), processed_cmd,
+                                         &checks::checker::instance());
       } else {
         throw com::centreon::exceptions::msg_fmt(
             "unknown open telemetry command to update: {}", obj.key());
@@ -137,8 +137,8 @@ void applier::connector::modify_object(configuration::connector const& obj) {
       // Set the new command line.
       exist_connector->second->set_command_line(processed_cmd);
     } else {
-      // old otel_command => connector
-      if (commands::otel_command::remove(obj.key())) {
+      // old otel_connector => connector
+      if (commands::otel_connector::remove(obj.key())) {
         auto cmd = std::make_shared<commands::connector>(
             obj.connector_name(), processed_cmd, &checks::checker::instance());
         commands::connector::connectors[obj.connector_name()] = cmd;
@@ -174,7 +174,7 @@ void applier::connector::remove_object(configuration::connector const& obj) {
     commands::connector::connectors.erase(it);
   }
 
-  commands::otel_command::remove(obj.key());
+  commands::otel_connector::remove(obj.key());
 
   // Remove connector from the global configuration set.
   config->connectors().erase(obj);

@@ -79,11 +79,11 @@ class conf_session : public connection_class {
 
   bool _get_commands(const std::string& host_name, std::string& request_body);
 
-  bool _otel_command_to_stream(const std::string& cmd_name,
-                               const std::string& cmd_line,
-                               const std::string& host,
-                               const std::string& service,
-                               std::string& to_append);
+  bool _otel_connector_to_stream(const std::string& cmd_name,
+                                 const std::string& cmd_line,
+                                 const std::string& host,
+                                 const std::string& service,
+                                 std::string& to_append);
 
  public:
   using my_type = conf_session<connection_class>;

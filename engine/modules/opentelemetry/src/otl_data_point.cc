@@ -21,7 +21,7 @@
 using namespace com::centreon::engine::modules::opentelemetry;
 using namespace ::opentelemetry::proto::metrics::v1;
 
-data_point::data_point(
+otl_data_point::otl_data_point(
     const metric_request_ptr& parent,
     const ::opentelemetry::proto::resource::v1::Resource& resource,
     const ::opentelemetry::proto::common::v1::InstrumentationScope& scope,
@@ -38,7 +38,7 @@ data_point::data_point(
   _value = data_pt.as_double() ? data_pt.as_double() : data_pt.as_int();
 }
 
-data_point::data_point(
+otl_data_point::otl_data_point(
     const metric_request_ptr& parent,
     const ::opentelemetry::proto::resource::v1::Resource& resource,
     const ::opentelemetry::proto::common::v1::InstrumentationScope& scope,
@@ -55,7 +55,7 @@ data_point::data_point(
   _value = data_pt.count();
 }
 
-data_point::data_point(
+otl_data_point::otl_data_point(
     const metric_request_ptr& parent,
     const ::opentelemetry::proto::resource::v1::Resource& resource,
     const ::opentelemetry::proto::common::v1::InstrumentationScope& scope,
@@ -73,7 +73,7 @@ data_point::data_point(
   _value = data_pt.count();
 }
 
-data_point::data_point(
+otl_data_point::otl_data_point(
     const metric_request_ptr& parent,
     const ::opentelemetry::proto::resource::v1::Resource& resource,
     const ::opentelemetry::proto::common::v1::InstrumentationScope& scope,

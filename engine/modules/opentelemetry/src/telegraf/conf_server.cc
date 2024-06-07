@@ -270,7 +270,7 @@ void conf_session<connection_class>::on_receive_request(
  * @return false
  */
 template <class connection_class>
-bool conf_session<connection_class>::_otel_command_to_stream(
+bool conf_session<connection_class>::_otel_connector_to_stream(
     const std::string& cmd_name,
     const std::string& cmd_line,
     const std::string& host,
@@ -341,9 +341,9 @@ bool conf_session<connection_class>::_get_commands(const std::string& host_name,
   if (use_otl_command(*hst)) {
     nagios_macros* macros(get_global_macros());
 
-    ret |= _otel_command_to_stream(hst->check_command(),
-                                   hst->get_check_command_line(macros),
-                                   hst->name(), "", request_body);
+    ret |= _otel_connector_to_stream(hst->check_command(),
+                                     hst->get_check_command_line(macros),
+                                     hst->name(), "", request_body);
     clear_volatile_macros_r(macros);
   } else {
     SPDLOG_LOGGER_DEBUG(this->_logger,
@@ -359,7 +359,7 @@ bool conf_session<connection_class>::_get_commands(const std::string& host_name,
     std::shared_ptr<service> serv = serv_iter->second;
     if (use_otl_command(*serv)) {
       nagios_macros* macros(get_global_macros());
-      ret |= _otel_command_to_stream(
+      ret |= _otel_connector_to_stream(
           serv->check_command(), serv->get_check_command_line(macros),
           serv->get_hostname(), serv->name(), request_body);
       clear_volatile_macros_r(macros);

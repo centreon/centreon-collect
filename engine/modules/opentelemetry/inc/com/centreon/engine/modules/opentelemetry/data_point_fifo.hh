@@ -23,7 +23,7 @@
 namespace com::centreon::engine::modules::opentelemetry {
 
 /**
- * @brief This class is a multiset of opentelemetry data_point ordered by
+ * @brief This class is a multiset of opentelemetry otl_data_point ordered by
  * nano_timestamp
  *
  */
@@ -36,21 +36,23 @@ class data_point_fifo {
      *
      */
     using is_transparent = void;
-    bool operator()(const data_point& left, const data_point& right) const {
+    bool operator()(const otl_data_point& left,
+                    const otl_data_point& right) const {
       return left.get_nano_timestamp() < right.get_nano_timestamp();
     }
-    bool operator()(const data_point& left,
+    bool operator()(const otl_data_point& left,
                     uint64_t nano_timestamp_right) const {
       return left.get_nano_timestamp() < nano_timestamp_right;
     }
     bool operator()(uint64_t nano_timestamp_left,
-                    const data_point& right) const {
+                    const otl_data_point& right) const {
       return nano_timestamp_left < right.get_nano_timestamp();
     }
   };
 
  public:
-  using container = absl::btree_multiset<data_point, time_unix_nano_compare>;
+  using container =
+      absl::btree_multiset<otl_data_point, time_unix_nano_compare>;
 
  private:
   static time_t _second_datapoint_expiry;
@@ -67,7 +69,7 @@ class data_point_fifo {
 
   size_t size() const { return _fifo.size(); }
 
-  void add_data_point(const data_point& data_pt);
+  void add_data_point(const otl_data_point& data_pt);
 
   void clean();
 

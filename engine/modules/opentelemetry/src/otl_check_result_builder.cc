@@ -20,21 +20,34 @@
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 #include "data_point_fifo_container.hh"
-#include "otl_converter.hh"
-#include "telegraf/nagios_converter.hh"
+#include "otl_check_result_builder.hh"
+#include "telegraf/nagios_check_result_builder.hh"
 
 #include "absl/flags/commandlineflag.h"
 #include "absl/strings/str_split.h"
 
 using namespace com::centreon::engine::modules::opentelemetry;
 
-otl_converter::otl_converter(const std::string& cmd_line,
-                             uint64_t command_id,
-                             const host& host,
-                             const service* service,
-                             std::chrono::system_clock::time_point timeout,
-                             commands::otel::result_callback&& handler,
-                             const std::shared_ptr<spdlog::logger>& logger)
+/**
+ * @brief Construct a new otl check result builder::otl check result builder
+ * object
+ *
+ * @param cmd_line
+ * @param command_id
+ * @param host
+ * @param service
+ * @param timeout
+ * @param handler called when mandatory metrics will be available
+ * @param logger
+ */
+otl_check_result_builder::otl_check_result_builder(
+    const std::string& cmd_line,
+    uint64_t command_id,
+    const host& host,
+    const service* service,
+    std::chrono::system_clock::time_point timeout,
+    commands::otel::result_callback&& handler,
+    const std::shared_ptr<spdlog::logger>& logger)
     : _cmd_line(cmd_line),
       _command_id(command_id),
       _host_serv{host.name(), service ? service->description() : ""},
@@ -42,7 +55,15 @@ otl_converter::otl_converter(const std::string& cmd_line,
       _callback(handler),
       _logger(logger) {}
 
-bool otl_converter::sync_build_result_from_metrics(
+/**
+ * @brief try to build a check result
+ *
+ * @param data_pts
+ * @param res
+ * @return true all mandatory metrics are available and a check_result is built
+ * @return false
+ */
+bool otl_check_result_builder::sync_build_result_from_metrics(
     data_point_fifo_container& data_pts,
     commands::result& res) {
   std::lock_guard l(data_pts);
@@ -59,10 +80,10 @@ bool otl_converter::sync_build_result_from_metrics(
  * clients
  *
  * @param data_pts
- * @return true otl_converter has managed to create check result
+ * @return true otl_check_result_builder has managed to create check result
  * @return false
  */
-bool otl_converter::async_build_result_from_metrics(
+bool otl_check_result_builder::async_build_result_from_metrics(
     data_point_fifo_container& data_pts) {
   commands::result res;
   bool success = false;
@@ -82,7 +103,7 @@ bool otl_converter::async_build_result_from_metrics(
  * _timeout
  *
  */
-void otl_converter::async_time_out() {
+void otl_check_result_builder::async_time_out() {
   commands::result res;
   res.exit_status = process::timeout;
   res.command_id = _command_id;
@@ -94,24 +115,26 @@ void otl_converter::async_time_out() {
  * first field identify type of config
  * Example:
  * @code {.c++}
- * std::shared_ptr<otl_converter> converter =
- * otl_converter::create("--processor=nagios_telegraf --fifo_depth=5", conf, 5, *host, serv,
- * timeout_point, [](const commads::result &res){}, _logger);
+ * std::shared_ptr<otl_check_result_builder> converter =
+ * otl_check_result_builder::create("--processor=nagios_telegraf
+ * --fifo_depth=5", conf, 5, *host, serv, timeout_point, [](const
+ * commads::result &res){}, _logger);
  * @endcode
  *
  * @param cmd_line
- * @param conf  bean configuration object created by create_converter_config
+ * @param conf  bean configuration object created by
+ * create_check_result_builder_config
  * @param command_id
  * @param host
  * @param service
  * @param timeout
  * @param handler handler that will be called once we have all metrics mandatory
  * to create a check_result
- * @return std::shared_ptr<otl_converter>
+ * @return std::shared_ptr<otl_check_result_builder>
  */
-std::shared_ptr<otl_converter> otl_converter::create(
+std::shared_ptr<otl_check_result_builder> otl_check_result_builder::create(
     const std::string& cmd_line,
-    const std::shared_ptr<converter_config>& conf,
+    const std::shared_ptr<check_result_builder_config>& conf,
     uint64_t command_id,
     const host& host,
     const service* service,
@@ -119,8 +142,9 @@ std::shared_ptr<otl_converter> otl_converter::create(
     commands::otel::result_callback&& handler,
     const std::shared_ptr<spdlog::logger>& logger) {
   switch (conf->get_type()) {
-    case converter_config::converter_type::nagios_converter:
-      return std::make_shared<telegraf::nagios_converter>(
+    case check_result_builder_config::converter_type::
+        nagios_check_result_builder:
+      return std::make_shared<telegraf::nagios_check_result_builder>(
           cmd_line, command_id, host, service, timeout, std::move(handler),
           logger);
     default:
@@ -134,7 +158,7 @@ std::shared_ptr<otl_converter> otl_converter::create(
  *
  * @param output string to log
  */
-void otl_converter::dump(std::string& output) const {
+void otl_check_result_builder::dump(std::string& output) const {
   output = fmt::format(
       "host:{}, service:{}, command_id={}, timeout:{} cmdline: \"{}\"",
       _host_serv.first, _host_serv.second, _command_id, _timeout, _cmd_line);
@@ -146,13 +170,14 @@ void otl_converter::dump(std::string& output) const {
  * Example:
  * @code {.c++}
  * std::shared_ptr<otl_converter> converter =
- * otl_converter::create("--processor=nagios_telegraf --fifo_depth=5");
- * @endcode
+ * otl_converter::create_check_result_builder_config("--processor=nagios_telegraf
+ * --fifo_depth=5");
  *
  * @param cmd_line
- * @return std::shared_ptr<converter_config>
+ * @return std::shared_ptr<check_result_builder_config>
  */
-std::shared_ptr<converter_config> otl_converter::create_converter_config(
+std::shared_ptr<check_result_builder_config>
+otl_check_result_builder::create_check_result_builder_config(
     const std::string& cmd_line) {
   static initialized_data_class<po::options_description> desc(
       [](po::options_description& desc) {
@@ -172,8 +197,9 @@ std::shared_ptr<converter_config> otl_converter::create_converter_config(
     }
     std::string extractor_type = vm["processor"].as<std::string>();
     if (extractor_type == "nagios_telegraf") {
-      return std::make_shared<converter_config>(
-          converter_config::converter_type::nagios_converter);
+      return std::make_shared<check_result_builder_config>(
+          check_result_builder_config::converter_type::
+              nagios_check_result_builder);
     } else {
       throw exceptions::msg_fmt("unknown processor in {}", cmd_line);
     }

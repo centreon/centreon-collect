@@ -24,8 +24,8 @@
 
 #include "data_point_fifo_container.hh"
 #include "host_serv_extractor.hh"
+#include "otl_check_result_builder.hh"
 #include "otl_config.hh"
-#include "otl_converter.hh"
 
 namespace com::centreon::engine::modules::opentelemetry {
 
@@ -60,14 +60,15 @@ class open_telemetry : public commands::otel::open_telemetry_base {
   struct host_serv_getter {
     using result_type = host_serv;
     const result_type& operator()(
-        const std::shared_ptr<otl_converter>& node) const {
+        const std::shared_ptr<otl_check_result_builder>& node) const {
       return node->get_host_serv();
     }
   };
 
   struct time_out_getter {
     using result_type = std::chrono::system_clock::time_point;
-    result_type operator()(const std::shared_ptr<otl_converter>& node) const {
+    result_type operator()(
+        const std::shared_ptr<otl_check_result_builder>& node) const {
       return node->get_time_out();
     }
   };
@@ -79,7 +80,7 @@ class open_telemetry : public commands::otel::open_telemetry_base {
    *
    */
   using waiting_converter = boost::multi_index::multi_index_container<
-      std::shared_ptr<otl_converter>,
+      std::shared_ptr<otl_check_result_builder>,
       boost::multi_index::indexed_by<
           boost::multi_index::hashed_non_unique<host_serv_getter>,
           boost::multi_index::ordered_non_unique<time_out_getter>>>;
@@ -89,7 +90,7 @@ class open_telemetry : public commands::otel::open_telemetry_base {
   std::shared_ptr<asio::io_context> _io_context;
   mutable std::mutex _protect;
 
-  void _forward_to_broker(const std::vector<data_point>& unknown);
+  void _forward_to_broker(const std::vector<otl_data_point>& unknown);
 
   void _second_timer_handler();
 
@@ -127,7 +128,8 @@ class open_telemetry : public commands::otel::open_telemetry_base {
   static void unload(const std::shared_ptr<spdlog::logger>& logger);
 
   bool check(const std::string& processed_cmd,
-             const std::shared_ptr<commands::otel::converter_config>& conv_conf,
+             const std::shared_ptr<commands::otel::check_result_builder_config>&
+                 conv_conf,
              uint64_t command_id,
              nagios_macros& macros,
              uint32_t timeout,
@@ -138,8 +140,8 @@ class open_telemetry : public commands::otel::open_telemetry_base {
       const std::string& cmdline,
       const commands::otel::host_serv_list::pointer& host_serv_list) override;
 
-  std::shared_ptr<commands::otel::converter_config> create_converter_config(
-      const std::string& cmd_line) override;
+  std::shared_ptr<commands::otel::check_result_builder_config>
+  create_check_result_builder_config(const std::string& cmd_line) override;
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry

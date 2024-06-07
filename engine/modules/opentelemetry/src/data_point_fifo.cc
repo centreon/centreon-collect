@@ -41,7 +41,7 @@ void data_point_fifo::update_fifo_limit(time_t second_datapoint_expiry,
  *
  * @param data_pt
  */
-void data_point_fifo::add_data_point(const data_point& data_pt) {
+void data_point_fifo::add_data_point(const otl_data_point& data_pt) {
   clean();
   _fifo.insert(data_pt);
 }
