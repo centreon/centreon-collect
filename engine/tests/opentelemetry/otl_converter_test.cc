@@ -38,7 +38,7 @@
 
 #include "com/centreon/engine/modules/opentelemetry/data_point_fifo_container.hh"
 #include "com/centreon/engine/modules/opentelemetry/otl_check_result_builder.hh"
-#include "com/centreon/engine/modules/opentelemetry/telegraf/nagios_converter.hh"
+#include "com/centreon/engine/modules/opentelemetry/telegraf/nagios_check_result_builder.hh"
 
 #include "helper.hh"
 #include "test_engine.hh"
@@ -81,7 +81,7 @@ void otl_converter_test::TearDown() {
 
 TEST_F(otl_converter_test, empty_fifo) {
   data_point_fifo_container empty;
-  telegraf::nagios_converter conv(
+  telegraf::nagios_check_result_builder conv(
       "", 1, *host::hosts.begin()->second,
       service::services.begin()->second.get(),
       std::chrono::system_clock::time_point(), [&](const commands::result&) {},
@@ -587,7 +587,7 @@ TEST_F(otl_converter_test, nagios_telegraf) {
                                 data_pt.get_metric().name(), data_pt);
       });
 
-  telegraf::nagios_converter conv(
+  telegraf::nagios_check_result_builder conv(
       "", 1, *host::hosts.begin()->second,
       service::services.begin()->second.get(),
       std::chrono::system_clock::time_point(), [&](const commands::result&) {},
@@ -623,7 +623,7 @@ TEST_F(otl_converter_test, nagios_telegraf_le_ge) {
                                 data_pt.get_metric().name(), data_pt);
       });
 
-  telegraf::nagios_converter conv(
+  telegraf::nagios_check_result_builder conv(
       "", 1, *host::hosts.begin()->second,
       service::services.begin()->second.get(),
       std::chrono::system_clock::time_point(), [&](const commands::result&) {},
@@ -657,7 +657,7 @@ TEST_F(otl_converter_test, nagios_telegraf_max) {
                                 data_pt.get_metric().name(), data_pt);
       });
 
-  telegraf::nagios_converter conv(
+  telegraf::nagios_check_result_builder conv(
       "", 1, *host::hosts.begin()->second,
       service::services.begin()->second.get(),
       std::chrono::system_clock::time_point(), [&](const commands::result&) {},

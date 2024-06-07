@@ -34,9 +34,8 @@ void host_serv_list::register_host_serv(
   _data[host].insert(service_description);
 }
 
-void host_serv_list::unregister_host_serv(
-    const std::string& host,
-    const std::string& service_description) {
+void host_serv_list::remove(const std::string& host,
+                            const std::string& service_description) {
   absl::WriterMutexLock l(&_data_m);
   auto host_search = _data.find(host);
   if (host_search != _data.end()) {

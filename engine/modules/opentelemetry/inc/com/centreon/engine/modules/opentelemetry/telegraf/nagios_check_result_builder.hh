@@ -20,18 +20,6 @@
 #define CCE_MOD_OTL_NAGIOS_CONVERTER_HH
 
 namespace com::centreon::engine::modules::opentelemetry::telegraf {
-
-/**
- * @brief nagios converter doesn't accept config parameter so it is only used
- * for the check_result_builder_config::converter_type::nagios_converter
- */
-class nagios_converter_config : public check_result_builder_config {
- public:
-  nagios_converter_config()
-      : check_result_builder_config(
-            check_result_builder_config::converter_type::nagios_converter) {}
-};
-
 /**
  * @brief telegraf accept to use nagios plugins
  * This converter parse metrics special naming to rebuild original check_result
@@ -103,19 +91,19 @@ class nagios_converter_config : public check_result_builder_config {
  *
  *
  */
-class nagios_converter : public otl_check_result_builder {
+class nagios_check_result_builder : public otl_check_result_builder {
  protected:
   bool _build_result_from_metrics(metric_name_to_fifo& fifos,
                                   commands::result& res) override;
 
  public:
-  nagios_converter(const std::string& cmd_line,
-                   uint64_t command_id,
-                   const host& host,
-                   const service* service,
-                   std::chrono::system_clock::time_point timeout,
-                   commands::otel::result_callback&& handler,
-                   const std::shared_ptr<spdlog::logger>& logger)
+  nagios_check_result_builder(const std::string& cmd_line,
+                              uint64_t command_id,
+                              const host& host,
+                              const service* service,
+                              std::chrono::system_clock::time_point timeout,
+                              commands::otel::result_callback&& handler,
+                              const std::shared_ptr<spdlog::logger>& logger)
       : otl_check_result_builder(cmd_line,
                                  command_id,
                                  host,

@@ -326,5 +326,5 @@ void otel_connector::register_host_serv(
 void otel_connector::unregister_host_serv(
     const std::string& host,
     const std::string& service_description) {
-  _host_serv_list->unregister_host_serv(host, service_description);
+  _host_serv_list->remove(host, service_description);
 }

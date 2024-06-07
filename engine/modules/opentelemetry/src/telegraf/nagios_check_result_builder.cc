@@ -19,7 +19,7 @@
 #include "data_point_fifo_container.hh"
 #include "otl_check_result_builder.hh"
 
-#include "telegraf/nagios_converter.hh"
+#include "telegraf/nagios_check_result_builder.hh"
 
 using namespace com::centreon::engine::modules::opentelemetry::telegraf;
 
@@ -158,8 +158,9 @@ static std::string_view get_nagios_telegraf_suffix(
  * check_icmp_state
  * @return com::centreon::engine::commands::result
  */
-bool nagios_converter::_build_result_from_metrics(metric_name_to_fifo& fifos,
-                                                  commands::result& res) {
+bool nagios_check_result_builder::_build_result_from_metrics(
+    metric_name_to_fifo& fifos,
+    commands::result& res) {
   // first we search last state timestamp
   uint64_t last_time = 0;
 

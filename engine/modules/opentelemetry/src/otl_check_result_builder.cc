@@ -21,7 +21,7 @@
 
 #include "data_point_fifo_container.hh"
 #include "otl_check_result_builder.hh"
-#include "telegraf/nagios_converter.hh"
+#include "telegraf/nagios_check_result_builder.hh"
 
 #include "absl/flags/commandlineflag.h"
 #include "absl/strings/str_split.h"
@@ -142,8 +142,9 @@ std::shared_ptr<otl_check_result_builder> otl_check_result_builder::create(
     commands::otel::result_callback&& handler,
     const std::shared_ptr<spdlog::logger>& logger) {
   switch (conf->get_type()) {
-    case check_result_builder_config::converter_type::nagios_converter:
-      return std::make_shared<telegraf::nagios_converter>(
+    case check_result_builder_config::converter_type::
+        nagios_check_result_builder:
+      return std::make_shared<telegraf::nagios_check_result_builder>(
           cmd_line, command_id, host, service, timeout, std::move(handler),
           logger);
     default:
@@ -197,7 +198,8 @@ otl_check_result_builder::create_check_result_builder_config(
     std::string extractor_type = vm["processor"].as<std::string>();
     if (extractor_type == "nagios_telegraf") {
       return std::make_shared<check_result_builder_config>(
-          check_result_builder_config::converter_type::nagios_converter);
+          check_result_builder_config::converter_type::
+              nagios_check_result_builder);
     } else {
       throw exceptions::msg_fmt("unknown processor in {}", cmd_line);
     }

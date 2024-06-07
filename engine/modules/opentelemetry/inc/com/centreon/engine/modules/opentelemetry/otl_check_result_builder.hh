@@ -35,7 +35,7 @@ class data_point_fifo_container;
 class check_result_builder_config
     : public commands::otel::check_result_builder_config {
  public:
-  enum class converter_type { nagios_converter };
+  enum class converter_type { nagios_check_result_builder };
 
  private:
   const converter_type _type;

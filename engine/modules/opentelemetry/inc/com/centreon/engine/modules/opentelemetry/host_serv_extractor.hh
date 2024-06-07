@@ -64,7 +64,7 @@ template <typename host_set, typename service_set>
 host_serv_metric host_serv_extractor::is_allowed(
     const host_set& hosts,
     const service_set& services) const {
-  return _host_serv_list->contains(hosts, services);
+  return _host_serv_list->match(hosts, services);
 }
 
 /**
