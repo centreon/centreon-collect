@@ -158,9 +158,8 @@ static std::string_view get_nagios_telegraf_suffix(
  * check_icmp_state
  * @return com::centreon::engine::commands::result
  */
-bool otl_nagios_converter::_build_result_from_metrics(
-    metric_name_to_fifo& fifos,
-    commands::result& res) {
+bool nagios_converter::_build_result_from_metrics(metric_name_to_fifo& fifos,
+                                                  commands::result& res) {
   // first we search last state timestamp
   uint64_t last_time = 0;
 

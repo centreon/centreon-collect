@@ -39,41 +39,43 @@ static constexpr std::string_view _config_schema(R"(
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "grpc config",
     "properties": {
-        "listen_address": {
-            "description": "IP",
-            "type": "string",
-            "minLength": 5
-        },
-        "port": {
-            "description": "port to listen",
-            "type": "integer",
-            "minimum": 80,
-            "maximum": 65535
+        "http_server" : {
+          "listen_address": {
+              "description": "IP",
+              "type": "string",
+              "minLength": 5
+          },
+          "port": {
+              "description": "port to listen",
+              "type": "integer",
+              "minimum": 80,
+              "maximum": 65535
+          },
+          "encryption": {
+              "description": "true if https",
+              "type": "boolean"
+          },
+          "keepalive_interval": {
+              "description": "delay between 2 keepalive tcp packet, 0 no keepalive packets",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3600
+          },
+          "certificate_path": {
+              "description": "path of the certificate file of the server",
+              "type": "string",
+              "minLength": 5
+          },
+          "key_path": {
+              "description": "path of the key file",
+              "type": "string",
+              "minLength": 5
+          }
         },
         "check_interval": {
             "description": "interval in seconds between two checks (param [agent] interval) ",
             "type": "integer",
             "minimum": 10
-        },
-        "encryption": {
-            "description": "true if https",
-            "type": "boolean"
-        },
-        "keepalive_interval": {
-            "description": "delay between 2 keepalive tcp packet, 0 no keepalive packets",
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 3600
-        },
-        "certificate_path": {
-            "description": "path of the certificate file",
-            "type": "string",
-            "minLength": 5
-        },
-        "key_path": {
-            "description": "path of the key file",
-            "type": "string",
-            "minLength": 5
         },
         "engine_otel_endpoint": {
             "description": "opentelemetry engine grpc server",
@@ -101,66 +103,79 @@ conf_server_config::conf_server_config(const rapidjson::Value& json_config_v,
                         e.what());
     throw;
   }
-  std::string listen_address =
-      json_config.get_string("listen_address", "0.0.0.0");
-  _crypted = json_config.get_bool("encryption", false);
-  unsigned port = json_config.get_unsigned("port", _crypted ? 443 : 80);
-  asio::ip::tcp::resolver::query query(listen_address, std::to_string(port));
-  asio::ip::tcp::resolver resolver(io_context);
-  boost::system::error_code ec;
-  asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec), end;
-  if (ec) {
-    throw exceptions::msg_fmt("unable to resolve {}:{}", listen_address, port);
-  }
-  if (it == end) {
-    throw exceptions::msg_fmt("no ip found for {}:{}", listen_address, port);
-  }
 
-  _listen_endpoint = it->endpoint();
-
-  _second_keep_alive_interval =
-      json_config.get_unsigned("keepalive_interval", 30);
-  _check_interval = json_config.get_unsigned("check_interval", 60);
-  _certificate_path = json_config.get_string("certificate_path", "");
-  _key_path = json_config.get_string("key_path", "");
   _engine_otl_endpoint = json_config.get_string("engine_otel_endpoint");
-  if (_crypted) {
-    if (_certificate_path.empty()) {
-      SPDLOG_LOGGER_ERROR(
-          config_logger,
-          "telegraf conf server  encryption activated and no certificate path "
-          "provided");
-      throw exceptions::msg_fmt(
-          "telegraf conf server  encryption activated and no certificate path "
-          "provided");
-    }
-    if (_key_path.empty()) {
-      SPDLOG_LOGGER_ERROR(config_logger,
-                          "telegraf conf server  encryption activated and no "
-                          "certificate key path provided");
+  _check_interval = json_config.get_unsigned("check_interval", 60);
 
-      throw exceptions::msg_fmt(
-          "telegraf conf server  encryption activated and no certificate key "
-          "path provided");
+  if (json_config_v.HasMember("http_server")) {
+    common::rapidjson_helper http_json_config(
+        json_config.get_member("http_server"));
+    std::string listen_address =
+        http_json_config.get_string("listen_address", "0.0.0.0");
+    _crypted = http_json_config.get_bool("encryption", false);
+    unsigned port = http_json_config.get_unsigned("port", _crypted ? 443 : 80);
+    asio::ip::tcp::resolver::query query(listen_address, std::to_string(port));
+    asio::ip::tcp::resolver resolver(io_context);
+    boost::system::error_code ec;
+    asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec), end;
+    if (ec) {
+      throw exceptions::msg_fmt("unable to resolve {}:{}", listen_address,
+                                port);
     }
-    if (::access(_certificate_path.c_str(), R_OK)) {
-      SPDLOG_LOGGER_ERROR(
-          config_logger,
-          "telegraf conf server unable to read certificate file {}",
-          _certificate_path);
-      throw exceptions::msg_fmt(
-          "telegraf conf server unable to read certificate file {}",
-          _certificate_path);
+    if (it == end) {
+      throw exceptions::msg_fmt("no ip found for {}:{}", listen_address, port);
     }
-    if (::access(_key_path.c_str(), R_OK)) {
-      SPDLOG_LOGGER_ERROR(
-          config_logger,
-          "telegraf conf server unable to read certificate key file {}",
-          _key_path);
-      throw exceptions::msg_fmt(
-          "telegraf conf server unable to read certificate key file {}",
-          _key_path);
+
+    _listen_endpoint = it->endpoint();
+
+    _second_keep_alive_interval =
+        http_json_config.get_unsigned("keepalive_interval", 30);
+    _certificate_path = http_json_config.get_string("certificate_path", "");
+    _key_path = http_json_config.get_string("key_path", "");
+    if (_crypted) {
+      if (_certificate_path.empty()) {
+        SPDLOG_LOGGER_ERROR(config_logger,
+                            "telegraf conf server  encryption activated and no "
+                            "certificate path "
+                            "provided");
+        throw exceptions::msg_fmt(
+            "telegraf conf server  encryption activated and no certificate "
+            "path "
+            "provided");
+      }
+      if (_key_path.empty()) {
+        SPDLOG_LOGGER_ERROR(config_logger,
+                            "telegraf conf server  encryption activated and no "
+                            "certificate key path provided");
+
+        throw exceptions::msg_fmt(
+            "telegraf conf server  encryption activated and no certificate key "
+            "path provided");
+      }
+      if (::access(_certificate_path.c_str(), R_OK)) {
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
+            "telegraf conf server unable to read certificate file {}",
+            _certificate_path);
+        throw exceptions::msg_fmt(
+            "telegraf conf server unable to read certificate file {}",
+            _certificate_path);
+      }
+      if (::access(_key_path.c_str(), R_OK)) {
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
+            "telegraf conf server unable to read certificate key file {}",
+            _key_path);
+        throw exceptions::msg_fmt(
+            "telegraf conf server unable to read certificate key file {}",
+            _key_path);
+      }
     }
+  } else {
+    _listen_endpoint = asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 80);
+    _second_keep_alive_interval = 30;
+    _check_interval = 60;
+    _crypted = false;
   }
 }
 
@@ -261,18 +276,7 @@ bool conf_session<connection_class>::_otel_command_to_stream(
     const std::string& host,
     const std::string& service,
     std::string& to_append) {
-  constexpr std::string_view flag = "--cmd_line";
-  std::string plugins_cmdline;
-  size_t flag_pos = cmd_line.find(flag);
-  if (flag_pos != std::string::npos) {
-    plugins_cmdline = cmd_line.substr(flag_pos + flag.length() + 1);
-    boost::trim(plugins_cmdline);
-  } else {
-    SPDLOG_LOGGER_ERROR(this->_logger,
-                        "host: {}, serv: {}, no --cmd_line found in {}", host,
-                        service, cmd_line);
-    return false;
-  }
+  std::string plugins_cmdline = boost::trim_copy(cmd_line);
 
   if (plugins_cmdline.empty()) {
     SPDLOG_LOGGER_ERROR(this->_logger,

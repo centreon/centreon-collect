@@ -43,11 +43,11 @@ class otel_command : public command,
   static otel_command_container _commands;
 
   std::shared_ptr<otel::host_serv_extractor> _extractor;
+  std::shared_ptr<otel::converter_config> _conv_conf;
 
   std::shared_ptr<spdlog::logger> _logger;
 
   void init();
-  void reset_extractor();
 
  public:
   static void create(const std::string& connector_name,
@@ -65,7 +65,6 @@ class otel_command : public command,
   static void clear();
 
   static void init_all();
-  static void reset_all_extractor();
 
   static const otel_command_container& get_otel_commands() { return _commands; }
 

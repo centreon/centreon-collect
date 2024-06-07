@@ -22,6 +22,30 @@
 namespace com::centreon::engine::modules::opentelemetry {
 
 /**
+ * @brief the goal of this little template is to pass an initializer at object
+ * construction
+ * Example:
+ * @code {.c++}
+ *   static initialized_data_class<po::options_description> desc(
+ *    [](po::options_description& desc) {
+ *      desc.add_options()("extractor", po::value<std::string>(),
+ *                         "extractor type");
+ *    });
+ *
+ * @endcode
+ *
+ *
+ * @tparam data_class
+ */
+template <class data_class>
+struct initialized_data_class : public data_class {
+  template <typename initializer_type>
+  initialized_data_class(initializer_type&& initializer) {
+    initializer(*this);
+  }
+};
+
+/**
  * @brief pair with host_name in first and serv in second
  *
  */

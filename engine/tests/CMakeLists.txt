@@ -197,8 +197,9 @@ if(WITH_TESTING)
             pb_open_telemetry_lib
             centreon_grpc
             centreon_http
-            -L${Boost_LIBRARY_DIR_RELEASE}
-            boost_url
+	          -L${Boost_LIBRARY_DIR_RELEASE}
+	          boost_url
+            boost_program_options
             pthread
             ${GCOV}
             GTest::gtest

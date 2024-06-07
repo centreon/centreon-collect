@@ -110,6 +110,12 @@ host_serv_metric host_serv_list::is_allowed(const host_set& hosts,
 class host_serv_extractor {
  public:
   virtual ~host_serv_extractor() = default;
+
+};
+
+class converter_config {
+ public:
+  virtual ~converter_config() = default;
 };
 
 using result_callback = std::function<void(const result&)>;
@@ -135,7 +141,11 @@ class open_telemetry_base
       const std::string& cmdline,
       const host_serv_list::pointer& host_serv_list) = 0;
 
+  virtual std::shared_ptr<converter_config> create_converter_config(
+      const std::string& cmd_line) = 0;
+
   virtual bool check(const std::string& processed_cmd,
+                     const std::shared_ptr<converter_config>& conv_conf,
                      uint64_t command_id,
                      nagios_macros& macros,
                      uint32_t timeout,

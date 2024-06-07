@@ -38,68 +38,36 @@ bool host_serv_extractor::is_allowed(
   return _host_serv_list->is_allowed(host, service_description);
 }
 
-namespace com::centreon::engine::modules::opentelemetry::options {
-
-/**
- * @brief command line parser for host_serv_attributes_extractor_config
- *
- */
-class host_serv_attributes_extractor_config_options
-    : public com::centreon::misc::get_options {
- public:
-  host_serv_attributes_extractor_config_options();
-  void parse(const std::string& cmd_line) { _parse_arguments(cmd_line); }
-};
-
-host_serv_attributes_extractor_config_options::
-    host_serv_attributes_extractor_config_options() {
-  _add_argument("host_attribute", 'h',
-                "Where to find host attribute allowed values: resource, scope, "
-                "data_point",
-                true, true, "data_point");
-  _add_argument("host_key", 'i',
-                "the key of attributes where we can find host name", true, true,
-                "host");
-  _add_argument(
-      "service_attribute", 's',
-      "Where to find service attribute allowed values: resource, scope, "
-      "data_point",
-      true, true, "data_point");
-  _add_argument("service_key", 't',
-                "the key of attributes where we can find the name of service",
-                true, true, "service");
-}
-
-};  // namespace com::centreon::engine::modules::opentelemetry::options
-
-/**
- * @brief create host_serv_extractor according to command_line
- *
- * @param command_line
- * @param host_serv_list list that will be shared bu host_serv_extractor and
- * otel_command
- * @return std::shared_ptr<host_serv_extractor>
- */
 std::shared_ptr<host_serv_extractor> host_serv_extractor::create(
     const std::string& command_line,
     const commands::otel::host_serv_list::pointer& host_serv_list) {
-  // type of the converter is the first field
-  size_t sep_pos = command_line.find(' ');
-  std::string conf_type = sep_pos == std::string::npos
-                              ? command_line
-                              : command_line.substr(0, sep_pos);
-  boost::trim(conf_type);
-  std::string params =
-      sep_pos == std::string::npos ? "" : command_line.substr(sep_pos + 1);
+  static initialized_data_class<po::options_description> desc(
+      [](po::options_description& desc) {
+        desc.add_options()("extractor", po::value<std::string>(),
+                           "extractor type");
+      });
 
-  boost::trim(params);
-
-  if (conf_type.empty() || conf_type == "attributes") {
-    return std::make_shared<host_serv_attributes_extractor>(params,
-                                                            host_serv_list);
-  } else {
-    SPDLOG_LOGGER_ERROR(config_logger, "unknown converter type:{}", conf_type);
-    throw exceptions::msg_fmt("unknown converter type:{}", conf_type);
+  try {
+    po::variables_map vm;
+    po::store(po::command_line_parser(po::split_unix(command_line))
+                  .options(desc)
+                  .allow_unregistered()
+                  .run(),
+              vm);
+    if (!vm.count("extractor")) {
+      throw exceptions::msg_fmt("extractor flag not found in {}", command_line);
+    }
+    std::string extractor_type = vm["extractor"].as<std::string>();
+    if (extractor_type == "attributes") {
+      return std::make_shared<host_serv_attributes_extractor>(command_line,
+                                                              host_serv_list);
+    } else {
+      throw exceptions::msg_fmt("unknown extractor in {}", command_line);
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(config_logger, "fail to parse {}: {}", command_line,
+                        e.what());
+    throw;
   }
 }
 
@@ -115,39 +83,66 @@ host_serv_attributes_extractor::host_serv_attributes_extractor(
     const std::string& command_line,
     const commands::otel::host_serv_list::pointer& host_serv_list)
     : host_serv_extractor(command_line, host_serv_list) {
-  options::host_serv_attributes_extractor_config_options args;
-  args.parse(command_line);
+  static initialized_data_class<po::options_description> desc(
+      [](po::options_description& desc) {
+        desc.add_options()(
+            "host_path", po::value<std::string>(),
+            "where to find host name. Example: "
+            "resourceMetrics.scopeMetrics.metrics.dataPoints.attributes.host");
+        desc.add_options()("service_path", po::value<std::string>(),
+                           "where to find service description. Example: "
+                           "resourceMetrics.scopeMetrics.metrics.dataPoints."
+                           "attributes.service");
+      });
 
-  auto parse_param =
-      [&args](
-          const std::string& attribute,
-          const std::string& key) -> std::pair<attribute_owner, std::string> {
-    const std::string& path = args.get_argument(attribute).get_value();
-    attribute_owner owner;
-    if (path == "resource") {
-      owner = attribute_owner::resource;
-    } else if (path == "scope") {
-      owner = attribute_owner::scope;
-    } else {
-      owner = attribute_owner::data_point;
+  static auto parse_path = [](const std::string& path, attribute_owner& attr,
+                              std::string& key) {
+    static re2::RE2 path_extractor("\\.(\\w+)\\.attributes\\.(\\w+)");
+    std::string sz_attr;
+    if (!RE2::PartialMatch(path, path_extractor, &sz_attr, &key)) {
+      throw exceptions::msg_fmt(
+          "we expect a path like "
+          "resource_metrics.scope_metrics.data.data_points.attributes.host not "
+          "{}",
+          path);
     }
 
-    std::string ret_key = args.get_argument(key).get_value();
-    return std::make_pair(owner, ret_key);
+    boost::to_lower(sz_attr);
+    if (sz_attr == "resource") {
+      attr = attribute_owner::resource;
+    } else if (sz_attr == "scope") {
+      attr = attribute_owner::scope;
+    } else {
+      attr = attribute_owner::data_point;
+    }
   };
 
   try {
-    std::tie(_host_path, _host_key) = parse_param("host_attribute", "host_key");
-  } catch (const std::exception&) {  // default configuration
-    _host_path = attribute_owner::data_point;
-    _host_key = "host";
-  }
-  try {
-    std::tie(_serv_path, _serv_key) =
-        parse_param("service_attribute", "service_key");
-  } catch (const std::exception&) {  // default configuration
-    _serv_path = attribute_owner::data_point;
-    _serv_key = "service";
+    po::variables_map vm;
+    po::store(po::command_line_parser(po::split_unix(command_line))
+                  .options(desc)
+                  .allow_unregistered()
+                  .run(),
+              vm);
+    if (!vm.count("host_path")) {
+      _host_path = attribute_owner::data_point;
+      _host_key = "host";
+    } else {
+      parse_path(vm["host_path"].as<std::string>(), _host_path, _host_key);
+    }
+    if (!vm.count("service_path")) {
+      _serv_path = attribute_owner::data_point;
+      _serv_key = "service";
+    } else {
+      parse_path(vm["service_path"].as<std::string>(), _serv_path, _serv_key);
+    }
+  } catch (const std::exception& e) {
+    std::ostringstream options_allowed;
+    options_allowed << desc;
+    SPDLOG_LOGGER_ERROR(config_logger,
+                        "fail to parse {}: {}\nallowed options: {}",
+                        command_line, e.what(), options_allowed.str());
+    throw;
   }
 }
 

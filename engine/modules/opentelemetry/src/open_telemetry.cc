@@ -263,6 +263,20 @@ open_telemetry::create_extractor(
 }
 
 /**
+ * @brief converter is created for each check, so in order to not parse otel
+ * connector command line on each check , we create a converter_config
+ * object that is used to create converter it search the flag extractor
+ *
+ * @param cmd_line
+ * @return
+ * std::shared_ptr<com::centreon::engine::commands::otel::converter_config>
+ */
+std::shared_ptr<com::centreon::engine::commands::otel::converter_config>
+open_telemetry::create_converter_config(const std::string& cmd_line) {
+  return otl_converter::create_converter_config(cmd_line);
+}
+
+/**
  * @brief simulate a check by reading in metrics fifos
  * It creates an otel_converter, the first word of processed_cmd is the name
  * of converter such as nagios_telegraf. Following parameters are used by
@@ -279,16 +293,19 @@ open_telemetry::create_extractor(
  * timeout
  * @throw  if converter type is unknown
  */
-bool open_telemetry::check(const std::string& processed_cmd,
-                           uint64_t command_id,
-                           nagios_macros& macros,
-                           uint32_t timeout,
-                           commands::result& res,
-                           commands::otel::result_callback&& handler) {
+bool open_telemetry::check(
+    const std::string& processed_cmd,
+    const std::shared_ptr<commands::otel::converter_config>& conv_config,
+    uint64_t command_id,
+    nagios_macros& macros,
+    uint32_t timeout,
+    commands::result& res,
+    commands::otel::result_callback&& handler) {
   std::shared_ptr<otl_converter> to_use;
   try {
     to_use = otl_converter::create(
-        processed_cmd, command_id, *macros.host_ptr, macros.service_ptr,
+        processed_cmd, std::static_pointer_cast<converter_config>(conv_config),
+        command_id, *macros.host_ptr, macros.service_ptr,
         std::chrono::system_clock::now() + std::chrono::seconds(timeout),
         std::move(handler), _logger);
   } catch (const std::exception& e) {

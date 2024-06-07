@@ -29,7 +29,7 @@
 
 using namespace com::centreon::engine::configuration;
 
-constexpr std::string_view _otel_fake_exe("open_telemetry");
+constexpr std::string_view _otel_fake_exe("opentelemetry");
 
 /**
  *  Add new connector.
@@ -54,7 +54,7 @@ void applier::connector::add_object(configuration::connector const& obj) {
   // Create connector.
   boost::trim(processed_cmd);
 
-  // if executable connector path ends with open_telemetry, it's a fake
+  // if executable connector path ends with opentelemetry, it's a fake
   // opentelemetry connector
   size_t end_path = processed_cmd.find(' ');
   size_t otel_pos = processed_cmd.find(_otel_fake_exe);
@@ -109,7 +109,7 @@ void applier::connector::modify_object(configuration::connector const& obj) {
 
   boost::trim(processed_cmd);
 
-  // if executable connector path ends with open_telemetry, it's a fake
+  // if executable connector path ends with opentelemetry, it's a fake
   // opentelemetry connector
   size_t end_path = processed_cmd.find(' ');
   size_t otel_pos = processed_cmd.find(_otel_fake_exe);

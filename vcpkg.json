@@ -20,6 +20,7 @@
     "boost-multi-index",
     "boost-interprocess",
     "boost-exception",
+    "boost-program-options",
     "boost-serialization",
     "boost-url",
     "nlohmann-json",

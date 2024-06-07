@@ -27,6 +27,24 @@ namespace com::centreon::engine::modules::opentelemetry {
 class data_point_fifo_container;
 
 /**
+ * @brief converter are asynchronous object created on each check
+ * In order to not parse command line on each check, we parse it once and then
+ * create a converter config that will be used to create converter
+ *
+ */
+class converter_config : public commands::otel::converter_config {
+ public:
+  enum class converter_type { nagios_converter };
+
+ private:
+  const converter_type _type;
+
+ public:
+  converter_config(converter_type conv_type) : _type(conv_type) {}
+  converter_type get_type() const { return _type; }
+};
+
+/**
  * @brief The goal of this converter is to convert otel metrics in result
  * This object is synchronous and asynchronous
  * if needed data are available, it returns a results otherwise it will call
@@ -58,8 +76,6 @@ class otl_converter : public std::enable_shared_from_this<otl_converter> {
 
   virtual ~otl_converter() = default;
 
-  static std::string remove_converter_type(const std::string& cmd_line);
-
   const std::string& get_cmd_line() const { return _cmd_line; }
 
   uint64_t get_command_id() const { return _command_id; }
@@ -87,12 +103,16 @@ class otl_converter : public std::enable_shared_from_this<otl_converter> {
 
   static std::shared_ptr<otl_converter> create(
       const std::string& cmd_line,
+      const std::shared_ptr<converter_config>& conf,
       uint64_t command_id,
       const host& host,
       const service* service,
       std::chrono::system_clock::time_point timeout,
       commands::otel::result_callback&& handler,
       const std::shared_ptr<spdlog::logger>& logger);
+
+  static std::shared_ptr<converter_config> create_converter_config(
+      const std::string& cmd_line);
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry
