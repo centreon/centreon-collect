@@ -27,6 +27,7 @@ BESS1
 BESS2
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
     [Tags]    broker    engine    start-stop
+    Ctn Clear Retention
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
