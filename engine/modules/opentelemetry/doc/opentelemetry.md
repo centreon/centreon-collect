@@ -148,7 +148,7 @@ In this file there are grpc server parameters and some other parameters.
 telegraf can start nagios plugins and send results to engine. So centreon opentelemetry library has two classes, one to convert telegraf nagios output to service check, and an http(s) server that gives to telegraf his configuration according to engine configuration.
 First telegraf service commands must use opentelemetry fake connector and have a command line like:
 ```
-nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.1
+/usr/lib/nagios/plugins/check_icmp 127.0.0.1
 ```
 When telegraf conf server receive an http request with one or several hosts in get parameters `http://localhost:1443/engine?host=host_1`, it searches open telemetry commands in host and service list and returns a configuration file in response body.
 The problem of asio http server is that request handler are called by asio thread, so we use command_line_manager to scan hosts and service in a thread safe manner.
@@ -162,7 +162,7 @@ An example of configuration:
     }
     define command {
         command_name                   otel_check_icmp
-        command_line                   nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.1
+        command_line                   /usr/lib/nagios/plugins/check_icmp 127.0.0.1
         connector                      OTEL connector
     }
   ```
@@ -170,7 +170,7 @@ An example of configuration:
   ```
     define connector {
         connector_name                 OTEL connector
-        connector_line                 open_telemetry attributes --host_attribute=data_point --host_key=host --service_attribute=data_point --service_key=service
+        connector_line                 open_telemetry --processor=nagios_telegraf --extractor=attributes --host_path=resourceMetrics.scopeMetrics.metrics.dataPoints.attributes.host --service_path=resourceMetrics.scopeMetrics.metrics.dataPoints.attributes.service
     }
   ```
 - centengine.cfg:
@@ -196,11 +196,14 @@ An example of configuration:
         },
         "max_length_grpc_log": 0,
         "telegraf_conf_server": {
-            "port": 1443,
-            "encryption": true,
+            "http_server" : {
+                "port": 1443,
+                "encryption": true,
+                "certificate_path": "server.crt",
+                "key_path": "server.key"
+            },
             "engine_otel_endpoint": "172.17.0.1:4317",
-            "certificate_path": "server.crt",
-            "key_path": "server.key"
+            "check_interval":60
         }
     }
   ```

@@ -103,7 +103,7 @@ open_telemetry_test::open_telemetry_test()
 void open_telemetry_test::SetUpTestSuite() {
   std::ofstream conf_file("/tmp/otel_conf.json");
   conf_file << R"({
-    "server": {
+    "otel_server": {
       "host": "127.0.0.1",
       "port": 4317
     }
@@ -145,7 +145,12 @@ TEST_F(open_telemetry_test, data_available) {
                                          spdlog::default_logger());
 
   instance->create_extractor(
-      "", _host_serv_list);  // create a defaut attribute extractor
+      "--extractor=attributes "
+      "--host_path=resource_metrics.scope_metrics.data.data_points.attributes."
+      "host "
+      "--service_path=resource_metrics.scope_metrics.data.data_points."
+      "attributes.service",
+      _host_serv_list);
 
   metric_request_ptr request =
       std::make_shared<::opentelemetry::proto::collector::metrics::v1::
@@ -158,8 +163,10 @@ TEST_F(open_telemetry_test, data_available) {
   nagios_macros macros;
   macros.host_ptr = host::hosts.begin()->second.get();
   macros.service_ptr = service::services.begin()->second.get();
-  ASSERT_TRUE(instance->check("nagios_telegraf", 1, macros, 1, res,
-                              [](const commands::result&) {}));
+  ASSERT_TRUE(instance->check(
+      "nagios_telegraf",
+      instance->create_converter_config("--processor=nagios_telegraf"), 1,
+      macros, 1, res, [](const commands::result&) {}));
   ASSERT_EQ(res.command_id, 1);
   ASSERT_EQ(res.start_time.to_useconds(), 1707744430000000);
   ASSERT_EQ(res.end_time.to_useconds(), 1707744430000000);
@@ -175,7 +182,12 @@ TEST_F(open_telemetry_test, timeout) {
                                          spdlog::default_logger());
 
   instance->create_extractor(
-      "", _host_serv_list);  // create a defaut attribute extractor
+      "--extractor=attributes "
+      "--host_path=resource_metrics.scope_metrics.data.data_points.attributes."
+      "host "
+      "--service_path=resource_metrics.scope_metrics.data.data_points."
+      "attributes.service",
+      _host_serv_list);
 
   commands::result res;
   res.exit_status = com::centreon::process::normal;
@@ -184,11 +196,13 @@ TEST_F(open_telemetry_test, timeout) {
   macros.service_ptr = service::services.begin()->second.get();
   std::condition_variable cv;
   std::mutex cv_m;
-  ASSERT_FALSE(instance->check("nagios_telegraf", 1, macros, 1, res,
-                               [&res, &cv](const commands::result& async_res) {
-                                 res = async_res;
-                                 cv.notify_one();
-                               }));
+  ASSERT_FALSE(instance->check(
+      "nagios_telegraf",
+      instance->create_converter_config("--processor=nagios_telegraf"), 1,
+      macros, 1, res, [&res, &cv](const commands::result& async_res) {
+        res = async_res;
+        cv.notify_one();
+      }));
 
   std::unique_lock l(cv_m);
   ASSERT_EQ(cv.wait_for(l, std::chrono::seconds(3)),
@@ -200,8 +214,15 @@ TEST_F(open_telemetry_test, wait_for_data) {
   auto instance = ::open_telemetry::load("/tmp/otel_conf.json", g_io_context,
                                          spdlog::default_logger());
 
-  instance->create_extractor(
-      "", _host_serv_list);  // create a defaut attribute extractor
+  static const std::string otl_conf =
+      "--processor=nagios_telegraf "
+      "--extractor=attributes "
+      "--host_path=resource_metrics.scope_metrics.data.data_points.attributes."
+      "host "
+      "--service_path=resource_metrics.scope_metrics.data.data_points."
+      "attributes.service";
+
+  instance->create_extractor(otl_conf, _host_serv_list);
 
   commands::result res;
   res.exit_status = com::centreon::process::normal;
@@ -210,12 +231,12 @@ TEST_F(open_telemetry_test, wait_for_data) {
   macros.service_ptr = service::services.begin()->second.get();
   std::mutex cv_m;
   std::condition_variable cv;
-  bool data_available =
-      instance->check("nagios_telegraf", 1, macros, 1, res,
-                      [&res, &cv](const commands::result& async_res) {
-                        res = async_res;
-                        cv.notify_one();
-                      });
+  bool data_available = instance->check(
+      "nagios_telegraf", instance->create_converter_config(otl_conf), 1, macros,
+      1, res, [&res, &cv](const commands::result& async_res) {
+        res = async_res;
+        cv.notify_one();
+      });
   ASSERT_FALSE(data_available);
 
   metric_request_ptr request =

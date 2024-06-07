@@ -30,6 +30,8 @@
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 
+#include <re2/re2.h>
+
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
@@ -41,6 +43,8 @@ namespace asio = boost::asio;
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/optional.hpp>
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
 
 #include <fmt/chrono.h>
 #include <spdlog/fmt/ostr.h>

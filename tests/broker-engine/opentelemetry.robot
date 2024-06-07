@@ -82,16 +82,16 @@ BEOTEL_TELEGRAF_CHECK_HOST
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
-    ...    open_telemetry attributes --host_attribute=data_point --host_key=host --service_attribute=data_point --service_key=service
+    ...    opentelemetry --processor=nagios_telegraf --extractor=attributes --host_path=resource_metrics.scope_metrics.data.data_points.attributes.host --service_path=resource_metrics.scope_metrics.data.data_points.attributes.service
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp
-    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.1
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.1
     ...    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
@@ -162,16 +162,16 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     [Documentation]    we send nagios telegraf formated datas and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    mon-34004
     Ctn Config Engine    ${1}    ${2}    ${2}
-    Ctn Add Otl ServerModule    0    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
+    Ctn Add Otl ServerModule    0    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
-    ...    open_telemetry attributes --host_attribute=data_point --host_key=host --service_attribute=data_point --service_key=service
+    ...    opentelemetry --processor=nagios_telegraf --extractor=attributes --host_path=resource_metrics.scope_metrics.data.data_points.attributes.host --service_path=resource_metrics.scope_metrics.data.data_points.attributes.service
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check_icmp
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp
-    ...    nagios_telegraf
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.1
     ...    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
@@ -246,44 +246,44 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_CRYPTED
     Ctn Config Engine    ${1}    ${3}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "telegraf_conf_server": {"port": 1443, "encryption": true, "engine_otel_endpoint": "127.0.0.1:4317", "certificate_path": "/tmp/otel/server.crt", "key_path": "/tmp/otel/server.key"}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "telegraf_conf_server": {"http_server":{"port": 1443, "encryption": true, "certificate_path": "/tmp/otel/server.crt", "key_path": "/tmp/otel/server.key"}, "cehck_interval":60, "engine_otel_endpoint": "127.0.0.1:4317"}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
-    ...    open_telemetry attributes --host_attribute=data_point --host_key=host --service_attribute=data_point --service_key=service
+    ...    opentelemetry --processor=nagios_telegraf --extractor=attributes --host_path=resource_metrics.scope_metrics.data.data_points.attributes.host --service_path=resource_metrics.scope_metrics.data.data_points.attributes.service
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check_icmp_serv_1
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp_serv_1
-    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.1
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.1
     ...    OTEL connector
 
     Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    otel_check_icmp_serv_2
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp_serv_2
-    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.2
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.2
     ...    OTEL connector
 
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp_host_1
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp_host_1
-    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.10
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.10
     ...    OTEL connector
 
     Ctn Engine Config Replace Value In Hosts    ${0}    host_2    check_command    otel_check_icmp_host_2
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp_host_2
-    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.20
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.20
     ...    OTEL connector
 
     Ctn Engine Config Replace Value In Services    ${0}    service_5    check_command    otel_check_icmp_serv_5
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp_serv_5
-    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.5
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.5
     ...    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
@@ -320,44 +320,44 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
     Ctn Config Engine    ${1}    ${3}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "telegraf_conf_server": {"port": 1443, "encryption": false, "engine_otel_endpoint": "127.0.0.1:4317"}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "telegraf_conf_server": {"http_server": {"port": 1443, "encryption": false}, "engine_otel_endpoint": "127.0.0.1:4317"}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
-    ...    /usr/lib64/centreon-connector/open_telemetry attributes --host_attribute=data_point --host_key=host --service_attribute=data_point --service_key=service
+    ...    opentelemetry --processor=nagios_telegraf --extractor=attributes --host_path=resource_metrics.scope_metrics.data.data_points.attributes.host --service_path=resource_metrics.scope_metrics.data.data_points.attributes.service
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check_icmp_serv_1
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp_serv_1
-    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.1
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.1
     ...    OTEL connector
 
     Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    otel_check_icmp_serv_2
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp_serv_2
-    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.2
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.2
     ...    OTEL connector
 
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp_host_1
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp_host_1
-    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.10
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.10
     ...    OTEL connector
 
     Ctn Engine Config Replace Value In Hosts    ${0}    host_2    check_command    otel_check_icmp_host_2
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp_host_2
-    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.20
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.20
     ...    OTEL connector
 
     Ctn Engine Config Replace Value In Services    ${0}    service_5    check_command    otel_check_icmp_serv_5
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp_serv_5
-    ...    nagios_telegraf --cmd_line /usr/lib/nagios/plugins/check_icmp 127.0.0.5
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.5
     ...    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
