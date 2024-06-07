@@ -123,100 +123,70 @@ bool serviceescalation::operator==(serviceescalation const& right) const
    * constructor in almost all cases, we can have two equal escalations
    * with different uuid.*/
   if (!object::operator==(right)) {
-    engine_logger(dbg_config, more)
-        << "configuration::serviceescalation::equality => object don't match";
-    config_logger->debug(
+    _logger->debug(
         "configuration::serviceescalation::equality => object don't match");
     return false;
   }
   if (_contactgroups != right._contactgroups) {
-    engine_logger(dbg_config, more) << "configuration::serviceescalation::"
-                                       "equality => contact groups don't match";
-    config_logger->debug(
+    _logger->debug(
         "configuration::serviceescalation::"
         "equality => contact groups don't match");
     return false;
   }
   if (_escalation_options != right._escalation_options) {
-    engine_logger(dbg_config, more)
-        << "configuration::serviceescalation::equality => escalation options "
-           "don't match";
-    config_logger->debug(
+    _logger->debug(
         "configuration::serviceescalation::equality => escalation options "
         "don't match");
     return false;
   }
   if (_escalation_period != right._escalation_period) {
-    engine_logger(dbg_config, more)
-        << "configuration::serviceescalation::equality => escalation periods "
-           "don't match";
-    config_logger->debug(
+    _logger->debug(
         "configuration::serviceescalation::equality => escalation periods "
         "don't match");
     return false;
   }
   if (_first_notification != right._first_notification) {
-    engine_logger(dbg_config, more)
-        << "configuration::serviceescalation::equality => first notifications "
-           "don't match";
-    config_logger->debug(
+    _logger->debug(
         "configuration::serviceescalation::equality => first notifications "
         "don't match");
     return false;
   }
   if (_hostgroups != right._hostgroups) {
-    engine_logger(dbg_config, more) << "configuration::serviceescalation::"
-                                       "equality => host groups don't match";
-    config_logger->debug(
+    _logger->debug(
         "configuration::serviceescalation::"
         "equality => host groups don't match");
     return false;
   }
   if (_hosts != right._hosts) {
-    engine_logger(dbg_config, more)
-        << "configuration::serviceescalation::equality => hosts don't match";
-    config_logger->debug(
+    _logger->debug(
         "configuration::serviceescalation::equality => hosts don't match");
     return false;
   }
   if (_last_notification != right._last_notification) {
-    engine_logger(dbg_config, more)
-        << "configuration::serviceescalation::equality => last notification "
-           "don't match";
-    config_logger->debug(
+    _logger->debug(
         "configuration::serviceescalation::equality => last notification "
         "don't match");
     return false;
   }
   if (_notification_interval != right._notification_interval) {
-    engine_logger(dbg_config, more)
-        << "configuration::serviceescalation::equality => notification "
-           "interval don't match";
-    config_logger->debug(
+    _logger->debug(
         "configuration::serviceescalation::equality => notification "
         "interval don't match");
     return false;
   }
   if (_servicegroups != right._servicegroups) {
-    engine_logger(dbg_config, more) << "configuration::serviceescalation::"
-                                       "equality => service groups don't match";
-    config_logger->debug(
+    _logger->debug(
         "configuration::serviceescalation::"
         "equality => service groups don't match");
     return false;
   }
   if (_service_description != right._service_description) {
-    engine_logger(dbg_config, more)
-        << "configuration::serviceescalation::equality => service descriptions "
-           "don't match";
-    config_logger->debug(
+    _logger->debug(
         "configuration::serviceescalation::equality => service descriptions "
         "don't match");
     return false;
   }
-  engine_logger(dbg_config, more)
-      << "configuration::serviceescalation::equality => OK";
-  config_logger->debug("configuration::serviceescalation::equality => OK");
+  _logger->debug("configuration::serviceescalation::equality => OK");
   return true;
 }
 

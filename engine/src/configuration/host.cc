@@ -1267,12 +1267,8 @@ bool host::_set_event_handler_enabled(bool value) {
  *
  *  @return True on success, otherwise false.
  */
-bool host::_set_failure_prediction_enabled(bool value) {
-  (void)value;
-  engine_logger(log_verification_error, basic)
-      << "Warning: host failure_prediction_enabled is deprecated"
-      << " This option will not be supported in 20.04.";
-  config_logger->warn(
+bool host::_set_failure_prediction_enabled(bool value [[maybe_unused]]) {
+  _logger->warn(
       "Warning: host failure_prediction_enabled is deprecated This option will "
       "not be supported in 20.04.");
   ++config_warnings;
@@ -1286,12 +1282,9 @@ bool host::_set_failure_prediction_enabled(bool value) {
  *
  *  @return True on success, otherwise false.
  */
-bool host::_set_failure_prediction_options(std::string const& value) {
-  (void)value;
-  engine_logger(log_verification_error, basic)
-      << "Warning: service failure_prediction_options is deprecated"
-      << " This option will not be supported in 20.04.";
-  config_logger->warn(
+bool host::_set_failure_prediction_options(const std::string& value
+                                           [[maybe_unused]]) {
+  _logger->warn(
       "Warning: service failure_prediction_options is deprecated This option "
       "will not be supported in 20.04.");
   ++config_warnings;
@@ -1738,8 +1731,8 @@ bool host::_set_category_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::hostcategory);
     } else {
-      config_logger->warn("Warning: host ({}) error for parsing tag {}",
-                          _host_id, value);
+      _logger->warn("Warning: host ({}) error for parsing tag {}", _host_id,
+                    value);
       ret = false;
     }
   }
@@ -1772,8 +1765,8 @@ bool host::_set_group_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::hostgroup);
     } else {
-      config_logger->warn("Warning: host ({}) error for parsing tag {}",
-                          _host_id, value);
+      _logger->warn("Warning: host ({}) error for parsing tag {}", _host_id,
+                    value);
       ret = false;
     }
   }

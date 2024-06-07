@@ -119,6 +119,7 @@ class object {
   bool _should_register;
   list_string _templates;
   object_type _type;
+  std::shared_ptr<spdlog::logger> _logger;
 };
 
 typedef std::shared_ptr<object> object_ptr;
