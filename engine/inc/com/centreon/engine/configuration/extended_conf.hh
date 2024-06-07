@@ -31,6 +31,7 @@ class state;
  *
  */
 class extended_conf {
+  std::shared_ptr<spdlog::logger> _logger;
   std::string _path;
   struct stat _file_info;
   rapidjson::Document _content;

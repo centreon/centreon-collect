@@ -33,7 +33,12 @@ using com::centreon::common::log_v2::log_v2;
 namespace com::centreon::engine::configuration::detail {
 template <typename U, void (state::*ptr)(U)>
 struct setter : public setter_base {
-  setter(const std::string_view& field_name) : setter_base(field_name) {}
+  std::shared_ptr<spdlog::logger> _logger;
+
+  setter(const std::string_view& field_name)
+      : setter_base(field_name),
+        _logger{log_v2::instance().get(log_v2::CONFIG)} {}
+
   bool apply_from_cfg(state& obj, char const* value) override {
     try {
       U val(0);
@@ -67,8 +72,8 @@ struct setter : public setter_base {
                       std::is_same_v<U, bool>);
       }
     } catch (const std::exception& e) {
-      config_logger->error("Failed to parse '{}={}': {}",
-                           setter_base::_field_name, value, e.what());
+      _logger->error("Failed to parse '{}={}': {}", setter_base::_field_name,
+                     value, e.what());
     }
     return true;
   }
@@ -79,7 +84,7 @@ struct setter : public setter_base {
           common::rapidjson_helper(doc).get<U>(setter_base::_field_name.data());
       (obj.*ptr)(val);
     } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(config_logger, "fail to update {} : {}",
+      SPDLOG_LOGGER_ERROR(_logger, "fail to update {} : {}",
                           setter_base::_field_name, e.what());
       return false;
     }
@@ -87,14 +92,19 @@ struct setter : public setter_base {
   }
 };
 
-template <void (state::*ptr)(std::string const&)>
-struct setter<std::string const&, ptr> : public setter_base {
-  setter(const std::string_view& field_name) : setter_base(field_name) {}
+template <void (state::*ptr)(const std::string&)>
+struct setter<const std::string&, ptr> : public setter_base {
+  std::shared_ptr<spdlog::logger> _logger;
+
+  setter(const std::string_view& field_name)
+      : setter_base(field_name),
+        _logger{log_v2::instance().get(log_v2::CONFIG)} {}
+
   bool apply_from_cfg(state& obj, char const* value) override {
     try {
       (obj.*ptr)(value);
     } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(config_logger, "fail to update {} with value {}: {}",
+      SPDLOG_LOGGER_ERROR(_logger, "fail to update {} with value {}: {}",
                           _field_name, value, e.what());
       return false;
     }
@@ -106,7 +116,7 @@ struct setter<std::string const&, ptr> : public setter_base {
           common::rapidjson_helper(doc).get_string(_field_name.data());
       (obj.*ptr)(val);
     } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(config_logger, "fail to update {} : {}", _field_name,
+      SPDLOG_LOGGER_ERROR(_logger, "fail to update {} : {}", _field_name,
                           e.what());
       return false;
     }
@@ -125,49 +135,49 @@ void state::_init_setter() {
   SETTER(bool, accept_passive_host_checks, "accept_passive_host_checks");
   SETTER(bool, accept_passive_service_checks, "accept_passive_service_checks");
   SETTER(int, additional_freshness_latency, "additional_freshness_latency");
-  SETTER(std::string const&, admin_email, "admin_email");
-  SETTER(std::string const&, admin_pager, "admin_pager");
-  SETTER(std::string const&, _set_aggregate_status_updates,
+  SETTER(const std::string&, admin_email, "admin_email");
+  SETTER(const std::string&, admin_pager, "admin_pager");
+  SETTER(const std::string&, _set_aggregate_status_updates,
          "aggregate_status_updates");
   SETTER(bool, allow_empty_hostgroup_assignment,
          "allow_empty_hostgroup_assignment");
-  SETTER(std::string const&, _set_auth_file, "auth_file");
+  SETTER(const std::string&, _set_auth_file, "auth_file");
   SETTER(bool, auto_reschedule_checks, "auto_reschedule_checks");
   SETTER(unsigned int, auto_rescheduling_interval,
          "auto_rescheduling_interval");
   SETTER(unsigned int, auto_rescheduling_window, "auto_rescheduling_window");
-  SETTER(std::string const&, _set_bare_update_check, "bare_update_check");
-  SETTER(std::string const&, broker_module_directory,
+  SETTER(const std::string&, _set_bare_update_check, "bare_update_check");
+  SETTER(const std::string&, broker_module_directory,
          "broker_module_directory");
-  SETTER(std::string const&, _set_broker_module, "broker_module");
+  SETTER(const std::string&, _set_broker_module, "broker_module");
   SETTER(unsigned long, cached_host_check_horizon, "cached_host_check_horizon");
   SETTER(unsigned long, cached_service_check_horizon,
          "cached_service_check_horizon");
-  SETTER(std::string const&, _set_cfg_dir, "cfg_dir");
-  SETTER(std::string const&, _set_cfg_file, "cfg_file");
+  SETTER(const std::string&, _set_cfg_dir, "cfg_dir");
+  SETTER(const std::string&, _set_cfg_file, "cfg_file");
   SETTER(bool, check_external_commands, "check_external_commands");
   SETTER(bool, check_orphaned_hosts, "check_for_orphaned_hosts");
   SETTER(bool, check_orphaned_services, "check_for_orphaned_services");
-  SETTER(std::string const&, _set_check_for_updates, "check_for_updates");
+  SETTER(const std::string&, _set_check_for_updates, "check_for_updates");
   SETTER(bool, check_host_freshness, "check_host_freshness");
   SETTER(unsigned int, check_reaper_interval, "check_result_reaper_frequency");
   SETTER(bool, check_service_freshness, "check_service_freshness");
-  SETTER(std::string const&, _set_child_processes_fork_twice,
+  SETTER(const std::string&, _set_child_processes_fork_twice,
          "child_processes_fork_twice");
-  SETTER(std::string const&, _set_command_check_interval,
+  SETTER(const std::string&, _set_command_check_interval,
          "command_check_interval");
-  SETTER(std::string const&, command_file, "command_file");
-  SETTER(std::string const&, _set_comment_file, "comment_file");
-  SETTER(std::string const&, _set_daemon_dumps_core, "daemon_dumps_core");
-  SETTER(std::string const&, _set_date_format, "date_format");
-  SETTER(std::string const&, debug_file, "debug_file");
+  SETTER(const std::string&, command_file, "command_file");
+  SETTER(const std::string&, _set_comment_file, "comment_file");
+  SETTER(const std::string&, _set_daemon_dumps_core, "daemon_dumps_core");
+  SETTER(const std::string&, _set_date_format, "date_format");
+  SETTER(const std::string&, debug_file, "debug_file");
   SETTER(int64_t, debug_level, "debug_level");
   SETTER(unsigned int, debug_verbosity, "debug_verbosity");
-  SETTER(std::string const&, _set_downtime_file, "downtime_file");
-  SETTER(std::string const&, _set_enable_embedded_perl, "enable_embedded_perl");
+  SETTER(const std::string&, _set_downtime_file, "downtime_file");
+  SETTER(const std::string&, _set_enable_embedded_perl, "enable_embedded_perl");
   SETTER(bool, enable_environment_macros, "enable_environment_macros");
   SETTER(bool, enable_event_handlers, "enable_event_handlers");
-  SETTER(std::string const&, _set_enable_failure_prediction,
+  SETTER(const std::string&, _set_enable_failure_prediction,
          "enable_failure_prediction");
   SETTER(bool, enable_flap_detection, "enable_flap_detection");
   SETTER(bool, enable_macros_filter, "enable_macros_filter");
@@ -176,80 +186,80 @@ void state::_init_setter() {
          "enable_predictive_host_dependency_checks");
   SETTER(bool, enable_predictive_service_dependency_checks,
          "enable_predictive_service_dependency_checks");
-  SETTER(std::string const&, _set_event_broker_options, "event_broker_options");
+  SETTER(const std::string&, _set_event_broker_options, "event_broker_options");
   SETTER(unsigned int, event_handler_timeout, "event_handler_timeout");
   SETTER(bool, execute_host_checks, "execute_host_checks");
   SETTER(bool, execute_service_checks, "execute_service_checks");
   SETTER(int, external_command_buffer_slots, "external_command_buffer_slots");
-  SETTER(std::string const&, _set_free_child_process_memory,
+  SETTER(const std::string&, _set_free_child_process_memory,
          "free_child_process_memory");
-  SETTER(std::string const&, global_host_event_handler,
+  SETTER(const std::string&, global_host_event_handler,
          "global_host_event_handler");
-  SETTER(std::string const&, global_service_event_handler,
+  SETTER(const std::string&, global_service_event_handler,
          "global_service_event_handler");
   SETTER(float, high_host_flap_threshold, "high_host_flap_threshold");
   SETTER(float, high_service_flap_threshold, "high_service_flap_threshold");
   SETTER(unsigned int, host_check_timeout, "host_check_timeout");
   SETTER(unsigned int, host_freshness_check_interval,
          "host_freshness_check_interval");
-  SETTER(std::string const&, _set_host_inter_check_delay_method,
+  SETTER(const std::string&, _set_host_inter_check_delay_method,
          "host_inter_check_delay_method");
-  SETTER(std::string const&, host_perfdata_command, "host_perfdata_command");
-  SETTER(std::string const&, host_perfdata_file, "host_perfdata_file");
-  SETTER(std::string const&, _set_host_perfdata_file_mode,
+  SETTER(const std::string&, host_perfdata_command, "host_perfdata_command");
+  SETTER(const std::string&, host_perfdata_file, "host_perfdata_file");
+  SETTER(const std::string&, _set_host_perfdata_file_mode,
          "host_perfdata_file_mode");
-  SETTER(std::string const&, host_perfdata_file_processing_command,
+  SETTER(const std::string&, host_perfdata_file_processing_command,
          "host_perfdata_file_processing_command");
   SETTER(unsigned int, host_perfdata_file_processing_interval,
          "host_perfdata_file_processing_interval");
-  SETTER(std::string const&, host_perfdata_file_template,
+  SETTER(const std::string&, host_perfdata_file_template,
          "host_perfdata_file_template");
-  SETTER(std::string const&, illegal_output_chars,
+  SETTER(const std::string&, illegal_output_chars,
          "illegal_macro_output_chars");
-  SETTER(std::string const&, illegal_object_chars, "illegal_object_name_chars");
+  SETTER(const std::string&, illegal_object_chars, "illegal_object_name_chars");
   SETTER(unsigned int, interval_length, "interval_length");
-  SETTER(std::string const&, _set_lock_file, "lock_file");
-  SETTER(std::string const&, _set_log_archive_path, "log_archive_path");
+  SETTER(const std::string&, _set_lock_file, "lock_file");
+  SETTER(const std::string&, _set_log_archive_path, "log_archive_path");
   SETTER(bool, log_event_handlers, "log_event_handlers");
   SETTER(bool, log_external_commands, "log_external_commands");
-  SETTER(std::string const&, log_file, "log_file");
+  SETTER(const std::string&, log_file, "log_file");
   SETTER(bool, log_host_retries, "log_host_retries");
-  SETTER(std::string const&, _set_log_initial_states, "log_initial_states");
+  SETTER(const std::string&, _set_log_initial_states, "log_initial_states");
   SETTER(bool, log_notifications, "log_notifications");
   SETTER(bool, log_passive_checks, "log_passive_checks");
   SETTER(bool, log_pid, "log_pid");
   SETTER(bool, log_file_line, "log_file_line");
-  SETTER(std::string const&, _set_log_rotation_method, "log_rotation_method");
+  SETTER(const std::string&, _set_log_rotation_method, "log_rotation_method");
   SETTER(bool, log_service_retries, "log_service_retries");
   SETTER(float, low_host_flap_threshold, "low_host_flap_threshold");
   SETTER(float, low_service_flap_threshold, "low_service_flap_threshold");
-  SETTER(std::string const&, macros_filter, "macros_filter");
+  SETTER(const std::string&, macros_filter, "macros_filter");
   SETTER(unsigned int, max_parallel_service_checks, "max_concurrent_checks");
   SETTER(unsigned long, max_debug_file_size, "max_debug_file_size");
   SETTER(unsigned int, max_host_check_spread, "max_host_check_spread");
   SETTER(unsigned long, max_log_file_size, "max_log_file_size");
   SETTER(uint32_t, log_flush_period, "log_flush_period");
   SETTER(unsigned int, max_service_check_spread, "max_service_check_spread");
-  SETTER(std::string const&, _set_nagios_group, "nagios_group");
-  SETTER(std::string const&, _set_nagios_user, "nagios_user");
+  SETTER(const std::string&, _set_nagios_group, "nagios_group");
+  SETTER(const std::string&, _set_nagios_user, "nagios_user");
   SETTER(unsigned int, notification_timeout, "notification_timeout");
-  SETTER(std::string const&, _set_object_cache_file, "object_cache_file");
+  SETTER(const std::string&, _set_object_cache_file, "object_cache_file");
   SETTER(bool, obsess_over_hosts, "obsess_over_hosts");
   SETTER(bool, obsess_over_services, "obsess_over_services");
-  SETTER(std::string const&, ochp_command, "ochp_command");
+  SETTER(const std::string&, ochp_command, "ochp_command");
   SETTER(unsigned int, ochp_timeout, "ochp_timeout");
-  SETTER(std::string const&, ocsp_command, "ocsp_command");
+  SETTER(const std::string&, ocsp_command, "ocsp_command");
   SETTER(unsigned int, ocsp_timeout, "ocsp_timeout");
-  SETTER(std::string const&, _set_p1_file, "p1_file");
+  SETTER(const std::string&, _set_p1_file, "p1_file");
   SETTER(int, perfdata_timeout, "perfdata_timeout");
-  SETTER(std::string const&, poller_name, "poller_name");
+  SETTER(const std::string&, poller_name, "poller_name");
   SETTER(uint32_t, poller_id, "poller_id");
   SETTER(uint16_t, rpc_port, "rpc_port");
   SETTER(const std::string&, rpc_listen_address, "rpc_listen_address");
-  SETTER(std::string const&, _set_precached_object_file,
+  SETTER(const std::string&, _set_precached_object_file,
          "precached_object_file");
   SETTER(bool, process_performance_data, "process_performance_data");
-  SETTER(std::string const&, _set_resource_file, "resource_file");
+  SETTER(const std::string&, _set_resource_file, "resource_file");
   SETTER(unsigned long, retained_contact_host_attribute_mask,
          "retained_contact_host_attribute_mask");
   SETTER(unsigned long, retained_contact_service_attribute_mask,
@@ -258,9 +268,9 @@ void state::_init_setter() {
          "retained_host_attribute_mask");
   SETTER(unsigned long, retained_process_host_attribute_mask,
          "retained_process_host_attribute_mask");
-  SETTER(std::string const&, _set_retained_process_service_attribute_mask,
+  SETTER(const std::string&, _set_retained_process_service_attribute_mask,
          "retained_process_service_attribute_mask");
-  SETTER(std::string const&, _set_retained_service_attribute_mask,
+  SETTER(const std::string&, _set_retained_service_attribute_mask,
          "retained_service_attribute_mask");
   SETTER(bool, retain_state_information, "retain_state_information");
   SETTER(unsigned int, retention_scheduling_horizon,
@@ -269,33 +279,33 @@ void state::_init_setter() {
   SETTER(unsigned int, service_check_timeout, "service_check_timeout");
   SETTER(unsigned int, service_freshness_check_interval,
          "service_freshness_check_interval");
-  SETTER(std::string const&, _set_service_inter_check_delay_method,
+  SETTER(const std::string&, _set_service_inter_check_delay_method,
          "service_inter_check_delay_method");
-  SETTER(std::string const&, _set_service_interleave_factor_method,
+  SETTER(const std::string&, _set_service_interleave_factor_method,
          "service_interleave_factor");
-  SETTER(std::string const&, service_perfdata_command,
+  SETTER(const std::string&, service_perfdata_command,
          "service_perfdata_command");
-  SETTER(std::string const&, service_perfdata_file, "service_perfdata_file");
-  SETTER(std::string const&, _set_service_perfdata_file_mode,
+  SETTER(const std::string&, service_perfdata_file, "service_perfdata_file");
+  SETTER(const std::string&, _set_service_perfdata_file_mode,
          "service_perfdata_file_mode");
-  SETTER(std::string const&, service_perfdata_file_processing_command,
+  SETTER(const std::string&, service_perfdata_file_processing_command,
          "service_perfdata_file_processing_command");
   SETTER(unsigned int, service_perfdata_file_processing_interval,
          "service_perfdata_file_processing_interval");
-  SETTER(std::string const&, service_perfdata_file_template,
+  SETTER(const std::string&, service_perfdata_file_template,
          "service_perfdata_file_template");
   SETTER(unsigned int, check_reaper_interval, "service_reaper_frequency");
   SETTER(float, sleep_time, "sleep_time");
   SETTER(bool, soft_state_dependencies, "soft_state_dependencies");
-  SETTER(std::string const&, state_retention_file, "state_retention_file");
-  SETTER(std::string const&, status_file, "status_file");
+  SETTER(const std::string&, state_retention_file, "state_retention_file");
+  SETTER(const std::string&, status_file, "status_file");
   SETTER(unsigned int, status_update_interval, "status_update_interval");
-  SETTER(std::string const&, _set_temp_file, "temp_file");
-  SETTER(std::string const&, _set_temp_path, "temp_path");
+  SETTER(const std::string&, _set_temp_file, "temp_file");
+  SETTER(const std::string&, _set_temp_path, "temp_path");
   SETTER(unsigned int, time_change_threshold, "time_change_threshold");
   SETTER(bool, use_aggressive_host_checking, "use_aggressive_host_checking");
   SETTER(bool, use_aggressive_host_checking, "use_agressive_host_checking");
-  SETTER(std::string const&, _set_use_embedded_perl_implicitly,
+  SETTER(const std::string&, _set_use_embedded_perl_implicitly,
          "use_embedded_perl_implicitly");
   SETTER(bool, use_large_installation_tweaks, "use_large_installation_tweaks");
   SETTER(uint32_t, instance_heartbeat_interval, "instance_heartbeat_interval");
@@ -306,27 +316,27 @@ void state::_init_setter() {
   SETTER(bool, use_syslog, "use_syslog");
   SETTER(bool, log_v2_enabled, "log_v2_enabled");
   SETTER(bool, log_legacy_enabled, "log_legacy_enabled");
-  SETTER(std::string const&, log_v2_logger, "log_v2_logger");
-  SETTER(std::string const&, log_level_functions, "log_level_functions");
-  SETTER(std::string const&, log_level_config, "log_level_config");
-  SETTER(std::string const&, log_level_events, "log_level_events");
-  SETTER(std::string const&, log_level_checks, "log_level_checks");
-  SETTER(std::string const&, log_level_notifications,
+  SETTER(const std::string&, log_v2_logger, "log_v2_logger");
+  SETTER(const std::string&, log_level_functions, "log_level_functions");
+  SETTER(const std::string&, log_level_config, "log_level_config");
+  SETTER(const std::string&, log_level_events, "log_level_events");
+  SETTER(const std::string&, log_level_checks, "log_level_checks");
+  SETTER(const std::string&, log_level_notifications,
          "log_level_notifications");
-  SETTER(std::string const&, log_level_eventbroker, "log_level_eventbroker");
-  SETTER(std::string const&, log_level_external_command,
+  SETTER(const std::string&, log_level_eventbroker, "log_level_eventbroker");
+  SETTER(const std::string&, log_level_external_command,
          "log_level_external_command");
-  SETTER(std::string const&, log_level_commands, "log_level_commands");
-  SETTER(std::string const&, log_level_downtimes, "log_level_downtimes");
-  SETTER(std::string const&, log_level_comments, "log_level_comments");
-  SETTER(std::string const&, log_level_macros, "log_level_macros");
-  SETTER(std::string const&, log_level_process, "log_level_process");
-  SETTER(std::string const&, log_level_runtime, "log_level_runtime");
-  SETTER(std::string const&, log_level_otl, "log_level_otl");
-  SETTER(std::string const&, use_timezone, "use_timezone");
+  SETTER(const std::string&, log_level_commands, "log_level_commands");
+  SETTER(const std::string&, log_level_downtimes, "log_level_downtimes");
+  SETTER(const std::string&, log_level_comments, "log_level_comments");
+  SETTER(const std::string&, log_level_macros, "log_level_macros");
+  SETTER(const std::string&, log_level_process, "log_level_process");
+  SETTER(const std::string&, log_level_runtime, "log_level_runtime");
+  SETTER(const std::string&, log_level_otl, "log_level_otl");
+  SETTER(const std::string&, use_timezone, "use_timezone");
   SETTER(bool, use_true_regexp_matching, "use_true_regexp_matching");
-  SETTER(std::string const&, _set_comment_file, "xcddefault_comment_file");
-  SETTER(std::string const&, _set_downtime_file, "xdddefault_downtime_file");
+  SETTER(const std::string&, _set_comment_file, "xcddefault_comment_file");
+  SETTER(const std::string&, _set_downtime_file, "xdddefault_downtime_file");
   SETTER(bool, use_send_recovery_notifications_anyways,
          "send_recovery_notifications_anyways");
 }
@@ -470,7 +480,8 @@ static const std::string default_rpc_listen_address("localhost");
  *  Default constructor.
  */
 state::state()
-    : _accept_passive_host_checks(default_accept_passive_host_checks),
+    : _logger{log_v2::instance().get(log_v2::CONFIG)},
+      _accept_passive_host_checks(default_accept_passive_host_checks),
       _accept_passive_service_checks(default_accept_passive_service_checks),
       _additional_freshness_latency(default_additional_freshness_latency),
       _admin_email(default_admin_email),
@@ -621,11 +632,6 @@ state::state(state const& right) {
 }
 
 /**
- *  Destructor.
- */
-state::~state() noexcept {}
-
-/**
  *  Copy operator.
  *
  *  @param[in] right The object to copy.
@@ -634,6 +640,7 @@ state::~state() noexcept {}
  */
 state& state::operator=(state const& right) {
   if (this != &right) {
+    _logger = right._logger;
     _cfg_main = right._cfg_main;
     _accept_passive_host_checks = right._accept_passive_host_checks;
     _accept_passive_service_checks = right._accept_passive_service_checks;
@@ -1032,7 +1039,7 @@ void state::additional_freshness_latency(int value) {
  *
  *  @return The admin_email value.
  */
-std::string const& state::admin_email() const noexcept {
+const std::string& state::admin_email() const noexcept {
   return _admin_email;
 }
 
@@ -1041,7 +1048,7 @@ std::string const& state::admin_email() const noexcept {
  *
  *  @param[in] value The new admin_email value.
  */
-void state::admin_email(std::string const& value) {
+void state::admin_email(const std::string& value) {
   _admin_email = value;
 }
 
@@ -1050,7 +1057,7 @@ void state::admin_email(std::string const& value) {
  *
  *  @return The admin_pager value.
  */
-std::string const& state::admin_pager() const noexcept {
+const std::string& state::admin_pager() const noexcept {
   return _admin_pager;
 }
 
@@ -1059,7 +1066,7 @@ std::string const& state::admin_pager() const noexcept {
  *
  *  @param[in] value The new admin_pager value.
  */
-void state::admin_pager(std::string const& value) {
+void state::admin_pager(const std::string& value) {
   _admin_pager = value;
 }
 
@@ -1162,7 +1169,7 @@ void state::broker_module(std::list<std::string> const& value) {
  *
  *  @return The broker_module_directory value.
  */
-std::string const& state::broker_module_directory() const noexcept {
+const std::string& state::broker_module_directory() const noexcept {
   return _broker_module_directory;
 }
 
@@ -1171,7 +1178,7 @@ std::string const& state::broker_module_directory() const noexcept {
  *
  *  @param[in] value The new broker_module_directory value.
  */
-void state::broker_module_directory(std::string const& value) {
+void state::broker_module_directory(const std::string& value) {
   if (value.empty() || value[0] == '/')
     _broker_module_directory = value;
   else {
@@ -1249,7 +1256,7 @@ bool state::check_external_commands() const noexcept {
  *
  *  @param[in] value The new cfg_main value.
  */
-void state::cfg_main(std::string const& value) {
+void state::cfg_main(const std::string& value) {
   _cfg_main = value;
 }
 
@@ -1258,7 +1265,7 @@ void state::cfg_main(std::string const& value) {
  *
  *  @return The cfg_main value.
  */
-std::string const& state::cfg_main() const noexcept {
+const std::string& state::cfg_main() const noexcept {
   return _cfg_main;
 }
 
@@ -1506,7 +1513,7 @@ bool state::command_check_interval_is_seconds() const noexcept {
  *
  *  @return The command_file value.
  */
-std::string const& state::command_file() const noexcept {
+const std::string& state::command_file() const noexcept {
   return _command_file;
 }
 
@@ -1515,7 +1522,7 @@ std::string const& state::command_file() const noexcept {
  *
  *  @param[in] value The new command_file value.
  */
-void state::command_file(std::string const& value) {
+void state::command_file(const std::string& value) {
   _command_file = value;
 }
 
@@ -1709,7 +1716,7 @@ void state::date_format(date_type value) {
  *
  *  @return The debug_file value.
  */
-std::string const& state::debug_file() const noexcept {
+const std::string& state::debug_file() const noexcept {
   return _debug_file;
 }
 
@@ -1718,7 +1725,7 @@ std::string const& state::debug_file() const noexcept {
  *
  *  @param[in] value The new debug_file value.
  */
-void state::debug_file(std::string const& value) {
+void state::debug_file(const std::string& value) {
   _debug_file = value;
 }
 
@@ -1970,7 +1977,7 @@ void state::external_command_buffer_slots(int value) {
  *
  *  @return The global_host_event_handler value.
  */
-std::string const& state::global_host_event_handler() const noexcept {
+const std::string& state::global_host_event_handler() const noexcept {
   return _global_host_event_handler;
 }
 
@@ -1979,7 +1986,7 @@ std::string const& state::global_host_event_handler() const noexcept {
  *
  *  @param[in] value The new global_host_event_handler value.
  */
-void state::global_host_event_handler(std::string const& value) {
+void state::global_host_event_handler(const std::string& value) {
   _global_host_event_handler = value;
 }
 
@@ -1988,7 +1995,7 @@ void state::global_host_event_handler(std::string const& value) {
  *
  *  @return The global_service_event_handler value.
  */
-std::string const& state::global_service_event_handler() const noexcept {
+const std::string& state::global_service_event_handler() const noexcept {
   return _global_service_event_handler;
 }
 
@@ -1997,7 +2004,7 @@ std::string const& state::global_service_event_handler() const noexcept {
  *
  *  @param[in] value The new global_service_event_handler value.
  */
-void state::global_service_event_handler(std::string const& value) {
+void state::global_service_event_handler(const std::string& value) {
   _global_service_event_handler = value;
 }
 
@@ -2169,7 +2176,7 @@ set_host::const_iterator state::hosts_find(host::key_type const& k) const {
   return _hosts.end();
 }
 
-set_host::const_iterator state::hosts_find(std::string const& name) const {
+set_host::const_iterator state::hosts_find(const std::string& name) const {
   for (set_host::const_iterator it(_hosts.begin()), end(_hosts.end());
        it != end; ++it) {
     if (it->host_name() == name)
@@ -2256,7 +2263,7 @@ void state::host_inter_check_delay_method(inter_check_delay value) {
  *
  *  @return The host_perfdata_command value.
  */
-std::string const& state::host_perfdata_command() const noexcept {
+const std::string& state::host_perfdata_command() const noexcept {
   return _host_perfdata_command;
 }
 
@@ -2265,7 +2272,7 @@ std::string const& state::host_perfdata_command() const noexcept {
  *
  *  @param[in] value The new host_perfdata_command value.
  */
-void state::host_perfdata_command(std::string const& value) {
+void state::host_perfdata_command(const std::string& value) {
   _host_perfdata_command = value;
 }
 
@@ -2274,7 +2281,7 @@ void state::host_perfdata_command(std::string const& value) {
  *
  *  @return The host_perfdata_file value.
  */
-std::string const& state::host_perfdata_file() const noexcept {
+const std::string& state::host_perfdata_file() const noexcept {
   return _host_perfdata_file;
 }
 
@@ -2283,7 +2290,7 @@ std::string const& state::host_perfdata_file() const noexcept {
  *
  *  @param[in] value The new host_perfdata_file value.
  */
-void state::host_perfdata_file(std::string const& value) {
+void state::host_perfdata_file(const std::string& value) {
   _host_perfdata_file = value;
 }
 
@@ -2310,7 +2317,7 @@ void state::host_perfdata_file_mode(perfdata_file_mode value) {
  *
  *  @return The host_perfdata_file_processing_command value.
  */
-std::string const& state::host_perfdata_file_processing_command()
+const std::string& state::host_perfdata_file_processing_command()
     const noexcept {
   return _host_perfdata_file_processing_command;
 }
@@ -2320,7 +2327,7 @@ std::string const& state::host_perfdata_file_processing_command()
  *
  *  @param[in] value The new host_perfdata_file_processing_command value.
  */
-void state::host_perfdata_file_processing_command(std::string const& value) {
+void state::host_perfdata_file_processing_command(const std::string& value) {
   _host_perfdata_file_processing_command = value;
 }
 
@@ -2347,7 +2354,7 @@ void state::host_perfdata_file_processing_interval(unsigned int value) {
  *
  *  @return The host_perfdata_file_template value.
  */
-std::string const& state::host_perfdata_file_template() const noexcept {
+const std::string& state::host_perfdata_file_template() const noexcept {
   return _host_perfdata_file_template;
 }
 
@@ -2356,7 +2363,7 @@ std::string const& state::host_perfdata_file_template() const noexcept {
  *
  *  @param[in] value The new host_perfdata_file_template value.
  */
-void state::host_perfdata_file_template(std::string const& value) {
+void state::host_perfdata_file_template(const std::string& value) {
   _host_perfdata_file_template = value;
 }
 
@@ -2365,7 +2372,7 @@ void state::host_perfdata_file_template(std::string const& value) {
  *
  *  @return The illegal_object_chars value.
  */
-std::string const& state::illegal_object_chars() const noexcept {
+const std::string& state::illegal_object_chars() const noexcept {
   return _illegal_object_chars;
 }
 
@@ -2374,7 +2381,7 @@ std::string const& state::illegal_object_chars() const noexcept {
  *
  *  @param[in] value The new illegal_object_chars value.
  */
-void state::illegal_object_chars(std::string const& value) {
+void state::illegal_object_chars(const std::string& value) {
   _illegal_object_chars = value;
 }
 
@@ -2383,7 +2390,7 @@ void state::illegal_object_chars(std::string const& value) {
  *
  *  @return The illegal_output_chars value.
  */
-std::string const& state::illegal_output_chars() const noexcept {
+const std::string& state::illegal_output_chars() const noexcept {
   return _illegal_output_chars;
 }
 
@@ -2392,7 +2399,7 @@ std::string const& state::illegal_output_chars() const noexcept {
  *
  *  @param[in] value The new illegal_output_chars value.
  */
-void state::illegal_output_chars(std::string const& value) {
+void state::illegal_output_chars(const std::string& value) {
   _illegal_output_chars = value;
 }
 
@@ -2463,7 +2470,7 @@ void state::log_external_commands(bool value) {
  *
  *  @return The log_file value.
  */
-std::string const& state::log_file() const noexcept {
+const std::string& state::log_file() const noexcept {
   return _log_file;
 }
 
@@ -2472,7 +2479,7 @@ std::string const& state::log_file() const noexcept {
  *
  *  @param[in] value The new log_file value.
  */
-void state::log_file(std::string const& value) {
+void state::log_file(const std::string& value) {
   _log_file = value;
 }
 
@@ -2790,7 +2797,7 @@ void state::obsess_over_services(bool value) {
  *
  *  @return The ochp_command value.
  */
-std::string const& state::ochp_command() const noexcept {
+const std::string& state::ochp_command() const noexcept {
   return _ochp_command;
 }
 
@@ -2799,7 +2806,7 @@ std::string const& state::ochp_command() const noexcept {
  *
  *  @param[in] value The new ochp_command value.
  */
-void state::ochp_command(std::string const& value) {
+void state::ochp_command(const std::string& value) {
   _ochp_command = value;
 }
 
@@ -2828,7 +2835,7 @@ void state::ochp_timeout(unsigned int value) {
  *
  *  @return The ocsp_command value.
  */
-std::string const& state::ocsp_command() const noexcept {
+const std::string& state::ocsp_command() const noexcept {
   return _ocsp_command;
 }
 
@@ -2837,7 +2844,7 @@ std::string const& state::ocsp_command() const noexcept {
  *
  *  @param[in] value The new ocsp_command value.
  */
-void state::ocsp_command(std::string const& value) {
+void state::ocsp_command(const std::string& value) {
   _ocsp_command = value;
 }
 
@@ -2884,7 +2891,7 @@ void state::perfdata_timeout(int value) {
  *
  *  @return The poller_name value.
  */
-std::string const& state::poller_name() const noexcept {
+const std::string& state::poller_name() const noexcept {
   return _poller_name;
 }
 
@@ -2893,7 +2900,7 @@ std::string const& state::poller_name() const noexcept {
  *
  *  @param[in] value The new poller_name value.
  */
-void state::poller_name(std::string const& value) {
+void state::poller_name(const std::string& value) {
   _poller_name = value;
 }
 
@@ -3329,8 +3336,8 @@ set_service::iterator state::services_find(service::key_type const& k) {
 }
 
 set_service::const_iterator state::services_find(
-    std::string const& host_name,
-    std::string const& service_desc) const {
+    const std::string& host_name,
+    const std::string& service_desc) const {
   for (auto it = _services.begin(), end = _services.end(); it != end; ++it) {
     if (it->service_description() == service_desc &&
         *it->hosts().begin() == host_name)
@@ -3422,7 +3429,7 @@ void state::service_interleave_factor_method(interleave_factor value) {
  *
  *  @return The service_perfdata_command value.
  */
-std::string const& state::service_perfdata_command() const noexcept {
+const std::string& state::service_perfdata_command() const noexcept {
   return _service_perfdata_command;
 }
 
@@ -3431,7 +3438,7 @@ std::string const& state::service_perfdata_command() const noexcept {
  *
  *  @param[in] value The new service_perfdata_command value.
  */
-void state::service_perfdata_command(std::string const& value) {
+void state::service_perfdata_command(const std::string& value) {
   _service_perfdata_command = value;
 }
 
@@ -3440,7 +3447,7 @@ void state::service_perfdata_command(std::string const& value) {
  *
  *  @return The service_perfdata_file value.
  */
-std::string const& state::service_perfdata_file() const noexcept {
+const std::string& state::service_perfdata_file() const noexcept {
   return _service_perfdata_file;
 }
 
@@ -3449,7 +3456,7 @@ std::string const& state::service_perfdata_file() const noexcept {
  *
  *  @param[in] value The new service_perfdata_file value.
  */
-void state::service_perfdata_file(std::string const& value) {
+void state::service_perfdata_file(const std::string& value) {
   _service_perfdata_file = value;
 }
 
@@ -3476,7 +3483,7 @@ void state::service_perfdata_file_mode(perfdata_file_mode value) {
  *
  *  @return The service_perfdata_file_processing_command value.
  */
-std::string const& state::service_perfdata_file_processing_command()
+const std::string& state::service_perfdata_file_processing_command()
     const noexcept {
   return _service_perfdata_file_processing_command;
 }
@@ -3486,7 +3493,7 @@ std::string const& state::service_perfdata_file_processing_command()
  *
  *  @param[in] value The new service_perfdata_file_processing_command value.
  */
-void state::service_perfdata_file_processing_command(std::string const& value) {
+void state::service_perfdata_file_processing_command(const std::string& value) {
   _service_perfdata_file_processing_command = value;
 }
 
@@ -3513,7 +3520,7 @@ void state::service_perfdata_file_processing_interval(unsigned int value) {
  *
  *  @return The service_perfdata_file_template value.
  */
-std::string const& state::service_perfdata_file_template() const noexcept {
+const std::string& state::service_perfdata_file_template() const noexcept {
   return _service_perfdata_file_template;
 }
 
@@ -3522,7 +3529,7 @@ std::string const& state::service_perfdata_file_template() const noexcept {
  *
  *  @param[in] value The new service_perfdata_file_template value.
  */
-void state::service_perfdata_file_template(std::string const& value) {
+void state::service_perfdata_file_template(const std::string& value) {
   _service_perfdata_file_template = value;
 }
 
@@ -3570,7 +3577,7 @@ void state::soft_state_dependencies(bool value) {
  *
  *  @return The state_retention_file value.
  */
-std::string const& state::state_retention_file() const noexcept {
+const std::string& state::state_retention_file() const noexcept {
   return _state_retention_file;
 }
 
@@ -3579,7 +3586,7 @@ std::string const& state::state_retention_file() const noexcept {
  *
  *  @param[in] value The new state_retention_file value.
  */
-void state::state_retention_file(std::string const& value) {
+void state::state_retention_file(const std::string& value) {
   if (value.empty() || value[0] == '/')
     _state_retention_file = value;
   else {
@@ -3594,7 +3601,7 @@ void state::state_retention_file(std::string const& value) {
  *
  *  @return The status_file value.
  */
-std::string const& state::status_file() const noexcept {
+const std::string& state::status_file() const noexcept {
   return _status_file;
 }
 
@@ -3603,7 +3610,7 @@ std::string const& state::status_file() const noexcept {
  *
  *  @param[in] value The new status_file value.
  */
-void state::status_file(std::string const& value) {
+void state::status_file(const std::string& value) {
   _status_file = value;
 }
 
@@ -3642,8 +3649,7 @@ bool state::set(char const* key, char const* value) {
     if (it != _setters.end())
       return (it->second)->apply_from_cfg(*this, value);
   } catch (std::exception const& e) {
-    engine_logger(log_config_error, basic) << e.what();
-    config_logger->error(e.what());
+    _logger->error(e.what());
     return false;
   }
   return true;
@@ -3751,7 +3757,7 @@ void state::user(std::unordered_map<std::string, std::string> const& value) {
  *  @param[in] key   The user key.
  *  @param[in] value The user value.
  */
-void state::user(std::string const& key, std::string const& value) {
+void state::user(const std::string& key, std::string const& value) {
   if (key.size() < 3 || key[0] != '$' || key[key.size() - 1] != '$')
     throw engine_error() << "Invalid user key '" << key << "'";
   std::string new_key = key;
@@ -3766,7 +3772,7 @@ void state::user(std::string const& key, std::string const& value) {
  *  @param[in] key   The user key.
  *  @param[in] value The user value.
  */
-void state::user(unsigned int key, std::string const& value) {
+void state::user(unsigned int key, const std::string& value) {
   _users[fmt::format("{}", key)] = value;
 }
 
@@ -3777,10 +3783,7 @@ void state::user(unsigned int key, std::string const& value) {
  *  @param[in] value The new use_aggressive_host_checking value.
  */
 void state::use_aggressive_host_checking(bool value __attribute__((unused))) {
-  engine_logger(log_verification_error, basic)
-      << "Warning: use_aggressive_host_checking is deprecated."
-         " This option is no more supported since version 21.04.";
-  config_logger->warn(
+  _logger->warn(
       "Warning: use_aggressive_host_checking is deprecated. This option is "
       "no "
       "more supported since version 21.04.");
@@ -3955,7 +3958,7 @@ void state::log_legacy_enabled(bool value) {
  *
  *  @return The log_v2_logger value.
  */
-std::string const& state::log_v2_logger() const noexcept {
+const std::string& state::log_v2_logger() const noexcept {
   return _log_v2_logger;
 }
 
@@ -3964,7 +3967,7 @@ std::string const& state::log_v2_logger() const noexcept {
  *
  *  @param[in] value The new log_v2_logger value.
  */
-void state::log_v2_logger(std::string const& value) {
+void state::log_v2_logger(const std::string& value) {
   if (value.empty())
     throw engine_error() << "log_v2_logger cannot be empty";
   _log_v2_logger = value;
@@ -3975,7 +3978,7 @@ void state::log_v2_logger(std::string const& value) {
  *
  *  @return The log_level_functions value.
  */
-std::string const& state::log_level_functions() const noexcept {
+const std::string& state::log_level_functions() const noexcept {
   return _log_level_functions;
 }
 
@@ -3984,7 +3987,7 @@ std::string const& state::log_level_functions() const noexcept {
  *
  *  @param[in] value The new log_level_functions value.
  */
-void state::log_level_functions(std::string const& value) {
+void state::log_level_functions(const std::string& value) {
   if (log_v2::instance().contains_level(value))
     _log_level_functions = value;
   else
@@ -3996,7 +3999,7 @@ void state::log_level_functions(std::string const& value) {
  *
  *  @return The log_level_config value.
  */
-std::string const& state::log_level_config() const noexcept {
+const std::string& state::log_level_config() const noexcept {
   return _log_level_config;
 }
 
@@ -4005,7 +4008,7 @@ std::string const& state::log_level_config() const noexcept {
  *
  *  @param[in] value The new log_level_config value.
  */
-void state::log_level_config(std::string const& value) {
+void state::log_level_config(const std::string& value) {
   if (log_v2::instance().contains_level(value))
     _log_level_config = value;
   else
@@ -4017,7 +4020,7 @@ void state::log_level_config(std::string const& value) {
  *
  *  @return The log_level_events value.
  */
-std::string const& state::log_level_events() const noexcept {
+const std::string& state::log_level_events() const noexcept {
   return _log_level_events;
 }
 
@@ -4026,7 +4029,7 @@ std::string const& state::log_level_events() const noexcept {
  *
  *  @param[in] value The new log_level_events value.
  */
-void state::log_level_events(std::string const& value) {
+void state::log_level_events(const std::string& value) {
   if (log_v2::instance().contains_level(value))
     _log_level_events = value;
   else
@@ -4038,7 +4041,7 @@ void state::log_level_events(std::string const& value) {
  *
  *  @return The log_level_checks value.
  */
-std::string const& state::log_level_checks() const noexcept {
+const std::string& state::log_level_checks() const noexcept {
   return _log_level_checks;
 }
 
@@ -4047,7 +4050,7 @@ std::string const& state::log_level_checks() const noexcept {
  *
  *  @param[in] value The new log_level_checks value.
  */
-void state::log_level_checks(std::string const& value) {
+void state::log_level_checks(const std::string& value) {
   if (log_v2::instance().contains_level(value))
     _log_level_checks = value;
   else
@@ -4059,7 +4062,7 @@ void state::log_level_checks(std::string const& value) {
  *
  *  @return The log_level_notifications value.
  */
-std::string const& state::log_level_notifications() const noexcept {
+const std::string& state::log_level_notifications() const noexcept {
   return _log_level_notifications;
 }
 
@@ -4068,7 +4071,7 @@ std::string const& state::log_level_notifications() const noexcept {
  *
  *  @param[in] value The new log_level_notifications value.
  */
-void state::log_level_notifications(std::string const& value) {
+void state::log_level_notifications(const std::string& value) {
   if (log_v2::instance().contains_level(value))
     _log_level_notifications = value;
   else
@@ -4081,7 +4084,7 @@ void state::log_level_notifications(std::string const& value) {
  *
  *  @return The log_level_eventbroker value.
  */
-std::string const& state::log_level_eventbroker() const noexcept {
+const std::string& state::log_level_eventbroker() const noexcept {
   return _log_level_eventbroker;
 }
 
@@ -4090,7 +4093,7 @@ std::string const& state::log_level_eventbroker() const noexcept {
  *
  *  @param[in] value The new log_level_eventbroker value.
  */
-void state::log_level_eventbroker(std::string const& value) {
+void state::log_level_eventbroker(const std::string& value) {
   if (log_v2::instance().contains_level(value))
     _log_level_eventbroker = value;
   else
@@ -4103,7 +4106,7 @@ void state::log_level_eventbroker(std::string const& value) {
  *
  *  @return The log_level_external_command value.
  */
-std::string const& state::log_level_external_command() const noexcept {
+const std::string& state::log_level_external_command() const noexcept {
   return _log_level_external_command;
 }
 
@@ -4112,7 +4115,7 @@ std::string const& state::log_level_external_command() const noexcept {
  *
  *  @param[in] value The new log_level_external_command value.
  */
-void state::log_level_external_command(std::string const& value) {
+void state::log_level_external_command(const std::string& value) {
   if (log_v2::instance().contains_level(value))
     _log_level_external_command = value;
   else
@@ -4125,7 +4128,7 @@ void state::log_level_external_command(std::string const& value) {
  *
  *  @return The log_level_commands value.
  */
-std::string const& state::log_level_commands() const noexcept {
+const std::string& state::log_level_commands() const noexcept {
   return _log_level_commands;
 }
 
@@ -4134,7 +4137,7 @@ std::string const& state::log_level_commands() const noexcept {
  *
  *  @param[in] value The new log_level_commands value.
  */
-void state::log_level_commands(std::string const& value) {
+void state::log_level_commands(const std::string& value) {
   if (log_v2::instance().contains_level(value))
     _log_level_commands = value;
   else
@@ -4146,7 +4149,7 @@ void state::log_level_commands(std::string const& value) {
  *
  *  @return The log_level_downtimes value.
  */
-std::string const& state::log_level_downtimes() const noexcept {
+const std::string& state::log_level_downtimes() const noexcept {
   return _log_level_downtimes;
 }
 
@@ -4155,7 +4158,7 @@ std::string const& state::log_level_downtimes() const noexcept {
  *
  *  @param[in] value The new log_level_downtimes value.
  */
-void state::log_level_downtimes(std::string const& value) {
+void state::log_level_downtimes(const std::string& value) {
   if (log_v2::instance().contains_level(value))
     _log_level_downtimes = value;
   else
@@ -4167,7 +4170,7 @@ void state::log_level_downtimes(std::string const& value) {
  *
  *  @return The log_level_comments value.
  */
-std::string const& state::log_level_comments() const noexcept {
+const std::string& state::log_level_comments() const noexcept {
   return _log_level_comments;
 }
 
@@ -4176,7 +4179,7 @@ std::string const& state::log_level_comments() const noexcept {
  *
  *  @param[in] value The new log_level_comments value.
  */
-void state::log_level_comments(std::string const& value) {
+void state::log_level_comments(const std::string& value) {
   if (log_v2::instance().contains_level(value))
     _log_level_comments = value;
   else
@@ -4188,7 +4191,7 @@ void state::log_level_comments(std::string const& value) {
  *
  *  @return The log_level_macros value.
  */
-std::string const& state::log_level_macros() const noexcept {
+const std::string& state::log_level_macros() const noexcept {
   return _log_level_macros;
 }
 
@@ -4197,7 +4200,7 @@ std::string const& state::log_level_macros() const noexcept {
  *
  *  @param[in] value The new log_level_macros value.
  */
-void state::log_level_macros(std::string const& value) {
+void state::log_level_macros(const std::string& value) {
   if (log_v2::instance().contains_level(value))
     _log_level_macros = value;
   else
@@ -4209,7 +4212,7 @@ void state::log_level_macros(std::string const& value) {
  *
  *  @return The log_level_process value.
  */
-std::string const& state::log_level_process() const noexcept {
+const std::string& state::log_level_process() const noexcept {
   return _log_level_process;
 }
 
@@ -4218,7 +4221,7 @@ std::string const& state::log_level_process() const noexcept {
  *
  *  @param[in] value The new log_level_process value.
  */
-void state::log_level_process(std::string const& value) {
+void state::log_level_process(const std::string& value) {
   if (log_v2::instance().contains_level(value))
     _log_level_process = value;
   else
@@ -4230,7 +4233,7 @@ void state::log_level_process(std::string const& value) {
  *
  *  @return The log_level_runtime value.
  */
-std::string const& state::log_level_runtime() const noexcept {
+const std::string& state::log_level_runtime() const noexcept {
   return _log_level_runtime;
 }
 
@@ -4239,7 +4242,7 @@ std::string const& state::log_level_runtime() const noexcept {
  *
  *  @param[in] value The new log_level_runtime value.
  */
-void state::log_level_runtime(std::string const& value) {
+void state::log_level_runtime(const std::string& value) {
   if (log_v2::instance().contains_level(value))
     _log_level_runtime = value;
   else
@@ -4251,7 +4254,7 @@ void state::log_level_runtime(std::string const& value) {
  *
  *  @return The log_level_otl value.
  */
-std::string const& state::log_level_otl() const noexcept {
+const std::string& state::log_level_otl() const noexcept {
   return _log_level_otl;
 }
 
@@ -4260,7 +4263,7 @@ std::string const& state::log_level_otl() const noexcept {
  *
  *  @param[in] value The new log_level_otl value.
  */
-void state::log_level_otl(std::string const& value) {
+void state::log_level_otl(const std::string& value) {
   if (log_v2::instance().contains_level(value))
     _log_level_otl = value;
   else
@@ -4272,7 +4275,7 @@ void state::log_level_otl(std::string const& value) {
  *
  *  @return The use_timezone value.
  */
-std::string const& state::use_timezone() const noexcept {
+const std::string& state::use_timezone() const noexcept {
   return _use_timezone;
 }
 
@@ -4281,7 +4284,7 @@ std::string const& state::use_timezone() const noexcept {
  *
  *  @param[in] value The new use_timezone value.
  */
-void state::use_timezone(std::string const& value) {
+void state::use_timezone(const std::string& value) {
   _use_timezone = value;
 }
 
@@ -4308,11 +4311,9 @@ void state::use_true_regexp_matching(bool value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_aggregate_status_updates(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: aggregate_status_updates variable ignored";
-  config_logger->warn("Warning: aggregate_status_updates variable ignored");
+void state::_set_aggregate_status_updates(const std::string& value
+                                          [[maybe_unused]]) {
+  _logger->warn("Warning: aggregate_status_updates variable ignored");
   ++config_warnings;
 }
 
@@ -4321,11 +4322,8 @@ void state::_set_aggregate_status_updates(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_auth_file(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: auth_file variable ignored";
-  config_logger->warn("Warning: auth_file variable ignored");
+void state::_set_auth_file(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: auth_file variable ignored");
   ++config_warnings;
 }
 
@@ -4334,11 +4332,8 @@ void state::_set_auth_file(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_bare_update_check(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: bare_update_check variable ignored";
-  config_logger->warn("Warning: bare_update_check variable ignored");
+void state::_set_bare_update_check(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: bare_update_check variable ignored");
   ++config_warnings;
 }
 
@@ -4347,7 +4342,7 @@ void state::_set_bare_update_check(std::string const& value) {
  *
  *  @param[in] value The new broker module.
  */
-void state::_set_broker_module(std::string const& value) {
+void state::_set_broker_module(const std::string& value) {
   _broker_module.push_back(value);
 }
 
@@ -4356,7 +4351,7 @@ void state::_set_broker_module(std::string const& value) {
  *
  *  @param[in] value The new configuration directory.
  */
-void state::_set_cfg_dir(std::string const& value) {
+void state::_set_cfg_dir(const std::string& value) {
   if (value.empty() || value[0] == '/')
     _cfg_dir.push_back(value);
   else {
@@ -4371,7 +4366,7 @@ void state::_set_cfg_dir(std::string const& value) {
  *
  *  @param[in] value The new configuration file.
  */
-void state::_set_cfg_file(std::string const& value) {
+void state::_set_cfg_file(const std::string& value) {
   if (value.empty() || value[0] == '/')
     _cfg_file.push_back(value);
   else {
@@ -4386,11 +4381,8 @@ void state::_set_cfg_file(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_check_for_updates(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: check_for_updates variable ignored";
-  config_logger->warn("Warning: check_for_updates variable ignored");
+void state::_set_check_for_updates(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: check_for_updates variable ignored");
   ++config_warnings;
 }
 
@@ -4399,11 +4391,9 @@ void state::_set_check_for_updates(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_child_processes_fork_twice(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: child_processes_fork_twice variable ignored";
-  config_logger->warn("Warning: child_processes_fork_twice variable ignored");
+void state::_set_child_processes_fork_twice(const std::string& value
+                                            [[maybe_unused]]) {
+  _logger->warn("Warning: child_processes_fork_twice variable ignored");
   ++config_warnings;
 }
 
@@ -4412,7 +4402,7 @@ void state::_set_child_processes_fork_twice(std::string const& value) {
  *
  *  @param[in] value The new command check interval.
  */
-void state::_set_command_check_interval(std::string const& value) {
+void state::_set_command_check_interval(const std::string& value) {
   std::string val(value);
   size_t pos(val.find('s'));
   if (pos == std::string::npos)
@@ -4430,11 +4420,8 @@ void state::_set_command_check_interval(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_comment_file(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: comment_file variable ignored";
-  config_logger->warn("Warning: comment_file variable ignored");
+void state::_set_comment_file(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: comment_file variable ignored");
   ++config_warnings;
 }
 
@@ -4443,11 +4430,8 @@ void state::_set_comment_file(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_daemon_dumps_core(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: daemon_dumps_core variable ignored";
-  config_logger->warn("Warning: daemon_dumps_core variable ignored");
+void state::_set_daemon_dumps_core(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: daemon_dumps_core variable ignored");
   ++config_warnings;
 }
 
@@ -4456,7 +4440,7 @@ void state::_set_daemon_dumps_core(std::string const& value) {
  *
  *  @param[in] value The new date format.
  */
-void state::_set_date_format(std::string const& value) {
+void state::_set_date_format(const std::string& value) {
   if (value == "euro")
     _date_format = euro;
   else if (value == "iso8601")
@@ -4472,11 +4456,8 @@ void state::_set_date_format(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_downtime_file(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: downtime_file variable ignored";
-  config_logger->warn("Warning: downtime_file variable ignored");
+void state::_set_downtime_file(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: downtime_file variable ignored");
   ++config_warnings;
 }
 
@@ -4485,11 +4466,9 @@ void state::_set_downtime_file(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_enable_embedded_perl(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: enable_embedded_perl variable ignored";
-  config_logger->warn("Warning: enable_embedded_perl variable ignored");
+void state::_set_enable_embedded_perl(const std::string& value
+                                      [[maybe_unused]]) {
+  _logger->warn("Warning: enable_embedded_perl variable ignored");
   ++config_warnings;
 }
 
@@ -4498,11 +4477,9 @@ void state::_set_enable_embedded_perl(std::string const& value) {
  *
  *  @param[in] value  Unused.
  */
-void state::_set_enable_failure_prediction(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: enable_failure_prediction variable ignored";
-  config_logger->warn("Warning: enable_failure_prediction variable ignored");
+void state::_set_enable_failure_prediction(const std::string& value
+                                           [[maybe_unused]]) {
+  _logger->warn("Warning: enable_failure_prediction variable ignored");
   ++config_warnings;
   return;
 }
@@ -4512,7 +4489,7 @@ void state::_set_enable_failure_prediction(std::string const& value) {
  *
  *  @param[in] value The new event_broker_options value.
  */
-void state::_set_event_broker_options(std::string const& value) {
+void state::_set_event_broker_options(const std::string& value) {
   if (value != "-1")
     detail::setter<unsigned long, &state::event_broker_options>("")
         .apply_from_cfg(*this, value.c_str());
@@ -4526,11 +4503,9 @@ void state::_set_event_broker_options(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_free_child_process_memory(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: free_child_process_memory variable ignored";
-  config_logger->warn("Warning: free_child_process_memory variable ignored");
+void state::_set_free_child_process_memory(const std::string& value
+                                           [[maybe_unused]]) {
+  _logger->warn("Warning: free_child_process_memory variable ignored");
   ++config_warnings;
 }
 
@@ -4539,7 +4514,7 @@ void state::_set_free_child_process_memory(std::string const& value) {
  *
  *  @param[in] value The new host_inter_check_delay_method value.
  */
-void state::_set_host_inter_check_delay_method(std::string const& value) {
+void state::_set_host_inter_check_delay_method(const std::string& value) {
   if (value == "n")
     _host_inter_check_delay_method = icd_none;
   else if (value == "d")
@@ -4562,7 +4537,7 @@ void state::_set_host_inter_check_delay_method(std::string const& value) {
  *
  *  @param[in] value The new host_inter_check_delay_method value.
  */
-void state::_set_host_perfdata_file_mode(std::string const& value) {
+void state::_set_host_perfdata_file_mode(const std::string& value) {
   if (value == "p")
     _host_perfdata_file_mode = mode_pipe;
   else if (value == "w")
@@ -4576,11 +4551,8 @@ void state::_set_host_perfdata_file_mode(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_lock_file(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: lock_file variable ignored";
-  config_logger->warn("Warning: lock_file variable ignored");
+void state::_set_lock_file(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: lock_file variable ignored");
   ++config_warnings;
 }
 
@@ -4589,11 +4561,8 @@ void state::_set_lock_file(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_log_archive_path(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: log_archive_path variable ignored";
-  config_logger->warn("Warning: log_archive_path variable ignored");
+void state::_set_log_archive_path(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: log_archive_path variable ignored");
   ++config_warnings;
 }
 
@@ -4602,11 +4571,8 @@ void state::_set_log_archive_path(std::string const& value) {
  *
  *  @param[in] value  Unused.
  */
-void state::_set_log_initial_states(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: log_initial_states variable ignored";
-  config_logger->warn("Warning: log_initial_states variable ignored");
+void state::_set_log_initial_states(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: log_initial_states variable ignored");
   ++config_warnings;
   return;
 }
@@ -4616,11 +4582,9 @@ void state::_set_log_initial_states(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_log_rotation_method(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: log_rotation_method variable ignored";
-  config_logger->warn("Warning: log_rotation_method variable ignored");
+void state::_set_log_rotation_method(const std::string& value
+                                     [[maybe_unused]]) {
+  _logger->warn("Warning: log_rotation_method variable ignored");
   ++config_warnings;
 }
 
@@ -4629,11 +4593,8 @@ void state::_set_log_rotation_method(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_nagios_group(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: nagios_group variable ignored";
-  config_logger->warn("Warning: nagios_group variable ignored");
+void state::_set_nagios_group(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: nagios_group variable ignored");
   ++config_warnings;
 }
 
@@ -4642,11 +4603,8 @@ void state::_set_nagios_group(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_nagios_user(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: nagios_user variable ignored";
-  config_logger->warn("Warning: nagios_user variable ignored");
+void state::_set_nagios_user(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: nagios_user variable ignored");
   ++config_warnings;
 }
 
@@ -4655,11 +4613,8 @@ void state::_set_nagios_user(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_object_cache_file(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: object_cache_file variable ignored";
-  config_logger->warn("Warning: object_cache_file variable ignored");
+void state::_set_object_cache_file(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: object_cache_file variable ignored");
   ++config_warnings;
 }
 
@@ -4668,11 +4623,8 @@ void state::_set_object_cache_file(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_p1_file(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: p1_file variable ignored";
-  config_logger->warn("Warning: p1_file variable ignored");
+void state::_set_p1_file(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: p1_file variable ignored");
 
   ++config_warnings;
 }
@@ -4682,11 +4634,9 @@ void state::_set_p1_file(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_precached_object_file(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: precached_object_file variable ignored";
-  config_logger->warn("Warning: precached_object_file variable ignored");
+void state::_set_precached_object_file(const std::string& value
+                                       [[maybe_unused]]) {
+  _logger->warn("Warning: precached_object_file variable ignored");
   ++config_warnings;
 }
 
@@ -4695,7 +4645,7 @@ void state::_set_precached_object_file(std::string const& value) {
  *
  *  @param[in] value The new resource_file.
  */
-void state::_set_resource_file(std::string const& value) {
+void state::_set_resource_file(const std::string& value) {
   if (value.empty() || value[0] == '/')
     _resource_file.push_back(value);
   else {
@@ -4711,11 +4661,8 @@ void state::_set_resource_file(std::string const& value) {
  *  @param[in] value Unused.
  */
 void state::_set_retained_process_service_attribute_mask(
-    std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: retained_process_service_attribute_mask variable ignored";
-  config_logger->warn(
+    const std::string& value [[maybe_unused]]) {
+  _logger->warn(
       "Warning: retained_process_service_attribute_mask variable ignored");
   ++config_warnings;
 }
@@ -4725,12 +4672,9 @@ void state::_set_retained_process_service_attribute_mask(
  *
  *  @param[in] value Unused.
  */
-void state::_set_retained_service_attribute_mask(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: retained_service_attribute_mask variable ignored";
-  config_logger->warn(
-      "Warning: retained_service_attribute_mask variable ignored");
+void state::_set_retained_service_attribute_mask(const std::string& value
+                                                 [[maybe_unused]]) {
+  _logger->warn("Warning: retained_service_attribute_mask variable ignored");
   ++config_warnings;
 }
 
@@ -4739,7 +4683,7 @@ void state::_set_retained_service_attribute_mask(std::string const& value) {
  *
  *  @param[in] value The new service_inter_check_delay_method.
  */
-void state::_set_service_inter_check_delay_method(std::string const& value) {
+void state::_set_service_inter_check_delay_method(const std::string& value) {
   if (value == "n")
     _service_inter_check_delay_method = icd_none;
   else if (value == "d")
@@ -4762,7 +4706,7 @@ void state::_set_service_inter_check_delay_method(std::string const& value) {
  *
  *  @param[in] value The new service_interleave_factor_method.
  */
-void state::_set_service_interleave_factor_method(std::string const& value) {
+void state::_set_service_interleave_factor_method(const std::string& value) {
   if (value == "s")
     _service_interleave_factor_method = ilf_smart;
   else {
@@ -4778,7 +4722,7 @@ void state::_set_service_interleave_factor_method(std::string const& value) {
  *
  *  @param[in] value The new service_inter_check_delay_method value.
  */
-void state::_set_service_perfdata_file_mode(std::string const& value) {
+void state::_set_service_perfdata_file_mode(const std::string& value) {
   if (value == "p")
     _service_perfdata_file_mode = mode_pipe;
   else if (value == "w")
@@ -4792,11 +4736,8 @@ void state::_set_service_perfdata_file_mode(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_temp_file(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: temp_file variable ignored";
-  config_logger->warn("Warning: temp_file variable ignored");
+void state::_set_temp_file(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: temp_file variable ignored");
   ++config_warnings;
 }
 
@@ -4805,11 +4746,8 @@ void state::_set_temp_file(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_temp_path(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: temp_path variable ignored";
-  config_logger->warn("Warning: temp_path variable ignored");
+void state::_set_temp_path(const std::string& value [[maybe_unused]]) {
+  _logger->warn("Warning: temp_path variable ignored");
   ++config_warnings;
 }
 
@@ -4818,15 +4756,13 @@ void state::_set_temp_path(std::string const& value) {
  *
  *  @param[in] value Unused.
  */
-void state::_set_use_embedded_perl_implicitly(std::string const& value) {
-  (void)value;
-  engine_logger(log_config_warning, basic)
-      << "Warning: use_embedded_perl_implicitly variable ignored";
-  config_logger->warn("Warning: use_embedded_perl_implicitly variable ignored");
+void state::_set_use_embedded_perl_implicitly(const std::string& value
+                                              [[maybe_unused]]) {
+  _logger->warn("Warning: use_embedded_perl_implicitly variable ignored");
   ++config_warnings;
 }
 
-void state::macros_filter(std::string const& value) {
+void state::macros_filter(const std::string& value) {
   size_t previous(0), first, last;
   size_t current(value.find(','));
   while (current != std::string::npos) {
@@ -4904,19 +4840,18 @@ void state::use_send_recovery_notifications_anyways(bool value) {
  */
 void state::apply_extended_conf(const std::string& file_path,
                                 const rapidjson::Document& json_doc) {
-  SPDLOG_LOGGER_INFO(config_logger, "apply conf from file {}", file_path);
+  SPDLOG_LOGGER_INFO(_logger, "apply conf from file {}", file_path);
   for (rapidjson::Value::ConstMemberIterator member_iter =
            json_doc.MemberBegin();
        member_iter != json_doc.MemberEnd(); ++member_iter) {
     const std::string_view field_name = member_iter->name.GetString();
     auto setter = _setters.find(field_name);
     if (setter == _setters.end()) {
-      SPDLOG_LOGGER_ERROR(config_logger, "unknown field: {} in file {}",
-                          field_name, file_path);
-    } else if (!setter->second->apply_from_json(*this, json_doc)) {
-      SPDLOG_LOGGER_ERROR(config_logger,
-                          "fail to update field: {}  from file {}", field_name,
+      SPDLOG_LOGGER_ERROR(_logger, "unknown field: {} in file {}", field_name,
                           file_path);
+    } else if (!setter->second->apply_from_json(*this, json_doc)) {
+      SPDLOG_LOGGER_ERROR(_logger, "fail to update field: {}  from file {}",
+                          field_name, file_path);
     }
   }
 }

@@ -53,7 +53,7 @@ contactgroup::contactgroup(contactgroup const& right) : object(right) {
 /**
  *  Destructor.
  */
-contactgroup::~contactgroup() throw() {}
+contactgroup::~contactgroup() noexcept {}
 
 /**
  *  Copy constructor.
@@ -70,7 +70,7 @@ contactgroup& contactgroup::operator=(contactgroup const& right) {
     _contactgroup_name = right._contactgroup_name;
     _members = right._members;
   }
-  return (*this);
+  return *this;
 }
 
 /**
@@ -124,7 +124,6 @@ void contactgroup::check_validity() const {
   if (_contactgroup_name.empty())
     throw(engine_error() << "Contact group has no name "
                             "(property 'contactgroup_name')");
-  return;
 }
 
 /**
@@ -133,7 +132,7 @@ void contactgroup::check_validity() const {
  *  @return The contact group name.
  */
 contactgroup::key_type const& contactgroup::key() const throw() {
-  return (_contactgroup_name);
+  return _contactgroup_name;
 }
 
 /**
@@ -175,7 +174,7 @@ bool contactgroup::parse(char const* key, char const* value) {
  *  @return The alias.
  */
 std::string const& contactgroup::alias() const throw() {
-  return (_alias);
+  return _alias;
 }
 
 /**
@@ -232,7 +231,7 @@ set_string const& contactgroup::members() const throw() {
  */
 bool contactgroup::_set_alias(std::string const& value) {
   _alias = value;
-  return (true);
+  return true;
 }
 
 /**
@@ -244,7 +243,7 @@ bool contactgroup::_set_alias(std::string const& value) {
  */
 bool contactgroup::_set_contactgroup_members(std::string const& value) {
   _contactgroup_members = value;
-  return (true);
+  return true;
 }
 
 /**
@@ -256,7 +255,7 @@ bool contactgroup::_set_contactgroup_members(std::string const& value) {
  */
 bool contactgroup::_set_contactgroup_name(std::string const& value) {
   _contactgroup_name = value;
-  return (true);
+  return true;
 }
 
 /**

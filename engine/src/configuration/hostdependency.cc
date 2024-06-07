@@ -90,7 +90,7 @@ hostdependency::hostdependency(hostdependency const& right) : object(right) {
 /**
  *  Destructor.
  */
-hostdependency::~hostdependency() throw() {}
+hostdependency::~hostdependency() noexcept {}
 
 /**
  *  Copy constructor.
@@ -122,7 +122,7 @@ hostdependency& hostdependency::operator=(hostdependency const& right) {
  *
  *  @return True if is the same hostdependency, otherwise false.
  */
-bool hostdependency::operator==(hostdependency const& right) const throw() {
+bool hostdependency::operator==(hostdependency const& right) const noexcept {
   return (object::operator==(right) &&
           _dependency_period == right._dependency_period &&
           _dependency_type == right._dependency_type &&
@@ -141,7 +141,7 @@ bool hostdependency::operator==(hostdependency const& right) const throw() {
  *
  *  @return True if is not the same hostdependency, otherwise false.
  */
-bool hostdependency::operator!=(hostdependency const& right) const throw() {
+bool hostdependency::operator!=(hostdependency const& right) const noexcept {
   return !operator==(right);
 }
 
@@ -196,10 +196,7 @@ void hostdependency::check_validity() const {
     std::string dependend_host_name(!_dependent_hosts->empty()
                                         ? *_dependent_hosts->begin()
                                         : *_dependent_hostgroups->begin());
-    engine_logger(log_config_warning, basic)
-        << "Warning: Ignoring lame host dependency of '" << dependend_host_name
-        << "' on host/hostgroups '" << host_name << "'.";
-    config_logger->warn(
+    _logger->warn(
         "Warning: Ignoring lame host dependency of '{}' on host/hostgroups "
         "'{}'.",
         dependend_host_name, host_name);
@@ -404,7 +401,7 @@ bool hostdependency::inherits_parent() const noexcept {
  *  @param[in] options New options.
  */
 void hostdependency::notification_failure_options(
-    unsigned int options) throw() {
+    unsigned int options) noexcept {
   _notification_failure_options.set(options);
 }
 
@@ -413,7 +410,7 @@ void hostdependency::notification_failure_options(
  *
  *  @return The notification_failure_options.
  */
-unsigned int hostdependency::notification_failure_options() const throw() {
+unsigned int hostdependency::notification_failure_options() const noexcept {
   return _notification_failure_options;
 }
 

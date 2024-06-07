@@ -20,8 +20,10 @@
 #define CCE_CONFIGURATION_WHITELIST_HH
 
 #include "com/centreon/engine/globals.hh"
+#include "common/log_v2/log_v2.hh"
 
 namespace com::centreon::engine::configuration {
+using com::centreon::common::log_v2::log_v2;
 
 extern const std::string command_blacklist_output;
 
@@ -40,6 +42,8 @@ string
  *
  */
 class whitelist {
+  std::shared_ptr<spdlog::logger> _logger;
+
   // don't reorder values
   enum e_refresh_result { no_directory, empty_directory, no_rule, rules };
 
@@ -82,7 +86,8 @@ class whitelist {
 };
 
 template <typename string_iter>
-whitelist::whitelist(string_iter dir_path_begin, string_iter dir_path_end) {
+whitelist::whitelist(string_iter dir_path_begin, string_iter dir_path_end)
+    : _logger{log_v2::instance().get(log_v2::CONFIG)} {
   init_ryml_error_handler();
   e_refresh_result res = e_refresh_result::no_directory;
   for (; dir_path_begin != dir_path_end; ++dir_path_begin) {
@@ -93,12 +98,11 @@ whitelist::whitelist(string_iter dir_path_begin, string_iter dir_path_end) {
   switch (res) {
     case e_refresh_result::no_directory:
       SPDLOG_LOGGER_INFO(
-          config_logger,
-          "no whitelist directory found, all commands are accepted");
+          _logger, "no whitelist directory found, all commands are accepted");
       break;
     case e_refresh_result::empty_directory:
     case e_refresh_result::no_rule:
-      SPDLOG_LOGGER_INFO(config_logger,
+      SPDLOG_LOGGER_INFO(_logger,
                          "whitelist directory found, but no restrictions, "
                          "all commands are accepted");
       break;

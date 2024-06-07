@@ -16,15 +16,16 @@
  * For more information : contact@centreon.com
  *
  */
-
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/io/directory_entry.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::io;
+using com::centreon::common::log_v2::log_v2;
 
 parser::store parser::_store[] = {
     &parser::_store_into_map<command, &command::command_name>,
@@ -77,12 +78,9 @@ static bool get_next_line(std::ifstream& stream,
  *             (use to skip some object type).
  */
 parser::parser(unsigned int read_options)
-    : _config(NULL), _read_options(read_options) {}
-
-/**
- *  Destructor.
- */
-parser::~parser() throw() {}
+    : _logger{log_v2::instance().get(log_v2::CONFIG)},
+      _config(nullptr),
+      _read_options(read_options) {}
 
 /**
  *  Parse configuration file.
@@ -309,9 +307,7 @@ void parser::_parse_directory_configuration(std::string const& path) {
  *  @param[in] path The configuration path.
  */
 void parser::_parse_global_configuration(const std::string& path) {
-  engine_logger(logging::log_info_message, logging::most)
-      << "Reading main configuration file '" << path << "'.";
-  config_logger->info("Reading main configuration file '{}'.", path);
+  _logger->info("Reading main configuration file '{}'.", path);
 
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())
@@ -348,9 +344,7 @@ void parser::_parse_global_configuration(const std::string& path) {
  *  @param[in] path The object definitions path.
  */
 void parser::_parse_object_definitions(std::string const& path) {
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Processing object config file '" << path << "'";
-  config_logger->info("Processing object config file '{}'", path);
+  _logger->info("Processing object config file '{}'", path);
 
   std::ifstream stream(path, std::ios::binary);
   if (!stream.is_open())
@@ -427,9 +421,7 @@ void parser::_parse_object_definitions(std::string const& path) {
  *  @param[in] path The resource file path.
  */
 void parser::_parse_resource_file(std::string const& path) {
-  engine_logger(logging::log_info_message, logging::most)
-      << "Reading resource file '" << path << "'";
-  config_logger->info("Reading resource file '{}'", path);
+  _logger->info("Reading resource file '{}'", path);
 
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())

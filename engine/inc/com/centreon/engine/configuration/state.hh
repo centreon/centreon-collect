@@ -61,6 +61,8 @@ class setter_base {
  *  to manage configuration data.
  */
 class state {
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   /**
    *  @enum state::date_format
@@ -101,7 +103,7 @@ class state {
 
   state();
   state(state const& right);
-  ~state() noexcept;
+  ~state() noexcept = default;
   state& operator=(state const& right);
   bool operator==(state const& right) const noexcept;
   bool operator!=(state const& right) const noexcept;

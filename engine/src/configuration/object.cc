@@ -35,9 +35,11 @@
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v2::log_v2;
 
 #define SETTER(type, method) \
   &object::setter<object, type, &object::method>::generic
@@ -53,7 +55,10 @@ object::setters const object::_setters[] = {
  *  @param[in] type      The object type.
  */
 object::object(object::object_type type)
-    : _is_resolve(false), _should_register(true), _type(type) {}
+    : _is_resolve(false),
+      _should_register(true),
+      _type(type),
+      _logger{log_v2::instance().get(log_v2::CONFIG)} {}
 
 /**
  *  Copy constructor.
@@ -83,6 +88,7 @@ object& object::operator=(object const& right) {
     _should_register = right._should_register;
     _templates = right._templates;
     _type = right._type;
+    _logger = right._logger;
   }
   return *this;
 }
@@ -261,7 +267,9 @@ std::string const& object::type_name() const noexcept {
                                     "serviceextinfo",
                                     "servicegroup",
                                     "timeperiod",
-                                    "anomalydetection"};
+                                    "anomalydetection",
+                                    "severity",
+                                    "tag"};
   return tab[_type];
 }
 

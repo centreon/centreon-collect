@@ -20,8 +20,10 @@
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v2::log_v2;
 
 std::list<std::unique_ptr<extended_conf>> extended_conf::_confs;
 
@@ -31,17 +33,18 @@ std::list<std::unique_ptr<extended_conf>> extended_conf::_confs;
  * @param path of the configuration file
  * @throw exception if json malformed
  */
-extended_conf::extended_conf(const std::string& path) : _path(path) {
+extended_conf::extended_conf(const std::string& path)
+    : _logger{log_v2::instance().get(log_v2::CONFIG)}, _path(path) {
   if (::stat(_path.c_str(), &_file_info)) {
-    SPDLOG_LOGGER_ERROR(config_logger, "can't access to {}", _path);
+    SPDLOG_LOGGER_ERROR(_logger, "can't access to {}", _path);
     throw exceptions::msg_fmt("can't access to {}", _path);
   }
   try {
     _content = common::rapidjson_helper::read_from_file(_path);
-    SPDLOG_LOGGER_INFO(config_logger, "extended conf file {} loaded", _path);
+    SPDLOG_LOGGER_INFO(_logger, "extended conf file {} loaded", _path);
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(
-        config_logger,
+        _logger,
         "extended_conf::extended_conf : fail to read json content from {}: {}",
         _path, e.what());
     throw;
@@ -57,9 +60,8 @@ extended_conf::extended_conf(const std::string& path) : _path(path) {
 void extended_conf::reload() {
   struct stat file_info;
   if (::stat(_path.c_str(), &file_info)) {
-    SPDLOG_LOGGER_ERROR(config_logger,
-                        "can't access to {} anymore => we keep old content",
-                        _path);
+    SPDLOG_LOGGER_ERROR(
+        _logger, "can't access to {} anymore => we keep old content", _path);
     return;
   }
   if (!memcmp(&file_info, &_file_info, sizeof(struct stat))) {
@@ -69,7 +71,7 @@ void extended_conf::reload() {
     _content = common::rapidjson_helper::read_from_file(_path);
     _file_info = file_info;
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(config_logger,
+    SPDLOG_LOGGER_ERROR(_logger,
                         "extended_conf::extended_conf : fail to read json "
                         "content from {} => we keep old content, cause: {}",
                         _path, e.what());
