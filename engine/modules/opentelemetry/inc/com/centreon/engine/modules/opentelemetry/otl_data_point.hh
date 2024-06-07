@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  */
 
-#ifndef CCE_MOD_OTL_SERVER_METRIC_HH
-#define CCE_MOD_OTL_SERVER_METRIC_HH
+#ifndef CCE_MOD_OTL_DATA_POINT_HH
+#define CCE_MOD_OTL_DATA_POINT_HH
 
 namespace com::centreon::engine::modules::opentelemetry {
 
@@ -93,10 +93,10 @@ using metric_request_ptr =
  * This bean represents a DataPoint, it embeds all ExportMetricsServiceRequest
  * (_parent attribute) in order to avoid useless copies. Many attributes are
  * references to _parent attribute
- * As we can receive several types of data_point, we tries to expose common data
- * by unique getters
+ * As we can receive several types of otl_data_point, we tries to expose common
+ * data by unique getters
  */
-class data_point {
+class otl_data_point {
  public:
   enum class data_point_type {
     number,
@@ -117,21 +117,21 @@ class data_point {
   data_point_type _type;
   double _value;
 
-  data_point(
+  otl_data_point(
       const metric_request_ptr& parent,
       const ::opentelemetry::proto::resource::v1::Resource& resource,
       const ::opentelemetry::proto::common::v1::InstrumentationScope& scope,
       const ::opentelemetry::proto::metrics::v1::Metric& metric,
       const ::opentelemetry::proto::metrics::v1::NumberDataPoint& data_pt);
 
-  data_point(
+  otl_data_point(
       const metric_request_ptr& parent,
       const ::opentelemetry::proto::resource::v1::Resource& resource,
       const ::opentelemetry::proto::common::v1::InstrumentationScope& scope,
       const ::opentelemetry::proto::metrics::v1::Metric& metric,
       const ::opentelemetry::proto::metrics::v1::HistogramDataPoint& data_pt);
 
-  data_point(
+  otl_data_point(
       const metric_request_ptr& parent,
       const ::opentelemetry::proto::resource::v1::Resource& resource,
       const ::opentelemetry::proto::common::v1::InstrumentationScope& scope,
@@ -139,7 +139,7 @@ class data_point {
       const ::opentelemetry::proto::metrics::v1::ExponentialHistogramDataPoint&
           data_pt);
 
-  data_point(
+  otl_data_point(
       const metric_request_ptr& parent,
       const ::opentelemetry::proto::resource::v1::Resource& resource,
       const ::opentelemetry::proto::common::v1::InstrumentationScope& scope,
@@ -189,8 +189,8 @@ class data_point {
  * @param handler called on every data point found
  */
 template <typename data_point_handler>
-void data_point::extract_data_points(const metric_request_ptr& metrics,
-                                     data_point_handler&& handler) {
+void otl_data_point::extract_data_points(const metric_request_ptr& metrics,
+                                         data_point_handler&& handler) {
   using namespace ::opentelemetry::proto::metrics::v1;
   for (const ResourceMetrics& resource_metric : metrics->resource_metrics()) {
     const ::opentelemetry::proto::resource::v1::Resource& resource =
@@ -203,26 +203,31 @@ void data_point::extract_data_points(const metric_request_ptr& metrics,
         switch (pb_metric.data_case()) {
           case Metric::kGauge:
             for (const NumberDataPoint& iter : pb_metric.gauge().data_points())
-              handler(data_point(metrics, resource, scope, pb_metric, iter));
+              handler(
+                  otl_data_point(metrics, resource, scope, pb_metric, iter));
             break;
           case Metric::kSum:
             for (const NumberDataPoint& iter : pb_metric.sum().data_points())
-              handler(data_point(metrics, resource, scope, pb_metric, iter));
+              handler(
+                  otl_data_point(metrics, resource, scope, pb_metric, iter));
             break;
           case Metric::kHistogram:
             for (const HistogramDataPoint& iter :
                  pb_metric.histogram().data_points())
-              handler(data_point(metrics, resource, scope, pb_metric, iter));
+              handler(
+                  otl_data_point(metrics, resource, scope, pb_metric, iter));
             break;
           case Metric::kExponentialHistogram:
             for (const ExponentialHistogramDataPoint& iter :
                  pb_metric.exponential_histogram().data_points())
-              handler(data_point(metrics, resource, scope, pb_metric, iter));
+              handler(
+                  otl_data_point(metrics, resource, scope, pb_metric, iter));
             break;
           case Metric::kSummary:
             for (const SummaryDataPoint& iter :
                  pb_metric.summary().data_points())
-              handler(data_point(metrics, resource, scope, pb_metric, iter));
+              handler(
+                  otl_data_point(metrics, resource, scope, pb_metric, iter));
             break;
         }
       }

@@ -37,8 +37,8 @@
 #include "opentelemetry/proto/metrics/v1/metrics.pb.h"
 
 #include "com/centreon/engine/modules/opentelemetry/data_point_fifo_container.hh"
-#include "com/centreon/engine/modules/opentelemetry/otl_converter.hh"
-#include "com/centreon/engine/modules/opentelemetry/telegraf/nagios_converter.hh"
+#include "com/centreon/engine/modules/opentelemetry/otl_check_result_builder.hh"
+#include "com/centreon/engine/modules/opentelemetry/telegraf/nagios_check_result_builder.hh"
 
 #include "helper.hh"
 #include "test_engine.hh"
@@ -81,7 +81,7 @@ void otl_converter_test::TearDown() {
 
 TEST_F(otl_converter_test, empty_fifo) {
   data_point_fifo_container empty;
-  telegraf::nagios_converter conv(
+  telegraf::nagios_check_result_builder conv(
       "", 1, *host::hosts.begin()->second,
       service::services.begin()->second.get(),
       std::chrono::system_clock::time_point(), [&](const commands::result&) {},
@@ -581,12 +581,13 @@ TEST_F(otl_converter_test, nagios_telegraf) {
   ::google::protobuf::util::JsonStringToMessage(telegraf_example,
                                                 request.get());
 
-  data_point::extract_data_points(request, [&](const data_point& data_pt) {
-    received.add_data_point("localhost", "check_icmp",
-                            data_pt.get_metric().name(), data_pt);
-  });
+  otl_data_point::extract_data_points(
+      request, [&](const otl_data_point& data_pt) {
+        received.add_data_point("localhost", "check_icmp",
+                                data_pt.get_metric().name(), data_pt);
+      });
 
-  telegraf::nagios_converter conv(
+  telegraf::nagios_check_result_builder conv(
       "", 1, *host::hosts.begin()->second,
       service::services.begin()->second.get(),
       std::chrono::system_clock::time_point(), [&](const commands::result&) {},
@@ -616,12 +617,13 @@ TEST_F(otl_converter_test, nagios_telegraf_le_ge) {
 
   ::google::protobuf::util::JsonStringToMessage(example, request.get());
 
-  data_point::extract_data_points(request, [&](const data_point& data_pt) {
-    received.add_data_point("localhost", "check_icmp",
-                            data_pt.get_metric().name(), data_pt);
-  });
+  otl_data_point::extract_data_points(
+      request, [&](const otl_data_point& data_pt) {
+        received.add_data_point("localhost", "check_icmp",
+                                data_pt.get_metric().name(), data_pt);
+      });
 
-  telegraf::nagios_converter conv(
+  telegraf::nagios_check_result_builder conv(
       "", 1, *host::hosts.begin()->second,
       service::services.begin()->second.get(),
       std::chrono::system_clock::time_point(), [&](const commands::result&) {},
@@ -649,12 +651,13 @@ TEST_F(otl_converter_test, nagios_telegraf_max) {
 
   ::google::protobuf::util::JsonStringToMessage(example, request.get());
 
-  data_point::extract_data_points(request, [&](const data_point& data_pt) {
-    received.add_data_point("localhost", "check_icmp",
-                            data_pt.get_metric().name(), data_pt);
-  });
+  otl_data_point::extract_data_points(
+      request, [&](const otl_data_point& data_pt) {
+        received.add_data_point("localhost", "check_icmp",
+                                data_pt.get_metric().name(), data_pt);
+      });
 
-  telegraf::nagios_converter conv(
+  telegraf::nagios_check_result_builder conv(
       "", 1, *host::hosts.begin()->second,
       service::services.begin()->second.get(),
       std::chrono::system_clock::time_point(), [&](const commands::result&) {},

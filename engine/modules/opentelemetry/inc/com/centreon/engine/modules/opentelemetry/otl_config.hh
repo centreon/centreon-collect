@@ -31,7 +31,7 @@ class otl_config {
   bool _json_grpc_log = false;    // if true, otel object are logged in json
                                   // format instead of protobuf debug format
 
-  // this two attributes are limits used by otel data_point fifos
+  // this two attributes are limits used by otel otl_data_point fifos
   // if fifo size exceed _max_fifo_size, oldest data_points are removed
   // Also, data_points older than _second_fifo_expiry are removed from fifos
   unsigned _second_fifo_expiry;

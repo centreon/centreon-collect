@@ -22,7 +22,7 @@
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/forward.hh"
-#include "com/centreon/engine/commands/otel_command.hh"
+#include "com/centreon/engine/commands/otel_connector.hh"
 #include "com/centreon/engine/commands/raw.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -70,8 +70,8 @@ void applier::command::add_object(configuration::command const& obj) {
               obj.command_name(), obj.command_line(), found_con->second)};
       commands::command::commands[forward->get_name()] = forward;
     } else {
-      std::shared_ptr<commands::otel_command> otel_cmd =
-          commands::otel_command::get_otel_command(obj.connector());
+      std::shared_ptr<commands::otel_connector> otel_cmd =
+          commands::otel_connector::get_otel_connector(obj.connector());
       if (otel_cmd) {
         std::shared_ptr<commands::forward> forward{
             std::make_shared<commands::forward>(obj.command_name(),
@@ -149,8 +149,8 @@ void applier::command::modify_object(configuration::command const& obj) {
               obj.command_name(), obj.command_line(), found_con->second)};
       commands::command::commands[forward->get_name()] = forward;
     } else {
-      std::shared_ptr<commands::otel_command> otel_cmd =
-          commands::otel_command::get_otel_command(obj.connector());
+      std::shared_ptr<commands::otel_connector> otel_cmd =
+          commands::otel_connector::get_otel_connector(obj.connector());
       if (otel_cmd) {
         std::shared_ptr<commands::forward> forward{
             std::make_shared<commands::forward>(obj.command_name(),
@@ -214,7 +214,7 @@ void applier::command::resolve_object(configuration::command const& obj) {
     connector_map::iterator found{
         commands::connector::connectors.find(obj.connector())};
     if (found == commands::connector::connectors.end() || !found->second) {
-      if (!commands::otel_command::get_otel_command(obj.connector()))
+      if (!commands::otel_connector::get_otel_connector(obj.connector()))
         throw engine_error() << "unknow command " << obj.connector();
     }
   }

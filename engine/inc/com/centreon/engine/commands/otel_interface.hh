@@ -25,7 +25,7 @@
 namespace com::centreon::engine::commands::otel {
 
 /**
- * @brief struct returned by otl_converter::extract_host_serv_metric
+ * @brief struct returned by otl_check_result_builder::extract_host_serv_metric
  * success if host not empty
  * service may be empty if it's a host check
  *
@@ -52,7 +52,7 @@ struct host_serv_metric {
 
 /**
  * @brief this list is the list of host service(may be empty) pairs
- * This list is shared between otel_command and his extractor
+ * This list is shared between otel_connector and his extractor
  *
  */
 class host_serv_list {
@@ -64,20 +64,19 @@ class host_serv_list {
 
   void register_host_serv(const std::string& host,
                           const std::string& service_description);
-  void unregister_host_serv(const std::string& host,
-                            const std::string& service_description);
+  void remove(const std::string& host, const std::string& service_description);
 
-  bool is_allowed(const std::string& host,
-                  const std::string& service_description) const;
+  bool contains(const std::string& host,
+                const std::string& service_description) const;
 
   template <typename host_set, typename service_set>
-  host_serv_metric is_allowed(const host_set& hosts,
-                              const service_set& services) const;
+  host_serv_metric match(const host_set& hosts,
+                         const service_set& services) const;
 };
 
 template <typename host_set, typename service_set>
-host_serv_metric host_serv_list::is_allowed(const host_set& hosts,
-                                            const service_set& services) const {
+host_serv_metric host_serv_list::match(const host_set& hosts,
+                                       const service_set& services) const {
   host_serv_metric ret;
   absl::ReaderMutexLock l(&_data_m);
   for (const auto& host : hosts) {
@@ -110,12 +109,11 @@ host_serv_metric host_serv_list::is_allowed(const host_set& hosts,
 class host_serv_extractor {
  public:
   virtual ~host_serv_extractor() = default;
-
 };
 
-class converter_config {
+class check_result_builder_config {
  public:
-  virtual ~converter_config() = default;
+  virtual ~check_result_builder_config() = default;
 };
 
 using result_callback = std::function<void(const result&)>;
@@ -141,16 +139,17 @@ class open_telemetry_base
       const std::string& cmdline,
       const host_serv_list::pointer& host_serv_list) = 0;
 
-  virtual std::shared_ptr<converter_config> create_converter_config(
-      const std::string& cmd_line) = 0;
+  virtual std::shared_ptr<check_result_builder_config>
+  create_check_result_builder_config(const std::string& cmd_line) = 0;
 
-  virtual bool check(const std::string& processed_cmd,
-                     const std::shared_ptr<converter_config>& conv_conf,
-                     uint64_t command_id,
-                     nagios_macros& macros,
-                     uint32_t timeout,
-                     commands::result& res,
-                     result_callback&& handler) = 0;
+  virtual bool check(
+      const std::string& processed_cmd,
+      const std::shared_ptr<check_result_builder_config>& conv_conf,
+      uint64_t command_id,
+      nagios_macros& macros,
+      uint32_t timeout,
+      commands::result& res,
+      result_callback&& handler) = 0;
 };
 
 };  // namespace com::centreon::engine::commands::otel

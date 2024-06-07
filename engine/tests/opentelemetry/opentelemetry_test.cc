@@ -163,10 +163,11 @@ TEST_F(open_telemetry_test, data_available) {
   nagios_macros macros;
   macros.host_ptr = host::hosts.begin()->second.get();
   macros.service_ptr = service::services.begin()->second.get();
-  ASSERT_TRUE(instance->check(
-      "nagios_telegraf",
-      instance->create_converter_config("--processor=nagios_telegraf"), 1,
-      macros, 1, res, [](const commands::result&) {}));
+  ASSERT_TRUE(instance->check("nagios_telegraf",
+                              instance->create_check_result_builder_config(
+                                  "--processor=nagios_telegraf"),
+                              1, macros, 1, res,
+                              [](const commands::result&) {}));
   ASSERT_EQ(res.command_id, 1);
   ASSERT_EQ(res.start_time.to_useconds(), 1707744430000000);
   ASSERT_EQ(res.end_time.to_useconds(), 1707744430000000);
@@ -196,13 +197,14 @@ TEST_F(open_telemetry_test, timeout) {
   macros.service_ptr = service::services.begin()->second.get();
   std::condition_variable cv;
   std::mutex cv_m;
-  ASSERT_FALSE(instance->check(
-      "nagios_telegraf",
-      instance->create_converter_config("--processor=nagios_telegraf"), 1,
-      macros, 1, res, [&res, &cv](const commands::result& async_res) {
-        res = async_res;
-        cv.notify_one();
-      }));
+  ASSERT_FALSE(instance->check("nagios_telegraf",
+                               instance->create_check_result_builder_config(
+                                   "--processor=nagios_telegraf"),
+                               1, macros, 1, res,
+                               [&res, &cv](const commands::result& async_res) {
+                                 res = async_res;
+                                 cv.notify_one();
+                               }));
 
   std::unique_lock l(cv_m);
   ASSERT_EQ(cv.wait_for(l, std::chrono::seconds(3)),
@@ -232,8 +234,8 @@ TEST_F(open_telemetry_test, wait_for_data) {
   std::mutex cv_m;
   std::condition_variable cv;
   bool data_available = instance->check(
-      "nagios_telegraf", instance->create_converter_config(otl_conf), 1, macros,
-      1, res, [&res, &cv](const commands::result& async_res) {
+      "nagios_telegraf", instance->create_check_result_builder_config(otl_conf),
+      1, macros, 1, res, [&res, &cv](const commands::result& async_res) {
         res = async_res;
         cv.notify_one();
       });

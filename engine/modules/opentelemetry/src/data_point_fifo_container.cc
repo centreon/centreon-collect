@@ -65,12 +65,12 @@ void data_point_fifo_container::clean_empty_fifos(
  * @brief add a data point in the corresponding fifo
  * mutex must be locked during returned data use
  *
- * @param data_pt data_point to add
+ * @param data_pt otl_data_point to add
  */
 void data_point_fifo_container::add_data_point(const std::string_view& host,
                                                const std::string_view& service,
                                                const std::string_view& metric,
-                                               const data_point& data_pt) {
+                                               const otl_data_point& data_pt) {
   metric_name_to_fifo& fifos = _data[std::make_pair(host, service)];
   auto exist = fifos.find(metric);
   if (exist == fifos.end()) {

@@ -218,7 +218,7 @@ void open_telemetry::_shutdown() {
  * @param cmdline which begins with name of extractor, following parameters
  * are used by extractor
  * @param host_serv_list list that will be shared bu host_serv_extractor and
- * otel_command
+ * otel_connector
  * @return
  * std::shared_ptr<com::centreon::engine::commands::otel::host_serv_extractor>
  * @throw if extractor type is unknown
@@ -264,16 +264,19 @@ open_telemetry::create_extractor(
 
 /**
  * @brief converter is created for each check, so in order to not parse otel
- * connector command line on each check , we create a converter_config
- * object that is used to create converter it search the flag extractor
+ * connector command line on each check , we create a
+ * check_result_builder_config object that is used to create converter it search
+ * the flag extractor
  *
  * @param cmd_line
  * @return
- * std::shared_ptr<com::centreon::engine::commands::otel::converter_config>
+ * std::shared_ptr<com::centreon::engine::commands::otel::check_result_builder_config>
  */
-std::shared_ptr<com::centreon::engine::commands::otel::converter_config>
-open_telemetry::create_converter_config(const std::string& cmd_line) {
-  return otl_converter::create_converter_config(cmd_line);
+std::shared_ptr<
+    com::centreon::engine::commands::otel::check_result_builder_config>
+open_telemetry::create_check_result_builder_config(
+    const std::string& cmd_line) {
+  return otl_check_result_builder::create_check_result_builder_config(cmd_line);
 }
 
 /**
@@ -295,16 +298,18 @@ open_telemetry::create_converter_config(const std::string& cmd_line) {
  */
 bool open_telemetry::check(
     const std::string& processed_cmd,
-    const std::shared_ptr<commands::otel::converter_config>& conv_config,
+    const std::shared_ptr<commands::otel::check_result_builder_config>&
+        conv_config,
     uint64_t command_id,
     nagios_macros& macros,
     uint32_t timeout,
     commands::result& res,
     commands::otel::result_callback&& handler) {
-  std::shared_ptr<otl_converter> to_use;
+  std::shared_ptr<otl_check_result_builder> to_use;
   try {
-    to_use = otl_converter::create(
-        processed_cmd, std::static_pointer_cast<converter_config>(conv_config),
+    to_use = otl_check_result_builder::create(
+        processed_cmd,
+        std::static_pointer_cast<check_result_builder_config>(conv_config),
         command_id, *macros.host_ptr, macros.service_ptr,
         std::chrono::system_clock::now() + std::chrono::seconds(timeout),
         std::move(handler), _logger);
@@ -335,61 +340,63 @@ bool open_telemetry::check(
 
 /**
  * @brief called on metric reception
- * we first fill data_point fifos and then if a converter of a service is
- * waiting for data_point, we call him. If it achieve to generate a check
- * result, the handler of otl_converter is called
+ * we first fill otl_data_point fifos and then if a converter of a service is
+ * waiting for otl_data_point, we call him. If it achieve to generate a check
+ * result, the handler of otl_check_result_builder is called
  * unknown metrics are passed to _forward_to_broker
  *
  * @param metrics collector request
  */
 void open_telemetry::_on_metric(const metric_request_ptr& metrics) {
-  std::vector<data_point> unknown;
+  std::vector<otl_data_point> unknown;
   {
     std::lock_guard l(_protect);
     if (_extractors.empty()) {  // no extractor configured => all unknown
-      data_point::extract_data_points(metrics,
-                                      [&unknown](const data_point& data_pt) {
-                                        unknown.push_back(data_pt);
-                                      });
+      otl_data_point::extract_data_points(
+          metrics, [&unknown](const otl_data_point& data_pt) {
+            unknown.push_back(data_pt);
+          });
     } else {
       waiting_converter::nth_index<0>::type& host_serv_index =
           _waiting.get<0>();
-      std::vector<std::shared_ptr<otl_converter>> to_notify;
+      std::vector<std::shared_ptr<otl_check_result_builder>> to_notify;
       auto last_success = _extractors.begin();
-      data_point::extract_data_points(metrics, [this, &unknown, &last_success,
-                                                &host_serv_index, &to_notify](
-                                                   const data_point& data_pt) {
-        bool data_point_known = false;
-        // we try all extractors and we begin with the last which has
-        // achieved to extract host
-        for (unsigned tries = 0; tries < _extractors.size(); ++tries) {
-          host_serv_metric hostservmetric =
-              last_success->second->extract_host_serv_metric(data_pt);
+      otl_data_point::extract_data_points(
+          metrics, [this, &unknown, &last_success, &host_serv_index,
+                    &to_notify](const otl_data_point& data_pt) {
+            bool data_point_known = false;
+            // we try all extractors and we begin with the last which has
+            // achieved to extract host
+            for (unsigned tries = 0; tries < _extractors.size(); ++tries) {
+              host_serv_metric hostservmetric =
+                  last_success->second->extract_host_serv_metric(data_pt);
 
-          if (!hostservmetric.host.empty()) {  // match
-            _fifo.add_data_point(hostservmetric.host, hostservmetric.service,
-                                 hostservmetric.metric, data_pt);
+              if (!hostservmetric.host.empty()) {  // match
+                _fifo.add_data_point(hostservmetric.host,
+                                     hostservmetric.service,
+                                     hostservmetric.metric, data_pt);
 
-            // converters waiting this metric?
-            auto waiting = host_serv_index.equal_range(
-                host_serv{hostservmetric.host, hostservmetric.service});
-            while (waiting.first != waiting.second) {
-              to_notify.push_back(*waiting.first);
-              waiting.first = host_serv_index.erase(waiting.first);
+                // converters waiting this metric?
+                auto waiting = host_serv_index.equal_range(
+                    host_serv{hostservmetric.host, hostservmetric.service});
+                while (waiting.first != waiting.second) {
+                  to_notify.push_back(*waiting.first);
+                  waiting.first = host_serv_index.erase(waiting.first);
+                }
+                data_point_known = true;
+                break;
+              }
+              // no match => we try next extractor
+              ++last_success;
+              if (last_success == _extractors.end()) {
+                last_success = _extractors.begin();
+              }
             }
-            data_point_known = true;
-            break;
-          }
-          // no match => we try next extractor
-          ++last_success;
-          if (last_success == _extractors.end()) {
-            last_success = _extractors.begin();
-          }
-        }
-        if (!data_point_known) {
-          unknown.push_back(data_pt);  // unknown metric => forward to broker
-        }
-      });
+            if (!data_point_known) {
+              unknown.push_back(
+                  data_pt);  // unknown metric => forward to broker
+            }
+          });
       SPDLOG_LOGGER_TRACE(_logger, "fifos:{}", _fifo);
       // we wait that all request datas have been computed to give us more
       // chance of converter success
@@ -428,7 +435,7 @@ void open_telemetry::_start_second_timer() {
  *
  */
 void open_telemetry::_second_timer_handler() {
-  std::vector<std::shared_ptr<otl_converter>> to_notify;
+  std::vector<std::shared_ptr<otl_check_result_builder>> to_notify;
   {
     std::lock_guard l(_protect);
     std::chrono::system_clock::time_point now =
@@ -445,7 +452,7 @@ void open_telemetry::_second_timer_handler() {
   }
 
   // notify all timeout
-  for (std::shared_ptr<otl_converter> to_not : to_notify) {
+  for (std::shared_ptr<otl_check_result_builder> to_not : to_notify) {
     SPDLOG_LOGGER_DEBUG(_logger, "time out: {}", *to_not);
     to_not->async_time_out();
   }
@@ -459,4 +466,4 @@ void open_telemetry::_second_timer_handler() {
  * @param unknown
  */
 void open_telemetry::_forward_to_broker(
-    const std::vector<data_point>& unknown) {}
+    const std::vector<otl_data_point>& unknown) {}
