@@ -281,7 +281,6 @@ static void CreateConf() {
              "define service {\n"
              "    host_name                       host_1\n"
              "    name                            service_template\n"
-             "    hostgroups                      hg1,hg2\n"
              "    contacts                        contact1\n"
              "    _SERVICE_ID                     1001\n"
              "    check_command                   command_19\n"
@@ -732,7 +731,6 @@ TEST_F(ApplierState, StateLegacyParsing) {
   /* Service */
   ASSERT_EQ(config.services().size(), SERVICES);
   auto sit = config.services().begin();
-  ASSERT_EQ(sit->hosts().size(), 1u);
   ASSERT_EQ(sit->service_id(), 1);
   ASSERT_TRUE(sit->should_register());
   ASSERT_TRUE(sit->checks_active());
@@ -745,10 +743,8 @@ TEST_F(ApplierState, StateLegacyParsing) {
     ++it;
     ASSERT_EQ(*it, std::string("cg3"));
   }
-  ASSERT_EQ(*sit->hosts().begin(), std::string("host_1"));
-  ASSERT_EQ(sit->service_description(), std::string("service_1"));
-  EXPECT_EQ(sit->hostgroups().size(), 2u);
-  EXPECT_EQ(*sit->hostgroups().begin(), std::string("hg1"));
+  ASSERT_EQ(sit->host_name(), std::string_view("host_1"));
+  ASSERT_EQ(sit->service_description(), std::string_view("service_1"));
   EXPECT_EQ(sit->contacts().size(), 2u);
   EXPECT_EQ(*sit->contacts().begin(), std::string("contact1"));
   EXPECT_EQ(sit->notification_options(), configuration::service::warning |

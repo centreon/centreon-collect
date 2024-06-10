@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
@@ -170,8 +171,7 @@ int xpddefault_initialize_performance_data() {
 
     // get the command name, leave any arguments behind.
     temp_command_name = my_strtok(temp_buffer, "!");
-    command_map::iterator cmd_found =
-        commands::command::commands.find(temp_command_name);
+    auto cmd_found = commands::command::commands.find(temp_command_name);
 
     if (cmd_found == commands::command::commands.end() || !cmd_found->second) {
       engine_logger(log_runtime_warning, basic)

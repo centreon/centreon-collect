@@ -49,13 +49,11 @@ class parser {
     read_host = (1 << 4),
     read_hostdependency = (1 << 5),
     read_hostescalation = (1 << 6),
-    read_hostextinfo = (1 << 7),
     read_hostgroup = (1 << 8),
     read_hostgroupescalation = (1 << 9),
     read_service = (1 << 10),
     read_servicedependency = (1 << 11),
     read_serviceescalation = (1 << 12),
-    read_serviceextinfo = (1 << 13),
     read_servicegroup = (1 << 14),
     read_timeperiod = (1 << 15),
     read_all = (~0)
@@ -63,7 +61,7 @@ class parser {
 
   parser(unsigned int read_options = read_all);
   ~parser() noexcept = default;
-  void parse(std::string const& path, state& config);
+  void parse(const std::string& path, state& config);
 
  private:
   typedef void (parser::*store)(object_ptr obj);
@@ -89,8 +87,8 @@ class parser {
   static void _insert(map_object const& from, std::set<T>& to);
   std::string const& _map_object_type(map_object const& objects) const throw();
   void _parse_directory_configuration(std::string const& path);
-  void _parse_global_configuration(std::string const& path);
-  void _parse_object_definitions(std::string const& path);
+  void _parse_global_configuration(const std::string& path);
+  void _parse_object_definitions(const std::string& path);
   void _parse_resource_file(std::string const& path);
   void _resolve_template();
   void _store_into_list(object_ptr obj);
