@@ -1,12 +1,27 @@
 #!/usr/bin/perl
-
+#                                                                               
+# Copyright 2023-2024 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
+# This script is a little tcp server working on port 5669. It can simulate
+# a cbd instance. It is useful to test the validity of BBDO packets sent by
+# centengine.
 use strict;
 use warnings;
 use Getopt::Long;
-
-if ($#ARGV < 1) {
-    die "The script must be used with one integer argument\n";
-}
 
 my $d = time();
 my $dd = localtime();
@@ -41,9 +56,10 @@ if ($id eq 0) {
 else {
   if (open(FH, '<', "/tmp/states")) {
     while (<FH>) {
-      if (/$id=>(.*)/) {
+      if (/^$id=>(.*)/) {
         $status = $1;
         chomp $status;
+	last;
       }
     }
     close FH;
