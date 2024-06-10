@@ -242,11 +242,8 @@ void engine::stop() {
       _logger->error("multiplexing: could not open cache file: {}", e.what());
       _cache_file.reset();
     }
-
-    // Set writing method.
-    _state = stopped;
-    _center->update(&EngineStats::set_mode, _stats, EngineStats::STOPPED);
   }
+
   SPDLOG_LOGGER_DEBUG(_logger, "multiplexing: engine stopped");
 }
 
