@@ -455,10 +455,12 @@ void stream::_unified_sql_process_service_status(
       _index_data_insert = _mysql.prepare_query(_index_data_insert_request);
 
     fmt::string_view hv(misc::string::truncate(
-        ss.host_name, get_index_data_col_size(index_data_host_name)));
+        ss.host_name, get_centreon_storage_index_data_col_size(
+                          centreon_storage_index_data_host_name)));
     fmt::string_view sv(misc::string::truncate(
         ss.service_description,
-        get_index_data_col_size(index_data_service_description)));
+        get_centreon_storage_index_data_col_size(
+            centreon_storage_index_data_service_description)));
     _index_data_insert.bind_value_as_i32(0, host_id);
     _index_data_insert.bind_value_as_str(1, hv);
     _index_data_insert.bind_value_as_i32(2, service_id);
@@ -740,7 +742,8 @@ void stream::_update_metrics() {
     m.emplace_back(fmt::format(
         "({},'{}',{},{},'{}',{},{},'{}',{},{},{})", metric.metric_id,
         misc::string::escape(metric.unit_name,
-                             get_metrics_col_size(metrics_unit_name)),
+                             get_centreon_storage_metrics_col_size(
+                                 centreon_storage_metrics_unit_name)),
         std::isnan(metric.warn) || std::isinf(metric.warn)
             ? "NULL"
             : fmt::format("{}", metric.warn),

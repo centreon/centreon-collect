@@ -1,20 +1,20 @@
 /**
-* Copyright 2009-2013,2015 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2013,2015 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/neb/host_status.hh"
 
@@ -104,7 +104,8 @@ mapping::entry const host_status::entries[] = {
     mapping::entry(&host_status::check_interval, "check_interval"),
     mapping::entry(&host_status::check_period,
                    "check_period",
-                   get_hosts_col_size(hosts_check_period)),
+                   get_centreon_storage_hosts_col_size(
+                       centreon_storage_hosts_check_period)),
     mapping::entry(&host_status::check_type, "check_type"),
     mapping::entry(&host_status::current_check_attempt, "check_attempt"),
     mapping::entry(&host_status::current_state, "state"),
@@ -112,7 +113,8 @@ mapping::entry const host_status::entries[] = {
     mapping::entry(&host_status::enabled, "enabled"),
     mapping::entry(&host_status::event_handler,
                    "event_handler",
-                   get_hosts_col_size(hosts_event_handler)),
+                   get_centreon_storage_hosts_col_size(
+                       centreon_storage_hosts_event_handler)),
     mapping::entry(&host_status::event_handler_enabled,
                    "event_handler_enabled"),
     mapping::entry(&host_status::execution_time, "execution_time"),
@@ -171,13 +173,16 @@ mapping::entry const host_status::entries[] = {
     mapping::entry(&host_status::state_type, "state_type"),
     mapping::entry(&host_status::check_command,
                    "check_command",
-                   get_hosts_col_size(hosts_check_command)),
-    mapping::entry(&host_status::output,
-                   "output",
-                   get_hosts_col_size(hosts_output)),
-    mapping::entry(&host_status::perf_data,
-                   "perfdata",
-                   get_hosts_col_size(hosts_perfdata)),
+                   get_centreon_storage_hosts_col_size(
+                       centreon_storage_hosts_check_command)),
+    mapping::entry(
+        &host_status::output,
+        "output",
+        get_centreon_storage_hosts_col_size(centreon_storage_hosts_output)),
+    mapping::entry(
+        &host_status::perf_data,
+        "perfdata",
+        get_centreon_storage_hosts_col_size(centreon_storage_hosts_perfdata)),
     mapping::entry()};
 
 // Operations.

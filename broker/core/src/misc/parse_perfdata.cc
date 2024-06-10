@@ -208,7 +208,8 @@ std::list<perfdata> misc::parse_perfdata(
     if (end - s + 1 > 0) {
       std::string name(s, end - s + 1);
       name.resize(misc::string::adjust_size_utf8(
-          name, get_metrics_col_size(metrics_metric_name)));
+          name, get_centreon_storage_metrics_col_size(
+                    centreon_storage_metrics_metric_name)));
       p.name(std::move(name));
     } else {
       logger->error("In service {}, metric name empty before '{}...'", id(),
@@ -255,7 +256,8 @@ std::list<perfdata> misc::parse_perfdata(
     {
       std::string unit(tmp, t);
       unit.resize(misc::string::adjust_size_utf8(
-          unit, get_metrics_col_size(metrics_unit_name)));
+          unit, get_centreon_storage_metrics_col_size(
+                    centreon_storage_metrics_unit_name)));
       p.unit(std::move(unit));
     }
     tmp += t;

@@ -1,20 +1,20 @@
 /**
-* Copyright 2009-2013,2015 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2013,2015 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/neb/host.hh"
 
@@ -139,20 +139,26 @@ void host::_zero_initialize() {
 mapping::entry const host::entries[] = {
     mapping::entry(&host::acknowledged, "acknowledged"),
     mapping::entry(&host::acknowledgement_type, "acknowledgement_type"),
-    mapping::entry(static_cast<std::string(host::*)>(&host::action_url),
-                   "action_url",
-                   get_hosts_col_size(hosts_action_url)),
+    mapping::entry(
+        static_cast<std::string(host::*)>(&host::action_url),
+        "action_url",
+        get_centreon_storage_hosts_col_size(centreon_storage_hosts_action_url)),
     mapping::entry(&host::active_checks_enabled, "active_checks"),
-    mapping::entry(&host::address,
-                   "address",
-                   get_hosts_col_size(hosts_address)),
-    mapping::entry(&host::alias, "alias", get_hosts_col_size(hosts_alias)),
+    mapping::entry(
+        &host::address,
+        "address",
+        get_centreon_storage_hosts_col_size(centreon_storage_hosts_address)),
+    mapping::entry(
+        &host::alias,
+        "alias",
+        get_centreon_storage_hosts_col_size(centreon_storage_hosts_alias)),
     mapping::entry(static_cast<bool(host::*)>(&host::check_freshness),
                    "check_freshness"),
     mapping::entry(&host::check_interval, "check_interval"),
     mapping::entry(&host::check_period,
                    "check_period",
-                   get_hosts_col_size(hosts_check_period)),
+                   get_centreon_storage_hosts_col_size(
+                       centreon_storage_hosts_check_period)),
     mapping::entry(&host::check_type, "check_type"),
     mapping::entry(&host::current_check_attempt, "check_attempt"),
     mapping::entry(&host::current_state, "state"),
@@ -174,11 +180,13 @@ mapping::entry const host::entries[] = {
     mapping::entry(&host::downtime_depth, "scheduled_downtime_depth"),
     mapping::entry(static_cast<std::string(host::*)>(&host::display_name),
                    "display_name",
-                   get_hosts_col_size(hosts_display_name)),
+                   get_centreon_storage_hosts_col_size(
+                       centreon_storage_hosts_display_name)),
     mapping::entry(&host::enabled, "enabled"),
     mapping::entry(&host::event_handler,
                    "event_handler",
-                   get_hosts_col_size(hosts_event_handler)),
+                   get_centreon_storage_hosts_col_size(
+                       centreon_storage_hosts_event_handler)),
     mapping::entry(&host::event_handler_enabled, "event_handler_enabled"),
     mapping::entry(&host::execution_time, "execution_time"),
     mapping::entry(
@@ -194,14 +202,19 @@ mapping::entry const host::entries[] = {
     mapping::entry(&host::has_been_checked, "checked"),
     mapping::entry(static_cast<double(host::*)>(&host::high_flap_threshold),
                    "high_flap_threshold"),
-    mapping::entry(&host::host_name, "name", get_hosts_col_size(hosts_name)),
+    mapping::entry(
+        &host::host_name,
+        "name",
+        get_centreon_storage_hosts_col_size(centreon_storage_hosts_name)),
     mapping::entry(&host::host_id, "host_id", mapping::entry::invalid_on_zero),
-    mapping::entry(static_cast<std::string(host::*)>(&host::icon_image),
-                   "icon_image",
-                   get_hosts_col_size(hosts_icon_image)),
+    mapping::entry(
+        static_cast<std::string(host::*)>(&host::icon_image),
+        "icon_image",
+        get_centreon_storage_hosts_col_size(centreon_storage_hosts_icon_image)),
     mapping::entry(static_cast<std::string(host::*)>(&host::icon_image_alt),
                    "icon_image_alt",
-                   get_hosts_col_size(hosts_icon_image_alt)),
+                   get_centreon_storage_hosts_col_size(
+                       centreon_storage_hosts_icon_image_alt)),
     mapping::entry(&host::poller_id,
                    "instance_id",
                    mapping::entry::invalid_on_zero),
@@ -242,12 +255,14 @@ mapping::entry const host::entries[] = {
                    "next_host_notification",
                    mapping::entry::invalid_on_zero),
     mapping::entry(&host::no_more_notifications, "no_more_notifications"),
-    mapping::entry(static_cast<std::string(host::*)>(&host::notes),
-                   "notes",
-                   get_hosts_col_size(hosts_notes)),
-    mapping::entry(static_cast<std::string(host::*)>(&host::notes_url),
-                   "notes_url",
-                   get_hosts_col_size(hosts_notes_url)),
+    mapping::entry(
+        static_cast<std::string(host::*)>(&host::notes),
+        "notes",
+        get_centreon_storage_hosts_col_size(centreon_storage_hosts_notes)),
+    mapping::entry(
+        static_cast<std::string(host::*)>(&host::notes_url),
+        "notes_url",
+        get_centreon_storage_hosts_col_size(centreon_storage_hosts_notes_url)),
     mapping::entry(static_cast<double(host::*)>(&host::notification_interval),
                    "notification_interval"),
     mapping::entry(&host::notification_number,
@@ -256,7 +271,8 @@ mapping::entry const host::entries[] = {
     mapping::entry(
         static_cast<std::string(host::*)>(&host::notification_period),
         "notification_period",
-        get_hosts_col_size(hosts_notification_period)),
+        get_centreon_storage_hosts_col_size(
+            centreon_storage_hosts_notification_period)),
     mapping::entry(&host::notifications_enabled, "notify"),
     mapping::entry(&host::notify_on_down, "notify_on_down"),
     mapping::entry(static_cast<bool(host::*)>(&host::notify_on_downtime),
@@ -276,23 +292,30 @@ mapping::entry const host::entries[] = {
     mapping::entry(&host::stalk_on_up, "stalk_on_up"),
     mapping::entry(&host::statusmap_image,
                    "statusmap_image",
-                   get_hosts_col_size(hosts_statusmap_image)),
+                   get_centreon_storage_hosts_col_size(
+                       centreon_storage_hosts_statusmap_image)),
     mapping::entry(&host::state_type, "state_type"),
     mapping::entry(&host::check_command,
                    "check_command",
-                   get_hosts_col_size(hosts_check_command)),
-    mapping::entry(&host::output, "output", get_hosts_col_size(hosts_output)),
-    mapping::entry(&host::perf_data,
-                   "perfdata",
-                   get_hosts_col_size(hosts_perfdata)),
+                   get_centreon_storage_hosts_col_size(
+                       centreon_storage_hosts_check_command)),
+    mapping::entry(
+        &host::output,
+        "output",
+        get_centreon_storage_hosts_col_size(centreon_storage_hosts_output)),
+    mapping::entry(
+        &host::perf_data,
+        "perfdata",
+        get_centreon_storage_hosts_col_size(centreon_storage_hosts_perfdata)),
     mapping::entry(
         static_cast<bool(host::*)>(&host::retain_nonstatus_information),
         "retain_nonstatus_information"),
     mapping::entry(static_cast<bool(host::*)>(&host::retain_status_information),
                    "retain_status_information"),
-    mapping::entry(&host::timezone,
-                   "timezone",
-                   get_hosts_col_size(hosts_timezone)),
+    mapping::entry(
+        &host::timezone,
+        "timezone",
+        get_centreon_storage_hosts_col_size(centreon_storage_hosts_timezone)),
     mapping::entry()};
 
 // Operations.

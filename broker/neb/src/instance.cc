@@ -1,20 +1,20 @@
 /**
-* Copyright 2009-2013,2015 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2013,2015 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/neb/instance.hh"
 
@@ -103,13 +103,15 @@ void instance::_internal_copy(instance const& other) {
 mapping::entry const instance::entries[] = {
     mapping::entry(&instance::engine,
                    "engine",
-                   get_instances_col_size(instances_engine)),
+                   get_centreon_storage_instances_col_size(
+                       centreon_storage_instances_engine)),
     mapping::entry(&instance::poller_id,
                    "instance_id",
                    mapping::entry::invalid_on_zero),
     mapping::entry(&instance::name,
                    "name",
-                   get_instances_col_size(instances_name)),
+                   get_centreon_storage_instances_col_size(
+                       centreon_storage_instances_name)),
     mapping::entry(&instance::is_running, "running"),
     mapping::entry(&instance::pid, "pid"),
     mapping::entry(&instance::program_end,
@@ -120,7 +122,8 @@ mapping::entry const instance::entries[] = {
                    mapping::entry::invalid_on_minus_one),
     mapping::entry(&instance::version,
                    "version",
-                   get_instances_col_size(instances_version)),
+                   get_centreon_storage_instances_col_size(
+                       centreon_storage_instances_version)),
     mapping::entry()};
 
 // Operations.
