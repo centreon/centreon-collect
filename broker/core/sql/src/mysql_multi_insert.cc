@@ -42,8 +42,8 @@ unsigned mysql_multi_insert::execute_queries(mysql& pool,
                                              my_error::code ec,
                                              int thread_id) {
   for (std::string& query_data : _queries) {
-    query_data.append(_on_duplicate_key_part);
-    thread_id = pool.run_query(query_data, ec, thread_id);
+    thread_id =
+        pool.run_query(query_data + _on_duplicate_key_part, ec, thread_id);
   }
   return _queries.size();
 }
