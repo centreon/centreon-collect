@@ -580,9 +580,9 @@ not10
     END
 
     Ctn Schedule Host Downtime    ${0}    host_1    ${60}
-    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif
+    ${content}    Create List    Notifications for the service will not be sent out during that time period.
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
-    Should Be True    ${result}    The downtime has not been sent.
+    Should Be True    ${result}    The downtime has not be sent.
 
     Ctn Process Host Check Result    host_1    2    host_1 DOWN
 
