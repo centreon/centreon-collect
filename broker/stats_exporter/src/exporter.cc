@@ -32,7 +32,7 @@ namespace metric_sdk = opentelemetry::sdk::metrics;
  */
 exporter::exporter()
     : _center{stats::center::instance_ptr()},
-      _connections_watcher{pool::io_context()} {}
+      _connections_watcher{com::centreon::common::pool::io_context()} {}
 
 /**
  * @brief Initialize the metrics to export.
