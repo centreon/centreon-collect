@@ -28,11 +28,10 @@ using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
 
-
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/http_tsdb/stream.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -48,7 +47,6 @@ class http_tsdb_stream_test : public ::testing::Test {
 
     log_v2::tcp()->set_level(spdlog::level::info);
     file::disk_accessor::load(1000);
-    pool::load(g_io_context, 1);
   }
 };
 

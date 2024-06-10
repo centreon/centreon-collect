@@ -27,7 +27,7 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -83,9 +83,9 @@ feeder::feeder(const std::string& name,
                                          std::move(read_filters),
                                          std::move(write_filters),
                                          false)),
-      _stat_timer(pool::io_context()),
-      _read_from_stream_timer(pool::io_context()),
-      _io_context(pool::io_context_ptr()) {
+      _stat_timer(com::centreon::common::pool::io_context()),
+      _read_from_stream_timer(com::centreon::common::pool::io_context()),
+      _io_context(com::centreon::common::pool::io_context_ptr()) {
   DEBUG(fmt::format("CONSTRUCTOR feeder {:p} {} - muxer: {:p}",
                     static_cast<void*>(this), name,
                     static_cast<void*>(_muxer.get())));

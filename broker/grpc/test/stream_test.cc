@@ -28,8 +28,6 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 com::centreon::broker::grpc::grpc_config::pointer conf(
     std::make_shared<com::centreon::broker::grpc::grpc_config>(
         "127.0.0.1:4444",
@@ -80,8 +78,6 @@ class grpc_test_server : public ::testing::TestWithParam<test_param> {
     log_v2::grpc()->set_level(spdlog::level::trace);
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(conf);
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    g_io_context->restart();
-    com::centreon::broker::pool::load(g_io_context, 1);
     io::protocols::load();
     io::events::load();
   }
@@ -181,7 +177,6 @@ class grpc_comm_failure : public ::testing::TestWithParam<test_param> {
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(conf_relay_out);
     relay = std::make_unique<test_util::tcp_relais>(
         "127.0.0.1", relay_listen_port, "127.0.0.1", server_listen_port);
-    com::centreon::broker::pool::load(std::make_shared<asio::io_context>(), 1);
   }
   static void TearDownTestSuite() {
     s.reset();
@@ -399,7 +394,6 @@ class grpc_test_server_crypted : public ::testing::TestWithParam<test_param> {
     // log_v2::grpc()->set_level(spdlog::level::trace);
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(
         conf_crypted_server1234);
-    com::centreon::broker::pool::load(std::make_shared<asio::io_context>(), 1);
   }
   static void TearDownTestSuite() { s.reset(); };
 

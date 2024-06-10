@@ -38,18 +38,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
-class GrpcTlsTest : public ::testing::Test {
- public:
-  void SetUp() override {
-    pool::load(g_io_context, 1);
-    log_v2::grpc()->set_level(spdlog::level::trace);
-    io::protocols::load();
-    io::events::load();
-  }
-  void TearDown() override { pool::unload(); }
-};
+class GrpcTlsTest : public ::testing::Test {};
 
 static auto read_file = [](const std::string& path) {
   std::ifstream file(path);
@@ -62,6 +51,8 @@ static auto read_file = [](const std::string& path) {
 TEST_F(GrpcTlsTest, TlsStream) {
   /* Let's prepare certificates */
   std::string hostname = misc::exec("hostname --fqdn");
+  if (hostname.empty())
+    hostname = "localhost";
   hostname = misc::string::trim(hostname);
   std::string server_cmd(
       fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 "
