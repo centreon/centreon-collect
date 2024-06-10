@@ -87,37 +87,25 @@ applier::service& applier::service::operator=(applier::service const& right) {
  */
 void applier::service::add_object(configuration::service const& obj) {
   // Check service.
-  if (obj.hosts().size() < 1)
+  if (obj.host_name().empty())
     throw engine_error() << "Could not create service '"
                          << obj.service_description()
                          << "' with no host defined";
-  else if (obj.hosts().size() > 1)
-    throw engine_error() << "Could not create service '"
-                         << obj.service_description()
-                         << "' with multiple hosts defined";
-  else if (!obj.hostgroups().empty())
-    throw engine_error() << "Could not create service '"
-                         << obj.service_description()
-                         << "' with multiple host groups defined";
   else if (!obj.host_id())
     throw engine_error() << "No host_id available for the host '"
-                         << *obj.hosts().begin()
-                         << "' - unable to create service '"
+                         << obj.host_name() << "' - unable to create service '"
                          << obj.service_description() << "'";
 
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new service '" << obj.service_description() << "' of host '"
-      << *obj.hosts().begin() << "'.";
   config_logger->debug("Creating new service '{}' of host '{}'.",
-                       obj.service_description(), *obj.hosts().begin());
+                       obj.service_description(), obj.host_name());
 
   // Add service to the global configuration set.
   config->mut_services().insert(obj);
 
   // Create service.
   engine::service* svc{add_service(
-      obj.host_id(), obj.service_id(), *obj.hosts().begin(),
+      obj.host_id(), obj.service_id(), obj.host_name(),
       obj.service_description(), obj.display_name(), obj.check_period(),
       static_cast<engine::service::service_state>(obj.initial_state()),
       obj.max_check_attempts(), obj.check_interval(), obj.retry_interval(),
@@ -162,11 +150,11 @@ void applier::service::add_object(configuration::service const& obj) {
   if (!svc)
     throw engine_error() << "Could not register service '"
                          << obj.service_description() << "' of host '"
-                         << *obj.hosts().begin() << "'";
+                         << obj.host_name() << "'";
   svc->set_initial_notif_time(0);
-  engine::service::services[{*obj.hosts().begin(), obj.service_description()}]
+  engine::service::services[{obj.host_name(), obj.service_description()}]
       ->set_host_id(obj.host_id());
-  engine::service::services[{*obj.hosts().begin(), obj.service_description()}]
+  engine::service::services[{obj.host_name(), obj.service_description()}]
       ->set_service_id(obj.service_id());
   svc->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
                                    config->interval_length());
@@ -208,7 +196,7 @@ void applier::service::add_object(configuration::service const& obj) {
       throw engine_error() << "Could not add the severity (" << k.first << ", "
                            << k.second << ") to the service '"
                            << obj.service_description() << "' of host '"
-                           << *obj.hosts().begin() << "'";
+                           << obj.host_name() << "'";
     svc->set_severity(sv->second);
   }
 
@@ -239,10 +227,10 @@ void applier::service::add_object(configuration::service const& obj) {
 void applier::service::expand_objects(configuration::state& s) {
   // Browse all services.
   configuration::set_service expanded;
-  for (auto svc_cfg : s.services()) {
+  for (auto svc : s.services()) {
     // Should custom variables be sent to broker ?
-    for (auto it = svc_cfg.mut_customvariables().begin(),
-              end = svc_cfg.mut_customvariables().end();
+    for (auto it = svc.mut_customvariables().begin(),
+              end = svc.mut_customvariables().end();
          it != end; ++it) {
       if (!s.enable_macros_filter() ||
           s.macros_filter().find(it->first) != s.macros_filter().end()) {
@@ -250,56 +238,18 @@ void applier::service::expand_objects(configuration::state& s) {
       }
     }
 
-    // Expand service to instances.
-    std::set<std::string> target_hosts;
+    // Expand memberships.
+    _expand_service_memberships(svc, s);
 
-    // Hosts members.
-    target_hosts = svc_cfg.hosts();
+    // Inherits special vars.
+    _inherits_special_vars(svc, s);
 
-    // Host group members.
-    for (set_string::const_iterator it(svc_cfg.hostgroups().begin()),
-         end(svc_cfg.hostgroups().end());
-         it != end; ++it) {
-      // Find host group.
-      set_hostgroup::iterator it2(s.hostgroups_find(*it));
-      if (it2 == s.hostgroups().end())
-        throw(engine_error() << "Could not find host group '" << *it
-                             << "' on which to apply service '"
-                             << svc_cfg.service_description() << "'");
-
-      // Check host group and user configuration.
-      if (it2->members().empty() && !s.allow_empty_hostgroup_assignment())
-        throw(engine_error() << "Could not expand host group '" << *it
-                             << "' specified in service '"
-                             << svc_cfg.service_description() << "'");
-
-      // Add host group members.
-      target_hosts.insert(it2->members().begin(), it2->members().end());
-    }
-
-    // Browse all target hosts.
-    for (std::set<std::string>::const_iterator it(target_hosts.begin()),
-         end(target_hosts.end());
-         it != end; ++it) {
-      // Create service instance.
-      configuration::service svc(svc_cfg);
-      svc.hostgroups().clear();
-      svc.hosts().clear();
-      svc.hosts().insert(*it);
-
-      // Expand memberships.
-      _expand_service_memberships(svc, s);
-
-      // Inherits special vars.
-      _inherits_special_vars(svc, s);
-
-      // Insert object.
-      expanded.insert(svc);
-    }
+    // Insert object.
+    expanded.insert(std::move(svc));
   }
 
   // Set expanded services in configuration state.
-  s.mut_services().swap(expanded);
+  s.mut_services() = std::move(expanded);
 }
 
 /**
@@ -309,7 +259,7 @@ void applier::service::expand_objects(configuration::state& s) {
  *                  engine.
  */
 void applier::service::modify_object(configuration::service const& obj) {
-  std::string const& host_name(*obj.hosts().begin());
+  const std::string& host_name = obj.host_name();
   std::string const& service_description(obj.service_description());
 
   // Logging.
@@ -342,15 +292,15 @@ void applier::service::modify_object(configuration::service const& obj) {
   config->mut_services().insert(obj);
 
   // Modify properties.
-  if (it_obj->second->get_hostname() != *obj.hosts().begin() ||
+  if (it_obj->second->get_hostname() != obj.host_name() ||
       it_obj->second->description() != obj.service_description()) {
     engine::service::services.erase(
         {it_obj->second->get_hostname(), it_obj->second->description()});
     engine::service::services.insert(
-        {{*obj.hosts().begin(), obj.service_description()}, it_obj->second});
+        {{obj.host_name(), obj.service_description()}, it_obj->second});
   }
 
-  s->set_hostname(*obj.hosts().begin());
+  s->set_hostname(obj.host_name());
   s->set_description(obj.service_description());
   s->set_display_name(obj.display_name()),
       s->set_check_command(obj.check_command());
@@ -506,7 +456,7 @@ void applier::service::modify_object(configuration::service const& obj) {
       throw engine_error() << "Could not update the severity (" << k.first
                            << ", " << k.second << ") to the service '"
                            << obj.service_description() << "' of host '"
-                           << *obj.hosts().begin() << "'";
+                           << obj.host_name() << "'";
     s->set_severity(sv->second);
   } else
     s->set_severity(nullptr);
@@ -536,7 +486,7 @@ void applier::service::modify_object(configuration::service const& obj) {
  *                  engine.
  */
 void applier::service::remove_object(configuration::service const& obj) {
-  std::string const& host_name(*obj.hosts().begin());
+  std::string const& host_name(obj.host_name());
   std::string const& service_description(obj.service_description());
 
   assert(obj.key().first);
@@ -600,16 +550,16 @@ void applier::service::resolve_object(configuration::service const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving service '" << obj.service_description() << "' of host '"
-      << *obj.hosts().begin() << "'.";
+      << obj.host_name() << "'.";
   config_logger->debug("Resolving service '{}' of host '{}'.",
-                       obj.service_description(), *obj.hosts().begin());
+                       obj.service_description(), obj.host_name());
 
   // Find service.
   service_id_map::iterator it(engine::service::services_by_id.find(obj.key()));
   if (engine::service::services_by_id.end() == it)
     throw engine_error() << "Cannot resolve non-existing service '"
                          << obj.service_description() << "' of host '"
-                         << *obj.hosts().begin() << "'";
+                         << obj.host_name() << "'";
 
   // Remove service group links.
   it->second->get_parent_groups().clear();
@@ -645,7 +595,7 @@ void applier::service::_expand_service_memberships(configuration::service& obj,
     if (it_group == s.servicegroups().end())
       throw(engine_error() << "Could not add service '"
                            << obj.service_description() << "' of host '"
-                           << *obj.hosts().begin()
+                           << obj.host_name()
                            << "' to non-existing service group '" << *it
                            << "'");
 
@@ -655,7 +605,7 @@ void applier::service::_expand_service_memberships(configuration::service& obj,
 
     // Add service to service members.
     backup.members().insert(
-        std::make_pair(*obj.hosts().begin(), obj.service_description()));
+        std::make_pair(obj.host_name(), obj.service_description()));
 
     // Reinsert service group.
     s.servicegroups().insert(backup);
@@ -680,11 +630,11 @@ void applier::service::_inherits_special_vars(configuration::service& obj,
       !obj.notification_period_defined() || !obj.timezone_defined()) {
     // Find host.
     configuration::set_host::const_iterator it(
-        s.hosts_find(obj.hosts().begin()->c_str()));
+        s.hosts_find(obj.host_name().c_str()));
     if (it == s.hosts().end())
       throw engine_error()
           << "Could not inherit special variables for service '"
-          << obj.service_description() << "': host '" << *obj.hosts().begin()
+          << obj.service_description() << "': host '" << obj.host_name()
           << "' does not exist";
 
     // Inherits variables.

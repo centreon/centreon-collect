@@ -836,7 +836,7 @@ std::vector<com::centreon::engine::service*> applier::scheduler::_get_services(
   for (auto it = svc_cfg.rbegin(), end = svc_cfg.rend(); it != end; ++it) {
     uint64_t host_id(it->host_id());
     uint64_t service_id(it->service_id());
-    std::string const& host_name(*it->hosts().begin());
+    const std::string& host_name = it->host_name();
     std::string const& service_description(it->service_description());
     service_id_map::const_iterator svc(services.find({host_id, service_id}));
     if (svc == services.end()) {

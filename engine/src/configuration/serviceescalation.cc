@@ -79,11 +79,6 @@ serviceescalation::serviceescalation(serviceescalation const& right)
 }
 
 /**
- *  Destructor.
- */
-serviceescalation::~serviceescalation() throw() {}
-
-/**
  *  Copy constructor.
  *
  *  @param[in] right The serviceescalation to copy.

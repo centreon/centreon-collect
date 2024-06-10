@@ -230,7 +230,7 @@ class anomalydetection : public object {
   opt<uint64_t> _severity_id;
   opt<uint64_t> _icon_id;
   std::set<std::pair<uint64_t, uint16_t>> _tags;
-  opt<double> _sensitivity;
+  double _sensitivity;
 };
 
 typedef std::shared_ptr<anomalydetection> anomalydetection_ptr;
