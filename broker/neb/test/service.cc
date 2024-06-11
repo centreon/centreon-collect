@@ -177,6 +177,7 @@ TEST_F(ServiceTest, DefaultCtor) {
   ASSERT_EQ(entry.get_type(), mapping::source::STRING);
   size_t max_len;
   std::string str(entry.get_string(s, &max_len));
-  ASSERT_EQ(max_len, get_services_col_size(services_action_url));
+  ASSERT_EQ(max_len, get_centreon_storage_services_col_size(
+                         centreon_storage_services_action_url));
   ASSERT_TRUE(str.empty());
 }

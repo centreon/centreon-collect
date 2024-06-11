@@ -222,16 +222,15 @@ void stream::_unified_sql_process_pb_service_status(
             _metric_cache[{index_id, pd.name()}] = info;
           } catch (std::exception const& e) {
             log_v2::perfdata()->error(
-                "unified sql: failed to create metric {} with type {}, "
+                "unified sql: failed to create metric '{}' with type {}, "
                 "value {}, unit_name {}, warn {}, warn_low {}, warn_mode {}, "
                 "crit {}, crit_low {}, crit_mode {}, min {} and max {}",
-                metric_id, type, pd.value(), pd.unit(), pd.warning(),
+                pd.name(), type, pd.value(), pd.unit(), pd.warning(),
                 pd.warning_low(), pd.warning_mode(), pd.critical(),
                 pd.critical_low(), pd.critical_mode(), pd.min(), pd.max());
-            throw msg_fmt(
-                "unified_sql: insertion of metric '{}"
-                "' of index {} failed: {}",
-                pd.name(), index_id, e.what());
+
+            // The metric creation failed, we pass to the next metric.
+            continue;
           }
         } else {
           rlck.unlock();
@@ -456,10 +455,12 @@ void stream::_unified_sql_process_service_status(
       _index_data_insert = _mysql.prepare_query(_index_data_insert_request);
 
     fmt::string_view hv(misc::string::truncate(
-        ss.host_name, get_index_data_col_size(index_data_host_name)));
+        ss.host_name, get_centreon_storage_index_data_col_size(
+                          centreon_storage_index_data_host_name)));
     fmt::string_view sv(misc::string::truncate(
         ss.service_description,
-        get_index_data_col_size(index_data_service_description)));
+        get_centreon_storage_index_data_col_size(
+            centreon_storage_index_data_service_description)));
     _index_data_insert.bind_value_as_i32(0, host_id);
     _index_data_insert.bind_value_as_str(1, hv);
     _index_data_insert.bind_value_as_i32(2, service_id);
@@ -592,16 +593,15 @@ void stream::_unified_sql_process_service_status(
             _metric_cache[{index_id, pd.name()}] = info;
           } catch (std::exception const& e) {
             log_v2::perfdata()->error(
-                "unified sql: failed to create metric {} with type {}, "
+                "unified sql: failed to create metric '{}' with type {}, "
                 "value {}, unit_name {}, warn {}, warn_low {}, warn_mode {}, "
                 "crit {}, crit_low {}, crit_mode {}, min {} and max {}",
-                metric_id, type, pd.value(), pd.unit(), pd.warning(),
+                pd.name(), type, pd.value(), pd.unit(), pd.warning(),
                 pd.warning_low(), pd.warning_mode(), pd.critical(),
                 pd.critical_low(), pd.critical_mode(), pd.min(), pd.max());
-            throw msg_fmt(
-                "unified_sql: insertion of metric '{}"
-                "' of index {} failed: {}",
-                pd.name(), index_id, e.what());
+
+            // The metric creation failed, we pass to the next metric.
+            continue;
           }
         } else {
           rlck.unlock();
@@ -742,7 +742,8 @@ void stream::_update_metrics() {
     m.emplace_back(fmt::format(
         "({},'{}',{},{},'{}',{},{},'{}',{},{},{})", metric.metric_id,
         misc::string::escape(metric.unit_name,
-                             get_metrics_col_size(metrics_unit_name)),
+                             get_centreon_storage_metrics_col_size(
+                                 centreon_storage_metrics_unit_name)),
         std::isnan(metric.warn) || std::isinf(metric.warn)
             ? "NULL"
             : fmt::format("{}", metric.warn),

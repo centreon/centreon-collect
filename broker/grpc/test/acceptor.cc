@@ -62,6 +62,8 @@ static auto read_file = [](const std::string& path) {
 TEST_F(GrpcTlsTest, TlsStream) {
   /* Let's prepare certificates */
   std::string hostname = misc::exec("hostname --fqdn");
+  if (hostname.empty())
+    hostname = "localhost";
   hostname = misc::string::trim(hostname);
   std::string server_cmd(
       fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 "
