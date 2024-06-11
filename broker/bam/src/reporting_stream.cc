@@ -581,9 +581,9 @@ struct bulk_dimension_kpi_binder {
               dk.meta_service_name,
               get_centreon_storage_mod_bam_reporting_kpi_col_size(
                   centreon_storage_mod_bam_reporting_kpi_meta_service_name)));
-      binder.set_value_as_f64(12, dk.impact_warning);
-      binder.set_value_as_f64(13, dk.impact_critical);
-      binder.set_value_as_f64(14, dk.impact_unknown);
+      binder.set_value_as_f32(12, dk.impact_warning);
+      binder.set_value_as_f32(13, dk.impact_critical);
+      binder.set_value_as_f32(14, dk.impact_unknown);
       binder.set_value_as_i32(15, dk.boolean_id);
       binder.set_value_as_str(
           16, misc::string::truncate(
@@ -650,9 +650,9 @@ struct bulk_dimension_kpi_binder {
               dk.meta_service_name(),
               get_centreon_storage_mod_bam_reporting_kpi_col_size(
                   centreon_storage_mod_bam_reporting_kpi_meta_service_name)));
-      binder.set_value_as_f64(12, dk.impact_warning());
-      binder.set_value_as_f64(13, dk.impact_critical());
-      binder.set_value_as_f64(14, dk.impact_unknown());
+      binder.set_value_as_f32(12, dk.impact_warning());
+      binder.set_value_as_f32(13, dk.impact_critical());
+      binder.set_value_as_f32(14, dk.impact_unknown());
       binder.set_value_as_i32(15, dk.boolean_id());
       binder.set_value_as_str(
           16, misc::string::truncate(
