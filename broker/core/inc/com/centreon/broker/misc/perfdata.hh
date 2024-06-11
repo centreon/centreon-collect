@@ -89,7 +89,7 @@ class perfdata {
  *  @return Metric value.
  */
 // Inlined after profiling for performance.
-inline double perfdata::value() const noexcept {
+inline float perfdata::value() const noexcept {
   return _value;
 }
 }  // namespace misc

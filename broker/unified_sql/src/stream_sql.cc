@@ -920,8 +920,8 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
           misc::string::escape(dd.author,
                                get_centreon_storage_downtimes_col_size(
                                    centreon_storage_downtimes_author)),
-          dd.downtime_type, dd.deletion_time.to_string(), dd.duration,
-          dd.end_time.to_string(), dd.entry_time.to_string(), dd.fixed,
+          dd.downtime_type, dd.deletion_time, dd.duration,
+          dd.end_time, dd.entry_time, dd.fixed,
           dd.host_id, dd.poller_id, dd.internal_id, dd.service_id,
           dd.start_time, int64_not_minus_one{dd.triggered_by}, dd.was_cancelled,
           dd.was_started,
