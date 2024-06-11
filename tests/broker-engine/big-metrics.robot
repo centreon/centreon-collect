@@ -40,7 +40,7 @@ EBBM1
     ${content}    Create List
     ...    Out of range value for column 'current_value'
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${not result}    Big metric cannot be stored in the database.
+    Should Be True    not ${result}    Big metric cannot be stored in the database.
 
 #    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 #    ${date}    Get Current Date    result_format=epoch
