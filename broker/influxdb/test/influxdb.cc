@@ -21,9 +21,11 @@
 #include <gtest/gtest.h>
 #include "../../core/test/test_server.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+using com::centreon::common::log_v2::log_v2;
 
 class InfluxDB12 : public testing::Test {
  public:
@@ -32,6 +34,7 @@ class InfluxDB12 : public testing::Test {
     _thread = std::thread(&test_server::run, &_server);
 
     _server.wait_for_init();
+    _logger = log_v2::instance().get(log_v2::INFLUXDB);
   }
   void TearDown() override {
     _server.stop();
@@ -40,6 +43,7 @@ class InfluxDB12 : public testing::Test {
 
   test_server _server;
   std::thread _thread;
+  std::shared_ptr<spdlog::logger> _logger;
 };
 
 TEST_F(InfluxDB12, BadConnection) {
@@ -48,10 +52,11 @@ TEST_F(InfluxDB12, BadConnection) {
   std::vector<influxdb::column> mcolumns;
   std::vector<influxdb::column> scolumns;
 
-  ASSERT_THROW(influxdb::influxdb idb("centreon", "pass", "localhost", 4243,
-                                      "centreon", "host_status", scolumns,
-                                      "host_metrics", mcolumns, mcache),
-               msg_fmt);
+  ASSERT_THROW(
+      influxdb::influxdb idb("centreon", "pass", "localhost", 4243, "centreon",
+                             "host_status", scolumns, "host_metrics", mcolumns,
+                             mcache, _logger),
+      msg_fmt);
 }
 
 TEST_F(InfluxDB12, Empty) {
@@ -62,7 +67,7 @@ TEST_F(InfluxDB12, Empty) {
 
   influxdb::influxdb idb("centreon", "pass", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
-                         mcache);
+                         mcache, _logger);
   idb.clear();
   ASSERT_NO_THROW(idb.commit());
 }
@@ -95,7 +100,7 @@ TEST_F(InfluxDB12, Simple) {
 
   influxdb::influxdb idb("centreon", "pass", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
-                         mcache);
+                         mcache, _logger);
   m1.set_time(2000llu);
   m1.set_interval(60);
   m1.set_metric_id(42u);
@@ -143,7 +148,7 @@ TEST_F(InfluxDB12, BadServerResponse1) {
 
   influxdb::influxdb idb("centreon", "fail1", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
-                         mcache);
+                         mcache, _logger);
 
   m1.set_time(2000llu);
   m1.set_interval(60);
@@ -210,7 +215,7 @@ TEST_F(InfluxDB12, BadServerResponse2) {
 
   influxdb::influxdb idb("centreon", "fail2", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
-                         mcache);
+                         mcache, _logger);
 
   m1.set_time(2000llu);
   m1.set_interval(60);

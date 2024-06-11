@@ -26,6 +26,9 @@ from google.protobuf import empty_pb2
 from google.protobuf.timestamp_pb2 import Timestamp
 import engine_pb2
 import engine_pb2_grpc
+import opentelemetry.proto.collector.metrics.v1.metrics_service_pb2
+import opentelemetry.proto.collector.metrics.v1.metrics_service_pb2_grpc
+import opentelemetry.proto.metrics.v1.metrics_pb2
 from array import array
 from dateutil import parser
 import datetime
@@ -173,6 +176,7 @@ class EngineInstance:
                 "log_level_macros=info\n"
                 "log_level_process=info\n"
                 "log_level_runtime=info\n"
+                "log_level_otl=trace\n"
                 "log_flush_period=0\n"
                 "soft_state_dependencies=0\n"
                 "obsess_over_services=0\n"
@@ -3090,6 +3094,27 @@ def ctn_grep_retention(poller: int, pattern: str):
     return Common.ctn_grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
 
 
+def ctn_config_add_otl_connector(poller: int, connector_name: str, command_line:str):
+    """
+    ctn_config_add_otl_connector
+
+     add a connector entry to connectors.cfg
+
+    Args:
+        poller: poller index
+        connector_name: 
+        command_line:
+    """
+
+    with open(f"{CONF_DIR}/config{poller}/connectors.cfg", "a") as f:
+        f.write(f"""
+define connector {{
+    connector_name                 {connector_name}
+    connector_line                 {command_line}
+}}
+""")
+
+
 def ctn_modify_retention_dat(poller, host, service, key, value):
     """
     Modify a parameter of a service in the retention.dat file.
@@ -3335,7 +3360,7 @@ def ctn_get_engine_log_level(port, log, timeout=TIMEOUT):
             stub = engine_pb2_grpc.EngineStub(channel)
             try:
                 logs = stub.GetLogInfo(empty_pb2.Empty())
-                return logs.loggers[0].level[log]
+                return logs.level[log]
 
             except:
                 logger.console("gRPC server not ready")
@@ -3369,3 +3394,206 @@ define timeperiod {{
     {my_date.date().isoformat()}  {begin.strftime("%H:%M")}-{end.time().strftime("%H:%M")}
 }}
 """)
+
+
+def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str):
+    """!
+    add a new broker_module line to centengine.cfg and create otl_server config file
+    @param idx index ofthe poller usually 0
+    @param otl_server_config_json_content json content of the otl configuration file
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
+    otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx}/otl_server.json"
+    with open(filename, "a+") as f:
+        f.write(f"broker_module=/usr/lib64/centreon-engine/libopentelemetry.so {otl_server_config_path}")
+    
+    with open(otl_server_config_path, "w") as f:
+        f.write(otl_server_config_json_content)
+
+def ctn_randomword(length):
+   letters = string.ascii_lowercase
+   return ''.join(random.choice(letters) for i in range(length))
+
+
+# Example of open telemetry request
+# {
+#     "resourceMetrics": [
+#         {
+#             "resource": {
+#                 "attributes": [
+#                     {
+#                         "key": "service.name",
+#                         "value": {
+#                             "stringValue": "demo_telegraf"
+#                         }
+#                     }
+#                 ]
+#             },
+#             "scopeMetrics": [
+#                 {
+#                     "scope": {
+#                         "attributes": [
+#                             {
+#                                 "key": "host",
+#                                 "value": {
+#                                     "stringValue": "d4854a00b171"
+#                                 }
+#                             }
+#                         ]
+#                     },
+#                     "metrics": [
+#                         {
+#                             "name": "swap_used_percent",
+#                             "gauge": {
+#                                 "dataPoints": [
+#                                     {
+#                                         "timeUnixNano": "1706864500000000000",
+#                                         "asDouble": 99.999809264772921,
+#                                         "attributes": [
+#                                             {
+#                                                 "key": "host",
+#                                                 "value": {
+#                                                     "stringValue": "d4854a00b171"
+#                                                 }
+#                                             }
+#                                         ]
+#                                     }
+#                                 ]
+#                             }
+#                         },
+#                         {
+#                             "name": "swap_total",
+#                             "gauge": {
+#                                 "dataPoints": [
+#                                     {
+#                                         "timeUnixNano": "1706864500000000000",
+#                                         "asInt": "2147479552",
+#                                         "attributes": [
+#                                             {
+#                                                 "key": "host",
+#                                                 "value": {
+#                                                     "stringValue": "d4854a00b171"
+#                                                 }
+#                                             }
+#                                         ]
+#                                     }
+#                                 ]
+#                             }
+#                         }
+#                     ]
+#                 }
+#             ]
+#         }
+#     ]
+# }
+
+
+def ctn_add_data_point_to_metric(metric, attrib:dict, metric_value = None):
+    """
+    
+    ctn_add_data_point_to_metric
+
+    add a data point to metric
+    Args:
+        metric: metric
+        attrib: key =>values to add in datapoint attributes
+        metric_value (optional) value of metric, random if not given
+
+    """
+    data_point = metric.gauge.data_points.add()
+    data_point.time_unix_nano = int(time.time())
+    if metric_value is not None:
+        data_point.as_double = metric_value
+    else:
+        data_point.as_double = random.random()
+    for key, value in attrib.items():
+        attr = data_point.attributes.add()
+        attr.key = key
+        attr.value.string_value = value
+
+
+def ctn_create_otl_metric(name:str, nb_datapoints:int, attrib:dict, metric_value = None):
+    """
+
+    create_otl_metric
+
+    create a Metric
+    Args:
+        name:  metric name
+        nb_datapoints: number of datapoints added to the metric
+        attrib: key =>values to add in datapoint attributes
+        metric_value (optional) value of metric, random if not given
+    Returns:  opentelemetry.proto.metrics.v1.Metric object
+    """
+    metric = opentelemetry.proto.metrics.v1.metrics_pb2.Metric()
+    metric.name = name
+    for i in range(nb_datapoints):
+        ctn_add_data_point_to_metric(metric, attrib, metric_value)
+    return metric
+    
+
+def ctn_create_otl_scope_metrics(scope_attr: dict, metrics: list):
+    """
+    create_otl_scope_metrics
+
+    create a ScopeMetrics
+    Args:
+        scope_attr: attributes to add in scope object
+        metrics: metrics to add in metrics array
+    Returns: opentelemetry.proto.metrics.v1.metrics_pb2.ScopeMetrics object
+    """
+    scope_metrics = opentelemetry.proto.metrics.v1.metrics_pb2.ScopeMetrics()
+    for key, value in scope_attr.items():
+        attr = scope_metrics.scope.attributes.add()
+        attr.key = key
+        attr.value.string_value = value
+    for metric in metrics:
+        to_fill = scope_metrics.metrics.add()
+        to_fill.CopyFrom(metric)
+    return scope_metrics
+
+def ctn_create_otl_resource_metrics(resource_attr: dict, scope_metrics: list):
+    """
+    create_otl_resource_metrics
+
+    create a ResourceMetrics
+    Args:
+        resource_attr: attributes to add in resource object
+        scope_metrics: metrics to add in scopeMetrics array
+    Returns: opentelemetry.proto.metrics.v1.metrics_pb2.ResourceMetrics object
+    """
+    resource_metrics = opentelemetry.proto.metrics.v1.metrics_pb2.ResourceMetrics()
+    for key, value in resource_attr.items():
+        attr = resource_metrics.resource.attributes.add()
+        attr.key = key
+        attr.value.string_value = value
+    for scope_metric in scope_metrics:
+        to_fill = resource_metrics.scope_metrics.add()
+        to_fill.CopyFrom(scope_metric)
+    return resource_metrics
+
+
+def ctn_send_otl_to_engine(port: int, resource_metrics: list):
+    """
+    send_otl_to_engine
+
+    send an otl request to engine otl server
+
+    Args:
+        port: port to connect to engine
+        resource_metrics: resource_metrics to add to grpc message
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        # same for engine and broker
+        stub = opentelemetry.proto.collector.metrics.v1.metrics_service_pb2_grpc.MetricsServiceStub(channel)
+        try:
+            request = opentelemetry.proto.collector.metrics.v1.metrics_service_pb2.ExportMetricsServiceRequest()
+            for res_metric in resource_metrics:
+                to_fill = request.resource_metrics.add()
+                to_fill.CopyFrom(res_metric)
+
+            return stub.Export(request)
+        except:
+            logger.console("gRPC server not ready")
+
+

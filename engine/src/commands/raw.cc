@@ -1,27 +1,25 @@
 /**
-* Copyright 2011-2015,2017 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/engine/commands/raw.hh"
 #include "com/centreon/engine/commands/environment.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 
@@ -40,7 +38,7 @@ using namespace com::centreon::engine::commands;
 raw::raw(std::string const& name,
          std::string const& command_line,
          command_listener* listener)
-    : command(name, command_line, listener), process_listener() {
+    : command(name, command_line, listener, e_type::raw), process_listener() {
   if (_command_line.empty())
     throw engine_error() << "Could not create '" << _name
                          << "' command: command line is empty";
@@ -64,7 +62,7 @@ raw::~raw() noexcept {
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: Raw command destructor failed: " << e.what();
-    SPDLOG_LOGGER_ERROR(log_v2::runtime(),
+    SPDLOG_LOGGER_ERROR(runtime_logger,
                         "Error: Raw command destructor failed: {}", e.what());
   }
 }
@@ -87,7 +85,7 @@ uint64_t raw::run(std::string const& processed_cmd,
                   const void* caller) {
   engine_logger(dbg_commands, basic)
       << "raw::run: cmd='" << processed_cmd << "', timeout=" << timeout;
-  SPDLOG_LOGGER_TRACE(log_v2::commands(), "raw::run: cmd='{}', timeout={}",
+  SPDLOG_LOGGER_TRACE(commands_logger, "raw::run: cmd='{}', timeout={}",
                       processed_cmd, timeout);
 
   // Get process and put into the busy list.
@@ -105,7 +103,7 @@ uint64_t raw::run(std::string const& processed_cmd,
 
   engine_logger(dbg_commands, basic)
       << "raw::run: id=" << command_id << ", process=" << p;
-  SPDLOG_LOGGER_TRACE(log_v2::commands(), "raw::run: id={} , process={}",
+  SPDLOG_LOGGER_TRACE(commands_logger, "raw::run: id={} , process={}",
                       command_id, (void*)p);
 
   // Setup environnement macros if is necessary.
@@ -117,12 +115,12 @@ uint64_t raw::run(std::string const& processed_cmd,
     p->exec(processed_cmd.c_str(), env.data(), timeout);
     engine_logger(dbg_commands, basic)
         << "raw::run: start process success: id=" << command_id;
-    SPDLOG_LOGGER_TRACE(log_v2::commands(),
+    SPDLOG_LOGGER_TRACE(commands_logger,
                         "raw::run: start process success: id={}", command_id);
   } catch (...) {
     engine_logger(dbg_commands, basic)
         << "raw::run: start process failed: id=" << command_id;
-    SPDLOG_LOGGER_TRACE(log_v2::commands(),
+    SPDLOG_LOGGER_TRACE(commands_logger,
                         "raw::run: start process failed: id={}", command_id);
 
     std::lock_guard<std::mutex> lock(_lock);
@@ -147,7 +145,7 @@ void raw::run(std::string const& processed_cmd,
               result& res) {
   engine_logger(dbg_commands, basic)
       << "raw::run: cmd='" << processed_cmd << "', timeout=" << timeout;
-  SPDLOG_LOGGER_TRACE(log_v2::commands(), "raw::run: cmd='{}', timeout={}",
+  SPDLOG_LOGGER_TRACE(commands_logger, "raw::run: cmd='{}', timeout={}",
                       processed_cmd, timeout);
 
   // Get process.
@@ -156,7 +154,7 @@ void raw::run(std::string const& processed_cmd,
 
   engine_logger(dbg_commands, basic)
       << "raw::run: id=" << command_id << ", process=" << &p;
-  SPDLOG_LOGGER_TRACE(log_v2::commands(), "raw::run: id={}, process={}",
+  SPDLOG_LOGGER_TRACE(commands_logger, "raw::run: id={}, process={}",
                       command_id, (void*)&p);
 
   // Setup environement macros if is necessary.
@@ -168,12 +166,12 @@ void raw::run(std::string const& processed_cmd,
     p.exec(processed_cmd.c_str(), env.data(), timeout);
     engine_logger(dbg_commands, basic)
         << "raw::run: start process success: id=" << command_id;
-    SPDLOG_LOGGER_TRACE(log_v2::commands(),
+    SPDLOG_LOGGER_TRACE(commands_logger,
                         "raw::run: start process success: id={}", command_id);
   } catch (...) {
     engine_logger(dbg_commands, basic)
         << "raw::run: start process failed: id=" << command_id;
-    SPDLOG_LOGGER_TRACE(log_v2::commands(),
+    SPDLOG_LOGGER_TRACE(commands_logger,
                         "raw::run: start process failed: id={}", command_id);
     throw;
   }
@@ -216,7 +214,7 @@ void raw::run(std::string const& processed_cmd,
                                      << ", "
                                         "output='"
                                      << res.output << "'";
-  SPDLOG_LOGGER_TRACE(log_v2::commands(),
+  SPDLOG_LOGGER_TRACE(commands_logger,
                       "raw::run: end process: "
                       "id={}, {}",
                       command_id, res);
@@ -255,7 +253,7 @@ void raw::data_is_available_err(process& p) noexcept {
 void raw::finished(process& p) noexcept {
   try {
     engine_logger(dbg_commands, basic) << "raw::finished: process=" << &p;
-    SPDLOG_LOGGER_TRACE(log_v2::commands(), "raw::finished: process={}",
+    SPDLOG_LOGGER_TRACE(commands_logger, "raw::finished: process={}",
                         (void*)&p);
 
     uint64_t command_id(0);
@@ -272,7 +270,7 @@ void raw::finished(process& p) noexcept {
         engine_logger(log_runtime_warning, basic)
             << "Warning: Invalid process pointer: "
                "process not found into process busy list";
-        SPDLOG_LOGGER_WARN(log_v2::runtime(),
+        SPDLOG_LOGGER_WARN(runtime_logger,
                            "Warning: Invalid process pointer: "
                            "process not found into process busy list");
         return;
@@ -283,7 +281,7 @@ void raw::finished(process& p) noexcept {
     }
 
     engine_logger(dbg_commands, basic) << "raw::finished: id=" << command_id;
-    SPDLOG_LOGGER_TRACE(log_v2::commands(), "raw::finished: id={}", command_id);
+    SPDLOG_LOGGER_TRACE(commands_logger, "raw::finished: id={}", command_id);
 
     // Build check result.
     result res;
@@ -318,8 +316,8 @@ void raw::finished(process& p) noexcept {
         << ", exit_code=" << res.exit_code
         << ", exit_status=" << res.exit_status << ", output='" << res.output
         << "'";
-    SPDLOG_LOGGER_TRACE(log_v2::commands(), "raw::finished: id={}, {}",
-                        command_id, res);
+    SPDLOG_LOGGER_TRACE(commands_logger, "raw::finished: id={}, {}", command_id,
+                        res);
 
     update_result_cache(command_id, res);
 
@@ -329,7 +327,7 @@ void raw::finished(process& p) noexcept {
   } catch (std::exception const& e) {
     engine_logger(log_runtime_warning, basic)
         << "Warning: Raw process termination routine failed: " << e.what();
-    SPDLOG_LOGGER_WARN(log_v2::runtime(),
+    SPDLOG_LOGGER_WARN(runtime_logger,
                        "Warning: Raw process termination routine failed: {}",
                        e.what());
 
@@ -395,9 +393,8 @@ void raw::_build_custom_contact_macro_environment(nagios_macros& macros,
   // Set custom contact variable into the environement
   for (auto const& cv : macros.custom_contact_vars) {
     if (!cv.first.empty()) {
-      std::string value(
-          clean_macro_chars(cv.second.get_value(),
-                            STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
+      std::string value(clean_macro_chars(
+          cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
       std::string line;
       line.append(MACRO_ENV_VAR_PREFIX);
       line.append(cv.first);
@@ -430,9 +427,8 @@ void raw::_build_custom_host_macro_environment(nagios_macros& macros,
   // Set custom host variable into the environement
   for (auto const& cv : macros.custom_host_vars) {
     if (!cv.first.empty()) {
-      std::string value(
-          clean_macro_chars(cv.second.get_value(),
-                            STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
+      std::string value(clean_macro_chars(
+          cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
       std::string line;
       line.append(MACRO_ENV_VAR_PREFIX);
       line.append(cv.first);
@@ -465,9 +461,8 @@ void raw::_build_custom_service_macro_environment(nagios_macros& macros,
   // Set custom service variable into the environement
   for (auto const& cv : macros.custom_service_vars) {
     if (!cv.first.empty()) {
-      std::string value(
-          clean_macro_chars(cv.second.get_value(),
-                            STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
+      std::string value(clean_macro_chars(
+          cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
       std::string line;
       line.append(MACRO_ENV_VAR_PREFIX);
       line.append(cv.first);

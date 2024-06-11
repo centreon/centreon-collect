@@ -1,21 +1,20 @@
-/*
-** Copyright 2011-2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCE_CONFIGURATION_STATE_HH
 #define CCE_CONFIGURATION_STATE_HH
@@ -36,10 +35,11 @@
 #include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 namespace com::centreon::engine::configuration {
+
+class state;
 
 class setter_base {
  protected:
@@ -180,8 +180,8 @@ class state {
   void date_format(date_type value);
   std::string const& debug_file() const noexcept;
   void debug_file(std::string const& value);
-  uint64_t debug_level() const noexcept;
-  void debug_level(uint64_t value);
+  int64_t debug_level() const noexcept;
+  void debug_level(int64_t value);
   unsigned int debug_verbosity() const noexcept;
   void debug_verbosity(unsigned int value);
   bool enable_environment_macros() const noexcept;
@@ -345,7 +345,7 @@ class state {
   // const set_anomalydetection& anomalydetections() const noexcept;
   set_anomalydetection& anomalydetections() noexcept;
   set_service const& services() const noexcept;
-  set_service& services() noexcept;
+  set_service& mut_services() noexcept;
   set_anomalydetection::iterator anomalydetections_find(
       anomalydetection::key_type const& k);
   set_service::iterator services_find(service::key_type const& k);
@@ -443,6 +443,8 @@ class state {
   void log_level_process(std::string const& value);
   std::string const& log_level_runtime() const noexcept;
   void log_level_runtime(std::string const& value);
+  std::string const& log_level_otl() const noexcept;
+  void log_level_otl(std::string const& value);
   std::string const& use_timezone() const noexcept;
   void use_timezone(std::string const& value);
   bool use_true_regexp_matching() const noexcept;
@@ -530,7 +532,7 @@ class state {
   set_contact _contacts;
   date_type _date_format;
   std::string _debug_file;
-  uint64_t _debug_level;
+  int64_t _debug_level;
   unsigned int _debug_verbosity;
   bool _enable_environment_macros;
   bool _enable_event_handlers;
@@ -650,6 +652,7 @@ class state {
   std::string _log_level_macros;
   std::string _log_level_process;
   std::string _log_level_runtime;
+  std::string _log_level_otl;
   std::string _use_timezone;
   bool _use_true_regexp_matching;
   bool _send_recovery_notifications_anyways;

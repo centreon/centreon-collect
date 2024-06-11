@@ -1,5 +1,5 @@
 #
-# Copyright 2023 Centreon
+# Copyright 2023-2024 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -19,10 +19,13 @@
 # Global options.
 project("Centreon common" C CXX)
 
+add_subdirectory(log_v2)
+
 # Set directories.
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/common")
+set (HTTP_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/http/inc/com/centreon/common/http")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-set(TEST_DIR "${PROJECT_SOURCE_DIR}/test")
+set(TEST_DIR "${PROJECT_SOURCE_DIR}/tests")
 
 add_custom_command(
   DEPENDS ${SRC_DIR}/process_stat.proto
@@ -30,9 +33,8 @@ add_custom_command(
   OUTPUT ${SRC_DIR}/process_stat.grpc.pb.cc ${SRC_DIR}/process_stat.grpc.pb.h
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-    --proto_path=${SRC_DIR} --grpc_out="${SRC_DIR}"
-    ${SRC_DIR}/process_stat.proto
+    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${SRC_DIR}
+    --grpc_out="${SRC_DIR}" ${SRC_DIR}/process_stat.proto
   DEPENDS ${SRC_DIR}/process_stat.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${SRC_DIR}/process_stat.pb.cc ${SRC_DIR}/process_stat.pb.h
@@ -52,6 +54,7 @@ set(SOURCES
 
 # Include directories.
 include_directories("${INCLUDE_DIR}"
+  ${HTTP_INCLUDE_DIR}
 	${VCPKG_INCLUDE_DIR}
   )
 
@@ -62,6 +65,9 @@ set_property(TARGET centreon_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_precompile_headers(centreon_common PRIVATE precomp_inc/precomp.hh)
 
+add_subdirectory(http)
+add_subdirectory(grpc)
+
 if(WITH_TESTING)
-  add_subdirectory(test)
+  add_subdirectory(tests)
 endif()

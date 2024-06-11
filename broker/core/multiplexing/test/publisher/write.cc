@@ -50,9 +50,10 @@ TEST_F(PublisherWrite, Write) {
     multiplexing::publisher p;
 
     // Subscriber.
-    absl::flat_hash_set<uint32_t> filters{io::raw::static_type()};
+    multiplexing::muxer_filter filters{io::raw::static_type()};
     std::shared_ptr<multiplexing::muxer> mux(multiplexing::muxer::create(
-        "core_multiplexing_publisher_write", filters, filters, true));
+        "core_multiplexing_publisher_write",
+        multiplexing::engine::instance_ptr(), filters, filters, true));
 
     // Publish event.
     {

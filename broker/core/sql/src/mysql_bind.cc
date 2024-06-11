@@ -27,7 +27,8 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_bind::mysql_bind(int size) : mysql_bind_base(size), _buffer(size) {}
+mysql_bind::mysql_bind(int size, const std::shared_ptr<spdlog::logger>& logger)
+    : mysql_bind_base(size, logger), _buffer(size) {}
 
 void* mysql_bind::get_value_pointer(size_t range) {
   switch (_bind[range].buffer_type) {
@@ -102,7 +103,7 @@ void mysql_bind::set_null_bool(size_t range) {
     else {                                                                \
       assert("This field is not an " #sqltype == nullptr);                \
       SPDLOG_LOGGER_CRITICAL(                                             \
-          log_v2::sql(), "{} This field is not an " #sqltype " but {}",   \
+          _logger, "{} This field is not an " #sqltype " but {}",         \
           __FUNCTION__, static_cast<uint32_t>(_bind[range].buffer_type)); \
       return 0;                                                           \
     }                                                                     \

@@ -212,8 +212,8 @@ template <typename T, uint32_t Typ>
 void protobuf<T, Typ>::dump(std::ostream& s) const {
   data::dump(s);
   std::string dump{this->obj().ShortDebugString()};
-  if (dump.size() > 200) {
-    dump.resize(200);
+  if (dump.size() > 2000) {
+    dump.resize(2000);
     s << fmt::format(" content:'{}...'", dump);
   } else
     s << " content:'" << dump << '\'';

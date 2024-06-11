@@ -580,9 +580,9 @@ not10
     END
 
     Ctn Schedule Host Downtime    ${0}    host_1    ${60}
-    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif
+    ${content}    Create List    Notifications for the service will not be sent out during that time period.
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
-    Should Be True    ${result}    The downtime has not been sent.
+    Should Be True    ${result}    The downtime has not be sent.
 
     Ctn Process Host Check Result    host_1    2    host_1 DOWN
 
@@ -1037,10 +1037,11 @@ not15
     Ctn Kindly Stop Broker
 
 not16
-    [Documentation]    notification for a dependensies services group
+    [Documentation]    notification for dependencies services group
     [Tags]    broker    engine    services    unified_sql
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${4}    ${1}
+    Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Ctn Add service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
@@ -1105,7 +1106,6 @@ not16
     ${cmd_service_3}    Ctn Get Service Command Id    ${3}
     ${cmd_service_4}    Ctn Get Service Command Id    ${4}
 
-    Ctn Set Command Status    ${cmd_service_3}    ${0}
 
     Ctn Process Service Result Hard    host_3    service_3    ${0}    The service_3 is OK
 
@@ -1113,7 +1113,7 @@ not16
     Should Be True    ${result}    Service (host_3,service_3) should be OK HARD
 
     ##Time to set the service3 to CRITICAL HARD.
-    Ctn Set Command Status    ${cmd_service_3}    ${2}
+    ${start}    Ctn Get Round Current Date
 
     Ctn Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
 
@@ -1126,7 +1126,6 @@ not16
 
     ## Time to set the service3 to OK hard
     ${start}    Ctn Get Round Current Date
-    Ctn Set Command Status    ${cmd_service_3}    ${0}
 
     Ctn Process Service Result Hard    host_3    service_3    ${0}    The service_3 is OK
 
@@ -1139,7 +1138,6 @@ not16
 
     ## Time to set the service1 to CRITICAL HARD.
     ${start}    Ctn Get Round Current Date
-    Ctn Set Command Status    ${cmd_service_1}    ${2}
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
     ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
@@ -1151,7 +1149,6 @@ not16
 
     ## Time to set the service3 to CRITICAL HARD.
     ${start}    Ctn Get Round Current Date
-    Ctn Set Command Status    ${cmd_service_3}    ${2}
 
     Ctn Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
 
@@ -1164,7 +1161,6 @@ not16
 
     ## Time to set the service4 to CRITICAL HARD.
     ${start}    Ctn Get Round Current Date
-    Ctn Set Command Status    ${cmd_service_4}    ${2}
 
     Ctn Process Service Result Hard    host_4    service_4    ${2}    The service_4 is CRITICAL
 
@@ -1178,7 +1174,6 @@ not16
 
     ## Time to set the service1 to OK hard
     ${start}    Ctn Get Round Current Date
-    Ctn Set Command Status    ${cmd_service_1}    ${0}
 
     Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
 

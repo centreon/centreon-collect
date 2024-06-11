@@ -1,18 +1,19 @@
 #
-# Copyright 2011-2013 Merethis
+# Copyright 2009-2024 Centreon
 #
-# This file is part of Centreon Engine.
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
-# Centreon Engine is free software: you can redistribute it and/or modify it
-# under the terms of the GNU General Public License version 2 as published by
-# the Free Software Foundation.
+# http://www.apache.org/licenses/LICENSE-2.0
 #
-# Centreon Engine is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 #
-# You should have received a copy of the GNU General Public License along with
-# Centreon Engine. If not, see <http://www.gnu.org/licenses/>.
+# For more information : contact@centreon.com
 #
 
 # Set directories.
@@ -20,7 +21,7 @@ set(SRC_DIR "${SRC_DIR}/configuration")
 set(INC_DIR "${INC_DIR}/com/centreon/engine/configuration")
 
 # Subdirectory.
-add_subdirectory("applier")
+add_subdirectory(applier)
 
 # Set files.
 set(FILES
@@ -31,12 +32,12 @@ set(FILES
     "${SRC_DIR}/connector.cc"
     "${SRC_DIR}/contact.cc"
     "${SRC_DIR}/contactgroup.cc"
+    "${SRC_DIR}/customvariable.cc"
     "${SRC_DIR}/extended_conf.cc"
     "${SRC_DIR}/group.cc"
     "${SRC_DIR}/host.cc"
     "${SRC_DIR}/hostdependency.cc"
     "${SRC_DIR}/hostescalation.cc"
-    "${SRC_DIR}/hostextinfo.cc"
     "${SRC_DIR}/hostgroup.cc"
     "${SRC_DIR}/object.cc"
     "${SRC_DIR}/parser.cc"
@@ -46,7 +47,6 @@ set(FILES
     "${SRC_DIR}/service.cc"
     "${SRC_DIR}/servicedependency.cc"
     "${SRC_DIR}/serviceescalation.cc"
-    "${SRC_DIR}/serviceextinfo.cc"
     "${SRC_DIR}/servicegroup.cc"
     "${SRC_DIR}/severity.cc"
     "${SRC_DIR}/tag.cc"

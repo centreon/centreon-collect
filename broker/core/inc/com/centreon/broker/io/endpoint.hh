@@ -41,15 +41,27 @@ namespace io {
 class endpoint {
   bool _is_acceptor;
   /* The mandatory filters for the stream configured from this endpoint to
-   * correctly work. This object can be empty. It filters categories and
-   * elements. */
-  const multiplexing::muxer_filter _stream_mandatory_filter;
+   * correctly work. It filters categories and elements the following way:
+   * * if configured with all events, the filters configured in the stream are
+   *   used as such.
+   * * otherwise, the filters configured in the stream are replaced by the
+   *   mandatory ones.
+   */
+  multiplexing::muxer_filter _stream_mandatory_filter;
+
+  /* The forbidden filters for the stream configured from this endpoint to
+   * correctly work. All filters given here must not be set into the stream,
+   * otherwise it will work badly.
+   */
+  multiplexing::muxer_filter _stream_forbidden_filter;
 
  protected:
   std::shared_ptr<endpoint> _from;
 
  public:
-  endpoint(bool is_accptr, const multiplexing::muxer_filter& filter);
+  endpoint(bool is_accptr,
+           const multiplexing::muxer_filter& mandatory_filter,
+           const multiplexing::muxer_filter& forbidden_filter);
   endpoint(const endpoint& other);
   virtual ~endpoint() noexcept = default;
   endpoint& operator=(const endpoint& other) = delete;
@@ -62,12 +74,24 @@ class endpoint {
 
   /**
    * @brief accessor to the filter wanted by the stream used by this endpoint.
-   * This filter is defined by the stream itself and cannot change.
+   * This filter is defined by the stream itself and cannot change. It lists
+   * categories/elements that are mandatory for the stream to work.
    *
    * @return A multiplexing::muxer_filter reference.
    */
   const multiplexing::muxer_filter& get_stream_mandatory_filter() const {
     return _stream_mandatory_filter;
+  }
+
+  /**
+   * @brief accessor to the filter forbidden by the stream used by this
+   * endpoint. This filter is defined by the stream itself and cannot change. It
+   * lists categories/elements that are mandatory for the stream to work.
+   *
+   * @return A multiplexing::muxer_filter reference.
+   */
+  const multiplexing::muxer_filter& get_stream_forbidden_filter() const {
+    return _stream_forbidden_filter;
   }
 };
 }  // namespace io

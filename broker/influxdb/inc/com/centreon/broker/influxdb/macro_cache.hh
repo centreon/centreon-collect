@@ -1,34 +1,35 @@
-/*
-** Copyright 2015 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2015 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_INFLUXDB_MACRO_CACHE_HH
 #define CCB_INFLUXDB_MACRO_CACHE_HH
 
 #include <absl/container/flat_hash_map.h>
+
 #include "com/centreon/broker/influxdb/internal.hh"
 #include "com/centreon/broker/io/factory.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/persistent_cache.hh"
-namespace com::centreon::broker {
 
-namespace influxdb {
+namespace com::centreon::broker::influxdb {
+
 /**
  *  @class macro_cache macro_cache.hh
  * "com/centreon/broker/influxdb/macro_cache.hh"
@@ -71,8 +72,6 @@ class macro_cache {
                                              uint64_t service_id) const;
   std::string const& get_instance(uint64_t instance_id) const;
 };
-}  // namespace influxdb
-
-}
+}  // namespace com::centreon::broker::influxdb
 
 #endif  // !CCB_INFLUXDB_MACRO_CACHE_HH

@@ -316,7 +316,8 @@ class rapidjson_helper {
  * @return value_type
  */
 template <typename value_type>
-inline value_type rapidjson_helper::get(const char* field_name) {
+inline value_type rapidjson_helper::get(const char* field_name
+                                        [[maybe_unused]]) {
   class not_convertible {};
   static_assert(std::is_convertible<value_type, not_convertible>::value);
 }

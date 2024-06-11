@@ -1,5 +1,5 @@
 /**
- * Copyright 2011 - 2019-2022 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2019-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,15 +22,16 @@
 #include <absl/strings/match.h>
 
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/tcp/acceptor.hh"
 #include "com/centreon/broker/tcp/connector.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
 using namespace com::centreon::exceptions;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Check if a configuration supports this protocol.
@@ -76,6 +77,8 @@ io::endpoint* factory::new_endpoint(
     std::shared_ptr<persistent_cache> cache) const {
   (void)cache;
 
+  auto logger = log_v2::instance().get(log_v2::TCP);
+
   if (cfg.type == "bbdo_server" || cfg.type == "bbdo_client")
     return _new_endpoint_bbdo_cs(cfg, is_acceptor);
 
@@ -87,7 +90,7 @@ io::endpoint* factory::new_endpoint(
     host = it->second;
   if (!host.empty() &&
       (std::isspace(host[0]) || std::isspace(host[host.size() - 1]))) {
-    log_v2::tcp()->error(
+    logger->error(
         "TCP: 'host' must be a string matching a host, not beginning or "
         "ending with spaces for endpoint {}, it contains '{}'",
         cfg.name, host);
@@ -101,12 +104,12 @@ io::endpoint* factory::new_endpoint(
   uint16_t port;
   it = cfg.params.find("port");
   if (it == cfg.params.end()) {
-    log_v2::tcp()->error("TCP: no 'port' defined for endpoint '{}'", cfg.name);
+    logger->error("TCP: no 'port' defined for endpoint '{}'", cfg.name);
     throw msg_fmt("TCP: no 'port' defined for endpoint '{}'", cfg.name);
   }
   uint32_t port32;
   if (!absl::SimpleAtoi(it->second, &port32)) {
-    log_v2::tcp()->error(
+    logger->error(
         "TCP: 'port' must be an integer and not '{}' for endpoint '{}'",
         it->second, cfg.name);
     throw msg_fmt("TCP: invalid port value '{}' defined for endpoint '{}'",
@@ -122,7 +125,7 @@ io::endpoint* factory::new_endpoint(
   it = cfg.params.find("socket_read_timeout");
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtoi(it->second, &read_timeout)) {
-      log_v2::tcp()->error(
+      logger->error(
           "TCP: 'socket_read_timeout' must be an integer and not '{}' for "
           "endpoint '{}'",
           it->second, cfg.name);
@@ -138,7 +141,7 @@ io::endpoint* factory::new_endpoint(
   it = cfg.params.find("keepalive_count");
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtoi(it->second, &keepalive_count)) {
-      log_v2::tcp()->error(
+      logger->error(
           "TCP: 'keepalive_count' field should be an integer and not '{}'",
           it->second);
       throw msg_fmt(
@@ -151,7 +154,7 @@ io::endpoint* factory::new_endpoint(
   it = cfg.params.find("keepalive_interval");
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtoi(it->second, &keepalive_interval)) {
-      log_v2::tcp()->error(
+      logger->error(
           "TCP: 'keepalive_interval' field should be an integer and not '{}'",
           it->second);
       throw msg_fmt(
@@ -192,6 +195,8 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
     bool& is_acceptor) const {
   std::map<std::string, std::string>::const_iterator it;
 
+  auto logger = log_v2::instance().get(log_v2::TCP);
+
   // Find host (if exists).
   std::string host;
   it = cfg.params.find("host");
@@ -199,7 +204,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
     host = it->second;
   if (!host.empty() &&
       (std::isspace(host[0]) || std::isspace(host[host.size() - 1]))) {
-    log_v2::grpc()->error(
+    logger->error(
         "TCP: 'host' must be a string matching a host, not beginning or "
         "ending with spaces for endpoint {}, it contains '{}'",
         cfg.name, host);
@@ -212,7 +217,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
     if (cfg.type == "bbdo_server")
       host = "0.0.0.0";
     else {
-      log_v2::tcp()->error("TCP: you must specify a host to connect to.");
+      logger->error("TCP: you must specify a host to connect to.");
       throw msg_fmt("TCP: you must specify a host to connect to.");
     }
   }
@@ -221,22 +226,21 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   uint16_t port;
   it = cfg.params.find("port");
   if (it == cfg.params.end()) {
-    log_v2::grpc()->error("TCP: no 'port' defined for endpoint '{}'", cfg.name);
+    logger->error("TCP: no 'port' defined for endpoint '{}'", cfg.name);
     throw msg_fmt("TCP: no 'port' defined for endpoint '{}'", cfg.name);
   }
   {
     uint32_t port32;
     if (!absl::SimpleAtoi(it->second, &port32)) {
-      log_v2::grpc()->error(
+      logger->error(
           "TCP: 'port' must be an integer and not '{}' for endpoint '{}'",
           it->second, cfg.name);
       throw msg_fmt("TCP: invalid port value '{}' defined for endpoint '{}'",
                     it->second, cfg.name);
     }
     if (port32 > 65535) {
-      log_v2::tcp()->error(
-          "TCP: invalid port value '{}' defined for endpoint '{}'", it->second,
-          cfg.name);
+      logger->error("TCP: invalid port value '{}' defined for endpoint '{}'",
+                    it->second, cfg.name);
       throw msg_fmt("TCP: invalid port value '{}' defined for endpoint '{}'",
                     it->second, cfg.name);
     } else
@@ -246,7 +250,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   // Find authorization token (if exists).
   it = cfg.params.find("authorization");
   if (it != cfg.params.end()) {
-    log_v2::tcp()->error(
+    logger->error(
         "TCP: 'authorization' token works only with gRPC transport protocol, "
         "you should fix that");
     throw msg_fmt(
@@ -258,9 +262,8 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   it = cfg.params.find("retention");
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtob(it->second, &enable_retention)) {
-      log_v2::tcp()->error(
-          "TCP: 'retention' field should be a boolean and not '{}'",
-          it->second);
+      logger->error("TCP: 'retention' field should be a boolean and not '{}'",
+                    it->second);
       throw msg_fmt("TCP: 'retention' field should be a boolean and not '{}'",
                     it->second);
     }
@@ -280,7 +283,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   it = cfg.params.find("keepalive_count");
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtoi(it->second, &keepalive_count)) {
-      log_v2::tcp()->error(
+      logger->error(
           "TCP: 'keepalive_count' field should be an integer and not '{}'",
           it->second);
       throw msg_fmt(
@@ -293,7 +296,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   it = cfg.params.find("keepalive_interval");
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtoi(it->second, &keepalive_interval)) {
-      log_v2::tcp()->error(
+      logger->error(
           "TCP: 'keepalive_interval' field should be an integer and not '{}'",
           it->second);
       throw msg_fmt(

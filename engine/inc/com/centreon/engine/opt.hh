@@ -1,22 +1,22 @@
-/*
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
-
+/**
+ * Copyright 2011-2013 Merethis
+ * Copyright 2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #ifndef CCE_OPT_HH
 #define CCE_OPT_HH
 
@@ -24,6 +24,9 @@ namespace com::centreon::engine {
 
 template <typename T>
 class opt {
+  T _data;
+  bool _is_set;
+
  public:
   opt() : _data{}, _is_set(false) {}
   opt(T const& right) : _data(right), _is_set(false) {}
@@ -38,24 +41,24 @@ class opt {
     _is_set = right._is_set;
     return *this;
   }
-  bool operator==(opt const& right) const throw() {
-    return (_data == right._data);
+  bool operator==(opt const& right) const noexcept {
+    return _data == right._data;
   }
-  bool operator!=(opt const& right) const throw() {
-    return (!operator==(right));
+  bool operator!=(opt const& right) const noexcept {
+    return !operator==(right);
   }
-  bool operator<(opt const& right) const throw() {
-    return (_data < right._data);
+  bool operator<(opt const& right) const noexcept {
+    return _data < right._data;
   }
-  operator T const &() const throw() { return (_data); }
-  T& operator*() throw() { return (_data); }
-  T const& operator*() const throw() { return (_data); }
-  T* operator->() throw() { return (&_data); }
-  T const* operator->() const throw() { return (&_data); }
-  T& get() throw() { return (_data); }
-  T const& get() const throw() { return (_data); }
-  bool is_set() const throw() { return (_is_set); }
-  void reset() throw() { _is_set = false; }
+  operator T const&() const noexcept { return (_data); }
+  T& operator*() noexcept { return (_data); }
+  T const& operator*() const noexcept { return (_data); }
+  T* operator->() noexcept { return (&_data); }
+  T const* operator->() const noexcept { return (&_data); }
+  T& get() noexcept { return (_data); }
+  T const& get() const noexcept { return (_data); }
+  bool is_set() const noexcept { return (_is_set); }
+  void reset() noexcept { _is_set = false; }
   void set(T const& right) {
     _data = right;
     _is_set = true;
@@ -64,12 +67,8 @@ class opt {
     _data = right._data;
     _is_set = right._is_set;
   }
-
- private:
-  T _data;
-  bool _is_set;
 };
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_OPT_HH

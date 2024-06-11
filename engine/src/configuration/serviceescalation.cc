@@ -1,27 +1,26 @@
 /**
-* Copyright 2011-2015,2017 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2015,2017-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #include "com/centreon/engine/configuration/serviceescalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
@@ -126,14 +125,14 @@ bool serviceescalation::operator==(serviceescalation const& right) const
   if (!object::operator==(right)) {
     engine_logger(dbg_config, more)
         << "configuration::serviceescalation::equality => object don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => object don't match");
     return false;
   }
   if (_contactgroups != right._contactgroups) {
     engine_logger(dbg_config, more) << "configuration::serviceescalation::"
                                        "equality => contact groups don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::"
         "equality => contact groups don't match");
     return false;
@@ -142,7 +141,7 @@ bool serviceescalation::operator==(serviceescalation const& right) const
     engine_logger(dbg_config, more)
         << "configuration::serviceescalation::equality => escalation options "
            "don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => escalation options "
         "don't match");
     return false;
@@ -151,7 +150,7 @@ bool serviceescalation::operator==(serviceescalation const& right) const
     engine_logger(dbg_config, more)
         << "configuration::serviceescalation::equality => escalation periods "
            "don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => escalation periods "
         "don't match");
     return false;
@@ -160,7 +159,7 @@ bool serviceescalation::operator==(serviceescalation const& right) const
     engine_logger(dbg_config, more)
         << "configuration::serviceescalation::equality => first notifications "
            "don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => first notifications "
         "don't match");
     return false;
@@ -168,7 +167,7 @@ bool serviceescalation::operator==(serviceescalation const& right) const
   if (_hostgroups != right._hostgroups) {
     engine_logger(dbg_config, more) << "configuration::serviceescalation::"
                                        "equality => host groups don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::"
         "equality => host groups don't match");
     return false;
@@ -176,7 +175,7 @@ bool serviceescalation::operator==(serviceescalation const& right) const
   if (_hosts != right._hosts) {
     engine_logger(dbg_config, more)
         << "configuration::serviceescalation::equality => hosts don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => hosts don't match");
     return false;
   }
@@ -184,7 +183,7 @@ bool serviceescalation::operator==(serviceescalation const& right) const
     engine_logger(dbg_config, more)
         << "configuration::serviceescalation::equality => last notification "
            "don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => last notification "
         "don't match");
     return false;
@@ -193,7 +192,7 @@ bool serviceescalation::operator==(serviceescalation const& right) const
     engine_logger(dbg_config, more)
         << "configuration::serviceescalation::equality => notification "
            "interval don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => notification "
         "interval don't match");
     return false;
@@ -201,7 +200,7 @@ bool serviceescalation::operator==(serviceescalation const& right) const
   if (_servicegroups != right._servicegroups) {
     engine_logger(dbg_config, more) << "configuration::serviceescalation::"
                                        "equality => service groups don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::"
         "equality => service groups don't match");
     return false;
@@ -210,14 +209,14 @@ bool serviceescalation::operator==(serviceescalation const& right) const
     engine_logger(dbg_config, more)
         << "configuration::serviceescalation::equality => service descriptions "
            "don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => service descriptions "
         "don't match");
     return false;
   }
   engine_logger(dbg_config, more)
       << "configuration::serviceescalation::equality => OK";
-  log_v2::config()->debug("configuration::serviceescalation::equality => OK");
+  config_logger->debug("configuration::serviceescalation::equality => OK");
   return true;
 }
 
@@ -280,7 +279,6 @@ void serviceescalation::check_validity() const {
                          << "any host or host group (properties 'host_name' or "
                          << "'hostgroup_name', respectively)");
   }
-  return;
 }
 
 /**
@@ -337,7 +335,7 @@ bool serviceescalation::parse(char const* key, char const* value) {
  *
  *  @return The contact groups.
  */
-set_string& serviceescalation::contactgroups() throw() {
+set_string& serviceescalation::contactgroups() noexcept {
   return *_contactgroups;
 }
 
@@ -346,7 +344,7 @@ set_string& serviceescalation::contactgroups() throw() {
  *
  *  @return The contactgroups.
  */
-set_string const& serviceescalation::contactgroups() const throw() {
+set_string const& serviceescalation::contactgroups() const noexcept {
   return *_contactgroups;
 }
 
@@ -355,7 +353,7 @@ set_string const& serviceescalation::contactgroups() const throw() {
  *
  *  @return True if contact groups were defined.
  */
-bool serviceescalation::contactgroups_defined() const throw() {
+bool serviceescalation::contactgroups_defined() const noexcept {
   return _contactgroups.is_set();
 }
 
@@ -364,9 +362,8 @@ bool serviceescalation::contactgroups_defined() const throw() {
  *
  *  @param[in] options New escalation options.
  */
-void serviceescalation::escalation_options(unsigned int options) throw() {
+void serviceescalation::escalation_options(unsigned int options) noexcept {
   _escalation_options = options;
-  return;
 }
 
 /**
@@ -374,7 +371,7 @@ void serviceescalation::escalation_options(unsigned int options) throw() {
  *
  *  @return The escalation_options.
  */
-unsigned short serviceescalation::escalation_options() const throw() {
+unsigned short serviceescalation::escalation_options() const noexcept {
   return _escalation_options;
 }
 
@@ -385,7 +382,6 @@ unsigned short serviceescalation::escalation_options() const throw() {
  */
 void serviceescalation::escalation_period(std::string const& period) {
   _escalation_period = period;
-  return;
 }
 
 /**
@@ -393,7 +389,7 @@ void serviceescalation::escalation_period(std::string const& period) {
  *
  *  @return The escalation_period.
  */
-std::string const& serviceescalation::escalation_period() const throw() {
+std::string const& serviceescalation::escalation_period() const noexcept {
   return _escalation_period;
 }
 
@@ -402,7 +398,7 @@ std::string const& serviceescalation::escalation_period() const throw() {
  *
  *  @return True if the escalation period was defined.
  */
-bool serviceescalation::escalation_period_defined() const throw() {
+bool serviceescalation::escalation_period_defined() const noexcept {
   return _escalation_period.is_set();
 }
 
@@ -411,9 +407,8 @@ bool serviceescalation::escalation_period_defined() const throw() {
  *
  *  @param[in] n First notification number.
  */
-void serviceescalation::first_notification(unsigned int n) throw() {
+void serviceescalation::first_notification(unsigned int n) noexcept {
   _first_notification = n;
-  return;
 }
 
 /**
@@ -421,7 +416,7 @@ void serviceescalation::first_notification(unsigned int n) throw() {
  *
  *  @return The first_notification.
  */
-unsigned int serviceescalation::first_notification() const throw() {
+unsigned int serviceescalation::first_notification() const noexcept {
   return _first_notification;
 }
 
@@ -430,7 +425,7 @@ unsigned int serviceescalation::first_notification() const throw() {
  *
  *  @return Host groups.
  */
-list_string& serviceescalation::hostgroups() throw() {
+list_string& serviceescalation::hostgroups() noexcept {
   return *_hostgroups;
 }
 
@@ -439,7 +434,7 @@ list_string& serviceescalation::hostgroups() throw() {
  *
  *  @return The hostgroups.
  */
-list_string const& serviceescalation::hostgroups() const throw() {
+list_string const& serviceescalation::hostgroups() const noexcept {
   return *_hostgroups;
 }
 
@@ -448,7 +443,7 @@ list_string const& serviceescalation::hostgroups() const throw() {
  *
  *  @return The hosts.
  */
-list_string& serviceescalation::hosts() throw() {
+list_string& serviceescalation::hosts() noexcept {
   return *_hosts;
 }
 
@@ -457,7 +452,7 @@ list_string& serviceescalation::hosts() throw() {
  *
  *  @return The hosts.
  */
-list_string const& serviceescalation::hosts() const throw() {
+list_string const& serviceescalation::hosts() const noexcept {
   return *_hosts;
 }
 
@@ -466,9 +461,8 @@ list_string const& serviceescalation::hosts() const throw() {
  *
  *  @param[in] n Last notification number.
  */
-void serviceescalation::last_notification(unsigned int n) throw() {
+void serviceescalation::last_notification(unsigned int n) noexcept {
   _last_notification = n;
-  return;
 }
 
 /**
@@ -476,7 +470,7 @@ void serviceescalation::last_notification(unsigned int n) throw() {
  *
  *  @return The last_notification.
  */
-unsigned int serviceescalation::last_notification() const throw() {
+unsigned int serviceescalation::last_notification() const noexcept {
   return _last_notification;
 }
 
@@ -485,9 +479,8 @@ unsigned int serviceescalation::last_notification() const throw() {
  *
  *  @param[in] interval New notification interval.
  */
-void serviceescalation::notification_interval(unsigned int interval) throw() {
+void serviceescalation::notification_interval(unsigned int interval) noexcept {
   _notification_interval = interval;
-  return;
 }
 
 /**
@@ -495,7 +488,7 @@ void serviceescalation::notification_interval(unsigned int interval) throw() {
  *
  *  @return The notification_interval.
  */
-unsigned int serviceescalation::notification_interval() const throw() {
+unsigned int serviceescalation::notification_interval() const noexcept {
   return _notification_interval;
 }
 
@@ -504,7 +497,7 @@ unsigned int serviceescalation::notification_interval() const throw() {
  *
  *  @return True if the notification interval was set.
  */
-bool serviceescalation::notification_interval_defined() const throw() {
+bool serviceescalation::notification_interval_defined() const noexcept {
   return _notification_interval.is_set();
 }
 
@@ -513,7 +506,7 @@ bool serviceescalation::notification_interval_defined() const throw() {
  *
  *  @return The service groups.
  */
-list_string& serviceescalation::servicegroups() throw() {
+list_string& serviceescalation::servicegroups() noexcept {
   return *_servicegroups;
 }
 
@@ -522,7 +515,7 @@ list_string& serviceescalation::servicegroups() throw() {
  *
  *  @return The servicegroups.
  */
-list_string const& serviceescalation::servicegroups() const throw() {
+list_string const& serviceescalation::servicegroups() const noexcept {
   return *_servicegroups;
 }
 
@@ -531,7 +524,7 @@ list_string const& serviceescalation::servicegroups() const throw() {
  *
  *  @return Service description.
  */
-list_string& serviceescalation::service_description() throw() {
+list_string& serviceescalation::service_description() noexcept {
   return *_service_description;
 }
 
@@ -540,7 +533,7 @@ list_string& serviceescalation::service_description() throw() {
  *
  *  @return The service_description.
  */
-list_string const& serviceescalation::service_description() const throw() {
+list_string const& serviceescalation::service_description() const noexcept {
   return *_service_description;
 }
 
@@ -565,22 +558,20 @@ bool serviceescalation::_set_contactgroups(std::string const& value) {
  */
 bool serviceescalation::_set_escalation_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "w" || *it == "warning")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "w" || v == "warning")
       options |= warning;
-    else if (*it == "u" || *it == "unknown")
+    else if (v == "u" || v == "unknown")
       options |= unknown;
-    else if (*it == "c" || *it == "critical")
+    else if (v == "c" || v == "critical")
       options |= critical;
-    else if (*it == "r" || *it == "recovery")
+    else if (v == "r" || v == "recovery")
       options |= recovery;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = warning | unknown | critical | recovery;
     else
       return false;

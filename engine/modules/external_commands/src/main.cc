@@ -1,26 +1,26 @@
 /**
-* Copyright 2022 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2022 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/modules/external_commands/utils.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
@@ -29,12 +29,6 @@
 
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine;
-
-/**************************************
- *                                     *
- *           Global Objects            *
- *                                     *
- **************************************/
 
 // Specify the event broker API version.
 NEB_API_VERSION(CURRENT_NEB_API_VERSION)
@@ -107,11 +101,11 @@ extern "C" int nebmodule_deinit(int flags, int reason) {
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "external command runtime error `" << e.what() << "'.";
-    log_v2::runtime()->error("external command runtime error '{}'.", e.what());
+    runtime_logger->error("external command runtime error '{}'.", e.what());
   } catch (...) {
     engine_logger(log_runtime_error, basic)
         << "external command runtime error `unknown'";
-    log_v2::runtime()->error("external command runtime error `unknown'");
+    runtime_logger->error("external command runtime error `unknown'");
   }
   return (0);
 }
@@ -156,7 +150,7 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
           << "Bailing out due to errors encountered while trying to "
           << "initialize the external command file ... "
           << "(PID=" << getpid() << ")";
-      log_v2::process()->info(
+      process_logger->info(
           "Bailing out due to errors encountered while trying to initialize "
           "the external command file ... (PID={})",
           getpid());
@@ -171,16 +165,16 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "external command runtime error `" << e.what() << "'.";
-    log_v2::runtime()->error("external command runtime error '{}'.", e.what());
+    runtime_logger->error("external command runtime error '{}'.", e.what());
     return (1);
   } catch (...) {
     engine_logger(log_runtime_error, basic)
         << "external command runtime error `unknown'.";
-    log_v2::runtime()->error("external command runtime error `unknown'.");
+    runtime_logger->error("external command runtime error `unknown'.");
     return (1);
   }
 
-  return (0);
+  return 0;
 }
 
 /**

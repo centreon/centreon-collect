@@ -94,9 +94,9 @@ add_custom_command(
   OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-    --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
-    --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
+    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${SRC_DIR}
+    --proto_path=${CMAKE_SOURCE_DIR}/common/src --grpc_out="${SRC_DIR}"
+    ${SRC_DIR}/broker.proto
   DEPENDS ${SRC_DIR}/broker.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
@@ -104,13 +104,14 @@ add_custom_command(
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
     --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     ${SRC_DIR}/broker.proto
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc"
                                                   "${SRC_DIR}/broker.pb.h")
 
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
-                    ${CMAKE_SOURCE_DIR}/common/inc)
+                    ${CMAKE_SOURCE_DIR}/common/inc
+                    ${CMAKE_SOURCE_DIR}/bbdo)
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
@@ -436,32 +437,33 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/version.hh)
 
 # Static libraries.
-add_library(rokerlog STATIC ${SRC_DIR}/log_v2.cc)
-set_target_properties(rokerlog PROPERTIES COMPILE_FLAGS "-fPIC")
-target_precompile_headers(rokerlog REUSE_FROM multiplexing)
-target_link_libraries(rokerlog spdlog::spdlog)
-
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
-add_dependencies(rokerbase berpc target_bbdo)
+add_dependencies(rokerbase berpc target_bbdo target_extcmd)
 target_link_libraries(
   rokerbase
   sql
   bbdo_bbdo
   pb_bbdo_lib
   pb_extcmd_lib
+  pb_open_telemetry_lib
   berpc
   z
   spdlog::spdlog
-  crypto ssl
+  crypto
+  ssl
   pthread
   dl)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
-target_link_libraries(roker rokerbase crypto ssl
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-                      pthread dl)
+target_link_libraries(
+  roker
+  rokerbase
+  crypto
+  ssl
+  pthread
+  dl)
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
@@ -471,8 +473,8 @@ add_dependencies(cbd multiplexing centreon_common)
 target_link_libraries(
   cbd
   "-rdynamic"
-  rokerlog
   "-Wl,--whole-archive"
+  log_v2
   sql
   rokerbase
   roker
@@ -487,8 +489,10 @@ target_link_libraries(
   protobuf
   "-Wl,--no-whole-archive"
   stdc++fs
-  spdlog::spdlog
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts)
+  # spdlog::spdlog
+  gRPC::gpr
+  gRPC::grpc
+  gRPC::grpc++_alts)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)
@@ -506,7 +510,7 @@ add_subdirectory(core/sql)
 # Generator module.
 add_broker_module(GENERATOR OFF)
 add_broker_module(STATS ON)
-add_broker_module(STATS_EXPORTER ON)
+#add_broker_module(STATS_EXPORTER OFF)
 add_broker_module(NEB ON)
 add_broker_module(RRD ON)
 add_broker_module(UNIFIED_SQL ON)
@@ -521,7 +525,6 @@ add_broker_module(TLS2 OFF)
 add_broker_module(DUMP OFF)
 add_broker_module(GRPC ON)
 add_broker_module(VICTORIA_METRICS ON)
-add_subdirectory(http_client)
 add_subdirectory(http_tsdb)
 
 # Lua module.

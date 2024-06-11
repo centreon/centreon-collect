@@ -1,31 +1,33 @@
 /**
-* Copyright 2011-2013, 2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2013, 2021-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/config/applier/modules.hh"
 
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/modules/handle.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::config::applier;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Apply a module configuration.
@@ -39,10 +41,9 @@ void modules::apply(const std::list<std::string>& module_list,
                     const void* arg) {
   // Load modules.
   for (const std::string& m : module_list) {
-    log_v2::config()->info("module applier: loading module '{}'", m);
+    _logger->info("module applier: loading module '{}'", m);
     if (!load_file(fmt::format("{}/{}", module_dir, m), arg))
-      log_v2::config()->error("module applier: impossible to load module '{}'",
-                              m);
+      _logger->error("module applier: impossible to load module '{}'", m);
   }
 }
 
@@ -92,13 +93,13 @@ bool modules::_check_module(const std::string& name, void* h) noexcept {
     return false;
 
   // Find init symbol.
-  log_v2::core()->debug(
+  _logger->debug(
       "modules: checking initialization routine (symbol '{}') in '{}'",
       handle::initialization, name);
   void* init = dlsym(h, handle::initialization);
 
   if (!init) {
-    log_v2::core()->error(
+    _logger->error(
         "modules: could not find initialization routine in '{}' (not a "
         "Centreon Broker module ?): {}",
         name, dlerror());
@@ -106,13 +107,13 @@ bool modules::_check_module(const std::string& name, void* h) noexcept {
   }
 
   // Find deinit symbol.
-  log_v2::core()->debug(
+  _logger->debug(
       "modules: checking deinitialization routine (symbol '{}') in '{}'",
       handle::deinitialization, name);
   void* deinit = dlsym(h, handle::deinitialization);
 
   if (!deinit) {
-    log_v2::core()->error(
+    _logger->error(
         "modules: could not find deinitialization routine in '{}' (not a "
         "Centreon Broker module ?): {}",
         name, dlerror());
@@ -120,22 +121,21 @@ bool modules::_check_module(const std::string& name, void* h) noexcept {
   }
 
   // Find version symbol.
-  log_v2::core()->debug(
-      "modules: checking module version (symbol '{}') in '{}'",
-      handle::versionning, name);
+  _logger->debug("modules: checking module version (symbol '{}') in '{}'",
+                 handle::versionning, name);
 
   const char** version = (const char**)dlsym(h, handle::versionning);
 
   // Could not find version symbol.
   if (!version) {
-    log_v2::core()->error(
+    _logger->error(
         "modules: could not find version in '{}' (not a Centreon Broker module "
         "?): {}",
         name, dlerror());
     return false;
   }
   if (!*version) {
-    log_v2::core()->error(
+    _logger->error(
         "modules: version symbol of module '{}' is empty (not a Centreon "
         "Broker module ?)",
         name);
@@ -145,7 +145,7 @@ bool modules::_check_module(const std::string& name, void* h) noexcept {
   // Check version.
   if (::strncmp(CENTREON_BROKER_VERSION, *version,
                 strlen(CENTREON_BROKER_VERSION) + 1) != 0) {
-    log_v2::core()->error(
+    _logger->error(
         "modules: version mismatch in '{}': expected '{}', found '{}'", name,
         CENTREON_BROKER_VERSION, *version);
     return false;
@@ -164,11 +164,11 @@ bool modules::_check_module(const std::string& name, void* h) noexcept {
 bool modules::load_file(const std::string& filename, const void* arg) {
   auto found = _handles.find(filename);
   if (found == _handles.end()) {
-    log_v2::core()->info("modules: attempt to load module '{}'", filename);
+    _logger->info("modules: attempt to load module '{}'", filename);
     void* h = dlopen(filename.c_str(), RTLD_LAZY | RTLD_GLOBAL);
     if (!h)
-      log_v2::config()->error("modules: could not load module '{}': {}",
-                              filename, dlerror());
+      _logger->error("modules: could not load module '{}': {}", filename,
+                     dlerror());
 
     if (_check_module(filename, h)) {
       void* parents = dlsym(h, handle::parents_list);
@@ -189,8 +189,8 @@ bool modules::load_file(const std::string& filename, const void* arg) {
           auto found = _handles.find(*p);
           if (found == _handles.end())
             if (!load_file(fmt::format("{}/{}", path, *p), arg))
-              log_v2::config()->error(
-                  "modules: impossible to load parent module '{}'", *p);
+              _logger->error("modules: impossible to load parent module '{}'",
+                             *p);
         }
       }
     } else {
@@ -200,8 +200,8 @@ bool modules::load_file(const std::string& filename, const void* arg) {
     }
     _handles.emplace(filename, std::make_unique<handle>(filename, h, arg));
   } else {
-    log_v2::core()->info(
-        "modules: attempt to load '{}' which is already loaded", filename);
+    _logger->info("modules: attempt to load '{}' which is already loaded",
+                  filename);
     found->second->update(arg);
   }
   return true;

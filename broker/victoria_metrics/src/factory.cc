@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon
+ * Copyright 2022-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ factory::factory()
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
     bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
+    std::shared_ptr<persistent_cache> ) const {
   is_acceptor = false;
 
   std::shared_ptr<http_tsdb::http_tsdb_config> conf(

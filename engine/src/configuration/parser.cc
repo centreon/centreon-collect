@@ -1,26 +1,25 @@
 /**
-* Copyright 2011-2014,2017 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2014,2017-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
-#include "com/centreon/engine/string.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/io/directory_entry.hh"
 
 using namespace com::centreon;
@@ -46,6 +45,30 @@ parser::store parser::_store[] = {
     &parser::_store_into_list,
     &parser::_store_into_list,
     &parser::_store_into_list};
+
+/**
+ *  Get the next valid line.
+ *
+ *  @param[in, out] stream The current stream to read new line.
+ *  @param[out]     line   The line to fill.
+ *  @param[in, out] pos    The current position.
+ *
+ *  @return True if data is available, false if no data.
+ */
+static bool get_next_line(std::ifstream& stream,
+                          std::string& line,
+                          uint32_t& pos) {
+  while (std::getline(stream, line, '\n')) {
+    ++pos;
+    line = absl::StripAsciiWhitespace(line);
+    if (!line.empty()) {
+      char c = line[0];
+      if (c != '#' && c != ';' && c != '\x0')
+        return true;
+    }
+  }
+  return false;
+}
 
 /**
  *  Default constructor.
@@ -83,10 +106,6 @@ void parser::parse(std::string const& path, state& config) {
   // Apply template.
   _resolve_template();
 
-  // Apply extended info.
-  _apply_hostextinfo();
-  _apply_serviceextinfo();
-
   // Fill state.
   _insert(_map_objects[object::command], config.commands());
   _insert(_map_objects[object::connector], config.connectors());
@@ -100,7 +119,7 @@ void parser::parse(std::string const& path, state& config) {
           config.servicedependencies());
   _insert(_lst_objects[object::serviceescalation], config.serviceescalations());
   _insert(_map_objects[object::servicegroup], config.servicegroups());
-  _insert(_lst_objects[object::service], config.services());
+  _insert(_lst_objects[object::service], config.mut_services());
   _insert(_lst_objects[object::anomalydetection], config.anomalydetections());
   _insert(_map_objects[object::timeperiod], config.timeperiods());
   _insert(_lst_objects[object::severity], config.mut_severities());
@@ -157,80 +176,6 @@ void parser::_apply(std::list<std::string> const& lst,
   for (std::list<std::string>::const_iterator it(lst.begin()), end(lst.end());
        it != end; ++it)
     (this->*pfunc)(*it);
-}
-
-/**
- *  Apply the host extended info.
- *
- *  @warning This function is for compatibility and has very
- *           poor performance. Didn't use extended info. If you
- *           want to use the generic template system.
- */
-void parser::_apply_hostextinfo() {
-  map_object& gl_hosts(_map_objects[object::host]);
-  list_object const& hostextinfos(_lst_objects[object::hostextinfo]);
-  for (list_object::const_iterator it(hostextinfos.begin()),
-       end(hostextinfos.end());
-       it != end; ++it) {
-    // Get the current hostextinfo to check.
-    hostextinfo_ptr obj(std::static_pointer_cast<hostextinfo>(*it));
-
-    list_host hosts;
-    _get_objects_by_list_name(obj->hosts(), gl_hosts, hosts);
-    _get_hosts_by_hostgroups_name(obj->hostgroups(), hosts);
-
-    for (list_host::iterator it(hosts.begin()), end(hosts.end()); it != end;
-         ++it)
-      it->merge(*obj);
-  }
-}
-
-/**
- *  Apply the service extended info.
- *
- *  @warning This function is for compatibility and has very
- *           poor performance. Didn't use extended info. If you
- *           want to use the generic template system.
- */
-void parser::_apply_serviceextinfo() {
-  map_object& gl_hosts(_map_objects[object::host]);
-  list_object& gl_services(_lst_objects[object::service]);
-  list_object const& serviceextinfos(_lst_objects[object::serviceextinfo]);
-  for (list_object::const_iterator it(serviceextinfos.begin()),
-       end(serviceextinfos.end());
-       it != end; ++it) {
-    // Get the current serviceextinfo to check.
-    serviceextinfo_ptr obj(std::static_pointer_cast<serviceextinfo>(*it));
-
-    list_host hosts;
-    _get_objects_by_list_name(obj->hosts(), gl_hosts, hosts);
-    _get_hosts_by_hostgroups_name(obj->hostgroups(), hosts);
-
-    for (list_object::iterator it(gl_services.begin()), end(gl_services.end());
-         it != end; ++it) {
-      service_ptr svc(std::static_pointer_cast<service>(*it));
-      if (svc->service_description() != obj->service_description())
-        continue;
-
-      list_host svc_hosts;
-      _get_objects_by_list_name(svc->hosts(), gl_hosts, svc_hosts);
-      _get_hosts_by_hostgroups_name(svc->hostgroups(), svc_hosts);
-
-      bool found(false);
-      for (list_host::const_iterator it_host(hosts.begin()),
-           end_host(hosts.end());
-           !found && it_host != end_host; ++it_host) {
-        for (list_host::const_iterator it_svc_host(svc_hosts.begin()),
-             end_svc_host(svc_hosts.end());
-             it_svc_host != end_svc_host; ++it_svc_host) {
-          if (it_host->host_name() == it_svc_host->host_name()) {
-            svc->merge(*obj);
-            found = true;
-          }
-        }
-      }
-    }
-  }
 }
 
 /**
@@ -363,10 +308,10 @@ void parser::_parse_directory_configuration(std::string const& path) {
  *
  *  @param[in] path The configuration path.
  */
-void parser::_parse_global_configuration(std::string const& path) {
+void parser::_parse_global_configuration(const std::string& path) {
   engine_logger(logging::log_info_message, logging::most)
       << "Reading main configuration file '" << path << "'.";
-  log_v2::config()->info("Reading main configuration file '{}'.", path);
+  config_logger->info("Reading main configuration file '{}'.", path);
 
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())
@@ -380,14 +325,20 @@ void parser::_parse_global_configuration(std::string const& path) {
   _current_path = path;
 
   std::string input;
-  while (string::get_next_line(stream, input, _current_line)) {
-    char const* key;
-    char const* value;
-    if (!string::split(input, &key, &value, '=') || !_config->set(key, value))
-      throw engine_error() << "Parsing of global "
-                              "configuration failed in file '"
-                           << path << "' on line " << _current_line
-                           << ": Invalid line '" << input << "'";
+  while (get_next_line(stream, input, _current_line)) {
+    std::list<std::string> values =
+        absl::StrSplit(input, absl::MaxSplits('=', 1));
+    if (values.size() == 2) {
+      auto it = values.begin();
+      char const* key = it->c_str();
+      ++it;
+      char const* value = it->c_str();
+      if (_config->set(key, value))
+        continue;
+    }
+    throw engine_error() << "Parsing of global configuration failed in file '"
+                         << path << "' on line " << _current_line
+                         << ": Invalid line '" << input << "'";
   }
 }
 
@@ -399,7 +350,7 @@ void parser::_parse_global_configuration(std::string const& path) {
 void parser::_parse_object_definitions(std::string const& path) {
   engine_logger(logging::log_info_message, logging::basic)
       << "Processing object config file '" << path << "'";
-  log_v2::config()->info("Processing object config file '{}'", path);
+  config_logger->info("Processing object config file '{}'", path);
 
   std::ifstream stream(path, std::ios::binary);
   if (!stream.is_open())
@@ -412,12 +363,12 @@ void parser::_parse_object_definitions(std::string const& path) {
   bool parse_object = false;
   object_ptr obj;
   std::string input;
-  while (string::get_next_line(stream, input, _current_line)) {
+  while (get_next_line(stream, input, _current_line)) {
     // Multi-line.
     while ('\\' == input[input.size() - 1]) {
       input.resize(input.size() - 1);
       std::string addendum;
-      if (!string::get_next_line(stream, addendum, _current_line))
+      if (!get_next_line(stream, addendum, _current_line))
         break;
       input.append(addendum);
     }
@@ -429,20 +380,21 @@ void parser::_parse_object_definitions(std::string const& path) {
             << "Parsing of object definition failed "
             << "in file '" << _current_path << "' on line " << _current_line
             << ": Unexpected start definition";
-      string::trim_left(input.erase(0, 6));
-      std::size_t last(input.size() - 1);
+      input.erase(0, 6);
+      absl::StripLeadingAsciiWhitespace(&input);
+      std::size_t last = input.size() - 1;
       if (input.empty() || input[last] != '{')
         throw engine_error()
-            << "Parsing of object definition failed "
-            << "in file '" << _current_path << "' on line " << _current_line
-            << ": Unexpected start definition";
-      std::string const& type(string::trim_right(input.erase(last)));
-      obj = object::create(type);
+            << "Parsing of object definition failed in file '" << _current_path
+            << "' on line " << _current_line << ": Unexpected start definition";
+      input.erase(last);
+      absl::StripTrailingAsciiWhitespace(&input);
+      obj = object::create(input);
       if (obj == nullptr)
         throw engine_error()
             << "Parsing of object definition failed "
             << "in file '" << _current_path << "' on line " << _current_line
-            << ": Unknown object type name '" << type << "'";
+            << ": Unknown object type name '" << input << "'";
       parse_object = (_read_options & (1 << obj->type()));
       _objects_info[obj.get()] = file_info(path, _current_line);
     }
@@ -477,7 +429,7 @@ void parser::_parse_object_definitions(std::string const& path) {
 void parser::_parse_resource_file(std::string const& path) {
   engine_logger(logging::log_info_message, logging::most)
       << "Reading resource file '" << path << "'";
-  log_v2::config()->info("Reading resource file '{}'", path);
+  config_logger->info("Reading resource file '{}'", path);
 
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())
@@ -488,15 +440,20 @@ void parser::_parse_resource_file(std::string const& path) {
   _current_path = path;
 
   std::string input;
-  while (string::get_next_line(stream, input, _current_line)) {
+  while (get_next_line(stream, input, _current_line)) {
     try {
-      std::string key;
-      std::string value;
-      if (!string::split(input, key, value, '='))
+      std::list<std::string> key_value =
+          absl::StrSplit(input, absl::MaxSplits('=', 1));
+      if (key_value.size() == 2) {
+        auto it = key_value.begin();
+        std::string& key = *it;
+        ++it;
+        std::string value = *it;
+        _config->user(key, value);
+      } else
         throw engine_error() << "Parsing of resource file '" << _current_path
                              << "' failed on line " << _current_line
                              << ": Invalid line '" << input << "'";
-      _config->user(key, value);
     } catch (std::exception const& e) {
       (void)e;
       throw engine_error() << "Parsing of resource file '" << _current_path

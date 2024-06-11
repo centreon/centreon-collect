@@ -1,27 +1,26 @@
 /**
-* Copyright 1999-2010 Ethan Galstad
-* Copyright 2011-201016 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 1999-2010 Ethan Galstad
+ * Copyright 2011-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
@@ -390,8 +389,8 @@ int grab_standard_hostgroup_macro_r(nagios_macros* mac,
     default:
       engine_logger(dbg_macros, basic)
           << "UNHANDLED HOSTGROUP MACRO #" << macro_type << "! THIS IS A BUG!";
-      log_v2::macros()->trace("UNHANDLED HOSTGROUP MACRO #{}! THIS IS A BUG!",
-                              macro_type);
+      macros_logger->trace("UNHANDLED HOSTGROUP MACRO #{}! THIS IS A BUG!",
+                           macro_type);
       return ERROR;
   }
 
@@ -471,8 +470,8 @@ int grab_standard_servicegroup_macro_r(nagios_macros* mac,
     default:
       engine_logger(dbg_macros, basic) << "UNHANDLED SERVICEGROUP MACRO #"
                                        << macro_type << "! THIS IS A BUG!";
-      log_v2::macros()->trace(
-          "UNHANDLED SERVICEGROUP MACRO #{}! THIS IS A BUG!", macro_type);
+      macros_logger->trace("UNHANDLED SERVICEGROUP MACRO #{}! THIS IS A BUG!",
+                           macro_type);
       return ERROR;
   }
 
@@ -561,8 +560,8 @@ int grab_standard_contact_macro_r(nagios_macros* mac,
     default:
       engine_logger(dbg_macros, basic)
           << "UNHANDLED CONTACT MACRO #" << macro_type << "! THIS IS A BUG!";
-      log_v2::macros()->trace("UNHANDLED CONTACT MACRO #{}! THIS IS A BUG!",
-                              macro_type);
+      macros_logger->trace("UNHANDLED CONTACT MACRO #{}! THIS IS A BUG!",
+                           macro_type);
       return ERROR;
   }
   return OK;
@@ -623,8 +622,8 @@ int grab_standard_contactgroup_macro(
     default:
       engine_logger(dbg_macros, basic) << "UNHANDLED CONTACTGROUP MACRO #"
                                        << macro_type << "! THIS IS A BUG!";
-      log_v2::macros()->trace(
-          "UNHANDLED CONTACTGROUP MACRO #{}! THIS IS A BUG!", macro_type);
+      macros_logger->trace("UNHANDLED CONTACTGROUP MACRO #{}! THIS IS A BUG!",
+                           macro_type);
       return ERROR;
   }
   return OK;
@@ -645,7 +644,7 @@ int grab_custom_object_macro_r(nagios_macros* mac,
   /* get the custom variable */
   for (auto const& cv : vars) {
     if (macro_name == cv.first) {
-      output = cv.second.get_value();
+      output = cv.second.value();
       result = OK;
       break;
     }

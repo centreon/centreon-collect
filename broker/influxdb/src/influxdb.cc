@@ -1,30 +1,31 @@
 /**
-* Copyright 2011-2017, 2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2017, 2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include <iterator>
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace asio;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::influxdb;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static const char* query_footer = "\n";
 
@@ -40,19 +41,19 @@ influxdb::influxdb(std::string const& user,
                    std::vector<column> const& status_cols,
                    std::string const& metric_ts,
                    std::vector<column> const& metric_cols,
-                   macro_cache const& cache)
-    : _socket{_io_context}, _host(addr), _port(port), _cache(cache) {
+                   macro_cache const& cache,
+                   const std::shared_ptr<spdlog::logger>& logger)
+    : _socket{_io_context},
+      _host(addr),
+      _port(port),
+      _cache(cache),
+      _logger{logger} {
   // Try to connect to the server.
-  log_v2::influxdb()->debug("influxdb: connecting using 1.2 Line Protocol");
+  _logger->debug("influxdb: connecting using 1.2 Line Protocol");
   _connect_socket();
   _create_queries(user, passwd, db, status_ts, status_cols, metric_ts,
                   metric_cols);
 }
-
-/**
- *  Destructor.
- */
-influxdb::~influxdb() {}
 
 /**
  *  Clear the query.
@@ -225,8 +226,8 @@ bool influxdb::_check_answer_string(std::string const& ans,
     return false;
   std::string first_line_str = ans.substr(0, first_line);
 
-  log_v2::influxdb()->debug("influxdb: received an anwser from {}:{}: {}", addr,
-                            port, ans);
+  _logger->debug("influxdb: received an anwser from {}:{}: {}", addr, port,
+                 ans);
 
   // Split the first line using the power of std.
   std::istringstream iss(first_line_str);
@@ -245,7 +246,7 @@ bool influxdb::_check_answer_string(std::string const& ans,
     return true;
   else if (ans.find("partial write: points beyond retention policy dropped") !=
            std::string::npos) {
-    log_v2::influxdb()->info(
+    _logger->info(
         "influxdb: sending points beyond "
         "Influxdb database configured "
         "retention policy");

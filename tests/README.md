@@ -16,7 +16,7 @@ From a Centreon host, you need to install Robot Framework
 On CentOS 7, the following commands should work to initialize your robot tests:
 
 ```
-pip3 install -U robotframework robotframework-databaselibrary robotframework-examples pymysql
+pip3 install -U robotframework robotframework-databaselibrary robotframework-examples pymysql robotframework-requests
 
 yum install "Development Tools" python3-devel -y
 
@@ -40,7 +40,7 @@ git clone https://github.com/open-telemetry/opentelemetry-proto.git opentelemetr
 On other rpm based distributions, you can try the following commands to initialize your robot tests:
 
 ```
-pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql
+pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql robotframework-requests
 
 yum install python3-devel -y
 

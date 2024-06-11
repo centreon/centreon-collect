@@ -19,7 +19,11 @@
 #ifndef CCB_NEB_CALLBACKS_HH
 #define CCB_NEB_CALLBACKS_HH
 
-namespace com::centreon::broker::neb {
+namespace com::centreon::broker {
+
+extern std::shared_ptr<spdlog::logger> neb_logger;
+
+namespace neb {
 
 extern unsigned gl_mod_flags;
 extern void* gl_mod_handle;
@@ -66,8 +70,11 @@ int callback_tag(int callback_type, void* data) noexcept;
 
 int callback_pb_bench(int callback_type, void* data);
 
+int callback_otl_metrics(int callback_type, void* data);
+
 void unregister_callbacks();
 
-}  // namespace com::centreon::broker::neb
+}  // namespace neb
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_CALLBACKS_HH

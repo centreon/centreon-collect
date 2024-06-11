@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2017 Centreon
+ * Copyright 2011-2017-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,13 +22,14 @@
 
 #include "broker.pb.h"
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/math.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/stats/center.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static constexpr double eps = 0.000001;
 
@@ -225,10 +226,12 @@ void stream::_update_stats() {
                     d = fmt::format("{}s", sec);
                   s->set_file_expected_terminated_in(d);
 
-                  log_v2::core()->info(
-                      "Retention file will be terminated at {:%Y-%m-%d "
-                      "%H:%M:%S}",
-                      fmt::localtime(terminated));
+                  log_v2::instance()
+                      .get(log_v2::CORE)
+                      ->info(
+                          "Retention file will be terminated at {:%Y-%m-%d "
+                          "%H:%M:%S}",
+                          fmt::localtime(terminated));
                 }
               } else
                 s->set_file_expected_terminated_at(

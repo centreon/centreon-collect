@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2013,2015,2019-2021 Centreon (https://www.centreon.com/)
+ * Copyright 2011-2013,2015,2019-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ class forward : public command {
  public:
   forward(const std::string& command_name,
           const std::string& command_line,
-          std::shared_ptr<connector>& cmd);
+          const std::shared_ptr<command>& cmd);
   ~forward() noexcept = default;
   forward(const forward&) = delete;
   forward& operator=(const forward&) = delete;
@@ -52,9 +52,17 @@ class forward : public command {
            nagios_macros& macros,
            uint32_t timeout,
            result& res) override;
+
+  std::shared_ptr<command> get_sub_command() const { return _s_command; }
+
+  void register_host_serv(const std::string& host,
+                          const std::string& service_description) override;
+
+  void unregister_host_serv(const std::string& host,
+                            const std::string& service_description) override;
 };
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_COMMANDS_FORWARD_HH

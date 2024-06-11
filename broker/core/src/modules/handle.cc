@@ -1,28 +1,30 @@
 /**
-* Copyright 2011-2013,2015, 2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2013,2015, 2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/modules/handle.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::modules;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 constexpr const char* handle::deinitialization;
 constexpr const char* handle::initialization;
@@ -31,7 +33,9 @@ constexpr const char* handle::versionning;
 constexpr const char* handle::parents_list;
 
 handle::handle(const std::string& filename, void* h, const void* arg)
-    : _filename{filename}, _handle{h} {
+    : _filename{filename},
+      _handle{h},
+      _logger{log_v2::instance().get(log_v2::CORE)} {
   _init(arg);
 }
 
@@ -42,10 +46,9 @@ handle::~handle() noexcept {
   try {
     _close();
   } catch (std::exception const& e) {
-    log_v2::core()->error("{}", e.what());
+    _logger->error("{}", e.what());
   } catch (...) {
-    log_v2::core()->error("modules: unknown error while unloading '{}'",
-                          _filename);
+    _logger->error("modules: unknown error while unloading '{}'", _filename);
   }
 }
 
@@ -59,7 +62,7 @@ handle::~handle() noexcept {
 void handle::_close() {
   if (is_open()) {
     // Log message.
-    log_v2::core()->info("modules: closing '{}'", _filename);
+    _logger->info("modules: closing '{}'", _filename);
 
     // Find deinitialization routine.
     union {
@@ -72,28 +75,28 @@ void handle::_close() {
     // Could not find deinitialization routine.
     char const* error_str{dlerror()};
     if (error_str) {
-      log_v2::core()->info(
+      _logger->info(
           "modules: could not find deinitialization routine in '{}': {}",
           _filename, error_str);
     }
     // Call deinitialization routine.
     else {
-      log_v2::core()->debug("modules: running deinitialization routine of '{}'",
-                            _filename);
+      _logger->debug("modules: running deinitialization routine of '{}'",
+                     _filename);
       can_unload = (*(sym.code))();
     }
 
     if (!can_unload) {
-      log_v2::core()->debug("modules: don't unload library '{}'", _filename);
+      _logger->debug("modules: don't unload library '{}'", _filename);
       return;
     }
     // Reset library handle.
-    log_v2::core()->debug("modules: unloading library '{}'", _filename);
+    _logger->debug("modules: unloading library '{}'", _filename);
     // Library was not unloaded.
     if (dlclose(_handle)) {
       char const* error_str{dlerror()};
-      log_v2::core()->info("modules: could not unload library '{}': {}",
-                           _filename, error_str);
+      _logger->info("modules: could not unload library '{}': {}", _filename,
+                    error_str);
     } else
       _handle = nullptr;
   }
@@ -127,7 +130,7 @@ void handle::update(void const* arg) {
 
   // Found routine.
   if (sym.data) {
-    log_v2::core()->debug("modules: running update routine of '{}'", _filename);
+    _logger->debug("modules: running update routine of '{}'", _filename);
     (*(void (*)(void const*))(sym.code))(arg);
   }
 }
@@ -146,7 +149,6 @@ void handle::_init(void const* arg) {
   sym.data = dlsym(_handle, initialization);
 
   // Call initialization routine.
-  log_v2::core()->debug("modules: running initialization routine of '{}'",
-                        _filename);
+  _logger->debug("modules: running initialization routine of '{}'", _filename);
   (*(void (*)(void const*))(sym.code))(arg);
 }

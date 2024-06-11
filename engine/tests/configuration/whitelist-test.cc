@@ -22,7 +22,8 @@
 
 #include <gtest/gtest.h>
 
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
+#include "common/log_v2/config.hh"
 
 #include "com/centreon/engine/configuration/whitelist.hh"
 
@@ -41,13 +42,11 @@ class whitelist_test : public ::testing::Test {
 
  public:
   static void SetUpTestSuite() {
-    _old_log_level = log_v2::config()->level();
-    log_v2::config()->set_level(spdlog::level::trace);
+    _old_log_level = config_logger->level();
+    config_logger->set_level(spdlog::level::trace);
   }
 
-  static void TearDownTestSuite() {
-    log_v2::config()->set_level(_old_log_level);
-  }
+  static void TearDownTestSuite() { config_logger->set_level(_old_log_level); }
 };
 
 spdlog::level::level_enum whitelist_test::_old_log_level;

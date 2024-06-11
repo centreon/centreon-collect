@@ -21,9 +21,7 @@
 
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_operation bool_operation.hh
  * "com/centreon/broker/bam/bool_operation.hh"
@@ -43,7 +41,8 @@ class bool_operation : public bool_binary_operator {
   const operation_type _type;
 
  public:
-  bool_operation(std::string const& op);
+  bool_operation(const std::string& op,
+                 const std::shared_ptr<spdlog::logger>& logger);
   ~bool_operation() noexcept override = default;
   bool_operation(const bool_operation&) = delete;
   bool_operation& operator=(const bool_operation&) = delete;
@@ -52,8 +51,6 @@ class bool_operation : public bool_binary_operator {
   bool state_known() const override;
   std::string object_info() const override;
 };
-}  // namespace bam
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_OR_HH

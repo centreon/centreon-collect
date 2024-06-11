@@ -237,6 +237,8 @@ class conflict_manager {
 
   timestamp _oldest_timestamp;
   std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
+  std::shared_ptr<spdlog::logger> _logger_sql;
+  std::shared_ptr<spdlog::logger> _logger_storage;
 
   database::mysql_stmt _acknowledgement_insupdate;
   database::mysql_stmt _comment_insupdate;
@@ -371,7 +373,7 @@ class conflict_manager {
                            uint32_t interval_length,
                            const database_config& dbcfg);
   static conflict_manager& instance();
-  int32_t unload(stream_type type);
+  static int32_t unload(stream_type type);
   nlohmann::json get_statistics();
 
   int32_t send_event(stream_type c, std::shared_ptr<io::data> const& e);
@@ -381,6 +383,7 @@ class conflict_manager {
                                 std::string const& metric_name,
                                 short metric_type);
   void remove_graphs(const std::shared_ptr<io::data>& d);
+  void process_stop(const std::shared_ptr<io::data>& d);
 };
 }  // namespace storage
 }  // namespace com::centreon::broker

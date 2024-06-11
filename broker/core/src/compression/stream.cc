@@ -1,20 +1,20 @@
 /**
-* Copyright 2011-2017 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/compression/stream.hh"
 
@@ -25,11 +25,13 @@
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::compression;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 const size_t stream::max_data_size = 100000000u;
 
@@ -40,7 +42,11 @@ const size_t stream::max_data_size = 100000000u;
  *  @param[in] size  Compression buffer size.
  */
 stream::stream(int level, size_t size)
-    : io::stream("compression"), _level(level), _shutdown(false), _size(size) {}
+    : io::stream("compression"),
+      _level(level),
+      _shutdown(false),
+      _size(size),
+      _logger(log_v2::instance().get(log_v2::CORE)) {}
 
 /**
  *  Destructor.
@@ -91,26 +97,25 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
           unsigned char const* buff((unsigned char const*)_rbuffer.data());
           size = static_cast<uint32_t>((buff[0] << 24) | (buff[1] << 16) |
                                        (buff[2] << 8) | (buff[3]));
-          log_v2::core()->trace(
-              "extract size: {} from {:02X} {:02X} {:02X} {:02X}", size,
-              buff[0], buff[1], buff[2], buff[3]);
+          _logger->trace("extract size: {} from {:02X} {:02X} {:02X} {:02X}",
+                         size, buff[0], buff[1], buff[2], buff[3]);
         }
 
         // Check if size is within bounds.
         if (size <= 0 || size > max_data_size) {
           // Skip corrupted data, one byte at a time.
-          log_v2::core()->error(
+          _logger->error(
               "compression: stream got corrupted packet size of {} bytes, not "
               "in "
               "the 0-{} range, skipping next byte",
               size, max_data_size);
           if (!skipped)
-            log_v2::core()->error(
-                "compression: peer {} is sending corrupted data", peer());
+            _logger->error("compression: peer {} is sending corrupted data",
+                           peer());
           ++skipped;
           _rbuffer.pop(1);
         } else {
-          log_v2::core()->trace("compression: reading {} bytes", size);
+          _logger->trace("compression: reading {} bytes", size);
           corrupted = false;
         }
       }
@@ -130,31 +135,30 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
                                    (_rbuffer.data() + sizeof(int32_t))),
                                size);
         } catch (exceptions::corruption const& e) {
-          log_v2::core()->debug("corrupted data: {}", e.what());
+          _logger->debug("corrupted data: {}", e.what());
         }
       }
       if (!r->size()) {  // No data or uncompressed size of 0 means corrupted
                          // input.
-        log_v2::core()->error(
+        _logger->error(
             "compression: stream got corrupted compressed data, skipping next "
             "byte");
         if (!skipped)
-          log_v2::core()->error(
-              "compression: peer {} is sending corrupted data", peer());
+          _logger->error("compression: peer {} is sending corrupted data",
+                         peer());
         ++skipped;
         _rbuffer.pop(1);
         corrupted = true;
       } else {
-        log_v2::core()->debug(
-            "compression: stream uncompressed {} bytes to {} bytes",
-            size + sizeof(int32_t), r->size());
+        _logger->debug("compression: stream uncompressed {} bytes to {} bytes",
+                       size + sizeof(int32_t), r->size());
         data = r;
         _rbuffer.pop(size + sizeof(int32_t));
         corrupted = false;
       }
     }
     if (skipped)
-      log_v2::core()->info(
+      _logger->info(
           "compression: peer {} sent {} corrupted compressed bytes, resuming "
           "processing",
           peer(), skipped);
@@ -239,7 +243,7 @@ int stream::write(std::shared_ptr<io::data> const& d) {
           "this error to Centreon Broker developers",
           max_data_size);
     else if (r.size() > 0) {
-      log_v2::core()->trace("compression: writing {} bytes", r.size());
+      _logger->trace("compression: writing {} bytes", r.size());
       // Append data to write buffer.
       std::copy(r.get_buffer().begin(), r.get_buffer().end(),
                 std::back_inserter(_wbuffer));
@@ -266,7 +270,7 @@ void stream::_flush() {
     auto compressed{std::make_shared<io::raw>()};
     std::vector<char>& data(compressed->get_buffer());
     data = zlib::compress(_wbuffer, _level);
-    log_v2::core()->debug(
+    _logger->debug(
         "compression: stream compressed {} bytes to {} bytes (level {})",
         _wbuffer.size(), compressed->size(), _level);
     _wbuffer.clear();

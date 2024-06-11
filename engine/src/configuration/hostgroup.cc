@@ -1,25 +1,25 @@
 /**
-* Copyright 2011-2013,2017 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2017-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #include "com/centreon/engine/configuration/hostgroup.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon;
@@ -93,56 +93,56 @@ bool hostgroup::operator==(hostgroup const& right) const throw() {
   if (!object::operator==(right)) {
     engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => object don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => object don't match");
     return false;
   }
   if (_action_url != right._action_url) {
     engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => action url don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => action url don't match");
     return false;
   }
   if (_alias != right._alias) {
     engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => alias don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => alias don't match");
     return false;
   }
   if (_hostgroup_id != right._hostgroup_id) {
     engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => hostgroup id don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => hostgroup id don't match");
     return false;
   }
   if (_hostgroup_name != right._hostgroup_name) {
     engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => hostgroup name don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => hostgroup name don't match");
     return false;
   }
   if (_members != right._members) {
     engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => members don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => members don't match");
     return false;
   }
   if (_notes != right._notes) {
     engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => notes don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => notes don't match");
     return false;
   }
   if (_notes_url != right._notes_url) {
     engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => notes url don't match";
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => notes url don't match");
     return false;
   }

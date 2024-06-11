@@ -21,9 +21,19 @@
 
 #include "com/centreon/broker/grpc/acceptor.hh"
 #include "com/centreon/broker/grpc/stream.hh"
+#include "com/centreon/common/pool.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
+using com::centreon::common::log_v2::log_v2;
+
+static constexpr multiplexing::muxer_filter _grpc_stream_filter =
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init());
+
+static constexpr multiplexing::muxer_filter _grpc_forbidden_filter =
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())
+        .add_category(io::local);
 
 namespace com::centreon::broker::grpc {
 
@@ -112,20 +122,20 @@ void service_impl::init() {
 ::grpc::ServerBidiReactor<::com::centreon::broker::stream::CentreonEvent,
                           ::com::centreon::broker::stream::CentreonEvent>*
 service_impl::exchange(::grpc::CallbackServerContext* context) {
+  auto logger = log_v2::instance().get(log_v2::GRPC);
   if (!_conf->get_authorization().empty()) {
     const auto& metas = context->client_metadata();
 
     auto header_search = metas.lower_bound(authorization_header);
     if (header_search == metas.end()) {
-      SPDLOG_LOGGER_ERROR(log_v2::grpc(), "header {} not found from {}",
+      SPDLOG_LOGGER_ERROR(logger, "header {} not found from {}",
                           authorization_header, context->peer());
       return nullptr;
     }
     bool found = false;
     for (; header_search != metas.end() && !found; ++header_search) {
       if (header_search->first != authorization_header) {
-        SPDLOG_LOGGER_ERROR(log_v2::grpc(),
-                            "Wrong client authorization token from {}",
+        SPDLOG_LOGGER_ERROR(logger, "Wrong client authorization token from {}",
                             context->peer());
         return nullptr;
       }
@@ -133,8 +143,7 @@ service_impl::exchange(::grpc::CallbackServerContext* context) {
     }
   }
 
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "connection accepted from {}",
-                      context->peer());
+  SPDLOG_LOGGER_DEBUG(logger, "connection accepted from {}", context->peer());
 
   std::shared_ptr<server_stream> next_stream =
       std::make_shared<server_stream>(_conf, shared_from_this());
@@ -142,7 +151,7 @@ service_impl::exchange(::grpc::CallbackServerContext* context) {
   server_stream::register_stream(next_stream);
   next_stream->start_read();
   {
-    std::unique_lock l(_wait_m);
+    std::lock_guard l(_wait_m);
     _wait_to_open.push_back(next_stream);
   }
   _wait_cond.notify_one();
@@ -248,59 +257,16 @@ void service_impl::unregister(
  * @param conf
  */
 acceptor::acceptor(const grpc_config::pointer& conf)
-    : io::endpoint(true, {}), _service(std::make_shared<service_impl>(conf)) {
-  _service->init();
-
-  ::grpc::ServerBuilder builder;
-
-  std::shared_ptr<::grpc::ServerCredentials> server_creds;
-  if (conf->is_crypted() && !conf->get_cert().empty() &&
-      !conf->get_key().empty()) {
-    ::grpc::SslServerCredentialsOptions::PemKeyCertPair pkcp = {
-        conf->get_key(), conf->get_cert()};
-
-    SPDLOG_LOGGER_INFO(
-        log_v2::grpc(),
-        "encrypted server listening on {} cert: {}..., key: {}..., ca: {}....",
-        conf->get_hostport(), conf->get_cert().substr(0, 10),
-        conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
-
-    ::grpc::SslServerCredentialsOptions ssl_opts;
-    ssl_opts.pem_root_certs = conf->get_ca();
-    ssl_opts.pem_key_cert_pairs.push_back(pkcp);
-
-    server_creds = ::grpc::SslServerCredentials(ssl_opts);
-  } else {
-    SPDLOG_LOGGER_INFO(log_v2::grpc(), "unencrypted server listening on {}",
-                       conf->get_hostport());
-    server_creds = ::grpc::InsecureServerCredentials();
-  }
-  builder.AddListeningPort(conf->get_hostport(), server_creds);
-  builder.RegisterService(_service.get());
-  builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
-  builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_TIME_MS,
-                             conf->get_second_keepalive_interval() * 1000);
-  builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_TIMEOUT_MS,
-                             conf->get_second_keepalive_interval() * 300);
-  builder.AddChannelArgument(GRPC_ARG_HTTP2_MAX_PING_STRIKES, 0);
-  builder.AddChannelArgument(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, 0);
-  builder.AddChannelArgument(
-      GRPC_ARG_HTTP2_MIN_RECV_PING_INTERVAL_WITHOUT_DATA_MS, 60000);
-
-  if (conf->get_compression() == grpc_config::YES) {
-    grpc_compression_algorithm algo = grpc_compression_algorithm_for_level(
-        GRPC_COMPRESS_LEVEL_HIGH, calc_accept_all_compression_mask());
-    const char* algo_name;
-    if (grpc_compression_algorithm_name(algo, &algo_name))
-      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "server default compression {}",
-                          algo_name);
-    else
-      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "server default compression unknown");
-
-    builder.SetDefaultCompressionAlgorithm(algo);
-    builder.SetDefaultCompressionLevel(GRPC_COMPRESS_LEVEL_HIGH);
-  }
-  _server = std::move(builder.BuildAndStart());
+    : io::endpoint(true, _grpc_stream_filter, _grpc_forbidden_filter),
+      com::centreon::common::grpc::grpc_server_base(
+          conf,
+          log_v2::instance().get(log_v2::GRPC)) {
+  _init([this](::grpc::ServerBuilder& builder) {
+    _service = std::make_shared<service_impl>(
+        std::static_pointer_cast<grpc_config>(get_conf()));
+    _service->init();
+    builder.RegisterService(_service.get());
+  });
 }
 
 /**
@@ -308,14 +274,12 @@ acceptor::acceptor(const grpc_config::pointer& conf)
  *
  */
 acceptor::~acceptor() {
-  if (_server) {
-    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "begin shutdown of acceptor {} ",
+  if (initialized()) {
+    SPDLOG_LOGGER_DEBUG(get_logger(), "begin shutdown of acceptor {} ",
                         _service->get_conf()->get_hostport());
     _service->shutdown_all_wait();
     _service->shutdown_all_accepted();
-    _server->Shutdown(std::chrono::system_clock::now() +
-                      std::chrono::seconds(15));
-    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "end shutdown of acceptor {} ",
+    SPDLOG_LOGGER_DEBUG(get_logger(), "end shutdown of acceptor {} ",
                         _service->get_conf()->get_hostport());
   }
 }

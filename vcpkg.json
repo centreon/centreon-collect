@@ -20,14 +20,9 @@
     "boost-multi-index",
     "boost-interprocess",
     "boost-exception",
+    "boost-program-options",
     "boost-serialization",
-    {
-      "name": "opentelemetry-cpp",
-      "features": [
-        "otlp-grpc",
-        "otlp-http"
-      ]
-    },
+    "boost-url",
     "nlohmann-json",
     "rapidjson",
     "gtest"

@@ -1,20 +1,20 @@
 /**
-* Copyright 2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2022-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/unified_sql/factory.hh"
 
@@ -23,13 +23,14 @@
 #include <memory>
 
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/unified_sql/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Find a parameter in configuration.
@@ -79,12 +80,13 @@ io::endpoint* factory::new_endpoint(
     std::shared_ptr<persistent_cache> cache) const {
   (void)cache;
 
+  auto logger = log_v2::instance().get(log_v2::SQL);
   // Find RRD length.
   uint32_t rrd_length;
   if (!absl::SimpleAtoi(find_param(cfg, "length"), &rrd_length)) {
     /* This default length represents 180 days. */
     rrd_length = 15552000;
-    log_v2::sql()->error(
+    logger->error(
         "unified_sql: the length field should contain a string containing a "
         "number. We use the default value in replacement 15552000.");
   }
@@ -97,7 +99,7 @@ io::endpoint* factory::new_endpoint(
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtoi(it->second, &interval_length)) {
         interval_length = 60;
-        log_v2::sql()->error(
+        logger->error(
             "unified_sql: the interval field should contain a string "
             "containing a number. We use the default value in replacement 60.");
       }
@@ -116,7 +118,7 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("store_in_data_bin")};
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &store_in_data_bin)) {
-        log_v2::sql()->error(
+        logger->error(
             "factory: cannot parse the 'store_in_data_bin' boolean: the "
             "content is '{}'",
             it->second);
@@ -132,7 +134,7 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("store_in_resources")};
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &store_in_resources)) {
-        log_v2::sql()->error(
+        logger->error(
             "factory: cannot parse the 'store_in_resources' boolean: the "
             "content is '{}'",
             it->second);
@@ -148,7 +150,7 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("store_in_hosts_services")};
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &store_in_hosts_services)) {
-        log_v2::sql()->error(
+        logger->error(
             "factory: cannot parse the 'store_in_hosts_services' boolean: the "
             "content is '{}'",
             it->second);
@@ -157,10 +159,10 @@ io::endpoint* factory::new_endpoint(
     }
   }
 
-  log_v2::sql()->debug("SQL: store in hosts/services: {}",
-                       store_in_hosts_services ? "yes" : "no");
-  log_v2::sql()->debug("SQL: store in resources: {}",
-                       store_in_resources ? "yes" : "no");
+  logger->debug("SQL: store in hosts/services: {}",
+                store_in_hosts_services ? "yes" : "no");
+  logger->debug("SQL: store in resources: {}",
+                store_in_resources ? "yes" : "no");
 
   // Loop timeout
   // By default, 30 seconds
@@ -175,7 +177,7 @@ io::endpoint* factory::new_endpoint(
     auto it = cfg.params.find("instance_timeout");
     if (it != cfg.params.end() &&
         !absl::SimpleAtoi(it->second, &instance_timeout)) {
-      log_v2::sql()->error(
+      logger->error(
           "factory: cannot parse the 'instance_timeout' value. It should be an "
           "unsigned integer. 300 is set by default.");
       instance_timeout = 300;

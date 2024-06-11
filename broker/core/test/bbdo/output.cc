@@ -24,16 +24,16 @@
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/lua/macro_cache.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/persistent_file.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
-
+using com::centreon::common::log_v2::log_v2;
 
 class into_memory : public io::stream {
  public:
@@ -67,23 +67,27 @@ class into_memory : public io::stream {
 };
 
 class OutputTest : public ::testing::Test {
+ protected:
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   void SetUp() override {
+    _logger = log_v2::instance().get(log_v2::CORE);
     io::data::broker_id = 0;
     try {
       config::applier::init(0, "broker_test", 0);
     } catch (std::exception const& e) {
       (void)e;
     }
-    std::shared_ptr<persistent_cache> pcache(
-        std::make_shared<persistent_cache>("/tmp/broker_test_cache"));
+    std::shared_ptr<persistent_cache> pcache(std::make_shared<persistent_cache>(
+        "/tmp/broker_test_cache", log_v2::instance().get(log_v2::CORE)));
   }
 
   void TearDown() override {
     // The cache must be destroyed before the applier deinit() call.
     config::applier::deinit();
     ::remove("/tmp/broker_test_cache");
-    ::remove(log_v2::instance()->log_name().c_str());
+    ::remove(log_v2::instance().filename().c_str());
   }
 };
 
@@ -91,7 +95,7 @@ class OutputTest : public ::testing::Test {
 // Then this event is translated into a Lua table and sent to the lua write()
 // function.
 TEST_F(OutputTest, WriteService) {
-  config::applier::modules modules;
+  config::applier::modules modules(_logger);
   modules.load_file("./broker/neb/10-neb.so");
 
   std::shared_ptr<neb::service> svc(std::make_shared<neb::service>());
@@ -136,7 +140,7 @@ TEST_F(OutputTest, WriteService) {
 }
 
 TEST_F(OutputTest, WriteLongService) {
-  config::applier::modules modules;
+  config::applier::modules modules(_logger);
   modules.load_file("./broker/neb/10-neb.so");
 
   auto svc = std::make_shared<neb::service>();
@@ -184,7 +188,7 @@ TEST_F(OutputTest, WriteLongService) {
 }
 
 TEST_F(OutputTest, WriteReadService) {
-  config::applier::modules modules;
+  config::applier::modules modules(_logger);
   modules.load_file("./broker/neb/10-neb.so");
 
   std::shared_ptr<neb::service> svc(new neb::service);
@@ -228,7 +232,7 @@ TEST_F(OutputTest, WriteReadService) {
 }
 
 TEST_F(OutputTest, ShortPersistentFile) {
-  config::applier::modules modules;
+  config::applier::modules modules(_logger);
   modules.load_file("./broker/neb/10-neb.so");
 
   std::shared_ptr<neb::service_status> svc(new neb::service_status);
@@ -273,7 +277,7 @@ TEST_F(OutputTest, ShortPersistentFile) {
 }
 
 TEST_F(OutputTest, LongPersistentFile) {
-  config::applier::modules modules;
+  config::applier::modules modules(_logger);
   modules.load_file("./broker/neb/10-neb.so");
 
   std::shared_ptr<neb::service> svc(new neb::service);
@@ -317,7 +321,7 @@ TEST_F(OutputTest, LongPersistentFile) {
 }
 
 TEST_F(OutputTest, WriteReadBadChksum) {
-  config::applier::modules modules;
+  config::applier::modules modules(_logger);
   modules.load_file("./broker/neb/10-neb.so");
 
   std::shared_ptr<neb::service> svc(new neb::service);
@@ -356,7 +360,7 @@ TEST_F(OutputTest, WriteReadBadChksum) {
 }
 
 TEST_F(OutputTest, ServiceTooShort) {
-  config::applier::modules modules;
+  config::applier::modules modules(_logger);
   modules.load_file("./broker/neb/10-neb.so");
 
   std::shared_ptr<neb::service> svc(new neb::service);
@@ -402,7 +406,7 @@ TEST_F(OutputTest, ServiceTooShort) {
 }
 
 TEST_F(OutputTest, ServiceTooShortAndAGoodOne) {
-  config::applier::modules modules;
+  config::applier::modules modules(_logger);
   modules.load_file("./broker/neb/10-neb.so");
 
   std::shared_ptr<neb::service> svc(new neb::service);

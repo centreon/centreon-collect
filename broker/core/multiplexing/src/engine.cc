@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2013,2015, 2020-2021 Centreon
+ * Copyright 2009-2013,2015, 2020-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,23 +18,25 @@
 
 #include "com/centreon/broker/multiplexing/engine.hh"
 
+#include <absl/synchronization/mutex.h>
 #include <unistd.h>
 
 #include <cassert>
 
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Class instance.
 std::shared_ptr<engine> engine::_instance{nullptr};
-std::mutex engine::_load_m;
+absl::Mutex engine::_load_m;
 
 /**
  *  Get engine instance.
@@ -50,28 +52,46 @@ std::shared_ptr<engine> engine::instance_ptr() {
  * queue files.
  */
 void engine::load() {
-  SPDLOG_LOGGER_TRACE(log_v2::core(), "multiplexing: loading engine");
-  std::lock_guard<std::mutex> lk(_load_m);
+  auto logger = log_v2::instance().get(log_v2::CORE);
+  SPDLOG_LOGGER_TRACE(logger, "multiplexing: loading engine");
+  absl::MutexLock lk(&_load_m);
   if (!_instance)
-    _instance.reset(new engine);
+    _instance.reset(new engine(logger));
 }
 
 /**
- *  Unload class instance.
+ * @brief Unload the engine class instance.
  */
 void engine::unload() {
-  if (!_instance)
-    return;
-  if (_instance->_state != stopped)
-    _instance->stop();
+  SPDLOG_LOGGER_TRACE(log_v2::instance().get(log_v2::CORE),
+                      "multiplexing: unloading engine");
+  auto instance = instance_ptr();
+  if (instance) {
+    {
+      absl::ReleasableMutexLock lck(&instance->_kiew_m);
+      /* Here we wait for all the subscriber muxers to be stopped and removed
+       * from the muxers array. Even if they execute asynchronous functions,
+       * they have finished after that. */
+      auto muxers_empty = [&m = instance->_muxers,
+                           logger = instance->_logger]() {
+        logger->debug("Still {} muxers configured in Broker engine", m.size());
+        return m.empty();
+      };
+      instance->_logger->info("Waiting for the destruction of subscribers");
+      instance->_kiew_m.Await(absl::Condition(&muxers_empty));
+    }
 
-  SPDLOG_LOGGER_TRACE(log_v2::core(), "multiplexing: unloading engine");
-  std::lock_guard<std::mutex> lk(_load_m);
-  // Commit the cache file, if needed.
-  if (_instance && _instance->_cache_file)
-    _instance->_cache_file->commit();
+    absl::MutexLock lck(&_load_m);
+    instance->stop();
 
-  _instance.reset();
+    // Commit the cache file, if needed.
+    if (instance->_cache_file) {
+      // In case of muxers removed from the Engine and still events in _kiew
+      instance->publish(instance->_kiew);
+      instance->_cache_file->commit();
+    }
+    _instance.reset();
+  }
 }
 
 /**
@@ -80,25 +100,21 @@ void engine::unload() {
  *  @param[in] e  Event to publish.
  */
 void engine::publish(const std::shared_ptr<io::data>& e) {
-  // Lock mutex.
   bool have_to_send = false;
   {
-    std::lock_guard<std::mutex> lock(_engine_m);
+    absl::MutexLock lck(&_kiew_m);
     switch (_state) {
       case stopped:
-        SPDLOG_LOGGER_TRACE(log_v2::core(),
-                            "engine::publish one event to file");
+        SPDLOG_LOGGER_TRACE(_logger, "engine::publish one event to file");
         _cache_file->add(e);
         _unprocessed_events++;
         break;
       case not_started:
-        SPDLOG_LOGGER_TRACE(log_v2::core(),
-                            "engine::publish one event to queue");
+        SPDLOG_LOGGER_TRACE(_logger, "engine::publish one event to queue");
         _kiew.push_back(e);
         break;
       default:
-        SPDLOG_LOGGER_TRACE(log_v2::core(),
-                            "engine::publish one event to queue_");
+        SPDLOG_LOGGER_TRACE(_logger, "engine::publish one event to queue_");
         _kiew.push_back(e);
         have_to_send = true;
         break;
@@ -112,10 +128,10 @@ void engine::publish(const std::shared_ptr<io::data>& e) {
 void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
   bool have_to_send = false;
   {
-    std::lock_guard<std::mutex> lock(_engine_m);
+    absl::MutexLock lck(&_kiew_m);
     switch (_state) {
       case stopped:
-        SPDLOG_LOGGER_TRACE(log_v2::core(), "engine::publish {} event to file",
+        SPDLOG_LOGGER_TRACE(_logger, "engine::publish {} event to file",
                             to_publish.size());
         for (auto& e : to_publish) {
           _cache_file->add(e);
@@ -123,14 +139,13 @@ void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
         }
         break;
       case not_started:
-        SPDLOG_LOGGER_TRACE(log_v2::core(), "engine::publish {} event to queue",
+        SPDLOG_LOGGER_TRACE(_logger, "engine::publish {} event to queue",
                             to_publish.size());
         for (auto& e : to_publish)
           _kiew.push_back(e);
         break;
       default:
-        SPDLOG_LOGGER_TRACE(log_v2::core(),
-                            "engine::publish {} event to queue_",
+        SPDLOG_LOGGER_TRACE(_logger, "engine::publish {} event to queue_",
                             to_publish.size());
         for (auto& e : to_publish)
           _kiew.push_back(e);
@@ -150,10 +165,10 @@ void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
 void engine::start() {
   bool have_to_send = false;
   {
-    std::lock_guard<std::mutex> lock(_engine_m);
+    absl::MutexLock lck(&_kiew_m);
     if (_state == not_started) {
       // Set writing method.
-      SPDLOG_LOGGER_DEBUG(log_v2::core(), "multiplexing: engine starting");
+      SPDLOG_LOGGER_DEBUG(_logger, "multiplexing: engine starting");
       _state = running;
       _center->update(&EngineStats::set_mode, _stats, EngineStats::RUNNING);
 
@@ -161,7 +176,7 @@ void engine::start() {
       std::deque<std::shared_ptr<io::data>> kiew;
       // Get events from the cache file to the local queue.
       try {
-        persistent_cache cache(_cache_file_path());
+        persistent_cache cache(_cache_file_path(), _logger);
         std::shared_ptr<io::data> d;
         for (;;) {
           cache.get(d);
@@ -170,7 +185,7 @@ void engine::start() {
           kiew.push_back(d);
         }
       } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(log_v2::core(),
+        SPDLOG_LOGGER_ERROR(_logger,
                             "multiplexing: engine couldn't read cache file: {}",
                             e.what());
       }
@@ -186,10 +201,10 @@ void engine::start() {
       have_to_send = true;
     }
   }
-  if (have_to_send) {
+  if (have_to_send)
     _send_to_subscribers(nullptr);
-  }
-  SPDLOG_LOGGER_INFO(log_v2::core(), "multiplexing: engine started");
+
+  SPDLOG_LOGGER_INFO(_logger, "multiplexing: engine started");
 }
 
 /**
@@ -198,50 +213,38 @@ void engine::start() {
  * will be handled at the next cbd start.
  */
 void engine::stop() {
-  std::unique_lock<std::mutex> lock(_engine_m);
-  if (_state != stopped) {
-    // Notify hooks of multiplexing loop end.
-    SPDLOG_LOGGER_INFO(log_v2::core(), "multiplexing: stopping engine");
+  absl::ReleasableMutexLock lck(&_kiew_m);
 
-    do {
-      // Make sure that no more data is available.
-      if (!_sending_to_subscribers) {
-        SPDLOG_LOGGER_INFO(
-            log_v2::core(),
-            "multiplexing: sending events to muxers for the last time {} "
-            "events to send",
-            _kiew.size());
-        _sending_to_subscribers = true;
-        lock.unlock();
-        std::promise<void> promise;
-        if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
-          promise.get_future().get();
-        } else {  // nothing to send or no muxer
-          break;
-        }
-        lock.lock();
-      }
-    } while (!_kiew.empty());
+  if (_state != stopped) {
+    // Set writing method.
+    _state = stopped;
+    _center->update(&EngineStats::set_mode, _stats, EngineStats::STOPPED);
+    lck.Release();
+    // Notify hooks of multiplexing loop end.
+    SPDLOG_LOGGER_INFO(_logger, "multiplexing: stopping engine");
+
+    std::promise<void> promise;
+    if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
+      promise.get_future().get();
+    }  // nothing to send or no muxer
+
+    absl::MutexLock l(&_kiew_m);
 
     // Open the cache file and start the transaction.
     // The cache file is used to cache all the events produced
     // while the engine is stopped. It will be replayed next time
     // the engine is started.
     try {
-      _cache_file = std::make_unique<persistent_cache>(_cache_file_path());
+      _cache_file =
+          std::make_unique<persistent_cache>(_cache_file_path(), _logger);
       _cache_file->transaction();
     } catch (const std::exception& e) {
-      log_v2::perfdata()->error("multiplexing: could not open cache file: {}",
-                                e.what());
+      _logger->error("multiplexing: could not open cache file: {}", e.what());
       _cache_file.reset();
     }
 
-    // Set writing method.
-    _state = stopped;
-    _center->update(&EngineStats::set_mode, _stats, EngineStats::STOPPED);
+    SPDLOG_LOGGER_DEBUG(_logger, "multiplexing: engine stopped");
   }
-  SPDLOG_LOGGER_DEBUG(log_v2::core(), "multiplexing: engine stopped");
-  DEBUG(fmt::format("STOP engine {:p}", static_cast<void*>(this)));
 }
 
 /**
@@ -250,13 +253,11 @@ void engine::stop() {
  *  @param[in] subscriber  A muxer.
  */
 void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
-  log_v2::config()->debug("engine: muxer {} subscribes to engine",
-                          subscriber->name());
-  std::lock_guard<std::mutex> l(_engine_m);
+  _logger->debug("engine: muxer {} subscribes to engine", subscriber->name());
+  absl::MutexLock lck(&_kiew_m);
   for (auto& m : _muxers)
     if (m.lock() == subscriber) {
-      log_v2::config()->debug("engine: muxer {} already subscribed",
-                              subscriber->name());
+      _logger->debug("engine: muxer {} already subscribed", subscriber->name());
       return;
     }
   _muxers.push_back(subscriber);
@@ -268,12 +269,21 @@ void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
  *  @param[in] subscriber  Subscriber.
  */
 void engine::unsubscribe_muxer(const muxer* subscriber) {
-  std::lock_guard<std::mutex> l(_engine_m);
+  std::promise<void> promise;
+
+  if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
+    promise.get_future().wait();
+  }
+
+  absl::MutexLock lck(&_kiew_m);
+
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   for (auto it = _muxers.begin(); it != _muxers.end(); ++it) {
     auto w = it->lock();
     if (!w || w.get() == subscriber) {
-      log_v2::config()->debug("engine: muxer {} unsubscribes to engine",
-                              subscriber->name());
+      logger->debug("multiplexing: muxer {} unsubscribed from Engine",
+                    subscriber->name());
+
       _muxers.erase(it);
       return;
     }
@@ -283,20 +293,22 @@ void engine::unsubscribe_muxer(const muxer* subscriber) {
 /**
  *  Default constructor.
  */
-engine::engine()
+engine::engine(const std::shared_ptr<spdlog::logger>& logger)
     : _state{not_started},
+      _unprocessed_events{0u},
       _center{stats::center::instance_ptr()},
       _stats{_center->register_engine()},
-      _unprocessed_events{0u},
-      _sending_to_subscribers{false} {
-  DEBUG(fmt::format("CONSTRUCTOR engine {:p}", static_cast<void*>(this)));
+      _sending_to_subscribers{false},
+      _logger{logger} {
   _center->update(&EngineStats::set_mode, _stats, EngineStats::NOT_STARTED);
+  absl::SetMutexDeadlockDetectionMode(absl::OnDeadlockCycle::kAbort);
+  absl::EnableMutexInvariantDebugging(true);
 }
 
 engine::~engine() noexcept {
   /* Muxers should be unsubscribed before arriving here. */
   assert(_muxers.empty());
-  SPDLOG_LOGGER_DEBUG(log_v2::core(), "core: cbd engine destroyed.");
+  SPDLOG_LOGGER_DEBUG(_logger, "core: cbd engine destroyed.");
   DEBUG(fmt::format("DESTRUCTOR engine {:p}", static_cast<void*>(this)));
 }
 
@@ -314,9 +326,10 @@ std::string engine::_cache_file_path() const {
 namespace com::centreon::broker::multiplexing::detail {
 
 /**
- * @brief The goal of this class is to do the completion job once all muxer has
- * been fed a shared_ptr of one instance of this class is passed to worker. So
- * when all workers have finished, destructor is called and do the job
+ * @brief The goal of this class is to do the completion job once all muxer
+ * has been fed a shared_ptr of one instance of this class is passed to
+ * worker. So when all workers have finished, destructor is called and do the
+ * job
  *
  */
 class callback_caller {
@@ -335,11 +348,11 @@ class callback_caller {
   ~callback_caller() {
     // job is done
     bool expected = true;
-    _parent->_sending_to_subscribers.compare_exchange_strong(expected, false);
-    // if another data to publish redo the job
-    _parent->_send_to_subscribers(nullptr);
-    if (_callback) {
-      _callback();
+    if (_parent->_sending_to_subscribers.compare_exchange_strong(expected,
+                                                                 false)) {
+      if (_callback) {
+        _callback();
+      }
     }
   }
 };
@@ -353,7 +366,7 @@ class callback_caller {
  * the sending of data to each. callback is called only if _kiew is not empty
  * @param callback
  * @return true data sent
- * @return false nothing to sent or sent in progress
+ * @return false nothing to send or currently sending.
  */
 bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
   // is _send_to_subscriber working? (_sending_to_subscribers=false)
@@ -361,14 +374,14 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
   if (!_sending_to_subscribers.compare_exchange_strong(expected, true)) {
     return false;
   }
-  // now we continue and _sending_to_subscribers = true
+  // Now we continue and _sending_to_subscribers is true.
 
   // Process all queued events.
   std::shared_ptr<std::deque<std::shared_ptr<io::data>>> kiew;
   std::shared_ptr<muxer> first_muxer;
   std::shared_ptr<detail::callback_caller> cb;
   {
-    std::lock_guard<std::mutex> lck(_engine_m);
+    absl::MutexLock lck(&_kiew_m);
     if (_muxers.empty() || _kiew.empty()) {
       // nothing to do true => _sending_to_subscribers
       bool expected = true;
@@ -377,15 +390,14 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
     }
 
     SPDLOG_LOGGER_TRACE(
-        log_v2::core(),
-        "engine::_send_to_subscribers send {} events to {} muxers",
+        _logger, "engine::_send_to_subscribers send {} events to {} muxers",
         _kiew.size(), _muxers.size());
 
     kiew = std::make_shared<std::deque<std::shared_ptr<io::data>>>();
     std::swap(_kiew, *kiew);
     // completion object
-    // it will be destroyed at the end of the scope of this function and at the
-    // end of lambdas posted
+    // it will be destroyed at the end of the scope of this function and at
+    // the end of lambdas posted
     cb = std::make_shared<detail::callback_caller>(std::move(callback),
                                                    _instance);
 
@@ -401,16 +413,15 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
         std::shared_ptr<muxer> mux_to_publish_in_asio = mux.lock();
         if (mux_to_publish_in_asio) {
           com::centreon::common::pool::io_context().post(
-              [kiew, mux_to_publish_in_asio, cb]() {
+              [kiew, mux_to_publish_in_asio, cb, logger = _logger]() {
                 try {
                   mux_to_publish_in_asio->publish(*kiew);
                 }  // pool threads protection
                 catch (const std::exception& ex) {
-                  SPDLOG_LOGGER_ERROR(log_v2::core(),
-                                      "publish caught exception: {}",
+                  SPDLOG_LOGGER_ERROR(logger, "publish caught exception: {}",
                                       ex.what());
                 } catch (...) {
-                  SPDLOG_LOGGER_ERROR(log_v2::core(),
+                  SPDLOG_LOGGER_ERROR(logger,
                                       "publish caught unknown exception");
                 }
               });
@@ -424,15 +435,14 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
     /* The same work but by this thread for the last muxer. */
     first_muxer->publish(*kiew);
     return true;
-  } else {  // no muxer
+  } else  // no muxer
     return false;
-  }
 }
 
 /**
- *  Clear events stored in the multiplexing engine.
+ * @brief Clear events stored in the multiplexing engine.
  */
 void engine::clear() {
-  std::lock_guard<std::mutex> lck(_engine_m);
+  absl::MutexLock lck(&_kiew_m);
   _kiew.clear();
 }

@@ -50,6 +50,9 @@ static constexpr multiplexing::muxer_filter _monitoring_stream_filter = {
     inherited_downtime::static_type(),   pb_inherited_downtime::static_type(),
     extcmd::pb_ba_info::static_type(),   pb_services_book_state::static_type()};
 
+static constexpr multiplexing::muxer_filter _monitoring_forbidden_filter =
+    multiplexing::muxer_filter(_monitoring_stream_filter).reverse();
+
 static constexpr multiplexing::muxer_filter _reporting_stream_filter = {
     bam::kpi_event::static_type(),
     bam::pb_kpi_event::static_type(),
@@ -73,6 +76,9 @@ static constexpr multiplexing::muxer_filter _reporting_stream_filter = {
     bam::pb_dimension_ba_timeperiod_relation::static_type(),
     bam::rebuild::static_type()};
 
+static constexpr multiplexing::muxer_filter _reporting_forbidden_filter =
+    multiplexing::muxer_filter(_reporting_stream_filter).reverse();
+
 /**
  * @brief Constructor. This function is not easy to use so it is private and
  * called thanks two static functions:
@@ -82,12 +88,16 @@ static constexpr multiplexing::muxer_filter _reporting_stream_filter = {
  * @param type A stream_type enum giving the following choices :
  * bam_monitoring_type or bam_reporting_type.
  * @param db_cfg The database configuration.
- * @param filter The mandatory filters of the underlying stream.
+ * @param mandatory_filter The mandatory filters of the underlying stream.
+ * @param forbidden_filter The forbidden filters of the underlying stream.
  */
 connector::connector(stream_type type,
                      const database_config& db_cfg,
-                     const multiplexing::muxer_filter& filter)
-    : io::endpoint(false, filter), _type{type}, _db_cfg{db_cfg} {}
+                     const multiplexing::muxer_filter& mandatory_filter,
+                     const multiplexing::muxer_filter& forbidden_filter)
+    : io::endpoint(false, mandatory_filter, forbidden_filter),
+      _type{type},
+      _db_cfg{db_cfg} {}
 
 /**
  * @brief Static function to create a connector for a bam monitoring stream.
@@ -104,8 +114,9 @@ std::unique_ptr<bam::connector> connector::create_monitoring_connector(
     const database_config& db_cfg,
     const std::string& storage_db_name,
     std::shared_ptr<persistent_cache> cache) {
-  auto retval = std::unique_ptr<bam::connector>(new bam::connector(
-      bam_monitoring_type, db_cfg, _monitoring_stream_filter));
+  auto retval = std::unique_ptr<bam::connector>(
+      new bam::connector(bam_monitoring_type, db_cfg, _monitoring_stream_filter,
+                         _monitoring_forbidden_filter));
   retval->_ext_cmd_file = ext_cmd_file;
   retval->_cache = std::move(cache);
   if (storage_db_name.empty())
@@ -123,7 +134,8 @@ std::unique_ptr<bam::connector> connector::create_monitoring_connector(
 std::unique_ptr<bam::connector> connector::create_reporting_connector(
     const database_config& db_cfg) {
   auto retval = std::unique_ptr<bam::connector>(
-      new bam::connector(bam_reporting_type, db_cfg, _reporting_stream_filter));
+      new bam::connector(bam_reporting_type, db_cfg, _reporting_stream_filter,
+                         _reporting_forbidden_filter));
   return retval;
 }
 
@@ -133,13 +145,14 @@ std::unique_ptr<bam::connector> connector::create_reporting_connector(
  * @return BAM connection object.
  */
 std::shared_ptr<io::stream> connector::open() {
+  auto logger = log_v2::instance().get(log_v2::BAM);
   if (_type == bam_reporting_type)
-    return std::shared_ptr<io::stream>(new reporting_stream(_db_cfg));
+    return std::make_shared<bam::reporting_stream>(_db_cfg, logger);
   else {
     database_config storage_db_cfg(_db_cfg);
     storage_db_cfg.set_name(_storage_db_name);
-    auto u = std::make_shared<monitoring_stream>(_ext_cmd_file, _db_cfg,
-                                                 storage_db_cfg, _cache);
+    auto u = std::make_shared<monitoring_stream>(
+        _ext_cmd_file, _db_cfg, storage_db_cfg, _cache, logger);
     // FIXME DBR: just after this creation, initialize() is called by update()
     // So I think this call is not needed. But for now not totally sure.
     // u->initialize();

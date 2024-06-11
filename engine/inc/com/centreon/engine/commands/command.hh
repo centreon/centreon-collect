@@ -1,21 +1,20 @@
-/*
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCE_COMMANDS_COMMAND_HH
 #define CCE_COMMANDS_COMMAND_HH
@@ -28,7 +27,7 @@ namespace com::centreon::engine {
 namespace commands {
 class command;
 }
-}
+}  // namespace com::centreon::engine
 
 typedef std::unordered_map<
     std::string,
@@ -46,6 +45,10 @@ namespace commands {
  *  notify listener at the end of the command.
  */
 class command {
+ public:
+  enum class e_type { exec, forward, raw, connector, otel };
+  const e_type _type;
+
  protected:
   static uint64_t get_uniq_id();
 
@@ -90,7 +93,8 @@ class command {
 
   command(const std::string& name,
           const std::string& command_line,
-          command_listener* listener = nullptr);
+          command_listener* listener = nullptr,
+          e_type cmd_type = e_type::exec);
   virtual ~command() noexcept;
   command(const command&) = delete;
   command& operator=(const command&) = delete;
@@ -98,6 +102,7 @@ class command {
   bool operator!=(const command& right) const noexcept;
   virtual const std::string& get_command_line() const noexcept;
   virtual const std::string& get_name() const noexcept;
+  e_type get_type() const { return _type; }
   virtual std::string process_cmd(nagios_macros* macros) const;
   virtual uint64_t run(const std::string& processed_cmd,
                        nagios_macros& macors,
@@ -108,6 +113,31 @@ class command {
                    nagios_macros& macros,
                    uint32_t timeout,
                    result& res) = 0;
+
+  /**
+   * @brief connector and host serv extractor share a list of host serv which is
+   * updated by this method and unregister_host_serv
+   * This method add an entry in this list
+   * Command is the only thing that hosts and service knows.
+   * So we use it to update host serv list used by host serv extractors
+   *
+   * @param host
+   * @param service_description empty for host command
+   */
+  virtual void register_host_serv(const std::string& host [[maybe_unused]],
+                                  const std::string& service_description
+                                  [[maybe_unused]]) {}
+
+  /**
+   * @brief Remove an entry for host serv list shared between this connector and
+   * host serv extractor
+   *
+   * @param host
+   * @param service_description empty for host command
+   */
+  virtual void unregister_host_serv(const std::string& host [[maybe_unused]],
+                                    const std::string& service_description
+                                    [[maybe_unused]]) {}
 
   template <typename caller_iterator>
   void add_caller_group(caller_iterator begin, caller_iterator end);
@@ -138,7 +168,7 @@ inline std::ostream& operator<<(std::ostream& s, const command::pointer& cmd) {
 
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 namespace fmt {
 template <>
