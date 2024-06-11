@@ -2757,6 +2757,33 @@ def ctn_process_service_check_result_with_metrics(hst: str, svc: str, state: int
     ctn_process_service_check_result(hst, svc, state, full_output, config)
 
 
+def ctn_process_service_check_result_with_big_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
+    """
+    Send a service check result with metrics but their values are to big to fit into a float.
+
+    Args:
+        hst (str): Host name of the service.
+        svc (str): Service description of the service.
+        state (int): State of the check to set.
+        output (str): An output message for the check.
+        metrics (int): The number of metrics that should appear in the result.
+        config (str, optional): Defaults to 'config0' (useful in case of several Engine running).
+        metric_name (str): The base name of metrics. They will appear followed by an integer (for example metric0, metric1, metric2, ...).
+
+    Returns:
+        0 on success.
+    """
+    now = int(time.time())
+    pd = [output + " | "]
+    for m in range(metrics):
+        mx = 3.40282e+039
+        v = mx + abs(math.sin((now + m) / 1000) * 5)
+        pd.append(f"{metric_name}{m}={v}")
+        logger.trace(f"{metric_name}{m}={v}")
+    full_output = " ".join(pd)
+    ctn_process_service_check_result(hst, svc, state, full_output, config)
+
+
 def ctn_process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
     """
     Send a service check result.
