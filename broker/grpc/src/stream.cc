@@ -64,7 +64,7 @@ std::ostream& operator<<(std::ostream& st,
 }  // namespace stream
 namespace grpc {
 /**
- * @brief << operator for detail_centreon_event with more details than *
+ * @brief << operator for detail_centreon_event with more details than
  * CentreonEvent used by fmt with ostream_formatter
  *
  * @param st
