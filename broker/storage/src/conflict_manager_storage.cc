@@ -334,10 +334,8 @@ void conflict_manager::_storage_process_service_status(
                 pd.name(), type, pd.value(), pd.unit(), pd.warning(),
                 pd.warning_low(), pd.warning_mode(), pd.critical(),
                 pd.critical_low(), pd.critical_mode(), pd.min(), pd.max());
-            throw msg_fmt(
-                "storage: insertion of metric '{}"
-                "' of index {} failed: {}",
-                pd.name(), index_id, e.what());
+            // The metric creation failed, we pass to the next metric.
+            continue;
           }
         } else {
           std::lock_guard<std::mutex> lock(_metric_cache_m);
