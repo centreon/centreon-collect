@@ -1,20 +1,20 @@
 /**
-* Copyright 2009-2013 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/neb/custom_variable_status.hh"
 
@@ -100,7 +100,8 @@ mapping::entry const custom_variable_status::entries[] = {
     mapping::entry(&custom_variable_status::modified, "modified"),
     mapping::entry(&custom_variable_status::name,
                    "name",
-                   get_customvariables_col_size(customvariables_name)),
+                   get_centreon_storage_customvariables_col_size(
+                       centreon_storage_customvariables_name)),
     mapping::entry(&custom_variable_status::service_id,
                    "service_id",
                    mapping::entry::invalid_on_zero),
@@ -109,7 +110,8 @@ mapping::entry const custom_variable_status::entries[] = {
                    mapping::entry::invalid_on_minus_one),
     mapping::entry(&custom_variable_status::value,
                    "value",
-                   get_customvariables_col_size(customvariables_value)),
+                   get_centreon_storage_customvariables_col_size(
+                       centreon_storage_customvariables_value)),
     mapping::entry()};
 
 // Operations.
