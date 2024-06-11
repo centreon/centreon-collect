@@ -38,7 +38,6 @@ runs:
         declare -a PREVIOUS_STABLE_TAGS=()
         SCOPE_VERSION="COLLECT"
         MINOR_VERSION_FILE_PATH=".version"
-        RELEASE_CLOUD=0
         RELEASE_CLOUD=0 # (0 = not a release cloud, 1 = release cloud)
         MAJOR_VERSION=""
         MINOR_VERSION=""
