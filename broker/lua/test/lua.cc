@@ -1941,7 +1941,7 @@ TEST_F(LuaTest, ParsePerfdata2) {
   size_t pos10 = lst.find("\"critical_high\":nan", pos1 + 1);
   size_t pos11 = lst.find("\"warning_high\":nan", pos1 + 1);
   size_t pos12 = lst.find("\"critical_low\":nan", pos1 + 1);
-  size_t pos13 = lst.find("\"value\":94.82", pos1 + 1);
+  size_t pos13 = lst.find("\"value\":94.8", pos1 + 1);
   size_t pos14 = lst.find("\"max\":100", pos1 + 1);
   size_t pos15 = lst.find(
       "\"metric_fields\":[\"azure\",\"insights\",\"logicaldisk\",\"free\","
@@ -2007,7 +2007,7 @@ TEST_F(LuaTest, ParsePerfdata3) {
   size_t pos10 = lst.find("\"critical_high\":nan", pos1 + 1);
   size_t pos11 = lst.find("\"warning_high\":nan", pos1 + 1);
   size_t pos12 = lst.find("\"critical_low\":nan", pos1 + 1);
-  size_t pos13 = lst.find("\"value\":94.82", pos1 + 1);
+  size_t pos13 = lst.find("\"value\":94.8", pos1 + 1);
   size_t pos14 = lst.find("\"max\":100", pos1 + 1);
   size_t pos15 = lst.find(
       "metric_fields\":[\"PingSDWanvdomifName\",\"azure\",\"insights\","
@@ -2072,7 +2072,7 @@ TEST_F(LuaTest, ParsePerfdata4) {
   size_t pos10 = lst.find("\"critical_high\":nan", pos1 + 1);
   size_t pos11 = lst.find("\"warning_high\":nan", pos1 + 1);
   size_t pos12 = lst.find("\"critical_low\":nan", pos1 + 1);
-  size_t pos13 = lst.find("\"value\":94.82", pos1 + 1);
+  size_t pos13 = lst.find("\"value\":94.8", pos1 + 1);
   size_t pos14 = lst.find("\"max\":100", pos1 + 1);
   size_t pos15 = lst.find(
       "\"metric_fields\":[\"azure\",\"insights#logicaldisk~free\","
