@@ -2685,6 +2685,66 @@ def ctn_process_service_check_result(hst: str, svc: str, state: int, output: str
                 f.write(cmd)
 
 
+def ctn_process_service_check_result_with_big_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
+    """
+    Send a service check result with metrics but their values are too big to fit into a float.
+
+    Args:
+        hst (str): Host name of the service.
+        svc (str): Service description of the service.
+        state (int): State of the check to set.
+        output (str): An output message for the check.
+        metrics (int): The number of metrics that should appear in the result.
+        config (str, optional): Defaults to 'config0' (useful in case of several Engine running).
+        metric_name (str): The base name of metrics. They will appear followed by an integer (for example metric0, metric1, metric2, ...).
+
+    Returns:
+        0 on success.
+    """
+    now = int(time.time())
+    pd = [output + " | "]
+    for m in range(metrics):
+        mx = 3.40282e+039
+        v = mx + abs(math.sin((now + m) / 1000) * 5)
+        pd.append(f"{metric_name}{m}={v}")
+        logger.trace(f"{metric_name}{m}={v}")
+    full_output = " ".join(pd)
+    ctn_process_service_check_result(hst, svc, state, full_output, config)
+
+
+def ctn_process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
+    """
+    Send a service check result.
+
+    Args:
+        hst (str): Host name of the service.
+        svc (str): Service description of the service.
+        state (int): State of the check to set.
+        output (str): An output message for the check.
+        config (str, optional): Defaults to 'config0' (useful in case of several Engine running).
+        use_grpc (int, optional): Defaults to 0 (no).
+        nb_check (int, optional): Defaults to 1. If nb_check > 1, the check result is sent nb_check times.
+
+    Returns:
+        0 on success.
+    """
+    if use_grpc > 0:
+        port = 50001 + int(config[6:])
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            for i in range(nb_check):
+                indexed_output = f"{output}_{i}"
+                stub.ProcessServiceCheckResult(engine_pb2.Check(
+                    host_name=hst, svc_desc=svc, output=indexed_output, code=state))
+
+    else:
+        now = int(time.time())
+        with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
+            for i in range(nb_check):
+                cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}_{i}\n"
+                f.write(cmd)
+
+
 @ctn_external_command
 def ctn_acknowledge_service_problem(hst, service, typ='NORMAL'):
     """

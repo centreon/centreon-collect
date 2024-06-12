@@ -1,20 +1,20 @@
-/*
-** Copyright 2019-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2019-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <fmt/format.h>
 
@@ -55,8 +55,8 @@ constexpr int32_t queue_timer_duration = 10;
  *
  *  @return true if they are equal, false otherwise.
  */
-static inline bool check_equality(double a, double b) {
-  static const double eps = 0.000001;
+static inline bool check_equality(float a, float b) {
+  static const float eps = 0.00001;
   if (a == b)
     return true;
   if (std::isnan(a) && std::isnan(b))
@@ -214,16 +214,15 @@ void stream::_unified_sql_process_pb_service_status(
             _metric_cache[{index_id, pd.name()}] = info;
           } catch (std::exception const& e) {
             log_v2::perfdata()->error(
-                "unified sql: failed to create metric {} with type {}, "
+                "unified sql: failed to create metric '{}' with type {}, "
                 "value {}, unit_name {}, warn {}, warn_low {}, warn_mode {}, "
                 "crit {}, crit_low {}, crit_mode {}, min {} and max {}",
-                metric_id, type, pd.value(), pd.unit(), pd.warning(),
+                pd.name(), type, pd.value(), pd.unit(), pd.warning(),
                 pd.warning_low(), pd.warning_mode(), pd.critical(),
                 pd.critical_low(), pd.critical_mode(), pd.min(), pd.max());
-            throw msg_fmt(
-                "unified_sql: insertion of metric '{}"
-                "' of index {} failed: {}",
-                pd.name(), index_id, e.what());
+
+            // The metric creation failed, we pass to the next metric.
+            continue;
           }
         } else {
           rlck.unlock();
@@ -575,16 +574,15 @@ void stream::_unified_sql_process_service_status(
             _metric_cache[{index_id, pd.name()}] = info;
           } catch (std::exception const& e) {
             log_v2::perfdata()->error(
-                "unified sql: failed to create metric {} with type {}, "
+                "unified sql: failed to create metric '{}' with type {}, "
                 "value {}, unit_name {}, warn {}, warn_low {}, warn_mode {}, "
                 "crit {}, crit_low {}, crit_mode {}, min {} and max {}",
-                metric_id, type, pd.value(), pd.unit(), pd.warning(),
+                pd.name(), type, pd.value(), pd.unit(), pd.warning(),
                 pd.warning_low(), pd.warning_mode(), pd.critical(),
                 pd.critical_low(), pd.critical_mode(), pd.min(), pd.max());
-            throw msg_fmt(
-                "unified_sql: insertion of metric '{}"
-                "' of index {} failed: {}",
-                pd.name(), index_id, e.what());
+
+            // The metric creation failed, we pass to the next metric.
+            continue;
           }
         } else {
           rlck.unlock();

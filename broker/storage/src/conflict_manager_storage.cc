@@ -50,8 +50,8 @@ using namespace com::centreon::broker::storage;
  *
  *  @return true if they are equal, false otherwise.
  */
-static inline bool check_equality(double a, double b) {
-  static const double eps = 0.000001;
+static inline bool check_equality(float a, float b) {
+  static const float eps = 0.00001;
   if (a == b)
     return true;
   if (std::isnan(a) && std::isnan(b))
@@ -60,6 +60,7 @@ static inline bool check_equality(double a, double b) {
     return true;
   return false;
 }
+
 /**
  *  Process a service status event.
  *
@@ -327,16 +328,14 @@ void conflict_manager::_storage_process_service_status(
             _metric_cache[{index_id, pd.name()}] = info;
           } catch (const std::exception& e) {
             log_v2::perfdata()->error(
-                "conflict_manager: failed to create metric {} with type {}, "
+                "conflict_manager: failed to create metric '{}' with type {}, "
                 "value {}, unit_name {}, warn {}, warn_low {}, warn_mode {}, "
                 "crit {}, crit_low {}, crit_mode {}, min {} and max {}",
-                metric_id, type, pd.value(), pd.unit(), pd.warning(),
+                pd.name(), type, pd.value(), pd.unit(), pd.warning(),
                 pd.warning_low(), pd.warning_mode(), pd.critical(),
                 pd.critical_low(), pd.critical_mode(), pd.min(), pd.max());
-            throw msg_fmt(
-                "storage: insertion of metric '{}"
-                "' of index {} failed: {}",
-                pd.name(), index_id, e.what());
+            // Creation of metric failed, so we pass to the next one.
+            continue;
           }
         } else {
           std::lock_guard<std::mutex> lock(_metric_cache_m);
