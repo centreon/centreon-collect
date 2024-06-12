@@ -42,7 +42,4 @@ if(WITH_TESTING)
       ${TESTS_DIR}/publisher/read.cc
       ${TESTS_DIR}/publisher/write.cc
       PARENT_SCOPE)
-  message(STATUS "&&&&&&&&&&&&&&&")
-  message(STATUS "${TESTS_SOURCES}")
-  message(STATUS "&&&&&&&&&&&&&&&")
 endif(WITH_TESTING)
