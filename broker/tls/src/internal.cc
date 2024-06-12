@@ -82,6 +82,9 @@ void tls::initialize() {
       logger->error(
           "TLS: The GNU TLS run-time version is older than version 3.6.0. "
           "Please upgrade your GNU TLS library.");
+      throw msg_fmt(
+          "TLS: The GNU TLS run-time version is older than version 3.6.0. "
+          "Please upgrade your GNU TLS library.");
     }
     logger->info("TLS: loading GNU TLS version {}", v);
     // gnutls_global_set_log_function(log_gnutls_message);
