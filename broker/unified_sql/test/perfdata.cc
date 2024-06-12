@@ -236,9 +236,9 @@ TEST_F(UnifiedSqlParserParsePerfdata, Simple2) {
   expected.value_type(common::perfdata::gauge);
   expected.value(18.0);
   expected.unit("%");
-  expected.warning(std::numeric_limits<double>::infinity());
+  expected.warning(std::numeric_limits<float>::infinity());
   expected.warning_low(15.0);
-  expected.critical(std::numeric_limits<double>::infinity());
+  expected.critical(std::numeric_limits<float>::infinity());
   expected.critical_low(10.0);
   expected.min(0.0);
   expected.max(100.0);
@@ -262,7 +262,7 @@ TEST_F(UnifiedSqlParserParsePerfdata, Complex1) {
   expected.value_type(common::perfdata::gauge);
   expected.value(2.45698);
   expected.unit("s");
-  expected.max(std::numeric_limits<double>::infinity());
+  expected.max(std::numeric_limits<float>::infinity());
   ASSERT_TRUE(expected == *it);
   ++it;
 
@@ -274,7 +274,7 @@ TEST_F(UnifiedSqlParserParsePerfdata, Complex1) {
   expected.unit("B/s");
   expected.warning(5.0);
   expected.warning_low(0.0);
-  expected.min(-std::numeric_limits<double>::infinity());
+  expected.min(-std::numeric_limits<float>::infinity());
   ASSERT_TRUE(expected == *it);
   ++it;
 
@@ -294,7 +294,7 @@ TEST_F(UnifiedSqlParserParsePerfdata, Complex1) {
   expected.value(1234.0);
   expected.warning(10.0);
   expected.warning_low(0.0);
-  expected.critical(std::numeric_limits<double>::infinity());
+  expected.critical(std::numeric_limits<float>::infinity());
   expected.critical_low(11.0);
   ASSERT_TRUE(expected == *it);
   ++it;
@@ -305,7 +305,7 @@ TEST_F(UnifiedSqlParserParsePerfdata, Complex1) {
   expected.value_type(common::perfdata::counter);
   expected.value(1234.0);
   expected.warning(10.0);
-  expected.warning_low(-std::numeric_limits<double>::infinity());
+  expected.warning_low(-std::numeric_limits<float>::infinity());
   expected.critical(30.0);
   expected.critical_low(20.0);
   ASSERT_TRUE(expected == *it);
@@ -328,10 +328,10 @@ TEST_F(UnifiedSqlParserParsePerfdata, Complex1) {
   expected.value_type(common::perfdata::gauge);
   expected.value(9.0);
   expected.unit("queries_per_second");
-  expected.warning(std::numeric_limits<double>::infinity());
+  expected.warning(std::numeric_limits<float>::infinity());
   expected.warning_low(10.0);
   expected.warning_mode(true);
-  expected.critical(std::numeric_limits<double>::infinity());
+  expected.critical(std::numeric_limits<float>::infinity());
   expected.critical_low(5.0);
   expected.critical_mode(true);
   expected.min(0.0);
@@ -443,7 +443,7 @@ TEST_F(UnifiedSqlParserParsePerfdata, Complex2) {
   expected.value_type(common::perfdata::gauge);
   expected.value(2.45698);
   expected.unit("s");
-  expected.max(std::numeric_limits<double>::infinity());
+  expected.max(std::numeric_limits<float>::infinity());
   ASSERT_TRUE(expected == *it);
   ASSERT_FALSE(expected != *it);
   ++it;
@@ -456,7 +456,7 @@ TEST_F(UnifiedSqlParserParsePerfdata, Complex2) {
   expected.unit("B/s");
   expected.warning(5.0);
   expected.warning_low(0.0);
-  expected.min(-std::numeric_limits<double>::infinity());
+  expected.min(-std::numeric_limits<float>::infinity());
   ASSERT_TRUE(expected == *it);
   ASSERT_FALSE(expected != *it);
   ++it;
@@ -488,7 +488,7 @@ TEST_F(UnifiedSqlParserParsePerfdata, Complex2) {
   expected.value(1234.17);
   expected.warning(10.0);
   expected.warning_low(0.0);
-  expected.critical(std::numeric_limits<double>::infinity());
+  expected.critical(std::numeric_limits<float>::infinity());
   expected.critical_low(11.0);
   ASSERT_TRUE(expected == *it);
   ASSERT_FALSE(expected != *it);
@@ -500,7 +500,7 @@ TEST_F(UnifiedSqlParserParsePerfdata, Complex2) {
   expected.value_type(common::perfdata::counter);
   expected.value(1234.147);
   expected.warning(10.0);
-  expected.warning_low(-std::numeric_limits<double>::infinity());
+  expected.warning_low(-std::numeric_limits<float>::infinity());
   expected.critical(30.0);
   expected.critical_low(20.0);
   ASSERT_TRUE(expected == *it);
@@ -543,7 +543,7 @@ TEST_F(UnifiedSqlParserParsePerfdata, BadMetric) {
   int i = 1;
   for (auto& p : lst) {
     ASSERT_EQ(p.name(), fmt::format("user{}", i));
-    ASSERT_EQ(p.value(), static_cast<double>(i));
+    ASSERT_EQ(p.value(), static_cast<float>(i));
     ++i;
   }
 }
@@ -557,7 +557,7 @@ TEST_F(UnifiedSqlParserParsePerfdata, BadMetric1) {
   int i = 1;
   for (auto& p : lst) {
     ASSERT_EQ(p.name(), fmt::format("user{}", i));
-    ASSERT_EQ(p.value(), static_cast<double>(i));
+    ASSERT_EQ(p.value(), static_cast<float>(i));
     ++i;
   }
 }
