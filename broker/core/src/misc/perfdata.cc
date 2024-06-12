@@ -1,20 +1,20 @@
-/*
-** Copyright 2011-2013 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/misc/perfdata.hh"
 
@@ -36,11 +36,6 @@ perfdata::perfdata()
       _warning(NAN),
       _warning_low(NAN),
       _warning_mode(false) {}
-
-/**
- *  Destructor.
- */
-perfdata::~perfdata() noexcept {}
 
 /**
  *  Move operator.
@@ -97,7 +92,7 @@ perfdata& perfdata::operator=(perfdata const& other) {
  *
  *  @return Critical value.
  */
-double perfdata::critical() const noexcept {
+float perfdata::critical() const noexcept {
   return _critical;
 }
 
@@ -106,7 +101,7 @@ double perfdata::critical() const noexcept {
  *
  *  @param[in] c New critical value.
  */
-void perfdata::critical(double c) noexcept {
+void perfdata::critical(float c) noexcept {
   _critical = c;
 }
 
@@ -115,7 +110,7 @@ void perfdata::critical(double c) noexcept {
  *
  *  @return Low critical value.
  */
-double perfdata::critical_low() const noexcept {
+float perfdata::critical_low() const noexcept {
   return _critical_low;
 }
 
@@ -124,7 +119,7 @@ double perfdata::critical_low() const noexcept {
  *
  *  @param[in] c Low critical value.
  */
-void perfdata::critical_low(double c) noexcept {
+void perfdata::critical_low(float c) noexcept {
   _critical_low = c;
 }
 
@@ -153,7 +148,7 @@ void perfdata::critical_mode(bool m) noexcept {
  *
  *  @return Maximum value.
  */
-double perfdata::max() const noexcept {
+float perfdata::max() const noexcept {
   return _max;
 }
 
@@ -162,7 +157,7 @@ double perfdata::max() const noexcept {
  *
  *  @param[in] m New maximum value.
  */
-void perfdata::max(double m) noexcept {
+void perfdata::max(float m) noexcept {
   _max = m;
 }
 
@@ -171,7 +166,7 @@ void perfdata::max(double m) noexcept {
  *
  *  @return Minimum value.
  */
-double perfdata::min() const noexcept {
+float perfdata::min() const noexcept {
   return _min;
 }
 
@@ -180,7 +175,7 @@ double perfdata::min() const noexcept {
  *
  *  @param[in] m New minimum value.
  */
-void perfdata::min(double m) noexcept {
+void perfdata::min(float m) noexcept {
   _min = m;
 }
 
@@ -233,7 +228,7 @@ void perfdata::unit(std::string&& u) {
  *
  *  @param[in] v New value.
  */
-void perfdata::value(double v) noexcept {
+void perfdata::value(float v) noexcept {
   _value = v;
 }
 
@@ -260,7 +255,7 @@ void perfdata::value_type(int16_t t) noexcept {
  *
  *  @return Warning value.
  */
-double perfdata::warning() const noexcept {
+float perfdata::warning() const noexcept {
   return _warning;
 }
 
@@ -269,7 +264,7 @@ double perfdata::warning() const noexcept {
  *
  *  @param[in] v New warning value.
  */
-void perfdata::warning(double w) noexcept {
+void perfdata::warning(float w) noexcept {
   _warning = w;
 }
 
@@ -278,7 +273,7 @@ void perfdata::warning(double w) noexcept {
  *
  *  @return Low warning value.
  */
-double perfdata::warning_low() const noexcept {
+float perfdata::warning_low() const noexcept {
   return _warning_low;
 }
 
@@ -287,7 +282,7 @@ double perfdata::warning_low() const noexcept {
  *
  *  @param[in] w Low warning value.
  */
-void perfdata::warning_low(double w) noexcept {
+void perfdata::warning_low(float w) noexcept {
   _warning_low = w;
 }
 
@@ -325,7 +320,7 @@ void perfdata::warning_mode(bool m) noexcept {
  *
  *  @return true if a and b are equal.
  */
-static inline bool double_equal(double a, double b) {
+static inline bool float_equal(float a, float b) {
   return (std::isnan(a) && std::isnan(b)) ||
          (std::isinf(a) && std::isinf(b) &&
           std::signbit(a) == std::signbit(b)) ||
@@ -342,16 +337,16 @@ static inline bool double_equal(double a, double b) {
  *  @return true if both objects are equal.
  */
 bool operator==(perfdata const& left, perfdata const& right) {
-  return double_equal(left.critical(), right.critical()) &&
-         double_equal(left.critical_low(), right.critical_low()) &&
+  return float_equal(left.critical(), right.critical()) &&
+         float_equal(left.critical_low(), right.critical_low()) &&
          left.critical_mode() == right.critical_mode() &&
-         double_equal(left.max(), right.max()) &&
-         double_equal(left.min(), right.min()) && left.name() == right.name() &&
+         float_equal(left.max(), right.max()) &&
+         float_equal(left.min(), right.min()) && left.name() == right.name() &&
          left.unit() == right.unit() &&
-         double_equal(left.value(), right.value()) &&
+         float_equal(left.value(), right.value()) &&
          left.value_type() == right.value_type() &&
-         double_equal(left.warning(), right.warning()) &&
-         double_equal(left.warning_low(), right.warning_low()) &&
+         float_equal(left.warning(), right.warning()) &&
+         float_equal(left.warning_low(), right.warning_low()) &&
          left.warning_mode() == right.warning_mode();
 }
 
