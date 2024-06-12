@@ -17,20 +17,94 @@
  */
 
 #include <absl/container/flat_hash_set.h>
-#include <cctype>
-#include <cfloat>
 #include <cmath>
 
-#include "bbdo/storage/metric.hh"
-#include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/sql/table_max_size.hh"
-#include "common/log_v2/log_v2.hh"
+#include "perfdata.hh"
 
-using namespace com::centreon::broker;
-using namespace com::centreon::broker::misc;
+using namespace com::centreon::common;
 
-using log_v2 = com::centreon::common::log_v2::log_v2;
+/**
+ *  Default constructor.
+ */
+perfdata::perfdata()
+    : _critical(NAN),
+      _critical_low(NAN),
+      _critical_mode(false),
+      _max(NAN),
+      _min(NAN),
+      _value(NAN),
+      _value_type(gauge),
+      _warning(NAN),
+      _warning_low(NAN),
+      _warning_mode(false) {}
+
+/**
+ *  Comparison helper.
+ *
+ *  @param[in] a First value.
+ *  @param[in] b Second value.
+ *
+ *  @return true if a and b are equal.
+ */
+static inline bool float_equal(float a, float b) {
+  return (std::isnan(a) && std::isnan(b)) ||
+         (std::isinf(a) && std::isinf(b) &&
+          std::signbit(a) == std::signbit(b)) ||
+         (std::isfinite(a) && std::isfinite(b) &&
+          fabs(a - b) <= 0.01 * fabs(a));
+}
+
+/**
+ *  Compare two perfdata objects.
+ *
+ *  @param[in] left  First object.
+ *  @param[in] right Second object.
+ *
+ *  @return true if both objects are equal.
+ */
+bool operator==(perfdata const& left, perfdata const& right) {
+  return float_equal(left.critical(), right.critical()) &&
+         float_equal(left.critical_low(), right.critical_low()) &&
+         left.critical_mode() == right.critical_mode() &&
+         float_equal(left.max(), right.max()) &&
+         float_equal(left.min(), right.min()) && left.name() == right.name() &&
+         left.unit() == right.unit() &&
+         float_equal(left.value(), right.value()) &&
+         left.value_type() == right.value_type() &&
+         float_equal(left.warning(), right.warning()) &&
+         float_equal(left.warning_low(), right.warning_low()) &&
+         left.warning_mode() == right.warning_mode();
+}
+
+/**
+ *  Compare two perfdata objects.
+ *
+ *  @param[in] left  First object.
+ *  @param[in] right Second object.
+ *
+ *  @return true if both objects are inequal.
+ */
+bool operator!=(perfdata const& left, perfdata const& right) {
+  return !(left == right);
+}
+/**
+ * @brief in case of db insertions we need to ensure that name can be stored in
+ * table With it, you can reduce name size
+ *
+ * @param new_size
+ */
+void perfdata::resize_name(size_t new_size) {
+  _name.resize(new_size);
+}
+
+/**
+ * @brief idem of resize_name
+ *
+ * @param new_size
+ */
+void perfdata::resize_unit(size_t new_size) {
+  _unit.resize(new_size);
+}
 
 /**
  *  Extract a real value from a perfdata string.
@@ -40,32 +114,31 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *
  *  @return Extracted real value if successful, NaN otherwise.
  */
-static inline float extract_float(char const** str, bool skip = true) {
+static inline float extract_float(char const*& str, bool skip = true) {
   float retval;
   char* tmp;
-  if (isspace(**str))
+  if (isspace(*str))
     retval = NAN;
   else {
-    char const* comma{strchr(*str, ',')};
+    char const* comma{strchr(str, ',')};
     if (comma) {
       /* In case of comma decimal separator, we duplicate the number and
        * replace the comma by a point. */
       size_t t = strcspn(comma, " \t\n\r;");
-      char* nb = strndup(*str, (comma - *str) + t);
-      nb[comma - *str] = '.';
-      retval = strtof(nb, &tmp);
-      if (nb == tmp)
+      std::string nb(str, (comma - str) + t);
+      nb[comma - str] = '.';
+      retval = strtod(nb.c_str(), &tmp);
+      if (nb.c_str() == tmp)
         retval = NAN;
-      *str = *str + (tmp - nb);
-      free(nb);
+      str = str + (tmp - nb.c_str());
     } else {
-      retval = strtof(*str, &tmp);
-      if (*str == tmp)
+      retval = strtof(str, &tmp);
+      if (str == tmp)
         retval = NAN;
-      *str = tmp;
+      str = tmp;
     }
-    if (skip && (**str == ';'))
-      ++*str;
+    if (skip && (*str == ';'))
+      ++str;
   }
   return retval;
 }
@@ -82,33 +155,33 @@ static inline float extract_float(char const** str, bool skip = true) {
 static inline void extract_range(float* low,
                                  float* high,
                                  bool* inclusive,
-                                 char const** str) {
+                                 char const*& str) {
   // Exclusive range ?
-  if ((**str) == '@') {
+  if (*str == '@') {
     *inclusive = true;
-    ++*str;
+    ++str;
   } else
     *inclusive = false;
 
   // Low threshold value.
   float low_value;
-  if ('~' == **str) {
+  if ('~' == *str) {
     low_value = -std::numeric_limits<float>::infinity();
-    ++*str;
+    ++str;
   } else
     low_value = extract_float(str);
 
   // High threshold value.
   float high_value;
-  if (**str != ':') {
+  if (*str != ':') {
     high_value = low_value;
     if (!std::isnan(low_value))
       low_value = 0.0;
   } else {
-    ++*str;
-    char const* ptr(*str);
+    ++str;
+    char const* ptr(str);
     high_value = extract_float(str);
-    if (std::isnan(high_value) && ((*str == ptr) || (*str == (ptr + 1))))
+    if (std::isnan(high_value) && ((str == ptr) || (str == (ptr + 1))))
       high_value = std::numeric_limits<float>::infinity();
   }
 
@@ -126,7 +199,7 @@ static inline void extract_range(float* low,
  *
  * @return A list of perfdata
  */
-std::list<perfdata> misc::parse_perfdata(
+std::list<perfdata> perfdata::parse_perfdata(
     uint32_t host_id,
     uint32_t service_id,
     const char* str,
@@ -195,33 +268,29 @@ std::list<perfdata> misc::parse_perfdata(
       --end;
       if (strncmp(s, "a[", 2) == 0) {
         s += 2;
-        p.value_type(perfdata::absolute);
+        p._value_type = perfdata::data_type::absolute;
       } else if (strncmp(s, "c[", 2) == 0) {
         s += 2;
-        p.value_type(perfdata::counter);
+        p._value_type = perfdata::data_type::counter;
       } else if (strncmp(s, "d[", 2) == 0) {
         s += 2;
-        p.value_type(perfdata::derive);
+        p._value_type = perfdata::data_type::derive;
       } else if (strncmp(s, "g[", 2) == 0) {
         s += 2;
-        p.value_type(perfdata::gauge);
+        p._value_type = perfdata::data_type::gauge;
       }
     }
 
     if (end - s + 1 > 0) {
+      p._name.assign(s, end - s + 1);
       current_name = std::string_view(s, end - s + 1);
-      std::string name(s, end - s + 1);
+
       if (metric_name.contains(current_name)) {
         logger->warn(
             "storage: The metric '{}' appears several times in the output "
             "\"{}\": you will lose any new occurence of this metric",
-            name, str);
+            p.name(), str);
         error = true;
-      } else {
-        name.resize(misc::string::adjust_size_utf8(
-            name, get_centreon_storage_metrics_col_size(
-                      centreon_storage_metrics_metric_name)));
-        p.name(std::move(name));
       }
     } else {
       logger->error("In service {}, metric name empty before '{}...'", id(),
@@ -248,7 +317,7 @@ std::list<perfdata> misc::parse_perfdata(
     }
 
     // Extract value.
-    p.value(extract_float(const_cast<char const**>(&tmp), false));
+    p.value(extract_float(tmp, false));
     if (std::isnan(p.value())) {
       int i;
       for (i = 0; i < 10 && tmp[i]; i++)
@@ -265,13 +334,7 @@ std::list<perfdata> misc::parse_perfdata(
 
     // Extract unit.
     size_t t = strcspn(tmp, " \t\n\r;");
-    {
-      std::string unit(tmp, t);
-      unit.resize(misc::string::adjust_size_utf8(
-          unit, get_centreon_storage_metrics_col_size(
-                    centreon_storage_metrics_unit_name)));
-      p.unit(std::move(unit));
-    }
+    p._unit.assign(tmp, t);
     tmp += t;
     if (*tmp == ';')
       ++tmp;
@@ -281,8 +344,7 @@ std::list<perfdata> misc::parse_perfdata(
       float warning_high;
       float warning_low;
       bool warning_mode;
-      extract_range(&warning_low, &warning_high, &warning_mode,
-                    const_cast<char const**>(&tmp));
+      extract_range(&warning_low, &warning_high, &warning_mode, tmp);
       p.warning(warning_high);
       p.warning_low(warning_low);
       p.warning_mode(warning_mode);
@@ -293,18 +355,17 @@ std::list<perfdata> misc::parse_perfdata(
       float critical_high;
       float critical_low;
       bool critical_mode;
-      extract_range(&critical_low, &critical_high, &critical_mode,
-                    const_cast<const char**>(&tmp));
+      extract_range(&critical_low, &critical_high, &critical_mode, tmp);
       p.critical(critical_high);
       p.critical_low(critical_low);
       p.critical_mode(critical_mode);
     }
 
     // Extract minimum.
-    p.min(extract_float(const_cast<const char**>(&tmp)));
+    p.min(extract_float(tmp));
 
     // Extract maximum.
-    p.max(extract_float(const_cast<const char**>(&tmp)));
+    p.max(extract_float(tmp));
 
     // Log new perfdata.
     logger->debug(

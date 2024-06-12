@@ -22,10 +22,10 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/mfifo.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 #include "com/centreon/broker/storage/rebuilder.hh"
 #include "com/centreon/broker/storage/stored_timestamp.hh"
+#include "com/centreon/common/perfdata.hh"
 
 namespace com::centreon::broker {
 /* Forward declarations */
