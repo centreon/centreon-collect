@@ -25,8 +25,11 @@
 #include <deque>
 #include <forward_list>
 #include <fstream>
+#include <functional>
+#include <list>
 #include <map>
 #include <mutex>
+#include <queue>
 #include <regex>
 #include <set>
 #include <string>
@@ -37,6 +40,7 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_replace.h>
 #include <absl/strings/str_split.h>
+#include <absl/synchronization/mutex.h>
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
@@ -47,7 +51,6 @@
 #include <boost/container/flat_set.hpp>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
-
 
 namespace asio = boost::asio;
 

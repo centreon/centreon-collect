@@ -1062,6 +1062,8 @@ TEST_P(AnomalydetectionCheckFileTooOld, FileTooOld) {
   ASSERT_EQ(_ad->get_perf_data(), "metric=70%;50;75");
 
   ::unlink("/tmp/thresholds_status_change.json");
+  // let's time to callback to be called
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
 
 INSTANTIATE_TEST_SUITE_P(
