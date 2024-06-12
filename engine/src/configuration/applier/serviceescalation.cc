@@ -20,6 +20,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/configuration/serviceescalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 
@@ -50,6 +51,8 @@ void applier::serviceescalation::add_object(
   // Add escalation to the global configuration set.
   config->serviceescalations().insert(obj);
 
+  size_t key = configuration::serviceescalation_key(obj);
+
   // Create service escalation.
   auto se = std::make_shared<engine::serviceescalation>(
       obj.hosts().front(), obj.service_description().front(),
@@ -70,7 +73,7 @@ void applier::serviceescalation::add_object(
             configuration::serviceescalation::recovery)
                ? notifier::ok
                : notifier::none),
-      obj.uuid());
+      key);
 
   // Add new items to the global list.
   engine::serviceescalation::serviceescalations.insert(
@@ -187,9 +190,10 @@ void applier::serviceescalation::remove_object(
   } else
     service_exists = true;
 
+  size_t key = serviceescalation_key(obj);
   for (serviceescalation_mmap::iterator it{range.first}, end{range.second};
        it != end; ++it) {
-    if (it->second->get_uuid() == obj.uuid()) {
+    if (it->second->internal_key() == key) {
       // We have the serviceescalation to remove.
 
       // Notify event broker.
@@ -250,8 +254,9 @@ void applier::serviceescalation::resolve_object(
     throw engine_error() << "Cannot find service escalations "
                          << "concerning host '" << hostname << "' and service '"
                          << desc << "'";
+  size_t key = serviceescalation_key(obj);
   for (serviceescalation_mmap::iterator it{p.first}; it != p.second; ++it) {
-    if (it->second->get_uuid() == obj.uuid()) {
+    if (it->second->internal_key() == key) {
       found = true;
       // Resolve service escalation.
       it->second->resolve(config_warnings, config_errors);

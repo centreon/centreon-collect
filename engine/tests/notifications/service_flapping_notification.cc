@@ -130,7 +130,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlapping) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_service->get_next_notification_id()};
@@ -183,7 +183,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStartTwoTimes) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_service->get_next_notification_id()};
@@ -223,7 +223,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStopTwoTimes) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_service->get_next_notification_id()};

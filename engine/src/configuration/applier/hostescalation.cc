@@ -27,16 +27,6 @@
 using namespace com::centreon::engine::configuration;
 
 /**
- *  Default constructor.
- */
-applier::hostescalation::hostescalation() {}
-
-/**
- *  Destructor.
- */
-applier::hostescalation::~hostescalation() throw() {}
-
-/**
  *  Add new host escalation.
  *
  *  @param[in] obj  The new host escalation to add into the monitoring
@@ -58,6 +48,8 @@ void applier::hostescalation::add_object(
   // Add escalation to the global configuration set.
   config->hostescalations().insert(obj);
 
+  size_t key = hostescalation_key(obj);
+
   // Create host escalation.
   auto he = std::make_shared<engine::hostescalation>(
       *obj.hosts().begin(), obj.first_notification(), obj.last_notification(),
@@ -72,7 +64,7 @@ void applier::hostescalation::add_object(
           ((obj.escalation_options() & configuration::hostescalation::recovery)
                ? notifier::up
                : notifier::none),
-      obj.uuid());
+      key);
 
   // Add new items to the configuration state.
   engine::hostescalation::hostescalations.insert({he->get_hostname(), he});
@@ -246,10 +238,11 @@ void applier::hostescalation::resolve_object(
     throw engine_error() << "Cannot find host escalations concerning host '"
                          << hostname << "'";
 
+  size_t key = hostescalation_key(obj);
   for (hostescalation_mmap::iterator it{p.first}; it != p.second; ++it) {
     /* It's a pity but for now we don't have any idea or key to verify if
      * the hostescalation is the good one. */
-    if (it->second->get_uuid() == obj.uuid()) {
+    if (it->second->internal_key() == key) {
       found = true;
       // Resolve host escalation.
       it->second->resolve(config_warnings, config_errors);

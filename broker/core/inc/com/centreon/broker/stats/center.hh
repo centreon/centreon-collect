@@ -96,8 +96,8 @@ class center {
   void get_processing_stats(ProcessingStats* response)
       ABSL_LOCKS_EXCLUDED(_stats_m);
   const BrokerStats& stats() const;
-  void lock() ABSL_EXCLUSIVE_LOCK_FUNCTION(_stats);
-  void unlock() ABSL_UNLOCK_FUNCTION(_stats);
+  void lock() ABSL_EXCLUSIVE_LOCK_FUNCTION(_stats_m);
+  void unlock() ABSL_UNLOCK_FUNCTION(_stats_m);
 
   /**
    * @brief Set the value pointed by ptr to the value value.
