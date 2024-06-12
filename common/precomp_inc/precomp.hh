@@ -46,8 +46,10 @@
 #include <spdlog/spdlog.h>
 
 #include <boost/asio.hpp>
+#ifndef _WINDOWS
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
+#endif
 #include <boost/container/flat_set.hpp>
 
 #include "com/centreon/exceptions/msg_fmt.hh"

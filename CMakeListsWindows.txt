@@ -1,0 +1,93 @@
+#
+# Copyright 2024 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+#
+# For more information : contact@centreon.com
+#
+
+# When we build from cache (CI), we don't use vcpkg cmaketool, so we tell to cmake where to find packages info
+if (BUILD_FROM_CACHE)
+  LIST(APPEND CMAKE_PREFIX_PATH "build_windows/vcpkg_installed/x64-windows")
+endif()
+
+#in order to make fmt compile
+add_definitions("/utf-8")
+
+
+find_package(fmt CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
+find_package(Protobuf REQUIRED)
+find_package(GTest CONFIG REQUIRED)
+find_package(boost_asio CONFIG REQUIRED)
+find_package(boost_process CONFIG REQUIRED)
+find_package(boost_multi_index CONFIG REQUIRED)
+find_package(boost_program_options CONFIG REQUIRED)
+find_package(boost_multi_index CONFIG REQUIRED)
+add_definitions("-DSPDLOG_FMT_EXTERNAL")
+
+add_definitions("-DCOLLECT_MAJOR=${COLLECT_MAJOR}")
+add_definitions("-DCOLLECT_MINOR=${COLLECT_MINOR}")
+add_definitions("-DCOLLECT_PATCH=${COLLECT_PATCH}")
+
+
+# There is a bug with grpc. It is not put in the triplet directory. So we have
+# to search for its plugin.
+file(GLOB_RECURSE GRPC_CPP_PLUGIN_EXE
+  RELATIVE ${CMAKE_BINARY_DIR} grpc_cpp_plugin.exe)
+find_program(GRPC_CPP_PLUGIN
+  NAMES ${GRPC_CPP_PLUGIN_EXE}
+  PATHS ${CMAKE_BINARY_DIR}
+  REQUIRED
+  NO_DEFAULT_PATH)
+
+set(PROTOBUF_LIB_DIR ${Protobuf_DIR}/../../lib)
+set(VCPKG_INCLUDE_DIR ${OPENSSL_INCLUDE_DIR})
+include(GNUInstallDirs)
+
+option(WITH_TESTING "Build unit tests." OFF)
+
+set(protobuf_MODULE_COMPATIBLE True)
+
+include_directories(${CMAKE_SOURCE_DIR}
+  ${VCPKG_INCLUDE_DIR}
+  ${CMAKE_SOURCE_DIR}/clib/inc)
+
+#import opentelemetry-proto
+add_custom_command(
+  OUTPUT ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/collector/metrics/v1/metrics_service.proto
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/metrics/v1/metrics.proto
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/common/v1/common.proto
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/resource/v1/resource.proto
+  COMMENT "get opentelemetry proto files from git repository"
+  COMMAND RMDIR /S /Q \"${CMAKE_SOURCE_DIR}/opentelemetry-proto\"
+  COMMAND git ARGS clone --depth=1 --single-branch https://github.com/open-telemetry/opentelemetry-proto.git ${CMAKE_SOURCE_DIR}/opentelemetry-proto
+  WORKING_DIRECTORY  ${CMAKE_SOURCE_DIR}
+)
+
+add_custom_target(opentelemetry-proto-files DEPENDS  ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/collector/metrics/v1/metrics_service.proto
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/metrics/v1/metrics.proto
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/common/v1/common.proto
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/resource/v1/resource.proto
+)
+
+add_subdirectory(common)
+add_subdirectory(agent)
+
+
+add_custom_target(test-common COMMAND tests/ut_common)
+add_custom_target(test-agent COMMAND tests/ut_agent)
+
+add_custom_target(test DEPENDS test-common test-agent)
+

@@ -1,4 +1,4 @@
-name: Centreon Monitoring Agent Windows packaging
+name: Centreon Monitoring Agent Windows build and packaging
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -6,16 +6,66 @@ concurrency:
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - agent/**
+      - custom-triplets/**
+      - CMakeLists.txt
+      - CMakeListsWindows.txt
+      - vcpkg.json
+  push:
+    branches:
+      - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
+      - master
+      - "[2-9][0-9].[0-9][0-9].x"
+    paths:
+      - agent/**
+      - custom-triplets/**
+      - CMakeLists.txt
+      - CMakeListsWindows.txt
+      - vcpkg.json
 
 jobs:
-  build:
+  build-and-test-agent:
     runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-      - uses: ilammy/msvc-dev-cmd@v1.4.1
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
-      - name: install vcpkg
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Compile Agent
+        run: .github/scripts/windows-agent-compile.ps1
+        shell: powershell
+
+      - name: Common test
         run: |
-          git clone --depth 1  https://github.com/microsoft/vcpkg $HOME/vcpkg
-          cd $HOME/vcpkg
-          bootstrap-vcpkg.bat
+          cd build_windows
+          tests/ut_common
+
+      - name: Agent test
+        run: |
+          cd build_windows
+          tests/ut_agent
+
+      - name: Zip agent
+        run: |
+          $files_to_compress = "agent\conf\centagent.reg", "build_windows\agent\Release\centagent.exe"
+          Compress-Archive -Path $files_to_compress -DestinationPath centreon-monitoring-agent.zip
+
+      - name: Save agent package in cache
+        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: centreon-monitoring-agent.zip
+          key: ${{ github.run_id }}-${{ github.sha }}-CMA-${{ github.head_ref || github.ref_name }}
+
+      - name: Upload package artifacts
+        if: ${{ false }}
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: packages-centreon-monitoring-agent-windows
+          path: centreon-monitoring-agent.zip
+          retention-days: 1
