@@ -25,6 +25,7 @@ add_executable(ut_common
   process_test.cc
   rapidjson_helper_test.cc
   test_main.cc
+  utf8_test.cc
   ${TESTS_SOURCES})
 
 set_target_properties(

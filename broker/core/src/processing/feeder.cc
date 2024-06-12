@@ -56,10 +56,19 @@ std::shared_ptr<feeder> feeder::create(
   std::shared_ptr<feeder> ret(
       new feeder(name, parent, client, read_filters, write_filters));
 
-  ret->_start_stat_timer();
-
-  ret->_start_read_from_stream_timer();
+  ret->init();
   return ret;
+}
+
+/**
+ * @brief to call after object construction
+ *
+ */
+void feeder::init() {
+  _start_stat_timer();
+  _muxer->set_action_on_new_data(shared_from_this());
+
+  _start_read_from_stream_timer();
 }
 
 /**
@@ -91,10 +100,6 @@ feeder::feeder(const std::string& name,
   if (!_client)
     throw msg_fmt("could not process '{}' with no client stream", _name);
 
-  _muxer->set_action_on_new_data(
-      [this](const std::vector<std::shared_ptr<io::data>>& events) -> uint32_t {
-        return _write_to_client(events);
-      });
   set_last_connection_attempt(timestamp::now());
   set_last_connection_success(timestamp::now());
   set_state("connected");
@@ -146,11 +151,10 @@ void feeder::_forward_statistic(nlohmann::json& tree) {
 
 /**
  * @brief write event to client stream
- * _protect must be locked
  * @param event
  * @return number of events written
  */
-unsigned feeder::_write_to_client(
+uint32_t feeder::on_events(
     const std::vector<std::shared_ptr<io::data>>& events) {
   unsigned written = 0;
   try {
@@ -242,11 +246,6 @@ void feeder::_stop_no_lock() {
                      _name);
   _muxer->remove_queue_files();
   SPDLOG_LOGGER_INFO(_logger, "feeder: {} terminated", _name);
-
-  /* The muxer is in a shared_ptr. When the feeder is destroyed, we must be
-   * sure the muxer won't write data anymore otherwise we will have a segfault.
-   */
-  _muxer->clear_action_on_new_data();
 }
 
 /**

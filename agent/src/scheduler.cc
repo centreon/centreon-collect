@@ -1,23 +1,23 @@
 /**
  * Copyright 2024 Centreon
  *
- * This file is part of Centreon Agent.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
  */
 
 #include "scheduler.hh"
+#include "com/centreon/common/utf8.hh"
 
 using namespace com::centreon::agent;
 
@@ -175,16 +175,23 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
                             "check expected to start at {} for service {}",
                             next, serv.service_description());
       }
-      _check_queue.emplace(_check_builder(
-          _io_context, _logger, next, serv.service_description(),
-          serv.command_name(), serv.command_line(), conf,
-          [me = shared_from_this()](
-              const std::shared_ptr<check>& check, unsigned status,
-              const std::list<com::centreon::common::perfdata>& perfdata,
-              const std::list<std::string>& outputs) {
-            me->_check_handler(check, status, perfdata, outputs);
-          }));
-      next += check_interval;
+      try {
+        auto check_to_schedule = _check_builder(
+            _io_context, _logger, next, serv.service_description(),
+            serv.command_name(), serv.command_line(), conf,
+            [me = shared_from_this()](
+                const std::shared_ptr<check>& check, unsigned status,
+                const std::list<com::centreon::common::perfdata>& perfdata,
+                const std::list<std::string>& outputs) {
+              me->_check_handler(check, status, perfdata, outputs);
+            });
+        _check_queue.emplace(check_to_schedule);
+        next += check_interval;
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(_logger,
+                            "service: {}  command:{} won't be scheduled",
+                            serv.service_description(), serv.command_name());
+      }
     }
   }
 
@@ -318,9 +325,9 @@ void scheduler::_store_result_in_metrics_and_exemplars(
   if (!outputs.empty()) {
     const std::string& first_line = *outputs.begin();
     size_t pipe_pos = first_line.find('|');
-    state_metrics->set_description(pipe_pos != std::string::npos
-                                       ? first_line.substr(0, pipe_pos)
-                                       : first_line);
+    state_metrics->set_description(common::check_string_utf8(
+        pipe_pos != std::string::npos ? first_line.substr(0, pipe_pos)
+                                      : first_line));
   }
   auto data_point = state_metrics->mutable_gauge()->add_data_points();
   data_point->set_time_unix_nano(now);
@@ -402,7 +409,7 @@ void scheduler::_add_metric_to_scope(
   auto metric = _get_metric(scope_metric, perf.name());
   metric->set_unit(perf.unit());
   auto data_point = metric->mutable_gauge()->add_data_points();
-  data_point->set_as_int(perf.value());
+  data_point->set_as_double(perf.value());
   data_point->set_time_unix_nano(now);
   switch (perf.value_type()) {
     case com::centreon::common::perfdata::counter: {

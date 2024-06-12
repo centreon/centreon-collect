@@ -84,7 +84,7 @@ void connection_base::gest_keepalive(const response_ptr& resp) {
       if (std::regex_search(keep_alive_info->value().begin(),
                             keep_alive_info->value().end(), res,
                             keep_alive_time_out_r)) {
-        uint second_duration;
+        unsigned int second_duration;
         if (absl::SimpleAtoi(res[1].str(), &second_duration)) {
           _keep_alive_end =
               system_clock::now() + std::chrono::seconds(second_duration);

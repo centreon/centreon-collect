@@ -233,6 +233,11 @@ Ctn Stop Engine Broker And Save Logs
     EXCEPT
         Log    Can't kindly stop Broker
     END
+    TRY
+        Ctn Kindly Stop Agent
+    EXCEPT
+        Log    Can't kindly stop Agent
+    END
     Ctn Save Logs If Failed
 
 Ctn Get Engine Pid
@@ -283,7 +288,9 @@ Ctn Save Logs
     Copy Files    ${rrdLog}    ${failDir}
     Copy Files    ${moduleLog0}    ${failDir}
     Copy Files    ${engineLog0}    ${failDir}
+    Copy Files    ${ENGINE_LOG}/*.log    ${failDir}
     Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
+    Copy Files    ${EtcRoot}/centreon-engine/*.json    ${failDir}/etc/centreon-engine
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
     Move Files    /tmp/lua*.log    ${failDir}
 
@@ -383,4 +390,31 @@ Ctn Wait For Engine To Be Ready
         Should Be True
         ...    ${result}
         ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.
+    END
+
+
+Ctn Start Agent
+    Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent.json    alias=centreon_agent
+
+Ctn Kindly Stop Agent
+    #in most case centreon_agent is not started
+    ${centreon_agent_process}    Get Process Object  centreon_agent
+
+    IF  ${{$centreon_agent_process is None}}  RETURN
+
+    Send Signal To Process    SIGTERM    centreon_agent
+    ${result}    Wait For Process    centreon_agent    timeout=60s
+    # In case of process not stopping
+    IF    "${result}" == "${None}"
+        Log To Console    "fail to stop centreon_agent"
+        Ctn Save Logs
+        Ctn Dump Process    centreon_agent    /usr/bin/centagent   centreon_agent
+        Send Signal To Process    SIGKILL    centreon_agent
+        Fail    centreon_agent not correctly stopped (coredump generated)
+    ELSE
+        IF    ${result.rc} != 0
+            Ctn Save Logs
+            Ctn Coredump Info    centreon_agent    /usr/bin/centagent    centreon_agent
+            Fail   centreon_agent not correctly stopped, result status: ${result.rc} 
+        END
     END

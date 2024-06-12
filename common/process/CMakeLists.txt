@@ -16,14 +16,14 @@
 # For more information : contact@centreon.com
 #
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${PROJECT_SOURCE_DIR}/process/inc)
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_definitions(${spdlog_DEFINITIONS})
 
 add_library(
   centreon_process STATIC
   # Sources.
-  process.cc)
+  src/process.cc)
 
 target_precompile_headers(centreon_process REUSE_FROM centreon_common)
 

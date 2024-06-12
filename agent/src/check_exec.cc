@@ -44,7 +44,7 @@ void detail::process::start(unsigned running_index) {
   _stdout_eof = false;
   _running_index = running_index;
   _stdout.clear();
-  common::process::start_process();
+  common::process::start_process(false);
 }
 
 /**
@@ -57,7 +57,7 @@ void detail::process::on_stdout_read(const boost::system::error_code& err,
                                      size_t nb_read) {
   if (!err && nb_read > 0) {
     _stdout.append(_stdout_read_buffer, nb_read);
-  } else if (err == asio::error::eof) {
+  } else if (err) {
     _stdout_eof = true;
     _on_completion();
   }
@@ -174,6 +174,7 @@ void check_exec::_init() {
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "fail to create process of cmd_line '{}' : {}",
                         get_command_line(), e.what());
+    throw;
   }
 }
 
@@ -231,8 +232,11 @@ void check_exec::_timeout_timer_handler(const boost::system::error_code& err,
     return;
   }
   if (start_check_index == _get_running_check_index()) {
-    check::_timeout_timer_handler(err, start_check_index);
     _process->kill();
+    check::_timeout_timer_handler(err, start_check_index);
+  } else {
+    SPDLOG_LOGGER_ERROR(_logger, "start_check_index={}, running_index={}",
+                        start_check_index, _get_running_check_index());
   }
 }
 
@@ -243,6 +247,8 @@ void check_exec::_timeout_timer_handler(const boost::system::error_code& err,
  */
 void check_exec::on_completion(unsigned running_index) {
   if (running_index != _get_running_check_index()) {
+    SPDLOG_LOGGER_ERROR(_logger, "running_index={}, running_index={}",
+                        running_index, _get_running_check_index());
     return;
   }
 
