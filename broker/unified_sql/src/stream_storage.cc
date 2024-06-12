@@ -56,8 +56,8 @@ constexpr int32_t queue_timer_duration = 10;
  *
  *  @return true if they are equal, false otherwise.
  */
-static inline bool check_equality(double a, double b) {
-  static const double eps = 0.000001;
+static inline bool check_equality(float a, float b) {
+  static const float eps = 0.00001;
   if (a == b)
     return true;
   if (std::isnan(a) && std::isnan(b))

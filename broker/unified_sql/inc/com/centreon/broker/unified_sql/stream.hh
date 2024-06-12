@@ -224,16 +224,16 @@ class stream : public io::stream {
     bool locked;
     uint32_t metric_id;
     uint32_t type;
-    double value;
+    float value;
     std::string unit_name;
-    double warn;
-    double warn_low;
+    float warn;
+    float warn_low;
     bool warn_mode;
-    double crit;
-    double crit_low;
+    float crit;
+    float crit_low;
     bool crit_mode;
-    double min;
-    double max;
+    float min;
+    float max;
     bool metric_mapping_sent;
   };
 
