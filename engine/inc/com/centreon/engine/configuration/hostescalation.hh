@@ -22,7 +22,6 @@
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/opt.hh"
-#include "com/centreon/engine/shared.hh"
 
 namespace com::centreon::engine {
 
