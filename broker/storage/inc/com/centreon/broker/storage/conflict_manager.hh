@@ -126,23 +126,23 @@ class conflict_manager {
     bool locked;
     uint32_t metric_id;
     int16_t type;
-    double value;
+    float value;
     std::string unit_name;
-    double warn;
-    double warn_low;
+    float warn;
+    float warn_low;
     bool warn_mode;
-    double crit;
-    double crit_low;
+    float crit;
+    float crit_low;
     bool crit_mode;
-    double min;
-    double max;
+    float min;
+    float max;
     bool metric_mapping_sent;
   };
   struct metric_value {
     time_t c_time;
     uint32_t metric_id;
     short status;
-    double value;
+    float value;
   };
 
   static void (conflict_manager::*const _neb_processing_table[])(
