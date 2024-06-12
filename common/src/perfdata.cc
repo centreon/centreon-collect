@@ -45,7 +45,7 @@ perfdata::perfdata()
  *
  *  @return true if a and b are equal.
  */
-static inline bool double_equal(double a, double b) {
+static inline bool float_equal(float a, float b) {
   return (std::isnan(a) && std::isnan(b)) ||
          (std::isinf(a) && std::isinf(b) &&
           std::signbit(a) == std::signbit(b)) ||
@@ -62,16 +62,16 @@ static inline bool double_equal(double a, double b) {
  *  @return true if both objects are equal.
  */
 bool operator==(perfdata const& left, perfdata const& right) {
-  return double_equal(left.critical(), right.critical()) &&
-         double_equal(left.critical_low(), right.critical_low()) &&
+  return float_equal(left.critical(), right.critical()) &&
+         float_equal(left.critical_low(), right.critical_low()) &&
          left.critical_mode() == right.critical_mode() &&
-         double_equal(left.max(), right.max()) &&
-         double_equal(left.min(), right.min()) && left.name() == right.name() &&
+         float_equal(left.max(), right.max()) &&
+         float_equal(left.min(), right.min()) && left.name() == right.name() &&
          left.unit() == right.unit() &&
-         double_equal(left.value(), right.value()) &&
+         float_equal(left.value(), right.value()) &&
          left.value_type() == right.value_type() &&
-         double_equal(left.warning(), right.warning()) &&
-         double_equal(left.warning_low(), right.warning_low()) &&
+         float_equal(left.warning(), right.warning()) &&
+         float_equal(left.warning_low(), right.warning_low()) &&
          left.warning_mode() == right.warning_mode();
 }
 
@@ -86,7 +86,6 @@ bool operator==(perfdata const& left, perfdata const& right) {
 bool operator!=(perfdata const& left, perfdata const& right) {
   return !(left == right);
 }
-
 /**
  * @brief in case of db insertions we need to ensure that name can be stored in
  * table With it, you can reduce name size
@@ -287,10 +286,6 @@ std::list<perfdata> perfdata::parse_perfdata(
       error = true;
     }
 
-    if (p._name == "bar") {
-      int ii = 1;
-    }
-
     // Check format.
     if (*tmp != '=') {
       int i;
@@ -337,8 +332,7 @@ std::list<perfdata> perfdata::parse_perfdata(
       float warning_high;
       float warning_low;
       bool warning_mode;
-      extract_range(&warning_low, &warning_high, &warning_mode,
-                    tmp);
+      extract_range(&warning_low, &warning_high, &warning_mode, tmp);
       p.warning(warning_high);
       p.warning_low(warning_low);
       p.warning_mode(warning_mode);

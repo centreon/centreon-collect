@@ -46,6 +46,7 @@ class perfdata {
       const std::shared_ptr<spdlog::logger>& logger);
 
   perfdata();
+  ~perfdata() noexcept = default;
 
   double critical() const { return _critical; }
   void critical(double c) { _critical = c; }

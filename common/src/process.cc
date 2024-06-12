@@ -61,7 +61,7 @@ using namespace com::centreon::common;
  */
 process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
                  const std::shared_ptr<spdlog::logger>& logger,
-                 const std::string& cmd_line)
+                 const std::string_view& cmd_line)
     : _io_context(io_context), _logger(logger) {
   auto split_res =
       absl::StrSplit(cmd_line, absl::ByAnyChar(" \t"), absl::SkipEmpty());
@@ -85,7 +85,7 @@ process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
  */
 void process::start_process() {
   SPDLOG_LOGGER_DEBUG(_logger, "start process: {}", _exe_path);
-  std::lock_guard l(_protect);
+  absl::MutexLock l(&_protect);
   _stdin_write_queue.clear();
   _write_pending = false;
 
@@ -95,7 +95,7 @@ void process::start_process() {
     _proc->proc.async_wait(
         [me = shared_from_this(), current = _proc](
             const boost::system::error_code& err, int raw_exit_status) {
-          std::lock_guard l(me->_protect);
+          absl::MutexLock l(&me->_protect);
           if (current != me->_proc) {
             return;
           }
@@ -133,7 +133,7 @@ void process::on_process_end(const boost::system::error_code& err,
  *
  */
 void process::kill() {
-  std::lock_guard l(_protect);
+  absl::MutexLock l(&_protect);
   if (_proc) {
     boost::system::error_code err;
     _proc->proc.terminate(err);
@@ -148,7 +148,7 @@ void process::kill() {
  * @param data
  */
 void process::stdin_write(const std::shared_ptr<std::string>& data) {
-  std::lock_guard l(_protect);
+  absl::MutexLock l(&_protect);
   stdin_write_no_lock(data);
 }
 
@@ -173,7 +173,7 @@ void process::stdin_write_no_lock(const std::shared_ptr<std::string>& data) {
           asio::buffer(*data),
           [me = shared_from_this(), caller = _proc, data](
               const boost::system::error_code& err, size_t nb_written) {
-            std::lock_guard l(me->_protect);
+            absl::MutexLock l(&me->_protect);
             if (caller != me->_proc) {
               return;
             }
@@ -229,7 +229,7 @@ void process::stdout_read() {
           asio::buffer(_stdout_read_buffer),
           [me = shared_from_this(), caller = _proc](
               const boost::system::error_code& err, size_t nb_read) {
-            std::lock_guard l(me->_protect);
+            absl::MutexLock l(&me->_protect);
             if (caller != me->_proc) {
               return;
             }
@@ -237,7 +237,7 @@ void process::stdout_read() {
           });
     } catch (const std::exception& e) {
       _io_context->post([me = shared_from_this(), caller = _proc]() {
-        std::lock_guard l(me->_protect);
+        absl::MutexLock l(&me->_protect);
         me->on_stdout_read(std::make_error_code(std::errc::broken_pipe), 0);
       });
     }
@@ -280,7 +280,7 @@ void process::stderr_read() {
           asio::buffer(_stderr_read_buffer),
           [me = shared_from_this(), caller = _proc](
               const boost::system::error_code& err, size_t nb_read) {
-            std::lock_guard l(me->_protect);
+            absl::MutexLock l(&me->_protect);
             if (caller != me->_proc) {
               return;
             }
@@ -288,7 +288,7 @@ void process::stderr_read() {
           });
     } catch (const std::exception& e) {
       _io_context->post([me = shared_from_this(), caller = _proc]() {
-        std::lock_guard l(me->_protect);
+        absl::MutexLock l(&me->_protect);
         me->on_stderr_read(std::make_error_code(std::errc::broken_pipe), 0);
       });
     }

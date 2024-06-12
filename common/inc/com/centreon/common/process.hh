@@ -1,20 +1,21 @@
-/*
-** Copyright 2024 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
+
 #ifndef CENTREON_AGENT_CHECK_PROCESS_HH
 #define CENTREON_AGENT_CHECK_PROCESS_HH
 
@@ -33,7 +34,8 @@ struct boost_process;
  * it's killed
  * As we can start a process at any moment, all handlers take a caller in
  * parameter, if this caller is not equal to current _proc, we do nothing.
- * When handler like on_stdout_read are called, _protect is already locked
+ * When completion methods like on_stdout_read are called, _protect is already
+ * locked
  */
 class process : public std::enable_shared_from_this<process> {
   std::shared_ptr<asio::io_context> _io_context;
@@ -42,58 +44,64 @@ class process : public std::enable_shared_from_this<process> {
   std::string _exe_path;
   std::vector<std::string> _args;
 
-  std::deque<std::shared_ptr<std::string>> _stdin_write_queue;
-  bool _write_pending = false;
+  std::deque<std::shared_ptr<std::string>> _stdin_write_queue
+      ABSL_GUARDED_BY(_protect);
+  bool _write_pending = false ABSL_GUARDED_BY(_protect);
 
-  std::shared_ptr<detail::boost_process> _proc;
+  std::shared_ptr<detail::boost_process> _proc ABSL_GUARDED_BY(_protect);
 
   int _exit_status = 0;
 
-  std::mutex _protect;
+  absl::Mutex _protect;
 
-  void stdin_write_no_lock(const std::shared_ptr<std::string>& data);
+  void stdin_write_no_lock(const std::shared_ptr<std::string>& data)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
   void stdin_write(const std::shared_ptr<std::string>& data);
 
   void stdout_read();
   void stderr_read();
 
  protected:
-  char _stdout_read_buffer[0x1000];
-  char _stderr_read_buffer[0x1000];
+  char _stdout_read_buffer[0x1000] ABSL_GUARDED_BY(_protect);
+  char _stderr_read_buffer[0x1000] ABSL_GUARDED_BY(_protect);
 
   virtual void on_stdout_read(const boost::system::error_code& err,
-                              size_t nb_read);
+                              size_t nb_read)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
   virtual void on_stderr_read(const boost::system::error_code& err,
-                              size_t nb_read);
+                              size_t nb_read)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
   virtual void on_process_end(const boost::system::error_code& err,
-                              int raw_exit_status);
+                              int raw_exit_status)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
-  virtual void on_stdin_write(const boost::system::error_code& err);
+  virtual void on_stdin_write(const boost::system::error_code& err)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
  public:
   template <typename string_iterator>
   process(const std::shared_ptr<boost::asio::io_context>& io_context,
           const std::shared_ptr<spdlog::logger>& logger,
-          const std::string& exe_path,
+          const std::string_view& exe_path,
           string_iterator arg_begin,
           string_iterator arg_end);
 
   template <typename args_container>
   process(const std::shared_ptr<boost::asio::io_context>& io_context,
           const std::shared_ptr<spdlog::logger>& logger,
-          const std::string& exe_path,
+          const std::string_view& exe_path,
           const args_container& args);
 
   template <typename string_type>
   process(const std::shared_ptr<boost::asio::io_context>& io_context,
           const std::shared_ptr<spdlog::logger>& logger,
-          const std::string& exe_path,
+          const std::string_view& exe_path,
           const std::initializer_list<string_type>& args);
 
   process(const std::shared_ptr<boost::asio::io_context>& io_context,
           const std::shared_ptr<spdlog::logger>& logger,
-          const std::string& cmd_line);
+          const std::string_view& cmd_line);
 
   virtual ~process() = default;
 
@@ -105,7 +113,7 @@ class process : public std::enable_shared_from_this<process> {
   void kill();
 
   int get_exit_status() const { return _exit_status; }
-  const std::string get_exe_path() const { return _exe_path; }
+  const std::string& get_exe_path() const { return _exe_path; }
 };
 
 /**
@@ -121,7 +129,7 @@ class process : public std::enable_shared_from_this<process> {
 template <typename string_iterator>
 process::process(const std::shared_ptr<asio::io_context>& io_context,
                  const std::shared_ptr<spdlog::logger>& logger,
-                 const std::string& exe_path,
+                 const std::string_view& exe_path,
                  string_iterator arg_begin,
                  string_iterator arg_end)
     : _io_context(io_context),
@@ -141,7 +149,7 @@ process::process(const std::shared_ptr<asio::io_context>& io_context,
 template <typename args_container>
 process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
                  const std::shared_ptr<spdlog::logger>& logger,
-                 const std::string& exe_path,
+                 const std::string_view& exe_path,
                  const args_container& args)
     : _io_context(io_context),
       _logger(logger),
@@ -161,7 +169,7 @@ process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
 template <typename string_type>
 process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
                  const std::shared_ptr<spdlog::logger>& logger,
-                 const std::string& exe_path,
+                 const std::string_view& exe_path,
                  const std::initializer_list<string_type>& args)
     : _io_context(io_context), _logger(logger), _exe_path(exe_path) {
   _args.reserve(args.size());

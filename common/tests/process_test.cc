@@ -68,13 +68,13 @@ class process_wait : public process {
   template <typename string_type>
   process_wait(const std::shared_ptr<boost::asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
-               const std::string& exe_path,
+               const std::string_view& exe_path,
                const std::initializer_list<string_type>& args)
       : process(io_context, logger, exe_path, args) {}
 
   process_wait(const std::shared_ptr<boost::asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
-               const std::string& cmd_line)
+               const std::string_view& cmd_line)
       : process(io_context, logger, cmd_line) {}
 
   const std::string& get_stdout() const { return _stdout; }
