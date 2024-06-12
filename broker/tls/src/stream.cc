@@ -65,9 +65,6 @@ void stream::init(const params& param) {
   param.apply(_session);
 
   // Bind the TLS session with the stream from the lower layer.
-#if GNUTLS_VERSION_NUMBER < 0x020C00
-  gnutls_transport_set_lowat(*session, 0);
-#endif  // GNU TLS < 2.12.0
   gnutls_transport_set_pull_function(_session, pull_helper);
   gnutls_transport_set_push_function(_session, push_helper);
   gnutls_transport_set_ptr(_session, this);
