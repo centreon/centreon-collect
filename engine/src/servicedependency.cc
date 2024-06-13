@@ -380,6 +380,28 @@ void servicedependency::resolve(int& w, int& e) {
 }
 
 /**
+ * @brief Find a service dependency from the given key.
+ *
+ * @param key A tuple containing a host name, a service description and a hash
+ * matching the service dependency.
+ *
+ * @return Iterator to the element if found, servicedependencies().end()
+ * otherwise.
+ */
+servicedependency_mmap::iterator servicedependency::servicedependencies_find(
+    const std::tuple<std::string, std::string, size_t>& key) {
+  size_t k = std::get<2>(key);
+  std::pair<servicedependency_mmap::iterator, servicedependency_mmap::iterator>
+      p = servicedependencies.equal_range({std::get<0>(key), std::get<1>(key)});
+  while (p.first != p.second) {
+    if (p.first->second->internal_key() == k)
+      break;
+    ++p.first;
+  }
+  return p.first == p.second ? servicedependencies.end() : p.first;
+}
+
+/**
  *  Find a service dependency from its key.
  *
  *  @param[in] k The service dependency configuration.

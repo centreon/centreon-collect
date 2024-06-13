@@ -29,6 +29,17 @@
 
 using namespace com::centreon::engine::configuration;
 
+namespace com::centreon::engine::configuration {
+size_t servicedependency_key(const servicedependency& sd) {
+  return absl::HashOf(sd.dependency_period(), sd.dependency_type(),
+                      *sd.hosts().begin(), *sd.service_description().begin(),
+                      *sd.dependent_hosts().begin(),
+                      *sd.dependent_service_description().begin(),
+                      sd.execution_failure_options(), sd.inherits_parent(),
+                      sd.notification_failure_options());
+}
+}  // namespace com::centreon::engine::configuration
+
 /**
  *  Add new service dependency.
  *
