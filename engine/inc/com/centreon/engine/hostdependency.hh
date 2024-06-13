@@ -66,8 +66,6 @@ class hostdependency : public dependency {
   static hostdependency_mmap hostdependencies;
   static hostdependency_mmap::iterator hostdependencies_find(
       configuration::hostdependency const& k);
-  static hostdependency_mmap::iterator hostdependencies_find(
-      const std::pair<std::string_view, size_t>& key);
 
   host* master_host_ptr;
   host* dependent_host_ptr;

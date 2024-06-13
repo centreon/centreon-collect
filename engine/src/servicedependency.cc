@@ -388,18 +388,20 @@ void servicedependency::resolve(int& w, int& e) {
  * @return Iterator to the element if found, servicedependencies().end()
  * otherwise.
  */
-servicedependency_mmap::iterator servicedependency::servicedependencies_find(
-    const std::tuple<std::string, std::string, size_t>& key) {
-  size_t k = std::get<2>(key);
-  std::pair<servicedependency_mmap::iterator, servicedependency_mmap::iterator>
-      p = servicedependencies.equal_range({std::get<0>(key), std::get<1>(key)});
-  while (p.first != p.second) {
-    if (p.first->second->internal_key() == k)
-      break;
-    ++p.first;
-  }
-  return p.first == p.second ? servicedependencies.end() : p.first;
-}
+// servicedependency_mmap::iterator servicedependency::servicedependencies_find(
+//     const std::tuple<std::string, std::string, size_t>& key) {
+//   size_t k = std::get<2>(key);
+//   std::pair<servicedependency_mmap::iterator,
+//   servicedependency_mmap::iterator>
+//       p = servicedependencies.equal_range({std::get<0>(key),
+//       std::get<1>(key)});
+//   while (p.first != p.second) {
+//     if (p.first->second->internal_key() == k)
+//       break;
+//     ++p.first;
+//   }
+//   return p.first == p.second ? servicedependencies.end() : p.first;
+// }
 
 /**
  *  Find a service dependency from its key.
