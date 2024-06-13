@@ -380,30 +380,6 @@ void servicedependency::resolve(int& w, int& e) {
 }
 
 /**
- * @brief Find a service dependency from the given key.
- *
- * @param key A tuple containing a host name, a service description and a hash
- * matching the service dependency.
- *
- * @return Iterator to the element if found, servicedependencies().end()
- * otherwise.
- */
-// servicedependency_mmap::iterator servicedependency::servicedependencies_find(
-//     const std::tuple<std::string, std::string, size_t>& key) {
-//   size_t k = std::get<2>(key);
-//   std::pair<servicedependency_mmap::iterator,
-//   servicedependency_mmap::iterator>
-//       p = servicedependencies.equal_range({std::get<0>(key),
-//       std::get<1>(key)});
-//   while (p.first != p.second) {
-//     if (p.first->second->internal_key() == k)
-//       break;
-//     ++p.first;
-//   }
-//   return p.first == p.second ? servicedependencies.end() : p.first;
-// }
-
-/**
  *  Find a service dependency from its key.
  *
  *  @param[in] k The service dependency configuration.
@@ -424,52 +400,4 @@ servicedependency_mmap::iterator servicedependency::servicedependencies_find(
     ++p.first;
   }
   return p.first == p.second ? servicedependencies.end() : p.first;
-
-  //  typedef servicedependency_mmap collection;
-  //  std::pair<collection::iterator, collection::iterator> p;
-  //  p = servicedependencies.equal_range(std::make_pair(
-  //      k.dependent_hosts().front(),
-  //      k.dependent_service_description().front()));
-  //  while (p.first != p.second) {
-  //    configuration::servicedependency current;
-  //    current.configuration::object::operator=(k);
-  //    current.dependent_hosts().push_back(
-  //        p.first->second->get_dependent_hostname());
-  //    current.dependent_service_description().push_back(
-  //        p.first->second->get_dependent_service_description());
-  //    current.hosts().push_back(p.first->second->get_hostname());
-  //    current.service_description().push_back(
-  //        p.first->second->get_service_description());
-  //    current.dependency_period(p.first->second->get_dependency_period());
-  //    current.inherits_parent(p.first->second->get_inherits_parent());
-  //    unsigned int options((p.first->second->get_fail_on_ok()
-  //                              ? configuration::servicedependency::ok
-  //                              : 0) |
-  //                         (p.first->second->get_fail_on_warning()
-  //                              ? configuration::servicedependency::warning
-  //                              : 0) |
-  //                         (p.first->second->get_fail_on_unknown()
-  //                              ? configuration::servicedependency::unknown
-  //                              : 0) |
-  //                         (p.first->second->get_fail_on_critical()
-  //                              ? configuration::servicedependency::critical
-  //                              : 0) |
-  //                         (p.first->second->get_fail_on_pending()
-  //                              ? configuration::servicedependency::pending
-  //                              : 0));
-  //    if (p.first->second->get_dependency_type() ==
-  //        engine::dependency::notification) {
-  //      current.dependency_type(
-  //          configuration::servicedependency::notification_dependency);
-  //      current.notification_failure_options(options);
-  //    } else {
-  //      current.dependency_type(
-  //          configuration::servicedependency::execution_dependency);
-  //      current.execution_failure_options(options);
-  //    }
-  //    if (current == k)
-  //      break;
-  //    ++p.first;
-  //  }
-  //  return (p.first == p.second) ? servicedependencies.end() : p.first;
 }
