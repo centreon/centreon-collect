@@ -41,12 +41,24 @@ class process_wait : public process {
   std::condition_variable _cond;
   std::string _stdout;
   std::string _stderr;
+  bool _stdout_eof = false;
+  bool _stderr_eof = false;
+  bool _process_ended = false;
+
+  void _notify() {
+    if (_stdout_eof && _stderr_eof && _process_ended) {
+      _cond.notify_one();
+    }
+  }
 
  public:
   void on_stdout_read(const boost::system::error_code& err,
                       size_t nb_read) override {
     if (!err) {
       _stdout += std::string_view(_stdout_read_buffer, nb_read);
+    } else if (err == asio::error::eof) {
+      _stdout_eof = true;
+      _notify();
     }
     process::on_stdout_read(err, nb_read);
   }
@@ -55,6 +67,9 @@ class process_wait : public process {
                       size_t nb_read) override {
     if (!err) {
       _stderr += std::string_view(_stderr_read_buffer, nb_read);
+    } else if (err == asio::error::eof) {
+      _stderr_eof = true;
+      _notify();
     }
     process::on_stderr_read(err, nb_read);
   }
@@ -62,7 +77,8 @@ class process_wait : public process {
   void on_process_end(const boost::system::error_code& err,
                       int raw_exit_status) override {
     process::on_process_end(err, raw_exit_status);
-    _cond.notify_one();
+    _process_ended = true;
+    _notify();
   }
 
   template <typename string_type>
