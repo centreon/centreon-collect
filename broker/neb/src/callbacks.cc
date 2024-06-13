@@ -4075,7 +4075,8 @@ class otl_protobuf
   }
 
   void set_obj(opentelemetry::proto::collector::metrics::v1::
-                   ExportMetricsServiceRequest&& obj) override {
+                   ExportMetricsServiceRequest&& obj
+               [[maybe_unused]]) override {
     throw com::centreon::exceptions::msg_fmt("unauthorized usage {}",
                                              typeid(*this).name());
   }

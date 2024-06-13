@@ -51,7 +51,7 @@ class object {
 
   object(object_type type);
   object(object const& right);
-  virtual ~object() noexcept;
+  virtual ~object() noexcept = default;
   object& operator=(object const& right);
   bool operator==(object const& right) const noexcept;
   bool operator!=(object const& right) const noexcept;

@@ -1,22 +1,21 @@
 /**
- * Copyright 2011-2019 Centreon
+ * Copyright 2011-2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
+ *
  */
-
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -55,7 +54,8 @@ servicedependency_mmap servicedependency::servicedependencies;
  *  @param[in] dependency_period             Dependency timeperiod name.
  *
  */
-servicedependency::servicedependency(std::string const& dependent_hostname,
+servicedependency::servicedependency(size_t key,
+                                     std::string const& dependent_hostname,
                                      std::string const& dependent_svc_desc,
                                      std::string const& hostname,
                                      std::string const& service_description,
@@ -67,16 +67,21 @@ servicedependency::servicedependency(std::string const& dependent_hostname,
                                      bool fail_on_critical,
                                      bool fail_on_pending,
                                      std::string const& dependency_period)
-    : dependency{dependent_hostname, hostname,        dependency_type,
-                 inherits_parent,    fail_on_pending, dependency_period},
-      master_service_ptr{nullptr},
-      dependent_service_ptr{nullptr},
+    : dependency{key,
+                 dependent_hostname,
+                 hostname,
+                 dependency_type,
+                 inherits_parent,
+                 fail_on_pending,
+                 dependency_period},
       _dependent_service_description{dependent_svc_desc},
       _service_description{service_description},
       _fail_on_ok{fail_on_ok},
       _fail_on_warning{fail_on_warning},
       _fail_on_unknown{fail_on_unknown},
-      _fail_on_critical{fail_on_critical} {}
+      _fail_on_critical{fail_on_critical},
+      master_service_ptr{nullptr},
+      dependent_service_ptr{nullptr} {}
 
 std::string const& servicedependency::get_dependent_service_description()
     const {
@@ -371,6 +376,28 @@ void servicedependency::resolve(int& w, int& e) {
     e += errors;
     throw engine_error() << "Cannot resolve service dependency";
   }
+}
+
+/**
+ * @brief Find a service dependency from the given key.
+ *
+ * @param key A tuple containing a host name, a service description and a hash
+ * matching the service dependency.
+ *
+ * @return Iterator to the element if found, servicedependencies().end()
+ * otherwise.
+ */
+servicedependency_mmap::iterator servicedependency::servicedependencies_find(
+    const std::tuple<std::string, std::string, size_t>& key) {
+  size_t k = std::get<2>(key);
+  std::pair<servicedependency_mmap::iterator, servicedependency_mmap::iterator>
+      p = servicedependencies.equal_range({std::get<0>(key), std::get<1>(key)});
+  while (p.first != p.second) {
+    if (p.first->second->internal_key() == k)
+      break;
+    ++p.first;
+  }
+  return p.first == p.second ? servicedependencies.end() : p.first;
 }
 
 /**

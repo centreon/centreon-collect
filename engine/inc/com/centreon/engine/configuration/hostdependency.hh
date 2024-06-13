@@ -44,7 +44,7 @@ class hostdependency : public object {
 
   hostdependency();
   hostdependency(hostdependency const& right);
-  ~hostdependency() throw() override;
+  ~hostdependency() noexcept override = default;
   hostdependency& operator=(hostdependency const& right);
   bool operator==(hostdependency const& right) const throw();
   bool operator!=(hostdependency const& right) const throw();

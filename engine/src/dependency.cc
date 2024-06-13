@@ -1,22 +1,21 @@
 /**
  * Copyright 2011-2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
+ *
  */
-
 #include "com/centreon/engine/dependency.hh"
 
 #include "com/centreon/engine/exceptions/error.hh"
@@ -26,13 +25,15 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
-dependency::dependency(std::string const& dependent_hostname,
-                       std::string const& hostname,
+dependency::dependency(size_t key,
+                       const std::string& dependent_hostname,
+                       const std::string& hostname,
                        types dependency_type,
                        bool inherits_parent,
                        bool fail_on_pending,
-                       std::string const& dependency_period)
-    : _dependency_type{dependency_type},
+                       const std::string& dependency_period)
+    : _internal_key{key},
+      _dependency_type{dependency_type},
       _dependent_hostname{dependent_hostname},
       _hostname{hostname},
       _dependency_period{dependency_period},
@@ -169,4 +170,8 @@ bool dependency::operator<(dependency const& obj) noexcept {
   else if (_circular_path_checked != obj.get_circular_path_checked())
     return _circular_path_checked < obj.get_circular_path_checked();
   return _contains_circular_path < obj.get_contains_circular_path();
+}
+
+size_t dependency::internal_key() const {
+  return _internal_key;
 }

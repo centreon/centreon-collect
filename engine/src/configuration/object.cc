@@ -70,11 +70,6 @@ object::object(object const& right) {
 }
 
 /**
- *  Destructor.
- */
-object::~object() noexcept {}
-
-/**
  *  Copy constructor.
  *
  *  @param[in] right The object to copy.

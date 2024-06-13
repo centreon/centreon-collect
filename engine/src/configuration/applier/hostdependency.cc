@@ -26,15 +26,15 @@
 
 using namespace com::centreon::engine::configuration;
 
-/**
- *  Default constructor.
- */
-applier::hostdependency::hostdependency() {}
-
-/**
- *  Destructor.
- */
-applier::hostdependency::~hostdependency() throw() {}
+namespace com::centreon::engine::configuration {
+size_t hostdependency_key(const hostdependency& hd) {
+  assert(hd.hosts().size() == 1 && hd.hostgroups().empty() &&
+         hd.dependent_hosts().size() == 1 && hd.dependent_hostgroups().empty());
+  return absl::HashOf(hd.dependency_period(), hd.dependency_type(),
+                      *hd.dependent_hosts().begin(), *hd.hosts().begin(),
+                      hd.inherits_parent(), hd.notification_failure_options());
+}
+}  // namespace com::centreon::engine::configuration
 
 /**
  *  Add new hostdependency.
@@ -77,7 +77,8 @@ void applier::hostdependency::add_object(
       configuration::hostdependency::execution_dependency)
     // Create executon dependency.
     hd = std::make_shared<engine::hostdependency>(
-        *obj.dependent_hosts().begin(), *obj.hosts().begin(),
+        hostdependency_key(obj), *obj.dependent_hosts().begin(),
+        *obj.hosts().begin(),
         static_cast<engine::hostdependency::types>(obj.dependency_type()),
         obj.inherits_parent(),
         static_cast<bool>(obj.execution_failure_options() &
@@ -92,7 +93,8 @@ void applier::hostdependency::add_object(
   else
     // Create notification dependency.
     hd = std::make_shared<engine::hostdependency>(
-        *obj.dependent_hosts().begin(), *obj.hosts().begin(),
+        hostdependency_key(obj), *obj.dependent_hosts().begin(),
+        *obj.hosts().begin(),
         static_cast<engine::hostdependency::types>(obj.dependency_type()),
         obj.inherits_parent(),
         static_cast<bool>(obj.notification_failure_options() &

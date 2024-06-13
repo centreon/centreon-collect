@@ -111,11 +111,6 @@ servicedependency::servicedependency(servicedependency const& right)
 }
 
 /**
- *  Destructor.
- */
-servicedependency::~servicedependency() throw() {}
-
-/**
  *  Copy constructor.
  *
  *  @param[in] right The servicedependency to copy.

@@ -1,22 +1,21 @@
 /**
  * Copyright 2011-2019,2022-2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
+ *
  */
-
 #include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
@@ -51,8 +50,7 @@ checkable::checkable(const std::string& name,
                      bool obsess_over,
                      const std::string& timezone,
                      uint64_t icon_id)
-    : check_period_ptr{nullptr},
-      _name{name},
+    : _name{name},
       _display_name{display_name.empty() ? name : display_name},
       _check_command{check_command},
       _check_interval{check_interval},
@@ -93,7 +91,8 @@ checkable::checkable(const std::string& name,
       _event_handler_ptr{nullptr},
       _check_command_ptr{nullptr},
       _is_executing{false},
-      _icon_id{icon_id} {
+      _icon_id{icon_id},
+      check_period_ptr{nullptr} {
   if (max_attempts <= 0 || retry_interval <= 0 || freshness_threshold < 0) {
     std::ostringstream oss;
     bool empty{true};

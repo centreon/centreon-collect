@@ -45,7 +45,7 @@ class servicedependency : public object {
 
   servicedependency();
   servicedependency(servicedependency const& right);
-  ~servicedependency() throw() override;
+  ~servicedependency() noexcept override = default;
   servicedependency& operator=(servicedependency const& right);
   bool operator==(servicedependency const& right) const throw();
   bool operator!=(servicedependency const& right) const throw();
