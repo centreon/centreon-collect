@@ -87,8 +87,8 @@ class servicedependency : public dependency {
   static servicedependency_mmap servicedependencies;
   static servicedependency_mmap::iterator servicedependencies_find(
       configuration::servicedependency const& k);
-  static servicedependency_mmap::iterator servicedependencies_find(
-      const std::tuple<std::string, std::string, size_t>& key);
+  //  static servicedependency_mmap::iterator servicedependencies_find(
+  //      const std::tuple<std::string, std::string, size_t>& key);
 };
 
 };  // namespace com::centreon::engine

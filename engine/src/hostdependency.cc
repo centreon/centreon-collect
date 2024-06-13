@@ -324,24 +324,3 @@ hostdependency_mmap::iterator hostdependency::hostdependencies_find(
   }
   return p.first == p.second ? hostdependencies.end() : p.first;
 }
-
-/**
- *  Find a service dependency from its key.
- *
- *  @param[in] k The service dependency configuration.
- *
- *  @return Iterator to the element if found,
- *          servicedependencies().end() otherwise.
- */
-hostdependency_mmap::iterator hostdependency::hostdependencies_find(
-    const std::pair<std::string_view, size_t>& key) {
-  std::pair<hostdependency_mmap::iterator, hostdependency_mmap::iterator> p;
-
-  p = hostdependencies.equal_range(key.first);
-  while (p.first != p.second) {
-    if (p.first->second->internal_key() == key.second)
-      break;
-    ++p.first;
-  }
-  return p.first == p.second ? hostdependencies.end() : p.first;
-}
