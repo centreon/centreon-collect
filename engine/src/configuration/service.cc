@@ -21,7 +21,6 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <absl/strings/string_view.h>
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -576,7 +575,6 @@ bool service::operator!=(service const& other) const noexcept {
  *  @return True if this object is less than right.
  */
 bool service::operator<(service const& other) const noexcept {
-  // hosts and service_description have to be first in this operator.
   // The configuration diff mechanism relies on this.
   if (_host_id != other._host_id)
     return _host_id < other._host_id;

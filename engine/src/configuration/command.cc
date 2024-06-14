@@ -18,7 +18,6 @@
  *
  */
 #include "com/centreon/engine/configuration/command.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;

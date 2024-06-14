@@ -17,7 +17,6 @@
  *
  */
 #include "com/centreon/engine/configuration/contactgroup.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;

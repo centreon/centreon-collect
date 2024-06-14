@@ -34,7 +34,6 @@
 #include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 

@@ -19,7 +19,6 @@
 #include "com/centreon/engine/configuration/contact.hh"
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;

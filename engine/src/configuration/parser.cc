@@ -17,7 +17,6 @@
  *
  */
 #include "com/centreon/engine/configuration/parser.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/io/directory_entry.hh"
