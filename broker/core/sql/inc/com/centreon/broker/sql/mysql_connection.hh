@@ -85,6 +85,7 @@ class mysql_connection {
   const std::string _pwd;
   const std::string _name;
   const int _port;
+  const std::string _extension_directory;
   const unsigned _max_second_commit_delay;
   time_t _last_commit;
   std::atomic<connection_state> _state;
