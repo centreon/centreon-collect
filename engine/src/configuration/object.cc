@@ -35,11 +35,13 @@
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 using com::centreon::common::log_v2::log_v2;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
   &object::setter<object, type, &object::method>::generic
@@ -217,7 +219,7 @@ void object::resolve_template(map_object& templates) {
   for (std::string& s : _templates) {
     map_object::iterator tmpl = templates.find(s);
     if (tmpl == templates.end())
-      throw engine_error() << "Cannot merge object of type '" << s << "'";
+      throw msg_fmt("Cannot merge object of type '{}'", s);
     tmpl->second->resolve_template(templates);
     merge(*tmpl->second);
   }

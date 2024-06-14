@@ -19,9 +19,11 @@
  */
 #include "com/centreon/engine/configuration/hostescalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
   &object::setter<hostescalation, type, &hostescalation::method>::generic
@@ -163,9 +165,9 @@ bool hostescalation::operator<(hostescalation const& right) const {
  */
 void hostescalation::check_validity() const {
   if (_hosts->empty() && _hostgroups->empty())
-    throw(engine_error() << "Host escalation is not attached to any "
-                         << "host or host group (properties 'host_name' or "
-                         << "'hostgroup_name', respectively)");
+    throw msg_fmt(
+        "Host escalation is not attached to any host or host group (properties "
+        "'host_name' or 'hostgroup_name', respectively)");
 }
 
 /**
@@ -184,8 +186,8 @@ hostescalation::key_type const& hostescalation::key() const throw() {
  */
 void hostescalation::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge host escalation with '" << obj.type()
-                         << "'");
+    throw msg_fmt("Cannot merge host escalation with '{}'",
+                  static_cast<uint32_t>(obj.type()));
   hostescalation const& tmpl(static_cast<hostescalation const&>(obj));
 
   MRG_INHERIT(_contactgroups);

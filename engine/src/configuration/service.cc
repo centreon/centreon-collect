@@ -25,6 +25,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/logging/logger.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
 extern int config_errors;
@@ -32,6 +33,7 @@ extern int config_errors;
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
   &object::setter<service, type, &service::method>::generic
@@ -680,16 +682,17 @@ bool service::operator<(service const& other) const noexcept {
  */
 void service::check_validity() const {
   if (_service_description.empty())
-    throw engine_error() << "Service has no description (property "
-                         << "'service_description')";
+    throw msg_fmt(
+        "Service has no description (property 'service_description')");
   if (_host_name.empty())
-    throw engine_error()
-        << "Service '" << _service_description
-        << "' is not attached to any host or host group (properties "
-        << "'host_name' or 'hostgroup_name', respectively)";
+    throw msg_fmt(
+        "Service '{}' is not attached to any host or host group (properties "
+        "'host_name' or 'hostgroup_name', respectively)",
+        _service_description);
   if (_check_command.empty())
-    throw engine_error() << "Service '" << _service_description
-                         << "' has no check command (property 'check_command')";
+    throw msg_fmt(
+        "Service '{}' has no check command (property 'check_command')",
+        _service_description);
 }
 
 /**
@@ -709,7 +712,8 @@ service::key_type service::key() const {
  */
 void service::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge service with '" << obj.type() << "'");
+    throw msg_fmt("Cannot merge service with '{}'",
+                  static_cast<uint32_t>(obj.type()));
   service const& tmpl(static_cast<service const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);

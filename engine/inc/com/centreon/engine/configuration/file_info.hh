@@ -47,10 +47,9 @@ class file_info {
   bool operator!=(file_info const& right) const noexcept {
     return !operator==(right);
   }
-  friend exceptions::error& operator<<(exceptions::error& err,
-                                       file_info const& info) {
-    err << "in file '" << info.path() << "' on line " << info.line();
-    return err;
+  friend std::ostream& operator<<(std::ostream& s, file_info const& info) {
+    s << "in file '" << info.path() << "' on line " << info.line();
+    return s;
   }
   unsigned int line() const noexcept { return _line; }
   void line(unsigned int line) noexcept { _line = line; }
@@ -60,5 +59,12 @@ class file_info {
 }  // namespace configuration
 
 }  // namespace com::centreon::engine
+
+namespace fmt {
+// formatter specializations for fmt
+template <>
+struct formatter<com::centreon::engine::configuration::file_info>
+    : ostream_formatter {};
+}  // namespace fmt
 
 #endif  // !CCE_CONFIGURATION_FILE_INFO_HH

@@ -24,12 +24,14 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
 extern int config_errors;
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
   &object::setter<anomalydetection, type, &anomalydetection::method>::generic
@@ -755,24 +757,26 @@ bool anomalydetection::operator<(anomalydetection const& other) const noexcept {
 /**
  *  Check if the object is valid.
  *
- *  @exception engine_error if this anomalydetection is an invalid object.
+ *  @exception msg_fmt if this anomalydetection is an invalid object.
  */
 void anomalydetection::check_validity() const {
   if (_service_description.empty())
-    throw engine_error() << "Service has no description (property "
-                         << "'service_description')";
+    throw msg_fmt(
+        "Service has no description (property 'service_description')");
   if (_host_name.empty())
-    throw engine_error() << "Service '" << _service_description
-                         << "' is not attached to any host (property "
-                            "'host_name')";
+    throw msg_fmt(
+        "Service '{}' is not attached to any host (property 'host_name')",
+        _service_description);
   if (_metric_name.empty())
-    throw engine_error()
-        << "Anomaly detection service '" << _service_description
-        << "' has no metric name specified (property 'metric_name')";
+    throw msg_fmt(
+        "Anomaly detection service '{}' has no metric name specified (property "
+        "'metric_name')",
+        _service_description);
   if (_thresholds_file.empty())
-    throw engine_error()
-        << "Anomaly detection service '" << _service_description
-        << "' has no thresholds file specified (property 'thresholds_file')";
+    throw msg_fmt(
+        "Anomaly detection service '{}' has no thresholds file specified "
+        "(property 'thresholds_file')",
+        _service_description);
 }
 
 /**
@@ -792,8 +796,8 @@ anomalydetection::key_type anomalydetection::key() const {
  */
 void anomalydetection::merge(object const& obj) {
   if (obj.type() != _type)
-    throw engine_error() << "Cannot merge anomalydetection with '" << obj.type()
-                         << "'";
+    throw msg_fmt("Cannot merge anomalydetection with '{}'",
+                  static_cast<uint32_t>(obj.type()));
   anomalydetection const& tmpl(static_cast<anomalydetection const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);

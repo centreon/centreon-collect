@@ -26,6 +26,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/logging/logger.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
 extern int config_errors;
@@ -33,6 +34,7 @@ extern int config_errors;
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) &object::setter<host, type, &host::method>::generic
 
@@ -434,10 +436,9 @@ bool host::operator<(host const& other) const noexcept {
  */
 void host::check_validity() const {
   if (_host_name.empty())
-    throw engine_error() << "Host has no name (property 'host_name')";
+    throw msg_fmt("Host has no name (property 'host_name')");
   if (_address.empty())
-    throw engine_error() << "Host '" << _host_name
-                         << "' has no address (property 'address')";
+    throw msg_fmt("Host '{}' has no address (property 'address')", _host_name);
 }
 
 /**
@@ -456,7 +457,8 @@ host::key_type host::key() const noexcept {
  */
 void host::merge(object const& obj) {
   if (obj.type() != _type)
-    throw engine_error() << "Cannot merge host with '" << obj.type() << "'";
+    throw msg_fmt("Cannot merge host with '{}'",
+                  static_cast<uint32_t>(obj.type()));
   host const& tmpl(static_cast<host const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);
