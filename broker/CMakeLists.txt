@@ -66,12 +66,15 @@ endif()
 if(OS_DISTRIBUTOR STREQUAL "Debian" OR OS_DISTRIBUTOR STREQUAL "Ubuntu")
   message(STATUS "deb based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/run/mysqld/mysqld.sock\"")
+  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
 elseif(OS_DISTRIBUTOR STREQUAL "CentOS" OR OS_DISTRIBUTOR STREQUAL "RedHat")
   message(STATUS "rpm based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/lib/mysql/mysql.sock\"")
+  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib64/mariadb/plugin\"")
 else()
   message(STATUS "other os: ${OS_DISTRIBUTOR}")
-  add_definitions("-DMYSQL_SOCKET=/tmp/mysql.sock")
+  add_definitions("-DMYSQL_SOCKET=\"/tmp/mysql.sock\"")
+  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
 endif()
 
 include_directories(
@@ -79,13 +82,14 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/neb/inc"
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
-  "${PROJECT_SOURCE_DIR}/core/sql/inc")
+  "${PROJECT_SOURCE_DIR}/core/sql/inc"
+  "${MARIADB_INCLUDE_DIRS}")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")
 
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
-add_definitions(${spdlog_DEFINITIONS} ${mariadb-connector-c_DEFINITIONS})
+add_definitions(${spdlog_DEFINITIONS})
 
 include_directories(${CONAN_INCLUDE_DIRS_MARIADB-CONNECTOR-C})
 
@@ -491,6 +495,7 @@ target_link_libraries(
   "-Wl,--no-whole-archive"
   CONAN_PKG::spdlog
   CONAN_PKG::grpc
+  ${MARIADB_LIBRARIES}
   stdc++fs)
 
 # Centreon Broker Watchdog

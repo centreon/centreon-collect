@@ -142,7 +142,6 @@ target_link_libraries(
   CONAN_PKG::fmt
   CONAN_PKG::spdlog
   CONAN_PKG::gtest
-  CONAN_PKG::mariadb-connector-c
   CONAN_PKG::openssl
   CONAN_PKG::grpc
   stdc++fs)

@@ -76,7 +76,7 @@ jobs:
 
       - name: Compile sources
         run: |
-          sudo pip3 install conan==1.62.0 --prefix=/usr --upgrade
+          sudo pip3 install conan==1.64.0 --prefix=/usr --upgrade
 
           sudo conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
 

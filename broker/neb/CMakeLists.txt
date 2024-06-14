@@ -152,10 +152,14 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     multiplexing
     "-Wl,--no-whole-archive"
     CONAN_PKG::nlohmann_json
-    CONAN_PKG::spdlog)
+    CONAN_PKG::spdlog
+    ${MARIADB_LIBRARIES}
+    )
 else()
   target_link_libraries("${CBMOD}" "rokerbase" CONAN_PKG::nlohmann_json
-                        CONAN_PKG::spdlog)
+                        CONAN_PKG::spdlog
+                        ${MARIADB_LIBRARIES}
+                        )
 endif()
 
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
