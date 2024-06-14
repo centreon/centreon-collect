@@ -1857,8 +1857,8 @@ int host::run_async_check(int check_options,
       try {
         // Run command.
         get_check_command_ptr()->run(processed_cmd, *macros,
-                                                   config->host_check_timeout(),
-                                                   check_result_info);
+                                     config->host_check_timeout(),
+                                     check_result_info);
       } catch (com::centreon::exceptions::interruption const& e) {
         retry = true;
       } catch (std::exception const& e) {
@@ -2330,6 +2330,8 @@ int host::handle_state() {
   /* update performance data */
   update_performance_data();
 
+  bool have_to_change_service_state = false;
+
   /* record latest time for current state */
   switch (get_current_state()) {
     case host::state_up:
@@ -2338,10 +2340,16 @@ int host::handle_state() {
 
     case host::state_down:
       set_last_time_down(current_time);
+      have_to_change_service_state =
+          config->use_host_down_disable_service_checks() &&
+          get_state_type() == hard;
       break;
 
     case host::state_unreachable:
       set_last_time_unreachable(current_time);
+      have_to_change_service_state =
+          config->use_host_down_disable_service_checks() &&
+          get_state_type() == hard;
       break;
 
     default:
@@ -2426,6 +2434,11 @@ int host::handle_state() {
     /* the host just recovered, so reset the current host attempt */
     if (get_current_state() == host::state_up)
       set_current_attempt(1);
+
+    // have to change service state to UNKNOWN?
+    if (have_to_change_service_state) {
+      _switch_all_services_to_unknown();
+    }
   }
   /* else the host state has not changed */
   else {
@@ -4075,4 +4088,33 @@ std::string host::get_check_command_line(nagios_macros* macros) {
   get_raw_command_line_r(macros, get_check_command_ptr(),
                          check_command().c_str(), tmp, 0);
   return get_check_command_ptr()->process_cmd(macros);
+}
+
+/**
+ * @brief when host switch to no up state and have to propagate state to
+ * services, we push an UNKNOWN check result for each services
+ *
+ */
+void host::_switch_all_services_to_unknown() {
+  timeval tv;
+  gettimeofday(&tv, nullptr);
+
+  SPDLOG_LOGGER_DEBUG(runtime_logger,
+                      "host {} is down => all service states switch to UNKNOWN",
+                      name());
+
+  std::string output = fmt::format("host {} is down", name());
+
+  time_t now = time(nullptr);
+
+  for (auto serv_iter = service::services_by_id.lower_bound({_id, 0});
+       serv_iter != service::services_by_id.end() &&
+       serv_iter->first.first == _id;
+       ++serv_iter) {
+    check_result::pointer result = std::make_shared<check_result>(
+        service_check, serv_iter->second.get(), checkable::check_active,
+        CHECK_OPTION_NONE, false, 0, tv, tv, false, true,
+        service::state_unknown, output);
+    checks::checker::instance().add_check_result_to_reap(result);
+  }
 }

@@ -1333,6 +1333,10 @@ int service::handle_async_check_result(
     /* grab the return code */
     _current_state = static_cast<service::service_state>(
         queued_check_result.get_return_code());
+    SPDLOG_LOGGER_DEBUG(
+        checks_logger, "now host:{} serv:{} _current_state={} state_type={}",
+        _hostname, name(), static_cast<uint32_t>(_current_state),
+        (get_state_type() == soft ? "SOFT" : "HARD"));
   }
 
   /* record the last state time */
@@ -1413,7 +1417,9 @@ int service::handle_async_check_result(
     engine_logger(dbg_checks, most)
         << "Service has changed state since last check!";
     SPDLOG_LOGGER_DEBUG(checks_logger,
-                        "Service has changed state since last check!");
+                        "Service has changed state since last check {} => {}",
+                        static_cast<uint32_t>(_last_state),
+                        static_cast<uint32_t>(_current_state));
     state_change = true;
   }
 
@@ -2705,8 +2711,19 @@ int service::run_async_check_local(int check_options,
     checks::checker::instance().add_check_result_to_reap(check_result_info);
   };
 
+  bool has_to_execute_check = true;
+  if (config->use_host_down_disable_service_checks()) {
+    auto hst = host::hosts_by_id.find(_host_id);
+    if (hst != host::hosts_by_id.end() &&
+        hst->second->get_current_state() != host::state_up) {
+      run_failure(fmt::format("host {} is down", hst->second->name()));
+      has_to_execute_check = false;
+    }
+  }
+
   // allowed by whitelist?
-  if (!command_is_allowed_by_whitelist(processed_cmd, CHECK_TYPE)) {
+  if (has_to_execute_check &&
+      !command_is_allowed_by_whitelist(processed_cmd, CHECK_TYPE)) {
     SPDLOG_LOGGER_ERROR(
         commands_logger,
         "service {}: this command cannot be executed because of "
@@ -2718,7 +2735,10 @@ int service::run_async_check_local(int check_options,
                         "service {}: command not allowed by whitelist {}",
                         name(), processed_cmd);
     run_failure(configuration::command_blacklist_output);
-  } else {
+    has_to_execute_check = false;
+  }
+
+  if (has_to_execute_check) {
     bool retry;
     do {
       retry = false;

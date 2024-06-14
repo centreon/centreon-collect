@@ -102,7 +102,7 @@ BEBAMIDT2
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for service_314
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60  HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
@@ -205,12 +205,12 @@ BEBAMIGNDT1
 
     # KPI set to ok
     Ctn Process Service Result Hard    host_16    service_313    0    output critical for service_313
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_313    0    60
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_313    0    60  HARD
     Should Be True    ${result}    The service (host_16,service_313) is not OK as expected
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for service_314
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60  HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
@@ -304,12 +304,12 @@ BEBAMIGNDT2
 
     # KPI set to ok
     Ctn Process Service Result Hard    host_16    service_313    0    output critical for service_313
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_313    0    60
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_313    0    60  HARD
     Should Be True    ${result}    The service (host_16,service_313) is not OK as expected
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60  HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
