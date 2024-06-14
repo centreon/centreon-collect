@@ -43,6 +43,7 @@ overrides:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
       - centreon-broker = ${VERSION}-${RELEASE}${DIST}
       - gnutls >= 3.6.0
+      - mariadb-connector-c >= 3.1.10
     conflicts:
       - centreon-broker-storage
       - centreon-broker-core-devel
@@ -59,6 +60,7 @@ overrides:
       - centreon-broker (= ${VERSION}-${RELEASE}${DIST})
       - libgnutls30
       - libssl1.1 | libssl3
+      - libmariadb3
       - zlib1g
     conflicts:
       - centreon-broker-storage

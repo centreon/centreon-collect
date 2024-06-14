@@ -30,8 +30,8 @@ if [ $database_type == 'mysql' ]; then
     sleep 5
     echo "########################### Init centreon database ############################"
 
-    mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED WITH mysql_native_password BY 'centreon'"
-    mysql -e "CREATE USER IF NOT EXISTS 'root_centreon'@'localhost' IDENTIFIED WITH mysql_native_password BY 'centreon'"
+    mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon'"
+    mysql -e "CREATE USER IF NOT EXISTS 'root_centreon'@'localhost' IDENTIFIED BY 'centreon'"
 else
     echo "########################### Start MariaDB ######################################"
     if [ "$distrib" = "ALMALINUX" ]; then

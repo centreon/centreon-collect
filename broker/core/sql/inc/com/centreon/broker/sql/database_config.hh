@@ -75,6 +75,9 @@ class database_config {
   int get_connections_count() const;
   unsigned get_max_commit_delay() const;
   unsigned get_category() const;
+  const std::string& get_extension_directory() const {
+    return _extension_directory;
+  }
 
   void set_type(std::string const& type);
   void set_host(std::string const& host);
@@ -87,6 +90,9 @@ class database_config {
   void set_queries_per_transaction(int qpt);
   void set_check_replication(bool check_replication);
   void set_category(unsigned category);
+  void set_extension_directory(std::string const& extension_directory) {
+    _extension_directory = extension_directory;
+  }
 
   database_config auto_commit_conf() const;
 
@@ -105,6 +111,8 @@ class database_config {
   int _connections_count;
   unsigned _max_commit_delay;
   unsigned _category;
+  // where mariadb will find extension such as caching_sha2_password.so
+  std::string _extension_directory;
 };
 
 std::ostream& operator<<(std::ostream& s, const database_config cfg);

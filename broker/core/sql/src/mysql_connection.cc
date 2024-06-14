@@ -15,7 +15,7 @@
  *
  * For more information : contact@centreon.com
  */
-#include <mysql/errmsg.h>
+#include <errmsg.h>
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/misc/misc.hh"
@@ -189,6 +189,9 @@ bool mysql_connection::_try_to_reconnect() {
 
   uint32_t timeout = 10;
   mysql_options(_conn, MYSQL_OPT_CONNECT_TIMEOUT, &timeout);
+
+  mysql_optionsv(_conn, MYSQL_PLUGIN_DIR,
+                 (const void*)_extension_directory.c_str());
 
   if (!mysql_real_connect(_conn, _host.c_str(), _user.c_str(), _pwd.c_str(),
                           _name.c_str(), _port,
@@ -830,6 +833,9 @@ void mysql_connection::_run() {
     uint32_t timeout = 10;
     mysql_options(_conn, MYSQL_OPT_CONNECT_TIMEOUT, &timeout);
 
+    mysql_optionsv(_conn, MYSQL_PLUGIN_DIR,
+                   (const void*)_extension_directory.c_str());
+
     while (config::applier::mode != config::applier::finished &&
            !mysql_real_connect(_conn, _host.c_str(), _user.c_str(),
                                _pwd.c_str(), _name.c_str(), _port,
@@ -1076,6 +1082,7 @@ mysql_connection::mysql_connection(
       _pwd(db_cfg.get_password()),
       _name(db_cfg.get_name()),
       _port(db_cfg.get_port()),
+      _extension_directory(db_cfg.get_extension_directory()),
       _max_second_commit_delay(db_cfg.get_max_commit_delay()),
       _last_commit(db_cfg.get_queries_per_transaction() > 1
                        ? 0
