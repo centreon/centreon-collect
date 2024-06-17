@@ -31,6 +31,18 @@ namespace configuration {
 
 class anomalydetection : public object {
  public:
+  enum tag_type {
+    SERVICEGROUP = 0,
+    HOSTGROUP = 1,
+    SERVICECATEGORY = 2,
+    HOSTCATEGORY = 3,
+  };
+  enum service_state {
+    OK = 0,
+    WARNING = 1,
+    CRITICAL = 2,
+    UNKNOWN = 3,
+  };
   enum action_on {
     none = 0,
     ok = (1 << 0),

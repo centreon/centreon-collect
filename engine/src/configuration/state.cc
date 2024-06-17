@@ -27,7 +27,6 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::engine::logging;
 using com::centreon::common::log_v2::log_v2;
 using com::centreon::exceptions::msg_fmt;
 
@@ -1752,7 +1751,7 @@ int64_t state::debug_level() const noexcept {
  */
 void state::debug_level(int64_t value) {
   if (value == -1)
-    _debug_level = all;
+    _debug_level = state::ALL;
   else
     _debug_level = value;
 }
@@ -1772,8 +1771,8 @@ unsigned int state::debug_verbosity() const noexcept {
  *  @param[in] value The new debug_verbosity value.
  */
 void state::debug_verbosity(unsigned int value) {
-  if (value > most)
-    _debug_verbosity = static_cast<unsigned int>(most);
+  if (value > state::MOST)
+    _debug_verbosity = static_cast<unsigned int>(state::MOST);
   else
     _debug_verbosity = value;
 }

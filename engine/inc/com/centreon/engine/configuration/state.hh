@@ -35,7 +35,6 @@
 #include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 namespace com::centreon::engine::configuration {
 
@@ -61,6 +60,17 @@ class setter_base {
  *  to manage configuration data.
  */
 class state {
+  enum logger_type {
+    LOG_ALL = 2096895ull,
+    DBG_ALL = (4095ull << 32),
+    ALL = LOG_ALL | DBG_ALL,
+  };
+  enum logger_verbosity_level {
+    BASIC = 0u,
+    MORE = 1u,
+    MOST = 2u,
+  };
+
   std::shared_ptr<spdlog::logger> _logger;
 
  public:

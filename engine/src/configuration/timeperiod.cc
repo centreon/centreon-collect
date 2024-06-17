@@ -19,7 +19,6 @@
  */
 #include "com/centreon/engine/configuration/timeperiod.hh"
 
-#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/timerange.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

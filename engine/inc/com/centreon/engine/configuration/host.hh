@@ -33,6 +33,17 @@ namespace configuration {
 
 class host : public object {
  public:
+  enum tag_type {
+    SERVICEGROUP = 0,
+    HOSTGROUP = 1,
+    SERVICECATEGORY = 2,
+    HOSTCATEGORY = 3,
+  };
+  enum host_state {
+    UP = 0,
+    DOWN = 1,
+    UNREACHABLE = 2,
+  };
   enum action_on {
     none = 0,
     up = (1 << 0),

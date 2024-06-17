@@ -20,7 +20,6 @@
 
 #include "com/centreon/engine/configuration/hostdependency.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
@@ -28,7 +27,6 @@ extern int config_errors;
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::engine::logging;
 using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
