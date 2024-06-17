@@ -95,16 +95,12 @@ add_dependencies(
   nebbase
   table_max_size
   target_neb
-  target_severity
-  target_tag
   pb_neb_lib
   pb_header_lib)
 
 target_link_libraries(nebbase 
   -L${PROTOBUF_LIB_DIR}
   protobuf 
-  pb_severity_lib 
-  pb_tag_lib
   pb_neb_lib 
   pb_header_lib
   pb_open_telemetry_lib)

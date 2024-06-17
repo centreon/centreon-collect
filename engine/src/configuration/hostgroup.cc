@@ -188,7 +188,7 @@ hostgroup::key_type const& hostgroup::key() const throw() {
  */
 void hostgroup::merge(object const& obj) {
   if (obj.type() != _type)
-    throw msg_fmt("Cannot merge host group with '",
+    throw msg_fmt("Cannot merge host group with '{}'",
                   static_cast<uint32_t>(obj.type()));
   hostgroup const& tmpl(static_cast<hostgroup const&>(obj));
   MRG_DEFAULT(_action_url);

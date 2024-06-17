@@ -19,7 +19,7 @@
 #ifndef CCB_GLOBAL_CACHE_HH
 #define CCB_GLOBAL_CACHE_HH
 
-#include "bbdo/tag.pb.h"
+#include "bbdo/neb.pb.h"
 
 namespace com::centreon::broker {
 

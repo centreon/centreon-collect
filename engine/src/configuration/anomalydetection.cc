@@ -124,8 +124,7 @@ static unsigned short const default_flap_detection_options(
     anomalydetection::unknown | anomalydetection::critical);
 static unsigned int const default_freshness_threshold(0);
 static unsigned int const default_high_flap_threshold(0);
-static unsigned int const default_initial_state(
-    anomalydetection::service_state::OK);
+static unsigned int const default_initial_state(broker::Service_State_OK);
 static bool const default_is_volatile(false);
 static unsigned int const default_low_flap_threshold(0);
 static unsigned int const default_max_check_attempts(3);
@@ -1766,13 +1765,13 @@ bool anomalydetection::_set_initial_state(std::string const& value) {
   std::string_view data(value);
   data = absl::StripAsciiWhitespace(data);
   if (data == "o" || data == "ok")
-    _initial_state = anomalydetection::OK;
+    _initial_state = broker::Service_State_OK;
   else if (data == "w" || data == "warning")
-    _initial_state = anomalydetection::WARNING;
+    _initial_state = broker::Service_State_WARNING;
   else if (data == "u" || data == "unknown")
-    _initial_state = anomalydetection::UNKNOWN;
+    _initial_state = broker::Service_State_UNKNOWN;
   else if (data == "c" || data == "critical")
-    _initial_state = anomalydetection::CRITICAL;
+    _initial_state = broker::Service_State_CRITICAL;
   else
     return false;
   return true;
@@ -2117,7 +2116,7 @@ bool anomalydetection::_set_category_tags(const std::string& value) {
   for (std::set<std::pair<uint64_t, uint16_t>>::iterator it = _tags.begin(),
                                                          end = _tags.end();
        it != end;) {
-    if (it->second == anomalydetection::SERVICECATEGORY)
+    if (it->second == broker::SERVICECATEGORY)
       it = _tags.erase(it);
     else
       ++it;
@@ -2128,7 +2127,7 @@ bool anomalydetection::_set_category_tags(const std::string& value) {
     bool parse_ok;
     parse_ok = absl::SimpleAtoi(tag, &id);
     if (parse_ok) {
-      _tags.emplace(id, anomalydetection::SERVICECATEGORY);
+      _tags.emplace(id, broker::SERVICECATEGORY);
     } else {
       _logger->warn(
           "Warning: anomalydetection ({}, {}) error for parsing tag {}",
@@ -2152,7 +2151,7 @@ bool anomalydetection::_set_group_tags(const std::string& value) {
   for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
        end(_tags.end());
        it != end;) {
-    if (it->second == anomalydetection::SERVICEGROUP)
+    if (it->second == broker::SERVICEGROUP)
       it = _tags.erase(it);
     else
       ++it;
@@ -2163,7 +2162,7 @@ bool anomalydetection::_set_group_tags(const std::string& value) {
     bool parse_ok;
     parse_ok = absl::SimpleAtoi(tag, &id);
     if (parse_ok) {
-      _tags.emplace(id, anomalydetection::SERVICEGROUP);
+      _tags.emplace(id, broker::SERVICEGROUP);
     } else {
       _logger->warn(
           "Warning: anomalydetection ({}, {}) error for parsing tag {}",

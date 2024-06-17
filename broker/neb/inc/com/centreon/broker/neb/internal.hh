@@ -22,8 +22,6 @@
 #include <absl/hash/hash.h>
 #include "bbdo/events.hh"
 #include "bbdo/neb.pb.h"
-#include "bbdo/severity.pb.h"
-#include "bbdo/tag.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/callback.hh"

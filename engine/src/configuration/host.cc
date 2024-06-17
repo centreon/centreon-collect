@@ -22,6 +22,7 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
+#include "bbdo/neb.pb.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
@@ -119,7 +120,7 @@ static unsigned short const default_flap_detection_options(host::up |
                                                            host::unreachable);
 static unsigned int const default_freshness_threshold(0);
 static unsigned int const default_high_flap_threshold(0);
-static unsigned short const default_initial_state(host::UP);
+static unsigned short const default_initial_state(broker::Host_State_UP);
 static unsigned int const default_low_flap_threshold(0);
 static unsigned int const default_max_check_attempts(3);
 static bool const default_notifications_enabled(true);
@@ -1436,11 +1437,11 @@ bool host::_set_initial_state(std::string const& value) {
   std::string_view data(value);
   data = absl::StripAsciiWhitespace(data);
   if (data == "o" || data == "up")
-    _initial_state = host::UP;
+    _initial_state = broker::Host_State_UP;
   else if (data == "d" || data == "down")
-    _initial_state = host::DOWN;
+    _initial_state = broker::Host_State_DOWN;
   else if (data == "u" || data == "unreachable")
-    _initial_state = host::UNREACHABLE;
+    _initial_state = broker::Host_State_UNREACHABLE;
   else
     return false;
   return true;
@@ -1715,7 +1716,7 @@ bool host::_set_category_tags(const std::string& value) {
   for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
        end(_tags.end());
        it != end;) {
-    if (it->second == host::HOSTCATEGORY)
+    if (it->second == broker::HOSTCATEGORY)
       it = _tags.erase(it);
     else
       ++it;
@@ -1726,7 +1727,7 @@ bool host::_set_category_tags(const std::string& value) {
     bool parse_ok;
     parse_ok = absl::SimpleAtoi(tag, &id);
     if (parse_ok) {
-      _tags.emplace(id, host::HOSTCATEGORY);
+      _tags.emplace(id, broker::HOSTCATEGORY);
     } else {
       _logger->warn("Warning: host ({}) error for parsing tag {}", _host_id,
                     value);
@@ -1749,7 +1750,7 @@ bool host::_set_group_tags(const std::string& value) {
   for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
        end(_tags.end());
        it != end;) {
-    if (it->second == host::HOSTGROUP)
+    if (it->second == broker::HOSTGROUP)
       it = _tags.erase(it);
     else
       ++it;
@@ -1760,7 +1761,7 @@ bool host::_set_group_tags(const std::string& value) {
     bool parse_ok;
     parse_ok = absl::SimpleAtoi(tag, &id);
     if (parse_ok) {
-      _tags.emplace(id, host::HOSTGROUP);
+      _tags.emplace(id, broker::HOSTGROUP);
     } else {
       _logger->warn("Warning: host ({}) error for parsing tag {}", _host_id,
                     value);

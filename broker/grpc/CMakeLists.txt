@@ -52,8 +52,6 @@ target_link_libraries(
   pb_neb_lib
   pb_storage_lib
   pb_bbdo_lib
-  pb_severity_lib
-  pb_tag_lib
   pb_bam_lib
   pb_extcmd_lib
   pb_open_telemetry_lib

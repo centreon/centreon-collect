@@ -20,8 +20,6 @@ set(protobuf_files
     header
     rebuild_message
     remove_graph_message
-    severity
-    tag
     bbdo
     neb
     storage
@@ -62,14 +60,6 @@ set_target_properties(pb_storage_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_library(pb_bbdo_lib STATIC bbdo.pb.cc bbdo.pb.h)
 add_dependencies(pb_bbdo_lib target_bbdo)
 set_target_properties(pb_bbdo_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-add_library(pb_severity_lib STATIC severity.pb.cc severity.pb.h)
-add_dependencies(pb_severity_lib target_neb)
-set_target_properties(pb_severity_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-add_library(pb_tag_lib STATIC tag.pb.cc tag.pb.h)
-add_dependencies(pb_tag_lib target_neb)
-set_target_properties(pb_tag_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(pb_bam_lib STATIC bam.pb.cc bam.pb.h bam_state.pb.cc bam_state.pb.h)
 add_dependencies(pb_bam_lib target_bam target_bam_state target_header)
