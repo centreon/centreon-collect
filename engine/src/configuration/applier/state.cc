@@ -939,12 +939,12 @@ void applier::state::_check_contactgroups() const {
           found->second.get() != pp.second) {
         engine_logger(log_config_error, basic)
             << "Error on contactgroup !!! The contactgroup " << pp.first
-            << " used in serviceescalation " << p.second->get_uuid().to_string()
+            << " used in serviceescalation " << p.second->internal_key()
             << " is not or badly defined";
         config_logger->error(
             "Error on contactgroup !!! The contactgroup {} used in "
             "serviceescalation {} is not or badly defined",
-            pp.first, p.second->get_uuid().to_string());
+            pp.first, p.second->internal_key());
         throw engine_error() << "This is a bug";
       }
     }
@@ -958,12 +958,12 @@ void applier::state::_check_contactgroups() const {
           found->second.get() != pp.second) {
         engine_logger(log_config_error, basic)
             << "Error on contactgroup !!! The contactgroup " << pp.first
-            << " used in hostescalation " << p.second->get_uuid().to_string()
+            << " used in hostescalation " << p.second->internal_key()
             << " is not or badly defined";
         config_logger->error(
             "Error on contactgroup !!! The contactgroup {} used in "
             "hostescalation {} is not or badly defined",
-            pp.first, p.second->get_uuid().to_string());
+            pp.first, p.second->internal_key());
         throw engine_error() << "This is a bug";
       }
     }

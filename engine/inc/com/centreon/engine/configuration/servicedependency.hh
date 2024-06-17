@@ -26,6 +26,7 @@
 namespace com::centreon::engine {
 
 namespace configuration {
+
 class servicedependency : public object {
  public:
   enum action_on {
@@ -45,7 +46,7 @@ class servicedependency : public object {
 
   servicedependency();
   servicedependency(servicedependency const& right);
-  ~servicedependency() throw() override;
+  ~servicedependency() noexcept override = default;
   servicedependency& operator=(servicedependency const& right);
   bool operator==(servicedependency const& right) const throw();
   bool operator!=(servicedependency const& right) const throw();
@@ -113,6 +114,8 @@ class servicedependency : public object {
   group<list_string> _service_description;
   static std::unordered_map<std::string, setter_func> const _setters;
 };
+
+size_t servicedependency_key(const servicedependency& sd);
 
 typedef std::shared_ptr<servicedependency> servicedependency_ptr;
 typedef std::set<servicedependency> set_servicedependency;

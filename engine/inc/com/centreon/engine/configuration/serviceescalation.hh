@@ -22,7 +22,6 @@
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/opt.hh"
-#include "com/centreon/engine/shared.hh"
 
 namespace com::centreon::engine::configuration {
 
@@ -40,7 +39,6 @@ class serviceescalation : public object {
   group<list_string> _servicegroups;
   group<list_string> _service_description;
   static std::unordered_map<std::string, setter_func> const _setters;
-  Uuid _uuid;
 
   bool _set_contactgroups(std::string const& value);
   bool _set_escalation_options(std::string const& value);
@@ -72,7 +70,7 @@ class serviceescalation : public object {
   bool operator!=(serviceescalation const& right) const noexcept;
   bool operator<(serviceescalation const& right) const;
   void check_validity() const override;
-  key_type const& key() const throw();
+  key_type const& key() const noexcept;
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
 
@@ -82,25 +80,26 @@ class serviceescalation : public object {
   void escalation_options(unsigned int options) noexcept;
   unsigned short escalation_options() const noexcept;
   void escalation_period(std::string const& period);
-  std::string const& escalation_period() const throw();
-  bool escalation_period_defined() const throw();
-  void first_notification(unsigned int n) throw();
-  unsigned int first_notification() const throw();
-  list_string& hostgroups() throw();
-  list_string const& hostgroups() const throw();
-  list_string& hosts() throw();
-  list_string const& hosts() const throw();
-  void last_notification(unsigned int options) throw();
-  unsigned int last_notification() const throw();
-  void notification_interval(unsigned int interval) throw();
-  unsigned int notification_interval() const throw();
-  bool notification_interval_defined() const throw();
-  list_string& servicegroups() throw();
-  list_string const& servicegroups() const throw();
-  list_string& service_description() throw();
-  list_string const& service_description() const throw();
-  Uuid const& uuid() const;
+  std::string const& escalation_period() const noexcept;
+  bool escalation_period_defined() const noexcept;
+  void first_notification(unsigned int n) noexcept;
+  unsigned int first_notification() const noexcept;
+  list_string& hostgroups() noexcept;
+  list_string const& hostgroups() const noexcept;
+  list_string& hosts() noexcept;
+  list_string const& hosts() const noexcept;
+  void last_notification(unsigned int options) noexcept;
+  unsigned int last_notification() const noexcept;
+  void notification_interval(unsigned int interval) noexcept;
+  unsigned int notification_interval() const noexcept;
+  bool notification_interval_defined() const noexcept;
+  list_string& servicegroups() noexcept;
+  list_string const& servicegroups() const noexcept;
+  list_string& service_description() noexcept;
+  list_string const& service_description() const noexcept;
 };
+
+size_t serviceescalation_key(const serviceescalation& he);
 
 typedef std::shared_ptr<serviceescalation> serviceescalation_ptr;
 typedef std::set<serviceescalation> set_serviceescalation;

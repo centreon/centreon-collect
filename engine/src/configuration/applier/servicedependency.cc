@@ -83,6 +83,7 @@ void applier::servicedependency::add_object(
       configuration::servicedependency::execution_dependency)
     // Create execution dependency.
     sd = std::make_shared<engine::servicedependency>(
+        configuration::servicedependency_key(obj),
         obj.dependent_hosts().front(),
         obj.dependent_service_description().front(), obj.hosts().front(),
         obj.service_description().front(), dependency::execution,
@@ -101,6 +102,7 @@ void applier::servicedependency::add_object(
   else
     // Create notification dependency.
     sd = std::make_shared<engine::servicedependency>(
+        configuration::servicedependency_key(obj),
         obj.dependent_hosts().front(),
         obj.dependent_service_description().front(), obj.hosts().front(),
         obj.service_description().front(), dependency::notification,
@@ -245,7 +247,6 @@ void applier::servicedependency::remove_object(
       engine::servicedependency::servicedependencies_find(obj.key()));
   if (it != engine::servicedependency::servicedependencies.end()) {
     // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
     broker_adaptive_dependency_data(NEBTYPE_SERVICEDEPENDENCY_DELETE,
                                     it->second.get());
 

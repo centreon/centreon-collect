@@ -30,6 +30,20 @@ using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
 
+namespace com::centreon::engine::configuration {
+size_t servicedependency_key(const servicedependency& sd) {
+  assert(sd.hosts().size() == 1 && sd.service_description().size() == 1 &&
+         sd.dependent_hosts().size() == 1 &&
+         sd.dependent_service_description().size() == 1);
+  return absl::HashOf(sd.dependency_period(), sd.dependency_type(),
+                      *sd.hosts().begin(), *sd.service_description().begin(),
+                      *sd.dependent_hosts().begin(),
+                      *sd.dependent_service_description().begin(),
+                      sd.execution_failure_options(), sd.inherits_parent(),
+                      sd.notification_failure_options());
+}
+}  // namespace com::centreon::engine::configuration
+
 #define SETTER(type, method) \
   &object::setter<servicedependency, type, &servicedependency::method>::generic
 
@@ -109,11 +123,6 @@ servicedependency::servicedependency(servicedependency const& right)
     : object(right) {
   operator=(right);
 }
-
-/**
- *  Destructor.
- */
-servicedependency::~servicedependency() throw() {}
 
 /**
  *  Copy constructor.

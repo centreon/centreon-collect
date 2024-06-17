@@ -26,6 +26,7 @@
 namespace com::centreon::engine {
 
 namespace configuration {
+
 class hostdependency : public object {
  public:
   enum action_on {
@@ -44,7 +45,7 @@ class hostdependency : public object {
 
   hostdependency();
   hostdependency(hostdependency const& right);
-  ~hostdependency() throw() override;
+  ~hostdependency() noexcept override = default;
   hostdependency& operator=(hostdependency const& right);
   bool operator==(hostdependency const& right) const throw();
   bool operator!=(hostdependency const& right) const throw();
@@ -96,6 +97,8 @@ class hostdependency : public object {
   opt<unsigned int> _notification_failure_options;
   static std::unordered_map<std::string, setter_func> const _setters;
 };
+
+size_t hostdependency_key(const hostdependency& hd);
 
 typedef std::shared_ptr<hostdependency> hostdependency_ptr;
 typedef std::set<hostdependency> set_hostdependency;

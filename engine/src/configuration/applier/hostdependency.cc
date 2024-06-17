@@ -27,16 +27,6 @@
 using namespace com::centreon::engine::configuration;
 
 /**
- *  Default constructor.
- */
-applier::hostdependency::hostdependency() {}
-
-/**
- *  Destructor.
- */
-applier::hostdependency::~hostdependency() throw() {}
-
-/**
  *  Add new hostdependency.
  *
  *  @param[in] obj  The new host dependency to add into the monitoring
@@ -77,7 +67,8 @@ void applier::hostdependency::add_object(
       configuration::hostdependency::execution_dependency)
     // Create executon dependency.
     hd = std::make_shared<engine::hostdependency>(
-        *obj.dependent_hosts().begin(), *obj.hosts().begin(),
+        hostdependency_key(obj), *obj.dependent_hosts().begin(),
+        *obj.hosts().begin(),
         static_cast<engine::hostdependency::types>(obj.dependency_type()),
         obj.inherits_parent(),
         static_cast<bool>(obj.execution_failure_options() &
@@ -92,7 +83,8 @@ void applier::hostdependency::add_object(
   else
     // Create notification dependency.
     hd = std::make_shared<engine::hostdependency>(
-        *obj.dependent_hosts().begin(), *obj.hosts().begin(),
+        hostdependency_key(obj), *obj.dependent_hosts().begin(),
+        *obj.hosts().begin(),
         static_cast<engine::hostdependency::types>(obj.dependency_type()),
         obj.inherits_parent(),
         static_cast<bool>(obj.notification_failure_options() &

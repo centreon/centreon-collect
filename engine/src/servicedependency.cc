@@ -1,24 +1,24 @@
 /**
- * Copyright 2011-2019 Centreon
+ * Copyright 2011-2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
+ *
  */
-
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/configuration/applier/servicedependency.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -55,7 +55,8 @@ servicedependency_mmap servicedependency::servicedependencies;
  *  @param[in] dependency_period             Dependency timeperiod name.
  *
  */
-servicedependency::servicedependency(std::string const& dependent_hostname,
+servicedependency::servicedependency(size_t key,
+                                     std::string const& dependent_hostname,
                                      std::string const& dependent_svc_desc,
                                      std::string const& hostname,
                                      std::string const& service_description,
@@ -67,16 +68,21 @@ servicedependency::servicedependency(std::string const& dependent_hostname,
                                      bool fail_on_critical,
                                      bool fail_on_pending,
                                      std::string const& dependency_period)
-    : dependency{dependent_hostname, hostname,        dependency_type,
-                 inherits_parent,    fail_on_pending, dependency_period},
-      master_service_ptr{nullptr},
-      dependent_service_ptr{nullptr},
+    : dependency{key,
+                 dependent_hostname,
+                 hostname,
+                 dependency_type,
+                 inherits_parent,
+                 fail_on_pending,
+                 dependency_period},
       _dependent_service_description{dependent_svc_desc},
       _service_description{service_description},
       _fail_on_ok{fail_on_ok},
       _fail_on_warning{fail_on_warning},
       _fail_on_unknown{fail_on_unknown},
-      _fail_on_critical{fail_on_critical} {}
+      _fail_on_critical{fail_on_critical},
+      master_service_ptr{nullptr},
+      dependent_service_ptr{nullptr} {}
 
 std::string const& servicedependency::get_dependent_service_description()
     const {
@@ -383,50 +389,15 @@ void servicedependency::resolve(int& w, int& e) {
  */
 servicedependency_mmap::iterator servicedependency::servicedependencies_find(
     configuration::servicedependency const& k) {
-  typedef servicedependency_mmap collection;
-  std::pair<collection::iterator, collection::iterator> p;
-  p = servicedependencies.equal_range(std::make_pair(
-      k.dependent_hosts().front(), k.dependent_service_description().front()));
+  size_t key = configuration::servicedependency_key(k);
+  std::pair<servicedependency_mmap::iterator, servicedependency_mmap::iterator>
+      p = servicedependencies.equal_range(
+          std::make_pair(k.dependent_hosts().front(),
+                         k.dependent_service_description().front()));
   while (p.first != p.second) {
-    configuration::servicedependency current;
-    current.configuration::object::operator=(k);
-    current.dependent_hosts().push_back(
-        p.first->second->get_dependent_hostname());
-    current.dependent_service_description().push_back(
-        p.first->second->get_dependent_service_description());
-    current.hosts().push_back(p.first->second->get_hostname());
-    current.service_description().push_back(
-        p.first->second->get_service_description());
-    current.dependency_period(p.first->second->get_dependency_period());
-    current.inherits_parent(p.first->second->get_inherits_parent());
-    unsigned int options((p.first->second->get_fail_on_ok()
-                              ? configuration::servicedependency::ok
-                              : 0) |
-                         (p.first->second->get_fail_on_warning()
-                              ? configuration::servicedependency::warning
-                              : 0) |
-                         (p.first->second->get_fail_on_unknown()
-                              ? configuration::servicedependency::unknown
-                              : 0) |
-                         (p.first->second->get_fail_on_critical()
-                              ? configuration::servicedependency::critical
-                              : 0) |
-                         (p.first->second->get_fail_on_pending()
-                              ? configuration::servicedependency::pending
-                              : 0));
-    if (p.first->second->get_dependency_type() ==
-        engine::dependency::notification) {
-      current.dependency_type(
-          configuration::servicedependency::notification_dependency);
-      current.notification_failure_options(options);
-    } else {
-      current.dependency_type(
-          configuration::servicedependency::execution_dependency);
-      current.execution_failure_options(options);
-    }
-    if (current == k)
+    if (p.first->second->internal_key() == key)
       break;
     ++p.first;
   }
-  return (p.first == p.second) ? servicedependencies.end() : p.first;
+  return p.first == p.second ? servicedependencies.end() : p.first;
 }

@@ -29,6 +29,15 @@ using namespace com::centreon::engine::logging;
 #define SETTER(type, method) \
   &object::setter<serviceescalation, type, &serviceescalation::method>::generic
 
+namespace com::centreon::engine::configuration {
+size_t serviceescalation_key(const serviceescalation& se) {
+  return absl::HashOf(*se.hosts().begin(), *se.service_description().begin(),
+                      se.contactgroups(), se.escalation_options(),
+                      se.escalation_period(), se.first_notification(),
+                      se.last_notification(), se.notification_interval());
+}
+}  // namespace com::centreon::engine::configuration
+
 std::unordered_map<std::string, serviceescalation::setter_func> const
     serviceescalation::_setters{
         {"host", SETTER(std::string const&, _set_hosts)},
@@ -99,7 +108,6 @@ serviceescalation& serviceescalation::operator=(
     _notification_interval = right._notification_interval;
     _servicegroups = right._servicegroups;
     _service_description = right._service_description;
-    _uuid = right._uuid;
   }
   return *this;
 }
@@ -192,8 +200,8 @@ bool serviceescalation::operator==(serviceescalation const& right) const
  *
  *  @return True if is not the same serviceescalation, otherwise false.
  */
-bool serviceescalation::operator!=(serviceescalation const& right) const
-    throw() {
+bool serviceescalation::operator!=(
+    serviceescalation const& right) const noexcept {
   return !operator==(right);
 }
 
@@ -251,7 +259,7 @@ void serviceescalation::check_validity() const {
  *
  *  @return This object.
  */
-serviceescalation::key_type const& serviceescalation::key() const throw() {
+serviceescalation::key_type const& serviceescalation::key() const noexcept {
   return *this;
 }
 
@@ -639,13 +647,4 @@ bool serviceescalation::_set_servicegroups(std::string const& value) {
 bool serviceescalation::_set_service_description(std::string const& value) {
   _service_description = value;
   return true;
-}
-
-/**
- *  Get uuid value.
- *
- *  @return uuid.
- */
-Uuid const& serviceescalation::uuid(void) const {
-  return _uuid;
 }

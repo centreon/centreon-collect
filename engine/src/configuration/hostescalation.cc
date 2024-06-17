@@ -26,6 +26,17 @@ using namespace com::centreon::engine::configuration;
 #define SETTER(type, method) \
   &object::setter<hostescalation, type, &hostescalation::method>::generic
 
+namespace com::centreon::engine::configuration {
+
+size_t hostescalation_key(const hostescalation& he) {
+  return absl::HashOf(*he.hosts().begin(), he.contactgroups(),
+                      he.escalation_options(), he.escalation_period(),
+                      he.first_notification(), he.last_notification(),
+                      he.notification_interval());
+}
+
+}  // namespace com::centreon::engine::configuration
+
 std::unordered_map<std::string,
                    hostescalation::setter_func> const hostescalation::_setters{
     {"hostgroup", SETTER(std::string const&, _set_hostgroups)},
@@ -88,7 +99,6 @@ hostescalation& hostescalation::operator=(hostescalation const& right) {
     _hosts = right._hosts;
     _last_notification = right._last_notification;
     _notification_interval = right._notification_interval;
-    _uuid = right._uuid;
   }
   return *this;
 }
@@ -238,7 +248,6 @@ bool hostescalation::contactgroups_defined() const throw() {
  */
 void hostescalation::escalation_options(unsigned short options) throw() {
   _escalation_options = options;
-  return;
 }
 
 /**
@@ -257,7 +266,6 @@ unsigned short hostescalation::escalation_options() const throw() {
  */
 void hostescalation::escalation_period(std::string const& period) {
   _escalation_period = period;
-  return;
 }
 
 /**
@@ -285,7 +293,6 @@ bool hostescalation::escalation_period_defined() const throw() {
  */
 void hostescalation::first_notification(unsigned int n) throw() {
   _first_notification = n;
-  return;
 }
 
 /**
@@ -340,7 +347,6 @@ set_string const& hostescalation::hosts() const throw() {
  */
 void hostescalation::last_notification(unsigned int n) throw() {
   _last_notification = n;
-  return;
 }
 
 /**
@@ -359,7 +365,6 @@ unsigned int hostescalation::last_notification() const throw() {
  */
 void hostescalation::notification_interval(unsigned int interval) {
   _notification_interval = interval;
-  return;
 }
 
 /**
@@ -491,13 +496,4 @@ bool hostescalation::_set_last_notification(unsigned int value) {
 bool hostescalation::_set_notification_interval(unsigned int value) {
   _notification_interval = value;
   return true;
-}
-
-/**
- *  Get uuid value.
- *
- *  @return uuid.
- */
-Uuid const& hostescalation::uuid(void) const {
-  return _uuid;
 }

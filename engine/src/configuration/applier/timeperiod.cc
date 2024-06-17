@@ -29,36 +29,6 @@
 using namespace com::centreon::engine::configuration;
 
 /**
- *  Default constructor.
- */
-applier::timeperiod::timeperiod() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-applier::timeperiod::timeperiod(applier::timeperiod const& right) {
-  (void)right;
-}
-
-/**
- *  Destructor.
- */
-applier::timeperiod::~timeperiod() throw() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- */
-applier::timeperiod& applier::timeperiod::operator=(
-    applier::timeperiod const& right) {
-  (void)right;
-  return (*this);
-}
-
-/**
  *  Add new time period.
  *
  *  @param[in] obj  The new time period to add in the monitoring engine.
