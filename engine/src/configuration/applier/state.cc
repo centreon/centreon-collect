@@ -463,6 +463,8 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->use_true_regexp_matching(new_cfg.use_true_regexp_matching());
   config->use_send_recovery_notifications_anyways(
       new_cfg.use_send_recovery_notifications_anyways());
+  config->use_host_down_disable_service_checks(
+      new_cfg.use_host_down_disable_service_checks());
   config->user(new_cfg.user());
 
   // Set this variable just the first time.

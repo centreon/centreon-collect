@@ -339,6 +339,8 @@ void state::_init_setter() {
   SETTER(const std::string&, _set_downtime_file, "xdddefault_downtime_file");
   SETTER(bool, use_send_recovery_notifications_anyways,
          "send_recovery_notifications_anyways");
+  SETTER(bool, use_host_down_disable_service_checks,
+         "host_down_disable_service_checks");
 }
 
 // Default values.
@@ -617,7 +619,8 @@ state::state()
       _log_level_otl(default_log_level_otl),
       _use_timezone(default_use_timezone),
       _use_true_regexp_matching(default_use_true_regexp_matching),
-      _send_recovery_notifications_anyways(false) {
+      _send_recovery_notifications_anyways(false),
+      _host_down_disable_service_checks(false) {
   static absl::once_flag _init_call_once;
   absl::call_once(_init_call_once, _init_setter);
 }
@@ -799,6 +802,7 @@ state& state::operator=(state const& right) {
     _use_true_regexp_matching = right._use_true_regexp_matching;
     _send_recovery_notifications_anyways =
         right._send_recovery_notifications_anyways;
+    _host_down_disable_service_checks = right._host_down_disable_service_checks;
   }
   return *this;
 }
@@ -966,7 +970,9 @@ bool state::operator==(state const& right) const noexcept {
       _use_timezone == right._use_timezone &&
       _use_true_regexp_matching == right._use_true_regexp_matching &&
       _send_recovery_notifications_anyways ==
-          right._send_recovery_notifications_anyways);
+          right._send_recovery_notifications_anyways &&
+      _host_down_disable_service_checks ==
+          right._host_down_disable_service_checks);
 }
 
 /**
@@ -4830,6 +4836,27 @@ bool state::use_send_recovery_notifications_anyways() const {
  */
 void state::use_send_recovery_notifications_anyways(bool value) {
   _send_recovery_notifications_anyways = value;
+}
+
+/**
+ * @brief when this flag is set as soon a host become down, all services become
+ * critical
+ *
+ * @return true
+ * @return false
+ */
+bool state::use_host_down_disable_service_checks() const {
+  return _host_down_disable_service_checks;
+}
+
+/**
+ * @brief set the host_down_disable_service_checks flag
+ * when this flag is set as soon a host become down, all services become
+ * critical
+ * @param value
+ */
+void state::use_host_down_disable_service_checks(bool value) {
+  _host_down_disable_service_checks = value;
 }
 
 /**

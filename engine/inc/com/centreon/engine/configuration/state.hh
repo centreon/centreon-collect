@@ -453,6 +453,8 @@ class state {
   void use_true_regexp_matching(bool value);
   bool use_send_recovery_notifications_anyways() const;
   void use_send_recovery_notifications_anyways(bool value);
+  bool use_host_down_disable_service_checks() const;
+  void use_host_down_disable_service_checks(bool value);
 
   using setter_map =
       absl::flat_hash_map<std::string_view, std::unique_ptr<setter_base>>;
@@ -658,6 +660,7 @@ class state {
   std::string _use_timezone;
   bool _use_true_regexp_matching;
   bool _send_recovery_notifications_anyways;
+  bool _host_down_disable_service_checks;
 };
 
 }  // namespace com::centreon::engine::configuration

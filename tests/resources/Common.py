@@ -703,7 +703,7 @@ def ctn_check_service_status_with_timeout(hostname: str, service_desc: str, stat
                         f"status={result[0]['state']} and state_type={result[0]['state_type']}")
                     if state_type == 'HARD' and int(result[0]['state_type']) == 1:
                         return True
-                    elif state_type != 'HARD':
+                    elif state_type != 'HARD' and int(result[0]['state_type']) == 0:
                         return True
         time.sleep(1)
     return False

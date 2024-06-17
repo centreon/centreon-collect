@@ -262,6 +262,8 @@ class host : public notifier {
   std::string get_check_command_line(nagios_macros* macros);
 
  private:
+  void _switch_all_services_to_unknown();
+
   uint64_t _id;
   std::string _alias;
   std::string _address;
