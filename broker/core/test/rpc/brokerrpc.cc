@@ -18,7 +18,6 @@
  */
 
 #include "com/centreon/broker/brokerrpc.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/stats/center.hh"
 
 #include <gtest/gtest.h>
@@ -27,19 +26,14 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/version.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::broker;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 class BrokerRpc : public ::testing::Test {
  public:
   void SetUp() override {
-    g_io_context->restart();
-    pool::load(g_io_context, 0);
     stats::center::load();
     io::protocols::load();
     io::events::load();
@@ -49,7 +43,6 @@ class BrokerRpc : public ::testing::Test {
     io::events::unload();
     io::protocols::unload();
     stats::center::unload();
-    pool::pool::unload();
   }
 
   std::list<std::string> execute(const std::string& command) {
@@ -98,9 +91,10 @@ TEST_F(BrokerRpc, GetMuxerStats) {
       "unacknowledged_events: "
       "1790\n"};
 
-  stats::center::instance().update_muxer("mx1", "qufl_", 18u, 1789u);
+  auto center = stats::center::instance_ptr();
+  center->update_muxer("mx1", "qufl_", 18u, 1789u);
 
-  stats::center::instance().update_muxer("mx2", "_qufl", 18u, 1790u);
+  center->update_muxer("mx2", "_qufl", 18u, 1790u);
 
   std::list<std::string> output = execute("GetMuxerStats mx1 mx2");
 

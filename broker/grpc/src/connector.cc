@@ -17,13 +17,23 @@
  *
  */
 
-#include "grpc_stream.pb.h"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
+#include "grpc_stream.grpc.pb.h"
 
 #include "com/centreon/broker/grpc/connector.hh"
 #include "com/centreon/broker/grpc/stream.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
+using log_v2 = com::centreon::common::log_v2::log_v2;
+
+static constexpr multiplexing::muxer_filter _grpc_stream_filter =
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init());
+
+static constexpr multiplexing::muxer_filter _grpc_forbidden_filter =
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())
+        .add_category(io::local);
 
 /**
  * @brief Constructor of the connector that will connect to the given host at
@@ -33,7 +43,13 @@ using namespace com::centreon::broker::grpc;
  * @param port The port used for the connection.
  */
 connector::connector(const grpc_config::pointer& conf)
-    : io::limit_endpoint(false, {}), _conf(conf) {}
+    : io::limit_endpoint(false, _grpc_stream_filter, _grpc_forbidden_filter),
+      com::centreon::common::grpc::grpc_client_base(
+          conf,
+          log_v2::instance().get(log_v2::GRPC)) {
+  _stub = std::move(
+      com::centreon::broker::stream::centreon_bbdo::NewStub(_channel));
+}
 
 /**
  * @brief open a new connection
@@ -41,23 +57,77 @@ connector::connector(const grpc_config::pointer& conf)
  * @return std::unique_ptr<io::stream>
  */
 std::shared_ptr<io::stream> connector::open() {
-  SPDLOG_LOGGER_INFO(log_v2::grpc(), "Connecting to {}", _conf->get_hostport());
+  SPDLOG_LOGGER_INFO(get_logger(), "Connecting to {}",
+                     get_conf()->get_hostport());
   try {
     return limit_endpoint::open();
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_DEBUG(
-        log_v2::tcp(),
+        get_logger(),
         "Unable to establish the connection to {} (attempt {}): {}",
-        _conf->get_hostport(), _is_ready_count, e.what());
+        get_conf()->get_hostport(), _is_ready_count, e.what());
     return nullptr;
   }
 }
 
+namespace com::centreon::broker::grpc {
+
+using stream_base_class = com::centreon::broker::grpc::stream<
+    ::grpc::ClientBidiReactor<::com::centreon::broker::stream::CentreonEvent,
+                              ::com::centreon::broker::stream::CentreonEvent>>;
+
+/**
+ * @brief bireactor client stream
+ * this class is passed to exchange
+ *
+ */
+class client_stream : public stream_base_class {
+  ::grpc::ClientContext _context;
+
+  void shutdown() override;
+
+ public:
+  client_stream(const grpc_config::pointer& conf);
+  ::grpc::ClientContext& get_context() { return _context; }
+};
+
+/**
+ * @brief Construct a new client stream::client stream object
+ *
+ * @param conf
+ */
+client_stream::client_stream(const grpc_config::pointer& conf)
+    : stream_base_class(conf, "client") {
+  if (!conf->get_authorization().empty()) {
+    _context.AddMetadata(authorization_header, conf->get_authorization());
+  }
+}
+
+/**
+ * @brief as we call StartWrite outside grpc handlers, we add a hold and then we
+ * have to remove it
+ *
+ */
+void client_stream::shutdown() {
+  stream_base_class::shutdown();
+  RemoveHold();
+  _context.TryCancel();
+}
+
+}  // namespace com::centreon::broker::grpc
+
 /**
  * @brief create a stream from attributes
- *
+ * we add hold as StartWrite may be called by write method
  * @return std::unique_ptr<io::stream>
  */
 std::shared_ptr<io::stream> connector::create_stream() {
-  return std::make_shared<stream>(_conf);
+  std::shared_ptr<client_stream> new_stream = std::make_shared<client_stream>(
+      std::static_pointer_cast<grpc_config>(get_conf()));
+  client_stream::register_stream(new_stream);
+  _stub->async()->exchange(&new_stream->get_context(), new_stream.get());
+  new_stream->start_read();
+  new_stream->AddHold();
+  new_stream->StartCall();
+  return new_stream;
 }

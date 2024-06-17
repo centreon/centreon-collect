@@ -1,21 +1,20 @@
-/*
-** Copyright 2011-2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCE_CONFIGURATION_STATE_HH
 #define CCE_CONFIGURATION_STATE_HH
@@ -38,9 +37,21 @@
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::configuration {
 
-namespace configuration {
+class state;
+
+class setter_base {
+ protected:
+  const std::string_view _field_name;
+
+ public:
+  setter_base(const std::string_view& field_name) : _field_name(field_name) {}
+
+  virtual ~setter_base() = default;
+  virtual bool apply_from_cfg(state& obj, const char* value) = 0;
+  virtual bool apply_from_json(state& obj, const rapidjson::Document& doc) = 0;
+};
 
 /**
  *  @class state state.hh
@@ -169,8 +180,8 @@ class state {
   void date_format(date_type value);
   std::string const& debug_file() const noexcept;
   void debug_file(std::string const& value);
-  unsigned long long debug_level() const noexcept;
-  void debug_level(unsigned long long value);
+  int64_t debug_level() const noexcept;
+  void debug_level(int64_t value);
   unsigned int debug_verbosity() const noexcept;
   void debug_verbosity(unsigned int value);
   bool enable_environment_macros() const noexcept;
@@ -334,7 +345,7 @@ class state {
   // const set_anomalydetection& anomalydetections() const noexcept;
   set_anomalydetection& anomalydetections() noexcept;
   set_service const& services() const noexcept;
-  set_service& services() noexcept;
+  set_service& mut_services() noexcept;
   set_anomalydetection::iterator anomalydetections_find(
       anomalydetection::key_type const& k);
   set_service::iterator services_find(service::key_type const& k);
@@ -432,14 +443,24 @@ class state {
   void log_level_process(std::string const& value);
   std::string const& log_level_runtime() const noexcept;
   void log_level_runtime(std::string const& value);
+  std::string const& log_level_otl() const noexcept;
+  void log_level_otl(std::string const& value);
   std::string const& use_timezone() const noexcept;
   void use_timezone(std::string const& value);
   bool use_true_regexp_matching() const noexcept;
   void use_true_regexp_matching(bool value);
+  bool use_send_recovery_notifications_anyways() const;
+  void use_send_recovery_notifications_anyways(bool value);
+
+  using setter_map =
+      absl::flat_hash_map<std::string_view, std::unique_ptr<setter_base>>;
+  static const setter_map& get_setters() { return _setters; }
+
+  void apply_extended_conf(const std::string& file_path,
+                           const rapidjson::Document& json_doc);
 
  private:
-  typedef bool (*setter_func)(state&, char const*);
-
+  static void _init_setter();
   void _set_aggregate_status_updates(std::string const& value);
   void _set_auth_file(std::string const& value);
   void _set_bare_update_check(std::string const& value);
@@ -478,35 +499,6 @@ class state {
   void _set_temp_path(std::string const& value);
   void _set_use_embedded_perl_implicitly(std::string const& value);
 
-  template <typename U, void (state::*ptr)(U)>
-  struct setter {
-    static bool generic(state& obj, char const* value) {
-      try {
-        U val(0);
-        if (!string::to(value, val))
-          return (false);
-        (obj.*ptr)(val);
-      } catch (std::exception const& e) {
-        engine_logger(logging::log_config_error, logging::basic) << e.what();
-        return (false);
-      }
-      return (true);
-    }
-  };
-
-  template <void (state::*ptr)(std::string const&)>
-  struct setter<std::string const&, ptr> {
-    static bool generic(state& obj, char const* value) {
-      try {
-        (obj.*ptr)(value);
-      } catch (std::exception const& e) {
-        engine_logger(logging::log_config_error, logging::basic) << e.what();
-        return (false);
-      }
-      return (true);
-    }
-  };
-
   bool _accept_passive_host_checks;
   bool _accept_passive_service_checks;
   int _additional_freshness_latency;
@@ -540,7 +532,7 @@ class state {
   set_contact _contacts;
   date_type _date_format;
   std::string _debug_file;
-  unsigned long long _debug_level;
+  int64_t _debug_level;
   unsigned int _debug_verbosity;
   bool _enable_environment_macros;
   bool _enable_event_handlers;
@@ -628,7 +620,7 @@ class state {
   std::string _service_perfdata_file_processing_command;
   unsigned int _service_perfdata_file_processing_interval;
   std::string _service_perfdata_file_template;
-  static std::unordered_map<std::string, setter_func> const _setters;
+  static setter_map _setters;
   float _sleep_time;
   bool _soft_state_dependencies;
   std::string _state_retention_file;
@@ -660,12 +652,12 @@ class state {
   std::string _log_level_macros;
   std::string _log_level_process;
   std::string _log_level_runtime;
+  std::string _log_level_otl;
   std::string _use_timezone;
   bool _use_true_regexp_matching;
-
+  bool _send_recovery_notifications_anyways;
 };
-}  // namespace configuration
 
-}
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_STATE_HH

@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2013, 2021-2023 Centreon
+ * Copyright 2011-2013, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ namespace com::centreon::broker::modules {
 class handle {
   const std::string _filename;
   void* _handle;
+  std::shared_ptr<spdlog::logger> _logger;
 
   void _init(const void* arg = nullptr);
   void _check_version();

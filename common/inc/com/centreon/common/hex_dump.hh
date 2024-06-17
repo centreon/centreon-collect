@@ -1,11 +1,11 @@
 /**
- * Copyright 2023 Centreon
+ * Copyright 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,16 +14,16 @@
  * limitations under the License.
  *
  * For more information : contact@centreon.com
+ *
  */
 
 #ifndef CCCM_HEX_DUMP_HH
 #define CCCM_HEX_DUMP_HH
 
-#include <string>
-
 namespace com::centreon::common {
 
-std::string hex_dump(const unsigned char* buffer, size_t buff_len,
+std::string hex_dump(const unsigned char* buffer,
+                     size_t buff_len,
                      uint32_t nb_char_per_line);
 
 inline std::string hex_dump(const std::string& buffer,

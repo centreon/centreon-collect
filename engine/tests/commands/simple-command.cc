@@ -18,8 +18,8 @@
  */
 
 #include <gtest/gtest.h>
-#include <com/centreon/engine/macros.hh>
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/macros.hh"
 
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/commands/raw.hh"
@@ -28,6 +28,8 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::commands;
+
+using com::centreon::common::log_v2::log_v2;
 
 void CreateFile(std::string const& filename, std::string const& content) {
   std::ofstream oss(filename);
@@ -149,7 +151,7 @@ TEST_F(SimpleCommand, LongCommandAsync) {
 }
 
 TEST_F(SimpleCommand, TooRecentDoubleCommand) {
-  log_v2::commands()->set_level(spdlog::level::trace);
+  commands_logger->set_level(spdlog::level::trace);
   CreateFile("/tmp/TooRecentDoubleCommand.sh",
              "echo -n tutu | tee -a /tmp/TooRecentDoubleCommand;");
 
@@ -191,7 +193,7 @@ TEST_F(SimpleCommand, TooRecentDoubleCommand) {
 }
 
 TEST_F(SimpleCommand, SufficientOldDoubleCommand) {
-  log_v2::commands()->set_level(spdlog::level::trace);
+  commands_logger->set_level(spdlog::level::trace);
   CreateFile("/tmp/TooRecentDoubleCommand.sh",
              "echo -n tutu | tee -a /tmp/TooRecentDoubleCommand;");
 

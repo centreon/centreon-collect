@@ -1,5 +1,5 @@
 #
-# Copyright 2016, 2020-2023 Centreon
+# Copyright 2016, 2020-2024 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -21,7 +21,12 @@ if(WITH_TESTING)
   # Tests directory. Add root inclusion direction.
   set(MODULE_DIR "${PROJECT_SOURCE_DIR}/modules/external_commands")
   set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/external_commands")
-  include_directories(${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc)
+  set(MODULE_DIR_OTL "${PROJECT_SOURCE_DIR}/modules/opentelemetry")
+
+  include_directories(${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc
+                      ${MODULE_DIR_OTL}/inc
+                      ${CMAKE_SOURCE_DIR}/bbdo
+                      ${CMAKE_SOURCE_DIR}/common/http/inc)
 
   # Set directory.
   set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
@@ -35,8 +40,13 @@ if(WITH_TESTING)
     -L${PROTOBUF_LIB_DIR}
     cerpc
     centreon_common
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-    crypto ssl
+    spdlog::spdlog
+    gRPC::gpr
+    gRPC::grpc
+    gRPC::grpc++
+    gRPC::grpc++_alts
+    crypto
+    ssl
     z
     dl
     pthread)
@@ -101,6 +111,11 @@ if(WITH_TESTING)
       "${TESTS_DIR}/notifications/service_timeperiod_notification.cc"
       "${TESTS_DIR}/notifications/service_flapping_notification.cc"
       "${TESTS_DIR}/notifications/service_downtime_notification_test.cc"
+      "${TESTS_DIR}/opentelemetry/grpc_config_test.cc"
+      "${TESTS_DIR}/opentelemetry/host_serv_extractor_test.cc"
+      "${TESTS_DIR}/opentelemetry/otl_server_test.cc"
+      "${TESTS_DIR}/opentelemetry/otl_converter_test.cc"
+      "${TESTS_DIR}/opentelemetry/open_telemetry_test.cc"
       "${TESTS_DIR}/perfdata/perfdata.cc"
       "${TESTS_DIR}/retention/host.cc"
       "${TESTS_DIR}/retention/service.cc"
@@ -140,6 +155,10 @@ if(WITH_TESTING)
   add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
 
   add_executable(ut_engine ${ut_sources})
+  target_include_directories(ut_engine PRIVATE 
+    ${MODULE_DIR_OTL}/src 
+    ${CMAKE_SOURCE_DIR}/common/grpc/inc)
+
   target_precompile_headers(ut_engine REUSE_FROM cce_core)
 
   set_target_properties(
@@ -166,20 +185,36 @@ if(WITH_TESTING)
   endif()
 
   target_link_libraries(
-    ut_engine PRIVATE
-    -L${PROTOBUF_LIB_DIR}
-    ${ENGINERPC}
-    ut_engine_utils
-    cce_core
-    enginelog
-    pthread
-    ${GCOV}
-    GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-    crypto ssl
-    z
-    fmt::fmt
-    ryml::ryml
-    stdc++fs
-    dl)
+    ut_engine
+    PRIVATE -L${PROTOBUF_LIB_DIR}
+            ${ENGINERPC}
+            ut_engine_utils
+            "-Wl,-whole-archive"
+            cce_core
+            log_v2
+            opentelemetry
+            "-Wl,-no-whole-archive"
+            pb_open_telemetry_lib
+            centreon_grpc
+            centreon_http
+	          -L${Boost_LIBRARY_DIR_RELEASE}
+	          boost_url
+            boost_program_options
+            pthread
+            ${GCOV}
+            GTest::gtest
+            GTest::gtest_main
+            GTest::gmock
+            GTest::gmock_main
+            gRPC::gpr
+            gRPC::grpc
+            gRPC::grpc++
+            gRPC::grpc++_alts
+            crypto
+            ssl
+            z
+            fmt::fmt
+            ryml::ryml
+            stdc++fs
+            dl)
 endif()

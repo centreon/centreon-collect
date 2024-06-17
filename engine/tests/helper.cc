@@ -19,12 +19,17 @@
 
 #include "helper.hh"
 
-#include <com/centreon/engine/checks/checker.hh>
-#include <com/centreon/engine/configuration/applier/logging.hh>
-#include <com/centreon/engine/configuration/applier/state.hh>
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/configuration/applier/logging.hh"
+#include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/globals.hh"
+
+#include "common/log_v2/config.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
+using com::centreon::common::log_v2::log_v2;
+using log_v2_config = com::centreon::common::log_v2::config;
 
 extern configuration::state* config;
 
@@ -35,9 +40,14 @@ void init_config_state(void) {
   config->log_file_line(true);
   config->log_file("");
 
+  log_v2_config log_conf(
+      "engine-tests", log_v2_config::logger_type::LOGGER_STDOUT,
+      config->log_flush_period(), config->log_pid(), config->log_file_line());
+
+  log_v2::instance().apply(log_conf);
+
   // Hack to instanciate the logger.
   configuration::applier::logging::instance().apply(*config);
-  log_v2::instance()->apply(*config);
 
   checks::checker::init(true);
 }

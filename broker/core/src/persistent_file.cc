@@ -1,20 +1,20 @@
 /**
-* Copyright 2015,2017, 2020-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2015,2017, 2020-2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/persistent_file.hh"
 
@@ -22,9 +22,11 @@
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/file/opener.hh"
 #include "com/centreon/broker/file/stream.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/stats/center.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -52,7 +54,7 @@ persistent_file::persistent_file(const std::string& path, QueueFileStats* stats)
   // Set stream.
   io::stream::set_substream(bs);
   if (stats)
-    stats::center::instance().execute(
+    stats::center::instance_ptr()->execute(
         [path, stats, max_file_size = _splitter->max_file_size()] {
           stats->set_name(path);
           stats->set_max_file_size(max_file_size);
@@ -96,8 +98,9 @@ int32_t persistent_file::write(std::shared_ptr<io::data> const& d) {
  */
 int32_t persistent_file::stop() {
   int32_t retval = _substream->stop();
-  log_v2::core()->info("persistent file stopped with {} acknowledged events",
-                       retval);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("persistent file stopped with {} acknowledged events", retval);
   return retval;
 }
 

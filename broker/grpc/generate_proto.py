@@ -25,6 +25,7 @@ import argparse
 
 file_begin_content = """syntax = "proto3";
 
+import "opentelemetry/proto/collector/metrics/v1/metrics_service.proto";
 """
 
 file_message_centreon_event = """
@@ -59,9 +60,11 @@ cc_file_begin_content = """/**
 #include "grpc_stream.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
-#include "com/centreon/broker/grpc/channel.hh"
+#include "com/centreon/broker/grpc/stream.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::broker::grpc {
 namespace detail {
@@ -142,13 +145,16 @@ cc_file_create_event_with_data_function = """
  * @param event to send
  * @return object used for send on the wire
  */
-std::shared_ptr<channel::event_with_data> create_event_with_data(const std::shared_ptr<io::data> & event) {
-    std::shared_ptr<channel::event_with_data> ret;
+std::shared_ptr<event_with_data> create_event_with_data(const std::shared_ptr<io::data> & event) {
+    std::shared_ptr<event_with_data> ret;
     switch(event->type()) {
 """
 cc_file_create_event_with_data_function_end = """
     default:
-        SPDLOG_LOGGER_ERROR(log_v2::grpc(), "unknown event type: {}", *event);
+      {
+        auto logger = log_v2::instance().get(log_v2::GRPC);
+        SPDLOG_LOGGER_ERROR(logger, "unknown event type: {}", *event);
+      }  
     }
     if (ret) {
         ret->grpc_event.set_destination_id(event->destination_id);
@@ -205,12 +211,40 @@ for directory in args.proto_directory:
                 &grpc_event_type::mutable_{lower_mess}_);
 """
                     cc_file_create_event_with_data_function += f"""        case make_type({id}):
-            ret = std::make_shared<channel::event_with_data>(
-                event, reinterpret_cast<channel::event_with_data::releaser_type>(
+            ret = std::make_shared<event_with_data>(
+                event, reinterpret_cast<event_with_data::releaser_type>(
                 &grpc_event_type::release_{lower_mess}_));
             ret->grpc_event.set_allocated_{lower_mess}_(&std::static_pointer_cast<io::protobuf<{mess}, make_type({id})>>(event)->mut_obj());
             break;
 
+"""
+
+#The following message is not in bbdo protobuff files so we need to add manually.
+                    
+file_message_centreon_event += f"        opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest ExportMetricsServiceRequest_ = {one_of_index};\n"
+
+cc_file_protobuf_to_event_function += """
+        case ::stream::CentreonEvent::kExportMetricsServiceRequest:
+        return std::make_shared<detail::received_protobuf<
+            ::opentelemetry::proto::collector::metrics::v1::
+                ExportMetricsServiceRequest,
+            make_type(io::storage, storage::de_pb_otl_metrics)>>(
+            stream_content, &grpc_event_type::exportmetricsservicerequest_,
+            &grpc_event_type::mutable_exportmetricsservicerequest_);
+"""
+
+cc_file_create_event_with_data_function += """
+        case make_type(io::storage, storage::de_pb_otl_metrics):
+        ret = std::make_shared<event_with_data>(
+            event, reinterpret_cast<event_with_data::releaser_type>(
+                        &grpc_event_type::release_exportmetricsservicerequest_));
+        ret->grpc_event.set_allocated_exportmetricsservicerequest_(
+            &std::static_pointer_cast<io::protobuf<
+                ::opentelemetry::proto::collector::metrics::v1::
+                    ExportMetricsServiceRequest,
+                make_type(io::storage, storage::de_pb_otl_metrics)>>(event)
+                ->mut_obj());
+        break;
 """
 
 with open(args.proto_file, 'w', encoding="utf-8") as fp:
@@ -238,9 +272,12 @@ with open(args.cc_file, 'w') as fp:
     fp.write(cc_file_begin_content)
     fp.write(cc_file_protobuf_to_event_function)
     fp.write("""        default:
-      SPDLOG_LOGGER_ERROR(log_v2::grpc(), "unknown content type: {} => ignored",
-                          static_cast<uint32_t>(stream_content->content_case()));
-      return std::shared_ptr<io::data>();
+      {
+        auto logger = log_v2::instance().get(log_v2::GRPC);
+        SPDLOG_LOGGER_ERROR(logger, "unknown content type: {} => ignored",
+                            static_cast<uint32_t>(stream_content->content_case()));
+        return std::shared_ptr<io::data>();
+      }
     }
 }
 

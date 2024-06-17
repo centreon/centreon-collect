@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2011-2024 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -59,6 +59,13 @@ class get_options {
   void _parse_arguments(std::string const& command_line);
   virtual void _parse_arguments(std::vector<std::string> const& args);
 
+  void _add_argument(const std::string& long_name,
+                     char name,
+                     const std::string description = "",
+                     bool has_value = false,
+                     bool is_set = false,
+                     const std::string& value = "");
+
   std::map<char, argument> _arguments;
   std::vector<std::string> _parameters;
 
@@ -75,6 +82,6 @@ class get_options {
 };
 }  // namespace misc
 
-}
+}  // namespace com::centreon
 
 #endif  // !CC_MISC_GET_OPTIONS_HH

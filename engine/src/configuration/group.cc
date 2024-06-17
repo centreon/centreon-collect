@@ -1,24 +1,22 @@
 /**
-* Copyright 2011-2013,2017 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+ * Copyright 2011-2013,2017-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #include "com/centreon/engine/configuration/group.hh"
-#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine::configuration;
 
@@ -73,17 +71,88 @@ group<T>& group<T>::operator=(group const& other) {
  *  @return This object.
  */
 template <typename T>
-group<T>& group<T>::operator=(std::string const& other) {
+group<T>& group<T>::operator=(const std::string& other) {
   _data.clear();
   if (!other.empty()) {
     if (other[0] == '+') {
       _is_inherit = true;
-      string::split(other.substr(1), _data, ',');
+      std::string_view sv = other;
+      auto split = absl::StrSplit(sv.substr(1), ',');
+      for (auto& s : split) {
+        std::string_view str = absl::StripAsciiWhitespace(s);
+        _data.push_back(std::string(str.data(), str.size()));
+      }
     } else if (other == "null")
       _is_null = true;
     else {
       _is_inherit = false;
-      string::split(other, _data, ',');
+      auto split = absl::StrSplit(other, ',');
+      for (auto& s : split) {
+        std::string_view str = absl::StripAsciiWhitespace(s);
+        _data.push_back(std::string(str.data(), str.size()));
+      }
+    }
+  }
+  _is_set = true;
+  return *this;
+}
+
+template <>
+group<std::set<std::string>>& group<std::set<std::string>>::operator=(
+    const std::string& other) {
+  _data.clear();
+  if (!other.empty()) {
+    if (other[0] == '+') {
+      _is_inherit = true;
+      std::string_view sv = other;
+      auto split = absl::StrSplit(sv.substr(1), ',');
+      for (auto& s : split) {
+        std::string_view str = absl::StripAsciiWhitespace(s);
+        _data.insert(std::string(str.data(), str.size()));
+      }
+    } else if (other == "null")
+      _is_null = true;
+    else {
+      _is_inherit = false;
+      auto split = absl::StrSplit(other, ',');
+      for (auto& s : split) {
+        std::string_view str = absl::StripAsciiWhitespace(s);
+        _data.insert(std::string(str.data(), str.size()));
+      }
+    }
+  }
+  _is_set = true;
+  return *this;
+}
+
+using set_pair_str = std::set<std::pair<std::string, std::string>>;
+template <>
+group<set_pair_str>& group<set_pair_str>::operator=(const std::string& other) {
+  _data.clear();
+  auto spl = [this](std::string_view sv) {
+    auto values = absl::StrSplit(sv, ',');
+    for (auto it = values.begin(); it != values.end(); ++it) {
+      auto key = *it;
+      key = absl::StripAsciiWhitespace(key);
+      ++it;
+      if (it == values.end())
+        break;
+      auto value = *it;
+      value = absl::StripAsciiWhitespace(value);
+      _data.insert({std::string(key.data(), key.size()),
+                    std::string(value.data(), value.size())});
+    }
+  };
+  if (!other.empty()) {
+    if (other[0] == '+') {
+      _is_inherit = true;
+      std::string_view sv = other;
+      spl(sv.substr(1));
+    } else if (other == "null")
+      _is_null = true;
+    else {
+      _is_inherit = false;
+      spl(other);
     }
   }
   _is_set = true;

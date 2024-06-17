@@ -1,4 +1,24 @@
 #!/usr/bin/python3
+#
+# Copyright 2023-2024 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
+# This script is a little tcp server working on port 5669. It can simulate
+# a cbd instance. It is useful to test the validity of BBDO packets sent by
+# centengine.
 import os
 import re
 
@@ -8,21 +28,32 @@ def complete_doc(dico, ff):
     content = f.readlines()
     f.close()
     r = re.compile(r"\s+\[Documentation]\s+(\S.*)$")
+    rd = re.compile(r"\s+\.\.\.    \s*(.*)$")
 
     in_test = False
+    in_documentation = False
     test_name = ""
-    for l in content:
+    for line in content:
+        if in_documentation:
+            m = rd.match(line)
+            if m:
+                dico[test_name] += " " + m.group(1)
+                continue
+            else:
+                test_name = ""
+                in_documentation = False
+
         if in_test:
-            if l.startswith("***"):
+            if line.startswith("***"):
                 break
-            if len(test_name) != 0 and "[Documentation]" in l:
-                m = r.match(l)
+            if len(test_name) != 0 and "[Documentation]" in line:
+                m = r.match(line)
                 if m:
+                    in_documentation = True
                     dico[test_name] = m.group(1)
-                    test_name = ""
-            if not l.startswith('\t') and not l.startswith("  "):
-                test_name = l.strip()
-        elif l.startswith("*** Test Cases ***"):
+            if not line.startswith('\t') and not line.startswith("  "):
+                test_name = line.strip()
+        elif line.startswith("*** Test Cases ***"):
             in_test = True
 
 
@@ -62,11 +93,22 @@ From a Centreon host, you need to install Robot Framework
 On CentOS 7, the following commands should work to initialize your robot tests:
 
 ```
-pip3 install -U robotframework robotframework-databaselibrary robotframework-examples pymysql
+pip3 install -U robotframework robotframework-databaselibrary robotframework-examples pymysql robotframework-requests
 
 yum install "Development Tools" python3-devel -y
 
 pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
+
+#you need also to provide opentelemetry proto files at the project root with this command
+git clone https://github.com/open-telemetry/opentelemetry-proto.git opentelemetry-proto
+          
+#Then you must have something like that:
+#root directory/bbdo
+#              /broker
+#              /engine
+#              /opentelemetry-proto
+#              /tests
+
 
 ./init-proto.sh
 ./init-sql.sh
@@ -75,7 +117,7 @@ pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
 On other rpm based distributions, you can try the following commands to initialize your robot tests:
 
 ```
-pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql
+pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql robotframework-requests
 
 yum install python3-devel -y
 

@@ -1,32 +1,31 @@
 /**
-* Copyright 2011-2013,2015-2017,2019,2022 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2015-2017,2019,2022-2024 Centreon
+ * Copyright 2017 - 2024 Centreon (https://www.centreon.com/)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #include "com/centreon/engine/configuration/host.hh"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "com/centreon/engine/configuration/hostextinfo.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/string.hh"
 
 extern int config_warnings;
 extern int config_errors;
@@ -455,23 +454,6 @@ host::key_type host::key() const noexcept {
  *
  *  @param[in] obj The object to merge.
  */
-void host::merge(configuration::hostextinfo const& tmpl) {
-  MRG_DEFAULT(_action_url);
-  MRG_OPTION(_coords_2d);
-  MRG_OPTION(_coords_3d);
-  MRG_DEFAULT(_icon_image);
-  MRG_DEFAULT(_icon_image_alt);
-  MRG_DEFAULT(_notes);
-  MRG_DEFAULT(_notes_url);
-  MRG_DEFAULT(_statusmap_image);
-  MRG_DEFAULT(_vrml_image);
-}
-
-/**
- *  Merge object.
- *
- *  @param[in] obj The object to merge.
- */
 void host::merge(object const& obj) {
   if (obj.type() != _type)
     throw engine_error() << "Cannot merge host with '" << obj.type() << "'";
@@ -504,7 +486,6 @@ void host::merge(object const& obj) {
   MRG_DEFAULT(_host_name);
   MRG_DEFAULT(_icon_image);
   MRG_DEFAULT(_icon_image_alt);
-  MRG_OPTION(_initial_state);
   MRG_OPTION(_low_flap_threshold);
   MRG_OPTION(_max_check_attempts);
   MRG_DEFAULT(_notes);
@@ -543,7 +524,7 @@ bool host::parse(char const* key, char const* value) {
   if (it != _setters.end())
     return (it->second)(*this, value);
   if (key[0] == '_') {
-    map_customvar::iterator it(_customvariables.find(key + 1));
+    auto it = _customvariables.find(key + 1);
     if (it == _customvariables.end())
       _customvariables[key + 1] = customvariable(value);
     else
@@ -676,7 +657,8 @@ point_3d const& host::coords_3d() const noexcept {
  *
  *  @return The customvariables.
  */
-engine::map_customvar const& host::customvariables() const noexcept {
+const std::unordered_map<std::string, customvariable>& host::customvariables()
+    const noexcept {
   return _customvariables;
 }
 
@@ -685,7 +667,8 @@ engine::map_customvar const& host::customvariables() const noexcept {
  *
  *  @return The customvariables.
  */
-engine::map_customvar& host::customvariables() noexcept {
+std::unordered_map<std::string, customvariable>&
+host::mut_customvariables() noexcept {
   return _customvariables;
 }
 
@@ -1194,18 +1177,17 @@ bool host::_set_contacts(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool host::_set_coords_2d(std::string const& value) {
-  std::list<std::string> coords;
-  string::split(value, coords, ',');
+  std::list<std::string> coords = absl::StrSplit(value, ',');
   if (coords.size() != 2)
     return false;
 
   int x;
-  if (!string::to(string::trim(coords.front()).c_str(), x))
+  if (!absl::SimpleAtoi(coords.front(), &x))
     return false;
   coords.pop_front();
 
   int y;
-  if (!string::to(string::trim(coords.front()).c_str(), y))
+  if (!absl::SimpleAtoi(coords.front(), &y))
     return false;
 
   _coords_2d = point_2d(x, y);
@@ -1220,23 +1202,22 @@ bool host::_set_coords_2d(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool host::_set_coords_3d(std::string const& value) {
-  std::list<std::string> coords;
-  string::split(value, coords, ',');
+  std::list<std::string> coords = absl::StrSplit(value, ',');
   if (coords.size() != 3)
     return false;
 
   double x;
-  if (!string::to(string::trim(coords.front()).c_str(), x))
+  if (!absl::SimpleAtod(coords.front(), &x))
     return false;
   coords.pop_front();
 
   double y;
-  if (!string::to(string::trim(coords.front()).c_str(), y))
+  if (!absl::SimpleAtod(coords.front(), &y))
     return false;
   coords.pop_front();
 
   double z;
-  if (!string::to(string::trim(coords.front()).c_str(), z))
+  if (!absl::SimpleAtod(coords.front(), &z))
     return false;
 
   _coords_3d = point_3d(x, y, z);
@@ -1291,7 +1272,7 @@ bool host::_set_failure_prediction_enabled(bool value) {
   engine_logger(log_verification_error, basic)
       << "Warning: host failure_prediction_enabled is deprecated"
       << " This option will not be supported in 20.04.";
-  log_v2::config()->warn(
+  config_logger->warn(
       "Warning: host failure_prediction_enabled is deprecated This option will "
       "not be supported in 20.04.");
   ++config_warnings;
@@ -1310,7 +1291,7 @@ bool host::_set_failure_prediction_options(std::string const& value) {
   engine_logger(log_verification_error, basic)
       << "Warning: service failure_prediction_options is deprecated"
       << " This option will not be supported in 20.04.";
-  log_v2::config()->warn(
+  config_logger->warn(
       "Warning: service failure_prediction_options is deprecated This option "
       "will not be supported in 20.04.");
   ++config_warnings;
@@ -1350,20 +1331,18 @@ bool host::_set_flap_detection_enabled(bool value) {
  */
 bool host::_set_flap_detection_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "up")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "up")
       options |= up;
-    else if (*it == "d" || *it == "down")
+    else if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = up | down | unreachable;
     else
       return false;
@@ -1464,8 +1443,8 @@ bool host::_set_icon_image_alt(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool host::_set_initial_state(std::string const& value) {
-  std::string data(value);
-  string::trim(data);
+  std::string_view data(value);
+  data = absl::StripAsciiWhitespace(data);
   if (data == "o" || data == "up")
     _initial_state = engine::host::state_up;
   else if (data == "d" || data == "down")
@@ -1560,24 +1539,22 @@ bool host::_set_notification_interval(unsigned int value) {
  */
 bool host::_set_notification_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "d" || *it == "down")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "r" || *it == "recovery")
+    else if (v == "r" || v == "recovery")
       options |= up;
-    else if (*it == "f" || *it == "flapping")
+    else if (v == "f" || v == "flapping")
       options |= flapping;
-    else if (*it == "s" || *it == "downtime")
+    else if (v == "s" || v == "downtime")
       options |= downtime;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = down | unreachable | up | flapping | downtime;
     else
       return false;
@@ -1691,20 +1668,18 @@ bool host::_set_recovery_notification_delay(unsigned int value) {
  */
 bool host::_set_stalking_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "up")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "up")
       options |= up;
-    else if (*it == "d" || *it == "down")
+    else if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = up | down | unreachable;
     else
       return false;
@@ -1763,8 +1738,8 @@ bool host::_set_category_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::hostcategory);
     } else {
-      log_v2::config()->warn("Warning: host ({}) error for parsing tag {}",
-                             _host_id, value);
+      config_logger->warn("Warning: host ({}) error for parsing tag {}",
+                          _host_id, value);
       ret = false;
     }
   }
@@ -1797,8 +1772,8 @@ bool host::_set_group_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::hostgroup);
     } else {
-      log_v2::config()->warn("Warning: host ({}) error for parsing tag {}",
-                             _host_id, value);
+      config_logger->warn("Warning: host ({}) error for parsing tag {}",
+                          _host_id, value);
       ret = false;
     }
   }

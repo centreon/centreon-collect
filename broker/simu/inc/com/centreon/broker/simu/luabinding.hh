@@ -1,20 +1,20 @@
-/*
-** Copyright 2018 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2018-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_SIMU_SIMUBINDING_HH
 #define CCB_SIMU_SIMUBINDING_HH
@@ -28,9 +28,8 @@ extern "C" {
 #include "lualib.h"
 }
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::simu {
 
-namespace simu {
 /**
  *  @class luabinding luabinding.hh "com/centreon/broker/simu/luabinding.hh"
  *  @brief Class managing exchange with the the lua interpreter.
@@ -38,9 +37,12 @@ namespace simu {
  *  Expose an api to simplify exchanges with the Lua interpreter.
  */
 class luabinding {
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   luabinding(std::string const& lua_script,
-             std::map<std::string, misc::variant> const& conf_params);
+             std::map<std::string, misc::variant> const& conf_params,
+             const std::shared_ptr<spdlog::logger>& logger);
   ~luabinding();
   bool read(std::shared_ptr<io::data>& d);
 
@@ -68,8 +70,6 @@ class luabinding {
   // Count on events
   int _total;
 };
-}  // namespace simu
-
-}
+}  // namespace com::centreon::broker::simu
 
 #endif  // !CCB_SIMU_SIMU_HH

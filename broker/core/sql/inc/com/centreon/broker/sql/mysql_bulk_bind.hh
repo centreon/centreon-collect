@@ -1,20 +1,20 @@
-/*
-** Copyright 2018, 2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2018, 2021-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_MYSQL_BULK_BIND_HH
 #define CCB_MYSQL_BULK_BIND_HH
@@ -37,9 +37,12 @@ class mysql_bulk_bind : public mysql_bind_base {
 
  public:
   /**
-   * @brief Default constructor
+   * @brief Base constructor. It just needs a logger.
+   *
+   * @param logger The logger to use within.
    */
-  mysql_bulk_bind() = default;
+  mysql_bulk_bind(const std::shared_ptr<spdlog::logger>& logger)
+      : mysql_bind_base(logger) {}
   /**
    * @brief Constructor
    *
@@ -47,7 +50,9 @@ class mysql_bulk_bind : public mysql_bind_base {
    * @param row_count Number of rows to reserve. Columns are not allocated with
    * a such size, they are just reserved.
    */
-  mysql_bulk_bind(int size, size_t reserved_rows_count);
+  mysql_bulk_bind(int size,
+                  size_t reserved_rows_count,
+                  const std::shared_ptr<spdlog::logger>& logger);
   ~mysql_bulk_bind() noexcept = default;
 
   /**
@@ -310,6 +315,6 @@ class mysql_bulk_bind : public mysql_bind_base {
 
 }  // namespace database
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // CCB_MYSQL_BULK_BIND_HH

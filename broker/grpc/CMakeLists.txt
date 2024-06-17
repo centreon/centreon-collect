@@ -21,42 +21,33 @@ set(MODULE_DIR "${PROJECT_SOURCE_DIR}/grpc")
 set(INC_DIR "${MODULE_DIR}/inc/com/centreon/broker/grpc")
 set(SRC_DIR "${MODULE_DIR}/src")
 set(TEST_DIR "${MODULE_DIR}/test")
-include_directories(${MODULE_DIR}/inc ${SRC_DIR} ${CMAKE_SOURCE_DIR}/bbdo)
+include_directories(${MODULE_DIR}/inc 
+  ${SRC_DIR} 
+  ${CMAKE_SOURCE_DIR}/bbdo
+  ${CMAKE_SOURCE_DIR}/common 
+  ${CMAKE_SOURCE_DIR}/common/grpc/inc)
 
 # Sources.
 set(SOURCES
     "${SRC_DIR}/acceptor.cc"
-    "${SRC_DIR}/channel.cc"
-    "${SRC_DIR}/client.cc"
     "${SRC_DIR}/connector.cc"
     "${SRC_DIR}/factory.cc"
     "${SRC_DIR}/main.cc"
-    "${SRC_DIR}/server.cc"
     "${SRC_DIR}/stream.cc"
     "${SRC_DIR}/grpc_stream.grpc.pb.cc"
     "${SRC_DIR}/grpc_stream.pb.cc"
     "${SRC_DIR}/grpc_bridge.cc")
-# Headers.
-set(HEADERS
-    "${INC_DIR}/acceptor.hh"
-    "${INC_DIR}/channel.hh"
-    "${INC_DIR}/client.hh"
-    "${INC_DIR}/connector.hh"
-    "${INC_DIR}/factory.hh"
-    "${INC_DIR}/server.hh"
-    "${INC_DIR}/stream.hh"
-    "${SRC_DIR}/grpc_stream.grpc.pb.h"
-    "${SRC_DIR}/grpc_stream.pb.h")
 
 # GRPC module.
 set(GRPC "50-grpc")
 set(GRPC
     ${GRPC}
     PARENT_SCOPE)
-add_library(${GRPC} SHARED ${SOURCES} ${HEADERS})
+add_library(${GRPC} SHARED ${SOURCES} )
 set_target_properties(${GRPC} PROPERTIES PREFIX "")
 target_link_libraries(
   ${GRPC}
+  centreon_grpc
   "-Wl,--whole-archive"
   pb_neb_lib
   pb_storage_lib
@@ -65,6 +56,7 @@ target_link_libraries(
   pb_tag_lib
   pb_bam_lib
   pb_extcmd_lib
+  pb_open_telemetry_lib
   pb_rebuild_message_lib
   pb_remove_graph_message_lib
   pb_header_lib
@@ -95,6 +87,7 @@ add_custom_command(
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     grpc_stream.proto
   VERBATIM)
 
@@ -106,6 +99,7 @@ add_custom_command(
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --grpc_out=${SRC_DIR}
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     grpc_stream.proto
   VERBATIM
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -113,7 +107,7 @@ add_custom_command(
 # Testing.
 if(WITH_TESTING)
   set(TESTS_SOURCES
-      ${TESTS_SOURCES} ${TEST_DIR}/acceptor.cc ${TEST_DIR}/channel_test.cc
+      ${TESTS_SOURCES} ${TEST_DIR}/acceptor.cc
       ${TEST_DIR}/stream_test.cc ${TEST_DIR}/factory_test.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES

@@ -263,7 +263,7 @@ EBDP3
     Should Be Equal As Strings    ${output}    ()
 
 EBDP4
-    [Documentation]    Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by broker.
+    [Documentation]    Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by Broker.
     [Tags]    broker    engine    grpc
     Ctn Config Engine    ${4}    ${50}    ${20}
     Ctn Config Broker    rrd
@@ -272,16 +272,15 @@ EBDP4
     Ctn Config BBDO3    ${4}
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    module1    neb    trace
+    Ctn Broker Config Log    module2    neb    trace
     Ctn Broker Config Log    module3    neb    trace
     Ctn Broker Config Flush Log    central    0
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
-
-    # Let's wait until engine listens to external_commands.
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands is missing.
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${4}
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
@@ -310,7 +309,7 @@ EBDP4
     Should Be True    ${result}    Service alerts about service 781 and 782 should be raised
 
     ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
-    ${result}    Ctn Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
     Ctn Stop engine
 
@@ -583,7 +582,7 @@ EBDP8
     Should Be True    ${result}    Service alerts about service 781 and 782 should be raised
 
     ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
-    ${result}    Ctn Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
     Ctn Stop engine
 

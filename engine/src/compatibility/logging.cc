@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2013,2017 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/logging.hh"
 #include <sys/time.h>
@@ -23,7 +23,6 @@
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/statusdata.hh"
@@ -52,9 +51,9 @@ void log_host_state(unsigned int type, com::centreon::engine::host* hst) {
       << type_str << " HOST STATE: " << hst->name() << ";" << state << ";"
       << state_type << ";" << hst->get_current_attempt() << ";"
       << hst->get_plugin_output();
-  log_v2::events()->info("{} HOST STATE: {};{};{};{};{}", type_str, hst->name(),
-                         state, state_type, hst->get_current_attempt(),
-                         hst->get_plugin_output());
+  events_logger->info("{} HOST STATE: {};{};{};{};{}", type_str, hst->name(),
+                      state, state_type, hst->get_current_attempt(),
+                      hst->get_plugin_output());
 }
 
 /**
@@ -76,7 +75,7 @@ void log_service_state(unsigned int type, com::centreon::engine::service* svc) {
       << type_str << " SERVICE STATE: " << svc->get_hostname() << ";"
       << svc->description() << ";" << state << ";" << state_type << ";"
       << svc->get_current_attempt() << ";" << output;
-  log_v2::events()->info("{} SERVICE STATE: {};{};{};{};{};{}", type_str,
-                         svc->get_hostname(), svc->description(), state,
-                         state_type, svc->get_current_attempt(), output);
+  events_logger->info("{} SERVICE STATE: {};{};{};{};{};{}", type_str,
+                      svc->get_hostname(), svc->description(), state,
+                      state_type, svc->get_current_attempt(), output);
 }

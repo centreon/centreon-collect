@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2019,2022 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2019,2022-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/anomalydetection.hh"
@@ -25,7 +25,6 @@
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/severity.hh"
 
 using namespace com::centreon;
@@ -110,11 +109,11 @@ void applier::service::add_object(configuration::service const& obj) {
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new service '" << obj.service_description() << "' of host '"
       << *obj.hosts().begin() << "'.";
-  log_v2::config()->debug("Creating new service '{}' of host '{}'.",
-                          obj.service_description(), *obj.hosts().begin());
+  config_logger->debug("Creating new service '{}' of host '{}'.",
+                       obj.service_description(), *obj.hosts().begin());
 
   // Add service to the global configuration set.
-  config->services().insert(obj);
+  config->mut_services().insert(obj);
 
   // Create service.
   engine::service* svc{add_service(
@@ -186,15 +185,16 @@ void applier::service::add_object(configuration::service const& obj) {
     svc->get_contactgroups().insert({*it, nullptr});
 
   // Add custom variables.
-  for (map_customvar::const_iterator it(obj.customvariables().begin()),
-       end(obj.customvariables().end());
+  for (auto it = obj.customvariables().begin(),
+            end = obj.customvariables().end();
        it != end; ++it) {
-    svc->custom_variables[it->first] = it->second;
+    svc->custom_variables[it->first] =
+        engine::customvariable(it->second.value(), it->second.is_sent());
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
       broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, svc,
-                             it->first.c_str(), it->second.get_value().c_str(),
+                             it->first.c_str(), it->second.value().c_str(),
                              &tv);
     }
   }
@@ -239,13 +239,10 @@ void applier::service::add_object(configuration::service const& obj) {
 void applier::service::expand_objects(configuration::state& s) {
   // Browse all services.
   configuration::set_service expanded;
-  for (configuration::set_service::iterator it_svc(s.services().begin()),
-       end_svc(s.services().end());
-       it_svc != end_svc; ++it_svc) {
+  for (auto svc_cfg : s.services()) {
     // Should custom variables be sent to broker ?
-    for (map_customvar::iterator
-             it(const_cast<map_customvar&>(it_svc->customvariables()).begin()),
-         end(const_cast<map_customvar&>(it_svc->customvariables()).end());
+    for (auto it = svc_cfg.mut_customvariables().begin(),
+              end = svc_cfg.mut_customvariables().end();
          it != end; ++it) {
       if (!s.enable_macros_filter() ||
           s.macros_filter().find(it->first) != s.macros_filter().end()) {
@@ -257,24 +254,24 @@ void applier::service::expand_objects(configuration::state& s) {
     std::set<std::string> target_hosts;
 
     // Hosts members.
-    target_hosts = it_svc->hosts();
+    target_hosts = svc_cfg.hosts();
 
     // Host group members.
-    for (set_string::const_iterator it(it_svc->hostgroups().begin()),
-         end(it_svc->hostgroups().end());
+    for (set_string::const_iterator it(svc_cfg.hostgroups().begin()),
+         end(svc_cfg.hostgroups().end());
          it != end; ++it) {
       // Find host group.
       set_hostgroup::iterator it2(s.hostgroups_find(*it));
       if (it2 == s.hostgroups().end())
         throw(engine_error() << "Could not find host group '" << *it
                              << "' on which to apply service '"
-                             << it_svc->service_description() << "'");
+                             << svc_cfg.service_description() << "'");
 
       // Check host group and user configuration.
       if (it2->members().empty() && !s.allow_empty_hostgroup_assignment())
         throw(engine_error() << "Could not expand host group '" << *it
                              << "' specified in service '"
-                             << it_svc->service_description() << "'");
+                             << svc_cfg.service_description() << "'");
 
       // Add host group members.
       target_hosts.insert(it2->members().begin(), it2->members().end());
@@ -285,7 +282,7 @@ void applier::service::expand_objects(configuration::state& s) {
          end(target_hosts.end());
          it != end; ++it) {
       // Create service instance.
-      configuration::service svc(*it_svc);
+      configuration::service svc(svc_cfg);
       svc.hostgroups().clear();
       svc.hosts().clear();
       svc.hosts().insert(*it);
@@ -302,7 +299,7 @@ void applier::service::expand_objects(configuration::state& s) {
   }
 
   // Set expanded services in configuration state.
-  s.services().swap(expanded);
+  s.mut_services().swap(expanded);
 }
 
 /**
@@ -319,8 +316,8 @@ void applier::service::modify_object(configuration::service const& obj) {
   engine_logger(logging::dbg_config, logging::more)
       << "Modifying new service '" << service_description << "' of host '"
       << host_name << "'.";
-  log_v2::config()->debug("Modifying new service '{}' of host '{}'.",
-                          service_description, host_name);
+  config_logger->debug("Modifying new service '{}' of host '{}'.",
+                       service_description, host_name);
 
   // Find the configuration object.
   set_service::iterator it_cfg(config->services_find(obj.key()));
@@ -341,8 +338,8 @@ void applier::service::modify_object(configuration::service const& obj) {
 
   // Update the global configuration set.
   configuration::service obj_old(*it_cfg);
-  config->services().erase(it_cfg);
-  config->services().insert(obj);
+  config->mut_services().erase(it_cfg);
+  config->mut_services().insert(obj);
 
   // Modify properties.
   if (it_obj->second->get_hostname() != *obj.hosts().begin() ||
@@ -483,20 +480,19 @@ void applier::service::modify_object(configuration::service const& obj) {
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_DELETE, s.get(),
-                               c.first.c_str(), c.second.get_value().c_str(),
-                               &tv);
+                               c.first.c_str(), c.second.value().c_str(), &tv);
       }
     }
     s->custom_variables.clear();
 
     for (auto& c : obj.customvariables()) {
-      s->custom_variables[c.first] = c.second;
+      s->custom_variables[c.first] =
+          engine::customvariable(c.second.value(), c.second.is_sent());
 
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, s.get(),
-                               c.first.c_str(), c.second.get_value().c_str(),
-                               &tv);
+                               c.first.c_str(), c.second.value().c_str(), &tv);
       }
     }
   }
@@ -548,8 +544,8 @@ void applier::service::remove_object(configuration::service const& obj) {
   engine_logger(logging::dbg_config, logging::more)
       << "Removing service '" << service_description << "' of host '"
       << host_name << "'.";
-  log_v2::config()->debug("Removing service '{}' of host '{}'.",
-                          service_description, host_name);
+  config_logger->debug("Removing service '{}' of host '{}'.",
+                       service_description, host_name);
 
   // Find anomaly detections depending on this service
   set_anomalydetection sad = config->anomalydetections();
@@ -592,7 +588,7 @@ void applier::service::remove_object(configuration::service const& obj) {
   }
 
   // Remove service from the global configuration set.
-  config->services().erase(obj);
+  config->mut_services().erase(obj);
 }
 
 /**
@@ -605,8 +601,8 @@ void applier::service::resolve_object(configuration::service const& obj) {
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving service '" << obj.service_description() << "' of host '"
       << *obj.hosts().begin() << "'.";
-  log_v2::config()->debug("Resolving service '{}' of host '{}'.",
-                          obj.service_description(), *obj.hosts().begin());
+  config_logger->debug("Resolving service '{}' of host '{}'.",
+                       obj.service_description(), *obj.hosts().begin());
 
   // Find service.
   service_id_map::iterator it(engine::service::services_by_id.find(obj.key()));

@@ -92,6 +92,38 @@ add_dependencies(pb_remove_graph_message_lib target_remove_graph_message
 set_target_properties(pb_remove_graph_message_lib
                       PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+set(otl_protobuf_files
+    opentelemetry/proto/collector/metrics/v1/metrics_service
+    opentelemetry/proto/metrics/v1/metrics
+    opentelemetry/proto/common/v1/common
+    opentelemetry/proto/resource/v1/resource
+)
+foreach(name IN LISTS otl_protobuf_files)
+  set(proto_file "${name}.proto")
+  add_custom_command(
+    OUTPUT "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc"
+    COMMENT "Generating interface files of the otl file ${proto_file}"
+    #DEPENDS ${CMAKE_BINARY_DIR}/opentelemetry-proto/${proto_file}
+    DEPENDS opentelemetry-proto-files
+    COMMAND
+      ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo
+      --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto ${proto_file}
+    VERBATIM)
+endforeach()
+           
+add_library(pb_open_telemetry_lib STATIC 
+${CMAKE_SOURCE_DIR}/bbdo/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
+${CMAKE_SOURCE_DIR}/bbdo/opentelemetry/proto/metrics/v1/metrics.pb.cc
+${CMAKE_SOURCE_DIR}/bbdo/opentelemetry/proto/common/v1/common.pb.cc
+${CMAKE_SOURCE_DIR}/bbdo/opentelemetry/proto/resource/v1/resource.pb.cc
+)
+
+target_include_directories(pb_open_telemetry_lib BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
+
+
+set_target_properties(pb_open_telemetry_lib
+                      PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 macro(get_protobuf_files name)
   set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc"
                               PROPERTIES GENERATED TRUE)

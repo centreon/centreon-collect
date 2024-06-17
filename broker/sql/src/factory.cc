@@ -1,31 +1,32 @@
 /**
-* Copyright 2011-2013,2015 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2013,2015, 2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/sql/factory.hh"
 
 #include <absl/strings/match.h>
 
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/sql/connector.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::sql;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Check if an endpoint match a configuration.
@@ -66,9 +67,11 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("cleanup_check_interval")};
     if (it != cfg.params.end() &&
         !absl::SimpleAtoi(it->second, &cleanup_check_interval)) {
-      log_v2::sql()->error(
-          "sql: the 'cleanup_check_interval' value must be a positive integer. "
-          "Otherwise, 0 is used for its value.");
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error(
+              "sql: the 'cleanup_check_interval' value must be a positive "
+              "integer. Otherwise, 0 is used for its value.");
       cleanup_check_interval = 0u;
     }
   }
@@ -79,9 +82,11 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("enable_command_cache"));
     if (it != cfg.params.end() &&
         !absl::SimpleAtob(it->second, &enable_cmd_cache)) {
-      log_v2::sql()->error(
-          "sql: the 'enable_command_cache' value must be a boolean. Otherwise "
-          "'false' is used for its value.");
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error(
+              "sql: the 'enable_command_cache' value must be a boolean. "
+              "Otherwise 'false' is used for its value.");
       enable_cmd_cache = false;
     }
   }
@@ -100,9 +105,11 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("instance_timeout"));
     if (it != cfg.params.end() &&
         !absl::SimpleAtoi(it->second, &instance_timeout)) {
-      log_v2::sql()->error(
-          "sql: the 'instance_timeout' value must be a positive integer. "
-          "Otherwise, 300 is used for its value.");
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error(
+              "sql: the 'instance_timeout' value must be a positive integer. "
+              "Otherwise, 300 is used for its value.");
       instance_timeout = 300;
     }
   }
@@ -114,10 +121,12 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("with_state_events"));
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &wse)) {
-        log_v2::rrd()->error(
-            "factory: cannot parse the 'with_state_events' boolean: the "
-            "content is '{}'",
-            it->second);
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->error(
+                "factory: cannot parse the 'with_state_events' boolean: the "
+                "content is '{}'",
+                it->second);
         wse = false;
       }
     }

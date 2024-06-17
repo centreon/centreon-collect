@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Centreon (https://www.centreon.com/)
+ * Copyright 2023-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 #ifndef CCE_CONFIGURATION_WHITELIST_HH
 #define CCE_CONFIGURATION_WHITELIST_HH
 
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 
 namespace com::centreon::engine::configuration {
 
@@ -93,12 +93,12 @@ whitelist::whitelist(string_iter dir_path_begin, string_iter dir_path_end) {
   switch (res) {
     case e_refresh_result::no_directory:
       SPDLOG_LOGGER_INFO(
-          log_v2::config(),
+          config_logger,
           "no whitelist directory found, all commands are accepted");
       break;
     case e_refresh_result::empty_directory:
     case e_refresh_result::no_rule:
-      SPDLOG_LOGGER_INFO(log_v2::config(),
+      SPDLOG_LOGGER_INFO(config_logger,
                          "whitelist directory found, but no restrictions, "
                          "all commands are accepted");
       break;

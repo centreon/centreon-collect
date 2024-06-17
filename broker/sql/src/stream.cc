@@ -1,26 +1,25 @@
 /**
-* Copyright 2009-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/sql/stream.hh"
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/internal.hh"
@@ -30,12 +29,14 @@
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 using namespace com::centreon::broker::sql;
 using namespace com::centreon::broker::database;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Process log issue event.
@@ -58,7 +59,7 @@ stream::stream(database_config const& dbcfg,
                uint32_t cleanup_check_interval,
                uint32_t loop_timeout,
                uint32_t instance_timeout,
-               bool with_state_events)
+               bool with_state_events [[maybe_unused]])
     : io::stream("SQL"),
       _mysql(dbcfg),
       //      _cleanup_thread(dbcfg.get_type(),
@@ -69,17 +70,19 @@ stream::stream(database_config const& dbcfg,
       //                      dbcfg.get_name(),
       //                      cleanup_check_interval),
       _pending_events{0},
-      _stopped(false) {
+      _stopped(false),
+      _logger_sql{log_v2::instance().get(log_v2::SQL)},
+      _logger_storage{log_v2::instance().get(log_v2::PERFDATA)} {
   // FIXME DBR
   (void)cleanup_check_interval;
   //  // Get oudated instances.
   //
   //  // Run cleanup thread.
   //  _cleanup_thread.start();
-  log_v2::sql()->debug("sql stream instanciation");
+  _logger_sql->debug("sql stream instanciation");
   if (!storage::conflict_manager::init_sql(dbcfg, loop_timeout,
                                            instance_timeout)) {
-    log_v2::sql()->error("sql stream instanciation failed");
+    _logger_sql->error("sql stream instanciation failed");
     throw msg_fmt(
         "SQL: Unable to initialize the sql connection to the database");
   }
@@ -91,7 +94,9 @@ int32_t stream::stop() {
   int32_t retval = storage::conflict_manager::instance().unload(
       storage::conflict_manager::sql);
   _stopped = true;
-  log_v2::core()->info("sql stream stopped with {} ackowledged events", retval);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("sql stream stopped with {} ackowledged events", retval);
   return retval;
 }
 
@@ -113,8 +118,8 @@ int stream::flush() {
   _pending_events -= retval;
 
   // Event acknowledgement.
-  log_v2::sql()->trace("SQL: {} / {} events acknowledged", retval,
-                       _pending_events);
+  _logger_sql->trace("SQL: {} / {} events acknowledged", retval,
+                     _pending_events);
   return retval;
 }
 
@@ -156,8 +161,8 @@ int32_t stream::write(std::shared_ptr<io::data> const& data) {
       storage::conflict_manager::sql, data);
   _pending_events -= ack;
   // Event acknowledgement.
-  log_v2::perfdata()->debug("storage: {} / {} events acknowledged", ack,
-                            _pending_events);
+  _logger_storage->debug("storage: {} / {} events acknowledged", ack,
+                         _pending_events);
   return ack;
 }
 

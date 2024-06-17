@@ -948,20 +948,20 @@ BEEXTCMD_REVERSE_GRPC1
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Ctn Clear Retention
-        ${start}    Get Current Date
-        Sleep    1s
+        ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Wait For Engine To Be Ready    ${1}
+        #lets time to grpc to start
+        Sleep  0.1
+
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+        Connect To Database
+	...    pymysql
+	...    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
-        FOR    ${index}    IN RANGE    300
+        FOR    ${index}    IN RANGE    60
             Log To Console
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             ${output}    Query

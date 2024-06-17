@@ -22,8 +22,8 @@
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -53,7 +53,7 @@ macro_cache::~macro_cache() {
     try {
       _save_to_disk();
     } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::lua(),
+      SPDLOG_LOGGER_ERROR(_cache->logger(),
                           "lua: macro cache couldn't save data to disk: '{}'",
                           e.what());
     }
@@ -524,6 +524,9 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
     case neb::pb_host::static_type():
       _process_pb_host(data);
       break;
+    case neb::pb_host_status::static_type():
+      _process_pb_host_status(data);
+      break;
     case neb::pb_adaptive_host::static_type():
       _process_pb_adaptive_host(data);
       break;
@@ -544,6 +547,9 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
       break;
     case neb::pb_service::static_type():
       _process_pb_service(data);
+      break;
+    case neb::pb_service_status::static_type():
+      _process_pb_service_status(data);
       break;
     case neb::pb_adaptive_service::static_type():
       _process_pb_adaptive_service(data);
@@ -630,7 +636,7 @@ void macro_cache::_process_pb_instance(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::host> const& h =
       std::static_pointer_cast<neb::host>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing host '{}' of id {}",
+  SPDLOG_LOGGER_DEBUG(_cache->logger(), "lua: processing host '{}' of id {}",
                       h->host_name, h->host_id);
   if (h->enabled)
     _hosts[h->host_id] = data;
@@ -646,7 +652,7 @@ void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::pb_host> const& h =
       std::static_pointer_cast<neb::pb_host>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing host '{}' of id {}",
+  SPDLOG_LOGGER_DEBUG(_cache->logger(), "lua: processing host '{}' of id {}",
                       h->obj().name(), h->obj().host_id());
   if (h->obj().enabled())
     _hosts[h->obj().host_id()] = data;
@@ -654,6 +660,84 @@ void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
     _hosts.erase(h->obj().host_id());
 }
 
+void macro_cache::_process_pb_host_status(
+    const std::shared_ptr<io::data>& data) {
+  const auto& s = std::static_pointer_cast<neb::pb_host_status>(data);
+  const auto& obj = s->obj();
+
+  SPDLOG_LOGGER_DEBUG(_cache->logger(), "lua: processing host status ({})",
+                      obj.host_id());
+
+  auto it = _hosts.find(obj.host_id());
+  if (it == _hosts.end()) {
+    _cache->logger()->warn(
+        "lua: Attempt to update host ({}) in lua cache, but it does not "
+        "exist. Maybe Engine should be restarted to update the cache.",
+        obj.host_id());
+    return;
+  }
+
+  if (it->second->type() == make_type(io::neb, neb::de_host)) {
+    auto& hst = *std::static_pointer_cast<neb::host>(it->second);
+    hst.has_been_checked = obj.checked();
+    hst.check_type = obj.check_type();
+    hst.current_state = obj.state();
+    hst.state_type = obj.state_type();
+    hst.last_state_change = obj.last_state_change();
+    hst.last_hard_state = obj.last_hard_state();
+    hst.last_hard_state_change = obj.last_hard_state_change();
+    hst.last_time_up = obj.last_time_up();
+    hst.last_time_down = obj.last_time_down();
+    hst.last_time_unreachable = obj.last_time_unreachable();
+    hst.output = obj.output();
+    hst.perf_data = obj.perfdata();
+    hst.is_flapping = obj.flapping();
+    hst.percent_state_change = obj.percent_state_change();
+    hst.latency = obj.latency();
+    hst.execution_time = obj.execution_time();
+    hst.last_check = obj.last_check();
+    hst.next_check = obj.next_check();
+    hst.should_be_scheduled = obj.should_be_scheduled();
+    hst.current_check_attempt = obj.check_attempt();
+    hst.notification_number = obj.notification_number();
+    hst.no_more_notifications = obj.no_more_notifications();
+    hst.last_notification = obj.last_notification();
+    hst.next_notification = obj.next_host_notification();
+    hst.acknowledgement_type = obj.acknowledgement_type();
+    hst.downtime_depth = obj.scheduled_downtime_depth();
+  } else if (it->second->type() == make_type(io::neb, neb::de_pb_host)) {
+    auto& hst = std::static_pointer_cast<neb::pb_host>(it->second)->mut_obj();
+    hst.set_checked(obj.checked());
+    hst.set_check_type(static_cast<Host_CheckType>(obj.check_type()));
+    hst.set_state(static_cast<Host_State>(obj.state()));
+    hst.set_state_type(static_cast<Host_StateType>(obj.state_type()));
+    hst.set_last_state_change(obj.last_state_change());
+    hst.set_last_hard_state(static_cast<Host_State>(obj.last_hard_state()));
+    hst.set_last_hard_state_change(obj.last_hard_state_change());
+    hst.set_last_time_up(obj.last_time_up());
+    hst.set_last_time_down(obj.last_time_down());
+    hst.set_last_time_unreachable(obj.last_time_unreachable());
+    hst.set_output(obj.output());
+    hst.set_perfdata(obj.perfdata());
+    hst.set_flapping(obj.flapping());
+    hst.set_percent_state_change(obj.percent_state_change());
+    hst.set_latency(obj.latency());
+    hst.set_execution_time(obj.execution_time());
+    hst.set_last_check(obj.last_check());
+    hst.set_next_check(obj.next_check());
+    hst.set_should_be_scheduled(obj.should_be_scheduled());
+    hst.set_check_attempt(obj.check_attempt());
+    hst.set_notification_number(obj.notification_number());
+    hst.set_no_more_notifications(obj.no_more_notifications());
+    hst.set_last_notification(obj.last_notification());
+    hst.set_next_host_notification(obj.next_host_notification());
+    hst.set_acknowledgement_type(obj.acknowledgement_type());
+    hst.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
+  } else {
+    _cache->logger()->error("lua: The host ({}) stored in cache is corrupted",
+                            obj.host_id());
+  }
+}
 /**
  *  Process a pb adaptive host event.
  *
@@ -662,7 +746,7 @@ void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_adaptive_host(
     const std::shared_ptr<io::data>& data) {
   const auto& h = std::static_pointer_cast<neb::pb_adaptive_host>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing adaptive host {}",
+  SPDLOG_LOGGER_DEBUG(_cache->logger(), "lua: processing adaptive host {}",
                       h->obj().host_id());
   auto& ah = h->obj();
   auto it = _hosts.find(ah.host_id());
@@ -734,7 +818,7 @@ void macro_cache::_process_pb_adaptive_host(
     }
   } else
     SPDLOG_LOGGER_WARN(
-        log_v2::lua(),
+        _cache->logger(),
         "lua: cannot update cache for host {}, it does not exist in "
         "the cache",
         h->obj().host_id());
@@ -748,12 +832,12 @@ void macro_cache::_process_pb_adaptive_host(
 void macro_cache::_process_host_group(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::host_group> const& hg =
       std::static_pointer_cast<neb::host_group>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing host group '{}' of id {} enabled: {}",
                       hg->name, hg->id, hg->enabled);
   if (hg->enabled)
     _host_groups[hg->id] = data;
-  //erasure is desactivated because a group cen be owned by several pollers
+  // erasure is desactivated because a group cen be owned by several pollers
 }
 
 /**
@@ -765,12 +849,12 @@ void macro_cache::_process_pb_host_group(
     std::shared_ptr<io::data> const& data) {
   const HostGroup& hg =
       std::static_pointer_cast<neb::pb_host_group>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing pb host group '{}' of id {}, enabled {}",
                       hg.name(), hg.hostgroup_id(), hg.enabled());
   if (hg.enabled())
     _host_groups[hg.hostgroup_id()] = data;
-  //erasure is desactivated because a group cen be owned by several pollers
+  // erasure is desactivated because a group cen be owned by several pollers
 }
 
 /**
@@ -783,7 +867,7 @@ void macro_cache::_process_host_group_member(
   std::shared_ptr<neb::host_group_member> const& hgm =
       std::static_pointer_cast<neb::host_group_member>(data);
   SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(),
+      _cache->logger(),
       "lua: processing host group member (group_name: '{}', group_id: {}, "
       "host_id: {}, enabled: {})",
       hgm->group_name, hgm->group_id, hgm->host_id, hgm->enabled);
@@ -803,7 +887,7 @@ void macro_cache::_process_pb_host_group_member(
   const HostGroupMember& hgm =
       std::static_pointer_cast<neb::pb_host_group_member>(data)->obj();
   SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(),
+      _cache->logger(),
       "lua: processing pb host group member (group_name: '{}', group_id: {}, "
       "host_id: {}, enabled: {})",
       hgm.name(), hgm.hostgroup_id(), hgm.host_id(), hgm.enabled());
@@ -820,7 +904,7 @@ void macro_cache::_process_pb_host_group_member(
  */
 void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::service>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing service ({}, {}) (description:{})",
                       s->host_id, s->service_id, s->service_description);
   if (s->enabled)
@@ -837,12 +921,96 @@ void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::pb_service>(data);
   SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(), "lua: processing service ({}, {}) (description:{})",
+      _cache->logger(), "lua: processing service ({}, {}) (description:{})",
       s->obj().host_id(), s->obj().service_id(), s->obj().description());
   if (s->obj().enabled())
     _services[{s->obj().host_id(), s->obj().service_id()}] = data;
   else
     _services.erase({s->obj().host_id(), s->obj().service_id()});
+}
+
+void macro_cache::_process_pb_service_status(
+    const std::shared_ptr<io::data>& data) {
+  const auto& s = std::static_pointer_cast<neb::pb_service_status>(data);
+  const auto& obj = s->obj();
+
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
+                      "lua: processing service status ({}, {})", obj.host_id(),
+                      obj.service_id());
+
+  auto it = _services.find({obj.host_id(), obj.service_id()});
+  if (it == _services.end()) {
+    _cache->logger()->warn(
+        "lua: Attempt to update service ({}, {}) in lua cache, but it does not "
+        "exist. Maybe Engine should be restarted to update the cache.",
+        obj.host_id(), obj.service_id());
+    return;
+  }
+
+  if (it->second->type() == make_type(io::neb, neb::de_service)) {
+    auto& svc = *std::static_pointer_cast<neb::service>(it->second);
+    svc.has_been_checked = obj.checked();
+    svc.check_type = obj.check_type();
+    svc.current_state = obj.state();
+    svc.state_type = obj.state_type();
+    svc.last_state_change = obj.last_state_change();
+    svc.last_hard_state = obj.last_hard_state();
+    svc.last_hard_state_change = obj.last_hard_state_change();
+    svc.last_time_ok = obj.last_time_ok();
+    svc.last_time_warning = obj.last_time_warning();
+    svc.last_time_critical = obj.last_time_critical();
+    svc.last_time_unknown = obj.last_time_unknown();
+    svc.output = obj.output();
+    svc.perf_data = obj.perfdata();
+    svc.is_flapping = obj.flapping();
+    svc.percent_state_change = obj.percent_state_change();
+    svc.latency = obj.latency();
+    svc.execution_time = obj.execution_time();
+    svc.last_check = obj.last_check();
+    svc.next_check = obj.next_check();
+    svc.should_be_scheduled = obj.should_be_scheduled();
+    svc.current_check_attempt = obj.check_attempt();
+    svc.notification_number = obj.notification_number();
+    svc.no_more_notifications = obj.no_more_notifications();
+    svc.last_notification = obj.last_notification();
+    svc.next_notification = obj.next_notification();
+    svc.acknowledgement_type = obj.acknowledgement_type();
+    svc.downtime_depth = obj.scheduled_downtime_depth();
+  } else if (it->second->type() == make_type(io::neb, neb::de_pb_service)) {
+    auto& svc =
+        std::static_pointer_cast<neb::pb_service>(it->second)->mut_obj();
+    svc.set_checked(obj.checked());
+    svc.set_check_type(static_cast<Service_CheckType>(obj.check_type()));
+    svc.set_state(static_cast<Service_State>(obj.state()));
+    svc.set_state_type(static_cast<Service_StateType>(obj.state_type()));
+    svc.set_last_state_change(obj.last_state_change());
+    svc.set_last_hard_state(static_cast<Service_State>(obj.last_hard_state()));
+    svc.set_last_hard_state_change(obj.last_hard_state_change());
+    svc.set_last_time_ok(obj.last_time_ok());
+    svc.set_last_time_warning(obj.last_time_warning());
+    svc.set_last_time_critical(obj.last_time_critical());
+    svc.set_last_time_unknown(obj.last_time_unknown());
+    svc.set_output(obj.output());
+    svc.set_perfdata(obj.perfdata());
+    svc.set_flapping(obj.flapping());
+    svc.set_percent_state_change(obj.percent_state_change());
+    svc.set_latency(obj.latency());
+    svc.set_execution_time(obj.execution_time());
+    svc.set_last_check(obj.last_check());
+    svc.set_next_check(obj.next_check());
+    svc.set_should_be_scheduled(obj.should_be_scheduled());
+    svc.set_check_attempt(obj.check_attempt());
+    svc.set_notification_number(obj.notification_number());
+    svc.set_no_more_notifications(obj.no_more_notifications());
+    svc.set_last_notification(obj.last_notification());
+    svc.set_next_notification(obj.next_notification());
+    svc.set_acknowledgement_type(obj.acknowledgement_type());
+    svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
+  } else {
+    _cache->logger()->error(
+        "lua: The service ({}, {}) stored in cache is corrupted", obj.host_id(),
+        obj.service_id());
+  }
 }
 
 /**
@@ -853,7 +1021,7 @@ void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_adaptive_service(
     std::shared_ptr<io::data> const& data) {
   const auto& s = std::static_pointer_cast<neb::pb_adaptive_service>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing adaptive service ({}, {})",
                       s->obj().host_id(), s->obj().service_id());
   auto& as = s->obj();
@@ -927,7 +1095,7 @@ void macro_cache::_process_pb_adaptive_service(
     }
   } else {
     SPDLOG_LOGGER_WARN(
-        log_v2::lua(),
+        _cache->logger(),
         "lua: cannot update cache for service ({}, {}), it does not exist in "
         "the cache",
         s->obj().host_id(), s->obj().service_id());
@@ -942,12 +1110,12 @@ void macro_cache::_process_pb_adaptive_service(
 void macro_cache::_process_service_group(
     std::shared_ptr<io::data> const& data) {
   auto const& sg = std::static_pointer_cast<neb::service_group>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing service group '{}' of id {}", sg->name,
                       sg->id);
   if (sg->enabled)
     _service_groups[sg->id] = data;
-  //erasure is desactivated because a group cen be owned by several pollers
+  // erasure is desactivated because a group cen be owned by several pollers
 }
 
 /**
@@ -959,12 +1127,12 @@ void macro_cache::_process_pb_service_group(
     std::shared_ptr<io::data> const& data) {
   const ServiceGroup& sg =
       std::static_pointer_cast<neb::pb_service_group>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing pb service group '{}' of id {}",
                       sg.name(), sg.servicegroup_id());
   if (sg.enabled())
     _service_groups[sg.servicegroup_id()] = data;
-  //erasure is desactivated because a group cen be owned by several pollers
+  // erasure is desactivated because a group cen be owned by several pollers
 }
 
 /**
@@ -976,7 +1144,7 @@ void macro_cache::_process_service_group_member(
     std::shared_ptr<io::data> const& data) {
   auto const& sgm = std::static_pointer_cast<neb::service_group_member>(data);
   SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(),
+      _cache->logger(),
       "lua: processing service group member (group_name: {}, group_id: {}, "
       "host_id: {}, service_id: {}, enabled: {}",
       sgm->group_name, sgm->group_id, sgm->host_id, sgm->service_id,
@@ -999,7 +1167,7 @@ void macro_cache::_process_pb_service_group_member(
   const ServiceGroupMember& sgm =
       std::static_pointer_cast<neb::pb_service_group_member>(data)->obj();
   SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(),
+      _cache->logger(),
       "lua: processing pb service group member (group_name: {}, group_id: {}, "
       "host_id: {}, service_id: {} enabled: {}",
       sgm.name(), sgm.servicegroup_id(), sgm.host_id(), sgm.service_id(),
@@ -1080,7 +1248,7 @@ void macro_cache::_process_dimension_ba_event(
   if (data->type() == bam::pb_dimension_ba_event::static_type()) {
     auto const& dbae =
         std::static_pointer_cast<bam::pb_dimension_ba_event>(data);
-    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+    SPDLOG_LOGGER_DEBUG(_cache->logger(),
                         "lua: pb processing dimension ba event of id {}",
                         dbae->obj().ba_id());
     _dimension_ba_events[dbae->obj().ba_id()] = dbae;
@@ -1096,7 +1264,7 @@ void macro_cache::_process_dimension_ba_event(
     to_fill.set_sla_month_percent_warn(to_convert->sla_month_percent_warn);
     to_fill.set_sla_duration_crit(to_convert->sla_duration_crit);
     to_fill.set_sla_duration_warn(to_convert->sla_duration_warn);
-    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+    SPDLOG_LOGGER_DEBUG(_cache->logger(),
                         "lua: pb processing dimension ba event of id {}",
                         dbae->obj().ba_id());
     _dimension_ba_events[dbae->obj().ba_id()] = dbae;
@@ -1114,7 +1282,7 @@ void macro_cache::_process_dimension_ba_bv_relation_event(
     const auto& pb_data =
         std::static_pointer_cast<bam::pb_dimension_ba_bv_relation_event>(data);
     const DimensionBaBvRelationEvent& rel = pb_data->obj();
-    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+    SPDLOG_LOGGER_DEBUG(_cache->logger(),
                         "lua: processing pb dimension ba bv relation event "
                         "(ba_id: {}, bv_id: {})",
                         rel.ba_id(), rel.bv_id());
@@ -1123,7 +1291,7 @@ void macro_cache::_process_dimension_ba_bv_relation_event(
     auto const& rel =
         std::static_pointer_cast<bam::dimension_ba_bv_relation_event>(data);
     SPDLOG_LOGGER_DEBUG(
-        log_v2::lua(),
+        _cache->logger(),
         "lua: processing dimension ba bv relation event (ba_id: {}, bv_id: {})",
         rel->ba_id, rel->bv_id);
     auto pb_data(std::make_shared<bam::pb_dimension_ba_bv_relation_event>());
@@ -1164,7 +1332,7 @@ void macro_cache::_process_dimension_truncate_table_signal(
     std::shared_ptr<io::data> const& data) {
   auto const& trunc =
       std::static_pointer_cast<bam::dimension_truncate_table_signal>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing dimension truncate table signal");
 
   if (trunc->update_started) {
@@ -1181,7 +1349,7 @@ void macro_cache::_process_dimension_truncate_table_signal(
  */
 void macro_cache::_process_pb_dimension_truncate_table_signal(
     std::shared_ptr<io::data> const& data) {
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing dimension truncate table signal");
 
   if (std::static_pointer_cast<bam::pb_dimension_truncate_table_signal>(data)
@@ -1205,7 +1373,7 @@ void macro_cache::_process_custom_variable(
   auto const& cv = std::static_pointer_cast<neb::custom_variable>(data);
   if (cv->name == "CRITICALITY_LEVEL") {
     SPDLOG_LOGGER_DEBUG(
-        log_v2::lua(),
+        _cache->logger(),
         "lua: processing custom variable representing a criticality level for "
         "host_id {} and service_id {} and level {}",
         cv->host_id, cv->service_id, cv->value);
@@ -1229,7 +1397,7 @@ void macro_cache::_process_pb_custom_variable(
   if (cv->obj().name() == "CRITICALITY_LEVEL") {
     int32_t value;
     if (absl::SimpleAtoi(cv->obj().value(), &value)) {
-      SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+      SPDLOG_LOGGER_DEBUG(_cache->logger(),
                           "lua: processing custom variable representing a "
                           "criticality level for "
                           "host_id {} and service_id {} and level {}",
@@ -1237,7 +1405,7 @@ void macro_cache::_process_pb_custom_variable(
       if (value)
         _custom_vars[{cv->obj().host_id(), cv->obj().service_id()}] = cv;
     } else {
-      SPDLOG_LOGGER_ERROR(log_v2::lua(),
+      SPDLOG_LOGGER_ERROR(_cache->logger(),
                           "lua: processing custom variable representing a "
                           "criticality level for "
                           "host_id {} and service_id {} incorrect value {}",

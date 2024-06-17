@@ -1,20 +1,21 @@
 /**
-* Copyright 2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2024 Centreon (https://www.centreon.com/)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #include "com/centreon/broker/http_tsdb/stream.hh"
 #include "bbdo/storage/metric.hh"
@@ -105,7 +106,7 @@ unsigned stream::stat_average::get_average() const {
 
 /**
  * @brief Construct a new stream::stream object
- * conn_creator is used by this object to construct http_client::connection_base
+ * conn_creator is used by this object to construct http::connection_base
  * objects conn_creator can construct an http_connection, https_connection or a
  * mock
  * @param name
@@ -119,7 +120,7 @@ stream::stream(const std::string& name,
                const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
                const std::shared_ptr<http_tsdb_config>& conf,
-               http_client::client::connection_creator conn_creator)
+               http::connection_creator conn_creator)
     : io::stream(name),
       _io_context(io_context),
       _logger(logger),
@@ -130,7 +131,7 @@ stream::stream(const std::string& name,
       _metric_stat{{0, 0}, {0, 0}},
       _status_stat{{0, 0}, {0, 0}} {
   _http_client =
-      http_client::client::load(io_context, logger, conf, conn_creator);
+      common::http::client::load(io_context, logger, conf, conn_creator);
 }
 
 stream::~stream() {}
@@ -184,8 +185,6 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t) {
  * @param tree
  */
 void stream::statistics(nlohmann::json& tree) const {
-  time_t now = time(nullptr);
-
   auto extract_stat = [&](const char* label, const stat_average& data) {
     if (!data.empty()) {
       tree[label] = data.get_average();
@@ -324,7 +323,7 @@ void stream::send_request(const request::pointer& request) {
   _http_client->send(request, [me = shared_from_this(), request](
                                   const boost::beast::error_code& err,
                                   const std::string& detail,
-                                  const http_client::response_ptr& response) {
+                                  const common::http::response_ptr& response) {
     me->send_handler(err, detail, request, response);
   });
 }
@@ -344,7 +343,7 @@ static time_point _epoch = system_clock::from_time_t(0);
 void stream::send_handler(const boost::beast::error_code& err,
                           const std::string& detail,
                           const request::pointer& request,
-                          const http_client::response_ptr& response) {
+                          const common::http::response_ptr& response) {
   auto actu_stat_avg = [&]() -> void {
     if (request->get_connect_time() > _epoch &&
         request->get_send_time() > _epoch) {

@@ -259,13 +259,14 @@ class stream : public io::stream {
   std::time_t _next_update_metrics;
   std::time_t _next_loop_timeout;
 
-  asio::steady_timer _queues_timer;
+  asio::steady_timer _queues_timer ABSL_GUARDED_BY(_timer_m);
   /* To give the order to stop the check_queues */
   std::atomic_bool _stop_check_queues;
   /* When the check_queues is really stopped */
   bool _check_queues_stopped;
 
   /* Stats */
+  std::shared_ptr<stats::center> _center;
   ConflictManagerStats* _stats;
 
   absl::flat_hash_set<uint32_t> _cache_deleted_instance_id;
@@ -283,9 +284,18 @@ class stream : public io::stream {
 
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resource_cache;
 
-  mutable std::mutex _timer_m;
-  asio::system_timer _group_clean_timer;
-  asio::system_timer _loop_timer;
+  mutable absl::Mutex _timer_m;
+  /* This is a barrier for timers. It must be locked in shared mode in the
+   * timers functions. So we can execute several timer functions at the same
+   * time. But it is locked in write mode in the stream destructor. So When
+   * executed, we are sure that all the timer functions have finished. */
+  mutable absl::Mutex _barrier_timer_m;
+  asio::system_timer _group_clean_timer ABSL_GUARDED_BY(_timer_m);
+  asio::system_timer _loop_timer ABSL_GUARDED_BY(_timer_m);
+
+  /* loggers  */
+  std::shared_ptr<spdlog::logger> _logger_sql;
+  std::shared_ptr<spdlog::logger> _logger_sto;
 
   absl::flat_hash_set<uint32_t> _hostgroup_cache;
   absl::flat_hash_set<uint32_t> _servicegroup_cache;
@@ -392,7 +402,8 @@ class stream : public io::stream {
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
   void _update_timestamp(uint32_t instance_id);
   bool _is_valid_poller(uint32_t instance_id);
-  void _check_queues(boost::system::error_code ec);
+  void _check_queues(boost::system::error_code ec)
+      ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
   void _check_deleted_index();
   void _check_rebuild_index();
 
@@ -458,7 +469,7 @@ class stream : public io::stream {
   void _init_statements();
   void _load_caches();
   void _clean_tables(uint32_t instance_id);
-  void _clean_group_table();
+  void _clean_group_table() ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
   void _prepare_hg_insupdate_statement();
   void _prepare_pb_hg_insupdate_statement();
   void _prepare_sg_insupdate_statement();
@@ -471,7 +482,7 @@ class stream : public io::stream {
   void _clear_instances_cache(const std::list<uint64_t>& ids);
   bool _host_instance_known(uint64_t host_id) const;
 
-  void _start_loop_timer();
+  void _start_loop_timer() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_timer_m);
 
  public:
   static void (stream::*const neb_processing_table[])(
@@ -488,9 +499,10 @@ class stream : public io::stream {
   stream() = delete;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
-  ~stream() noexcept;
+  ~stream() noexcept ABSL_LOCKS_EXCLUDED(_barrier_timer_m);
 
   static const multiplexing::muxer_filter& get_muxer_filter();
+  static const multiplexing::muxer_filter& get_forbidden_filter();
 
   void update_metric_info_cache(uint64_t index_id,
                                 uint32_t metric_id,
@@ -503,6 +515,7 @@ class stream : public io::stream {
   void statistics(nlohmann::json& tree) const override;
   void remove_graphs(const std::shared_ptr<io::data>& d);
   void remove_poller(const std::shared_ptr<io::data>& d);
+  void process_stop(const std::shared_ptr<io::data>& d);
   void update() override;
 };
 }  // namespace unified_sql

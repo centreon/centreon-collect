@@ -54,7 +54,7 @@ do
       ;;
     -r|--release)
       echo "Release build"
-      BUILD_TYPE="Release"
+      BUILD_TYPE="RelWithDebInfo"
       shift
       ;;
     -clang)

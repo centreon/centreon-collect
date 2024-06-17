@@ -1,28 +1,27 @@
 /**
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/hostdependency.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
@@ -237,7 +236,7 @@ void hostdependency::resolve(int& w, int& e) {
         << "Error: Dependent host specified in host dependency for "
            "host '"
         << _dependent_hostname << "' is not defined anywhere!";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Dependent host specified in host dependency for "
         "host '{}' is not defined anywhere!",
         _dependent_hostname);
@@ -252,7 +251,7 @@ void hostdependency::resolve(int& w, int& e) {
     engine_logger(log_verification_error, basic)
         << "Error: Host specified in host dependency for host '"
         << _dependent_hostname << "' is not defined anywhere!";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Host specified in host dependency for host '{}' is not defined "
         "anywhere!",
         _dependent_hostname);
@@ -266,7 +265,7 @@ void hostdependency::resolve(int& w, int& e) {
     engine_logger(log_verification_error, basic)
         << "Error: Host dependency definition for host '" << _dependent_hostname
         << "' is circular (it depends on itself)!";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Host dependency definition for host '{}' is circular (it "
         "depends on itself)!",
         _dependent_hostname);
@@ -283,7 +282,7 @@ void hostdependency::resolve(int& w, int& e) {
           << "Error: Dependency period '" << this->get_dependency_period()
           << "' specified in host dependency for host '" << _dependent_hostname
           << "' is not defined anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Dependency period '{}' specified in host dependency for host "
           "'{}' is not defined anywhere!",
           this->get_dependency_period(), _dependent_hostname);

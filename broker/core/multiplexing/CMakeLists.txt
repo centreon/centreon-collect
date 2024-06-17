@@ -36,7 +36,13 @@ target_link_libraries(multiplexing spdlog::spdlog)
 
 if(WITH_TESTING)
   set(TESTS_SOURCES
-      ${TESTS_SOURCES} ${TESTS_DIR}/engine/start_stop.cc
-      ${TESTS_DIR}/muxer/muxer_filter.cc ${TESTS_DIR}/muxer/read.cc
-      ${TESTS_DIR}/publisher/read.cc ${TESTS_DIR}/publisher/write.cc)
+      ${TESTS_SOURCES}
+      ${TESTS_DIR}/engine/start_stop.cc
+      ${TESTS_DIR}/muxer/read.cc
+      ${TESTS_DIR}/publisher/read.cc
+      ${TESTS_DIR}/publisher/write.cc
+      PARENT_SCOPE)
+  message(STATUS "&&&&&&&&&&&&&&&")
+  message(STATUS "${TESTS_SOURCES}")
+  message(STATUS "&&&&&&&&&&&&&&&")
 endif(WITH_TESTING)

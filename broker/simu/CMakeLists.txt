@@ -48,7 +48,8 @@ add_dependencies(${SIMU}
 	pb_neb_lib
 	pb_header_lib
 	pb_storage_lib
-	pb_bam_lib)
+	pb_bam_lib
+	pb_open_telemetry_lib)
 
 target_link_libraries("${SIMU}" ${LUA_LIBRARIES} spdlog::spdlog)
 target_precompile_headers(${SIMU} PRIVATE precomp_inc/precomp.hpp)

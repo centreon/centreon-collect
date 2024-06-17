@@ -1,20 +1,20 @@
 /**
-* Copyright 2015,2017 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2015,2017 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/graphite/connector.hh"
 #include "bbdo/storage/index_mapping.hh"
@@ -39,10 +39,15 @@ static constexpr multiplexing::muxer_filter _graphite_stream_filter = {
     storage::pb_metric_mapping::static_type(),
     make_type(io::extcmd, extcmd::de_pb_bench)};
 
+static constexpr multiplexing::muxer_filter _graphite_forbidden_filter =
+    multiplexing::muxer_filter(_graphite_stream_filter).reverse();
+
 /**
  *  Default constructor.
  */
-connector::connector() : io::endpoint(false, _graphite_stream_filter) {}
+connector::connector()
+    : io::endpoint(false, _graphite_stream_filter, _graphite_forbidden_filter) {
+}
 
 /**
  *  Set connection parameters.

@@ -1,15 +1,43 @@
+#!/usr/bin/python3
+#
+# Copyright 2023-2024 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
+# This script is a little tcp server working on port 5669. It can simulate
+# a cbd instance. It is useful to test the validity of BBDO packets sent by
+# centengine.
 from robot.api import logger
 from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
 from pwd import getpwnam
+from google.protobuf.json_format import MessageToJson
 import time
 import json
 import psutil
+import random
+import string
 from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
 from robot.libraries.BuiltIn import BuiltIn
+from concurrent import futures
+import grpc
+import grpc_stream_pb2_grpc
+
 
 TIMEOUT = 30
 
@@ -83,7 +111,7 @@ def ctn_wait_for_connections(port: int, nb: int, timeout: int = 60):
     """
     limit = time.time() + timeout
     r = re.compile(
-        fr"^ESTAB.*127\.0\.0\.1:{port}\s|^ESTAB.*\[::1\]*:{port}\s")
+        fr"^ESTAB.*127\.0\.0\.1:{port}\s|^ESTAB.*\[::ffff:127\.0\.0\.1\]:{port}\s|^ESTAB.*\[::1\]*:{port}\s")
 
     while time.time() < limit:
         out = getoutput("ss -plant")
@@ -173,7 +201,7 @@ def ctn_find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = ctn_find_in_log(log, date, content, True)
+        ok, c = ctn_find_in_log(log, date, content, regex=True)
         if ok:
             return True, c
         time.sleep(5)
@@ -181,12 +209,13 @@ def ctn_find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
     return False, c
 
 
-def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int):
-
+def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int, **kwargs):
     limit = time.time() + timeout
     c = ""
+    kwargs['regex'] = False
+
     while time.time() < limit:
-        ok, c = ctn_find_in_log(log, date, content, False)
+        ok, c = ctn_find_in_log(log, date, content, **kwargs)
         if ok:
             return True
         time.sleep(5)
@@ -197,7 +226,7 @@ def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int):
 def ctn_find_in_log_with_timeout_with_line(log: str, date, content, timeout: int):
     """! search a pattern in log from date param
     @param log: path of the log file
-    @param date: date from witch it begins search
+    @param date: date from which it begins search
     @param content: array of pattern to search
     @param timeout: time out in second
     @return  True/False, array of lines found for each pattern
@@ -205,7 +234,7 @@ def ctn_find_in_log_with_timeout_with_line(log: str, date, content, timeout: int
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = ctn_find_in_log(log, date, content, False)
+        ok, c = ctn_find_in_log(log, date, content, regex=False)
         if ok:
             return ok, c
         time.sleep(5)
@@ -213,7 +242,7 @@ def ctn_find_in_log_with_timeout_with_line(log: str, date, content, timeout: int
     return False, None
 
 
-def ctn_find_in_log(log: str, date, content, regex=False):
+def ctn_find_in_log(log: str, date, content, **kwargs):
     """Find content in log file from the given date
 
     Args:
@@ -224,13 +253,18 @@ def ctn_find_in_log(log: str, date, content, regex=False):
     Returns:
         boolean,str: The boolean is True on success, and the string contains the first string not found in logs otherwise.
     """
-    logger.info(f"regex={regex}")
+    verbose = True
+    regex = False
+    if 'verbose' in kwargs:
+        verbose = 'verbose' == 'True'
+    if 'regex' in kwargs:
+        regex = bool(kwargs['regex'])
+
     res = []
 
     try:
-        f = open(log, "r", encoding="latin1")
-        lines = f.readlines()
-        f.close()
+        with open(log, "r") as f:
+            lines = f.readlines()
         idx = ctn_find_line_from(lines, date)
 
         for c in content:
@@ -242,7 +276,8 @@ def ctn_find_in_log(log: str, date, content, regex=False):
                 else:
                     match = c in line
                 if match:
-                    logger.console(f"\"{c}\" found at line {i} from {idx}")
+                    if verbose:
+                        logger.console(f"\"{c}\" found at line {i} from {idx}")
                     found = True
                     res.append(line)
                     break
@@ -388,6 +423,10 @@ def ctn_clear_retention():
 
 def ctn_clear_cache():
     getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
+
+def ctn_clear_logs():
+    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-engine/config*")
+    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-broker")
 
 
 def ctn_engine_log_table_duplicate(result: list):
@@ -949,6 +988,44 @@ def ctn_check_service_check_with_timeout(hostname: str, service_desc: str,  time
     return False
 
 
+def ctn_check_service_check_status_with_timeout(hostname: str, service_desc: str,  timeout: int,  min_last_check: int, state: int, output: str):
+    """
+    check_service_check_status_with_timeout
+
+    check if service checks infos have been updated
+
+    Args:
+        host_name:
+        service_desc:
+        timeout: time to wait expected check in seconds
+        min_last_check: time point after last_check will be accepted
+        state: expected service state
+        output: expected output
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT s.last_check, s.state, s.output FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    logger.console(
+                        f"last_check={result[0]['last_check']} state={result[0]['state']} output={result[0]['output']} ")
+                    if result[0]['last_check'] is not None and result[0]['last_check'] >= min_last_check and output in result[0]['output'] and result[0]['state'] == state:
+                        return True
+        time.sleep(1)
+    return False
+
+
 def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -969,6 +1046,42 @@ def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line:
                     logger.console(
                         f"command_line={result[0]['command_line']} ")
                     if result[0]['command_line'] is not None and command_line in result[0]['command_line']:
+                        return True
+        time.sleep(1)
+    return False
+
+def ctn_check_host_check_status_with_timeout(hostname: str, timeout: int, min_last_check: int, state: int, output: str):
+    """
+    ctn_check_host_check_status_with_timeout
+
+    check if host checks infos have been updated
+
+    Args:
+        hostname:
+        timeout: time to wait expected check in seconds
+        min_last_check: time point after last_check will be accepted
+        state: expected host state
+        output: expected output
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT last_check, state, output FROM hosts WHERE name='{hostname}'")
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    logger.console(
+                        f"last_check={result[0]['last_check']} state={result[0]['state']} output={result[0]['output']} ")
+                    if result[0]['last_check'] is not None and result[0]['last_check'] >= min_last_check and output in result[0]['output'] and result[0]['state'] == state:
                         return True
         time.sleep(1)
     return False
@@ -1601,3 +1714,141 @@ def ctn_compare_dot_files(file1: str, file2: str):
                 f"Files are different at line {i + 1}: first => << {content1[i].strip()} >> and second => << {content2[i].strip()} >>")
             return False
     return True
+
+def ctn_create_bbdo_grpc_server(port : int, ):
+    """
+    start a bbdo streamming grpc server.
+    It answers nothing and simulates proxy behavior when cbd is down
+    Args:
+        port: port to listen
+    Returns: grpc server
+    """
+
+    class service_implementation(grpc_stream_pb2_grpc.centreon_bbdoServicer):
+        """
+        bbdo grpc service that does nothing
+        """
+        def exchange(self, request_iterator, context):
+            time.sleep(0.01)
+            for request in request_iterator:
+                logger.console(request)
+            context.abort(grpc.StatusCode.UNAVAILABLE, "unavailable")
+
+    private_key = open('/tmp/server_1234.key', 'rb').read()
+    certificate_chain = open('/tmp/server_1234.crt', 'rb').read()
+    ca_cert = open('/tmp/ca_1234.crt', 'rb').read()
+
+
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
+    grpc_stream_pb2_grpc.add_centreon_bbdoServicer_to_server(service_implementation(), server)
+    creds = grpc.ssl_server_credentials([(private_key, certificate_chain)],
+            root_certificates=ca_cert)
+    
+    server.add_secure_port("0.0.0.0:5669", creds)
+    server.start()
+    return server
+
+
+def create_random_string(length:int):
+    """
+    create_random_string
+
+    create a string with random char
+    Args:
+        length output string length
+    Returns: a string
+    """
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(length))
+
+
+def ctn_create_random_dictionary(nb_entries: int):
+    """
+    create_random_dictionary
+
+    create a dictionary with random keys and random string values
+    
+    Args:
+        nb_entries  dictionary size
+    Returns: a dictionary
+    """
+    dict_ret = {}
+    for ii in range(nb_entries):
+        dict_ret[create_random_string(10)] = create_random_string(10)
+
+    return dict_ret;
+
+
+def ctn_extract_event_from_lua_log(file_path:str, field_name: str):
+    """
+    extract_event_from_lua_log
+
+    extract a json object from a lua log file 
+    Example: Wed Feb  7 15:30:11 2024: INFO: {"_type":196621, "category":3, "element":13, "resource_metrics":{}
+
+    Args:
+        file1: The first file to compare.
+        file2: The second file to compare.
+
+    Returns: True if they have the same content, False otherwise.
+    """
+
+    with open(file1, "r") as f1:
+        content1 = f1.readlines()
+    with open(file2, "r") as f2:
+        content2 = f2.readlines()
+    r = re.compile(r"(.*) 0x[0-9a-f]+")
+
+    def replace_ptr(line):
+        m = r.match(line)
+        if m:
+            return m.group(1)
+        else:
+            return line
+
+    content1 = list(map(replace_ptr, content1))
+    content2 = list(map(replace_ptr, content2))
+
+    if len(content1) != len(content2):
+        return False
+    for i in range(len(content1)):
+        if content1[i] != content2[i]:
+            logger.console(
+                f"Files are different at line {i + 1}: first => << {content1[i].strip()} >> and second => << {content2[i].strip()} >>")
+            return False
+    return True
+
+
+
+def ctn_protobuf_to_json(protobuf_obj):
+    """
+    protobuf_to_json
+
+    Convert a protobuf object to json
+    it replaces uppercase letters in keys by _<lower>
+    """
+    converted = MessageToJson(protobuf_obj)
+    return json.loads(converted)
+
+
+def ctn_compare_string_with_file(string_to_compare:str, file_path:str):
+    """
+    ctn_compare_string_with_file
+
+    compare a multiline string with a file content
+    Args:
+        string_to_compare: multiline string to compare
+        file_path: path of the file to compare
+
+    Returns: True if contents are identical
+    """
+    str_lines = string_to_compare.splitlines(keepends=True)
+    with open(file_path) as f:
+        file_lines = f.readlines()
+    if len(str_lines) != len(file_lines):
+        return False
+    for str_line, file_line in zip(str_lines, file_lines):
+        if str_line != file_line:
+            return False
+    return True
+

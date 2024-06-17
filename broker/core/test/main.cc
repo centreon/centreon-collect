@@ -17,17 +17,24 @@
  *
  */
 #include <gtest/gtest.h>
+
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/io/events.hh"
+#include "com/centreon/broker/io/protocols.hh"
+#include "com/centreon/common/pool.hh"
+#include "common/log_v2/log_v2.hh"
+
+using com::centreon::common::log_v2::log_v2;
 
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
-bool g_io_context_started = false;
 
 class CentreonBrokerEnvironment : public testing::Environment {
  public:
   void SetUp() override {
     com::centreon::broker::config::applier::state::load();
+    com::centreon::broker::io::protocols::load();
+    com::centreon::broker::io::events::load();
   }
 
   void TearDown() override {
@@ -50,9 +57,15 @@ int main(int argc, char* argv[]) {
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonBrokerEnvironment());
 
-  com::centreon::broker::log_v2::load(g_io_context);
+  log_v2::load("test");
+  com::centreon::common::pool::load(g_io_context,
+                                    log_v2::instance().get(log_v2::CORE));
+  com::centreon::common::pool::set_pool_size(0);
+
   // Run all tests.
   int ret = RUN_ALL_TESTS();
   spdlog::shutdown();
+  g_io_context->stop();
+  com::centreon::common::pool::unload();
   return ret;
 }

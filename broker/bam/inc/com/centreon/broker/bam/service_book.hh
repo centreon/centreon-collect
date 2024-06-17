@@ -52,9 +52,11 @@ class service_book {
                      service_state_listeners,
                      absl::Hash<std::pair<uint64_t, uint64_t>>>
       _book;
+  std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  service_book() = default;
+  service_book(const std::shared_ptr<spdlog::logger>& logger)
+      : _logger{logger} {}
   ~service_book() noexcept = default;
   service_book(const service_book&) = delete;
   service_book& operator=(const service_book&) = delete;

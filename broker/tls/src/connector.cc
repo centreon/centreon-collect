@@ -18,19 +18,15 @@
 
 #include "com/centreon/broker/tls/connector.hh"
 
-#include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/tls/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tls;
 using namespace com::centreon::exceptions;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Default constructor
@@ -43,7 +39,10 @@ connector::connector(std::string const& cert,
                      std::string const& key,
                      std::string const& ca,
                      std::string const& tls_hostname)
-    : io::endpoint(false, {}),
+    : io::endpoint(
+          false,
+          {},
+          multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())),
       _ca(ca),
       _cert(cert),
       _key(key),
@@ -72,7 +71,6 @@ std::shared_ptr<io::stream> connector::open() {
 std::shared_ptr<io::stream> connector::open(std::shared_ptr<io::stream> lower) {
   std::shared_ptr<stream> u;
   if (lower) {
-    int ret;
     // Load parameters.
     params p(params::CLIENT);
     p.set_cert(_cert, _key);
