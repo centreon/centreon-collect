@@ -286,6 +286,10 @@ std::list<perfdata> perfdata::parse_perfdata(
       error = true;
     }
 
+    if (p._name == "bar") {
+      int ii = 1;
+    }
+
     // Check format.
     if (*tmp != '=') {
       int i;

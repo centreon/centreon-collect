@@ -187,7 +187,8 @@ jobs:
                "build/engine/modules/bench/centengine_bench_passive"
                "build/connectors/perl/centreon_connector_perl"
                "build/connectors/ssh/centreon_connector_ssh"
-               "build/ccc/ccc")
+               "build/ccc/ccc"
+               "build/agent/centreon_agent")
           for file in ${exe[@]}; do
             echo "Making a debug file of $file"
             objcopy --only-keep-debug $file $file.debug
@@ -216,7 +217,7 @@ jobs:
         run: rm -rf *-debuginfo*.${{ matrix.package_extension }}
 
       # set condition to true if artifacts are needed
-      - if: ${{ false }}
+      - if: ${{ true }}
         name: Upload package artifacts
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
