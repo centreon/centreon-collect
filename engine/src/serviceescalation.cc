@@ -123,3 +123,30 @@ void serviceescalation::resolve(int& w, int& e) {
     throw engine_error() << "Cannot resolve service escalation";
   }
 }
+
+bool serviceescalation::matches(
+    const configuration::serviceescalation& obj) const {
+  uint32_t escalate_on =
+      ((obj.escalation_options() & configuration::serviceescalation::warning)
+           ? notifier::warning
+           : notifier::none) |
+      ((obj.escalation_options() & configuration::serviceescalation::unknown)
+           ? notifier::unknown
+           : notifier::none) |
+      ((obj.escalation_options() & configuration::serviceescalation::critical)
+           ? notifier::critical
+           : notifier::none) |
+      ((obj.escalation_options() & configuration::serviceescalation::recovery)
+           ? notifier::ok
+           : notifier::none);
+  if (_hostname != obj.hosts().front() ||
+      _description != obj.service_description().front() ||
+      get_first_notification() != obj.first_notification() ||
+      get_last_notification() != obj.last_notification() ||
+      get_notification_interval() != obj.notification_interval() ||
+      get_escalation_period() != obj.escalation_period() ||
+      get_escalate_on() != escalate_on)
+    return false;
+
+  return true;
+}

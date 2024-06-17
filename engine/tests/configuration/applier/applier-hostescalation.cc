@@ -55,6 +55,24 @@ TEST_F(ApplierHostEscalation, AddEscalation) {
   ASSERT_EQ(hostescalation::hostescalations.size(), 2u);
 }
 
+TEST_F(ApplierHostEscalation, ResolveObject) {
+  configuration::applier::host hst_aply;
+  configuration::host hst;
+  ASSERT_TRUE(hst.parse("host_name", "test_host"));
+  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
+  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  hst_aply.add_object(hst);
+  ASSERT_EQ(host::hosts.size(), 1u);
+
+  configuration::applier::hostescalation he_apply;
+  configuration::hostescalation he;
+  ASSERT_TRUE(he.parse("host_name", "test_host"));
+  ASSERT_TRUE(he.parse("first_notification", "4"));
+  ASSERT_THROW(he_apply.resolve_object(he), std::exception);
+  he_apply.add_object(he);
+  ASSERT_NO_THROW(he_apply.resolve_object(he));
+}
+
 TEST_F(ApplierHostEscalation, RemoveEscalation) {
   configuration::applier::host hst_aply;
   configuration::host hst;

@@ -255,8 +255,8 @@ void applier::serviceescalation::resolve_object(
                          << "concerning host '" << hostname << "' and service '"
                          << desc << "'";
   size_t key = serviceescalation_key(obj);
-  for (serviceescalation_mmap::iterator it{p.first}; it != p.second; ++it) {
-    if (it->second->internal_key() == key) {
+  for (serviceescalation_mmap::iterator it = p.first; it != p.second; ++it) {
+    if (it->second->internal_key() == key && it->second->matches(obj)) {
       found = true;
       // Resolve service escalation.
       it->second->resolve(config_warnings, config_errors);

@@ -33,6 +33,11 @@ typedef std::unordered_multimap<
     serviceescalation_mmap;
 
 namespace com::centreon::engine {
+
+namespace configuration {
+class serviceescalation;
+}
+
 class serviceescalation : public escalation {
  public:
   serviceescalation(std::string const& hostname,
@@ -48,6 +53,7 @@ class serviceescalation : public escalation {
   std::string const& get_description() const;
   bool is_viable(int state, uint32_t notification_number) const override;
   void resolve(int& w, int& e) override;
+  bool matches(const configuration::serviceescalation& obj) const;
 
   static serviceescalation_mmap serviceescalations;
 

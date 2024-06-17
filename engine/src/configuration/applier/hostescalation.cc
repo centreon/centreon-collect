@@ -242,7 +242,7 @@ void applier::hostescalation::resolve_object(
   for (hostescalation_mmap::iterator it{p.first}; it != p.second; ++it) {
     /* It's a pity but for now we don't have any idea or key to verify if
      * the hostescalation is the good one. */
-    if (it->second->internal_key() == key) {
+    if (it->second->internal_key() == key && it->second->matches(obj)) {
       found = true;
       // Resolve host escalation.
       it->second->resolve(config_warnings, config_errors);

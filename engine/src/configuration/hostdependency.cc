@@ -33,11 +33,15 @@ using namespace com::centreon::engine::logging;
 #define SETTER(type, method) \
   &object::setter<hostdependency, type, &hostdependency::method>::generic
 
+namespace com::centreon::engine::configuration {
 size_t hostdependency_key(const hostdependency& hd) {
+  assert(hd.hosts().size() == 1 && hd.hostgroups().empty() &&
+         hd.dependent_hosts().size() == 1 && hd.dependent_hostgroups().empty());
   return absl::HashOf(hd.dependency_period(), hd.dependency_type(),
                       *hd.dependent_hosts().begin(), *hd.hosts().begin(),
                       hd.inherits_parent(), hd.notification_failure_options());
 }
+}  // namespace com::centreon::engine::configuration
 
 std::unordered_map<std::string,
                    hostdependency::setter_func> const hostdependency::_setters{

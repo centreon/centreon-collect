@@ -126,3 +126,25 @@ void hostescalation::resolve(int& w, int& e) {
     throw engine_error() << "Cannot resolve host escalation";
   }
 }
+
+bool hostescalation::matches(const configuration::hostescalation& obj) const {
+  uint32_t escalate_on =
+      ((obj.escalation_options() & configuration::hostescalation::down)
+           ? notifier::down
+           : notifier::none) |
+      ((obj.escalation_options() & configuration::hostescalation::unreachable)
+           ? notifier::unreachable
+           : notifier::none) |
+      ((obj.escalation_options() & configuration::hostescalation::recovery)
+           ? notifier::up
+           : notifier::none);
+  if (_hostname != *obj.hosts().begin() ||
+      get_first_notification() != obj.first_notification() ||
+      get_last_notification() != obj.last_notification() ||
+      get_notification_interval() != obj.notification_interval() ||
+      get_escalation_period() != obj.escalation_period() ||
+      get_escalate_on() != escalate_on)
+    return false;
+
+  return true;
+}

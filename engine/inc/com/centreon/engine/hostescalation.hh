@@ -31,6 +31,10 @@ typedef std::unordered_multimap<
     hostescalation_mmap;
 
 namespace com::centreon::engine {
+namespace configuration {
+class hostescalation;
+}
+
 class hostescalation : public escalation {
  public:
   hostescalation(std::string const& host_name,
@@ -45,6 +49,8 @@ class hostescalation : public escalation {
   std::string const& get_hostname() const;
   bool is_viable(int state, uint32_t notification_number) const override;
   void resolve(int& w, int& e) override;
+
+  bool matches(const configuration::hostescalation& obj) const;
 
   static hostescalation_mmap hostescalations;
 

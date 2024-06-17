@@ -29,7 +29,7 @@ class hostdependency;
 class timeperiod;
 }  // namespace com::centreon::engine
 
-typedef absl::btree_multimap<
+typedef std::unordered_multimap<
     std::string,
     std::shared_ptr<com::centreon::engine::hostdependency>>
     hostdependency_mmap;
