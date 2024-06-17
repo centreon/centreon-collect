@@ -20,8 +20,6 @@
 #ifndef CCE_CONFIGURATION_FILE_INFO_HH
 #define CCE_CONFIGURATION_FILE_INFO_HH
 
-#include "com/centreon/engine/exceptions/error.hh"
-
 namespace com::centreon::engine {
 
 namespace configuration {
