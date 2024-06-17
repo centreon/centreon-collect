@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 - 2021 Centreon (https://www.centreon.com/)
+ * Copyright 2019 - 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -98,9 +98,9 @@ TEST_F(BrokerRpc, GetMuxerStats) {
       "unacknowledged_events: "
       "1790\n"};
 
-  stats::center::instance().update_muxer("mx1", "qufl_", 18u, 1789u);
+  stats::center::instance_ptr()->update_muxer("mx1", "qufl_", 18u, 1789u);
 
-  stats::center::instance().update_muxer("mx2", "_qufl", 18u, 1790u);
+  stats::center::instance_ptr()->update_muxer("mx2", "_qufl", 18u, 1790u);
 
   std::list<std::string> output = execute("GetMuxerStats mx1 mx2");
 

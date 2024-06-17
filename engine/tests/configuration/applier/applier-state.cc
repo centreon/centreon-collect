@@ -20,6 +20,7 @@
 #include <google/protobuf/util/message_differencer.h>
 #include <gtest/gtest.h>
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/configuration/extended_conf.hh"
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/globals.hh"
 
@@ -1016,4 +1017,47 @@ TEST_F(ApplierState, StateLegacyParsingHostdependencyWithoutHost) {
   configuration::parser p;
   CreateBadConf(ConfigurationObject::HOSTDEPENDENCY);
   ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+}
+
+TEST_F(ApplierState, extended_override_conf) {
+  configuration::state config;
+  configuration::parser p;
+  CreateConf();
+  p.parse("/tmp/centengine.cfg", config);
+
+  const char* file_paths[] = {"/tmp/extended_conf.json"};
+  CreateFile(file_paths[0],
+             R"({"instance_heartbeat_interval":120, 
+  "log_level_functions":"debug",
+  "log_level_checks":"trace",
+  "enable_flap_detection": true,
+  "rpc_port": 12345
+})");
+
+  configuration::extended_conf::load_all(file_paths, file_paths + 1);
+  configuration::extended_conf::update_state(config);
+  ASSERT_EQ(config.log_level_functions(), std::string("debug"));
+  ASSERT_EQ(config.log_level_checks(), std::string("trace"));
+  ASSERT_EQ(config.instance_heartbeat_interval(), 120);
+  ASSERT_EQ(config.enable_flap_detection(), true);
+  ASSERT_EQ(config.rpc_port(), 12345);
+}
+
+TEST_F(ApplierState, extended_override_conf_overflow) {
+  configuration::state config;
+  configuration::parser p;
+  CreateConf();
+  p.parse("/tmp/centengine.cfg", config);
+
+  const char* file_paths[] = {"/tmp/extended_conf.json"};
+  CreateFile(file_paths[0],
+             R"({
+  "enable_flap_detection": "etetge",
+  "rpc_port": 12345456
+})");
+
+  configuration::extended_conf::load_all(file_paths, file_paths + 1);
+  configuration::extended_conf::update_state(config);
+  ASSERT_EQ(config.enable_flap_detection(), false);
+  ASSERT_EQ(config.rpc_port(), 0);
 }

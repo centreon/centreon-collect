@@ -1,19 +1,19 @@
 /*
-** Copyright 2018-2023 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+ * Copyright 2018-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
 */
 #include <errmsg.h>
 
@@ -122,7 +122,7 @@ void mysql_connection::_update_stats() noexcept {
     float query_avg = _stats.average_query_duration();
 
     {
-      std::lock_guard<stats::center> lck(stats::center::instance());
+      std::lock_guard<stats::center> lck(*_center);
       _proto_stats->set_waiting_tasks(static_cast<int32_t>(_tasks_count));
       if (static_cast<bool>(_connected)) {
         _proto_stats->set_up_since(_switch_point);
@@ -1091,7 +1091,8 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
       _proto_stats{stats},
       _last_stats{std::time(nullptr)},
       _qps(db_cfg.get_queries_per_transaction()),
-      _category(db_cfg.get_category()) {
+      _category(db_cfg.get_category()),
+      _center{stats::center::instance_ptr()} {
   DEBUG(fmt::format("CONSTRUCTOR mysql_connection {:p}",
                     static_cast<void*>(this)));
   std::unique_lock<std::mutex> lck(_start_m);
@@ -1110,8 +1111,7 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
   }
   pthread_setname_np(_thread->native_handle(), "mysql_connect");
   SPDLOG_LOGGER_INFO(log_v2::sql(), "mysql_connection: connection started");
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
-                                   _proto_stats, 0);
+  _center->update(&SqlConnectionStats::set_waiting_tasks, _proto_stats, 0);
 }
 
 /**
@@ -1122,7 +1122,7 @@ mysql_connection::~mysql_connection() {
   SPDLOG_LOGGER_INFO(log_v2::sql(), "mysql_connection {:p}: finished",
                      static_cast<const void*>(this));
   stop();
-  stats::center::instance().remove_connection(_proto_stats);
+  _center->remove_connection(_proto_stats);
   _thread->join();
   DEBUG(fmt::format("DESTRUCTOR mysql_connection {:p}",
                     static_cast<void*>(this)));

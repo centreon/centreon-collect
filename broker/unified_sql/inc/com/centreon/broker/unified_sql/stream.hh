@@ -1,5 +1,5 @@
 /**
- * Copyright 2019-2023 Centreon
+ * Copyright 2019-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -279,6 +279,7 @@ class stream : public io::stream {
   bool _check_queues_stopped;
 
   /* Stats */
+  std::shared_ptr<stats::center> _center;
   ConflictManagerStats* _stats;
 
   absl::flat_hash_set<uint32_t> _cache_deleted_instance_id;
