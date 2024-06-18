@@ -22,6 +22,12 @@
 
 namespace com::centreon::common {
 
+/**
+ * @brief This class is kept because already used in Engine. But please, do
+ * not use it anymore, prefer std::optional that plays almost the same role.
+ *
+ * @tparam T
+ */
 template <typename T>
 class opt {
   T _data;
