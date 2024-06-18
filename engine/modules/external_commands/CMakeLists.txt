@@ -23,7 +23,7 @@ set(SRC_DIR "${MODULE_DIR}/src")
 set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/external_commands")
 
 # Include directories.
-include_directories("${MODULE_DIR}/inc")
+include_directories(${MODULE_DIR}/inc ${CMAKE_SOURCE_DIR}/clib/inc)
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
 # mod_externalcmd target.

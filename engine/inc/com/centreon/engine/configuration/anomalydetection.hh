@@ -20,10 +20,12 @@
 #define CCE_CONFIGURATION_ANOMALYDETECTION_HH
 
 #include "bbdo/neb.pb.h"
+#include "com/centreon/common/opt.hh"
 #include "com/centreon/engine/configuration/customvariable.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/opt.hh"
+
+using com::centreon::common::opt;
 
 namespace com::centreon::engine {
 

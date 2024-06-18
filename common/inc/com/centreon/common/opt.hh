@@ -17,10 +17,10 @@
  * For more information : contact@centreon.com
  *
  */
-#ifndef CCE_OPT_HH
-#define CCE_OPT_HH
+#ifndef CCC_OPT_HH
+#define CCC_OPT_HH
 
-namespace com::centreon::engine {
+namespace com::centreon::common {
 
 template <typename T>
 class opt {
@@ -69,6 +69,6 @@ class opt {
   }
 };
 
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::common
 
-#endif  // !CCE_OPT_HH
+#endif  // !CCC_OPT_HH

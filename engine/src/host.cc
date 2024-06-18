@@ -4105,8 +4105,6 @@ void host::_switch_all_services_to_unknown() {
 
   std::string output = fmt::format("host {} is down", name());
 
-  time_t now = time(nullptr);
-
   for (auto serv_iter = service::services_by_id.lower_bound({_id, 0});
        serv_iter != service::services_by_id.end() &&
        serv_iter->first.first == _id;

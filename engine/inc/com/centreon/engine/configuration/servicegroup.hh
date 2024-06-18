@@ -19,9 +19,9 @@
 #ifndef CCE_CONFIGURATION_SERVICEGROUP_HH
 #define CCE_CONFIGURATION_SERVICEGROUP_HH
 
+#include "com/centreon/common/opt.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/opt.hh"
 
 typedef std::set<std::pair<std::string, std::string> > set_pair_string;
 
