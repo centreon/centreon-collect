@@ -29,6 +29,7 @@
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;

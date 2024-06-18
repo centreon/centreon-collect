@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2022-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,13 @@
  * For more information : contact@centreon.com
  *
  */
-
 #include "com/centreon/engine/configuration/tag.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) &object::setter<tag, type, &tag::method>::generic
 
@@ -112,11 +112,11 @@ bool tag::operator<(const tag& other) const noexcept {
  */
 void tag::check_validity() const {
   if (_tag_name.empty())
-    throw engine_error() << "Tag has no name (property 'tag_name')";
+    throw msg_fmt("Tag has no name (property 'tag_name')");
   if (_key.first == 0)
-    throw engine_error() << "Tag id must not be less than 1 (property 'id')";
+    throw msg_fmt("Tag id must not be less than 1 (property 'id')");
   if (_key.second == static_cast<uint16_t>(-1))
-    throw engine_error() << "Tag type must be defined (property 'type')";
+    throw msg_fmt("Tag type must be defined (property 'type')");
 }
 
 /**

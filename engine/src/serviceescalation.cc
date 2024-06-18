@@ -124,6 +124,15 @@ void serviceescalation::resolve(int& w, int& e) {
   }
 }
 
+/**
+ * @brief Checks that this serviceescalation corresponds to the Configuration
+ * object obj. This function doesn't check contactgroups as it is usually used
+ * to modify them.
+ *
+ * @param obj A service escalation configuration object.
+ *
+ * @return A boolean that is True if they match.
+ */
 bool serviceescalation::matches(
     const configuration::serviceescalation& obj) const {
   uint32_t escalate_on =

@@ -19,7 +19,7 @@
 #ifndef CCE_CONFIGURATION_ANOMALYDETECTION_HH
 #define CCE_CONFIGURATION_ANOMALYDETECTION_HH
 
-#include "com/centreon/engine/common.hh"
+#include "bbdo/neb.pb.h"
 #include "com/centreon/engine/configuration/customvariable.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"

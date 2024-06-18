@@ -127,6 +127,15 @@ void hostescalation::resolve(int& w, int& e) {
   }
 }
 
+/**
+ * @brief Checks that this hostescalation corresponds to the Configuration
+ * object obj. This function doesn't check contactgroups as it is usually used
+ * to modify them.
+ *
+ * @param obj A host escalation configuration object.
+ *
+ * @return A boolean that is True if they match.
+ */
 bool hostescalation::matches(const configuration::hostescalation& obj) const {
   uint32_t escalate_on =
       ((obj.escalation_options() & configuration::hostescalation::down)

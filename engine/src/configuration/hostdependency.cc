@@ -19,16 +19,15 @@
  */
 
 #include "com/centreon/engine/configuration/hostdependency.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
 extern int config_errors;
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::engine::logging;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
   &object::setter<hostdependency, type, &hostdependency::method>::generic
@@ -184,15 +183,14 @@ bool hostdependency::operator<(hostdependency const& right) const {
  */
 void hostdependency::check_validity() const {
   if (_hosts->empty() && _hostgroups->empty())
-    throw(engine_error() << "Host dependency is not attached to any "
-                         << "host or host group (properties 'host_name' or "
-                         << "'hostgroup_name', respectively)");
+    throw msg_fmt(
+        "Host dependency is not attached to any host or host group (properties "
+        "'host_name' or 'hostgroup_name', respectively)");
   if (_dependent_hosts->empty() && _dependent_hostgroups->empty())
-    throw(engine_error()
-          << "Host dependency is not attached to any "
-          << "dependent host or dependent host group (properties "
-          << "'dependent_host_name' or 'dependent_hostgroup_name', "
-          << "respectively)");
+    throw msg_fmt(
+        "Host dependency is not attached to any dependent host or dependent "
+        "host group (properties 'dependent_host_name' or "
+        "'dependent_hostgroup_name', respectively)");
 
   if (!_execution_failure_options && !_notification_failure_options) {
     ++config_warnings;
@@ -224,8 +222,8 @@ hostdependency::key_type const& hostdependency::key() const noexcept {
  */
 void hostdependency::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge host dependency with '" << obj.type()
-                         << "'");
+    throw msg_fmt("Cannot merge host dependency with '{}'",
+                  static_cast<uint32_t>(obj.type()));
   hostdependency const& tmpl(static_cast<hostdependency const&>(obj));
 
   MRG_DEFAULT(_dependency_period);

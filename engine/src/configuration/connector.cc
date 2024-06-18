@@ -18,11 +18,11 @@
  *
  */
 #include "com/centreon/engine/configuration/connector.hh"
-#include "com/centreon/engine/checks/checker.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
   &object::setter<connector, type, &connector::method>::generic
@@ -114,12 +114,11 @@ bool connector::operator<(connector const& right) const throw() {
  */
 void connector::check_validity() const {
   if (_connector_name.empty())
-    throw(
-        engine_error() << "Connector has no name (property 'connector_name')");
+    throw msg_fmt("Connector has no name (property 'connector_name')");
   if (_connector_line.empty())
-    throw(
-        engine_error() << "Connector '" << _connector_name
-                       << "' has no command line (property 'connector_line')");
+    throw msg_fmt(
+        "Connector '{}' has no command line (property 'connector_line')",
+        _connector_name);
 }
 
 /**
@@ -138,8 +137,8 @@ connector::key_type const& connector::key() const throw() {
  */
 void connector::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge connector with '" << obj.type()
-                         << "'");
+    throw msg_fmt("Cannot merge connector with '{}'",
+                  static_cast<uint32_t>(obj.type()));
   connector const& tmpl(static_cast<connector const&>(obj));
 
   MRG_DEFAULT(_connector_line);

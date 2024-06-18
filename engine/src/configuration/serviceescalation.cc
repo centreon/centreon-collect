@@ -18,13 +18,12 @@
  */
 
 #include "com/centreon/engine/configuration/serviceescalation.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::engine::logging;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
   &object::setter<serviceescalation, type, &serviceescalation::method>::generic
@@ -242,15 +241,14 @@ bool serviceescalation::operator<(serviceescalation const& right) const {
 void serviceescalation::check_validity() const {
   if (_servicegroups->empty()) {
     if (_service_description->empty())
-      throw(engine_error() << "Service escalation is not attached to "
-                           << "any service or service group (properties "
-                           << "'service_description' and 'servicegroup_name', "
-                           << "respectively)");
+      throw msg_fmt(
+          "Service escalation is not attached to any service or service group "
+          "(properties 'service_description' and 'servicegroup_name', "
+          "respectively)");
     else if (_hosts->empty() && _hostgroups->empty())
-      throw(
-          engine_error() << "Service escalation is not attached to "
-                         << "any host or host group (properties 'host_name' or "
-                         << "'hostgroup_name', respectively)");
+      throw msg_fmt(
+          "Service escalation is not attached to any host or host group "
+          "(properties 'host_name' or 'hostgroup_name', respectively)");
   }
 }
 
@@ -270,8 +268,8 @@ serviceescalation::key_type const& serviceescalation::key() const noexcept {
  */
 void serviceescalation::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge service escalation with '"
-                         << obj.type() << "'");
+    throw msg_fmt("Cannot merge service escalation with '{}'",
+                  static_cast<uint32_t>(obj.type()));
   serviceescalation const& tmpl(static_cast<serviceescalation const&>(obj));
 
   MRG_INHERIT(_contactgroups);

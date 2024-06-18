@@ -21,15 +21,14 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <absl/strings/string_view.h>
-#include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/host.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
 extern int config_errors;
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
   &object::setter<anomalydetection, type, &anomalydetection::method>::generic
@@ -125,7 +124,7 @@ static unsigned short const default_flap_detection_options(
     anomalydetection::unknown | anomalydetection::critical);
 static unsigned int const default_freshness_threshold(0);
 static unsigned int const default_high_flap_threshold(0);
-static unsigned int const default_initial_state(engine::service::state_ok);
+static unsigned int const default_initial_state(broker::Service_State_OK);
 static bool const default_is_volatile(false);
 static unsigned int const default_low_flap_threshold(0);
 static unsigned int const default_max_check_attempts(3);
@@ -755,24 +754,26 @@ bool anomalydetection::operator<(anomalydetection const& other) const noexcept {
 /**
  *  Check if the object is valid.
  *
- *  @exception engine_error if this anomalydetection is an invalid object.
+ *  @exception msg_fmt if this anomalydetection is an invalid object.
  */
 void anomalydetection::check_validity() const {
   if (_service_description.empty())
-    throw engine_error() << "Service has no description (property "
-                         << "'service_description')";
+    throw msg_fmt(
+        "Service has no description (property 'service_description')");
   if (_host_name.empty())
-    throw engine_error() << "Service '" << _service_description
-                         << "' is not attached to any host (property "
-                            "'host_name')";
+    throw msg_fmt(
+        "Service '{}' is not attached to any host (property 'host_name')",
+        _service_description);
   if (_metric_name.empty())
-    throw engine_error()
-        << "Anomaly detection service '" << _service_description
-        << "' has no metric name specified (property 'metric_name')";
+    throw msg_fmt(
+        "Anomaly detection service '{}' has no metric name specified (property "
+        "'metric_name')",
+        _service_description);
   if (_thresholds_file.empty())
-    throw engine_error()
-        << "Anomaly detection service '" << _service_description
-        << "' has no thresholds file specified (property 'thresholds_file')";
+    throw msg_fmt(
+        "Anomaly detection service '{}' has no thresholds file specified "
+        "(property 'thresholds_file')",
+        _service_description);
 }
 
 /**
@@ -792,8 +793,8 @@ anomalydetection::key_type anomalydetection::key() const {
  */
 void anomalydetection::merge(object const& obj) {
   if (obj.type() != _type)
-    throw engine_error() << "Cannot merge anomalydetection with '" << obj.type()
-                         << "'";
+    throw msg_fmt("Cannot merge anomalydetection with '{}'",
+                  static_cast<uint32_t>(obj.type()));
   anomalydetection const& tmpl(static_cast<anomalydetection const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);
@@ -1764,13 +1765,13 @@ bool anomalydetection::_set_initial_state(std::string const& value) {
   std::string_view data(value);
   data = absl::StripAsciiWhitespace(data);
   if (data == "o" || data == "ok")
-    _initial_state = engine::service::state_ok;
+    _initial_state = broker::Service_State_OK;
   else if (data == "w" || data == "warning")
-    _initial_state = engine::service::state_warning;
+    _initial_state = broker::Service_State_WARNING;
   else if (data == "u" || data == "unknown")
-    _initial_state = engine::service::state_unknown;
+    _initial_state = broker::Service_State_UNKNOWN;
   else if (data == "c" || data == "critical")
-    _initial_state = engine::service::state_critical;
+    _initial_state = broker::Service_State_CRITICAL;
   else
     return false;
   return true;
@@ -2112,10 +2113,10 @@ bool anomalydetection::_set_timezone(std::string const& value) {
 bool anomalydetection::_set_category_tags(const std::string& value) {
   bool ret = true;
   std::list<std::string_view> tags{absl::StrSplit(value, ',')};
-  for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
-       end(_tags.end());
+  for (std::set<std::pair<uint64_t, uint16_t>>::iterator it = _tags.begin(),
+                                                         end = _tags.end();
        it != end;) {
-    if (it->second == tag::servicecategory)
+    if (it->second == broker::SERVICECATEGORY)
       it = _tags.erase(it);
     else
       ++it;
@@ -2126,7 +2127,7 @@ bool anomalydetection::_set_category_tags(const std::string& value) {
     bool parse_ok;
     parse_ok = absl::SimpleAtoi(tag, &id);
     if (parse_ok) {
-      _tags.emplace(id, tag::servicecategory);
+      _tags.emplace(id, broker::SERVICECATEGORY);
     } else {
       _logger->warn(
           "Warning: anomalydetection ({}, {}) error for parsing tag {}",
@@ -2150,7 +2151,7 @@ bool anomalydetection::_set_group_tags(const std::string& value) {
   for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
        end(_tags.end());
        it != end;) {
-    if (it->second == tag::servicegroup)
+    if (it->second == broker::SERVICEGROUP)
       it = _tags.erase(it);
     else
       ++it;
@@ -2161,7 +2162,7 @@ bool anomalydetection::_set_group_tags(const std::string& value) {
     bool parse_ok;
     parse_ok = absl::SimpleAtoi(tag, &id);
     if (parse_ok) {
-      _tags.emplace(id, tag::servicegroup);
+      _tags.emplace(id, broker::SERVICEGROUP);
     } else {
       _logger->warn(
           "Warning: anomalydetection ({}, {}) error for parsing tag {}",

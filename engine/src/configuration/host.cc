@@ -22,17 +22,15 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/logging/logger.hh"
+#include "bbdo/neb.pb.h"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
 extern int config_errors;
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::engine::logging;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) &object::setter<host, type, &host::method>::generic
 
@@ -122,7 +120,7 @@ static unsigned short const default_flap_detection_options(host::up |
                                                            host::unreachable);
 static unsigned int const default_freshness_threshold(0);
 static unsigned int const default_high_flap_threshold(0);
-static unsigned short const default_initial_state(engine::host::state_up);
+static unsigned short const default_initial_state(broker::Host_State_UP);
 static unsigned int const default_low_flap_threshold(0);
 static unsigned int const default_max_check_attempts(3);
 static bool const default_notifications_enabled(true);
@@ -434,10 +432,9 @@ bool host::operator<(host const& other) const noexcept {
  */
 void host::check_validity() const {
   if (_host_name.empty())
-    throw engine_error() << "Host has no name (property 'host_name')";
+    throw msg_fmt("Host has no name (property 'host_name')");
   if (_address.empty())
-    throw engine_error() << "Host '" << _host_name
-                         << "' has no address (property 'address')";
+    throw msg_fmt("Host '{}' has no address (property 'address')", _host_name);
 }
 
 /**
@@ -456,7 +453,8 @@ host::key_type host::key() const noexcept {
  */
 void host::merge(object const& obj) {
   if (obj.type() != _type)
-    throw engine_error() << "Cannot merge host with '" << obj.type() << "'";
+    throw msg_fmt("Cannot merge host with '{}'",
+                  static_cast<uint32_t>(obj.type()));
   host const& tmpl(static_cast<host const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);
@@ -1439,11 +1437,11 @@ bool host::_set_initial_state(std::string const& value) {
   std::string_view data(value);
   data = absl::StripAsciiWhitespace(data);
   if (data == "o" || data == "up")
-    _initial_state = engine::host::state_up;
+    _initial_state = broker::Host_State_UP;
   else if (data == "d" || data == "down")
-    _initial_state = engine::host::state_down;
+    _initial_state = broker::Host_State_DOWN;
   else if (data == "u" || data == "unreachable")
-    _initial_state = engine::host::state_unreachable;
+    _initial_state = broker::Host_State_UNREACHABLE;
   else
     return false;
   return true;
@@ -1718,7 +1716,7 @@ bool host::_set_category_tags(const std::string& value) {
   for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
        end(_tags.end());
        it != end;) {
-    if (it->second == tag::hostcategory)
+    if (it->second == broker::HOSTCATEGORY)
       it = _tags.erase(it);
     else
       ++it;
@@ -1729,7 +1727,7 @@ bool host::_set_category_tags(const std::string& value) {
     bool parse_ok;
     parse_ok = absl::SimpleAtoi(tag, &id);
     if (parse_ok) {
-      _tags.emplace(id, tag::hostcategory);
+      _tags.emplace(id, broker::HOSTCATEGORY);
     } else {
       _logger->warn("Warning: host ({}) error for parsing tag {}", _host_id,
                     value);
@@ -1752,7 +1750,7 @@ bool host::_set_group_tags(const std::string& value) {
   for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
        end(_tags.end());
        it != end;) {
-    if (it->second == tag::hostgroup)
+    if (it->second == broker::HOSTGROUP)
       it = _tags.erase(it);
     else
       ++it;
@@ -1763,7 +1761,7 @@ bool host::_set_group_tags(const std::string& value) {
     bool parse_ok;
     parse_ok = absl::SimpleAtoi(tag, &id);
     if (parse_ok) {
-      _tags.emplace(id, tag::hostgroup);
+      _tags.emplace(id, broker::HOSTGROUP);
     } else {
       _logger->warn("Warning: host ({}) error for parsing tag {}", _host_id,
                     value);

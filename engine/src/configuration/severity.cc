@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2022-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,13 @@
  * For more information : contact@centreon.com
  *
  */
-
 #include "com/centreon/engine/configuration/severity.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
+using com::centreon::exceptions::msg_fmt;
 
 #define SETTER(type, method) \
   &object::setter<severity, type, &severity::method>::generic
@@ -131,15 +131,13 @@ bool severity::operator<(const severity& other) const noexcept {
  */
 void severity::check_validity() const {
   if (_severity_name.empty())
-    throw engine_error() << "Severity has no name (property 'severity_name')";
+    throw msg_fmt("Severity has no name (property 'severity_name')");
   if (_key.first == 0)
-    throw engine_error()
-        << "Severity id must not be less than 1 (property 'id')";
+    throw msg_fmt("Severity id must not be less than 1 (property 'id')");
   if (_level == 0)
-    throw engine_error()
-        << "Severity level must not be less than 1 (property 'level')";
+    throw msg_fmt("Severity level must not be less than 1 (property 'level')");
   if (_key.second == severity::none)
-    throw engine_error() << "Severity type must be one of 'service' or 'host'";
+    throw msg_fmt("Severity type must be one of 'service' or 'host'");
 }
 
 /**
