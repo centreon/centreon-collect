@@ -1,5 +1,5 @@
 /*
-** Copyright 2009-2017-2021 Centreon
+** Copyright 2009-2017-2024 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -72,6 +72,7 @@ class muxer : public io::stream {
   std::list<std::shared_ptr<io::data>> _events;
   size_t _events_size;
   std::list<std::shared_ptr<io::data>>::iterator _pos;
+  std::shared_ptr<stats::center> _center;
   std::time_t _last_stats;
 
   static std::mutex _running_muxers_m;

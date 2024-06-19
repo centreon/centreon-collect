@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 Centreon
+ * Copyright 2020-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -189,7 +189,9 @@ void pool::_check_latency(const boost::system::error_code& ec) {
       auto end = std::chrono::system_clock::now();
       auto duration = std::chrono::duration<double, std::milli>(end - start);
       float d = duration.count() / 1000.0f;
-      stats::center::instance().update(&ThreadPool::set_latency, _stats, d);
+      std::shared_ptr<stats::center> stat_inst = stats::center::instance_ptr();
+      if (stat_inst)
+        stat_inst->update(&ThreadPool::set_latency, _stats, d);
       SPDLOG_LOGGER_TRACE(log_v2::core(), "Thread pool latency {:.5f}s", d);
     });
     if (_stats_running) {

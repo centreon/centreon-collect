@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2022-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,6 +85,20 @@ void server_stream::OnDone() {
  * @param conf
  */
 service_impl::service_impl(const grpc_config::pointer& conf) : _conf(conf) {}
+
+/**
+ * @brief to call after construction
+ *
+ */
+void service_impl::init() {
+  ::grpc::Service::MarkMethodCallback(
+      0, new ::grpc::internal::CallbackBidiHandler<
+             ::com::centreon::broker::stream::CentreonEvent,
+             ::com::centreon::broker::stream::CentreonEvent>(
+             [me = shared_from_this()](::grpc::CallbackServerContext* context) {
+               return me->exchange(context);
+             }));
+}
 
 /**
  * @brief called on every stream creation
@@ -235,6 +249,8 @@ void service_impl::unregister(
  */
 acceptor::acceptor(const grpc_config::pointer& conf)
     : io::endpoint(true, {}), _service(std::make_shared<service_impl>(conf)) {
+  _service->init();
+
   ::grpc::ServerBuilder builder;
 
   std::shared_ptr<::grpc::ServerCredentials> server_creds;
