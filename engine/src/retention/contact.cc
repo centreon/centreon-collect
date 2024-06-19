@@ -18,8 +18,6 @@
  *
  */
 #include "com/centreon/engine/retention/contact.hh"
-#include "com/centreon/common/opt.hh"
-#include "com/centreon/engine/string.hh"
 
 using com::centreon::common::opt;
 using namespace com::centreon::engine;
