@@ -19,7 +19,6 @@
  */
 #include "com/centreon/engine/retention/contact.hh"
 
-using com::centreon::common::opt;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::retention;
 
