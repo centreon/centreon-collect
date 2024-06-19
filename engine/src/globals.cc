@@ -73,8 +73,8 @@ com::centreon::engine::commands::command* global_service_event_handler_ptr(
 com::centreon::engine::commands::command* ochp_command_ptr(NULL);
 com::centreon::engine::commands::command* ocsp_command_ptr(NULL);
 int additional_freshness_latency(15);
-int config_errors(0);
-int config_warnings(0);
+//int config_errors(0);
+//int config_warnings(0);
 int sig_id(0);
 bool sighup{false};
 int sigrestart(false);

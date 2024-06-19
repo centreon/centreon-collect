@@ -1,24 +1,23 @@
-/*
-** Copyright 1999-2009 Ethan Galstad
-** Copyright 2009-2010 Nagios Core Development Team and Community Contributors
-** Copyright 2011-2019 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
-
+/**
+ * Copyright 1999-2009 Ethan Galstad
+ * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
+ * Copyright 2011-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 #ifndef CCE_GLOBALS_HH
 #define CCE_GLOBALS_HH
 
@@ -33,8 +32,8 @@
 #include "com/centreon/engine/utils.hh"
 #include "common/log_v2/log_v2.hh"
 
-extern int config_errors;
-extern int config_warnings;
+//extern int config_errors;
+//extern int config_warnings;
 
 /* Start/Restart statistics */
 extern com::centreon::engine::restart_stats restart_apply_stats;
