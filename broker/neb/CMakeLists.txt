@@ -20,7 +20,7 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/neb/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/neb/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/neb/test")
-include_directories("${INC_DIR}")
+include_directories("${INC_DIR}" ${CMAKE_SOURCE_DIR}/common/inc)
 
 # NEB sources.
 set(NEB_SOURCES

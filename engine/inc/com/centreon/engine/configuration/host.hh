@@ -19,12 +19,14 @@
 #ifndef CCE_CONFIGURATION_HOST_HH
 #define CCE_CONFIGURATION_HOST_HH
 
+#include "com/centreon/common/opt.hh"
 #include "com/centreon/engine/configuration/customvariable.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/configuration/point_2d.hh"
 #include "com/centreon/engine/configuration/point_3d.hh"
-#include "com/centreon/engine/opt.hh"
+
+using com::centreon::common::opt;
 
 namespace com::centreon::engine {
 

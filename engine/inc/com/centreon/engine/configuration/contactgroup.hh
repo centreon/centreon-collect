@@ -19,9 +19,9 @@
 #ifndef CCE_CONFIGURATION_CONTACTGROUP_HH
 #define CCE_CONFIGURATION_CONTACTGROUP_HH
 
+#include "com/centreon/common/opt.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/opt.hh"
 
 namespace com::centreon::engine::configuration {
 

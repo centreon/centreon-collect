@@ -18,6 +18,9 @@
 
 # External commands module is required.
 add_subdirectory("external_commands")
+
+include_directories(${CMAKE_SOURCE_DIR}/clib/inc)
+
 set(EXTERNALCMD_MODULE
     "${EXTERNALCMD_MODULE}"
     PARENT_SCOPE)
