@@ -20,7 +20,6 @@
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::retention;
-using com::centreon::common::opt;
 
 #define SETTER(type, method) \
   &object::setter<program, type, &program::method>::generic

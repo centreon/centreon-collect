@@ -24,7 +24,6 @@
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 
-using com::centreon::common::opt;
 using com::centreon::engine::map_customvar;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::retention;
