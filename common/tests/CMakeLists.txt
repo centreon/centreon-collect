@@ -50,6 +50,8 @@ target_link_libraries(
   ut_common
   PRIVATE centreon_common
   centreon_http
+  -L${Boost_LIBRARY_DIR_RELEASE}
+  boost_program_options
   re2::re2
   log_v2
   crypto 

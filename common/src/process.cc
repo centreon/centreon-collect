@@ -19,6 +19,7 @@
 
 #include <boost/process/v2/process.hpp>
 #include <boost/process/v2/stdio.hpp>
+#include <boost/program_options/parsers.hpp>
 
 #include "process.hh"
 
@@ -63,8 +64,7 @@ process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
                  const std::shared_ptr<spdlog::logger>& logger,
                  const std::string_view& cmd_line)
     : _io_context(io_context), _logger(logger) {
-  auto split_res =
-      absl::StrSplit(cmd_line, absl::ByAnyChar(" \t"), absl::SkipEmpty());
+  auto split_res = boost::program_options::split_unix(std::string(cmd_line));
   if (split_res.begin() == split_res.end()) {
     SPDLOG_LOGGER_ERROR(_logger, "empty command line:\"{}\"", cmd_line);
     throw exceptions::msg_fmt("empty command line:\"{}\"", cmd_line);

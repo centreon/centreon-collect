@@ -1,0 +1,66 @@
+name: "centreon-agent"
+arch: "${ARCH}"
+platform: "linux"
+version_schema: "none"
+version: "${VERSION}"
+release: "${RELEASE}${DIST}"
+section: "default"
+priority: "optional"
+maintainer: "Centreon <contact@centreon.com>"
+description: |
+  This software is an agent used to executes commands on remote computers as nsclient does.
+  Commit: @COMMIT_HASH@
+vendor: "Centreon"
+homepage: "https://www.centreon.com"
+license: "Apache-2.0"
+
+contents:
+  - src: "../agent/conf/centagent.cfg"
+    dst: "/etc/centreon-agent/centagent.cfg"
+    type: config|noreplace
+    file_info:
+      mode: 0664
+      owner: centreon-agent
+      group: centreon-agent
+
+  - src: "../agent/scripts/centagent.service"
+    dst: "/usr/lib/systemd/system/centagent.service"
+    file_info:
+      mode: 0644
+    packager: rpm
+  - src: "../agent/scripts/centagent.service"
+    dst: "/lib/systemd/system/centagent.service"
+    file_info:
+      mode: 0644
+    packager: deb
+
+  - src: "../build/agent/centagent"
+    dst: "/usr/bin/centagent"
+
+  - dst: "/etc/centreon-agent"
+    type: dir
+    file_info:
+      mode: 0775
+      owner: centreon-agent
+      group: centreon-agent
+
+  - dst: "/var/log/centreon-agent"
+    type: dir
+    file_info:
+      mode: 0755
+      owner: centreon-agent
+      group: centreon-agent
+
+scripts:
+  preinstall: ./scripts/centreon-agent-daemon-preinstall.sh
+  postinstall: ./scripts/centreon-agent-daemon-postinstall.sh
+  preremove: ./scripts/centreon-agent-daemon-preremove.sh
+  postremove: ./scripts/centreon-agent-daemon-postremove.sh
+
+
+rpm:
+  summary: Centreon Collect Agent. It can be used to execute remotely plugins
+  compression: zstd
+  signature:
+    key_file: ${RPM_SIGNING_KEY_FILE}
+    key_id: ${RPM_SIGNING_KEY_ID}

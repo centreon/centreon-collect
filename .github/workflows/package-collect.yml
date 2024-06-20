@@ -105,7 +105,7 @@ jobs:
         if: ${{ matrix.package_extension == 'rpm' }}
         run: |
           cd selinux
-          for MODULE in "centreon-engine" "centreon-broker"; do
+          for MODULE in "centreon-engine" "centreon-broker" "centreon-agent"; do
             cd $MODULE
             sed -i "s/@VERSION@/${{ inputs.version }}/g" $MODULE.te
             make -f /usr/share/selinux/devel/Makefile
@@ -187,7 +187,8 @@ jobs:
                "build/engine/modules/bench/centengine_bench_passive"
                "build/connectors/perl/centreon_connector_perl"
                "build/connectors/ssh/centreon_connector_ssh"
-               "build/ccc/ccc")
+               "build/ccc/ccc"
+               "build/agent/centagent")
           for file in ${exe[@]}; do
             echo "Making a debug file of $file"
             objcopy --only-keep-debug $file $file.debug
