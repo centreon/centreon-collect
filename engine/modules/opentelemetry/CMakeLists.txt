@@ -20,7 +20,6 @@
 set(MODULE_DIR "${PROJECT_SOURCE_DIR}/modules/opentelemetry")
 set(SRC_DIR "${MODULE_DIR}/src")
 
-
 #protobuf service
 set(service_files
   opentelemetry/proto/collector/metrics/v1/metrics_service
@@ -42,9 +41,35 @@ foreach(name IN LISTS service_files)
 
 endforeach()
 
+#centagent server and client
+add_custom_command(
+  DEPENDS ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
+  COMMENT "Generating interface files of the conf centreon_agent proto file (grpc)"
+  OUTPUT ${SRC_DIR}/centreon_agent/agent.grpc.pb.cc
+  COMMAND
+    ${Protobuf_PROTOC_EXECUTABLE} ARGS
+    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+    --proto_path=${CMAKE_SOURCE_DIR}/agent/proto --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
+    --grpc_out=${SRC_DIR}/centreon_agent ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
+  DEPENDS ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
+  COMMENT "Generating interface files of the conf centreon_agent proto file (protobuf)"
+  OUTPUT ${SRC_DIR}/centreon_agent/agent.pb.cc
+  COMMAND
+    ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}/centreon_agent
+    --proto_path=${CMAKE_SOURCE_DIR}/agent/proto --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
+    ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # mod_externalcmd target.
-add_library(opentelemetry SHARED
+add_library(opentelemetry SHARED 
+${SRC_DIR}/centreon_agent/agent.grpc.pb.cc
+${SRC_DIR}/centreon_agent/agent.pb.cc
+${SRC_DIR}/centreon_agent/agent_check_result_builder.cc
+${SRC_DIR}/centreon_agent/agent_config.cc
+${SRC_DIR}/centreon_agent/agent_impl.cc
+${SRC_DIR}/centreon_agent/agent_reverse_client.cc
+${SRC_DIR}/centreon_agent/agent_service.cc
+${SRC_DIR}/centreon_agent/to_agent_connector.cc
 ${SRC_DIR}/data_point_fifo.cc
 ${SRC_DIR}/data_point_fifo_container.cc
 ${SRC_DIR}/grpc_config.cc
@@ -63,11 +88,15 @@ ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
 target_precompile_headers(opentelemetry PRIVATE precomp_inc/precomp.hh)
 
 # set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
-target_link_libraries(opentelemetry   spdlog::spdlog)
+target_link_libraries(opentelemetry   
+  spdlog::spdlog
+  -L${Boost_LIBRARY_DIR_RELEASE}
+  boost_program_options)
 
 add_dependencies(opentelemetry
   pb_open_telemetry_lib
-  pb_neb_lib)
+  pb_neb_lib
+  engine_rpc)
 
 target_include_directories(opentelemetry PRIVATE
   "${MODULE_DIR}/inc/com/centreon/engine/modules/opentelemetry"

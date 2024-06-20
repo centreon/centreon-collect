@@ -21,6 +21,8 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 #include "config.hh"
+#include "streaming_client.hh"
+#include "streaming_server.hh"
 
 using namespace com::centreon::agent;
 
@@ -28,6 +30,9 @@ std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
 
 std::shared_ptr<spdlog::logger> g_logger;
+static std::shared_ptr<streaming_client> _streaming_client;
+
+static std::shared_ptr<streaming_server> _streaming_server;
 
 static asio::signal_set _signals(*g_io_context, SIGTERM, SIGUSR1, SIGUSR2);
 
@@ -37,7 +42,13 @@ static void signal_handler(const boost::system::error_code& error,
     switch (signal_number) {
       case SIGTERM:
         SPDLOG_LOGGER_INFO(g_logger, "SIGTERM received");
-        g_io_context->stop();
+        if (_streaming_client) {
+          _streaming_client->shutdown();
+        }
+        if (_streaming_server) {
+          _streaming_server->shutdown();
+        }
+        g_io_context->post([]() { g_io_context->stop(); });
         break;
       case SIGUSR2:
         SPDLOG_LOGGER_INFO(g_logger, "SIGUSR2 received");
@@ -71,8 +82,7 @@ static std::string read_file(const std::string& file_path) {
       return ss.str();
     }
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(g_logger, "{} fail to read {}: {}", file_path,
-                        e.what());
+    SPDLOG_LOGGER_ERROR(g_logger, "fail to read {}: {}", file_path, e.what());
   }
   return "";
 }
@@ -82,6 +92,14 @@ int main(int argc, char* argv[]) {
     SPDLOG_ERROR(
         "No config file passed in param.\nUsage: {} <path to json config file>",
         argv[0]);
+    return 1;
+  }
+
+  if (!strcmp(argv[1], "--help")) {
+    SPDLOG_INFO(
+        "Usage: {} <path to json config file>\nSchema of the config "
+        "file is:\n{}",
+        argv[0], config::config_schema);
     return 1;
   }
 
@@ -131,6 +149,10 @@ int main(int argc, char* argv[]) {
 
   g_logger->set_level(conf->get_log_level());
 
+  g_logger->flush_on(spdlog::level::warn);
+
+  spdlog::flush_every(std::chrono::seconds(1));
+
   SPDLOG_LOGGER_INFO(g_logger,
                      "centreon-monitoring-agent start, you can decrease log "
                      "verbosity by kill -USR1 {} or increase by kill -USR2 {}",
@@ -145,7 +167,7 @@ int main(int argc, char* argv[]) {
 
     grpc_conf = std::make_shared<com::centreon::common::grpc::grpc_config>(
         conf->get_endpoint(), conf->use_encryption(),
-        read_file(conf->get_certificate_file()),
+        read_file(conf->get_public_cert_file()),
         read_file(conf->get_private_key_file()),
         read_file(conf->get_ca_certificate_file()), conf->get_ca_name(), true,
         30);
@@ -153,6 +175,14 @@ int main(int argc, char* argv[]) {
   } catch (const std::exception& e) {
     SPDLOG_CRITICAL("fail to parse input params: {}", e.what());
     return -1;
+  }
+
+  if (conf->use_reverse_connection()) {
+    _streaming_server = streaming_server::load(g_io_context, g_logger,
+                                               grpc_conf, conf->get_host());
+  } else {
+    _streaming_client = streaming_client::load(g_io_context, g_logger,
+                                               grpc_conf, conf->get_host());
   }
 
   try {

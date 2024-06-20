@@ -18,6 +18,7 @@
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
+#include "centreon_agent/agent_impl.hh"
 #include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/engine/modules/opentelemetry/open_telemetry.hh"
 
@@ -50,8 +51,21 @@ open_telemetry::open_telemetry(
 void open_telemetry::_reload() {
   std::unique_ptr<otl_config> new_conf =
       std::make_unique<otl_config>(_config_file_path, *_io_context);
-  if (!_conf || *new_conf->get_grpc_config() != *_conf->get_grpc_config()) {
-    this->_create_otl_server(new_conf->get_grpc_config());
+
+  if (new_conf->get_grpc_config()) {
+    if (!_conf || *new_conf->get_grpc_config() != *_conf->get_grpc_config()) {
+      this->_create_otl_server(new_conf->get_grpc_config(),
+                               new_conf->get_centreon_agent_config());
+    }
+    if (_conf && *_conf->get_centreon_agent_config() !=
+                     *new_conf->get_centreon_agent_config()) {
+      _otl_server->update_agent_config(new_conf->get_centreon_agent_config());
+    }
+  } else {  // only reverse connection
+    std::shared_ptr<otl_server> to_shutdown = std::move(_otl_server);
+    if (to_shutdown) {
+      to_shutdown->shutdown(std::chrono::seconds(10));
+    }
   }
 
   if (!new_conf->get_telegraf_conf_server_config()) {
@@ -76,7 +90,28 @@ void open_telemetry::_reload() {
                                        new_conf->get_max_fifo_size());
 
     _conf = std::move(new_conf);
+
+    if (!_agent_reverse_client) {
+      _agent_reverse_client =
+          std::make_unique<centreon_agent::agent_reverse_client>(
+              _io_context,
+              [me = shared_from_this()](const metric_request_ptr& request) {
+                me->_on_metric(request);
+              },
+              _logger);
+    }
+    _agent_reverse_client->update(_conf->get_centreon_agent_config());
   }
+  // push new configuration to connected agents
+  centreon_agent::agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
+                                                       agent::MessageToAgent>>::
+      all_agent_calc_and_send_config_if_needed(
+          _conf->get_centreon_agent_config());
+
+  centreon_agent::agent_impl<::grpc::ClientBidiReactor<
+      agent::MessageToAgent, agent::MessageFromAgent>>::
+      all_agent_calc_and_send_config_if_needed(
+          _conf->get_centreon_agent_config());
 }
 
 /**
@@ -105,14 +140,15 @@ std::shared_ptr<open_telemetry> open_telemetry::load(
  * @param server_conf json server config
  */
 void open_telemetry::_create_otl_server(
-    const grpc_config::pointer& server_conf) {
+    const grpc_config::pointer& server_conf,
+    const centreon_agent::agent_config::pointer& agent_conf) {
   try {
     std::shared_ptr<otl_server> to_shutdown = std::move(_otl_server);
     if (to_shutdown) {
       to_shutdown->shutdown(std::chrono::seconds(10));
     }
     _otl_server = otl_server::load(
-        server_conf,
+        _io_context, server_conf, agent_conf,
         [me = shared_from_this()](const metric_request_ptr& request) {
           me->_on_metric(request);
         },

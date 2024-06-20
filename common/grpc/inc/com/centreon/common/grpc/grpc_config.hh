@@ -101,6 +101,37 @@ class grpc_config {
            _compress == right._compress &&
            _second_keepalive_interval == right._second_keepalive_interval;
   }
+
+  /**
+   * @brief identical to std:string::compare
+   *
+   * @param right
+   * @return int -1, 0 if equal or 1
+   */
+  int compare(const grpc_config& right) const {
+    int ret = _hostport.compare(right._hostport);
+    if (ret)
+      return ret;
+    ret = _crypted - right._crypted;
+    if (ret)
+      return ret;
+    ret = _certificate.compare(right._certificate);
+    if (ret)
+      return ret;
+    ret = _cert_key.compare(right._cert_key);
+    if (ret)
+      return ret;
+    ret = _ca_cert.compare(right._ca_cert);
+    if (ret)
+      return ret;
+    ret = _ca_name.compare(right._ca_name);
+    if (ret)
+      return ret;
+    ret = _compress - right._compress;
+    if (ret)
+      return ret;
+    return _second_keepalive_interval - right._second_keepalive_interval;
+  }
 };
 }  // namespace com::centreon::common::grpc
 

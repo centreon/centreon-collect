@@ -75,7 +75,7 @@ class conf_session : public connection_class {
   void on_receive_request(const std::shared_ptr<http::request_type>& request);
 
   void answer_to_request(const std::shared_ptr<http::request_type>& request,
-                         std::vector<std::string>&& host_list);
+                         const std::string& host);
 
   bool _get_commands(const std::string& host_name, std::string& request_body);
 
