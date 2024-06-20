@@ -1,21 +1,25 @@
-/*
-** Copyright 2011-2013,2015-2017, 2021-2022 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2015-2017, 2021-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
+
+#include <absl/base/call_once.h>
+
+#include <boost/numeric/conversion/cast.hpp>
 
 #include "com/centreon/engine/configuration/state.hh"
 
@@ -32,233 +36,350 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
 
-#define SETTER(type, method) &state::setter<type, &state::method>::generic
 
-std::unordered_map<std::string, state::setter_func> const state::_setters{
-    {"accept_passive_host_checks", SETTER(bool, accept_passive_host_checks)},
-    {"accept_passive_service_checks",
-     SETTER(bool, accept_passive_service_checks)},
-    {"additional_freshness_latency", SETTER(int, additional_freshness_latency)},
-    {"admin_email", SETTER(std::string const&, admin_email)},
-    {"admin_pager", SETTER(std::string const&, admin_pager)},
-    {"aggregate_status_updates",
-     SETTER(std::string const&, _set_aggregate_status_updates)},
-    {"allow_empty_hostgroup_assignment",
-     SETTER(bool, allow_empty_hostgroup_assignment)},
-    {"auth_file", SETTER(std::string const&, _set_auth_file)},
-    {"auto_reschedule_checks", SETTER(bool, auto_reschedule_checks)},
-    {"auto_rescheduling_interval",
-     SETTER(unsigned int, auto_rescheduling_interval)},
-    {"auto_rescheduling_window",
-     SETTER(unsigned int, auto_rescheduling_window)},
-    {"bare_update_check", SETTER(std::string const&, _set_bare_update_check)},
-    {"broker_module_directory",
-     SETTER(std::string const&, broker_module_directory)},
-    {"broker_module", SETTER(std::string const&, _set_broker_module)},
-    {"cached_host_check_horizon",
-     SETTER(unsigned long, cached_host_check_horizon)},
-    {"cached_service_check_horizon",
-     SETTER(unsigned long, cached_service_check_horizon)},
-    {"cfg_dir", SETTER(std::string const&, _set_cfg_dir)},
-    {"cfg_file", SETTER(std::string const&, _set_cfg_file)},
-    {"check_external_commands", SETTER(bool, check_external_commands)},
-    {"check_for_orphaned_hosts", SETTER(bool, check_orphaned_hosts)},
-    {"check_for_orphaned_services", SETTER(bool, check_orphaned_services)},
-    {"check_for_updates", SETTER(std::string const&, _set_check_for_updates)},
-    {"check_host_freshness", SETTER(bool, check_host_freshness)},
-    {"check_result_reaper_frequency",
-     SETTER(unsigned int, check_reaper_interval)},
-    {"check_service_freshness", SETTER(bool, check_service_freshness)},
-    {"child_processes_fork_twice",
-     SETTER(std::string const&, _set_child_processes_fork_twice)},
-    {"command_check_interval",
-     SETTER(std::string const&, _set_command_check_interval)},
-    {"command_file", SETTER(std::string const&, command_file)},
-    {"comment_file", SETTER(std::string const&, _set_comment_file)},
-    {"daemon_dumps_core", SETTER(std::string const&, _set_daemon_dumps_core)},
-    {"date_format", SETTER(std::string const&, _set_date_format)},
-    {"debug_file", SETTER(std::string const&, debug_file)},
-    {"debug_level", SETTER(unsigned long long, debug_level)},
-    {"debug_verbosity", SETTER(unsigned int, debug_verbosity)},
-    {"downtime_file", SETTER(std::string const&, _set_downtime_file)},
-    {"enable_embedded_perl",
-     SETTER(std::string const&, _set_enable_embedded_perl)},
-    {"enable_environment_macros", SETTER(bool, enable_environment_macros)},
-    {"enable_event_handlers", SETTER(bool, enable_event_handlers)},
-    {"enable_failure_prediction",
-     SETTER(std::string const&, _set_enable_failure_prediction)},
-    {"enable_flap_detection", SETTER(bool, enable_flap_detection)},
-    {"enable_macros_filter", SETTER(bool, enable_macros_filter)},
-    {"enable_notifications", SETTER(bool, enable_notifications)},
-    {"enable_predictive_host_dependency_checks",
-     SETTER(bool, enable_predictive_host_dependency_checks)},
-    {"enable_predictive_service_dependency_checks",
-     SETTER(bool, enable_predictive_service_dependency_checks)},
-    {"event_broker_options",
-     SETTER(std::string const&, _set_event_broker_options)},
-    {"event_handler_timeout", SETTER(unsigned int, event_handler_timeout)},
-    {"execute_host_checks", SETTER(bool, execute_host_checks)},
-    {"execute_service_checks", SETTER(bool, execute_service_checks)},
-    {"external_command_buffer_slots",
-     SETTER(int, external_command_buffer_slots)},
-    {"free_child_process_memory",
-     SETTER(std::string const&, _set_free_child_process_memory)},
-    {"global_host_event_handler",
-     SETTER(std::string const&, global_host_event_handler)},
-    {"global_service_event_handler",
-     SETTER(std::string const&, global_service_event_handler)},
-    {"high_host_flap_threshold", SETTER(float, high_host_flap_threshold)},
-    {"high_service_flap_threshold", SETTER(float, high_service_flap_threshold)},
-    {"host_check_timeout", SETTER(unsigned int, host_check_timeout)},
-    {"host_freshness_check_interval",
-     SETTER(unsigned int, host_freshness_check_interval)},
-    {"host_inter_check_delay_method",
-     SETTER(std::string const&, _set_host_inter_check_delay_method)},
-    {"host_perfdata_command",
-     SETTER(std::string const&, host_perfdata_command)},
-    {"host_perfdata_file", SETTER(std::string const&, host_perfdata_file)},
-    {"host_perfdata_file_mode",
-     SETTER(std::string const&, _set_host_perfdata_file_mode)},
-    {"host_perfdata_file_processing_command",
-     SETTER(std::string const&, host_perfdata_file_processing_command)},
-    {"host_perfdata_file_processing_interval",
-     SETTER(unsigned int, host_perfdata_file_processing_interval)},
-    {"host_perfdata_file_template",
-     SETTER(std::string const&, host_perfdata_file_template)},
-    {"illegal_macro_output_chars",
-     SETTER(std::string const&, illegal_output_chars)},
-    {"illegal_object_name_chars",
-     SETTER(std::string const&, illegal_object_chars)},
-    {"interval_length", SETTER(unsigned int, interval_length)},
-    {"lock_file", SETTER(std::string const&, _set_lock_file)},
-    {"log_archive_path", SETTER(std::string const&, _set_log_archive_path)},
-    {"log_event_handlers", SETTER(bool, log_event_handlers)},
-    {"log_external_commands", SETTER(bool, log_external_commands)},
-    {"log_file", SETTER(std::string const&, log_file)},
-    {"log_host_retries", SETTER(bool, log_host_retries)},
-    {"log_initial_states", SETTER(std::string const&, _set_log_initial_states)},
-    {"log_notifications", SETTER(bool, log_notifications)},
-    {"log_passive_checks", SETTER(bool, log_passive_checks)},
-    {"log_pid", SETTER(bool, log_pid)},
-    {"log_file_line", SETTER(bool, log_file_line)},
-    {"log_rotation_method",
-     SETTER(std::string const&, _set_log_rotation_method)},
-    {"log_service_retries", SETTER(bool, log_service_retries)},
-    {"low_host_flap_threshold", SETTER(float, low_host_flap_threshold)},
-    {"low_service_flap_threshold", SETTER(float, low_service_flap_threshold)},
-    {"macros_filter", SETTER(std::string const&, macros_filter)},
-    {"max_concurrent_checks",
-     SETTER(unsigned int, max_parallel_service_checks)},
-    {"max_debug_file_size", SETTER(unsigned long, max_debug_file_size)},
-    {"max_host_check_spread", SETTER(unsigned int, max_host_check_spread)},
-    {"max_log_file_size", SETTER(unsigned long, max_log_file_size)},
-    {"log_flush_period", SETTER(uint32_t, log_flush_period)},
-    {"max_service_check_spread",
-     SETTER(unsigned int, max_service_check_spread)},
-    {"nagios_group", SETTER(std::string const&, _set_nagios_group)},
-    {"nagios_user", SETTER(std::string const&, _set_nagios_user)},
-    {"notification_timeout", SETTER(unsigned int, notification_timeout)},
-    {"object_cache_file", SETTER(std::string const&, _set_object_cache_file)},
-    {"obsess_over_hosts", SETTER(bool, obsess_over_hosts)},
-    {"obsess_over_services", SETTER(bool, obsess_over_services)},
-    {"ochp_command", SETTER(std::string const&, ochp_command)},
-    {"ochp_timeout", SETTER(unsigned int, ochp_timeout)},
-    {"ocsp_command", SETTER(std::string const&, ocsp_command)},
-    {"ocsp_timeout", SETTER(unsigned int, ocsp_timeout)},
-    {"p1_file", SETTER(std::string const&, _set_p1_file)},
-    {"perfdata_timeout", SETTER(int, perfdata_timeout)},
-    {"poller_name", SETTER(std::string const&, poller_name)},
-    {"poller_id", SETTER(uint32_t, poller_id)},
-    {"rpc_port", SETTER(uint16_t, rpc_port)},
-    {"rpc_listen_address", SETTER(const std::string&, rpc_listen_address)},
-    {"precached_object_file",
-     SETTER(std::string const&, _set_precached_object_file)},
-    {"process_performance_data", SETTER(bool, process_performance_data)},
-    {"resource_file", SETTER(std::string const&, _set_resource_file)},
-    {"retained_contact_host_attribute_mask",
-     SETTER(unsigned long, retained_contact_host_attribute_mask)},
-    {"retained_contact_service_attribute_mask",
-     SETTER(unsigned long, retained_contact_service_attribute_mask)},
-    {"retained_host_attribute_mask",
-     SETTER(unsigned long, retained_host_attribute_mask)},
-    {"retained_process_host_attribute_mask",
-     SETTER(unsigned long, retained_process_host_attribute_mask)},
-    {"retained_process_service_attribute_mask",
-     SETTER(std::string const&, _set_retained_process_service_attribute_mask)},
-    {"retained_service_attribute_mask",
-     SETTER(std::string const&, _set_retained_service_attribute_mask)},
-    {"retain_state_information", SETTER(bool, retain_state_information)},
-    {"retention_scheduling_horizon",
-     SETTER(unsigned int, retention_scheduling_horizon)},
-    {"retention_update_interval",
-     SETTER(unsigned int, retention_update_interval)},
-    {"service_check_timeout", SETTER(unsigned int, service_check_timeout)},
-    {"service_freshness_check_interval",
-     SETTER(unsigned int, service_freshness_check_interval)},
-    {"service_inter_check_delay_method",
-     SETTER(std::string const&, _set_service_inter_check_delay_method)},
-    {"service_interleave_factor",
-     SETTER(std::string const&, _set_service_interleave_factor_method)},
-    {"service_perfdata_command",
-     SETTER(std::string const&, service_perfdata_command)},
-    {"service_perfdata_file",
-     SETTER(std::string const&, service_perfdata_file)},
-    {"service_perfdata_file_mode",
-     SETTER(std::string const&, _set_service_perfdata_file_mode)},
-    {"service_perfdata_file_processing_command",
-     SETTER(std::string const&, service_perfdata_file_processing_command)},
-    {"service_perfdata_file_processing_interval",
-     SETTER(unsigned int, service_perfdata_file_processing_interval)},
-    {"service_perfdata_file_template",
-     SETTER(std::string const&, service_perfdata_file_template)},
-    {"service_reaper_frequency", SETTER(unsigned int, check_reaper_interval)},
-    {"sleep_time", SETTER(float, sleep_time)},
-    {"soft_state_dependencies", SETTER(bool, soft_state_dependencies)},
-    {"state_retention_file", SETTER(std::string const&, state_retention_file)},
-    {"status_file", SETTER(std::string const&, status_file)},
-    {"status_update_interval", SETTER(unsigned int, status_update_interval)},
-    {"temp_file", SETTER(std::string const&, _set_temp_file)},
-    {"temp_path", SETTER(std::string const&, _set_temp_path)},
-    {"time_change_threshold", SETTER(unsigned int, time_change_threshold)},
-    {"use_aggressive_host_checking",
-     SETTER(bool, use_aggressive_host_checking)},
-    {"use_agressive_host_checking", SETTER(bool, use_aggressive_host_checking)},
-    {"use_embedded_perl_implicitly",
-     SETTER(std::string const&, _set_use_embedded_perl_implicitly)},
-    {"use_large_installation_tweaks",
-     SETTER(bool, use_large_installation_tweaks)},
-    {"instance_heartbeat_interval",
-     SETTER(uint32_t, instance_heartbeat_interval)},
-    {"use_regexp_matching", SETTER(bool, use_regexp_matches)},
-    {"use_retained_program_state", SETTER(bool, use_retained_program_state)},
-    {"use_retained_scheduling_info",
-     SETTER(bool, use_retained_scheduling_info)},
-    {"use_setpgid", SETTER(bool, use_setpgid)},
-    {"use_syslog", SETTER(bool, use_syslog)},
-    {"log_v2_enabled", SETTER(bool, log_v2_enabled)},
-    {"log_legacy_enabled", SETTER(bool, log_legacy_enabled)},
-    {"log_v2_logger", SETTER(std::string const&, log_v2_logger)},
-    {"log_level_functions", SETTER(std::string const&, log_level_functions)},
-    {"log_level_config", SETTER(std::string const&, log_level_config)},
-    {"log_level_events", SETTER(std::string const&, log_level_events)},
-    {"log_level_checks", SETTER(std::string const&, log_level_checks)},
-    {"log_level_notifications",
-     SETTER(std::string const&, log_level_notifications)},
-    {"log_level_eventbroker",
-     SETTER(std::string const&, log_level_eventbroker)},
-    {"log_level_external_command",
-     SETTER(std::string const&, log_level_external_command)},
-    {"log_level_commands", SETTER(std::string const&, log_level_commands)},
-    {"log_level_downtimes", SETTER(std::string const&, log_level_downtimes)},
-    {"log_level_comments", SETTER(std::string const&, log_level_comments)},
-    {"log_level_macros", SETTER(std::string const&, log_level_macros)},
-    {"log_level_process", SETTER(std::string const&, log_level_process)},
-    {"log_level_runtime", SETTER(std::string const&, log_level_runtime)},
-    {"use_timezone", SETTER(std::string const&, use_timezone)},
-    {"use_true_regexp_matching", SETTER(bool, use_true_regexp_matching)},
-    {"xcddefault_comment_file", SETTER(std::string const&, _set_comment_file)},
-    {"xdddefault_downtime_file",
-     SETTER(std::string const&, _set_downtime_file)}};
+/**
+ * nlohmann json object can be casted to bool, string, int64_t, uint64_t
+ * The goal of these overrides is to use the correct conversion type operator for the state attribute type
+*/
+
+/**
+ * float and double
+*/
+template <typename dest_type,
+          typename std::enable_if<std::is_floating_point<dest_type>{},
+                                  bool>::type = true>
+static dest_type from_nlohmann_cast(double value) {
+  return boost::numeric_cast<dest_type>(value);
+}
+
+/**
+ * unsigned  integer
+*/
+template <typename dest_type,
+          typename std::enable_if<std::is_unsigned<dest_type>{} &&
+                                      !std::is_floating_point<dest_type>{},
+                                  bool>::type = true>
+static dest_type from_nlohmann_cast(uint64_t value) {
+  return boost::numeric_cast<dest_type>(value);
+}
+
+
+/**
+ * signed integer
+*/
+template <typename dest_type,
+          typename std::enable_if<std::is_signed<dest_type>{} &&
+                                      !std::is_floating_point<dest_type>{},
+                                  bool>::type = true>
+static dest_type from_nlohmann_cast(int64_t value) {
+  return boost::numeric_cast<dest_type>(value);
+}
+
+namespace com::centreon::engine::configuration::detail {
+template <typename U, void (state::*ptr)(U)>
+struct setter : public setter_base {
+  setter(const std::string_view& field_name) : setter_base(field_name) {}
+  bool apply_from_cfg(state& obj, char const* value) override {
+    try {
+      U val(0);
+      if (!string::to(value, val))
+        return false;
+      (obj.*ptr)(val);
+    } catch (std::exception const& e) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(),
+                          "fail to update {} with value {}: {}",
+                          setter_base::_field_name, value, e.what());
+      return false;
+    }
+    return true;
+  }
+
+  bool apply_from_json(state& obj, const nlohmann::json& doc) override {
+    try {
+      U val = from_nlohmann_cast<U>(doc[setter_base::_field_name.data()]);
+      (obj.*ptr)(val);
+    } catch (std::exception const& e) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to update {} : {}",
+                          setter_base::_field_name, e.what());
+      return false;
+    }
+    return true;
+  }
+};
+
+template <void (state::*ptr)(bool)>
+struct setter<bool, ptr> : public setter_base {
+  setter(const std::string_view& field_name) : setter_base(field_name) {}
+  bool apply_from_cfg(state& obj, char const* value) override {
+    try {
+      bool val(0);
+      if (!string::to(value, val))
+        return false;
+      (obj.*ptr)(val);
+    } catch (std::exception const& e) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(),
+                          "fail to update {} with value {}: {}",
+                          setter_base::_field_name, value, e.what());
+      return false;
+    }
+    return true;
+  }
+
+  bool apply_from_json(state& obj, const nlohmann::json& doc) override {
+    try {
+      bool val = doc[setter_base::_field_name.data()];
+      (obj.*ptr)(val);
+    } catch (std::exception const& e) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to update {} : {}",
+                          setter_base::_field_name, e.what());
+      return false;
+    }
+    return true;
+  }
+};
+
+template <void (state::*ptr)(std::string const&)>
+struct setter<std::string const&, ptr> : public setter_base {
+  setter(const std::string_view& field_name) : setter_base(field_name) {}
+  bool apply_from_cfg(state& obj, char const* value) override {
+    try {
+      (obj.*ptr)(value);
+    } catch (std::exception const& e) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(),
+                          "fail to update {} with value {}: {}", _field_name,
+                          value, e.what());
+      return false;
+    }
+    return true;
+  }
+  bool apply_from_json(state& obj, const nlohmann::json& doc) override {
+    try {
+      std::string val = doc[setter_base::_field_name.data()];
+      (obj.*ptr)(val);
+    } catch (std::exception const& e) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to update {} : {}",
+                          _field_name, e.what());
+      return false;
+    }
+    return true;
+  }
+};
+};  // namespace com::centreon::engine::configuration::detail
+
+#define SETTER(type, method, field) \
+  _setters.emplace(std::make_pair(  \
+      field, std::make_unique<detail::setter<type, &state::method>>(field)))
+
+state::setter_map state::_setters;
+
+void state::_init_setter() {
+  SETTER(bool, accept_passive_host_checks, "accept_passive_host_checks");
+  SETTER(bool, accept_passive_service_checks, "accept_passive_service_checks");
+  SETTER(int, additional_freshness_latency, "additional_freshness_latency");
+  SETTER(std::string const&, admin_email, "admin_email");
+  SETTER(std::string const&, admin_pager, "admin_pager");
+  SETTER(std::string const&, _set_aggregate_status_updates,
+         "aggregate_status_updates");
+  SETTER(bool, allow_empty_hostgroup_assignment,
+         "allow_empty_hostgroup_assignment");
+  SETTER(std::string const&, _set_auth_file, "auth_file");
+  SETTER(bool, auto_reschedule_checks, "auto_reschedule_checks");
+  SETTER(unsigned int, auto_rescheduling_interval,
+         "auto_rescheduling_interval");
+  SETTER(unsigned int, auto_rescheduling_window, "auto_rescheduling_window");
+  SETTER(std::string const&, _set_bare_update_check, "bare_update_check");
+  SETTER(std::string const&, broker_module_directory,
+         "broker_module_directory");
+  SETTER(std::string const&, _set_broker_module, "broker_module");
+  SETTER(unsigned long, cached_host_check_horizon, "cached_host_check_horizon");
+  SETTER(unsigned long, cached_service_check_horizon,
+         "cached_service_check_horizon");
+  SETTER(std::string const&, _set_cfg_dir, "cfg_dir");
+  SETTER(std::string const&, _set_cfg_file, "cfg_file");
+  SETTER(bool, check_external_commands, "check_external_commands");
+  SETTER(bool, check_orphaned_hosts, "check_for_orphaned_hosts");
+  SETTER(bool, check_orphaned_services, "check_for_orphaned_services");
+  SETTER(std::string const&, _set_check_for_updates, "check_for_updates");
+  SETTER(bool, check_host_freshness, "check_host_freshness");
+  SETTER(unsigned int, check_reaper_interval, "check_result_reaper_frequency");
+  SETTER(bool, check_service_freshness, "check_service_freshness");
+  SETTER(std::string const&, _set_child_processes_fork_twice,
+         "child_processes_fork_twice");
+  SETTER(std::string const&, _set_command_check_interval,
+         "command_check_interval");
+  SETTER(std::string const&, command_file, "command_file");
+  SETTER(std::string const&, _set_comment_file, "comment_file");
+  SETTER(std::string const&, _set_daemon_dumps_core, "daemon_dumps_core");
+  SETTER(std::string const&, _set_date_format, "date_format");
+  SETTER(std::string const&, debug_file, "debug_file");
+  SETTER(uint64_t, debug_level, "debug_level");
+  SETTER(unsigned int, debug_verbosity, "debug_verbosity");
+  SETTER(std::string const&, _set_downtime_file, "downtime_file");
+  SETTER(std::string const&, _set_enable_embedded_perl, "enable_embedded_perl");
+  SETTER(bool, enable_environment_macros, "enable_environment_macros");
+  SETTER(bool, enable_event_handlers, "enable_event_handlers");
+  SETTER(std::string const&, _set_enable_failure_prediction,
+         "enable_failure_prediction");
+  SETTER(bool, enable_flap_detection, "enable_flap_detection");
+  SETTER(bool, enable_macros_filter, "enable_macros_filter");
+  SETTER(bool, enable_notifications, "enable_notifications");
+  SETTER(bool, enable_predictive_host_dependency_checks,
+         "enable_predictive_host_dependency_checks");
+  SETTER(bool, enable_predictive_service_dependency_checks,
+         "enable_predictive_service_dependency_checks");
+  SETTER(std::string const&, _set_event_broker_options, "event_broker_options");
+  SETTER(unsigned int, event_handler_timeout, "event_handler_timeout");
+  SETTER(bool, execute_host_checks, "execute_host_checks");
+  SETTER(bool, execute_service_checks, "execute_service_checks");
+  SETTER(int, external_command_buffer_slots, "external_command_buffer_slots");
+  SETTER(std::string const&, _set_free_child_process_memory,
+         "free_child_process_memory");
+  SETTER(std::string const&, global_host_event_handler,
+         "global_host_event_handler");
+  SETTER(std::string const&, global_service_event_handler,
+         "global_service_event_handler");
+  SETTER(float, high_host_flap_threshold, "high_host_flap_threshold");
+  SETTER(float, high_service_flap_threshold, "high_service_flap_threshold");
+  SETTER(unsigned int, host_check_timeout, "host_check_timeout");
+  SETTER(unsigned int, host_freshness_check_interval,
+         "host_freshness_check_interval");
+  SETTER(std::string const&, _set_host_inter_check_delay_method,
+         "host_inter_check_delay_method");
+  SETTER(std::string const&, host_perfdata_command, "host_perfdata_command");
+  SETTER(std::string const&, host_perfdata_file, "host_perfdata_file");
+  SETTER(std::string const&, _set_host_perfdata_file_mode,
+         "host_perfdata_file_mode");
+  SETTER(std::string const&, host_perfdata_file_processing_command,
+         "host_perfdata_file_processing_command");
+  SETTER(unsigned int, host_perfdata_file_processing_interval,
+         "host_perfdata_file_processing_interval");
+  SETTER(std::string const&, host_perfdata_file_template,
+         "host_perfdata_file_template");
+  SETTER(std::string const&, illegal_output_chars,
+         "illegal_macro_output_chars");
+  SETTER(std::string const&, illegal_object_chars, "illegal_object_name_chars");
+  SETTER(unsigned int, interval_length, "interval_length");
+  SETTER(std::string const&, _set_lock_file, "lock_file");
+  SETTER(std::string const&, _set_log_archive_path, "log_archive_path");
+  SETTER(bool, log_event_handlers, "log_event_handlers");
+  SETTER(bool, log_external_commands, "log_external_commands");
+  SETTER(std::string const&, log_file, "log_file");
+  SETTER(bool, log_host_retries, "log_host_retries");
+  SETTER(std::string const&, _set_log_initial_states, "log_initial_states");
+  SETTER(bool, log_notifications, "log_notifications");
+  SETTER(bool, log_passive_checks, "log_passive_checks");
+  SETTER(bool, log_pid, "log_pid");
+  SETTER(bool, log_file_line, "log_file_line");
+  SETTER(std::string const&, _set_log_rotation_method, "log_rotation_method");
+  SETTER(bool, log_service_retries, "log_service_retries");
+  SETTER(float, low_host_flap_threshold, "low_host_flap_threshold");
+  SETTER(float, low_service_flap_threshold, "low_service_flap_threshold");
+  SETTER(std::string const&, macros_filter, "macros_filter");
+  SETTER(unsigned int, max_parallel_service_checks, "max_concurrent_checks");
+  SETTER(unsigned long, max_debug_file_size, "max_debug_file_size");
+  SETTER(unsigned int, max_host_check_spread, "max_host_check_spread");
+  SETTER(unsigned long, max_log_file_size, "max_log_file_size");
+  SETTER(uint32_t, log_flush_period, "log_flush_period");
+  SETTER(unsigned int, max_service_check_spread, "max_service_check_spread");
+  SETTER(std::string const&, _set_nagios_group, "nagios_group");
+  SETTER(std::string const&, _set_nagios_user, "nagios_user");
+  SETTER(unsigned int, notification_timeout, "notification_timeout");
+  SETTER(std::string const&, _set_object_cache_file, "object_cache_file");
+  SETTER(bool, obsess_over_hosts, "obsess_over_hosts");
+  SETTER(bool, obsess_over_services, "obsess_over_services");
+  SETTER(std::string const&, ochp_command, "ochp_command");
+  SETTER(unsigned int, ochp_timeout, "ochp_timeout");
+  SETTER(std::string const&, ocsp_command, "ocsp_command");
+  SETTER(unsigned int, ocsp_timeout, "ocsp_timeout");
+  SETTER(std::string const&, _set_p1_file, "p1_file");
+  SETTER(int, perfdata_timeout, "perfdata_timeout");
+  SETTER(std::string const&, poller_name, "poller_name");
+  SETTER(uint32_t, poller_id, "poller_id");
+  SETTER(uint16_t, rpc_port, "rpc_port");
+  SETTER(const std::string&, rpc_listen_address, "rpc_listen_address");
+  SETTER(std::string const&, _set_precached_object_file,
+         "precached_object_file");
+  SETTER(bool, process_performance_data, "process_performance_data");
+  SETTER(std::string const&, _set_resource_file, "resource_file");
+  SETTER(unsigned long, retained_contact_host_attribute_mask,
+         "retained_contact_host_attribute_mask");
+  SETTER(unsigned long, retained_contact_service_attribute_mask,
+         "retained_contact_service_attribute_mask");
+  SETTER(unsigned long, retained_host_attribute_mask,
+         "retained_host_attribute_mask");
+  SETTER(unsigned long, retained_process_host_attribute_mask,
+         "retained_process_host_attribute_mask");
+  SETTER(std::string const&, _set_retained_process_service_attribute_mask,
+         "retained_process_service_attribute_mask");
+  SETTER(std::string const&, _set_retained_service_attribute_mask,
+         "retained_service_attribute_mask");
+  SETTER(bool, retain_state_information, "retain_state_information");
+  SETTER(unsigned int, retention_scheduling_horizon,
+         "retention_scheduling_horizon");
+  SETTER(unsigned int, retention_update_interval, "retention_update_interval");
+  SETTER(unsigned int, service_check_timeout, "service_check_timeout");
+  SETTER(unsigned int, service_freshness_check_interval,
+         "service_freshness_check_interval");
+  SETTER(std::string const&, _set_service_inter_check_delay_method,
+         "service_inter_check_delay_method");
+  SETTER(std::string const&, _set_service_interleave_factor_method,
+         "service_interleave_factor");
+  SETTER(std::string const&, service_perfdata_command,
+         "service_perfdata_command");
+  SETTER(std::string const&, service_perfdata_file, "service_perfdata_file");
+  SETTER(std::string const&, _set_service_perfdata_file_mode,
+         "service_perfdata_file_mode");
+  SETTER(std::string const&, service_perfdata_file_processing_command,
+         "service_perfdata_file_processing_command");
+  SETTER(unsigned int, service_perfdata_file_processing_interval,
+         "service_perfdata_file_processing_interval");
+  SETTER(std::string const&, service_perfdata_file_template,
+         "service_perfdata_file_template");
+  SETTER(unsigned int, check_reaper_interval, "service_reaper_frequency");
+  SETTER(float, sleep_time, "sleep_time");
+  SETTER(bool, soft_state_dependencies, "soft_state_dependencies");
+  SETTER(std::string const&, state_retention_file, "state_retention_file");
+  SETTER(std::string const&, status_file, "status_file");
+  SETTER(unsigned int, status_update_interval, "status_update_interval");
+  SETTER(std::string const&, _set_temp_file, "temp_file");
+  SETTER(std::string const&, _set_temp_path, "temp_path");
+  SETTER(unsigned int, time_change_threshold, "time_change_threshold");
+  SETTER(bool, use_aggressive_host_checking, "use_aggressive_host_checking");
+  SETTER(bool, use_aggressive_host_checking, "use_agressive_host_checking");
+  SETTER(std::string const&, _set_use_embedded_perl_implicitly,
+         "use_embedded_perl_implicitly");
+  SETTER(bool, use_large_installation_tweaks, "use_large_installation_tweaks");
+  SETTER(uint32_t, instance_heartbeat_interval, "instance_heartbeat_interval");
+  SETTER(bool, use_regexp_matches, "use_regexp_matching");
+  SETTER(bool, use_retained_program_state, "use_retained_program_state");
+  SETTER(bool, use_retained_scheduling_info, "use_retained_scheduling_info");
+  SETTER(bool, use_setpgid, "use_setpgid");
+  SETTER(bool, use_syslog, "use_syslog");
+  SETTER(bool, log_v2_enabled, "log_v2_enabled");
+  SETTER(bool, log_legacy_enabled, "log_legacy_enabled");
+  SETTER(std::string const&, log_v2_logger, "log_v2_logger");
+  SETTER(std::string const&, log_level_functions, "log_level_functions");
+  SETTER(std::string const&, log_level_config, "log_level_config");
+  SETTER(std::string const&, log_level_events, "log_level_events");
+  SETTER(std::string const&, log_level_checks, "log_level_checks");
+  SETTER(std::string const&, log_level_notifications,
+         "log_level_notifications");
+  SETTER(std::string const&, log_level_eventbroker, "log_level_eventbroker");
+  SETTER(std::string const&, log_level_external_command,
+         "log_level_external_command");
+  SETTER(std::string const&, log_level_commands, "log_level_commands");
+  SETTER(std::string const&, log_level_downtimes, "log_level_downtimes");
+  SETTER(std::string const&, log_level_comments, "log_level_comments");
+  SETTER(std::string const&, log_level_macros, "log_level_macros");
+  SETTER(std::string const&, log_level_process, "log_level_process");
+  SETTER(std::string const&, log_level_runtime, "log_level_runtime");
+  SETTER(std::string const&, use_timezone, "use_timezone");
+  SETTER(bool, use_true_regexp_matching, "use_true_regexp_matching");
+  SETTER(std::string const&, _set_comment_file, "xcddefault_comment_file");
+  SETTER(std::string const&, _set_downtime_file, "xdddefault_downtime_file");
+  SETTER(bool, use_send_recovery_notifications_anyways,
+         "send_recovery_notifications_anyways");
+}
 
 // Default values.
 static bool const default_accept_passive_host_checks(true);
@@ -283,7 +404,7 @@ static int const default_command_check_interval(-1);
 static std::string const default_command_file(DEFAULT_COMMAND_FILE);
 static state::date_type const default_date_format(state::us);
 static std::string const default_debug_file(DEFAULT_DEBUG_FILE);
-static unsigned long long const default_debug_level(0);
+static uint64_t const default_debug_level(0);
 static unsigned int const default_debug_verbosity(1);
 static bool const default_enable_environment_macros(false);
 static bool const default_enable_event_handlers(true);
@@ -532,7 +653,11 @@ state::state()
       _log_level_process(default_log_level_process),
       _log_level_runtime(default_log_level_runtime),
       _use_timezone(default_use_timezone),
-      _use_true_regexp_matching(default_use_true_regexp_matching) {}
+      _use_true_regexp_matching(default_use_true_regexp_matching),
+      _send_recovery_notifications_anyways(false) {
+  static absl::once_flag _init_call_once;
+  absl::call_once(_init_call_once, _init_setter);
+}
 
 /**
  *  Copy constructor.
@@ -712,6 +837,8 @@ state& state::operator=(state const& right) {
     _log_level_runtime = right._log_level_runtime;
     _use_timezone = right._use_timezone;
     _use_true_regexp_matching = right._use_true_regexp_matching;
+    _send_recovery_notifications_anyways =
+        right._send_recovery_notifications_anyways;
   }
   return *this;
 }
@@ -876,7 +1003,9 @@ bool state::operator==(state const& right) const noexcept {
       _log_level_process == right._log_level_process &&
       _log_level_runtime == right._log_level_runtime &&
       _use_timezone == right._use_timezone &&
-      _use_true_regexp_matching == right._use_true_regexp_matching);
+      _use_true_regexp_matching == right._use_true_regexp_matching &&
+      _send_recovery_notifications_anyways ==
+          right._send_recovery_notifications_anyways);
 }
 
 /**
@@ -1644,7 +1773,7 @@ void state::debug_file(std::string const& value) {
  *
  *  @return The debug_level value.
  */
-unsigned long long state::debug_level() const noexcept {
+uint64_t state::debug_level() const noexcept {
   return _debug_level;
 }
 
@@ -1653,9 +1782,9 @@ unsigned long long state::debug_level() const noexcept {
  *
  *  @param[in] value The new debug_level value.
  */
-void state::debug_level(unsigned long long value) {
+void state::debug_level(uint64_t value) {
   if (value == std::numeric_limits<unsigned long>::max())
-    _debug_level = static_cast<unsigned long long>(all);
+    _debug_level = static_cast<uint64_t>(all);
   else
     _debug_level = value;
 }
@@ -3555,10 +3684,9 @@ void state::status_update_interval(unsigned int value) {
  */
 bool state::set(char const* key, char const* value) {
   try {
-    std::unordered_map<std::string, state::setter_func>::const_iterator it{
-        _setters.find(key)};
+    auto it = _setters.find(std::string_view(key));
     if (it != _setters.end())
-      return (it->second)(*this, value);
+      return (it->second)->apply_from_cfg(*this, value);
   } catch (std::exception const& e) {
     engine_logger(log_config_error, basic) << e.what();
     log_v2::config()->error(e.what());
@@ -4319,7 +4447,8 @@ void state::_set_command_check_interval(std::string const& value) {
     _command_check_interval_is_seconds = true;
     val.erase(val.begin() + pos);
   }
-  setter<int, &state::command_check_interval>::generic(*this, val.c_str());
+  detail::setter<int, &state::command_check_interval>("").apply_from_cfg(
+      *this, val.c_str());
 }
 
 /**
@@ -4411,8 +4540,8 @@ void state::_set_enable_failure_prediction(std::string const& value) {
  */
 void state::_set_event_broker_options(std::string const& value) {
   if (value != "-1")
-    setter<unsigned long, &state::event_broker_options>::generic(*this,
-                                                                 value.c_str());
+    detail::setter<unsigned long, &state::event_broker_options>("")
+        .apply_from_cfg(*this, value.c_str());
   else {
     _event_broker_options = BROKER_EVERYTHING;
   }
@@ -4761,4 +4890,57 @@ bool state::enable_macros_filter() const noexcept {
  */
 void state::enable_macros_filter(bool value) {
   _enable_macros_filter = value;
+}
+
+/**
+ * @brief Get _send_recovery_notifications_anyways
+ *
+ * Having a resource that has entered a non-OK state during a notification
+ * period and goes back to an OK state out of a notification period, then only
+ * if send_recovery_notifications_anyways is set to 1, the recovery notification
+ * must be sent to all users that have previously received the alert
+ * notification.
+ *
+ * @return true
+ * @return false
+ */
+bool state::use_send_recovery_notifications_anyways() const {
+  return _send_recovery_notifications_anyways;
+}
+
+/**
+ * @brief
+ *
+ * Having a resource that has entered a non-OK state during a notification
+ * period and goes back to an OK state out of a notification period, then only
+ * if send_recovery_notifications_anyways is set to 1, the recovery notification
+ * must be sent to all users that have previously received the alert
+ * notification.
+ *
+ * @param value true if have to nitify anyway
+ */
+void state::use_send_recovery_notifications_anyways(bool value) {
+  _send_recovery_notifications_anyways = value;
+}
+
+/**
+ * @brief modify state according json passed in parameter
+ *
+ * @param file_path
+ * @param json_doc
+ */
+void state::apply_extended_conf(const std::string& file_path,
+                                const nlohmann::json& json_doc) {
+  SPDLOG_LOGGER_INFO(log_v2::config(), "apply conf from file {}", file_path);
+  for (const auto& member : json_doc.items()) {
+    auto setter = _setters.find(member.key());
+    if (setter == _setters.end()) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(), "unknown field: {} in file {}",
+                          member.key(), file_path);
+    } else if (!setter->second->apply_from_json(*this, json_doc)) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(),
+                          "fail to update field: {}  from file {}",
+                          member.key(), file_path);
+    }
+  }
 }

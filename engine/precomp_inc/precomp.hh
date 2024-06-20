@@ -31,10 +31,6 @@
 #include <array>
 #include <asio.hpp>
 #include <atomic>
-#include <boost/algorithm/string/trim.hpp>
-#include <boost/circular_buffer.hpp>
-#include <boost/container/flat_map.hpp>
-#include <boost/optional.hpp>
 #include <cassert>
 #include <cerrno>
 #include <cmath>
@@ -61,10 +57,21 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+#include <re2/re2.h>
+
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/circular_buffer.hpp>
+#include <boost/container/flat_map.hpp>
+#include <boost/optional.hpp>
+
+#include <nlohmann/json.hpp>
 
 #include "com/centreon/engine/namespace.hh"
 

@@ -1,23 +1,23 @@
-/*
-** Copyright 1999-2009 Ethan Galstad
-** Copyright 2009-2010 Nagios Core Development Team and Community Contributors
-** Copyright 2011-2021 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 1999-2009 Ethan Galstad
+ * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
+ * Copyright 2011-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
@@ -26,9 +26,9 @@
 #include <random>
 #include <string>
 
-#include <asio.hpp>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
+#include <asio.hpp>
 
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
@@ -40,6 +40,7 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/logging.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/configuration/extended_conf.hh"
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/diagnostic.hh"
@@ -94,14 +95,15 @@ int main(int argc, char* argv[]) {
 #ifdef HAVE_GETOPT_H
   int option_index = 0;
   static struct option const long_options[] = {
-      {"diagnose", no_argument, NULL, 'D'},
-      {"dont-verify-paths", no_argument, NULL, 'x'},
-      {"help", no_argument, NULL, 'h'},
-      {"license", no_argument, NULL, 'V'},
-      {"test-scheduling", no_argument, NULL, 's'},
-      {"verify-config", no_argument, NULL, 'v'},
-      {"version", no_argument, NULL, 'V'},
-      {NULL, no_argument, NULL, '\0'}};
+      {"diagnose", no_argument, nullptr, 'D'},
+      {"dont-verify-paths", no_argument, nullptr, 'x'},
+      {"help", no_argument, nullptr, 'h'},
+      {"license", no_argument, nullptr, 'V'},
+      {"test-scheduling", no_argument, nullptr, 's'},
+      {"verify-config", no_argument, nullptr, 'v'},
+      {"version", no_argument, nullptr, 'V'},
+      {"config-file", optional_argument, nullptr, 'c'},
+      {NULL, no_argument, nullptr, '\0'}};
 #endif  // HAVE_GETOPT_H
 
   // Load singletons and global variable.
@@ -120,11 +122,12 @@ int main(int argc, char* argv[]) {
     bool display_license(false);
     bool error(false);
     bool diagnose(false);
+    std::vector<std::string> extended_conf_file;
 
     // Process all command line arguments.
     int c;
 #ifdef HAVE_GETOPT_H
-    while ((c = getopt_long(argc, argv, "+hVvsxD", long_options,
+    while ((c = getopt_long(argc, argv, "+hVvsxDc", long_options,
                             &option_index)) != -1) {
 #else
     while ((c = getopt(argc, argv, "+hVvsxD")) != -1) {
@@ -150,6 +153,10 @@ int main(int argc, char* argv[]) {
           break;
         case 'D':  // Diagnostic.
           diagnose = true;
+          break;
+        case 'c':
+          if (optarg)
+            extended_conf_file.emplace_back(optarg);
           break;
         default:
           error = true;
@@ -348,6 +355,10 @@ int main(int argc, char* argv[]) {
           p.parse(config_file, config);
         }
 
+        configuration::extended_conf::load_all(extended_conf_file.begin(),
+                                               extended_conf_file.end());
+
+        configuration::extended_conf::update_state(config);
         uint16_t port = config.rpc_port();
 
         if (!port) {
