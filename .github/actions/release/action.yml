@@ -93,6 +93,10 @@ runs:
           fi
         done
 
+        ## REMOVE ME
+        NEW_STABLE_TAGS=("23.04.13")
+        ##
+
         echo "New tags to be published from new release that were not in previous releases:"
         printf '%s\n' "${NEW_STABLE_TAGS[@]}"
 
