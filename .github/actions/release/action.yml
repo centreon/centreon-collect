@@ -94,7 +94,7 @@ runs:
         done
 
         ## REMOVE ME
-        NEW_STABLE_TAGS=("23.04.13")
+        NEW_STABLE_TAGS=("23.04.14")
         ##
 
         echo "New tags to be published from new release that were not in previous releases:"
