@@ -21,7 +21,9 @@
 
 #include "com/centreon/common/process/process.hh"
 
+#if !defined(BOOST_PROCESS_V2_WINDOWS)
 #include "com/centreon/common/process/detail/centreon_posix_process_launcher.hh"
+#endif
 
 #include <boost/process/v2/process.hpp>
 
@@ -146,7 +148,11 @@ process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
                  const std::shared_ptr<spdlog::logger>& logger,
                  const std::string_view& cmd_line)
     : _io_context(io_context), _logger(logger) {
+#ifdef _WINDOWS
+  auto split_res = boost::program_options::split_winmain(std::string(cmd_line));
+#else
   auto split_res = boost::program_options::split_unix(std::string(cmd_line));
+#endif
   if (split_res.begin() == split_res.end()) {
     SPDLOG_LOGGER_ERROR(_logger, "empty command line:\"{}\"", cmd_line);
     throw exceptions::msg_fmt("empty command line:\"{}\"", cmd_line);

@@ -16,15 +16,21 @@
 # For more information : contact@centreon.com
 #
 
-
-
-add_executable(ut_agent 
-    config_test.cc
+set( SRC_COMMON
     check_test.cc 
     check_exec_test.cc
     scheduler_test.cc
     test_main.cc
-    ${TESTS_SOURCES})
+)
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  set(SRC ${SRC_COMMON} config_test.cc)
+else()
+  set(SRC ${SRC_COMMON})
+endif()
+
+
+add_executable(ut_agent ${SRC})
 
 add_test(NAME tests COMMAND ut_agent)
 
@@ -36,8 +42,25 @@ set_target_properties(
                RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
                RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
 
-
-target_link_libraries(ut_agent PRIVATE 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    target_link_libraries(ut_agent PRIVATE 
+        centagent_lib 
+        centreon_common
+        centreon_process
+        GTest::gtest 
+        GTest::gtest_main 
+        GTest::gmock 
+        GTest::gmock_main
+        -L${Boost_LIBRARY_DIR_RELEASE}
+        boost_program_options
+        stdc++fs
+        -L${PROTOBUF_LIB_DIR}
+        gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+        fmt::fmt pthread
+        crypto ssl
+        )
+else()
+    target_link_libraries(ut_agent PRIVATE 
     centagent_lib 
     centreon_common
     centreon_process
@@ -45,18 +68,18 @@ target_link_libraries(ut_agent PRIVATE
     GTest::gtest_main 
     GTest::gmock 
     GTest::gmock_main
-    -L${Boost_LIBRARY_DIR_RELEASE}
-    boost_program_options
-    stdc++fs
-    -L${PROTOBUF_LIB_DIR}
+    Boost::program_options
     gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-    fmt::fmt pthread
-    crypto ssl
+    fmt::fmt
     )
+endif()
 
 add_dependencies(ut_agent centreon_common centagent_lib)
 
 set_property(TARGET ut_agent PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_precompile_headers(ut_agent PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
+
+file(COPY ${PROJECT_SOURCE_DIR}/test/scripts/sleep.bat
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
 

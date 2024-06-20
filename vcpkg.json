@@ -6,25 +6,53 @@
         "cxx17"
       ]
     },
-    "libssh2",
-    "curl",
     "fmt",
     "grpc",
-    "ryml",
     "spdlog",
     "boost-asio",
-    "boost-beast",
-    "boost-container",
-    "boost-circular-buffer",
     "boost-multi-index",
-    "boost-interprocess",
-    "boost-exception",
     "boost-process",
     "boost-program-options",
-    "boost-serialization",
-    "boost-url",
-    "nlohmann-json",
     "rapidjson",
-    "gtest"
+    "gtest",
+    "boost-beast",
+    "boost-exception",
+    "boost-serialization",
+    {
+      "name": "libssh2",
+      "platform": "linux"
+    },
+    {
+      "name": "curl",
+      "platform": "linux"
+    },
+    {
+      "name": "ryml",
+      "platform": "linux"
+    },
+    {
+      "name": "boost-container",
+      "platform": "linux"
+    },
+    {
+      "name": "boost-circular-buffer",
+      "platform": "linux"
+    },
+    {
+      "name": "boost-interprocess",
+      "platform": "linux"
+    },
+    {
+      "name": "boost-url",
+      "platform": "linux"
+    },
+    {
+      "name": "nlohmann-json",
+      "platform": "linux"
+    },
+    {
+      "name": "upb",
+      "platform": "windows"
+    }
   ]
 }

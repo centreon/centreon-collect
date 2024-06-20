@@ -94,12 +94,14 @@ scheduler::default_config() {
  *
  */
 void scheduler::_start_check_timer() {
-  if (_check_queue.empty() ||
-      _active_check >= _conf->config().max_concurrent_checks()) {
-    _check_timer.expires_from_now(std::chrono::milliseconds(100));
-  } else {
-    _check_timer.expires_at((*_check_queue.begin())->get_start_expected());
-  }
+  time_point next_time_expire =
+      (_check_queue.empty() ||
+       _active_check >= _conf->config().max_concurrent_checks())
+          ? (std::chrono::system_clock::now() + std::chrono::milliseconds(100))
+          : (*_check_queue.begin())->get_start_expected();
+  SPDLOG_LOGGER_TRACE(_logger, "check timer will expire at {}",
+                      next_time_expire);
+  _check_timer.expires_at(next_time_expire);
   _check_timer.async_wait(
       [me = shared_from_this()](const boost::system::error_code& err) {
         me->_check_timer_handler(err);

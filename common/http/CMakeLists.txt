@@ -36,7 +36,11 @@ target_include_directories(centreon_http PRIVATE ${INC_DIR})
 
 target_precompile_headers(centreon_http REUSE_FROM centreon_common)
 
-set_target_properties(centreon_http PROPERTIES COMPILE_FLAGS "-fPIC")
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  set_target_properties(centreon_http PROPERTIES COMPILE_FLAGS "-fPIC")
+else()
+set_target_properties(centreon_http PROPERTIES COMPILE_FLAGS "/bigobj")
+endif()
 
 # Testing.
 if(WITH_TESTING)

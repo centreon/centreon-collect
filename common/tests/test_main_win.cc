@@ -19,23 +19,13 @@
 
 #include <gtest/gtest.h>
 
-#include "pool.hh"
-
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
 
 class CentreonEngineEnvironment : public testing::Environment {
  public:
-  void SetUp() override {
-    setenv("TZ", ":Europe/Paris", 1);
-    return;
-  }
-
   void TearDown() override { return; }
 };
-
-std::shared_ptr<spdlog::logger> pool_logger =
-    std::make_shared<spdlog::logger>("pool_logger");
 
 /**
  *  Tester entry point.
@@ -48,17 +38,17 @@ std::shared_ptr<spdlog::logger> pool_logger =
 int main(int argc, char* argv[]) {
   // GTest initialization.
   testing::InitGoogleTest(&argc, argv);
-  sigignore(SIGPIPE);
+
+  auto _worker{asio::make_work_guard(*g_io_context)};
 
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonEngineEnvironment());
 
-  com::centreon::common::pool::load(g_io_context, pool_logger);
-  com::centreon::common::pool::set_pool_size(0);
+  std::thread asio_thread([] { g_io_context->run(); });
   // Run all tests.
   int ret = RUN_ALL_TESTS();
   g_io_context->stop();
-  com::centreon::common::pool::unload();
+  asio_thread.join();
   spdlog::shutdown();
   return ret;
 }
