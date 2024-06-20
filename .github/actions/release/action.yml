@@ -164,7 +164,7 @@ runs:
 
     - name: Create stable JIRA versions from new release tags
       run: |
-        set -eux
+        set -ux
 
         # Call JIRA to provide new jira versions to create
         # Webhook url
