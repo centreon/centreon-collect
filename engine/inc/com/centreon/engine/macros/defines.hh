@@ -22,11 +22,7 @@
 #define CCE_MACROS_DEFINES_HH_
 
 #include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/customvariable.hh"
-#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/servicegroup.hh"
 
 // Length Limitations

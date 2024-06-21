@@ -20,9 +20,6 @@
 #ifndef CCE_CONTACT_HH
 #define CCE_CONTACT_HH
 
-#include <absl/container/flat_hash_map.h>
-#include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/notifier.hh"
 
 /* Max number of custom addresses a contact can have. */

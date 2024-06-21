@@ -21,7 +21,6 @@
 #include "com/centreon/engine/configuration/applier/difference.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/servicedependency.hh"
-#include "com/centreon/engine/timeperiod.hh"
 
 namespace com::centreon::engine {
 
