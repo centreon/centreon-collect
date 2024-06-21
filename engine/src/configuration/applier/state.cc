@@ -1228,10 +1228,8 @@ void applier::state::_expand(configuration::state& new_state, error_cnt& err) {
 void applier::state::_processing(configuration::state& new_cfg,
                                  error_cnt& err,
                                  retention::state* state) {
-  assert(1 == 0);
   // Timing.
   struct timeval tv[5];
-  error_cnt err;
 
   // Call prelauch broker event the first time to run applier state.
   if (!has_already_been_loaded)
