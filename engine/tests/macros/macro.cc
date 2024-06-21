@@ -89,7 +89,7 @@ TEST_F(Macro, pollerName) {
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st, err);
-  configuration::applier::state::instance().apply(st);
+  configuration::applier::state::instance().apply(st, err);
 
   std::string out;
   nagios_macros* mac(get_global_macros());
@@ -110,7 +110,7 @@ TEST_F(Macro, pollerId) {
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st, err);
-  configuration::applier::state::instance().apply(st);
+  configuration::applier::state::instance().apply(st, err);
   std::string out;
   nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$POLLERID$", out, 0);
@@ -334,7 +334,7 @@ TEST_F(Macro, FullCmd) {
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st, err);
-  configuration::applier::state::instance().apply(st);
+  configuration::applier::state::instance().apply(st, err);
 
   init_macros();
 
@@ -363,7 +363,7 @@ TEST_F(Macro, AdminEmail) {
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st, err);
-  configuration::applier::state::instance().apply(st);
+  configuration::applier::state::instance().apply(st, err);
 
   init_macros();
 
@@ -387,7 +387,7 @@ TEST_F(Macro, AdminPager) {
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st, err);
-  configuration::applier::state::instance().apply(st);
+  configuration::applier::state::instance().apply(st, err);
 
   init_macros();
 
@@ -409,7 +409,7 @@ TEST_F(Macro, MainConfigFile) {
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st, err);
-  configuration::applier::state::instance().apply(st);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;
@@ -431,7 +431,7 @@ TEST_F(Macro, StatusDataFile) {
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st, err);
-  configuration::applier::state::instance().apply(st);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;
@@ -454,7 +454,7 @@ TEST_F(Macro, RetentionDataFile) {
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st, err);
-  configuration::applier::state::instance().apply(st);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;
@@ -475,7 +475,7 @@ TEST_F(Macro, TempFile) {
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st, err);
-  configuration::applier::state::instance().apply(st);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;
@@ -496,7 +496,7 @@ TEST_F(Macro, LogFile) {
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st, err);
-  configuration::applier::state::instance().apply(st);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;
@@ -518,7 +518,7 @@ TEST_F(Macro, CommandFile) {
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st, err);
-  configuration::applier::state::instance().apply(st);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;
@@ -539,7 +539,7 @@ TEST_F(Macro, TempPath) {
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st, err);
-  configuration::applier::state::instance().apply(st);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;

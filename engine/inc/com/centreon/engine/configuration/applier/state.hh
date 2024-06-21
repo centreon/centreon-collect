@@ -47,7 +47,9 @@ namespace applier {
  */
 class state {
  public:
-  void apply(configuration::state& new_cfg, retention::state* state = nullptr);
+  void apply(configuration::state& new_cfg,
+             error_cnt& err,
+             retention::state* state = nullptr);
   void apply_log_config(configuration::state& new_cfg);
   static state& instance();
   void clear();
@@ -94,6 +96,7 @@ class state {
   template <typename ConfigurationType, typename ApplierType>
   void _expand(configuration::state& new_state, error_cnt& err);
   void _processing(configuration::state& new_cfg,
+                   error_cnt& err,
                    retention::state* state = nullptr);
   template <typename ConfigurationType, typename ApplierType>
   void _resolve(std::set<ConfigurationType>& cfg, error_cnt& err);

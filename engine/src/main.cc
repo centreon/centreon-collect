@@ -283,7 +283,7 @@ int main(int argc, char* argv[]) {
           p.parse(config_file, config, err);
         }
 
-        configuration::applier::state::instance().apply(config);
+        configuration::applier::state::instance().apply(config, err);
 
         std::cout << "\n Checked " << commands::command::commands.size()
                   << " commands.\n Checked "
@@ -352,7 +352,7 @@ int main(int argc, char* argv[]) {
         }
 
         // Apply configuration.
-        configuration::applier::state::instance().apply(config, &state);
+        configuration::applier::state::instance().apply(config, err, &state);
 
         display_scheduling_info();
         retval = EXIT_SUCCESS;
@@ -437,7 +437,7 @@ int main(int argc, char* argv[]) {
             &backend_broker_log, logging::log_all, logging::basic);
 
         // Apply configuration.
-        configuration::applier::state::instance().apply(config, &state);
+        configuration::applier::state::instance().apply(config, err, &state);
 
         // Handle signals (interrupts).
         setup_sighandler();

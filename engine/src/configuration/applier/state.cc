@@ -71,14 +71,16 @@ static bool has_already_been_loaded(false);
  *  Apply new configuration.
  *
  *  @param[in] new_cfg        The new configuration.
+ *  @param[out] err           The configuration error counter.
  *  @param[in] state          The retention to use.
  */
 void applier::state::apply(configuration::state& new_cfg,
+                           error_cnt& err,
                            retention::state* state) {
   configuration::state save(*config);
   try {
     _processing_state = state_ready;
-    _processing(new_cfg, state);
+    _processing(new_cfg, err, state);
   } catch (std::exception const& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
@@ -95,7 +97,7 @@ void applier::state::apply(configuration::state& new_cfg,
       engine_logger(dbg_config, more)
           << "configuration: try to restore old configuration";
       config_logger->debug("configuration: try to restore old configuration");
-      _processing(save, state);
+      _processing(save, err, state);
     }
   }
 }
@@ -1224,14 +1226,14 @@ void applier::state::_expand(configuration::state& new_state, error_cnt& err) {
  *  Process new configuration and apply it.
  *
  *  @param[in] new_cfg        The new configuration.
+ *  @param[out] err           The configuration error counter.
  *  @param[in] state          The retention to use.
  */
 void applier::state::_processing(configuration::state& new_cfg,
+                                 error_cnt& err,
                                  retention::state* state) {
-  assert(1 == 0);
   // Timing.
   struct timeval tv[5];
-  error_cnt err;
 
   // Call prelauch broker event the first time to run applier state.
   if (!has_already_been_loaded)

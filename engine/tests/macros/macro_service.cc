@@ -983,7 +983,7 @@ TEST_F(MacroService, ServicePerfDataFile) {
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st, err);
-  configuration::applier::state::instance().apply(st);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;
