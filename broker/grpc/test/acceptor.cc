@@ -51,8 +51,6 @@ static auto read_file = [](const std::string& path) {
 TEST_F(GrpcTlsTest, TlsStream) {
   /* Let's prepare certificates */
   std::string hostname = misc::exec("hostname --fqdn");
-  if (hostname.empty())
-    hostname = "localhost";
   hostname = misc::string::trim(hostname);
   if (hostname.empty())
     hostname = "localhost";
