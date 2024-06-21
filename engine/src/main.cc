@@ -207,13 +207,14 @@ int main(int argc, char* argv[]) {
     // Just display the license.
     if (display_license) {
       std::cout
-          << "Centreon Engine " << CENTREON_ENGINE_VERSION_STRING
-          << "\n"
+          << "Centreon Engine " CENTREON_ENGINE_VERSION_STRING
+             "\n"
              "\n"
              "Copyright 1999-2009 Ethan Galstad\n"
              "Copyright 2009-2010 Nagios Core Development Team and Community "
              "Contributors\n"
-             "Copyright 2011-2021 Centreon\n"
+             "Copyright 2011-" CENTREON_CURRENT_YEAR
+             " Centreon\n"
              "\n"
              "This program is free software: you can redistribute it and/or\n"
              "modify it under the terms of the GNU General Public License "
