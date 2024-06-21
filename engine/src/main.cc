@@ -275,10 +275,11 @@ int main(int argc, char* argv[]) {
       try {
         // Read in the configuration files (main config file,
         // resource and object config files).
+        configuration::error_cnt err;
         configuration::state config;
         {
           configuration::parser p;
-          p.parse(config_file, config);
+          p.parse(config_file, config, err);
         }
 
         configuration::applier::state::instance().apply(config);
@@ -301,9 +302,10 @@ int main(int argc, char* argv[]) {
                   << servicegroup::servicegroups.size()
                   << " service groups.\n Checked " << service::services.size()
                   << " services.\n Checked " << timeperiod::timeperiods.size()
-                  << " time periods.\n\n Total Warnings: " << config_warnings
-                  << "\n Total Errors:   " << config_errors << std::endl;
-        retval = config_errors ? EXIT_FAILURE : EXIT_SUCCESS;
+                  << " time periods.\n\n Total Warnings: "
+                  << err.config_warnings
+                  << "\n Total Errors:   " << err.config_errors << std::endl;
+        retval = err.config_errors ? EXIT_FAILURE : EXIT_SUCCESS;
       } catch (const std::exception& e) {
         std::cout << "Error while processing a config file: " << e.what()
                   << std::endl;
@@ -330,9 +332,10 @@ int main(int argc, char* argv[]) {
       try {
         // Parse configuration.
         configuration::state config;
+        configuration::error_cnt err;
         {
           configuration::parser p;
-          p.parse(config_file, config);
+          p.parse(config_file, config, err);
         }
 
         // Parse retention.
@@ -348,7 +351,7 @@ int main(int argc, char* argv[]) {
         }
 
         // Apply configuration.
-        configuration::applier::state::instance().apply(config, state);
+        configuration::applier::state::instance().apply(config, &state);
 
         display_scheduling_info();
         retval = EXIT_SUCCESS;
@@ -365,10 +368,11 @@ int main(int argc, char* argv[]) {
     else {
       try {
         // Parse configuration.
+        configuration::error_cnt err;
         configuration::state config;
         {
           configuration::parser p;
-          p.parse(config_file, config);
+          p.parse(config_file, config, err);
         }
 
         configuration::extended_conf::load_all(extended_conf_file.begin(),
@@ -432,7 +436,7 @@ int main(int argc, char* argv[]) {
             &backend_broker_log, logging::log_all, logging::basic);
 
         // Apply configuration.
-        configuration::applier::state::instance().apply(config, state);
+        configuration::applier::state::instance().apply(config, &state);
 
         // Handle signals (interrupts).
         setup_sighandler();

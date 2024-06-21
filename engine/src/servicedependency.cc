@@ -289,9 +289,8 @@ bool servicedependency::check_for_circular_servicedependency_path(
   return false;
 }
 
-void servicedependency::resolve(int& w, int& e) {
-  (void)w;
-  int errors{0};
+void servicedependency::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
+  uint32_t errors = 0;
 
   // Find the dependent service.
   service_map::const_iterator found{service::services.find(

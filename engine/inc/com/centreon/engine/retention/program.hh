@@ -71,7 +71,6 @@ class program : public object {
   bool _set_check_host_freshness(bool value);
   bool _set_check_service_freshness(bool value);
   bool _set_enable_event_handlers(bool value);
-  bool _set_enable_failure_prediction(bool value);
   bool _set_enable_flap_detection(bool value);
   bool _set_enable_notifications(bool value);
   bool _set_global_host_event_handler(std::string const& value);

@@ -3951,8 +3951,9 @@ bool host::is_in_downtime() const {
  * @param e Errors given by the method. An exception is thrown is at less an
  * error is rised.
  */
-void host::resolve(int& w, int& e) {
-  int warnings{0}, errors{0};
+void host::resolve(uint32_t& w, uint32_t& e) {
+  uint32_t warnings = 0;
+  uint32_t errors = 0;
 
   try {
     notifier::resolve(warnings, errors);

@@ -52,7 +52,7 @@ class serviceescalation : public escalation {
   std::string const& get_hostname() const;
   std::string const& get_description() const;
   bool is_viable(int state, uint32_t notification_number) const override;
-  void resolve(int& w, int& e) override;
+  void resolve(uint32_t& w, uint32_t& e) override;
   bool matches(const configuration::serviceescalation& obj) const;
 
   static serviceescalation_mmap serviceescalations;

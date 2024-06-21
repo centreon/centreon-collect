@@ -127,7 +127,7 @@ class contact {
   bool should_be_notified(notifier::notification_category cat,
                           notifier::reason_type type,
                           notifier const& notif) const;
-  void resolve(int& w, int& e);
+  void resolve(uint32_t& w, uint32_t& e);
   map_customvar const& get_custom_variables() const;
   map_customvar& get_custom_variables();
   timeperiod* get_host_notification_period_ptr() const;
@@ -180,7 +180,7 @@ class contact {
   timeperiod* _service_notification_period_ptr;
 };
 
-}
+}  // namespace com::centreon::engine
 
 std::shared_ptr<com::centreon::engine::contact> add_contact(
     std::string const& name,

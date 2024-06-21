@@ -1149,8 +1149,8 @@ void get_next_valid_time(time_t pref_time,
  * @param e[out] Number of errors produced during this resolution.
  *
  */
-void timeperiod::resolve(int& w __attribute__((unused)), int& e) {
-  int errors{0};
+void timeperiod::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
+  uint32_t errors = 0;
 
   // Check for illegal characters in timeperiod name.
   if (contains_illegal_object_chars(_name.c_str())) {

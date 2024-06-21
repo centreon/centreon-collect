@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 #include <com/centreon/engine/configuration/applier/host.hh>
 #include <com/centreon/engine/configuration/applier/hostescalation.hh>
+#include <com/centreon/engine/configuration/applier/state.hh>
 #include <com/centreon/engine/configuration/state.hh>
 #include <com/centreon/engine/host.hh>
 #include <com/centreon/engine/hostescalation.hh>
@@ -56,6 +57,7 @@ TEST_F(ApplierHostEscalation, AddEscalation) {
 }
 
 TEST_F(ApplierHostEscalation, ResolveObject) {
+  configuration::error_cnt err;
   configuration::applier::host hst_aply;
   configuration::host hst;
   ASSERT_TRUE(hst.parse("host_name", "test_host"));
@@ -68,9 +70,9 @@ TEST_F(ApplierHostEscalation, ResolveObject) {
   configuration::hostescalation he;
   ASSERT_TRUE(he.parse("host_name", "test_host"));
   ASSERT_TRUE(he.parse("first_notification", "4"));
-  ASSERT_THROW(he_apply.resolve_object(he), std::exception);
+  ASSERT_THROW(he_apply.resolve_object(he, err), std::exception);
   he_apply.add_object(he);
-  ASSERT_NO_THROW(he_apply.resolve_object(he));
+  ASSERT_NO_THROW(he_apply.resolve_object(he, err));
 }
 
 TEST_F(ApplierHostEscalation, RemoveEscalation) {

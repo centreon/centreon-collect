@@ -1043,8 +1043,9 @@ bool contact::_to_notify_custom(notifier::reason_type type
   return true;
 }
 
-void contact::resolve(int& w, int& e) {
-  int warnings{0}, errors{0};
+void contact::resolve(uint32_t& w, uint32_t& e) {
+  uint32_t warnings = 0;
+  uint32_t errors = 0;
 
   /* check service notification commands */
   if (get_service_notification_commands().empty()) {

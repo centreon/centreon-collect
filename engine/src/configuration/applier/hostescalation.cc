@@ -224,7 +224,8 @@ void applier::hostescalation::remove_object(
  *  @param[in] obj  Hostescalation object.
  */
 void applier::hostescalation::resolve_object(
-    configuration::hostescalation const& obj) {
+    configuration::hostescalation const& obj,
+    error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving a host escalation.";
@@ -246,7 +247,7 @@ void applier::hostescalation::resolve_object(
     if (it->second->internal_key() == key && it->second->matches(obj)) {
       found = true;
       // Resolve host escalation.
-      it->second->resolve(config_warnings, config_errors);
+      it->second->resolve(err.config_warnings, err.config_errors);
       break;
     }
   }

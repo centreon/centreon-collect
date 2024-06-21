@@ -19,6 +19,7 @@
 
 #include <gtest/gtest.h>
 #include <fstream>
+#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/globals.hh"
 
 #include <com/centreon/engine/configuration/applier/command.hh>
@@ -723,12 +724,13 @@ TEST_F(MacroService, ServiceGroupName) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  configuration::error_cnt err;
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
   grp.parse("members", "test_host,test");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
 
   init_macros();
   int now{500000000};
@@ -763,13 +765,14 @@ TEST_F(MacroService, ServiceGroupAlias) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  configuration::error_cnt err;
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
   grp.parse("members", "test_host,test");
   grp.parse("alias", "test_group_alias");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
 
   init_macros();
   int now{500000000};
@@ -969,6 +972,7 @@ TEST_F(MacroService, ServiceCheckCommand) {
 TEST_F(MacroService, ServicePerfDataFile) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   std::remove("/tmp/test-config.cfg");
 
@@ -978,7 +982,7 @@ TEST_F(MacroService, ServicePerfDataFile) {
   ofs << "log_file=\"\"" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
   configuration::applier::state::instance().apply(st);
   init_macros();
 
@@ -1636,12 +1640,13 @@ TEST_F(MacroService, ServiceGroupNames) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  configuration::error_cnt err;
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
   grp.parse("members", "test_host,test");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
 
   init_macros();
   int now{500000000};
@@ -1716,13 +1721,14 @@ TEST_F(MacroService, ServiceGroupNotes) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  configuration::error_cnt err;
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
   grp.parse("members", "test_host,test");
   ASSERT_TRUE(grp.parse("notes", "test_notes"));
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
   init_macros();
   int now{500000000};
   set_time(now);
@@ -1758,13 +1764,14 @@ TEST_F(MacroService, ServiceGroupNotesUrl) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  configuration::error_cnt err;
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
   grp.parse("members", "test_host,test");
   ASSERT_TRUE(grp.parse("notes_url", "test_notes_url"));
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
   init_macros();
   int now{500000000};
   set_time(now);
@@ -1798,13 +1805,14 @@ TEST_F(MacroService, ServiceGroupActionUrl) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  configuration::error_cnt err;
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
   grp.parse("members", "test_host,test");
   ASSERT_TRUE(grp.parse("action_url", "test_notes_url"));
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
   init_macros();
   int now{500000000};
   set_time(now);
@@ -1838,13 +1846,14 @@ TEST_F(MacroService, ServiceGroupMembers) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  configuration::error_cnt err;
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
   grp.parse("members", "test_host,test");
   ASSERT_TRUE(grp.parse("action_url", "test_notes_url"));
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
   init_macros();
   int now{500000000};
   set_time(now);
@@ -2010,6 +2019,7 @@ TEST_F(MacroService, LastServiceStateId) {
 TEST_F(MacroService, ServiceProblemID) {
   init_macros();
 
+  configuration::error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("admin", true)};
   ct_aply.add_object(ctct);
@@ -2017,8 +2027,8 @@ TEST_F(MacroService, ServiceProblemID) {
       new_configuration_contact("admin1", false, "c,r")};
   ct_aply.add_object(ctct1);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
-  ct_aply.resolve_object(ctct1);
+  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct1, err);
 
   configuration::host hst{new_configuration_host("test_host", "admin")};
   configuration::applier::host hst_aply;
@@ -2029,8 +2039,8 @@ TEST_F(MacroService, ServiceProblemID) {
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
-  hst_aply.resolve_object(hst);
-  svc_aply.resolve_object(svc);
+  hst_aply.resolve_object(hst, err);
+  svc_aply.resolve_object(svc, err);
 
   host_map const& hm{engine::host::hosts};
   _host3 = hm.begin()->second;

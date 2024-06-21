@@ -36,6 +36,8 @@ class state;
 }
 
 namespace configuration {
+struct error_cnt;
+
 namespace applier {
 /**
  *  @class state state.hh
@@ -45,8 +47,7 @@ namespace applier {
  */
 class state {
  public:
-  void apply(configuration::state& new_cfg);
-  void apply(configuration::state& new_cfg, retention::state& state);
+  void apply(configuration::state& new_cfg, retention::state* state = nullptr);
   void apply_log_config(configuration::state& new_cfg);
   static state& instance();
   void clear();
@@ -71,7 +72,7 @@ class state {
 
   state();
   state(state const&);
-  ~state() throw();
+  ~state() noexcept;
 
 #ifdef DEBUG_CONFIG
   void _check_serviceescalations() const;
@@ -83,16 +84,19 @@ class state {
 #endif
 
   state& operator=(state const&);
-  void _apply(configuration::state const& new_cfg);
+  void _apply(configuration::state const& new_cfg, error_cnt& err);
   template <typename ConfigurationType, typename ApplierType>
-  void _apply(difference<std::set<ConfigurationType>> const& diff);
-  void _apply(configuration::state& new_cfg, retention::state& state);
+  void _apply(difference<std::set<ConfigurationType>> const& diff,
+              error_cnt& err);
+  void _apply(configuration::state& new_cfg,
+              retention::state& state,
+              error_cnt& err);
   template <typename ConfigurationType, typename ApplierType>
-  void _expand(configuration::state& new_state);
+  void _expand(configuration::state& new_state, error_cnt& err);
   void _processing(configuration::state& new_cfg,
-                   retention::state* state = NULL);
+                   retention::state* state = nullptr);
   template <typename ConfigurationType, typename ApplierType>
-  void _resolve(std::set<ConfigurationType>& cfg);
+  void _resolve(std::set<ConfigurationType>& cfg, error_cnt& err);
 
   std::mutex _apply_lock;
   state* _config;

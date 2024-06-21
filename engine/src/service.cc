@@ -3864,8 +3864,9 @@ host* service::get_host_ptr() {
   return _host_ptr;
 }
 
-void service::resolve(int& w, int& e) {
-  int warnings{0}, errors{0};
+void service::resolve(uint32_t& w, uint32_t& e) {
+  uint32_t warnings = 0;
+  uint32_t errors = 0;
 
   try {
     notifier::resolve(warnings, errors);

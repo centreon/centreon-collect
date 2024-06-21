@@ -99,10 +99,10 @@ static int dfs_host_path(host* root) {
 }
 
 /* check for circular paths and dependencies */
-int pre_flight_circular_check(int* w, int* e) {
-  int found(false);
-  int warnings(0);
-  int errors(0);
+int pre_flight_circular_check(uint32_t* w, uint32_t* e) {
+  int found = false;
+  uint32_t warnings = 0;
+  uint32_t errors = 0;
 
   /* bail out if we aren't supposed to verify circular paths */
   if (!verify_circular_paths)

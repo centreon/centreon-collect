@@ -114,13 +114,14 @@ void open_telemetry_test::SetUpTestSuite() {
 }
 
 void open_telemetry_test::SetUp() {
+  configuration::error_cnt err;
   init_config_state();
   config->contacts().clear();
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("admin", true)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct, err);
 
   configuration::host hst{new_configuration_host("localhost", "admin")};
   configuration::applier::host hst_aply;
@@ -131,8 +132,8 @@ void open_telemetry_test::SetUp() {
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
-  hst_aply.resolve_object(hst);
-  svc_aply.resolve_object(svc);
+  hst_aply.resolve_object(hst, err);
+  svc_aply.resolve_object(svc, err);
   data_point_fifo::update_fifo_limit(std::numeric_limits<time_t>::max(), 10);
 }
 

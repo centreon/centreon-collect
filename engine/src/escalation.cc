@@ -113,8 +113,8 @@ bool escalation::is_viable(int state __attribute__((unused)),
   return true;
 }
 
-void escalation::resolve(int& w __attribute__((unused)), int& e) {
-  int errors{0};
+void escalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
+  uint32_t errors = 0;
   // Find the timeperiod.
   if (!get_escalation_period().empty()) {
     timeperiod_map::const_iterator it{

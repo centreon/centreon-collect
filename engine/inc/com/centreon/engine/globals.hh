@@ -32,9 +32,6 @@
 #include "com/centreon/engine/utils.hh"
 #include "common/log_v2/log_v2.hh"
 
-//extern int config_errors;
-//extern int config_warnings;
-
 /* Start/Restart statistics */
 extern com::centreon::engine::restart_stats restart_apply_stats;
 

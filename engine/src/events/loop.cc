@@ -92,6 +92,7 @@ void loop::run() {
 loop::loop() : _need_reload(0), _reload_running(false) {}
 
 static void apply_conf(std::atomic<bool>* reloading) {
+  configuration::error_cnt err;
   engine_logger(log_info_message, more) << "Starting to reload configuration.";
   process_logger->info("Starting to reload configuration.");
   try {
@@ -99,7 +100,7 @@ static void apply_conf(std::atomic<bool>* reloading) {
     {
       configuration::parser p;
       std::string path(::config->cfg_main());
-      p.parse(path, config);
+      p.parse(path, config, err);
     }
     configuration::extended_conf::update_state(config);
     configuration::applier::state::instance().apply(config);

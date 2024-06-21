@@ -48,7 +48,7 @@ class hostescalation : public escalation {
 
   std::string const& get_hostname() const;
   bool is_viable(int state, uint32_t notification_number) const override;
-  void resolve(int& w, int& e) override;
+  void resolve(uint32_t& w, uint32_t& e) override;
 
   bool matches(const configuration::hostescalation& obj) const;
 

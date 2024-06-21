@@ -167,7 +167,8 @@ void applier::timeperiod::remove_object(configuration::timeperiod const& obj) {
  *
  *  @param[in] obj Unused.
  */
-void applier::timeperiod::resolve_object(configuration::timeperiod const& obj) {
+void applier::timeperiod::resolve_object(configuration::timeperiod const& obj,
+                                         error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving time period '" << obj.timeperiod_name() << "'.";
@@ -180,7 +181,7 @@ void applier::timeperiod::resolve_object(configuration::timeperiod const& obj) {
                          << "time period '" << obj.timeperiod_name() << "'";
 
   // Resolve time period.
-  it->second->resolve(config_warnings, config_errors);
+  it->second->resolve(err.config_warnings, err.config_errors);
 }
 
 /**

@@ -209,7 +209,8 @@ void applier::command::remove_object(configuration::command const& obj) {
  *
  *  @param[in] obj  Command object.
  */
-void applier::command::resolve_object(configuration::command const& obj) {
+void applier::command::resolve_object(configuration::command const& obj,
+                                      error_cnt& err) {
   if (!obj.connector().empty()) {
     connector_map::iterator found{
         commands::connector::connectors.find(obj.connector())};

@@ -238,7 +238,7 @@ bool serviceescalation::operator<(serviceescalation const& right) const {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void serviceescalation::check_validity() const {
+void serviceescalation::check_validity(error_cnt& err [[maybe_unused]]) const {
   if (_servicegroups->empty()) {
     if (_service_description->empty())
       throw msg_fmt(

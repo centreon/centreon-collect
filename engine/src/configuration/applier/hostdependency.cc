@@ -224,7 +224,8 @@ void applier::hostdependency::remove_object(
  *  @param[in] obj  Hostdependency object.
  */
 void applier::hostdependency::resolve_object(
-    configuration::hostdependency const& obj) {
+    configuration::hostdependency const& obj,
+    error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving a host dependency.";
@@ -238,7 +239,7 @@ void applier::hostdependency::resolve_object(
     throw engine_error() << "Cannot resolve non-existing host escalation";
 
   // Resolve host dependency.
-  it->second->resolve(config_warnings, config_errors);
+  it->second->resolve(err.config_warnings, err.config_errors);
 }
 
 /**

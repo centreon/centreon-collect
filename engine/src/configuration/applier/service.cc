@@ -22,6 +22,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
+#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
@@ -547,7 +548,8 @@ void applier::service::remove_object(configuration::service const& obj) {
  *
  *  @param[in] obj  Service object.
  */
-void applier::service::resolve_object(configuration::service const& obj) {
+void applier::service::resolve_object(configuration::service const& obj,
+                                      error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving service '" << obj.service_description() << "' of host '"
@@ -575,7 +577,7 @@ void applier::service::resolve_object(configuration::service const& obj) {
   }
 
   // Resolve service.
-  it->second->resolve(config_warnings, config_errors);
+  it->second->resolve(err.config_warnings, err.config_errors);
 }
 
 /**

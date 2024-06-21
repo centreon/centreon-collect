@@ -26,6 +26,16 @@ typedef std::set<std::string> set_string;
 namespace com::centreon::engine {
 
 namespace configuration {
+
+/**
+ * @brief Error counter, it contains two attributes, one for warnings and
+ * another for errors.
+ */
+struct error_cnt {
+  uint32_t config_warnings = 0;
+  uint32_t config_errors = 0;
+};
+
 class object {
  public:
   enum object_type {
@@ -55,7 +65,7 @@ class object {
   object& operator=(object const& right);
   bool operator==(object const& right) const noexcept;
   bool operator!=(object const& right) const noexcept;
-  virtual void check_validity() const = 0;
+  virtual void check_validity(error_cnt& err) const = 0;
   static std::shared_ptr<object> create(std::string const& type_name);
   virtual void merge(object const& obj) = 0;
   const std::string& name() const noexcept;

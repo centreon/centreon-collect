@@ -137,16 +137,12 @@ void state::_init_setter() {
   SETTER(int, additional_freshness_latency, "additional_freshness_latency");
   SETTER(const std::string&, admin_email, "admin_email");
   SETTER(const std::string&, admin_pager, "admin_pager");
-  SETTER(const std::string&, _set_aggregate_status_updates,
-         "aggregate_status_updates");
   SETTER(bool, allow_empty_hostgroup_assignment,
          "allow_empty_hostgroup_assignment");
-  SETTER(const std::string&, _set_auth_file, "auth_file");
   SETTER(bool, auto_reschedule_checks, "auto_reschedule_checks");
   SETTER(unsigned int, auto_rescheduling_interval,
          "auto_rescheduling_interval");
   SETTER(unsigned int, auto_rescheduling_window, "auto_rescheduling_window");
-  SETTER(const std::string&, _set_bare_update_check, "bare_update_check");
   SETTER(const std::string&, broker_module_directory,
          "broker_module_directory");
   SETTER(const std::string&, _set_broker_module, "broker_module");
@@ -158,27 +154,18 @@ void state::_init_setter() {
   SETTER(bool, check_external_commands, "check_external_commands");
   SETTER(bool, check_orphaned_hosts, "check_for_orphaned_hosts");
   SETTER(bool, check_orphaned_services, "check_for_orphaned_services");
-  SETTER(const std::string&, _set_check_for_updates, "check_for_updates");
   SETTER(bool, check_host_freshness, "check_host_freshness");
   SETTER(unsigned int, check_reaper_interval, "check_result_reaper_frequency");
   SETTER(bool, check_service_freshness, "check_service_freshness");
-  SETTER(const std::string&, _set_child_processes_fork_twice,
-         "child_processes_fork_twice");
   SETTER(const std::string&, _set_command_check_interval,
          "command_check_interval");
   SETTER(const std::string&, command_file, "command_file");
-  SETTER(const std::string&, _set_comment_file, "comment_file");
-  SETTER(const std::string&, _set_daemon_dumps_core, "daemon_dumps_core");
   SETTER(const std::string&, _set_date_format, "date_format");
   SETTER(const std::string&, debug_file, "debug_file");
   SETTER(int64_t, debug_level, "debug_level");
   SETTER(unsigned int, debug_verbosity, "debug_verbosity");
-  SETTER(const std::string&, _set_downtime_file, "downtime_file");
-  SETTER(const std::string&, _set_enable_embedded_perl, "enable_embedded_perl");
   SETTER(bool, enable_environment_macros, "enable_environment_macros");
   SETTER(bool, enable_event_handlers, "enable_event_handlers");
-  SETTER(const std::string&, _set_enable_failure_prediction,
-         "enable_failure_prediction");
   SETTER(bool, enable_flap_detection, "enable_flap_detection");
   SETTER(bool, enable_macros_filter, "enable_macros_filter");
   SETTER(bool, enable_notifications, "enable_notifications");
@@ -191,8 +178,6 @@ void state::_init_setter() {
   SETTER(bool, execute_host_checks, "execute_host_checks");
   SETTER(bool, execute_service_checks, "execute_service_checks");
   SETTER(int, external_command_buffer_slots, "external_command_buffer_slots");
-  SETTER(const std::string&, _set_free_child_process_memory,
-         "free_child_process_memory");
   SETTER(const std::string&, global_host_event_handler,
          "global_host_event_handler");
   SETTER(const std::string&, global_service_event_handler,
@@ -218,18 +203,14 @@ void state::_init_setter() {
          "illegal_macro_output_chars");
   SETTER(const std::string&, illegal_object_chars, "illegal_object_name_chars");
   SETTER(unsigned int, interval_length, "interval_length");
-  SETTER(const std::string&, _set_lock_file, "lock_file");
-  SETTER(const std::string&, _set_log_archive_path, "log_archive_path");
   SETTER(bool, log_event_handlers, "log_event_handlers");
   SETTER(bool, log_external_commands, "log_external_commands");
   SETTER(const std::string&, log_file, "log_file");
   SETTER(bool, log_host_retries, "log_host_retries");
-  SETTER(const std::string&, _set_log_initial_states, "log_initial_states");
   SETTER(bool, log_notifications, "log_notifications");
   SETTER(bool, log_passive_checks, "log_passive_checks");
   SETTER(bool, log_pid, "log_pid");
   SETTER(bool, log_file_line, "log_file_line");
-  SETTER(const std::string&, _set_log_rotation_method, "log_rotation_method");
   SETTER(bool, log_service_retries, "log_service_retries");
   SETTER(float, low_host_flap_threshold, "low_host_flap_threshold");
   SETTER(float, low_service_flap_threshold, "low_service_flap_threshold");
@@ -240,24 +221,18 @@ void state::_init_setter() {
   SETTER(unsigned long, max_log_file_size, "max_log_file_size");
   SETTER(uint32_t, log_flush_period, "log_flush_period");
   SETTER(unsigned int, max_service_check_spread, "max_service_check_spread");
-  SETTER(const std::string&, _set_nagios_group, "nagios_group");
-  SETTER(const std::string&, _set_nagios_user, "nagios_user");
   SETTER(unsigned int, notification_timeout, "notification_timeout");
-  SETTER(const std::string&, _set_object_cache_file, "object_cache_file");
   SETTER(bool, obsess_over_hosts, "obsess_over_hosts");
   SETTER(bool, obsess_over_services, "obsess_over_services");
   SETTER(const std::string&, ochp_command, "ochp_command");
   SETTER(unsigned int, ochp_timeout, "ochp_timeout");
   SETTER(const std::string&, ocsp_command, "ocsp_command");
   SETTER(unsigned int, ocsp_timeout, "ocsp_timeout");
-  SETTER(const std::string&, _set_p1_file, "p1_file");
   SETTER(int, perfdata_timeout, "perfdata_timeout");
   SETTER(const std::string&, poller_name, "poller_name");
   SETTER(uint32_t, poller_id, "poller_id");
   SETTER(uint16_t, rpc_port, "rpc_port");
   SETTER(const std::string&, rpc_listen_address, "rpc_listen_address");
-  SETTER(const std::string&, _set_precached_object_file,
-         "precached_object_file");
   SETTER(bool, process_performance_data, "process_performance_data");
   SETTER(const std::string&, _set_resource_file, "resource_file");
   SETTER(unsigned long, retained_contact_host_attribute_mask,
@@ -268,10 +243,6 @@ void state::_init_setter() {
          "retained_host_attribute_mask");
   SETTER(unsigned long, retained_process_host_attribute_mask,
          "retained_process_host_attribute_mask");
-  SETTER(const std::string&, _set_retained_process_service_attribute_mask,
-         "retained_process_service_attribute_mask");
-  SETTER(const std::string&, _set_retained_service_attribute_mask,
-         "retained_service_attribute_mask");
   SETTER(bool, retain_state_information, "retain_state_information");
   SETTER(unsigned int, retention_scheduling_horizon,
          "retention_scheduling_horizon");
@@ -300,13 +271,7 @@ void state::_init_setter() {
   SETTER(const std::string&, state_retention_file, "state_retention_file");
   SETTER(const std::string&, status_file, "status_file");
   SETTER(unsigned int, status_update_interval, "status_update_interval");
-  SETTER(const std::string&, _set_temp_file, "temp_file");
-  SETTER(const std::string&, _set_temp_path, "temp_path");
   SETTER(unsigned int, time_change_threshold, "time_change_threshold");
-  SETTER(bool, use_aggressive_host_checking, "use_aggressive_host_checking");
-  SETTER(bool, use_aggressive_host_checking, "use_agressive_host_checking");
-  SETTER(const std::string&, _set_use_embedded_perl_implicitly,
-         "use_embedded_perl_implicitly");
   SETTER(bool, use_large_installation_tweaks, "use_large_installation_tweaks");
   SETTER(uint32_t, instance_heartbeat_interval, "instance_heartbeat_interval");
   SETTER(bool, use_regexp_matches, "use_regexp_matching");
@@ -335,8 +300,6 @@ void state::_init_setter() {
   SETTER(const std::string&, log_level_otl, "log_level_otl");
   SETTER(const std::string&, use_timezone, "use_timezone");
   SETTER(bool, use_true_regexp_matching, "use_true_regexp_matching");
-  SETTER(const std::string&, _set_comment_file, "xcddefault_comment_file");
-  SETTER(const std::string&, _set_downtime_file, "xdddefault_downtime_file");
   SETTER(bool, use_send_recovery_notifications_anyways,
          "send_recovery_notifications_anyways");
   SETTER(bool, use_host_down_disable_service_checks,
@@ -3787,20 +3750,6 @@ void state::user(unsigned int key, const std::string& value) {
 }
 
 /**
- *  Set use_aggressive_host_checking value. This function is still there just
- *  to warn the user. It should be removed soon.
- *
- *  @param[in] value The new use_aggressive_host_checking value.
- */
-void state::use_aggressive_host_checking(bool value __attribute__((unused))) {
-  _logger->warn(
-      "Warning: use_aggressive_host_checking is deprecated. This option is "
-      "no "
-      "more supported since version 21.04.");
-  ++config_warnings;
-}
-
-/**
  *  Get use_large_installation_tweaks value.
  *
  *  @return The use_large_installation_tweaks value.
@@ -4314,37 +4263,6 @@ void state::use_true_regexp_matching(bool value) {
 }
 
 /**
- *  Unused variable aggregate_status_updates.
- *
- *  @param[in] value Unused.
- */
-void state::_set_aggregate_status_updates(const std::string& value
-                                          [[maybe_unused]]) {
-  _logger->warn("Warning: aggregate_status_updates variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable auth_file.
- *
- *  @param[in] value Unused.
- */
-void state::_set_auth_file(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: auth_file variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable bare_update_check.
- *
- *  @param[in] value Unused.
- */
-void state::_set_bare_update_check(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: bare_update_check variable ignored");
-  ++config_warnings;
-}
-
-/**
  *  Add broker module.
  *
  *  @param[in] value The new broker module.
@@ -4384,27 +4302,6 @@ void state::_set_cfg_file(const std::string& value) {
 }
 
 /**
- *  Unused variable check_for_updates.
- *
- *  @param[in] value Unused.
- */
-void state::_set_check_for_updates(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: check_for_updates variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable child_processes_fork_twice.
- *
- *  @param[in] value Unused.
- */
-void state::_set_child_processes_fork_twice(const std::string& value
-                                            [[maybe_unused]]) {
-  _logger->warn("Warning: child_processes_fork_twice variable ignored");
-  ++config_warnings;
-}
-
-/**
  *  Set command check interval.
  *
  *  @param[in] value The new command check interval.
@@ -4420,26 +4317,6 @@ void state::_set_command_check_interval(const std::string& value) {
   }
   detail::setter<int, &state::command_check_interval>("").apply_from_cfg(
       *this, val.c_str());
-}
-
-/**
- *  Unused variable comment_file.
- *
- *  @param[in] value Unused.
- */
-void state::_set_comment_file(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: comment_file variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable daemon_dumps_core.
- *
- *  @param[in] value Unused.
- */
-void state::_set_daemon_dumps_core(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: daemon_dumps_core variable ignored");
-  ++config_warnings;
 }
 
 /**
@@ -4459,38 +4336,6 @@ void state::_set_date_format(const std::string& value) {
 }
 
 /**
- *  Unused variable downtime_file.
- *
- *  @param[in] value Unused.
- */
-void state::_set_downtime_file(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: downtime_file variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable enable_embedded_perl.
- *
- *  @param[in] value Unused.
- */
-void state::_set_enable_embedded_perl(const std::string& value
-                                      [[maybe_unused]]) {
-  _logger->warn("Warning: enable_embedded_perl variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable enable_failure_prediction.
- *
- *  @param[in] value  Unused.
- */
-void state::_set_enable_failure_prediction(const std::string& value
-                                           [[maybe_unused]]) {
-  _logger->warn("Warning: enable_failure_prediction variable ignored");
-  ++config_warnings;
-}
-
-/**
  *  Set event_broker_options.
  *
  *  @param[in] value The new event_broker_options value.
@@ -4502,17 +4347,6 @@ void state::_set_event_broker_options(const std::string& value) {
   else {
     _event_broker_options = BROKER_EVERYTHING;
   }
-}
-
-/**
- *  Unused variable free_child_process_memory.
- *
- *  @param[in] value Unused.
- */
-void state::_set_free_child_process_memory(const std::string& value
-                                           [[maybe_unused]]) {
-  _logger->warn("Warning: free_child_process_memory variable ignored");
-  ++config_warnings;
 }
 
 /**
@@ -4554,99 +4388,6 @@ void state::_set_host_perfdata_file_mode(const std::string& value) {
 }
 
 /**
- *  Unused variable lock_file.
- *
- *  @param[in] value Unused.
- */
-void state::_set_lock_file(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: lock_file variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable log_archive_path.
- *
- *  @param[in] value Unused.
- */
-void state::_set_log_archive_path(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: log_archive_path variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable log_initial_states.
- *
- *  @param[in] value  Unused.
- */
-void state::_set_log_initial_states(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: log_initial_states variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable log_rotation_method.
- *
- *  @param[in] value Unused.
- */
-void state::_set_log_rotation_method(const std::string& value
-                                     [[maybe_unused]]) {
-  _logger->warn("Warning: log_rotation_method variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable nagios_group.
- *
- *  @param[in] value Unused.
- */
-void state::_set_nagios_group(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: nagios_group variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable nagios_user.
- *
- *  @param[in] value Unused.
- */
-void state::_set_nagios_user(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: nagios_user variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Set object_cache_file value.
- *
- *  @param[in] value Unused.
- */
-void state::_set_object_cache_file(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: object_cache_file variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable p1_file.
- *
- *  @param[in] value Unused.
- */
-void state::_set_p1_file(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: p1_file variable ignored");
-
-  ++config_warnings;
-}
-
-/**
- *  Set precached_object_file value.
- *
- *  @param[in] value Unused.
- */
-void state::_set_precached_object_file(const std::string& value
-                                       [[maybe_unused]]) {
-  _logger->warn("Warning: precached_object_file variable ignored");
-  ++config_warnings;
-}
-
-/**
  *  Set resource_file.
  *
  *  @param[in] value The new resource_file.
@@ -4659,29 +4400,6 @@ void state::_set_resource_file(const std::string& value) {
     std::string base_name(fe.directory_name());
     _resource_file.push_back(base_name + "/" + value);
   }
-}
-
-/**
- *  Unused variable retained_process_service_attribute_mask.
- *
- *  @param[in] value Unused.
- */
-void state::_set_retained_process_service_attribute_mask(
-    const std::string& value [[maybe_unused]]) {
-  _logger->warn(
-      "Warning: retained_process_service_attribute_mask variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable retained_service_attribute_mask.
- *
- *  @param[in] value Unused.
- */
-void state::_set_retained_service_attribute_mask(const std::string& value
-                                                 [[maybe_unused]]) {
-  _logger->warn("Warning: retained_service_attribute_mask variable ignored");
-  ++config_warnings;
 }
 
 /**
@@ -4736,37 +4454,6 @@ void state::_set_service_perfdata_file_mode(const std::string& value) {
     _service_perfdata_file_mode = mode_file;
   else
     _service_perfdata_file_mode = mode_file_append;
-}
-
-/**
- *  Unused variable temp_file.
- *
- *  @param[in] value Unused.
- */
-void state::_set_temp_file(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: temp_file variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable temp_path.
- *
- *  @param[in] value Unused.
- */
-void state::_set_temp_path(const std::string& value [[maybe_unused]]) {
-  _logger->warn("Warning: temp_path variable ignored");
-  ++config_warnings;
-}
-
-/**
- *  Unused variable use_embedded_perl_implicitly.
- *
- *  @param[in] value Unused.
- */
-void state::_set_use_embedded_perl_implicitly(const std::string& value
-                                              [[maybe_unused]]) {
-  _logger->warn("Warning: use_embedded_perl_implicitly variable ignored");
-  ++config_warnings;
 }
 
 void state::macros_filter(const std::string& value) {

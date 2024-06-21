@@ -205,7 +205,7 @@ class service : public notifier {
   static void check_for_orphaned();
   static void check_result_freshness();
   bool is_in_downtime() const override;
-  void resolve(int& w, int& e);
+  void resolve(uint32_t& w, uint32_t& e);
 
   std::list<servicegroup*> const& get_parent_groups() const;
   std::list<servicegroup*>& get_parent_groups();

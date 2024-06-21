@@ -86,9 +86,8 @@ bool serviceescalation::is_viable(int state,
     return retval;
 }
 
-void serviceescalation::resolve(int& w, int& e) {
-  (void)w;
-  int errors{0};
+void serviceescalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
+  uint32_t errors = 0;
 
   // Find the service.
   service_map::const_iterator found{

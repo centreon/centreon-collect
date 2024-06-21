@@ -239,7 +239,8 @@ void applier::serviceescalation::remove_object(
  *  @param[in] obj  Serviceescalation object.
  */
 void applier::serviceescalation::resolve_object(
-    configuration::serviceescalation const& obj) {
+    configuration::serviceescalation const& obj,
+    error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving a service escalation.";
@@ -260,7 +261,7 @@ void applier::serviceescalation::resolve_object(
     if (it->second->internal_key() == key && it->second->matches(obj)) {
       found = true;
       // Resolve service escalation.
-      it->second->resolve(config_warnings, config_errors);
+      it->second->resolve(err.config_warnings, err.config_errors);
       break;
     }
   }

@@ -26,9 +26,6 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
-extern int config_errors;
-extern int config_warnings;
-
 class ApplierSeverity : public ::testing::Test {
  public:
   void SetUp() override {

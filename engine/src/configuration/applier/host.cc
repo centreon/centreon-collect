@@ -460,7 +460,8 @@ void applier::host::remove_object(configuration::host const& obj) {
  *
  *  @param[in] obj  Host object.
  */
-void applier::host::resolve_object(configuration::host const& obj) {
+void applier::host::resolve_object(const configuration::host& obj,
+                                   error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving host '" << obj.host_name() << "'.";
@@ -494,7 +495,7 @@ void applier::host::resolve_object(configuration::host const& obj) {
   it->second->set_total_service_check_interval(0);
 
   // Resolve host.
-  it->second->resolve(config_warnings, config_errors);
+  it->second->resolve(err.config_warnings, err.config_errors);
 }
 
 /**

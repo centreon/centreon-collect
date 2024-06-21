@@ -112,7 +112,7 @@ bool connector::operator<(connector const& right) const throw() {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void connector::check_validity() const {
+void connector::check_validity(error_cnt& err [[maybe_unused]]) const {
   if (_connector_name.empty())
     throw msg_fmt("Connector has no name (property 'connector_name')");
   if (_connector_line.empty())
