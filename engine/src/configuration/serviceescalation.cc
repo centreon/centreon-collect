@@ -18,7 +18,6 @@
  */
 
 #include "com/centreon/engine/configuration/serviceescalation.hh"
-#include "com/centreon/engine/globals.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;

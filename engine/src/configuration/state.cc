@@ -22,7 +22,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/io/file_entry.hh"
-#include "compatibility/locations.h"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
