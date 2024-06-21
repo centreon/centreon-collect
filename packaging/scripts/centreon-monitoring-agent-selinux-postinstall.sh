@@ -1,11 +1,11 @@
 #!/bin/sh
 
 install() {
-  semodule -i /usr/share/selinux/packages/centreon/centreon-engine.pp > /dev/null 2>&1 || :
+  semodule -i /usr/share/selinux/packages/centreon/centreon-monitoring-agent.pp > /dev/null 2>&1 || :
 }
 
 upgrade() {
-  semodule -i /usr/share/selinux/packages/centreon/centreon-engine.pp > /dev/null 2>&1 || :
+  semodule -i /usr/share/selinux/packages/centreon/centreon-monitoring-agent.pp > /dev/null 2>&1 || :
 }
 
 action="$1"

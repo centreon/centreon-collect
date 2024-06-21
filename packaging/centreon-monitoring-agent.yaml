@@ -1,4 +1,4 @@
-name: "centreon-agent"
+name: "centreon-monitoring-agent"
 arch: "${ARCH}"
 platform: "linux"
 version_schema: "none"
@@ -16,12 +16,12 @@ license: "Apache-2.0"
 
 contents:
   - src: "../agent/conf/centagent.json"
-    dst: "/etc/centreon-agent/centagent.json"
+    dst: "/etc/centreon-monitoring-agent/centagent.json"
     type: config|noreplace
     file_info:
       mode: 0664
-      owner: centreon-agent
-      group: centreon-agent
+      owner: centreon-monitoring-agent
+      group: centreon-monitoring-agent
 
   - src: "../agent/scripts/centagent.service"
     dst: "/usr/lib/systemd/system/centagent.service"
@@ -37,25 +37,25 @@ contents:
   - src: "../build/agent/centagent"
     dst: "/usr/bin/centagent"
 
-  - dst: "/etc/centreon-agent"
+  - dst: "/etc/centreon-monitoring-agent"
     type: dir
     file_info:
       mode: 0775
-      owner: centreon-agent
-      group: centreon-agent
+      owner: centreon-monitoring-agent
+      group: centreon-monitoring-agent
 
-  - dst: "/var/log/centreon-agent"
+  - dst: "/var/log/centreon-monitoring-agent"
     type: dir
     file_info:
       mode: 0755
-      owner: centreon-agent
-      group: centreon-agent
+      owner: centreon-monitoring-agent
+      group: centreon-monitoring-agent
 
 scripts:
-  preinstall: ./scripts/centreon-agent-daemon-preinstall.sh
-  postinstall: ./scripts/centreon-agent-daemon-postinstall.sh
-  preremove: ./scripts/centreon-agent-daemon-preremove.sh
-  postremove: ./scripts/centreon-agent-daemon-postremove.sh
+  preinstall: ./scripts/centreon-monitoring-agent-preinstall.sh
+  postinstall: ./scripts/centreon-monitoring-agent-postinstall.sh
+  preremove: ./scripts/centreon-monitoring-agent-preremove.sh
+  postremove: ./scripts/centreon-monitoring-agent-postremove.sh
 
 
 rpm:

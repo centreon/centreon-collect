@@ -129,8 +129,9 @@ config::config(const std::string& path) {
   }
   _log_level =
       spdlog::level::from_str(json_config.get_string("log_level", "info"));
-  _log_type =
-      json_config.get_string("log_type", "stdout") == "file" ? file : stdout;
+  _log_type = !strcmp(json_config.get_string("log_type", "stdout"), "file")
+                  ? to_file
+                  : to_stdout;
   _log_file = json_config.get_string("log_file", "");
   _log_max_file_size = json_config.get_unsigned("log_max_file_size", 0);
   _log_max_files = json_config.get_unsigned("log_max_files", 0);

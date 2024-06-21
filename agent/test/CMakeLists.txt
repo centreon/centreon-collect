@@ -43,7 +43,8 @@ target_link_libraries(ut_agent PRIVATE
     GTest::gmock_main
     -L${Boost_LIBRARY_DIR_RELEASE}
     boost_program_options
-      -L${PROTOBUF_LIB_DIR}
+    stdc++fs
+    -L${PROTOBUF_LIB_DIR}
     gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
     fmt::fmt pthread
     crypto ssl

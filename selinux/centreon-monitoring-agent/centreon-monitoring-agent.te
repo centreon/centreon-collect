@@ -1,4 +1,4 @@
-policy_module(centreon-agent, @VERSION@)
+policy_module(centreon-monitoring-agent, @VERSION@)
 
 ########################################
 #

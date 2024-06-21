@@ -140,7 +140,7 @@ target_include_directories(${CENTREON_AGENT} PRIVATE
 )
 
 set(AGENT_VAR_LOG_DIR
-    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-agent")
+    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-monitoring-agent")
 
 
 install(TARGETS ${CENTREON_AGENT} RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}")
@@ -150,8 +150,8 @@ if(WITH_TESTING)
 endif()
 
 
-set(PREFIX_AGENT_CONF "${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-agent")
-set(USER_AGENT centreon-agent)
+set(PREFIX_AGENT_CONF "${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-monitoring-agent")
+set(USER_AGENT centreon-monitoring-agent)
 
 
 if(WITH_CONF)

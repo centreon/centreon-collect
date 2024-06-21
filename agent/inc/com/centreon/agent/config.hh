@@ -24,7 +24,7 @@ namespace com::centreon::agent {
 
 class config {
  public:
-  enum log_type { stdout, file };
+  enum log_type { to_stdout, to_file };
 
  private:
   std::string _endpoint;

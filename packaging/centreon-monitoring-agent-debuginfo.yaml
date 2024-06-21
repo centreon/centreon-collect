@@ -1,4 +1,4 @@
-name: "centreon-agent-debuginfo"
+name: "centreon-monitoring-agent-debuginfo"
 arch: "${ARCH}"
 platform: "linux"
 version_schema: "none"
@@ -23,16 +23,16 @@ contents:
 overrides:
   rpm:
     depends:
-      - centreon-agent = ${VERSION}-${RELEASE}${DIST}
+      - centreon-monitoring-agent = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
-      - centreon-agent (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-monitoring-agent (= ${VERSION}-${RELEASE}${DIST})
     conflicts:
-      - centreon-agent-dbgsym
+      - centreon-monitoring-agent-dbgsym
     replaces:
-      - centreon-agent-dbgsym
+      - centreon-monitoring-agent-dbgsym
     provides:
-      - centreon-agent-dbgsym
+      - centreon-monitoring-agent-dbgsym
 
 rpm:
   summary: Debuginfo package for centagent.

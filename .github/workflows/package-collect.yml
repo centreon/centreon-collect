@@ -105,7 +105,7 @@ jobs:
         if: ${{ matrix.package_extension == 'rpm' }}
         run: |
           cd selinux
-          for MODULE in "centreon-engine" "centreon-broker" "centreon-agent"; do
+          for MODULE in "centreon-engine" "centreon-broker" "centreon-monitoring-agent"; do
             cd $MODULE
             sed -i "s/@VERSION@/${{ inputs.version }}/g" $MODULE.te
             make -f /usr/share/selinux/devel/Makefile

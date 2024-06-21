@@ -92,13 +92,14 @@ int main(int argc, char* argv[]) {
   }
 
   SPDLOG_INFO(
-      "centreon-agent start, you can decrease log verbosity by kill -USR1 "
+      "centreon-monitoring-agent start, you can decrease log verbosity by kill "
+      "-USR1 "
       "{} or increase by kill -USR2 {}",
       getpid(), getpid());
 
-  const std::string logger_name = "centreon-agent";
+  const std::string logger_name = "centreon-monitoring-agent";
 
-  if (conf->get_log_type() == config::file) {
+  if (conf->get_log_type() == config::to_file) {
     try {
       if (!conf->get_log_file().empty()) {
         if (conf->get_log_max_file_size() > 0 &&
@@ -129,7 +130,7 @@ int main(int argc, char* argv[]) {
   g_logger->set_level(conf->get_log_level());
 
   SPDLOG_LOGGER_INFO(g_logger,
-                     "centreon-agent start, you can decrease log "
+                     "centreon-monitoring-agent start, you can decrease log "
                      "verbosity by kill -USR1 {} or increase by kill -USR2 {}",
                      getpid(), getpid());
   std::shared_ptr<com::centreon::common::grpc::grpc_config> grpc_conf;
@@ -159,7 +160,7 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  SPDLOG_LOGGER_INFO(g_logger, "centreon-agent end");
+  SPDLOG_LOGGER_INFO(g_logger, "centreon-monitoring-agent end");
 
   return 0;
 }

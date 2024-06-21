@@ -10,6 +10,6 @@
     "private_key":"",
     "ca_certificate":"",
     "ca_name":"",
-    "host":"",
+    "host":"my-centreon-host",
     "reversed_grpc_streaming":false
 }
