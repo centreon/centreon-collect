@@ -23,11 +23,8 @@
 #include <absl/strings/ascii.h>
 #include <gtest/gtest.h>
 
-#include "com/centreon/engine/timerange.hh"
-
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/globals.hh"
 
 using namespace com::centreon::engine::configuration;

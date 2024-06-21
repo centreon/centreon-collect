@@ -17,7 +17,6 @@
  *
  */
 
-#include "common/log_v2/log_v2.hh"
 #define C4_NO_DEBUG_BREAK 1
 
 #include "com/centreon/engine/configuration/whitelist.hh"

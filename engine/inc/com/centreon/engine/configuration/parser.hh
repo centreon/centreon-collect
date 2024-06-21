@@ -21,11 +21,7 @@
 
 #include <fstream>
 #include "com/centreon/engine/configuration/file_info.hh"
-#include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/configuration/hostdependency.hh"
-#include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/configuration/state.hh"
-#include "com/centreon/engine/configuration/timeperiod.hh"
 
 namespace com::centreon::engine {
 

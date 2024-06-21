@@ -18,7 +18,6 @@
  *
  */
 
-#include "com/centreon/engine/configuration/hostdependency.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
