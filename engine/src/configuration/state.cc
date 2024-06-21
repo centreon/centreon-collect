@@ -16,12 +16,10 @@
  * For more information : contact@centreon.com
  *
  */
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/io/file_entry.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
