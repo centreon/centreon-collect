@@ -462,15 +462,18 @@ void conflict_manager::_process_custom_variable(
         std::get<2>(t),
         fmt::format(
             "('{}',{},{},'{}',{},{},{},'{}')",
-            misc::string::escape(
-                cv.name, get_customvariables_col_size(customvariables_name)),
+            misc::string::escape(cv.name,
+                                 get_centreon_storage_customvariables_col_size(
+                                     centreon_storage_customvariables_name)),
             cv.host_id, cv.service_id,
             misc::string::escape(
                 cv.default_value,
-                get_customvariables_col_size(customvariables_default_value)),
+                get_centreon_storage_customvariables_col_size(
+                    centreon_storage_customvariables_default_value)),
             cv.modified ? 1 : 0, cv.var_type, cv.update_time,
-            misc::string::escape(cv.value, get_customvariables_col_size(
-                                               customvariables_value))));
+            misc::string::escape(cv.value,
+                                 get_centreon_storage_customvariables_col_size(
+                                     centreon_storage_customvariables_value))));
     /* Here, we do not update the custom variable boolean ack flag, because
      * it will be updated later when the bulk query will be done:
      * conflict_manager::_update_customvariables() */
@@ -508,13 +511,15 @@ void conflict_manager::_process_custom_variable_status(
 
   _cvs_queue.emplace_back(
       std::get<2>(t),
-      fmt::format(
-          "('{}',{},{},{},{},'{}')",
-          misc::string::escape(
-              cv.name, get_customvariables_col_size(customvariables_name)),
-          cv.host_id, cv.service_id, cv.modified ? 1 : 0, cv.update_time,
-          misc::string::escape(
-              cv.value, get_customvariables_col_size(customvariables_value))));
+      fmt::format("('{}',{},{},{},{},'{}')",
+                  misc::string::escape(
+                      cv.name, get_centreon_storage_customvariables_col_size(
+                                   centreon_storage_customvariables_name)),
+                  cv.host_id, cv.service_id, cv.modified ? 1 : 0,
+                  cv.update_time,
+                  misc::string::escape(
+                      cv.value, get_centreon_storage_customvariables_col_size(
+                                    centreon_storage_customvariables_value))));
 
   _logger_sql->info("SQL: updating custom variable '{}' of ({}, {})", cv.name,
                     cv.host_id, cv.service_id);
@@ -558,7 +563,8 @@ void conflict_manager::_process_downtime(
                 ? "NULL"
                 : fmt::format("{}", dd.actual_start_time),
             misc::string::escape(dd.author,
-                                 get_downtimes_col_size(downtimes_author)),
+                                 get_centreon_storage_downtimes_col_size(
+                                     centreon_storage_downtimes_author)),
             dd.downtime_type,
             dd.deletion_time.is_null() ? "NULL"
                                        : fmt::format("{}", dd.deletion_time),
@@ -570,7 +576,8 @@ void conflict_manager::_process_downtime(
             dd.triggered_by == 0 ? "NULL" : fmt::format("{}", dd.triggered_by),
             dd.was_cancelled, dd.was_started,
             misc::string::escape(
-                dd.comment, get_downtimes_col_size(downtimes_comment_data))));
+                dd.comment, get_centreon_storage_downtimes_col_size(
+                                centreon_storage_downtimes_comment_data))));
   }
 }
 
@@ -1108,19 +1115,26 @@ void conflict_manager::_process_log(
       fmt::format(
           "({},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},'{}')", le.c_time,
           le.host_id, le.service_id,
-          misc::string::escape(le.host_name, get_logs_col_size(logs_host_name)),
+          misc::string::escape(le.host_name,
+                               get_centreon_storage_logs_col_size(
+                                   centreon_storage_logs_host_name)),
           misc::string::escape(le.poller_name,
-                               get_logs_col_size(logs_instance_name)),
+                               get_centreon_storage_logs_col_size(
+                                   centreon_storage_logs_instance_name)),
           le.log_type, le.msg_type,
           misc::string::escape(le.notification_cmd,
-                               get_logs_col_size(logs_notification_cmd)),
+                               get_centreon_storage_logs_col_size(
+                                   centreon_storage_logs_notification_cmd)),
           misc::string::escape(le.notification_contact,
-                               get_logs_col_size(logs_notification_contact)),
+                               get_centreon_storage_logs_col_size(
+                                   centreon_storage_logs_notification_contact)),
           le.retry,
           misc::string::escape(le.service_description,
-                               get_logs_col_size(logs_service_description)),
+                               get_centreon_storage_logs_col_size(
+                                   centreon_storage_logs_service_description)),
           le.status,
-          misc::string::escape(le.output, get_logs_col_size(logs_output)))));
+          misc::string::escape(le.output, get_centreon_storage_logs_col_size(
+                                              centreon_storage_logs_output)))));
 }
 
 /**

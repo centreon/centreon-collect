@@ -31,50 +31,50 @@ class perfdata {
   enum data_type { gauge = 0, counter, derive, absolute, automatic };
 
  private:
-  double _critical;
-  double _critical_low;
+  float _critical;
+  float _critical_low;
   bool _critical_mode;
-  double _max;
-  double _min;
+  float _max;
+  float _min;
   std::string _name;
   std::string _unit;
-  double _value;
+  float _value;
   int16_t _value_type;
-  double _warning;
-  double _warning_low;
+  float _warning;
+  float _warning_low;
   bool _warning_mode;
 
  public:
   perfdata();
   perfdata(const perfdata&) = default;
   perfdata(perfdata&&) = default;
-  ~perfdata() noexcept;
+  ~perfdata() noexcept = default;
   perfdata& operator=(perfdata const& pd);
   perfdata& operator=(perfdata&& pd);
-  double critical() const noexcept;
-  void critical(double c) noexcept;
-  double critical_low() const noexcept;
-  void critical_low(double c) noexcept;
+  float critical() const noexcept;
+  void critical(float c) noexcept;
+  float critical_low() const noexcept;
+  void critical_low(float c) noexcept;
   bool critical_mode() const noexcept;
   void critical_mode(bool m) noexcept;
-  double max() const noexcept;
-  void max(double m) noexcept;
-  double min() const noexcept;
-  void min(double m) noexcept;
+  float max() const noexcept;
+  void max(float m) noexcept;
+  float min() const noexcept;
+  void min(float m) noexcept;
   std::string const& name() const noexcept;
   void name(std::string const& n);
   void name(std::string&& n);
   std::string const& unit() const noexcept;
   void unit(std::string const& u);
   void unit(std::string&& u);
-  double value() const noexcept;
-  void value(double v) noexcept;
+  float value() const noexcept;
+  void value(float v) noexcept;
   int16_t value_type() const noexcept;
   void value_type(int16_t t) noexcept;
-  double warning() const noexcept;
-  void warning(double w) noexcept;
-  double warning_low() const noexcept;
-  void warning_low(double w) noexcept;
+  float warning() const noexcept;
+  void warning(float w) noexcept;
+  float warning_low() const noexcept;
+  void warning_low(float w) noexcept;
   bool warning_mode() const noexcept;
   void warning_mode(bool m) noexcept;
 };
@@ -85,7 +85,9 @@ class perfdata {
  *  @return Metric value.
  */
 // Inlined after profiling for performance.
-inline double perfdata::value() const noexcept { return _value; }
+inline float perfdata::value() const noexcept {
+  return _value;
+}
 }  // namespace com::centreon::broker::misc
 
 bool operator==(com::centreon::broker::misc::perfdata const& left,
