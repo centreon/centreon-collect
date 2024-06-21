@@ -73,6 +73,12 @@ class state {
 
   std::shared_ptr<spdlog::logger> _logger;
 
+  struct sched_info_config {
+    double host_inter_check_delay;
+    double service_inter_check_delay;
+    int32_t service_interleave_factor;
+  } _scheduling_info;
+
  public:
   struct sched_info_config {
     double host_inter_check_delay;
