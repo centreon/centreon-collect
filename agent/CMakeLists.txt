@@ -17,7 +17,7 @@
 #
 
 # Global options.
-project("Centreon agent" C CXX)
+project("Centreon agent" CXX)
 
 # Set directories.
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/agent")
@@ -104,6 +104,7 @@ add_library(centagent_lib STATIC
     ${SRC_DIR}/opentelemetry/proto/metrics/v1/metrics.pb.cc
     ${SRC_DIR}/opentelemetry/proto/common/v1/common.pb.cc
     ${SRC_DIR}/opentelemetry/proto/resource/v1/resource.pb.cc
+    ${SRC_DIR}/config.cc
 )
 
 include_directories(

@@ -20,8 +20,8 @@
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/conf")
 
 # Configure files.
-configure_file("${SRC_DIR}/centagent.cfg.in"
-  "${SRC_DIR}/centagent.cfg")
+configure_file("${SRC_DIR}/centagent.json.in"
+  "${SRC_DIR}/centagent.json")
 
 # Install files if necessary.
 option(WITH_SAMPLE_CONFIG "Install sample configuration files." ON)
@@ -38,6 +38,6 @@ if (WITH_SAMPLE_CONFIG)
     endif ()
   endfunction()
 
-  my_chown(\"${USER_AGENT}\" \"${USER_AGENT}\" \"${PREFIX_AGENT_CONF}/centagent.cfg\")
+  my_chown(\"${USER_AGENT}\" \"${USER_AGENT}\" \"${PREFIX_AGENT_CONF}/centagent.json\")
   ")
 endif ()

@@ -23,7 +23,7 @@ After=centreon.service
 ReloadPropagatedFrom=centreon.service
 
 [Service]
-ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/@CENTREON_AGENT@ --config-file @PREFIX_AGENT_CONF@/@CENTREON_AGENT@.cfg
+ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/@CENTREON_AGENT@ @PREFIX_AGENT_CONF@/@CENTREON_AGENT@.json
 ExecReload=/bin/kill -HUP $MAINPID
 Type=simple
 User=centreon-agent

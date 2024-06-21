@@ -19,6 +19,7 @@
 
 
 add_executable(ut_agent 
+    config_test.cc
     test_main.cc
     ${TESTS_SOURCES})
 

@@ -2,9 +2,8 @@
 
 ## Introduction
 
-The goal of this program is to execute checks in both windows and linux OS
-It's full asynchronous, excepted grpc layers, it's single threaded and you won't find mutex in non grpc code.
-This is why when we receive request, we post it to asio in order to process it in the main thread.
+The purpose of this program is to run checks in Windows and Linux operating systems. It is entirely asynchronous, with the exception of the gRPC layers. It is also single-threaded and therefore needs no mutexes, except in the gRPC part.
+This is why, when a request is received, it is posted to ASIO for processing in the main thread.
 
 ## Configuration
 configuration is given by Engine by a AgentConfiguration sent over grpc
@@ -12,7 +11,7 @@ The configuration object is embedded in MessageToAgent::config
 
 ## Scheduler
 We trie to spread checks over check_period.
-Example: We have 10 checks to execute during one second. check1 will start at now + 0.1s, second at now + 0.2s..
+Example: We have 10 checks to execute during one second. check1 will start at now, second at now + 0.1s..
 
 When Agent receives configuration, all checks are recreated.
 For example, we have 100 checks to execute in 10 minute, at it is 12:00:00.

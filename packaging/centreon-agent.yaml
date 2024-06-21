@@ -15,8 +15,8 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../agent/conf/centagent.cfg"
-    dst: "/etc/centreon-agent/centagent.cfg"
+  - src: "../agent/conf/centagent.json"
+    dst: "/etc/centreon-agent/centagent.json"
     type: config|noreplace
     file_info:
       mode: 0664
