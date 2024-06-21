@@ -73,6 +73,12 @@ class state {
 
   std::shared_ptr<spdlog::logger> _logger;
 
+  struct sched_info_config {
+    double host_inter_check_delay;
+    double service_inter_check_delay;
+    int32_t service_interleave_factor;
+  } _scheduling_info;
+
  public:
   /**
    *  @enum state::date_format
@@ -461,6 +467,7 @@ class state {
   void use_timezone(std::string const& value);
   bool use_true_regexp_matching() const noexcept;
   void use_true_regexp_matching(bool value);
+  sched_info_config& sched_info_config() { return _scheduling_info; }
   bool use_send_recovery_notifications_anyways() const;
   void use_send_recovery_notifications_anyways(bool value);
   bool use_host_down_disable_service_checks() const;

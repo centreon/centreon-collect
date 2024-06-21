@@ -16,11 +16,12 @@
  * For more information : contact@centreon.com
  *
  */
+#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/globals.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/io/file_entry.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -4361,8 +4362,8 @@ void state::_set_host_inter_check_delay_method(const std::string& value) {
     _host_inter_check_delay_method = icd_smart;
   else {
     _host_inter_check_delay_method = icd_user;
-    if (!absl::SimpleAtod(value, &scheduling_info.host_inter_check_delay) ||
-        scheduling_info.host_inter_check_delay <= 0.0)
+    if (!absl::SimpleAtod(value, &_scheduling_info.host_inter_check_delay) ||
+        _scheduling_info.host_inter_check_delay <= 0.0)
       throw msg_fmt(
           "Invalid value for host_inter_check_delay_method, must be one of 'n' "
           "(none), 'd' (dumb), 's' (smart) or a stricly positive value ({} "
@@ -4414,8 +4415,8 @@ void state::_set_service_inter_check_delay_method(const std::string& value) {
     _service_inter_check_delay_method = icd_smart;
   else {
     _service_inter_check_delay_method = icd_user;
-    if (!absl::SimpleAtod(value, &scheduling_info.service_inter_check_delay) ||
-        scheduling_info.service_inter_check_delay <= 0.0)
+    if (!absl::SimpleAtod(value, &_scheduling_info.service_inter_check_delay) ||
+        _scheduling_info.service_inter_check_delay <= 0.0)
       throw msg_fmt(
           "Invalid value for service_inter_check_delay_method, must be one of "
           "'n' (none), 'd' (dumb), 's' (smart) or a strictly positive value "
@@ -4434,9 +4435,9 @@ void state::_set_service_interleave_factor_method(const std::string& value) {
     _service_interleave_factor_method = ilf_smart;
   else {
     _service_interleave_factor_method = ilf_user;
-    if (!absl::SimpleAtoi(value, &scheduling_info.service_interleave_factor) ||
-        scheduling_info.service_interleave_factor < 1)
-      scheduling_info.service_interleave_factor = 1;
+    if (!absl::SimpleAtoi(value, &_scheduling_info.service_interleave_factor) ||
+        _scheduling_info.service_interleave_factor < 1)
+      _scheduling_info.service_interleave_factor = 1;
   }
 }
 
