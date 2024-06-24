@@ -32,12 +32,12 @@ static constexpr std::string_view _config_schema(R"(
     "title": "agent config",
     "properties": {
         "host": {
-            "description": "name of host configured in centreon, if not given, hostname will be used",
+            "description": "Name of the host as it is configured in centreon. If omitted, the system hostname will be used",
             "type": "string",
             "minLength": 5
         },
         "endpoint": {
-            "description": "endpoint of poller where agent has to connect or listening endpoint in case of reverse_connection",
+            "description": "Endpoint where agent has to connect to on the poller side or listening endpoint on the agent side in case of reverse_connection",
             "type": "string",
             "pattern": "[\\w\\.:]+:\\w+"
         },
