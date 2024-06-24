@@ -31,8 +31,8 @@ class config {
   spdlog::level::level_enum _log_level;
   log_type _log_type;
   std::string _log_file;
-  unsigned _log_max_file_size;
-  unsigned _log_max_files;
+  unsigned _log_files_max_size;
+  unsigned _log_files_max_number;
 
   bool _encryption;
   std::string _certificate_file;
@@ -49,8 +49,8 @@ class config {
   spdlog::level::level_enum get_log_level() const { return _log_level; };
   log_type get_log_type() const { return _log_type; }
   const std::string& get_log_file() const { return _log_file; }
-  unsigned get_log_max_file_size() const { return _log_max_file_size; }
-  unsigned get_log_max_files() const { return _log_max_files; }
+  unsigned get_log_files_max_size() const { return _log_files_max_size; }
+  unsigned get_log_files_max_number() const { return _log_files_max_number; }
 
   bool use_encryption() const { return _encryption; }
   const std::string& get_certificate_file() const { return _certificate_file; }

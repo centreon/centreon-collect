@@ -32,61 +32,61 @@ static constexpr std::string_view _config_schema(R"(
     "title": "agent config",
     "properties": {
         "host": {
-            "description": "IP or dns name, if not given, hostname will be used",
+            "description": "name of host configured in centreon, if not given, hostname will be used",
             "type": "string",
             "minLength": 5
         },
         "endpoint": {
-            "description": "endpoint of poller where agent have to connect or listen endpoint in case of reverse_connection",
+            "description": "endpoint of poller where agent has to connect or listening endpoint in case of reverse_connection",
             "type": "string",
             "pattern": "[\\w\\.:]+:\\w+"
         },
         "encryption": {
-            "description": "true if https, default: false",
+            "description": "Set to true to enable https. Default: false",
             "type": "boolean"
         },
         "public_cert": {
-            "description": "path of certificate file .crt",
+            "description": "Path of the SSL certificate file .crt",
             "type": "string"
         },
         "private_key": {
-            "description": "path of certificate file .key",
+            "description": "Path of the SSL private key file .key",
             "type": "string"
         },
         "ca_certificate": {
-            "description": "path of authority certificate file .crt",
+            "description": "Path of the SSL authority certificate file .crt",
             "type": "string"
         },
         "ca_name": {
-            "description": "name of authority certificate",
+            "description": "Name of the SSL certification authority",
             "type": "string"
         },
         "reverse_connection": {
-            "description": "if true, centagent is a server and centengine will connect to, default:false",
+            "description": "Set to true to make Engine connect to the agent. Requires the agent to be configured as a server. Default: false",
             "type": "boolean"
         },
         "log_level": {
-            "description": "log level, may be critical, error, info, debug, trace",
+            "description": "Minimal severity level to log, may be critical, error, info, debug, trace",
             "type": "string",
             "pattern": "critical|error|info|debug|trace"
         },
         "log_type": {
-            "description": "stdout or file if log to a file (path must be given by log_file), default: stdout",
+            "description": "Define whether logs must be sent to the standard output (stdout) or to a log file (file). A path will be required in log_file field if 'file' is chosen. Default: stdout",
             "type": "string",
             "pattern": "stdout|file"
         },
         "log_file": {
-            "description": "path of the log file",
+            "description": "Path of the log file. Mandatory if log_type is 'file'",
             "type": "string",
             "minLength": 5
         },
-        "log_max_file_size": {
-            "description:": "max size in Mo of the log file before rotate, to be valid log_max_files must be also be specified",
+        "log_files_max_size": {
+            "description:": "Maximum size (in megabytes) of the log file before it will be rotated. To be valid, log_files_max_number must be also be provided",
             "type": "integer",
             "min": 1
         },
-        "log_max_files": {
-            "description:": "max of log files before remove, to be valid log_max_file_size must be also be specified",
+        "log_files_max_number": {
+            "description:": "Maximum number of log files to keep. Supernumerary files will be deleted. To be valid, log_files_max_size must be also be provided",
             "type": "integer",
             "min": 1
         }
@@ -133,8 +133,8 @@ config::config(const std::string& path) {
                   ? to_file
                   : to_stdout;
   _log_file = json_config.get_string("log_file", "");
-  _log_max_file_size = json_config.get_unsigned("log_max_file_size", 0);
-  _log_max_files = json_config.get_unsigned("log_max_files", 0);
+  _log_files_max_size = json_config.get_unsigned("log_files_max_size", 0);
+  _log_files_max_number = json_config.get_unsigned("log_files_max_number", 0);
   _encryption = json_config.get_bool("encryption", false);
   _certificate_file = json_config.get_string("certificate_file", "");
   _private_key_file = json_config.get_string("private_key_file", "");

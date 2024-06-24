@@ -23,7 +23,8 @@ add_subdirectory(log_v2)
 
 # Set directories.
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/common")
-set (HTTP_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/http/inc/com/centreon/common/http")
+set(PROCESS_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/process")
+set(HTTP_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/http/inc/com/centreon/common/http")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/tests")
 
@@ -47,7 +48,6 @@ set(SOURCES
   ${SRC_DIR}/hex_dump.cc
   ${SRC_DIR}/perfdata.cc
   ${SRC_DIR}/pool.cc 
-  ${SRC_DIR}/process.cc 
   ${SRC_DIR}/process_stat.cc 
   ${SRC_DIR}/process_stat.pb.cc
   ${SRC_DIR}/process_stat.grpc.pb.cc
@@ -58,6 +58,7 @@ set(SOURCES
 include_directories("${INCLUDE_DIR}"
   ${HTTP_INCLUDE_DIR}
 	${VCPKG_INCLUDE_DIR}
+  ${PROCESS_INCLUDE_DIR}
   )
 
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
@@ -69,6 +70,7 @@ target_precompile_headers(centreon_common PRIVATE precomp_inc/precomp.hh)
 
 add_subdirectory(http)
 add_subdirectory(grpc)
+add_subdirectory(process)
 
 if(WITH_TESTING)
   add_subdirectory(tests)

@@ -28,7 +28,7 @@ set(SCRIPT_DIR "${PROJECT_SOURCE_DIR}/scripts")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
-option(WITH_LIBCXX "compiles and link cbd with clang++/libc++")
+option(WITH_LIBCXX "compiles and links cbd with clang++/libc++")
 
 if(WITH_LIBCXX)
   set(CMAKE_CXX_COMPILER "clang++")
@@ -47,7 +47,7 @@ foreach(name IN LISTS service_files)
   set(proto_file "${name}.proto")
   add_custom_command(
     OUTPUT "${SRC_DIR}/${name}.grpc.pb.cc"
-    COMMENT "Generating grpc files of the otl service file ${proto_file}"
+    COMMENT "Generating grpc files from the otl service file ${proto_file}"
     DEPENDS opentelemetry-proto-files
     COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
@@ -69,7 +69,7 @@ foreach(name IN LISTS otl_protobuf_files)
   set(proto_file "${name}.proto")
   add_custom_command(
     OUTPUT "${SRC_DIR}/${name}.pb.cc"
-    COMMENT "Generating interface files of the otl file ${proto_file}"
+    COMMENT "Generating interface files from the otl file ${proto_file}"
     DEPENDS opentelemetry-proto-files
     COMMAND
       ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}
@@ -81,7 +81,7 @@ endforeach()
 #centagent server and client
 add_custom_command(
   DEPENDS ${PROJECT_SOURCE_DIR}/proto/agent.proto
-  COMMENT "Generating interface files of the conf centagent proto file (grpc)"
+  COMMENT "Generating interface files from the conf centagent proto file (grpc)"
   OUTPUT ${SRC_DIR}/agent.grpc.pb.cc
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
@@ -89,7 +89,7 @@ add_custom_command(
     --proto_path=${PROJECT_SOURCE_DIR}/proto --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     --grpc_out=${SRC_DIR} ${PROJECT_SOURCE_DIR}/proto/agent.proto
   DEPENDS ${PROJECT_SOURCE_DIR}/proto/agent.proto
-  COMMENT "Generating interface files of the conf centagent proto file (protobuf)"
+  COMMENT "Generating interface files from the conf centagent proto file (protobuf)"
   OUTPUT ${SRC_DIR}/agent.pb.cc
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}

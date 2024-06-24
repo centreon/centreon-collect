@@ -484,8 +484,6 @@ target_link_libraries(
   "-Wl,--no-whole-archive"
   nlohmann_json::nlohmann_json
   fmt::fmt
-  -L${Boost_LIBRARY_DIR_RELEASE}
-  boost_program_options
   -L${PROTOBUF_LIB_DIR}
   "-Wl,--whole-archive"
   gRPC::grpc++

@@ -8,7 +8,7 @@ section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
 description: |
-  This software is an agent used to executes commands on remote computers as nsclient does.
+  This software is an agent used to execute commands on remote computers as nsclient does.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
 homepage: "https://www.centreon.com"
@@ -59,7 +59,7 @@ scripts:
 
 
 rpm:
-  summary: Centreon Collect Agent. It can be used to execute remotely plugins
+  summary: Centreon Collect Agent. It can be used to execute plugins remotely
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}
