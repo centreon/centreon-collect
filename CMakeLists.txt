@@ -27,6 +27,9 @@ cmake_minimum_required(VERSION 3.16)
 
 set(CMAKE_CXX_STANDARD 17)
 
+string(TIMESTAMP CENTREON_CURRENT_YEAR "%Y")
+add_definitions(-DCENTREON_CURRENT_YEAR="${CENTREON_CURRENT_YEAR}")
+
 if(DEFINED ENV{VCPKG_ROOT})
   set(VCPKG_ROOT "$ENV{VCPKG_ROOT}")
   message(STATUS "TOOLCHAIN set to ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")

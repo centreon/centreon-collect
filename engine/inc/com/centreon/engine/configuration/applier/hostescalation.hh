@@ -17,6 +17,7 @@
  */
 #ifndef CCE_CONFIGURATION_APPLIER_HOSTESCALATION_HH
 #define CCE_CONFIGURATION_APPLIER_HOSTESCALATION_HH
+#include "com/centreon/engine/configuration/applier/state.hh"
 
 namespace com::centreon::engine {
 
@@ -43,7 +44,7 @@ class hostescalation {
   void modify_object(configuration::hostescalation const& obj);
   void remove_object(configuration::hostescalation const& obj);
   void expand_objects(configuration::state& s);
-  void resolve_object(configuration::hostescalation const& obj);
+  void resolve_object(configuration::hostescalation const& obj, error_cnt& err);
 };
 }  // namespace applier
 }  // namespace configuration

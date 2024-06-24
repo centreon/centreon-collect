@@ -459,7 +459,8 @@ void applier::anomalydetection::remove_object(
  *  @param[in] obj  Service object.
  */
 void applier::anomalydetection::resolve_object(
-    configuration::anomalydetection const& obj) {
+    configuration::anomalydetection const& obj,
+    error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving anomalydetection '" << obj.service_description()
@@ -489,7 +490,7 @@ void applier::anomalydetection::resolve_object(
   }
 
   // Resolve anomalydetection.
-  it->second->resolve(config_warnings, config_errors);
+  it->second->resolve(err.config_warnings, err.config_errors);
 }
 
 /**

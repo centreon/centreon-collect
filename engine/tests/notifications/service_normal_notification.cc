@@ -50,6 +50,7 @@ class ServiceNotification : public TestEngine {
  public:
   void SetUp() override {
     init_config_state();
+    error_cnt err;
 
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};
@@ -58,8 +59,8 @@ class ServiceNotification : public TestEngine {
         new_configuration_contact("admin1", false, "c,r")};
     ct_aply.add_object(ctct1);
     ct_aply.expand_objects(*config);
-    ct_aply.resolve_object(ctct);
-    ct_aply.resolve_object(ctct1);
+    ct_aply.resolve_object(ctct, err);
+    ct_aply.resolve_object(ctct1, err);
 
     configuration::host hst{new_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
@@ -70,8 +71,8 @@ class ServiceNotification : public TestEngine {
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
-    hst_aply.resolve_object(hst);
-    svc_aply.resolve_object(svc);
+    hst_aply.resolve_object(hst, err);
+    svc_aply.resolve_object(svc, err);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
@@ -759,21 +760,22 @@ TEST_F(ServiceNotification, ServiceEscalationCG) {
   configuration::contact ctct{new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  error_cnt err;
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
 
   configuration::applier::serviceescalation se_aply;
   configuration::serviceescalation se{
       new_configuration_serviceescalation("test_host", "test_svc", "test_cg")};
   se_aply.add_object(se);
   se_aply.expand_objects(*config);
-  se_aply.resolve_object(se);
+  se_aply.resolve_object(se, err);
 
   int now{50000};
   set_time(now);

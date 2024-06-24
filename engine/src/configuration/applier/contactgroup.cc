@@ -199,7 +199,8 @@ void applier::contactgroup::remove_object(
  *  @param[in] obj  Contact group object.
  */
 void applier::contactgroup::resolve_object(
-    configuration::contactgroup const& obj) {
+    configuration::contactgroup const& obj,
+    error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving contact group '" << obj.contactgroup_name() << "'";
@@ -213,7 +214,7 @@ void applier::contactgroup::resolve_object(
                          << "contact group '" << obj.contactgroup_name() << "'";
 
   // Resolve contact group.
-  it->second->resolve(config_warnings, config_errors);
+  it->second->resolve(err.config_warnings, err.config_errors);
 }
 
 /**

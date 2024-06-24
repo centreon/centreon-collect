@@ -214,7 +214,8 @@ void applier::servicegroup::remove_object(
  *  @param[in,out] obj  Servicegroup object.
  */
 void applier::servicegroup::resolve_object(
-    configuration::servicegroup const& obj) {
+    configuration::servicegroup const& obj,
+    error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing service group '" << obj.servicegroup_name() << "'";
@@ -228,7 +229,7 @@ void applier::servicegroup::resolve_object(
                          << "service group '" << obj.servicegroup_name() << "'";
 
   // Resolve service group.
-  it->second->resolve(config_warnings, config_errors);
+  it->second->resolve(err.config_warnings, err.config_errors);
 }
 
 /**

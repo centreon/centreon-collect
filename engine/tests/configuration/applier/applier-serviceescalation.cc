@@ -75,6 +75,7 @@ TEST_F(ApplierServiceEscalation, AddEscalation) {
 }
 
 TEST_F(ApplierServiceEscalation, ResolveObject) {
+  configuration::error_cnt err;
   configuration::applier::host hst_aply;
   configuration::host hst;
   ASSERT_TRUE(hst.parse("host_name", "test_host"));
@@ -104,9 +105,9 @@ TEST_F(ApplierServiceEscalation, ResolveObject) {
   ASSERT_TRUE(se.parse("host", "test_host"));
   ASSERT_TRUE(se.parse("service_description", "test_svc"));
   ASSERT_TRUE(se.parse("first_notification", "4"));
-  ASSERT_THROW(se_apply.resolve_object(se), std::exception);
+  ASSERT_THROW(se_apply.resolve_object(se, err), std::exception);
   se_apply.add_object(se);
-  ASSERT_NO_THROW(se_apply.resolve_object(se));
+  ASSERT_NO_THROW(se_apply.resolve_object(se, err));
 }
 
 TEST_F(ApplierServiceEscalation, RemoveEscalation) {

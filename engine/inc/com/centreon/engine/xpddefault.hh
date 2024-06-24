@@ -21,9 +21,7 @@
 #ifndef CCE_XPDDEFAULT_HH
 #define CCE_XPDDEFAULT_HH
 
-#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/macros/defines.hh"
-#include "com/centreon/engine/service.hh"
 
 #ifdef __cplusplus
 extern "C" {

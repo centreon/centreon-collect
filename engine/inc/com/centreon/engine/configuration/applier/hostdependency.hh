@@ -19,6 +19,8 @@
 #ifndef CCE_CONFIGURATION_APPLIER_HOSTDEPENDENCY_HH
 #define CCE_CONFIGURATION_APPLIER_HOSTDEPENDENCY_HH
 
+#include "com/centreon/engine/configuration/applier/state.hh"
+
 namespace com::centreon::engine {
 
 namespace configuration {
@@ -42,7 +44,7 @@ class hostdependency {
   void modify_object(configuration::hostdependency const& obj);
   void remove_object(configuration::hostdependency const& obj);
   void expand_objects(configuration::state& s);
-  void resolve_object(configuration::hostdependency const& obj);
+  void resolve_object(configuration::hostdependency const& obj, error_cnt& err);
 };
 }  // namespace applier
 }  // namespace configuration

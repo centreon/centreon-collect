@@ -22,16 +22,14 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/extended_conf.hh"
 #include "com/centreon/engine/configuration/parser.hh"
+#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/globals.hh"
 
 using namespace com::centreon::engine;
 
 class ApplierState : public ::testing::Test {
  public:
-  void SetUp() override {
-    config_errors = 0;
-    config_warnings = 0;
-  }
+  void SetUp() override {}
 
   void TearDown() override {}
 };
@@ -702,8 +700,9 @@ constexpr size_t SERVICEGROUPS = 3u;
 TEST_F(ApplierState, StateLegacyParsing) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateConf();
-  p.parse("/tmp/centengine.cfg", config);
+  p.parse("/tmp/centengine.cfg", config, err);
   ASSERT_EQ(config.check_service_freshness(), true);
   ASSERT_EQ(config.enable_flap_detection(), false);
   ASSERT_EQ(config.instance_heartbeat_interval(), 30);
@@ -969,61 +968,69 @@ TEST_F(ApplierState, StateLegacyParsing) {
 TEST_F(ApplierState, StateLegacyParsingServicegroupValidityFailed) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateBadConf(ConfigurationObject::SERVICEGROUP);
-  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config, err), std::exception);
 }
 
 TEST_F(ApplierState, StateLegacyParsingTagValidityFailed) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateBadConf(ConfigurationObject::TAG);
-  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config, err), std::exception);
 }
 
 TEST_F(ApplierState, StateLegacyParsingServicedependencyValidityFailed) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateBadConf(ConfigurationObject::SERVICEDEPENDENCY);
-  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config, err), std::exception);
 }
 
 TEST_F(ApplierState, StateLegacyParsingAnomalydetectionValidityFailed) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateBadConf(ConfigurationObject::ANOMALYDETECTION);
-  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config, err), std::exception);
 }
 
 TEST_F(ApplierState, StateLegacyParsingContactgroupWithoutName) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateBadConf(ConfigurationObject::CONTACTGROUP);
-  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config, err), std::exception);
 }
 
 TEST_F(ApplierState, StateLegacyParsingHostescalationWithoutHost) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateBadConf(ConfigurationObject::HOSTESCALATION);
-  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config, err), std::exception);
 }
 
 TEST_F(ApplierState, StateLegacyParsingHostdependencyWithoutHost) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateBadConf(ConfigurationObject::HOSTDEPENDENCY);
-  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config, err), std::exception);
 }
 
 TEST_F(ApplierState, extended_override_conf) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateConf();
-  p.parse("/tmp/centengine.cfg", config);
+  p.parse("/tmp/centengine.cfg", config, err);
 
   const char* file_paths[] = {"/tmp/extended_conf.json"};
   CreateFile(file_paths[0],
-             R"({"instance_heartbeat_interval":120, 
+             R"({"instance_heartbeat_interval":120,
   "log_level_functions":"debug",
   "log_level_checks":"trace",
   "enable_flap_detection": true,
@@ -1042,8 +1049,9 @@ TEST_F(ApplierState, extended_override_conf) {
 TEST_F(ApplierState, extended_override_conf_overflow) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateConf();
-  p.parse("/tmp/centengine.cfg", config);
+  p.parse("/tmp/centengine.cfg", config, err);
 
   const char* file_paths[] = {"/tmp/extended_conf.json"};
   CreateFile(file_paths[0],

@@ -17,7 +17,6 @@
  *
  */
 #include "com/centreon/engine/configuration/parser.hh"
-#include "com/centreon/engine/globals.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/io/directory_entry.hh"
 #include "common/log_v2/log_v2.hh"
@@ -89,7 +88,7 @@ parser::parser(unsigned int read_options)
  *  @param[in] path   The configuration file path.
  *  @param[in] config The state configuration to fill.
  */
-void parser::parse(std::string const& path, state& config) {
+void parser::parse(std::string const& path, state& config, error_cnt& err) {
   _config = &config;
 
   // parse the global configuration file.
@@ -103,7 +102,7 @@ void parser::parse(std::string const& path, state& config) {
   _apply(config.cfg_dir(), &parser::_parse_directory_configuration);
 
   // Apply template.
-  _resolve_template();
+  _resolve_template(err);
 
   // Fill state.
   _insert(_map_objects[object::command], config.commands());
@@ -455,7 +454,7 @@ void parser::_parse_resource_file(std::string const& path) {
 /**
  *  Resolve template for register objects.
  */
-void parser::_resolve_template() {
+void parser::_resolve_template(error_cnt& err) {
   for (map_object& templates : _templates) {
     for (map_object::iterator it = templates.begin(), end = templates.end();
          it != end; ++it)
@@ -469,7 +468,7 @@ void parser::_resolve_template() {
          it != end; ++it) {
       (*it)->resolve_template(templates);
       try {
-        (*it)->check_validity();
+        (*it)->check_validity(err);
       } catch (std::exception const& e) {
         throw msg_fmt("Configuration parsing failed {}: {}",
                       _get_file_info(it->get()), e.what());
@@ -484,7 +483,7 @@ void parser::_resolve_template() {
          it != end; ++it) {
       it->second->resolve_template(templates);
       try {
-        it->second->check_validity();
+        it->second->check_validity(err);
       } catch (std::exception const& e) {
         throw msg_fmt("Configuration parsing failed {}: {}",
                       _get_file_info(it->second.get()), e.what());

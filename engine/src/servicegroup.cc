@@ -1,22 +1,22 @@
 /**
  * Copyright 2011-2013 Merethis
+ * Copyright 2014-2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
+ *
  */
-
 #include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -161,9 +161,8 @@ bool engine::is_servicegroup_exist(std::string const& name) throw() {
   return it != servicegroup::servicegroups.end();
 }
 
-void servicegroup::resolve(int& w, int& e) {
-  (void)w;
-  int errors{0};
+void servicegroup::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
+  uint32_t errors = 0;
 
   // Check all group members.
   for (service_map_unsafe::iterator it(members.begin()), end(members.end());

@@ -1,22 +1,21 @@
 /**
  * Copyright 2011-2019,2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
+ *
  */
-
 #include "com/centreon/engine/configuration/contactgroup.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -111,8 +110,8 @@ std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj) {
   return os;
 }
 
-void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
-  int errors{0};
+void contactgroup::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
+  uint32_t errors = 0;
 
   for (contact_map_unsafe::iterator it{_members.begin()}, end{_members.end()};
        it != end; ++it) {

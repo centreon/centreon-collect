@@ -51,7 +51,7 @@ class anomalydetection : public object {
   bool operator==(anomalydetection const& other) const noexcept;
   bool operator!=(anomalydetection const& other) const noexcept;
   bool operator<(anomalydetection const& other) const noexcept;
-  void check_validity() const override;
+  void check_validity(error_cnt& err) const override;
   key_type key() const;
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
@@ -144,8 +144,6 @@ class anomalydetection : public object {
   bool _set_display_name(std::string const& value);
   bool _set_event_handler(std::string const& value);
   bool _set_event_handler_enabled(bool value);
-  bool _set_failure_prediction_enabled(bool value);
-  bool _set_failure_prediction_options(std::string const& value);
   bool _set_first_notification_delay(unsigned int value);
   bool _set_flap_detection_enabled(bool value);
   bool _set_flap_detection_options(std::string const& value);
@@ -165,7 +163,6 @@ class anomalydetection : public object {
   bool _set_notification_interval(unsigned int value);
   bool _set_notification_period(std::string const& value);
   bool _set_obsess_over_service(bool value);
-  bool _set_parallelize_check(bool value);
   bool _set_process_perf_data(bool value);
   bool _set_retain_nonstatus_information(bool value);
   bool _set_retain_status_information(bool value);

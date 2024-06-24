@@ -20,15 +20,12 @@
 
 #include <regex>
 
+#include <absl/strings/ascii.h>
 #include <gtest/gtest.h>
-
-#include "com/centreon/engine/timerange.hh"
 
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine;
@@ -673,7 +670,9 @@ std::vector<string_vector> parse_timeperiods_cfg(const std::string& file_path) {
         current.clear();
         continue;
       }
-      current.push_back(com::centreon::engine::string::trim(line));
+
+      absl::StripAsciiWhitespace(&line);
+      current.push_back(std::move(line));
     }
   }
 

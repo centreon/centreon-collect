@@ -19,7 +19,6 @@
 #ifndef CCE_CONFIGURATION_WHITELIST_HH
 #define CCE_CONFIGURATION_WHITELIST_HH
 
-#include "com/centreon/engine/globals.hh"
 #include "common/log_v2/log_v2.hh"
 
 namespace com::centreon::engine::configuration {

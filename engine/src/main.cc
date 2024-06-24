@@ -207,13 +207,14 @@ int main(int argc, char* argv[]) {
     // Just display the license.
     if (display_license) {
       std::cout
-          << "Centreon Engine " << CENTREON_ENGINE_VERSION_STRING
-          << "\n"
+          << "Centreon Engine " CENTREON_ENGINE_VERSION_STRING
+             "\n"
              "\n"
              "Copyright 1999-2009 Ethan Galstad\n"
              "Copyright 2009-2010 Nagios Core Development Team and Community "
              "Contributors\n"
-             "Copyright 2011-2021 Centreon\n"
+             "Copyright 2011-" CENTREON_CURRENT_YEAR
+             " Centreon\n"
              "\n"
              "This program is free software: you can redistribute it and/or\n"
              "modify it under the terms of the GNU General Public License "
@@ -275,13 +276,14 @@ int main(int argc, char* argv[]) {
       try {
         // Read in the configuration files (main config file,
         // resource and object config files).
+        configuration::error_cnt err;
         configuration::state config;
         {
           configuration::parser p;
-          p.parse(config_file, config);
+          p.parse(config_file, config, err);
         }
 
-        configuration::applier::state::instance().apply(config);
+        configuration::applier::state::instance().apply(config, err);
 
         std::cout << "\n Checked " << commands::command::commands.size()
                   << " commands.\n Checked "
@@ -301,9 +303,10 @@ int main(int argc, char* argv[]) {
                   << servicegroup::servicegroups.size()
                   << " service groups.\n Checked " << service::services.size()
                   << " services.\n Checked " << timeperiod::timeperiods.size()
-                  << " time periods.\n\n Total Warnings: " << config_warnings
-                  << "\n Total Errors:   " << config_errors << std::endl;
-        retval = config_errors ? EXIT_FAILURE : EXIT_SUCCESS;
+                  << " time periods.\n\n Total Warnings: "
+                  << err.config_warnings
+                  << "\n Total Errors:   " << err.config_errors << std::endl;
+        retval = err.config_errors ? EXIT_FAILURE : EXIT_SUCCESS;
       } catch (const std::exception& e) {
         std::cout << "Error while processing a config file: " << e.what()
                   << std::endl;
@@ -330,9 +333,10 @@ int main(int argc, char* argv[]) {
       try {
         // Parse configuration.
         configuration::state config;
+        configuration::error_cnt err;
         {
           configuration::parser p;
-          p.parse(config_file, config);
+          p.parse(config_file, config, err);
         }
 
         // Parse retention.
@@ -348,7 +352,7 @@ int main(int argc, char* argv[]) {
         }
 
         // Apply configuration.
-        configuration::applier::state::instance().apply(config, state);
+        configuration::applier::state::instance().apply(config, err, &state);
 
         display_scheduling_info();
         retval = EXIT_SUCCESS;
@@ -365,10 +369,11 @@ int main(int argc, char* argv[]) {
     else {
       try {
         // Parse configuration.
+        configuration::error_cnt err;
         configuration::state config;
         {
           configuration::parser p;
-          p.parse(config_file, config);
+          p.parse(config_file, config, err);
         }
 
         configuration::extended_conf::load_all(extended_conf_file.begin(),
@@ -432,7 +437,7 @@ int main(int argc, char* argv[]) {
             &backend_broker_log, logging::log_all, logging::basic);
 
         // Apply configuration.
-        configuration::applier::state::instance().apply(config, state);
+        configuration::applier::state::instance().apply(config, err, &state);
 
         // Handle signals (interrupts).
         setup_sighandler();

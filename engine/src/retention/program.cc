@@ -32,7 +32,6 @@ program::setters const program::_setters[] = {
     {"check_host_freshness", SETTER(bool, _set_check_host_freshness)},
     {"check_service_freshness", SETTER(bool, _set_check_service_freshness)},
     {"enable_event_handlers", SETTER(bool, _set_enable_event_handlers)},
-    {"enable_failure_prediction", SETTER(bool, _set_enable_failure_prediction)},
     {"enable_flap_detection", SETTER(bool, _set_enable_flap_detection)},
     {"enable_notifications", SETTER(bool, _set_enable_notifications)},
     {"global_host_event_handler",
@@ -406,16 +405,6 @@ bool program::_set_check_service_freshness(bool value) {
  */
 bool program::_set_enable_event_handlers(bool value) {
   _enable_event_handlers = value;
-  return (true);
-}
-
-/**
- *  Deprecated.
- *
- *  @param[in] value  Unused.
- */
-bool program::_set_enable_failure_prediction(bool value) {
-  (void)value;
   return (true);
 }
 

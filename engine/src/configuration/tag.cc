@@ -110,7 +110,7 @@ bool tag::operator<(const tag& other) const noexcept {
  *
  * If the object is not valid, an exception is thrown.
  */
-void tag::check_validity() const {
+void tag::check_validity(error_cnt& err [[maybe_unused]]) const {
   if (_tag_name.empty())
     throw msg_fmt("Tag has no name (property 'tag_name')");
   if (_key.first == 0)

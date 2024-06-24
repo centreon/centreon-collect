@@ -45,6 +45,7 @@ class CustomVar : public ::testing::Test {
 // When the command is removed from the configuration,
 // Then the command is totally removed.
 TEST_F(CustomVar, UpdateHostCustomVar) {
+  configuration::error_cnt err;
   configuration::applier::command cmd_aply;
   configuration::applier::host hst_aply;
   configuration::applier::contact cnt_aply;
@@ -84,7 +85,7 @@ TEST_F(CustomVar, UpdateHostCustomVar) {
   ASSERT_TRUE(config->hosts().size() == 1);
 
   hst_aply.expand_objects(*config);
-  hst_aply.resolve_object(hst);
+  hst_aply.resolve_object(hst, err);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
   nagios_macros* macros(get_global_macros());
   grab_host_macros_r(macros, hst_found->second.get());

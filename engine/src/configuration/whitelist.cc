@@ -17,7 +17,6 @@
  *
  */
 
-#include "common/log_v2/log_v2.hh"
 #define C4_NO_DEBUG_BREAK 1
 
 #include "com/centreon/engine/configuration/whitelist.hh"
@@ -31,7 +30,6 @@
 #include <ryml/ryml.hpp>
 
 #include "absl/base/call_once.h"
-#include "com/centreon/engine/globals.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 

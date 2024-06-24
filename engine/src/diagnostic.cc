@@ -156,8 +156,9 @@ void diagnostic::generate(std::string const& cfg_file,
             << std::endl;
   configuration::state conf;
   try {
+    configuration::error_cnt err;
     configuration::parser parsr;
-    parsr.parse(cfg_file, conf);
+    parsr.parse(cfg_file, conf, err);
   } catch (std::exception const& e) {
     std::cerr << "Diagnostic: configuration file '" << cfg_file
               << "' parsing failed: " << e.what() << std::endl;

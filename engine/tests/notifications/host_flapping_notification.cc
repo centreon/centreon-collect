@@ -26,6 +26,7 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/host.hh"
+#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostescalation.hh"
@@ -40,13 +41,14 @@ using namespace com::centreon::engine::configuration::applier;
 class HostFlappingNotification : public TestEngine {
  public:
   void SetUp() override {
+    configuration::error_cnt err;
     init_config_state();
 
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
-    ct_aply.resolve_object(ctct);
+    ct_aply.resolve_object(ctct, err);
 
     configuration::applier::host hst_aply;
     configuration::host hst;
@@ -55,7 +57,7 @@ class HostFlappingNotification : public TestEngine {
     hst.parse("_HOST_ID", "12");
     hst.parse("contacts", "admin");
     hst_aply.add_object(hst);
-    hst_aply.resolve_object(hst);
+    hst_aply.resolve_object(hst, err);
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
@@ -70,7 +72,7 @@ class HostFlappingNotification : public TestEngine {
     hst_child.parse("_HOST_ID", "13");
     hst_child.parse("contacts", "admin");
     hst_aply.add_object(hst_child);
-    hst_aply.resolve_object(hst_child);
+    hst_aply.resolve_object(hst_child, err);
 
     _host2 = hm.begin()->second;
     _host2->set_current_state(engine::host::state_up);
