@@ -2,17 +2,27 @@
 
 ## Table of content
 
-* [Processing](#Processing)
-  * [Feeder](#Feeder)
-
-* [BAM](#BAM)
-  * [Events in BAM](#EventsinBAM)
-* [Impact BA](#ImpactBA)
-* [Best BA](#BestBA)
-* [Worst BA](#WorstBA)
-* [Ratio Number BA](#RatioNumberBA)
-* [Ratio Percent BA](#RatioPercentBA)
-
+- [Broker documentation {#mainpage}](#broker-documentation-mainpage)
+  - [Table of content](#table-of-content)
+  - [Processing](#processing)
+    - [Feeder](#feeder)
+      - [Initialization](#initialization)
+      - [Reading the muxer](#reading-the-muxer)
+      - [Reading the stream](#reading-the-stream)
+      - [Concurrency](#concurrency)
+  - [BAM](#bam)
+    - [Events in BAM](#events-in-bam)
+    - [Impact BA](#impact-ba)
+    - [Best BA](#best-ba)
+    - [Worst BA](#worst-ba)
+    - [Ratio number BA](#ratio-number-ba)
+    - [Ratio percent BA](#ratio-percent-ba)
+    - [BAM cache](#bam-cache)
+  - [Modules](#modules)
+    - [grpc module](#grpc-module)
+      - [caution](#caution)
+      - [Main classes](#main-classes)
+      - [generate\_proto.py](#generate_protopy)
 
 ## Processing
 
@@ -189,3 +199,93 @@ in percents relatively to the total of KPIs.
 When BAM is stopped (broker is stopped or reloaded), living data are saved into a cache. There are two kinds of information:
 * InheritedDowntime: it is then possible to restore the exact situation of the BA's concerning downtimes when cbd will be restarted.
 * ServicesBookState: the goal of this message is to save the BA's states. This message contains only services' states as they are the living parts of BA's. And these services states are minimalistic, we just save data used by BAM.
+
+## Modules
+
+### grpc module
+
+#### caution
+
+grpc threads block at shutdown if grpc object aren't cleanly stopped. For example, we must call ClientBeReactor::Finish before delete. That's why grpc::stream::stop must be called before destruction (shared_ptr< stream >::reset()). So be careful to not forget a case (a catch handler) 
+
+#### Main classes
+
+Module works in streaming mode. So every request, response use asynchronous bireactors.
+The two bireactors provided by grpc have the same method StartRead, StartWrite, OnWriteDone, OnReadDone and OnDone. We only can delete reactors object once OnDone has been called. 
+As this object inherited by streams are also referenced by failovers and as grpc doesn't rely enough on shared_ptr in my taste, every shared_ptr< bireactor > is stored in a static set to manage object lifetime.
+
+* stream: this templated class inherit either from an ClientBiReactor or ServerBiReactor. It's created by server service exchange method or connector
+* acceptor: it contains only a grpc server and a grpc service with exchange method
+* connector: it creates a channel that remains alive during connector lifetime even if we face to network issues. This channel will be used by stream clients.
+
+#### generate_proto.py
+
+This module works in two modes
+*bbdo mode: in this mode all events are encoded by bbdo layer, and datas are stored in CentreonEvent.buffer (bytes array)
+*direct mode: bddo layer is bypassed. So CentreonEvent must have in is one of all bbdo events. This is the purpose of this script, it scans all proto files that we find in bbdo directory. It then generates a proto file with a one of that contains all these events. It also generates grpc_bridge.cc that contains two functions, one that store bbdo event in OneOf of CentreonEvent and another that extract bbdo event from CentreonEvent
+A part of generated code: 
+```c++
+/**
+ * @brief this function creates a io::protobuf_object from grpc received message
+ *
+ * @param stream_content message received
+ * @return std::shared_ptr<io::data> shared_ptr<io::protobuf<xxx>>, null if
+ * unknown content received
+ */
+std::shared_ptr<io::data> protobuf_to_event(const event_ptr & stream_content) {
+    switch(stream_content->content_case()) {
+        case ::stream::CentreonEvent::kServicesBookState:
+            return std::make_shared<detail::received_protobuf<
+                ServicesBookState, make_type(io::bam, bam::de_pb_services_book_state)>>(
+                stream_content, &grpc_event_type::servicesbookstate_,
+                &grpc_event_type::mutable_servicesbookstate_);
+        case ::stream::CentreonEvent::kWelcome:
+            return std::make_shared<detail::received_protobuf<
+                Welcome, make_type(io::bbdo, bbdo::de_welcome)>>(
+                stream_content, &grpc_event_type::welcome_,
+                &grpc_event_type::mutable_welcome_);
+                ......
+        default:
+      SPDLOG_LOGGER_ERROR(log_v2::grpc(), "unknown content type: {} => ignored",
+                          static_cast<uint32_t>(stream_content->content_case()));
+      return std::shared_ptr<io::data>();
+    }
+}
+
+
+/**
+ * @brief this function create a event_with_data structure that will be send on grpc.
+ * stream_content don't have a copy of event, so event mustn't be
+ * deleted before stream_content
+ *
+ * @param event to send
+ * @return object used for send on the wire
+ */
+std::shared_ptr<event_with_data> create_event_with_data(const std::shared_ptr<io::data> & event) {
+    std::shared_ptr<event_with_data> ret;
+    switch(event->type()) {
+        case make_type(io::bam, bam::de_pb_services_book_state):
+            ret = std::make_shared<event_with_data>(
+                event, reinterpret_cast<event_with_data::releaser_type>(
+                &grpc_event_type::release_servicesbookstate_));
+            ret->grpc_event.set_allocated_servicesbookstate_(&std::static_pointer_cast<io::protobuf<ServicesBookState, make_type(io::bam, bam::de_pb_services_book_state)>>(event)->mut_obj());
+            break;
+
+        case make_type(io::bbdo, bbdo::de_welcome):
+            ret = std::make_shared<event_with_data>(
+                event, reinterpret_cast<event_with_data::releaser_type>(
+                &grpc_event_type::release_welcome_));
+            ret->grpc_event.set_allocated_welcome_(&std::static_pointer_cast<io::protobuf<Welcome, make_type(io::bbdo, bbdo::de_welcome)>>(event)->mut_obj());
+            break;
+
+    default:
+        SPDLOG_LOGGER_ERROR(log_v2::grpc(), "unknown event type: {}", *event);
+    }
+    if (ret) {
+        ret->grpc_event.set_destination_id(event->destination_id);
+        ret->grpc_event.set_source_id(event->source_id);
+    }
+    return ret;
+}
+
+```

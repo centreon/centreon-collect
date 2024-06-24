@@ -103,7 +103,8 @@ add_custom_command(
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
     --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
-    ${SRC_DIR}/broker.proto)
+    ${SRC_DIR}/broker.proto
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc"
                                                   "${SRC_DIR}/broker.pb.h")
@@ -415,7 +416,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/misc/shared_mutex.hh
     ${INC_DIR}/misc/string.hh
     ${INC_DIR}/misc/time.hh
-    ${INC_DIR}/misc/trash.hh
     ${INC_DIR}/misc/variant.hh
     ${INC_DIR}/modules/handle.hh
     ${INC_DIR}/pool.hh

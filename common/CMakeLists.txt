@@ -37,7 +37,8 @@ add_custom_command(
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${SRC_DIR}/process_stat.pb.cc ${SRC_DIR}/process_stat.pb.h
   COMMAND ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
-          --proto_path=${SRC_DIR} ${SRC_DIR}/process_stat.proto)
+          --proto_path=${SRC_DIR} ${SRC_DIR}/process_stat.proto
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # Set sources.
 set(SOURCES ${SRC_DIR}/process_stat.cc ${SRC_DIR}/process_stat.pb.cc

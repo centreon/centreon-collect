@@ -59,7 +59,7 @@ cc_file_begin_content = """/**
 #include "grpc_stream.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
-#include "com/centreon/broker/grpc/channel.hh"
+#include "com/centreon/broker/grpc/stream.hh"
 
 using namespace com::centreon::broker;
 
@@ -142,8 +142,8 @@ cc_file_create_event_with_data_function = """
  * @param event to send
  * @return object used for send on the wire
  */
-std::shared_ptr<channel::event_with_data> create_event_with_data(const std::shared_ptr<io::data> & event) {
-    std::shared_ptr<channel::event_with_data> ret;
+std::shared_ptr<event_with_data> create_event_with_data(const std::shared_ptr<io::data> & event) {
+    std::shared_ptr<event_with_data> ret;
     switch(event->type()) {
 """
 cc_file_create_event_with_data_function_end = """
@@ -205,8 +205,8 @@ for directory in args.proto_directory:
                 &grpc_event_type::mutable_{lower_mess}_);
 """
                     cc_file_create_event_with_data_function += f"""        case make_type({id}):
-            ret = std::make_shared<channel::event_with_data>(
-                event, reinterpret_cast<channel::event_with_data::releaser_type>(
+            ret = std::make_shared<event_with_data>(
+                event, reinterpret_cast<event_with_data::releaser_type>(
                 &grpc_event_type::release_{lower_mess}_));
             ret->grpc_event.set_allocated_{lower_mess}_(&std::static_pointer_cast<io::protobuf<{mess}, make_type({id})>>(event)->mut_obj());
             break;

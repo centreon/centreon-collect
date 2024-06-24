@@ -49,13 +49,12 @@ contents:
   - src: "../broker/script/cbd.service"
     dst: "/usr/lib/systemd/system/cbd.service"
     file_info:
-      mode: 644
+      mode: 0644
     packager: rpm
-
   - src: "../broker/script/cbd.service"
     dst: "/lib/systemd/system/cbd.service"
     file_info:
-      mode: 644
+      mode: 0644
     packager: deb
 
 scripts:

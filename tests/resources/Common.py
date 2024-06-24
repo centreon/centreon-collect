@@ -10,6 +10,11 @@ from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
 from robot.libraries.BuiltIn import BuiltIn
+from concurrent import futures
+import grpc
+import grpc_stream_pb2_grpc
+import grpc_stream_pb2
+
 
 TIMEOUT = 30
 
@@ -24,7 +29,7 @@ VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
 ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
 
 
-def parse_tests_params():
+def ctn_parse_tests_params():
     params = os.environ.get("TESTS_PARAMS")
     if params is not None and len(params) > 4:
         return json.loads(params)
@@ -32,16 +37,16 @@ def parse_tests_params():
         return {}
 
 
-TESTS_PARAMS = parse_tests_params()
+TESTS_PARAMS = ctn_parse_tests_params()
 
 
-def is_using_direct_grpc():
+def ctn_is_using_direct_grpc():
     default_bbdo_version = TESTS_PARAMS.get("default_bbdo_version")
     default_transport = TESTS_PARAMS.get("default_transport")
     return default_bbdo_version is not None and default_transport == "grpc" and default_bbdo_version >= "3.1.0"
 
 
-def check_connection(port: int, pid1: int, pid2: int):
+def ctn_check_connection(port: int, pid1: int, pid2: int):
     limit = time.time() + TIMEOUT
     r = re.compile(
         r"^ESTAB.*127\.0\.0\.1\]*:{}\s|^ESTAB.*\[::1\]*:{}\s".format(port, port))
@@ -74,7 +79,7 @@ def check_connection(port: int, pid1: int, pid2: int):
     return False
 
 
-def wait_for_connections(port: int, nb: int, timeout: int = 60):
+def ctn_wait_for_connections(port: int, nb: int, timeout: int = 60):
     """!  wait until nb connection are established on localhost and port
     @param port connection port
     @param nb number of connection expected
@@ -83,7 +88,7 @@ def wait_for_connections(port: int, nb: int, timeout: int = 60):
     """
     limit = time.time() + timeout
     r = re.compile(
-        fr"^ESTAB.*127\.0\.0\.1:{port}\s|^ESTAB.*\[::1\]*:{port}\s")
+        fr"^ESTAB.*127\.0\.0\.1:{port}\s|^ESTAB.*\[::ffff:127\.0\.0\.1\]:{port}\s|^ESTAB.*\[::1\]*:{port}\s")
 
     while time.time() < limit:
         out = getoutput("ss -plant")
@@ -96,7 +101,7 @@ def wait_for_connections(port: int, nb: int, timeout: int = 60):
     return False
 
 
-def wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int = 30):
+def ctn_wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int = 30):
     """Wait that an instance of the given program listens on each port in the
        given range. On success, the function returns True, if the timeout is
        reached with some missing instances, it returns False.
@@ -133,7 +138,7 @@ def wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int = 3
     return False
 
 
-def get_date(d: str):
+def ctn_get_date(d: str):
     """Generates a date from a string. This string can be just a timestamp or a date in iso format
 
     Args:
@@ -150,13 +155,13 @@ def get_date(d: str):
     return retval
 
 
-def extract_date_from_log(line: str):
+def ctn_extract_date_from_log(line: str):
     p = re.compile(r"\[([^\]]*)\]")
     m = p.match(line)
     if m is None:
         return None
     try:
-        return get_date(m.group(1))
+        return ctn_get_date(m.group(1))
     except parser.ParserError:
         logger.console(f"Unable to parse the date from the line {line}")
         return None
@@ -164,16 +169,16 @@ def extract_date_from_log(line: str):
 
 #  When you use Get Current Date with exclude_millis=True
 #  it rounds result to nearest lower or upper second
-def get_round_current_date():
+def ctn_get_round_current_date():
     return int(time.time())
 
 
-def find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
+def ctn_find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
 
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = find_in_log(log, date, content, True)
+        ok, c = ctn_find_in_log(log, date, content, True)
         if ok:
             return True, c
         time.sleep(5)
@@ -181,12 +186,12 @@ def find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
     return False, c
 
 
-def find_in_log_with_timeout(log: str, date, content, timeout: int):
+def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int):
 
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = find_in_log(log, date, content, False)
+        ok, c = ctn_find_in_log(log, date, content, False)
         if ok:
             return True
         time.sleep(5)
@@ -194,7 +199,7 @@ def find_in_log_with_timeout(log: str, date, content, timeout: int):
     return False
 
 
-def find_in_log_with_timeout_with_line(log: str, date, content, timeout: int):
+def ctn_find_in_log_with_timeout_with_line(log: str, date, content, timeout: int):
     """! search a pattern in log from date param
     @param log: path of the log file
     @param date: date from witch it begins search
@@ -205,7 +210,7 @@ def find_in_log_with_timeout_with_line(log: str, date, content, timeout: int):
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = find_in_log(log, date, content, False)
+        ok, c = ctn_find_in_log(log, date, content, False)
         if ok:
             return ok, c
         time.sleep(5)
@@ -213,7 +218,7 @@ def find_in_log_with_timeout_with_line(log: str, date, content, timeout: int):
     return False, None
 
 
-def find_in_log(log: str, date, content, regex=False):
+def ctn_find_in_log(log: str, date, content, regex=False):
     """Find content in log file from the given date
 
     Args:
@@ -231,7 +236,7 @@ def find_in_log(log: str, date, content, regex=False):
         f = open(log, "r", encoding="latin1")
         lines = f.readlines()
         f.close()
-        idx = find_line_from(lines, date)
+        idx = ctn_find_line_from(lines, date)
 
         for c in content:
             found = False
@@ -255,7 +260,7 @@ def find_in_log(log: str, date, content, regex=False):
         return False, content[0]
 
 
-def get_hostname():
+def ctn_get_hostname():
     """Return the fqdn host name of the computer.
 
     Returns:
@@ -266,7 +271,7 @@ def get_hostname():
     return retval
 
 
-def create_key_and_certificate(host: str, key: str, cert: str):
+def ctn_create_key_and_certificate(host: str, key: str, cert: str):
     if len(key) > 0:
         os.makedirs(os.path.dirname(key), mode=0o777, exist_ok=True)
     if len(cert) > 0:
@@ -279,16 +284,16 @@ def create_key_and_certificate(host: str, key: str, cert: str):
             f"openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -out {cert} -subj '/CN={host}'")
 
 
-def create_certificate(host: str, cert: str):
-    create_key_and_certificate(host, "", cert)
+def ctn_create_certificate(host: str, cert: str):
+    ctn_create_key_and_certificate(host, "", cert)
 
 
-def run_env():
+def ctn_run_env():
     return getoutput("echo $RUN_ENV | awk '{print $1}'")
 
 
-def start_mysql():
-    if not run_env():
+def ctn_start_mysql():
+    if not ctn_run_env():
         logger.console("Starting Mariadb with systemd")
         getoutput("systemctl start mysql")
         logger.console("Mariadb started with systemd")
@@ -310,8 +315,8 @@ def start_mysql():
             logger.console("Mariadb directly started")
 
 
-def stop_mysql():
-    if not run_env():
+def ctn_stop_mysql():
+    if not ctn_run_env():
         logger.console("Stopping Mariadb with systemd")
         getoutput("systemctl stop mysql")
         logger.console("Mariadb stopped with systemd")
@@ -360,24 +365,24 @@ def stop_mysql():
             logger.console("Mariadb directly stopped")
 
 
-def stop_rrdcached():
+def ctn_stop_rrdcached():
     getoutput(
-        "kill -9 $(ps ax | grep '.usr.bin.rrdcached' | grep -v grep | awk '{print $1}')")
+        "kill -9 $(ps ax | ctn_grep '.usr.bin.rrdcached' | ctn_grep -v ctn_grep | awk '{print $1}')")
 
 
-def kill_broker():
+def ctn_kill_broker():
     getoutput(
-        "kill -SIGKILL $(ps ax | grep '/usr/sbin/cbwd' | grep -v grep | awk '{print $1}')")
+        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/cbwd' | ctn_grep -v ctn_grep | awk '{print $1}')")
     getoutput(
-        "kill -SIGKILL $(ps ax | grep '/usr/sbin/cbd' | grep -v grep | awk '{print $1}')")
+        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/cbd' | ctn_grep -v ctn_grep | awk '{print $1}')")
 
 
-def kill_engine():
+def ctn_kill_engine():
     getoutput(
-        "kill -SIGKILL $(ps ax | grep '/usr/sbin/centengine' | grep -v grep | awk '{print $1}')")
+        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/centengine' | ctn_grep -v ctn_grep | awk '{print $1}')")
 
 
-def clear_retention():
+def ctn_clear_retention():
     getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
     getoutput("find /tmp -name 'lua*' -delete")
     getoutput(f"find {VAR_ROOT} -name '*.memory.*' -delete")
@@ -386,11 +391,11 @@ def clear_retention():
     getoutput(f"find {VAR_ROOT} -name 'retention.dat' -delete")
 
 
-def clear_cache():
+def ctn_clear_cache():
     getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
 
 
-def engine_log_table_duplicate(result: list):
+def ctn_engine_log_table_duplicate(result: list):
     dup = True
     for i in result:
         if (i[0] % 2) != 0:
@@ -398,12 +403,12 @@ def engine_log_table_duplicate(result: list):
     return dup
 
 
-def check_engine_logs_are_duplicated(log: str, date):
+def ctn_check_engine_logs_are_duplicated(log: str, date):
     try:
         with open(log, "r") as f:
             lines = f.readlines()
 
-        idx = find_line_from(lines, date)
+        idx = ctn_find_line_from(lines, date)
         logs_old = []
         logs_new = []
         old_log = re.compile(r"\[[^\]]*\] \[[^\]]*\] ([^\[].*)")
@@ -439,7 +444,7 @@ def check_engine_logs_are_duplicated(log: str, date):
         return False
 
 
-def find_line_from(lines, date):
+def ctn_find_line_from(lines, date):
     try:
         my_date = parser.parse(date)
     except:
@@ -451,13 +456,13 @@ def find_line_from(lines, date):
     idx = start
     while end > start:
         idx = (start + end) // 2
-        idx_d = extract_date_from_log(lines[idx])
+        idx_d = ctn_extract_date_from_log(lines[idx])
         while idx_d is None:
             logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
                 start, idx, end, lines[idx]))
             idx -= 1
             if idx >= 0:
-                idx_d = extract_date_from_log(lines[idx])
+                idx_d = ctn_extract_date_from_log(lines[idx])
             else:
                 logger.console("We are at the first line and no date found")
                 return 0
@@ -470,12 +475,12 @@ def find_line_from(lines, date):
     return idx
 
 
-def check_reschedule(log: str, date, content: str, retry: bool):
+def ctn_check_reschedule(log: str, date, content: str, retry: bool):
     try:
         with open(log, "r") as f:
             lines = f.readlines()
 
-        idx = find_line_from(lines, date)
+        idx = ctn_find_line_from(lines, date)
 
         r = re.compile(r".* last check at (.*) and next check at (.*)$")
         target = 60 if retry else 300
@@ -499,22 +504,22 @@ def check_reschedule(log: str, date, content: str, retry: bool):
         return False
 
 
-def check_reschedule_with_timeout(log: str, date, content: str, retry: bool, timeout: int):
+def ctn_check_reschedule_with_timeout(log: str, date, content: str, retry: bool, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        v = check_reschedule(log, date, content, retry)
+        v = ctn_check_reschedule(log, date, content, retry)
         if v:
             return True
         time.sleep(5)
     return False
 
 
-def clear_commands_status():
+def ctn_clear_commands_status():
     if os.path.exists("/tmp/states"):
         os.remove("/tmp/states")
 
 
-def set_command_status(cmd, status):
+def ctn_set_command_status(cmd, status):
     if os.path.exists("/tmp/states"):
         f = open("/tmp/states")
         lines = f.readlines()
@@ -537,7 +542,7 @@ def set_command_status(cmd, status):
     f.close()
 
 
-def truncate_resource_host_service():
+def ctn_truncate_resource_host_service():
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -554,7 +559,7 @@ def truncate_resource_host_service():
             cursor.execute("DELETE FROM services")
 
 
-def check_service_resource_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
+def ctn_check_service_resource_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -583,7 +588,7 @@ def check_service_resource_status_with_timeout(hostname: str, service_desc: str,
     return False
 
 
-def check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_time: int, status: int, timeout: int, state_type: str = "SOFT"):
+def ctn_check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_time: int, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -596,8 +601,10 @@ def check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_t
 
         with connection:
             with connection.cursor() as cursor:
+                logger.console(
+                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time} ORDER BY entry_time DESC")
                 cursor.execute(
-                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time}")
+                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time} ORDER BY entry_time DESC")
                 result = cursor.fetchall()
                 if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status) and result[0]['deletion_time'] is None:
                     logger.console(
@@ -610,7 +617,7 @@ def check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_t
     return 0
 
 
-def check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int, which='COMMENTS'):
+def ctn_check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int, which='COMMENTS'):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -641,7 +648,7 @@ def check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int, whi
     return False
 
 
-def check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
+def ctn_check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -668,7 +675,7 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
     return False
 
 
-def check_service_status_enabled(hostname: str, service_desc: str, timeout: int):
+def ctn_check_service_status_enabled(hostname: str, service_desc: str, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -695,7 +702,7 @@ def check_service_status_enabled(hostname: str, service_desc: str, timeout: int)
     return False
 
 
-def check_severity_with_timeout(name: str, level, icon_id, timeout: int):
+def ctn_check_severity_with_timeout(name: str, level, icon_id, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -717,7 +724,7 @@ def check_severity_with_timeout(name: str, level, icon_id, timeout: int):
     return False
 
 
-def check_tag_with_timeout(name: str, typ, timeout: int):
+def ctn_check_tag_with_timeout(name: str, typ, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -739,7 +746,7 @@ def check_tag_with_timeout(name: str, typ, timeout: int):
     return False
 
 
-def check_severities_count(value: int, timeout: int):
+def ctn_check_severities_count(value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -760,7 +767,7 @@ def check_severities_count(value: int, timeout: int):
     return False
 
 
-def check_tags_count(value: int, timeout: int):
+def ctn_check_tags_count(value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -781,7 +788,7 @@ def check_tags_count(value: int, timeout: int):
     return False
 
 
-def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
+def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -792,6 +799,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
             with connection.cursor() as cursor:
+                logger.console(f"SELECT * from mod_bam WHERE name='{ba_name}'")
                 cursor.execute(
                     f"SELECT * FROM mod_bam WHERE name='{ba_name}'")
                 result = cursor.fetchall()
@@ -802,7 +810,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
     return False
 
 
-def check_ba_output_with_timeout(ba_name: str, expected_output: str, timeout: int):
+def ctn_check_ba_output_with_timeout(ba_name: str, expected_output: str, timeout: int):
     """ check if the expected is written in mod_bam.comment column
     @param ba_name   name of the ba
     @param expected_output  output that we should find in comment column
@@ -828,7 +836,7 @@ def check_ba_output_with_timeout(ba_name: str, expected_output: str, timeout: in
     return False
 
 
-def check_downtimes_with_timeout(nb: int, timeout: int):
+def ctn_check_downtimes_with_timeout(nb: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -887,7 +895,7 @@ def check_downtimes_with_timeout(nb: int, timeout: int):
 #    return False
 
 
-def check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
+def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -921,7 +929,7 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
     return False
 
 
-def check_service_check_with_timeout(hostname: str, service_desc: str,  timeout: int, command_line: str):
+def ctn_check_service_check_with_timeout(hostname: str, service_desc: str,  timeout: int, command_line: str):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -946,7 +954,7 @@ def check_service_check_with_timeout(hostname: str, service_desc: str,  timeout:
     return False
 
 
-def check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
+def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -971,7 +979,7 @@ def check_host_check_with_timeout(hostname: str, timeout: int, command_line: str
     return False
 
 
-def show_downtimes():
+def ctn_show_downtimes():
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -989,7 +997,7 @@ def show_downtimes():
         logger.console(f" >> {r}")
 
 
-def delete_service_downtime(hst: str, svc: str):
+def ctn_delete_service_downtime(hst: str, svc: str):
     now = int(time.time())
     while time.time() < now + TIMEOUT:
         connection = pymysql.connect(host=DB_HOST,
@@ -1016,7 +1024,7 @@ def delete_service_downtime(hst: str, svc: str):
     f.close()
 
 
-def number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
+def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1038,7 +1046,7 @@ def number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
     return False
 
 
-def clear_db(table: str):
+def ctn_clear_db(table: str):
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -1052,7 +1060,7 @@ def clear_db(table: str):
         connection.commit()
 
 
-def clear_db_conf(table: str):
+def ctn_clear_db_conf(table: str):
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -1066,7 +1074,7 @@ def clear_db_conf(table: str):
         connection.commit()
 
 
-def check_service_severity_with_timeout(host_id: int, service_id: int, severity_id, timeout: int):
+def ctn_check_service_severity_with_timeout(host_id: int, service_id: int, severity_id, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1091,7 +1099,7 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
     return False
 
 
-def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int = TIMEOUT):
+def ctn_check_host_severity_with_timeout(host_id: int, severity_id, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1108,6 +1116,7 @@ def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int = T
                     "select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = 0 and r.id={}".format(host_id))
                 result = cursor.fetchall()
                 if len(result) > 0:
+                    logger.console(result)
                     if severity_id == 'None':
                         if result[0]['id'] is None:
                             return True
@@ -1117,7 +1126,7 @@ def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int = T
     return False
 
 
-def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_ids: list, timeout: int, enabled: bool = True):
+def ctn_check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_ids: list, timeout: int, enabled: bool = True):
     if typ == 'servicegroup':
         t = 0
     elif typ == 'hostgroup':
@@ -1171,7 +1180,7 @@ def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_id
     return False
 
 
-def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
+def ctn_check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1193,7 +1202,7 @@ def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
     return False
 
 
-def check_number_of_resources_monitored_by_poller_is(poller: int, value: int, timeout: int):
+def ctn_check_number_of_resources_monitored_by_poller_is(poller: int, value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1215,7 +1224,7 @@ def check_number_of_resources_monitored_by_poller_is(poller: int, value: int, ti
     return False
 
 
-def check_number_of_downtimes(expected: int, start, timeout: int):
+def ctn_check_number_of_downtimes(expected: int, start, timeout: int):
     limit = time.time() + timeout
     d = parser.parse(start).timestamp()
     while time.time() < limit:
@@ -1239,7 +1248,7 @@ def check_number_of_downtimes(expected: int, start, timeout: int):
     return False
 
 
-def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value: int, timeout: int):
+def ctn_check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1261,7 +1270,7 @@ def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value:
     return False
 
 
-def check_number_of_relations_between_servicegroup_and_services(servicegroup: int, value: int, timeout: int, service_group_name: str = None):
+def ctn_check_number_of_relations_between_servicegroup_and_services(servicegroup: int, value: int, timeout: int, service_group_name: str = None):
     limit = time.time() + timeout
     request = f"SELECT count(*) from servicegroups s join services_servicegroups sg on s.servicegroup_id = sg.servicegroup_id  WHERE s.servicegroup_id={servicegroup}"
 
@@ -1287,7 +1296,7 @@ def check_number_of_relations_between_servicegroup_and_services(servicegroup: in
     return False
 
 
-def check_field_db_value(request: str, value, timeout: int):
+def ctn_check_field_db_value(request: str, value, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1310,7 +1319,7 @@ def check_field_db_value(request: str, value, timeout: int):
     return False
 
 
-def check_host_status(host: str, value: int, t: int, in_resources: bool, timeout: int = TIMEOUT):
+def ctn_check_host_status(host: str, value: int, t: int, in_resources: bool, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1345,7 +1354,7 @@ def check_host_status(host: str, value: int, t: int, in_resources: bool, timeout
     return False
 
 
-def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
+def ctn_find_internal_id(date, exists=True, timeout: int = TIMEOUT):
     my_date = datetime.timestamp(parser.parse(date))
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1374,7 +1383,7 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
     return False
 
 
-def create_bad_queue(filename: str):
+def ctn_create_bad_queue(filename: str):
     f = open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", 'wb')
     buffer = bytearray(10000)
     buffer[0] = 0
@@ -1395,7 +1404,7 @@ def create_bad_queue(filename: str):
     f.close()
 
 
-def grep(file_path: str, pattern: str):
+def ctn_grep(file_path: str, pattern: str):
     with open(file_path, "r") as file:
         for line in file:
             if re.search(pattern, line):
@@ -1403,7 +1412,7 @@ def grep(file_path: str, pattern: str):
     return ""
 
 
-def check_types_in_resources(lst: list):
+def ctn_check_types_in_resources(lst: list):
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -1433,7 +1442,7 @@ def check_types_in_resources(lst: list):
     return False
 
 
-def check_host_dependencies(dep_host_id, host_id, dep_period, inherits_parent, notif_fail_opts, exec_fail_opts, timeout=TIMEOUT):
+def ctn_check_host_dependencies(dep_host_id, host_id, dep_period, inherits_parent, notif_fail_opts, exec_fail_opts, timeout=TIMEOUT):
     limit = time.time() + timeout
     logger.console(
         f"SELECT count(*) FROM hosts_hosts_dependencies WHERE dependent_host_id={dep_host_id} AND host_id={host_id} AND dependency_period='{dep_period}' AND inherits_parent={inherits_parent} AND notification_failure_options='{notif_fail_opts}' AND execution_failure_options='{exec_fail_opts}'")
@@ -1461,7 +1470,7 @@ def check_host_dependencies(dep_host_id, host_id, dep_period, inherits_parent, n
     return False
 
 
-def check_no_host_dependencies(timeout=TIMEOUT):
+def ctn_check_no_host_dependencies(timeout=TIMEOUT):
     limit = time.time() + timeout
     logger.console("SELECT count(*) FROM hosts_hosts_dependencies")
     while time.time() < limit:
@@ -1483,15 +1492,7 @@ def check_no_host_dependencies(timeout=TIMEOUT):
     return False
 
 
-def grep(file_path: str, pattern: str):
-    with open(file_path, "r") as file:
-        for line in file:
-            if re.search(pattern, line):
-                return line.strip()
-    return ""
-
-
-def get_collect_version():
+def ctn_get_collect_version():
     f = open("../CMakeLists.txt", "r")
     lines = f.readlines()
     f.close()
@@ -1513,7 +1514,7 @@ def get_collect_version():
     return f"{maj}.{mini}.{patch}"
 
 
-def wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
+def ctn_wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
     """! wait until file is modified
     @param path  path of the file
     @param date  minimal of modified time
@@ -1538,7 +1539,7 @@ def wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
     return False
 
 
-def set_user_id_from_name(user_name: str):
+def ctn_set_user_id_from_name(user_name: str):
     """! modify user id
     @param user_name  user name as centreon-engine
     """
@@ -1546,15 +1547,15 @@ def set_user_id_from_name(user_name: str):
     os.setuid(user_id)
 
 
-def get_uid():
+def ctn_get_uid():
     return os.getuid()
 
 
-def set_uid(user_id: int):
+def ctn_set_uid(user_id: int):
     os.setuid(user_id)
 
 
-def has_file_permissions(path: str, permission: int):
+def ctn_has_file_permissions(path: str, permission: int):
     """! test if file has permission passed in parameter
     it does a AND with permission parameter
     @param path path of the file
@@ -1569,7 +1570,7 @@ def has_file_permissions(path: str, permission: int):
     return masked == permission
 
 
-def compare_dot_files(file1: str, file2: str):
+def ctn_compare_dot_files(file1: str, file2: str):
     """
     Compare two dot files file1 and file2 after removing the pointer addresses
     that clearly are not the same.
@@ -1605,3 +1606,36 @@ def compare_dot_files(file1: str, file2: str):
                 f"Files are different at line {i + 1}: first => << {content1[i].strip()} >> and second => << {content2[i].strip()} >>")
             return False
     return True
+
+def ctn_create_bbdo_grpc_server(port : int, ):
+    """
+    start a bbdo streamming grpc server.
+    It answers nothing and simulates proxy behavior when cbd is down
+    Args:
+        port: port to listen
+    Returns: grpc server
+    """
+
+    class service_implementation(grpc_stream_pb2_grpc.centreon_bbdoServicer):
+        """
+        bbdo grpc service that does nothing
+        """
+        def exchange(self, request_iterator, context):
+            time.sleep(0.01)
+            for request in request_iterator:
+                logger.console(request)
+            context.abort(grpc.StatusCode.UNAVAILABLE, "unavailable")
+
+    private_key = open('/tmp/server_1234.key', 'rb').read()
+    certificate_chain = open('/tmp/server_1234.crt', 'rb').read()
+    ca_cert = open('/tmp/ca_1234.crt', 'rb').read()
+
+
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
+    grpc_stream_pb2_grpc.add_centreon_bbdoServicer_to_server(service_implementation(), server)
+    creds = grpc.ssl_server_credentials([(private_key, certificate_chain)],
+            root_certificates=ca_cert)
+    
+    server.add_secure_port("0.0.0.0:5669", creds)
+    server.start()
+    return server

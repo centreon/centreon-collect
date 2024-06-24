@@ -40,7 +40,7 @@ dnf --best install -y cmake \
     perl-Thread-Queue \
     rrdtool-devel \
     yum-utils \
-    perl \
+    perl-interpreter \
     procps-ng \
     zstd \
     nfpm \

@@ -84,6 +84,13 @@ jobs:
             test_group_name: robot_test-mariadb-bullseye-arm64
             tests_params: '{}'
           - distrib: bookworm
+            image: centreon-collect-debian-bookworm-arm64-test
+            package_extension: deb
+            arch: arm64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-bookworm-arm64
+            tests_params: '{}'
+          - distrib: bookworm
             image: centreon-collect-debian-bookworm-test
             package_extension: deb
             arch: amd64
@@ -117,6 +124,8 @@ jobs:
       registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
       collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+      xray_client_id: ${{ secrets.XRAY_CLIENT_ID }}
+      xray_client_secret: ${{ secrets.XRAY_CLIENT_SECRET }}
 
   deliver-rpm:
     if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}

@@ -404,7 +404,7 @@ def _apply_conf(name, callback):
         f.write(json.dumps(conf, indent=2))
 
 
-def config_broker(name: str, poller_inst: int = 1):
+def ctn_config_broker(name: str, poller_inst: int = 1):
     """
     Configure a broker instance for test. Write the configuration files.
 
@@ -456,10 +456,10 @@ def config_broker(name: str, poller_inst: int = 1):
             with open(broker_name, "w") as f:
                 f.write(json.dumps(conf, indent=2))
             if default_bbdo_version is not None:
-                broker_config_add_item(
+                ctn_broker_config_add_item(
                     f"{name}{i}", "bbdo_version", default_bbdo_version)
             if default_transport == "grpc":
-                config_broker_bbdo_output(
+                ctn_config_broker_bbdo_output(
                     f"{name}{i}", "bbdo_client", "5669", "grpc", "localhost")
 
     else:
@@ -468,21 +468,21 @@ def config_broker(name: str, poller_inst: int = 1):
                                         DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT))
         if default_bbdo_version is not None:
             if default_bbdo_version >= "3.0.0" and (name == "central" or name == "central_map"):
-                config_broker_sql_output(name, 'unified_sql')
-            broker_config_add_item(
+                ctn_config_broker_sql_output(name, 'unified_sql')
+            ctn_broker_config_add_item(
                 name, "bbdo_version", default_bbdo_version)
         if default_transport == "grpc":
             if name == "central" or name == "central_map":
-                config_broker_bbdo_input(
+                ctn_config_broker_bbdo_input(
                     name, "bbdo_server", "5669", "grpc")
-                config_broker_bbdo_output(
+                ctn_config_broker_bbdo_output(
                     name, "bbdo_client", "5670", "grpc", "localhost")
             else:
-                config_broker_bbdo_input(
+                ctn_config_broker_bbdo_input(
                     name, "bbdo_server", "5670", "grpc")
 
 
-def change_broker_tcp_output_to_grpc(name: str):
+def ctn_change_broker_tcp_output_to_grpc(name: str):
     """
     Update broker configuration to use a gRPC output instead of a TCP one.
 
@@ -500,7 +500,7 @@ def change_broker_tcp_output_to_grpc(name: str):
     _apply_conf(name, output_to_grpc)
 
 
-def add_path_to_rrd_output(name: str, path: str):
+def ctn_add_path_to_rrd_output(name: str, path: str):
     """
     Set the path for the rrd output. If no rrd output is defined, this function
     does nothing.
@@ -518,7 +518,7 @@ def add_path_to_rrd_output(name: str, path: str):
     _apply_conf(name, rrd_output)
 
 
-def change_broker_tcp_input_to_grpc(name: str):
+def ctn_change_broker_tcp_input_to_grpc(name: str):
     """
     Update the broker configuration to use gRPC input instead of a TCP one.
     If no tcp input is found, no replacement is done.
@@ -546,7 +546,7 @@ def _add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
             json_dict["private_key"] = "/tmp/server_1234.key"
 
 
-def add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
+def ctn_add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
     """
     Add some crypto to broker gRPC input.
 
@@ -568,7 +568,7 @@ def add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
     _apply_conf(name, _crypto_modifier)
 
 
-def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool):
+def ctn_add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool):
     """
     Add grpc crypto to broker tcp output
 
@@ -590,7 +590,7 @@ def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool)
     _apply_conf(name, _crypto_modifier)
 
 
-def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
+def ctn_add_host_to_broker_output(name: str, output_name: str, host_ip: str):
     """
     Add a host to some broker output. This is useful for a grpc or tcp client
     where we want where to connect to.
@@ -613,7 +613,7 @@ def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
     _apply_conf(name, modifier)
 
 
-def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
+def ctn_add_host_to_broker_input(name: str, input_name: str, host_ip: str):
     """
     Add host to some broker input. This is useful for a grpc or tcp client
     where we want to set where to connect to.
@@ -636,7 +636,7 @@ def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
     _apply_conf(name, modifier)
 
 
-def remove_host_from_broker_output(name: str, output_name: str):
+def ctn_remove_host_from_broker_output(name: str, output_name: str):
     """
     Remove the host entry from a broker output given by its name.
 
@@ -658,7 +658,7 @@ def remove_host_from_broker_output(name: str, output_name: str):
     _apply_conf(name, modifier)
 
 
-def remove_host_from_broker_input(name: str, input_name: str):
+def ctn_remove_host_from_broker_input(name: str, input_name: str):
     """
     Remove the host entry from a broker input given by its name.
 
@@ -680,7 +680,7 @@ def remove_host_from_broker_input(name: str, input_name: str):
     _apply_conf(name, modifier)
 
 
-def change_broker_compression_output(config_name: str, output_name: str, compression_value: str):
+def ctn_change_broker_compression_output(config_name: str, output_name: str, compression_value: str):
     """
     Change the compression option of a broker output.
 
@@ -702,7 +702,7 @@ def change_broker_compression_output(config_name: str, output_name: str, compres
     _apply_conf(config_name, compression_modifier)
 
 
-def change_broker_compression_input(config_name: str, input_name: str, compression_value: str):
+def ctn_change_broker_compression_input(config_name: str, input_name: str, compression_value: str):
     """
     Change the compression option of a broker input.
 
@@ -724,7 +724,7 @@ def change_broker_compression_input(config_name: str, input_name: str, compressi
     _apply_conf(config_name, compression_modifier)
 
 
-def config_broker_remove_rrd_output(name):
+def ctn_config_broker_remove_rrd_output(name):
     """
     Remove rrd output from  a broker configuration
 
@@ -755,7 +755,7 @@ def config_broker_remove_rrd_output(name):
         f.write(json.dumps(conf, indent=2))
 
 
-def config_broker_bbdo_input(name, stream, port, proto, host=None):
+def ctn_config_broker_bbdo_input(name, stream, port, proto, host=None):
     """
     Configure Broker BBDO input. It can be a client or a server. We provide a
     port number and a protocol that is grpc or tcp.
@@ -809,7 +809,7 @@ def config_broker_bbdo_input(name, stream, port, proto, host=None):
         f.write(json.dumps(conf, indent=2))
 
 
-def config_broker_bbdo_output(name, stream, port, proto, host=None):
+def ctn_config_broker_bbdo_output(name, stream, port, proto, host=None):
     """
     Configure Broker BBDO output. It can be a client or a server. We provide a
     port number and a protocol that is grpc or tcp.
@@ -828,7 +828,7 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
     """
     if stream != "bbdo_server" and stream != "bbdo_client":
         raise Exception(
-            "config_broker_bbdo_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
+            "ctn_config_broker_bbdo_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
     if stream == "bbdo_client" and host is None:
         raise Exception("A bbdo_client must specify a host to connect to")
 
@@ -863,7 +863,7 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
         f.write(json.dumps(conf, indent=2))
 
 
-def config_broker_sql_output(name, output, queries_per_transaction: int = 20000):
+def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20000):
     """
     Configure the broker sql output.
 
@@ -948,7 +948,7 @@ def config_broker_sql_output(name, output, queries_per_transaction: int = 20000)
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_clear_outputs_except(name, ex: list):
+def ctn_broker_config_clear_outputs_except(name, ex: list):
     """
     Remove all the outputs of the broker configuration except those of types given
     in the ex list.
@@ -980,7 +980,7 @@ def broker_config_clear_outputs_except(name, ex: list):
         f.write(json.dumps(conf, indent=2))
 
 
-def config_broker_victoria_output():
+def ctn_config_broker_victoria_output():
     """
     Configure broker to add a Victoria output. If some old VictoriaMetrics
     outputs exist, they are removed.
@@ -1011,7 +1011,7 @@ def config_broker_victoria_output():
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_add_item(name, key, value):
+def ctn_broker_config_add_item(name, key, value):
     """
     Add an item to the broker configuration
 
@@ -1039,7 +1039,7 @@ def broker_config_add_item(name, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_remove_item(name, key):
+def ctn_broker_config_remove_item(name, key):
     """
     Remove an item from the broker configuration
 
@@ -1066,7 +1066,7 @@ def broker_config_remove_item(name, key):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_add_lua_output(name, output, luafile):
+def ctn_broker_config_add_lua_output(name, output, luafile):
     """
     Add a lua output to the broker configuration.
 
@@ -1099,7 +1099,7 @@ def broker_config_add_lua_output(name, output, luafile):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_output_set(name, output, key, value):
+def ctn_broker_config_output_set(name, output, key, value):
     """
     Set an attribute value in a broker output.
 
@@ -1129,7 +1129,7 @@ def broker_config_output_set(name, output, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_output_set_json(name, output, key, value):
+def ctn_broker_config_output_set_json(name, output, key, value):
     """
     Set an attribute value in a broker output. The value is given as a json string.
 
@@ -1160,7 +1160,7 @@ def broker_config_output_set_json(name, output, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_output_remove(name, output, key):
+def ctn_broker_config_output_remove(name, output, key):
     """
     Remove a key from an output of the broker configuration.
 
@@ -1193,7 +1193,7 @@ def broker_config_output_remove(name, output, key):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_input_set(name, inp, key, value):
+def ctn_broker_config_input_set(name, inp, key, value):
     """
     Set an attribute in an input of a broker configuration.
 
@@ -1226,7 +1226,7 @@ def broker_config_input_set(name, inp, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_input_remove(name, inp, key):
+def ctn_broker_config_input_remove(name, inp, key):
     """
     Remove a key from an input of the broker configuration.
 
@@ -1252,7 +1252,7 @@ def broker_config_input_remove(name, inp, key):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_log(name, key, value):
+def ctn_broker_config_log(name, key, value):
     """
     Configure broker log level.
 
@@ -1263,7 +1263,7 @@ def broker_config_log(name, key, value):
 
     *Example:*
 
-    | Broker Config Log | central | bam | trace |
+    | Ctn Broker Config Log | central | bam | trace |
     """
     if name == 'central':
         filename = "central-broker.json"
@@ -1280,7 +1280,7 @@ def broker_config_log(name, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_flush_log(name, value):
+def ctn_broker_config_flush_log(name, value):
     """
     Configure the flush interval of the broker loggers. This value is in seconds, with 0, every logs are flushed.
 
@@ -1307,7 +1307,7 @@ def broker_config_flush_log(name, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def broker_config_source_log(name, value):
+def ctn_broker_config_source_log(name, value):
     """
     Configure if logs should contain the source file and its line number.
 
@@ -1334,7 +1334,7 @@ def broker_config_source_log(name, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
+def ctn_check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
     """
     Return True if the Broker stats file contain keys pair (key1,key2). key2 must
     be a daughter key of key1.
@@ -1377,7 +1377,7 @@ def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
     return False
 
 
-def get_broker_stats_size(name, key, timeout=TIMEOUT):
+def ctn_get_broker_stats_size(name, key, timeout=TIMEOUT):
     """
     Return the number of items under the given key in the stats file.
 
@@ -1421,7 +1421,7 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
     return retval
 
 
-def get_broker_stats(name: str, expected: str, timeout: int, *keys):
+def ctn_get_broker_stats(name: str, expected: str, timeout: int, *keys):
     """
     Read a value from the broker stats file following the given keys. If the value is the expected one, return True.
 
@@ -1473,7 +1473,7 @@ def get_broker_stats(name: str, expected: str, timeout: int, *keys):
     return False
 
 
-def get_not_existing_indexes(count: int):
+def ctn_get_not_existing_indexes(count: int):
     """
     Gets count indexes that does not exist in the centreon_storage.index_data table.
 
@@ -1518,7 +1518,7 @@ def get_not_existing_indexes(count: int):
     return ids_db
 
 
-def get_indexes_to_delete(count: int):
+def ctn_get_indexes_to_delete(count: int):
     """
     Gets count indexes from centreon_storage.index_data that really exist.
 
@@ -1564,7 +1564,7 @@ def get_indexes_to_delete(count: int):
     return retval
 
 
-def delete_all_rrd_metrics():
+def ctn_delete_all_rrd_metrics():
     """
     Remove all rrd metrics files.
     """
@@ -1574,7 +1574,7 @@ def delete_all_rrd_metrics():
                 os.remove(entry.path)
 
 
-def check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
+def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
     """
     Execute rrdtool info and check one value of the returned informations
 
@@ -1603,7 +1603,7 @@ def check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
     return False
 
 
-def get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: int = 60):
+def ctn_get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: int = 60):
     """
     Try to get the metric IDs of a service.
 
@@ -1647,7 +1647,7 @@ def get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: in
     return None
 
 
-def get_not_existing_metrics(count: int):
+def ctn_get_not_existing_metrics(count: int):
     """
     Return a list of metrics that does not exist.
 
@@ -1691,7 +1691,7 @@ def get_not_existing_metrics(count: int):
     return retval
 
 
-def get_metrics_to_delete(count: int):
+def ctn_get_metrics_to_delete(count: int):
     """
     Get count metrics from availables ones.
 
@@ -1725,7 +1725,7 @@ def get_metrics_to_delete(count: int):
     return inter[:count]
 
 
-def create_metrics(count: int):
+def ctn_create_metrics(count: int):
     """
     Create count metrics from available ones.
 
@@ -1774,7 +1774,7 @@ def create_metrics(count: int):
                 connection.commit()
 
 
-def run_reverse_bam(duration, interval):
+def ctn_run_reverse_bam(duration, interval):
     """
     Launch the map_client.py script that simulates map.
 
@@ -1789,7 +1789,7 @@ def run_reverse_bam(duration, interval):
     os.killpg(os.getpgid(pro.pid), signal.SIGKILL)
 
 
-def start_map():
+def ctn_start_map():
     """
     Launch the map_client_types.py script that simulates map.
     """
@@ -1798,7 +1798,7 @@ def start_map():
                              shell=True, stdout=subp.DEVNULL, stdin=subp.DEVNULL)
 
 
-def clear_map_logs():
+def ctn_clear_map_logs():
     """
     Reset the content of the /tmp/map-output.log file.
     """
@@ -1806,7 +1806,7 @@ def clear_map_logs():
         f.write("")
 
 
-def check_map_output(categories_str, expected_events, timeout: int = TIMEOUT):
+def ctn_check_map_output(categories_str, expected_events, timeout: int = TIMEOUT):
     """
     Check the content of the /tmp/map-output.log file. This file contains informations on categories/elements of each
     received event. A list of categories and event types are given to this function, so it can check if the file
@@ -1865,7 +1865,7 @@ def check_map_output(categories_str, expected_events, timeout: int = TIMEOUT):
     return retval
 
 
-def get_map_output():
+def ctn_get_map_output():
     """
     The map_client_types.py script writes on STDOUT. This function allows to get this output.
 
@@ -1876,7 +1876,7 @@ def get_map_output():
     return map_process.communicate()[0]
 
 
-def stop_map():
+def ctn_stop_map():
     """
     Stop the script simulating map. Works with map_client_type.
     """
@@ -1901,7 +1901,7 @@ def stop_map():
     logger.console("map_client_type stopped")
 
 
-def get_indexes_to_rebuild(count: int, nb_day=180):
+def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
     """
     Get count indexes that are available to rebuild.
 
@@ -1958,7 +1958,7 @@ def get_indexes_to_rebuild(count: int, nb_day=180):
     return retval
 
 
-def add_duplicate_metrics():
+def ctn_add_duplicate_metrics():
     """
     Add a value at the middle of the first day of each metric
 
@@ -1988,12 +1988,12 @@ def add_duplicate_metrics():
     return retval
 
 
-def check_for_NaN_metric(add_duplicate_metrics_ret):
+def ctn_check_for_NaN_metric(add_duplicate_metrics_ret):
     """
     Check that metrics are not a NaN during one day
 
     Args:
-        add_duplicate_metrics_ret (): an array of pair <time of oldest value>, <metric id> returned by add_duplicate_metrics
+        add_duplicate_metrics_ret (): an array of pair <time of oldest value>, <metric id> returned by ctn_add_duplicate_metrics
 
     Returns:
         True on Success, otherwise False.
@@ -2015,7 +2015,7 @@ def check_for_NaN_metric(add_duplicate_metrics_ret):
     return True
 
 
-def get_metrics_matching_indexes(indexes):
+def ctn_get_metrics_matching_indexes(indexes):
     """
     Get metric IDs matching the given indexes.
 
@@ -2043,7 +2043,7 @@ def get_metrics_matching_indexes(indexes):
             return retval
 
 
-def remove_graphs(port, indexes, metrics, timeout=10):
+def ctn_remove_graphs(port, indexes, metrics, timeout=10):
     """
     Send a gRPC command to remove graphs (by indexes or by metrics)
 
@@ -2068,7 +2068,7 @@ def remove_graphs(port, indexes, metrics, timeout=10):
                 logger.console("gRPC server not ready")
 
 
-def broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout=TIMEOUT):
+def ctn_broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout=TIMEOUT):
     """
     Set values to the SQL manager stats: number of slowest statements and number
     of slowest queries to keep in memory.
@@ -2094,7 +2094,7 @@ def broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout=TIM
                 logger.console("gRPC server not ready")
 
 
-def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
+def ctn_broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
     """
     Tries to get some statistics about an SQL query. If that query makes part
     of the slowest queries or statements, we get the average duration of it.
@@ -2133,7 +2133,7 @@ def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
     return -1
 
 
-def remove_graphs_from_db(indexes, metrics, timeout=10):
+def ctn_remove_graphs_from_db(indexes, metrics, timeout=10):
     """
     Send a query to the db to remove graphs (by indexes or by metrics).
 
@@ -2166,7 +2166,7 @@ def remove_graphs_from_db(indexes, metrics, timeout=10):
             connection.commit()
 
 
-def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
+def ctn_rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
     """
     Execute the gRPC command RebuildRRDGraphs().
 
@@ -2191,7 +2191,7 @@ def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-def rebuild_rrd_graphs_from_db(indexes):
+def ctn_rebuild_rrd_graphs_from_db(indexes):
     """
     Send a query to the db to rebuild graphs
 
@@ -2215,7 +2215,7 @@ def rebuild_rrd_graphs_from_db(indexes):
                 connection.commit()
 
 
-def compare_rrd_average_value(metric, value: float):
+def ctn_compare_rrd_average_value(metric, value: float):
     """
     Compare the average value for an RRD metric on the last 30 days with a value.
 
@@ -2241,7 +2241,7 @@ def compare_rrd_average_value(metric, value: float):
         return True
 
 
-def compare_rrd_status_average_value(index_id, value: int):
+def ctn_compare_rrd_status_average_value(index_id, value: int):
     """
     Compare the average value for an RRD metric on the last 30 days with a value.
 
@@ -2265,7 +2265,7 @@ def compare_rrd_status_average_value(index_id, value: int):
         return True
 
 
-def compare_rrd_average_value_with_grpc(metric, key, value: float):
+def ctn_compare_rrd_average_value_with_grpc(metric, key, value: float):
     """
     Compare the average value for an RRD metric with a given value.
 
@@ -2293,7 +2293,7 @@ def compare_rrd_average_value_with_grpc(metric, key, value: float):
         return False
 
 
-def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
+def ctn_check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
     """
     Call the GetSqlManagerStats function by gRPC and checks there are count active connections.
 
@@ -2327,7 +2327,7 @@ def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
     return False
 
 
-def check_all_sql_connections_down_with_grpc(port, timeout=TIMEOUT):
+def ctn_check_all_sql_connections_down_with_grpc(port, timeout=TIMEOUT):
     """
     Call the GetSqlManagerStats function by gRPC and checks there are count active connections.
 
@@ -2354,7 +2354,7 @@ def check_all_sql_connections_down_with_grpc(port, timeout=TIMEOUT):
     return False
 
 
-def add_bam_config_to_broker(name):
+def ctn_add_bam_config_to_broker(name):
     """
     Add the bam configuration to broker.
 
@@ -2408,7 +2408,7 @@ def add_bam_config_to_broker(name):
         f.write(json.dumps(conf, indent=2))
 
 
-def remove_poller(port, name, timeout=TIMEOUT):
+def ctn_remove_poller(port, name, timeout=TIMEOUT):
     """
     Send a gRPC command to remove by name a poller.
 
@@ -2433,7 +2433,7 @@ def remove_poller(port, name, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-def remove_poller_by_id(port, idx, timeout=TIMEOUT):
+def ctn_remove_poller_by_id(port, idx, timeout=TIMEOUT):
     """
     Send a gRPC command to remove by id a poller
 
@@ -2458,7 +2458,7 @@ def remove_poller_by_id(port, idx, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-def check_poller_disabled_in_database(poller_id: int, timeout: int):
+def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int):
     """
     Check if all the hosts monitored by a poller are disabled.
 
@@ -2489,7 +2489,7 @@ def check_poller_disabled_in_database(poller_id: int, timeout: int):
     return False
 
 
-def check_poller_enabled_in_database(poller_id: int, timeout: int):
+def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int):
     """
     Check if at least one host monitored by a poller is enabled.
 
@@ -2520,7 +2520,7 @@ def check_poller_enabled_in_database(poller_id: int, timeout: int):
     return False
 
 
-def get_broker_log_level(port, log, timeout=TIMEOUT):
+def ctn_get_broker_log_level(port, log, timeout=TIMEOUT):
     """
     Get the log level of a given logger. The timeout is due to the way we ask
     for this information ; we use gRPC and the server may not be correctly
@@ -2550,7 +2550,7 @@ def get_broker_log_level(port, log, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-def set_broker_log_level(port, log, level, timeout=TIMEOUT):
+def ctn_set_broker_log_level(port, log, level, timeout=TIMEOUT):
     """
     Set the log level of a given logger.
 
@@ -2587,7 +2587,7 @@ def set_broker_log_level(port, log, level, timeout=TIMEOUT):
     return res
 
 
-def get_broker_process_stat(port, timeout=10):
+def ctn_get_broker_process_stat(port, timeout=10):
     """
     Call the GetGenericStats function by gRPC it works with both engine and broker
 
@@ -2618,7 +2618,7 @@ def get_broker_process_stat(port, timeout=10):
     return None
 
 
-def parse_victoria_body(request_body: str):
+def ctn_parse_victoria_body(request_body: str):
     victoria_payload = {}
     key_val = []
     for field_val in request_body.split(','):
@@ -2637,9 +2637,9 @@ def parse_victoria_body(request_body: str):
     return victoria_payload
 
 
-def check_victoria_data(request_body: str, data_type: str, min_timestamp: int, **to_check):
+def ctn_check_victoria_data(request_body: str, data_type: str, min_timestamp: int, **to_check):
     """
-    check_victoria_data
+    ctn_check_victoria_data
 
     Return the value of a check if the data is present in the request body and if it matches the given values.
 
@@ -2655,7 +2655,7 @@ def check_victoria_data(request_body: str, data_type: str, min_timestamp: int, *
 
     """
     for line in request_body.splitlines():
-        datas = parse_victoria_body(line)
+        datas = ctn_parse_victoria_body(line)
         if datas["type"] != data_type:
             continue
         if min_timestamp > datas["time_stamp"]:
@@ -2669,7 +2669,7 @@ def check_victoria_data(request_body: str, data_type: str, min_timestamp: int, *
     return False
 
 
-def check_victoria_metric(request_body: str, min_timestamp: int, **to_check):
+def ctn_check_victoria_metric(request_body: str, min_timestamp: int, **to_check):
     """
     Return the value of a check if the metric is present in the request body and if it matches the given values.
 
@@ -2683,10 +2683,10 @@ def check_victoria_metric(request_body: str, min_timestamp: int, **to_check):
     =>
     | ${metric_found} = TRUE if the request body contains a metric with the unit=%, host_id=16 and serv_id=314
     """
-    return check_victoria_data(request_body, "metric", min_timestamp, **to_check)
+    return ctn_check_victoria_data(request_body, "metric", min_timestamp, **to_check)
 
 
-def check_victoria_status(request_body: str, min_timestamp: int, **to_check):
+def ctn_check_victoria_status(request_body: str, min_timestamp: int, **to_check):
     """
     Return the value of a check if the status is present in the request body and if it matches the given values.
 
@@ -2700,10 +2700,10 @@ def check_victoria_status(request_body: str, min_timestamp: int, **to_check):
     =>
     | ${metric_found} = TRUE if the request body contains a status with the host_id=16 and serv_id=314
     """
-    return check_victoria_data(request_body, "status", min_timestamp, **to_check)
+    return ctn_check_victoria_data(request_body, "status", min_timestamp, **to_check)
 
 
-def broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
+def ctn_broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
     """
     Calls the gRPC GetBa function to create a dot file.
 
@@ -2717,6 +2717,7 @@ def broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
         An empty Protobuf object.
     """
     limit = time.time() + timeout
+    res = None
     while time.time() < limit:
         logger.console("Try to call GetBa")
         time.sleep(1)
@@ -2736,3 +2737,52 @@ def broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
             except:
                 logger.console("gRPC server not ready")
     return res
+
+
+def check_all_services_with_status(host: str, service_like: str, status: int, legacy: bool = False, timeout: int = TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                # Read a single record
+                if legacy:
+                    sql = f"SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{host}' AND s.description LIKE '{service_like}' AND s.state <> {status}"
+                else:
+                    sql = f"SELECT count(*) FROM resources WHERE name like '{service_like}' AND parent_name='{host}' AND status <> {status}"
+                cursor.execute(sql)
+                result = cursor.fetchall()
+                logger.console(result[0]['count(*)'])
+                if result and result[0] and 'count(*)' in result[0] and int(result[0]['count(*)']) == 0:
+                    return True
+                time.sleep(1)
+    return False
+
+
+def check_last_checked_services_with_given_metric_more_than(metric_like: str, now: int, goal: int, timeout: int = TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                # Read a single record
+                sql = f"SELECT count(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE '{metric_like}' AND s.last_check >= {now}"
+                logger.console(
+                    f"SELECT count(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE '{metric_like}' AND s.last_check >= {now}")
+                cursor.execute(sql)
+                result = cursor.fetchall()
+                logger.console(result[0])
+                if result and result[0] and 'count(s.last_check)' in result[0] and int(result[0]['count(s.last_check)']) >= int(goal):
+                    return True
+                time.sleep(1)
+    return False

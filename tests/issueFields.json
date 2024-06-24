@@ -1,0 +1,21 @@
+{
+    "fields": {
+        "project": {
+            "id": "11100",
+            "key": "MON"
+        },
+        "summary": "Brand new Test execution",
+        "issuetype": {
+            "id": "10271",
+            "name": "Test Execution"
+        },
+        "components": [
+            {
+                "name": "centreon-collect"
+            }
+        ]
+    },
+    "xrayFields": {
+        "testPlanKey": "MON-35339"
+    }
+}
