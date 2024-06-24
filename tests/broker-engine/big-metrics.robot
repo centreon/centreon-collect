@@ -1,7 +1,13 @@
 *** Settings ***
 Documentation       There tests are about big metric values
 
-Resource            ../resources/import.resource
+Resource            ../resources/resources.robot
+
+Library             ../resources/Engine.py
+Library             ../resources/Broker.py
+Library             ../resources/Common.py
+
+Library             DateTime
 
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite

@@ -63,14 +63,8 @@ set_target_properties("${UNIFIED_SQL}" PROPERTIES PREFIX "" COMPILE_FLAGS
 add_dependencies("${UNIFIED_SQL}" target_rebuild_message
                  target_remove_graph_message target_neb)
 target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
-target_link_libraries(${UNIFIED_SQL} 
-  rokerbase 
-  bbdo_storage
-  CONAN_PKG::spdlog
-  CONAN_PKG::abseil
-  pb_storage_lib
-  ${MARIADB_LIBRARIES}
-  )
+target_link_libraries(${UNIFIED_SQL} rokerbase bbdo_storage CONAN_PKG::spdlog
+                      CONAN_PKG::abseil pb_storage_lib)
 
 # Testing.
 if(WITH_TESTING)

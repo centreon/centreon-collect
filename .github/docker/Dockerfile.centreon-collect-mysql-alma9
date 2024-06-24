@@ -25,7 +25,6 @@ dnf --best install -y cmake \
     gdb \
     gettext \
     git \
-    mariadb-connector-c-devel \
     ninja-build \
     openssh-server \
     mysql-server \

@@ -20,7 +20,6 @@ dnf --best install -y gcc \
     gdb \
     git \
     openssh-server \
-    mariadb-connector-c \
     mysql-server \
     mysql \
     gnutls \

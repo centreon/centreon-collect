@@ -142,9 +142,6 @@ set(CMAKE_PROGRAM_PATH ${CONAN_BIN_DIRS_PROTOBUF};${CMAKE_PROGRAM_PATH})
 
 find_package(Protobuf REQUIRED)
 
-include(FindPkgConfig)
-pkg_check_modules(MARIADB REQUIRED libmariadb)
-
 message(NOTICE "-- use protoc compiler: ${Protobuf_PROTOC_EXECUTABLE}")
 
 include(GNUInstallDirs)
