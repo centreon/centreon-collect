@@ -66,12 +66,13 @@ class EngineRpc : public TestEngine {
 
     config->execute_service_checks(true);
 
+    configuration::error_cnt err;
     /* contact */
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
-    ct_aply.resolve_object(ctct);
+    ct_aply.resolve_object(ctct, err);
 
     /* hosts */
     configuration::host hst_child;
@@ -87,8 +88,8 @@ class EngineRpc : public TestEngine {
     hst.parse("_HOST_ID", "12");
     hst_aply.add_object(hst);
 
-    hst_aply.resolve_object(hst);
-    hst_aply2.resolve_object(hst_child);
+    hst_aply.resolve_object(hst, err);
+    hst_aply2.resolve_object(hst_child, err);
 
     ASSERT_EQ(engine::host::hosts.size(), 2u);
 
@@ -105,7 +106,7 @@ class EngineRpc : public TestEngine {
     hg.parse("members", "test_host");
     hg_aply.add_object(hg);
     hg_aply.expand_objects(*config);
-    hg_aply.resolve_object(hg);
+    hg_aply.resolve_object(hg, err);
 
     /* service */
     configuration::service svc{
@@ -119,7 +120,7 @@ class EngineRpc : public TestEngine {
     svc_aply.add_object(svc);
     cmd_aply.add_object(cmd);
 
-    svc_aply.resolve_object(svc);
+    svc_aply.resolve_object(svc, err);
 
     configuration::anomalydetection ad{new_configuration_anomalydetection(
         "test_host", "test_ad", "admin",
@@ -129,7 +130,7 @@ class EngineRpc : public TestEngine {
     configuration::applier::anomalydetection ad_aply;
     ad_aply.add_object(ad);
 
-    ad_aply.resolve_object(ad);
+    ad_aply.resolve_object(ad, err);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
@@ -161,7 +162,7 @@ class EngineRpc : public TestEngine {
 
     sg_aply.add_object(sg);
     sg_aply.expand_objects(*config);
-    sg_aply.resolve_object(sg);
+    sg_aply.resolve_object(sg, err);
   }
 
   void TearDown() override {

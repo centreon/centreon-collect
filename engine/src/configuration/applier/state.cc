@@ -45,14 +45,10 @@
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/broker_sink.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/retention/applier/state.hh"
-#include "com/centreon/engine/retention/state.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xpddefault.hh"
 #include "com/centreon/engine/xsddefault.hh"
@@ -71,47 +67,16 @@ static bool has_already_been_loaded(false);
  *  Apply new configuration.
  *
  *  @param[in] new_cfg        The new configuration.
- *  @param[in] waiting_thread True to wait thread after calulate differencies.
- */
-void applier::state::apply(configuration::state& new_cfg) {
-  configuration::state save(*config);
-  try {
-    _processing_state = state_ready;
-    _processing(new_cfg);
-  } catch (std::exception const& e) {
-    // If is the first time to load configuration, we don't
-    // have a valid configuration to restore.
-    if (!has_already_been_loaded)
-      throw;
-
-    // If is not the first time, we can restore the old one.
-    engine_logger(log_config_error, basic)
-        << "Error: Could not apply new configuration: " << e.what();
-    config_logger->error("Error: Could not apply new configuration: {}",
-                         e.what());
-
-    // Check if we need to restore old configuration.
-    if (_processing_state == state_error) {
-      engine_logger(dbg_config, more)
-          << "configuration: try to restore old configuration";
-      config_logger->debug("configuration: try to restore old configuration");
-      _processing(save);
-    }
-  }
-}
-
-/**
- *  Apply new configuration.
- *
- *  @param[in] new_cfg        The new configuration.
+ *  @param[out] err           The configuration error counter.
  *  @param[in] state          The retention to use.
  */
 void applier::state::apply(configuration::state& new_cfg,
-                           retention::state& state) {
+                           error_cnt& err,
+                           retention::state* state) {
   configuration::state save(*config);
   try {
     _processing_state = state_ready;
-    _processing(new_cfg, &state);
+    _processing(new_cfg, err, state);
   } catch (std::exception const& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
@@ -128,7 +93,7 @@ void applier::state::apply(configuration::state& new_cfg,
       engine_logger(dbg_config, more)
           << "configuration: try to restore old configuration";
       config_logger->debug("configuration: try to restore old configuration");
-      _processing(save, &state);
+      _processing(save, err, state);
     }
   }
 }
@@ -247,7 +212,8 @@ void applier::state::unlock() {
  *
  *  @param[in]  new_cfg The new configuration state.
  */
-void applier::state::_apply(configuration::state const& new_cfg) {
+void applier::state::_apply(configuration::state const& new_cfg,
+                            error_cnt& err) {
   // Check variables should not be change after the first execution.
   if (has_already_been_loaded) {
     if (config->broker_module() != new_cfg.broker_module()) {
@@ -255,20 +221,20 @@ void applier::state::_apply(configuration::state const& new_cfg) {
           << "Warning: Broker modules cannot be changed nor reloaded";
       config_logger->warn(
           "Warning: Broker modules cannot be changed nor reloaded");
-      ++config_warnings;
+      ++err.config_warnings;
     }
     if (config->broker_module_directory() !=
         new_cfg.broker_module_directory()) {
       engine_logger(log_config_warning, basic)
           << "Warning: Broker module directory cannot be changed";
       config_logger->warn("Warning: Broker module directory cannot be changed");
-      ++config_warnings;
+      ++err.config_warnings;
     }
     if (config->command_file() != new_cfg.command_file()) {
       engine_logger(log_config_warning, basic)
           << "Warning: Command file cannot be changed";
       config_logger->warn("Warning: Command file cannot be changed");
-      ++config_warnings;
+      ++err.config_warnings;
     }
     if (config->external_command_buffer_slots() !=
         new_cfg.external_command_buffer_slots()) {
@@ -276,13 +242,13 @@ void applier::state::_apply(configuration::state const& new_cfg) {
           << "Warning: External command buffer slots cannot be changed";
       config_logger->warn(
           "Warning: External command buffer slots cannot be changed");
-      ++config_warnings;
+      ++err.config_warnings;
     }
     if (config->use_timezone() != new_cfg.use_timezone()) {
       engine_logger(log_config_warning, basic)
           << "Warning: Timezone can not be changed";
       config_logger->warn("Warning: Timezone can not be changed");
-      ++config_warnings;
+      ++err.config_warnings;
     }
   }
 
@@ -503,7 +469,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
           "Error: Global host event handler command '{}' is not defined "
           "anywhere!",
           temp_command_name);
-      ++config_errors;
+      ++err.config_errors;
       global_host_event_handler_ptr = nullptr;
     } else
       global_host_event_handler_ptr = found->second.get();
@@ -522,7 +488,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
           "Error: Global service event handler command '{}' is not defined "
           "anywhere!",
           temp_command_name);
-      ++config_errors;
+      ++err.config_errors;
       global_service_event_handler_ptr = nullptr;
     } else
       global_service_event_handler_ptr = found->second.get();
@@ -547,7 +513,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
           "Error: Obsessive compulsive service processor command '{}' is not "
           "defined anywhere!",
           temp_command_name);
-      ++config_errors;
+      ++err.config_errors;
       ocsp_command_ptr = nullptr;
     } else
       ocsp_command_ptr = found->second.get();
@@ -565,7 +531,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
           "Error: Obsessive compulsive host processor command '{}' is not "
           "defined anywhere!",
           temp_command_name);
-      ++config_errors;
+      ++err.config_errors;
       ochp_command_ptr = nullptr;
     } else
       ochp_command_ptr = found->second.get();
@@ -585,7 +551,8 @@ void applier::state::_apply(configuration::state const& new_cfg) {
  */
 template <typename ConfigurationType, typename ApplierType>
 void applier::state::_apply(
-    difference<std::set<ConfigurationType> > const& diff) {
+    difference<std::set<ConfigurationType> > const& diff,
+    error_cnt& err) {
   // Type alias.
   typedef std::set<ConfigurationType> cfg_set;
 
@@ -606,7 +573,7 @@ void applier::state::_apply(
       try {
         aplyr.remove_object(*it_delete);
       } catch (std::exception const& e) {
-        ++config_errors;
+        ++err.config_errors;
         engine_logger(log_info_message, basic) << e.what();
         events_logger->info(e.what());
       }
@@ -623,7 +590,7 @@ void applier::state::_apply(
       try {
         aplyr.add_object(*it_create);
       } catch (std::exception const& e) {
-        ++config_errors;
+        ++err.config_errors;
         engine_logger(log_info_message, basic) << e.what();
         events_logger->info(e.what());
       }
@@ -640,7 +607,7 @@ void applier::state::_apply(
       try {
         aplyr.modify_object(*it_modify);
       } catch (std::exception const& e) {
-        ++config_errors;
+        ++err.config_errors;
         engine_logger(log_info_message, basic) << e.what();
         events_logger->info(e.what());
       }
@@ -1216,7 +1183,8 @@ void applier::state::apply_log_config(configuration::state& new_cfg) {
  *  @param[in] state   The retention state to use.
  */
 void applier::state::_apply(configuration::state& new_cfg,
-                            retention::state& state) {
+                            retention::state& state,
+                            error_cnt& err) {
   retention::applier::state app_state;
   if (!verify_config)
     app_state.apply(new_cfg, state);
@@ -1224,7 +1192,7 @@ void applier::state::_apply(configuration::state& new_cfg,
     try {
       app_state.apply(new_cfg, state);
     } catch (std::exception const& e) {
-      ++config_errors;
+      ++err.config_errors;
       std::cout << e.what();
     }
   }
@@ -1237,13 +1205,13 @@ void applier::state::_apply(configuration::state& new_cfg,
  *  @param[in,out] cfg       Configuration objects.
  */
 template <typename ConfigurationType, typename ApplierType>
-void applier::state::_expand(configuration::state& new_state) {
+void applier::state::_expand(configuration::state& new_state, error_cnt& err) {
   ApplierType aplyr;
   try {
     aplyr.expand_objects(new_state);
   } catch (std::exception const& e) {
     if (verify_config) {
-      ++config_errors;
+      ++err.config_errors;
       std::cout << e.what();
     } else
       throw;
@@ -1254,9 +1222,11 @@ void applier::state::_expand(configuration::state& new_state) {
  *  Process new configuration and apply it.
  *
  *  @param[in] new_cfg        The new configuration.
+ *  @param[out] err           The configuration error counter.
  *  @param[in] state          The retention to use.
  */
 void applier::state::_processing(configuration::state& new_cfg,
+                                 error_cnt& err,
                                  retention::state* state) {
   // Timing.
   struct timeval tv[5];
@@ -1271,48 +1241,49 @@ void applier::state::_processing(configuration::state& new_cfg,
   gettimeofday(tv, nullptr);
 
   // Expand timeperiods.
-  _expand<configuration::timeperiod, applier::timeperiod>(new_cfg);
+  _expand<configuration::timeperiod, applier::timeperiod>(new_cfg, err);
 
   // Expand connectors.
-  _expand<configuration::connector, applier::connector>(new_cfg);
+  _expand<configuration::connector, applier::connector>(new_cfg, err);
 
   // Expand commands.
-  _expand<configuration::command, applier::command>(new_cfg);
+  _expand<configuration::command, applier::command>(new_cfg, err);
 
   // Expand contacts.
-  _expand<configuration::contact, applier::contact>(new_cfg);
+  _expand<configuration::contact, applier::contact>(new_cfg, err);
 
   // Expand contactgroups.
-  _expand<configuration::contactgroup, applier::contactgroup>(new_cfg);
+  _expand<configuration::contactgroup, applier::contactgroup>(new_cfg, err);
 
   // Expand hosts.
-  _expand<configuration::host, applier::host>(new_cfg);
+  _expand<configuration::host, applier::host>(new_cfg, err);
 
   // Expand hostgroups.
-  _expand<configuration::hostgroup, applier::hostgroup>(new_cfg);
+  _expand<configuration::hostgroup, applier::hostgroup>(new_cfg, err);
 
   // Expand services.
-  _expand<configuration::service, applier::service>(new_cfg);
+  _expand<configuration::service, applier::service>(new_cfg, err);
 
   // Expand anomalydetections.
-  _expand<configuration::anomalydetection, applier::anomalydetection>(new_cfg);
+  _expand<configuration::anomalydetection, applier::anomalydetection>(new_cfg,
+                                                                      err);
 
   // Expand servicegroups.
-  _expand<configuration::servicegroup, applier::servicegroup>(new_cfg);
+  _expand<configuration::servicegroup, applier::servicegroup>(new_cfg, err);
 
   // Expand hostdependencies.
-  _expand<configuration::hostdependency, applier::hostdependency>(new_cfg);
+  _expand<configuration::hostdependency, applier::hostdependency>(new_cfg, err);
 
   // Expand servicedependencies.
-  _expand<configuration::servicedependency, applier::servicedependency>(
-      new_cfg);
+  _expand<configuration::servicedependency, applier::servicedependency>(new_cfg,
+                                                                        err);
 
   // Expand hostescalations.
-  _expand<configuration::hostescalation, applier::hostescalation>(new_cfg);
+  _expand<configuration::hostescalation, applier::hostescalation>(new_cfg, err);
 
   // Expand serviceescalations.
-  _expand<configuration::serviceescalation, applier::serviceescalation>(
-      new_cfg);
+  _expand<configuration::serviceescalation, applier::serviceescalation>(new_cfg,
+                                                                        err);
 
   //
   //  Build difference for all objects.
@@ -1431,87 +1402,89 @@ void applier::state::_processing(configuration::state& new_cfg,
     //
 
     // Apply timeperiods.
-    _apply<configuration::timeperiod, applier::timeperiod>(diff_timeperiods);
+    _apply<configuration::timeperiod, applier::timeperiod>(diff_timeperiods,
+                                                           err);
     _resolve<configuration::timeperiod, applier::timeperiod>(
-        config->timeperiods());
+        config->timeperiods(), err);
 
     // Apply connectors.
-    _apply<configuration::connector, applier::connector>(diff_connectors);
-    _resolve<configuration::connector, applier::connector>(
-        config->connectors());
+    _apply<configuration::connector, applier::connector>(diff_connectors, err);
+    _resolve<configuration::connector, applier::connector>(config->connectors(),
+                                                           err);
 
     // Apply commands.
-    _apply<configuration::command, applier::command>(diff_commands);
-    _resolve<configuration::command, applier::command>(config->commands());
+    _apply<configuration::command, applier::command>(diff_commands, err);
+    _resolve<configuration::command, applier::command>(config->commands(), err);
 
     // Apply contacts and contactgroups.
-    _apply<configuration::contact, applier::contact>(diff_contacts);
+    _apply<configuration::contact, applier::contact>(diff_contacts, err);
     _apply<configuration::contactgroup, applier::contactgroup>(
-        diff_contactgroups);
+        diff_contactgroups, err);
     _resolve<configuration::contactgroup, applier::contactgroup>(
-        config->contactgroups());
-    _resolve<configuration::contact, applier::contact>(config->contacts());
+        config->contactgroups(), err);
+    _resolve<configuration::contact, applier::contact>(config->contacts(), err);
 
     // Apply severities.
-    _apply<configuration::severity, applier::severity>(diff_severities);
+    _apply<configuration::severity, applier::severity>(diff_severities, err);
 
     // Apply tags.
-    _apply<configuration::tag, applier::tag>(diff_tags);
+    _apply<configuration::tag, applier::tag>(diff_tags, err);
 
     // Apply hosts and hostgroups.
-    _apply<configuration::host, applier::host>(diff_hosts);
-    _apply<configuration::hostgroup, applier::hostgroup>(diff_hostgroups);
+    _apply<configuration::host, applier::host>(diff_hosts, err);
+    _apply<configuration::hostgroup, applier::hostgroup>(diff_hostgroups, err);
 
     // Apply services.
-    _apply<configuration::service, applier::service>(diff_services);
+    _apply<configuration::service, applier::service>(diff_services, err);
 
     // Apply anomalydetections.
     _apply<configuration::anomalydetection, applier::anomalydetection>(
-        diff_anomalydetections);
+        diff_anomalydetections, err);
 
     // Apply servicegroups.
     _apply<configuration::servicegroup, applier::servicegroup>(
-        diff_servicegroups);
+        diff_servicegroups, err);
 
     // Resolve hosts, services, host groups.
-    _resolve<configuration::host, applier::host>(config->hosts());
-    _resolve<configuration::hostgroup, applier::hostgroup>(
-        config->hostgroups());
+    _resolve<configuration::host, applier::host>(config->hosts(), err);
+    _resolve<configuration::hostgroup, applier::hostgroup>(config->hostgroups(),
+                                                           err);
 
     // Resolve services.
-    _resolve<configuration::service, applier::service>(config->mut_services());
+    _resolve<configuration::service, applier::service>(config->mut_services(),
+                                                       err);
 
     // Resolve anomalydetections.
     _resolve<configuration::anomalydetection, applier::anomalydetection>(
-        config->anomalydetections());
+        config->anomalydetections(), err);
 
     // Resolve service groups.
     _resolve<configuration::servicegroup, applier::servicegroup>(
-        config->servicegroups());
+        config->servicegroups(), err);
 
     // Apply host dependencies.
     _apply<configuration::hostdependency, applier::hostdependency>(
-        diff_hostdependencies);
+        diff_hostdependencies, err);
     _resolve<configuration::hostdependency, applier::hostdependency>(
-        config->hostdependencies());
+        config->hostdependencies(), err);
 
     // Apply service dependencies.
     _apply<configuration::servicedependency, applier::servicedependency>(
-        diff_servicedependencies);
+        diff_servicedependencies, err);
     _resolve<configuration::servicedependency, applier::servicedependency>(
-        config->servicedependencies());
+        config->servicedependencies(), err);
 
     // Apply host escalations.
     _apply<configuration::hostescalation, applier::hostescalation>(
-        diff_hostescalations);
+        diff_hostescalations, err);
     _resolve<configuration::hostescalation, applier::hostescalation>(
-        config->hostescalations());
+        config->hostescalations(), err);
 
     // Apply service escalations.
     _apply<configuration::serviceescalation, applier::serviceescalation>(
-        diff_serviceescalations);
+        diff_serviceescalations, err);
     _resolve<configuration::serviceescalation, applier::serviceescalation>(
-        config->serviceescalations());
+        config->serviceescalations(), err);
 
 #ifdef DEBUG_CONFIG
     std::cout << "WARNING!! You are using a version of "
@@ -1528,7 +1501,7 @@ void applier::state::_processing(configuration::state& new_cfg,
 
     // Load retention.
     if (state)
-      _apply(new_cfg, *state);
+      _apply(new_cfg, *state, err);
 
     // Apply scheduler.
     if (!verify_config)
@@ -1537,13 +1510,13 @@ void applier::state::_processing(configuration::state& new_cfg,
 
     // Apply new global on the current state.
     if (!verify_config) {
-      _apply(new_cfg);
+      _apply(new_cfg, err);
       whitelist::reload();
     } else {
       try {
-        _apply(new_cfg);
+        _apply(new_cfg, err);
       } catch (std::exception const& e) {
-        ++config_errors;
+        ++err.config_errors;
         engine_logger(log_info_message, basic) << e.what();
         events_logger->info(e.what());
       }
@@ -1553,7 +1526,7 @@ void applier::state::_processing(configuration::state& new_cfg,
     gettimeofday(tv + 3, nullptr);
 
     // Check for circular paths between hosts.
-    pre_flight_circular_check(&config_warnings, &config_errors);
+    pre_flight_circular_check(&err.config_warnings, &err.config_errors);
 
     // Call start broker event the first time to run applier state.
     if (!has_already_been_loaded) {
@@ -1633,16 +1606,17 @@ void applier::state::_processing(configuration::state& new_cfg,
  *  @param[in] cfg Configuration objects.
  */
 template <typename ConfigurationType, typename ApplierType>
-void applier::state::_resolve(std::set<ConfigurationType>& cfg) {
+void applier::state::_resolve(std::set<ConfigurationType>& cfg,
+                              error_cnt& err) {
   ApplierType aplyr;
-  for (typename std::set<ConfigurationType>::const_iterator it(cfg.begin()),
-       end(cfg.end());
+  for (typename std::set<ConfigurationType>::const_iterator it = cfg.begin(),
+                                                            end = cfg.end();
        it != end; ++it) {
     try {
-      aplyr.resolve_object(*it);
+      aplyr.resolve_object(*it, err);
     } catch (std::exception const& e) {
       if (verify_config) {
-        ++config_errors;
+        ++err.config_errors;
         std::cout << e.what() << std::endl;
       } else
         throw;

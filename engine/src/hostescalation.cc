@@ -91,9 +91,8 @@ bool hostescalation::is_viable(int state, uint32_t notification_number) const {
     return retval;
 }
 
-void hostescalation::resolve(int& w, int& e) {
-  (void)w;
-  int errors{0};
+void hostescalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
+  uint32_t errors = 0;
 
   // Find the host.
   host_map::const_iterator found(host::hosts.find(this->get_hostname()));

@@ -20,23 +20,13 @@
 #define CCE_CONFIGURATION_PARSER_HH
 
 #include <fstream>
-#include "com/centreon/engine/configuration/command.hh"
-#include "com/centreon/engine/configuration/connector.hh"
-#include "com/centreon/engine/configuration/contact.hh"
 #include "com/centreon/engine/configuration/file_info.hh"
-#include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/configuration/hostdependency.hh"
-#include "com/centreon/engine/configuration/hostescalation.hh"
-#include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/configuration/service.hh"
-#include "com/centreon/engine/configuration/servicedependency.hh"
-#include "com/centreon/engine/configuration/serviceescalation.hh"
 #include "com/centreon/engine/configuration/state.hh"
-#include "com/centreon/engine/configuration/timeperiod.hh"
 
 namespace com::centreon::engine {
 
 namespace configuration {
+
 class parser {
   std::shared_ptr<spdlog::logger> _logger;
 
@@ -61,7 +51,7 @@ class parser {
 
   parser(unsigned int read_options = read_all);
   ~parser() noexcept = default;
-  void parse(const std::string& path, state& config);
+  void parse(const std::string& path, state& config, error_cnt& err);
 
  private:
   typedef void (parser::*store)(object_ptr obj);
@@ -90,7 +80,7 @@ class parser {
   void _parse_global_configuration(const std::string& path);
   void _parse_object_definitions(const std::string& path);
   void _parse_resource_file(std::string const& path);
-  void _resolve_template();
+  void _resolve_template(error_cnt& err);
   void _store_into_list(object_ptr obj);
   template <typename T, std::string const& (T::*ptr)() const throw()>
   void _store_into_map(object_ptr obj);

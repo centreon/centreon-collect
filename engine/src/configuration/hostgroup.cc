@@ -167,7 +167,7 @@ bool hostgroup::operator<(hostgroup const& right) const throw() {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void hostgroup::check_validity() const {
+void hostgroup::check_validity(error_cnt& err [[maybe_unused]]) const {
   if (_hostgroup_name.empty())
     throw msg_fmt("Host group has no name (property 'hostgroup_name')");
 }

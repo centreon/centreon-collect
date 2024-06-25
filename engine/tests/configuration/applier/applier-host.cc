@@ -102,6 +102,7 @@ TEST_F(ApplierHost, HostRemoved) {
 }
 
 TEST_F(ApplierHost, HostParentChildUnreachable) {
+  error_cnt err;
   configuration::applier::host hst_aply;
   configuration::applier::command cmd_aply;
   configuration::host hst_child;
@@ -135,8 +136,8 @@ TEST_F(ApplierHost, HostParentChildUnreachable) {
   ASSERT_EQ(engine::host::hosts.size(), 2u);
 
   hst_aply.expand_objects(*config);
-  hst_aply.resolve_object(hst_child);
-  hst_aply.resolve_object(hst_parent);
+  hst_aply.resolve_object(hst_child, err);
+  hst_aply.resolve_object(hst_parent, err);
 
   host_map::iterator child = engine::host::hosts.find("child_host");
   host_map::iterator parent = engine::host::hosts.find("parent_host");

@@ -245,7 +245,7 @@ class host : public notifier {
   timeperiod* get_notification_timeperiod() const override;
   bool get_notify_on_current_state() const override;
   bool is_in_downtime() const override;
-  void resolve(int& w, int& e);
+  void resolve(uint32_t& w, uint32_t& e);
 
   void set_check_command_ptr(
       const std::shared_ptr<commands::command>& cmd) override;

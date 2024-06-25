@@ -65,6 +65,10 @@ log.html
 output.xml
 report.html
 
+# agent
+agent/scripts/centagent.service
+opentelemetry-proto
+
 # bbdo
 bbdo/*_accessor.hh
 
@@ -140,3 +144,4 @@ tests/bench.unqlite
 tests/resources/*_pb2.py
 tests/resources/*_pb2_grpc.py
 tests/resources/grpc_stream.proto
+tests/resources/opentelemetry

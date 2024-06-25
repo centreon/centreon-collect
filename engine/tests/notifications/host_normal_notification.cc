@@ -56,16 +56,17 @@ class HostNotification : public TestEngine {
 
     events_logger->set_level(spdlog::level::off);
 
+    error_cnt err;
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
-    ct_aply.resolve_object(ctct);
+    ct_aply.resolve_object(ctct, err);
 
     configuration::host hst{new_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
-    hst_aply.resolve_object(hst);
+    hst_aply.resolve_object(hst, err);
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
@@ -557,25 +558,26 @@ TEST_F(HostNotification, CheckFirstNotificationDelay) {
 // Then contacts from the escalation are notified when notification number
 // is in [2,6] and are separated by at less 4*60s.
 TEST_F(HostNotification, HostEscalation) {
+  error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
 
   configuration::applier::hostescalation he_aply;
   configuration::hostescalation he{
       new_configuration_hostescalation("test_host", "test_cg")};
   he_aply.add_object(he);
   he_aply.expand_objects(*config);
-  he_aply.resolve_object(he);
+  he_aply.resolve_object(he, err);
 
   int now{50000};
   set_time(now);
@@ -682,36 +684,37 @@ TEST_F(HostNotification, HostEscalation) {
 }
 
 TEST_F(HostNotification, HostDependency) {
+  error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
 
   configuration::applier::host h_aply;
   configuration::host h{new_configuration_host("dep_host", "admin", 15)};
   h_aply.add_object(h);
   h_aply.expand_objects(*config);
-  h_aply.resolve_object(h);
+  h_aply.resolve_object(h, err);
 
   configuration::applier::hostdependency hd_aply;
   configuration::hostdependency hd{
       new_configuration_hostdependency("test_host", "dep_host")};
   hd_aply.expand_objects(*config);
   hd_aply.add_object(hd);
-  hd_aply.resolve_object(hd);
+  hd_aply.resolve_object(hd, err);
 
   int now{50000};
   set_time(now);
 
-  int w{0}, e{0};
+  uint32_t w = 0, e = 0;
   pre_flight_circular_check(&w, &e);
 
   ASSERT_EQ(w, 0);
@@ -823,25 +826,26 @@ TEST_F(HostNotification, HostDependency) {
 // is sent 1 time
 // Then both are sent to contacts from the escalation.
 TEST_F(HostNotification, HostEscalationOneTime) {
+  error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
 
   configuration::applier::hostescalation he_aply;
   configuration::hostescalation he{
       new_configuration_hostescalation("test_host", "test_cg", 1, 0)};
   he_aply.add_object(he);
   he_aply.expand_objects(*config);
-  he_aply.resolve_object(he);
+  he_aply.resolve_object(he, err);
 
   int now{50000};
   set_time(now);
@@ -918,25 +922,26 @@ TEST_F(HostNotification, HostEscalationOneTime) {
 // is sent 1 time
 // Then both are sent to contacts from the escalation.
 TEST_F(HostNotification, HostEscalationOneTimeNotifInter0) {
+  error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
 
   configuration::applier::hostescalation he_aply;
   configuration::hostescalation he{
       new_configuration_hostescalation("test_host", "test_cg", 1, 0, 0)};
   he_aply.add_object(he);
   he_aply.expand_objects(*config);
-  he_aply.resolve_object(he);
+  he_aply.resolve_object(he, err);
 
   int now{50000};
   set_time(now);
@@ -1013,25 +1018,26 @@ TEST_F(HostNotification, HostEscalationOneTimeNotifInter0) {
 // is sent 1 time
 // Then both are sent to contacts from the escalation.
 TEST_F(HostNotification, HostEscalationRetention) {
+  error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
 
   configuration::applier::hostescalation he_aply;
   configuration::hostescalation he{
       new_configuration_hostescalation("test_host", "test_cg", 1, 0, 0)};
   he_aply.add_object(he);
   he_aply.expand_objects(*config);
-  he_aply.resolve_object(he);
+  he_aply.resolve_object(he, err);
 
   int now{50000};
   set_time(now);

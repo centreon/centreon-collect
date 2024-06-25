@@ -42,18 +42,19 @@ using namespace com::centreon::engine::configuration::applier;
 class HostDowntimeNotification : public TestEngine {
  public:
   void SetUp() override {
+    error_cnt err;
     init_config_state();
 
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
-    ct_aply.resolve_object(ctct);
+    ct_aply.resolve_object(ctct, err);
 
     configuration::host hst{new_configuration_host("test_host", "admin")};
     configuration::applier::host aply;
     aply.add_object(hst);
-    aply.resolve_object(hst);
+    aply.resolve_object(hst, err);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;

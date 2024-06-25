@@ -19,6 +19,8 @@
 #ifndef CCE_CONFIGURATION_APPLIER_SERVICEDEPENDENCY_HH
 #define CCE_CONFIGURATION_APPLIER_SERVICEDEPENDENCY_HH
 
+#include "com/centreon/engine/configuration/applier/state.hh"
+
 namespace com::centreon::engine {
 
 namespace configuration {
@@ -47,7 +49,8 @@ class servicedependency {
   void modify_object(configuration::servicedependency const& obj);
   void expand_objects(configuration::state& s);
   void remove_object(configuration::servicedependency const& obj);
-  void resolve_object(configuration::servicedependency const& obj);
+  void resolve_object(configuration::servicedependency const& obj,
+                      error_cnt& err);
 };
 }  // namespace applier
 }  // namespace configuration

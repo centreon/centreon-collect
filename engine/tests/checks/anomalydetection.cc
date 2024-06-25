@@ -54,11 +54,12 @@ class AnomalydetectionCheck : public TestEngine {
     checks_logger->set_level(spdlog::level::trace);
     commands_logger->set_level(spdlog::level::trace);
 
+    error_cnt err;
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
-    ct_aply.resolve_object(ctct);
+    ct_aply.resolve_object(ctct, err);
 
     configuration::host hst{new_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
@@ -69,8 +70,8 @@ class AnomalydetectionCheck : public TestEngine {
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
-    hst_aply.resolve_object(hst);
-    svc_aply.resolve_object(svc);
+    hst_aply.resolve_object(hst, err);
+    svc_aply.resolve_object(svc, err);
 
     configuration::anomalydetection ad{new_configuration_anomalydetection(
         "test_host", "test_ad", "admin", 9, 8,
@@ -78,7 +79,7 @@ class AnomalydetectionCheck : public TestEngine {
     configuration::applier::anomalydetection ad_aply;
     ad_aply.add_object(ad);
 
-    ad_aply.resolve_object(ad);
+    ad_aply.resolve_object(ad, err);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;

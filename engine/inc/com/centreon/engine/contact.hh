@@ -20,9 +20,6 @@
 #ifndef CCE_CONTACT_HH
 #define CCE_CONTACT_HH
 
-#include <absl/container/flat_hash_map.h>
-#include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/notifier.hh"
 
 /* Max number of custom addresses a contact can have. */
@@ -127,7 +124,7 @@ class contact {
   bool should_be_notified(notifier::notification_category cat,
                           notifier::reason_type type,
                           notifier const& notif) const;
-  void resolve(int& w, int& e);
+  void resolve(uint32_t& w, uint32_t& e);
   map_customvar const& get_custom_variables() const;
   map_customvar& get_custom_variables();
   timeperiod* get_host_notification_period_ptr() const;
@@ -180,7 +177,7 @@ class contact {
   timeperiod* _service_notification_period_ptr;
 };
 
-}
+}  // namespace com::centreon::engine
 
 std::shared_ptr<com::centreon::engine::contact> add_contact(
     std::string const& name,

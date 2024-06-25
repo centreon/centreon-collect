@@ -371,7 +371,8 @@ void applier::contact::expand_objects(configuration::state& s) {
  *
  *  @param[in,out] obj  Object to resolve.
  */
-void applier::contact::resolve_object(const configuration::contact& obj) {
+void applier::contact::resolve_object(const configuration::contact& obj,
+                                      error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving contact '" << obj.contact_name() << "'.";
@@ -394,7 +395,7 @@ void applier::contact::resolve_object(const configuration::contact& obj) {
     if (itt != commands::command::commands.end())
       ct_it->second->get_host_notification_commands().push_back(itt->second);
     else {
-      ++config_errors;
+      ++err.config_errors;
       throw(engine_error() << "Could not add host notification command '" << *it
                            << "' to contact '" << obj.contact_name()
                            << "': the command does not exist");
@@ -412,7 +413,7 @@ void applier::contact::resolve_object(const configuration::contact& obj) {
     if (itt != commands::command::commands.end())
       ct_it->second->get_service_notification_commands().push_back(itt->second);
     else {
-      ++config_errors;
+      ++err.config_errors;
       throw(engine_error() << "Could not add service notification command '"
                            << *it << "' to contact '" << obj.contact_name()
                            << "': the command does not exist");
@@ -423,5 +424,5 @@ void applier::contact::resolve_object(const configuration::contact& obj) {
   ct_it->second->get_parent_groups().clear();
 
   // Resolve contact.
-  ct_it->second->resolve(config_warnings, config_errors);
+  ct_it->second->resolve(err.config_warnings, err.config_errors);
 }

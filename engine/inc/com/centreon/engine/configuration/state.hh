@@ -74,6 +74,12 @@ class state {
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
+  struct sched_info_config {
+    double host_inter_check_delay;
+    double service_inter_check_delay;
+    int32_t service_interleave_factor;
+  } _scheduling_info;
+
   /**
    *  @enum state::date_format
    *  Date format types
@@ -461,6 +467,7 @@ class state {
   void use_timezone(std::string const& value);
   bool use_true_regexp_matching() const noexcept;
   void use_true_regexp_matching(bool value);
+  sched_info_config& sched_info_config() { return _scheduling_info; }
   bool use_send_recovery_notifications_anyways() const;
   void use_send_recovery_notifications_anyways(bool value);
   bool use_host_down_disable_service_checks() const;
@@ -475,43 +482,19 @@ class state {
 
  private:
   static void _init_setter();
-  void _set_aggregate_status_updates(std::string const& value);
-  void _set_auth_file(std::string const& value);
-  void _set_bare_update_check(std::string const& value);
   void _set_broker_module(std::string const& value);
   void _set_cfg_dir(std::string const& value);
   void _set_cfg_file(std::string const& value);
-  void _set_check_for_updates(std::string const& value);
-  void _set_child_processes_fork_twice(std::string const& value);
   void _set_command_check_interval(std::string const& value);
-  void _set_comment_file(std::string const& value);
-  void _set_daemon_dumps_core(std::string const& value);
   void _set_date_format(std::string const& value);
-  void _set_downtime_file(std::string const& value);
-  void _set_enable_embedded_perl(std::string const& value);
-  void _set_enable_failure_prediction(std::string const& value);
   void _set_event_broker_options(std::string const& value);
-  void _set_free_child_process_memory(std::string const& value);
   void _set_host_inter_check_delay_method(std::string const& value);
   void _set_host_perfdata_file_mode(std::string const& value);
-  void _set_lock_file(std::string const& value);
-  void _set_log_archive_path(std::string const& value);
-  void _set_log_initial_states(std::string const& value);
-  void _set_log_rotation_method(std::string const& value);
-  void _set_nagios_group(std::string const& value);
-  void _set_nagios_user(std::string const& value);
   void _set_object_cache_file(std::string const& value);
-  void _set_p1_file(std::string const& value);
-  void _set_precached_object_file(std::string const& value);
   void _set_resource_file(std::string const& value);
-  void _set_retained_process_service_attribute_mask(std::string const& value);
-  void _set_retained_service_attribute_mask(std::string const& value);
   void _set_service_inter_check_delay_method(std::string const& value);
   void _set_service_interleave_factor_method(std::string const& value);
   void _set_service_perfdata_file_mode(std::string const& value);
-  void _set_temp_file(std::string const& value);
-  void _set_temp_path(std::string const& value);
-  void _set_use_embedded_perl_implicitly(std::string const& value);
 
   bool _accept_passive_host_checks;
   bool _accept_passive_service_checks;

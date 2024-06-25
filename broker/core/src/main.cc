@@ -247,8 +247,8 @@ int main(int argc, char* argv[]) {
       core_logger->info("  '-D'  Generate a diagnostic file.");
       core_logger->info("  '-h'  Print this help.");
       core_logger->info("  '-v'  Print Centreon Broker version.");
-      core_logger->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
-      core_logger->info("Copyright 2009-2021 Centreon");
+      core_logger->info("Centreon Broker " CENTREON_BROKER_VERSION);
+      core_logger->info("Copyright 2009-" CENTREON_CURRENT_YEAR " Centreon");
       core_logger->info(
           "License ASL 2.0 <http://www.apache.org/licenses/LICENSE-2.0>");
       retval = 0;

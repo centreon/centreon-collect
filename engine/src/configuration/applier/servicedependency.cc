@@ -264,7 +264,8 @@ void applier::servicedependency::remove_object(
  *  @param[in] obj  Servicedependency object.
  */
 void applier::servicedependency::resolve_object(
-    configuration::servicedependency const& obj) {
+    const configuration::servicedependency& obj,
+    error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving a service dependency.";
@@ -277,7 +278,7 @@ void applier::servicedependency::resolve_object(
     throw engine_error() << "Cannot resolve non-existing service dependency";
 
   // Resolve service dependency.
-  it->second->resolve(config_warnings, config_errors);
+  it->second->resolve(err.config_warnings, err.config_errors);
 }
 
 /**

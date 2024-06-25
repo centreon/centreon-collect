@@ -114,11 +114,6 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - src: "/usr/lib/nagios/plugins"
-    dst: "/usr/lib64/nagios/plugins"
-    type: symlink
-    packager: deb
-
 scripts:
   preinstall: ./scripts/centreon-engine-daemon-preinstall.sh
   postinstall: ./scripts/centreon-engine-daemon-postinstall.sh

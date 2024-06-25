@@ -18,6 +18,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_TIMEPERIOD_HH
 #define CCE_CONFIGURATION_APPLIER_TIMEPERIOD_HH
 
+#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/timeperiod.hh"
 
 // Forward declaration.
@@ -49,7 +50,7 @@ class timeperiod {
   void expand_objects(configuration::state& s);
   void modify_object(configuration::timeperiod const& obj);
   void remove_object(configuration::timeperiod const& obj);
-  void resolve_object(configuration::timeperiod const& obj);
+  void resolve_object(configuration::timeperiod const& obj, error_cnt& err);
 };
 }  // namespace applier
 }  // namespace configuration

@@ -190,7 +190,8 @@ void applier::hostgroup::remove_object(configuration::hostgroup const& obj) {
  *
  *  @param[in] obj  Object to resolved.
  */
-void applier::hostgroup::resolve_object(configuration::hostgroup const& obj) {
+void applier::hostgroup::resolve_object(configuration::hostgroup const& obj,
+                                        error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving host group '" << obj.hostgroup_name() << "'";
@@ -203,7 +204,7 @@ void applier::hostgroup::resolve_object(configuration::hostgroup const& obj) {
                          << "host group '" << obj.hostgroup_name() << "'";
 
   // Resolve host group.
-  it->second->resolve(config_warnings, config_errors);
+  it->second->resolve(err.config_warnings, err.config_errors);
 }
 
 /**

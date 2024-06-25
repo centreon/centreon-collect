@@ -258,7 +258,7 @@ class notifier : public checkable {
   const absl::flat_hash_map<std::string, contact*>& contacts() const noexcept;
   contactgroup_map_unsafe& get_contactgroups() noexcept;
   contactgroup_map_unsafe const& get_contactgroups() const noexcept;
-  void resolve(int& w, int& e);
+  void resolve(uint32_t& w, uint32_t& e);
   std::array<int, MAX_STATE_HISTORY_ENTRIES> const& get_state_history() const;
   std::array<int, MAX_STATE_HISTORY_ENTRIES>& get_state_history();
   std::array<std::unique_ptr<notification>, 6> const&
@@ -340,7 +340,7 @@ class notifier : public checkable {
   int _pending_flex_downtime;
 };
 
-}
+}  // namespace com::centreon::engine
 
 bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
                              com::centreon::engine::contact* cntct);

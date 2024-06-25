@@ -52,6 +52,7 @@ extern configuration::state* config;
 class ServiceCheck : public TestEngine {
  public:
   void SetUp() override {
+    configuration::error_cnt err;
     init_config_state();
 
     config->contacts().clear();
@@ -59,7 +60,7 @@ class ServiceCheck : public TestEngine {
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
-    ct_aply.resolve_object(ctct);
+    ct_aply.resolve_object(ctct, err);
 
     configuration::host hst{new_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
@@ -70,8 +71,8 @@ class ServiceCheck : public TestEngine {
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
-    hst_aply.resolve_object(hst);
-    svc_aply.resolve_object(svc);
+    hst_aply.resolve_object(hst, err);
+    svc_aply.resolve_object(svc, err);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;

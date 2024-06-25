@@ -63,7 +63,7 @@ process::process(process_listener* listener,
 /**
  *  Destructor.
  */
-process::~process() noexcept {
+process::~process() {
   std::unique_lock<std::mutex> lock(_lock_process);
   _kill(SIGKILL);
   _cv_process_running.wait(lock, [this] { return !_is_running(); });

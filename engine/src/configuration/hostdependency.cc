@@ -18,12 +18,8 @@
  *
  */
 
-#include "com/centreon/engine/configuration/hostdependency.hh"
-#include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-
-extern int config_warnings;
-extern int config_errors;
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
@@ -181,7 +177,7 @@ bool hostdependency::operator<(hostdependency const& right) const {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void hostdependency::check_validity() const {
+void hostdependency::check_validity(configuration::error_cnt& err) const {
   if (_hosts->empty() && _hostgroups->empty())
     throw msg_fmt(
         "Host dependency is not attached to any host or host group (properties "
@@ -193,7 +189,7 @@ void hostdependency::check_validity() const {
         "'dependent_hostgroup_name', respectively)");
 
   if (!_execution_failure_options && !_notification_failure_options) {
-    ++config_warnings;
+    ++err.config_warnings;
     std::string host_name(!_hosts->empty() ? *_hosts->begin()
                                            : *_hostgroups->begin());
     std::string dependend_host_name(!_dependent_hosts->empty()

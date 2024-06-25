@@ -38,9 +38,6 @@ struct boost_process;
  * locked
  */
 class process : public std::enable_shared_from_this<process> {
-  std::shared_ptr<asio::io_context> _io_context;
-  std::shared_ptr<spdlog::logger> _logger;
-
   std::string _exe_path;
   std::vector<std::string> _args;
 
@@ -62,6 +59,9 @@ class process : public std::enable_shared_from_this<process> {
   void stderr_read();
 
  protected:
+  std::shared_ptr<asio::io_context> _io_context;
+  std::shared_ptr<spdlog::logger> _logger;
+
   char _stdout_read_buffer[0x1000] ABSL_GUARDED_BY(_protect);
   char _stderr_read_buffer[0x1000] ABSL_GUARDED_BY(_protect);
 
@@ -132,10 +132,10 @@ process::process(const std::shared_ptr<asio::io_context>& io_context,
                  const std::string_view& exe_path,
                  string_iterator arg_begin,
                  string_iterator arg_end)
-    : _io_context(io_context),
-      _logger(logger),
-      _exe_path(exe_path),
-      _args(arg_begin, arg_end) {}
+    : _exe_path(exe_path),
+      _args(arg_begin, arg_end),
+      _io_context(io_context),
+      _logger(logger) {}
 
 /**
  * @brief Construct a new process::process object
@@ -151,10 +151,10 @@ process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
                  const std::shared_ptr<spdlog::logger>& logger,
                  const std::string_view& exe_path,
                  const args_container& args)
-    : _io_context(io_context),
-      _logger(logger),
-      _exe_path(exe_path),
-      _args(args) {}
+    : _exe_path(exe_path),
+      _args(args),
+      _io_context(io_context),
+      _logger(logger) {}
 
 /**
  * @brief Construct a new process::process object
@@ -171,7 +171,7 @@ process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
                  const std::shared_ptr<spdlog::logger>& logger,
                  const std::string_view& exe_path,
                  const std::initializer_list<string_type>& args)
-    : _io_context(io_context), _logger(logger), _exe_path(exe_path) {
+    : _exe_path(exe_path), _io_context(io_context), _logger(logger) {
   _args.reserve(args.size());
   for (const auto& str : args) {
     _args.emplace_back(str);

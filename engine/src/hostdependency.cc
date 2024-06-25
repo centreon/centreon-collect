@@ -228,9 +228,8 @@ bool hostdependency::check_for_circular_hostdependency_path(
   return false;
 }
 
-void hostdependency::resolve(int& w, int& e) {
-  (void)w;
-  int errors{0};
+void hostdependency::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
+  int errors = 0;
 
   // Find the dependent host.
   host_map::const_iterator it = host::hosts.find(_dependent_hostname);

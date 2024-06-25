@@ -141,7 +141,7 @@ bool servicegroup::operator<(servicegroup const& right) const throw() {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void servicegroup::check_validity() const {
+void servicegroup::check_validity(error_cnt& err [[maybe_unused]]) const {
   if (_servicegroup_name.empty())
     throw msg_fmt("Service group has no name (property 'servicegroup_name')");
 }
