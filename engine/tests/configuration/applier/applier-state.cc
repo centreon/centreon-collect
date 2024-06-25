@@ -776,15 +776,15 @@ TEST_F(ApplierState, StateLegacyParsing) {
   EXPECT_EQ(tit->alias(), std::string("24_Hours_A_Day,_7_Days_A_Week"));
   EXPECT_EQ(tit->timeranges()[0].size(),
             1u);  // std::string("00:00-24:00"));
-  EXPECT_EQ(tit->timeranges()[0].begin()->get_range_start(), 0);
-  EXPECT_EQ(tit->timeranges()[0].begin()->get_range_end(), 3600 * 24);
+  EXPECT_EQ(tit->timeranges()[0].begin()->range_start(), 0);
+  EXPECT_EQ(tit->timeranges()[0].begin()->range_end(), 3600 * 24);
   EXPECT_EQ(tit->timeranges()[1].size(), 2u);
   auto itt = tit->timeranges()[1].begin();
-  EXPECT_EQ(itt->get_range_start(), 0);  // 00:00-08:00
-  EXPECT_EQ(itt->get_range_end(), 3600 * 8);
+  EXPECT_EQ(itt->range_start(), 0);  // 00:00-08:00
+  EXPECT_EQ(itt->range_end(), 3600 * 8);
   ++itt;
-  EXPECT_EQ(itt->get_range_start(), 3600 * 18);  // 18:00-24:00
-  ASSERT_EQ(itt->get_range_end(), 3600 * 24);
+  EXPECT_EQ(itt->range_start(), 3600 * 18);  // 18:00-24:00
+  ASSERT_EQ(itt->range_end(), 3600 * 24);
   EXPECT_EQ(tit->timeranges()[2].size(), 1u);  // tuesday
   EXPECT_EQ(tit->timeranges()[3].size(), 1u);  // wednesday
   EXPECT_EQ(tit->timeranges()[4].size(), 1u);  // thursday

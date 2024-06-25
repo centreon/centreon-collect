@@ -26,7 +26,9 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
+#include "com/centreon/engine/timeperiod.hh"
 
+using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
 /**
@@ -55,8 +57,32 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
                                   NEBATTR_NONE, tp.get(), CMD_NONE, &tv);
 
   // Fill time period structure.
-  tp->days = obj.timeranges();
-  tp->exceptions = obj.exceptions();
+  for (uint32_t i = 0; i < obj.timeranges().size(); i++) {
+    tp->days[i].clear();
+    for (auto& tr : obj.timeranges()[i])
+      tp->days[i].push_back({tr.range_start(), tr.range_end()});
+  }
+  for (uint32_t i = 0; i < obj.exceptions().size(); i++) {
+    tp->exceptions[i].clear();
+    for (auto& dr : obj.exceptions()[i]) {
+      com::centreon::engine::daterange exc{
+          static_cast<com::centreon::engine::daterange::type_range>(dr.type()),
+          dr.syear(),
+          dr.smon(),
+          dr.smday(),
+          dr.swday(),
+          dr.swday_offset(),
+          dr.eyear(),
+          dr.emon(),
+          dr.emday(),
+          dr.ewday(),
+          dr.ewday_offset(),
+          dr.skip_interval()};
+      for (auto& tr : dr.timerange())
+        exc.add_timerange({tr.range_start(), tr.range_end()});
+      tp->exceptions[i].push_back(std::move(exc));
+    }
+  }
   _add_exclusions(obj.exclude(), tp.get());
 }
 
@@ -109,12 +135,26 @@ void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
 
   // Time ranges modified ?
   if (obj.timeranges() != old_cfg.timeranges()) {
-    tp->days = obj.timeranges();
+    for (uint32_t i = 0; i < tp->days.size(); i++) {
+      tp->days[i].clear();
+      for (auto& tr : obj.timeranges()[i])
+        tp->days[i].push_back({tr.range_start(), tr.range_end()});
+    }
   }
 
   // Exceptions modified ?
   if (obj.exceptions() != old_cfg.exceptions()) {
-    tp->exceptions = obj.exceptions();
+    for (uint32_t i = 0; i < obj.exceptions().size(); i++) {
+      tp->exceptions[i].clear();
+      for (auto& dr : obj.exceptions()[i]) {
+        tp->exceptions[i].push_back(
+            {static_cast<com::centreon::engine::daterange::type_range>(
+                 dr.type()),
+             dr.syear(), dr.smon(), dr.smday(), dr.swday(), dr.swday_offset(),
+             dr.eyear(), dr.emon(), dr.emday(), dr.ewday(), dr.ewday_offset(),
+             dr.skip_interval()});
+      }
+    }
   }
 
   // Exclusions modified ?

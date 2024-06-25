@@ -20,9 +20,9 @@
 #define CCE_CONFIGURATION_TIMEPERIOD_HH
 
 #include "com/centreon/common/opt.hh"
+#include "com/centreon/engine/configuration/daterange.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/daterange.hh"
 
 namespace com::centreon::engine {
 
@@ -48,10 +48,11 @@ class timeperiod : public object {
   bool parse(std::string const& line) override;
 
   std::string const& alias() const throw();
-  exception_array const& exceptions() const throw();
+  std::array<std::list<daterange>, daterange::daterange_types> const&
+  exceptions() const noexcept;
   set_string const& exclude() const throw();
   std::string const& timeperiod_name() const throw();
-  days_array const& timeranges() const;
+  const std::array<std::list<timerange>, 7>& timeranges() const;
 
   friend test::time_period_comparator;
 
@@ -62,7 +63,7 @@ class timeperiod : public object {
   bool _add_other_date(std::string const& line);
   bool _add_week_day(std::string const& key, std::string const& value);
   static bool _build_timeranges(std::string const& line,
-                                timerange_list& timeranges);
+                                std::list<timerange>& timeranges);
   static bool _build_time_t(std::string_view time_str, unsigned long& ret);
   static bool _has_similar_daterange(std::list<daterange> const& lst,
                                      daterange const& range) throw();
@@ -74,10 +75,10 @@ class timeperiod : public object {
 
   std::string _alias;
   static std::unordered_map<std::string, setter_func> const _setters;
-  exception_array _exceptions;
+  std::array<std::list<daterange>, daterange::daterange_types> _exceptions;
   group<set_string> _exclude;
   std::string _timeperiod_name;
-  days_array _timeranges;
+  std::array<std::list<timerange>, 7> _timeranges;
 };
 
 typedef std::shared_ptr<timeperiod> timeperiod_ptr;

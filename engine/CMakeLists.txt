@@ -488,8 +488,8 @@ add_subdirectory(src/macros)
 add_subdirectory(modules)
 add_subdirectory(src/retention)
 add_subdirectory(enginerpc)
-include_directories(enginerpc 
-  ${CMAKE_SOURCE_DIR}/common/src 
+include_directories(enginerpc
+  ${CMAKE_SOURCE_DIR}/common/src
   ${CMAKE_SOURCE_DIR}/common/inc)
 
 # Library engine target.

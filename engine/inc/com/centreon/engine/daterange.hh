@@ -120,6 +120,6 @@ std::ostream& operator<<(std::ostream& os,
 
 std::ostream& operator<<(std::ostream& os, exception_array const& obj);
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_OBJECTS_DATERANGE_HH
