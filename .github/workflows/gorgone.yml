@@ -117,7 +117,7 @@ jobs:
         shell: bash
 
       - name: Package
-        uses: ./.github/actions/package-nfpm
+        uses: ./.github/actions/package
         with:
           nfpm_file_pattern: "gorgone/packaging/*.yaml"
           distrib: ${{ matrix.distrib }}
