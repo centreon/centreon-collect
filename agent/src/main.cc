@@ -80,7 +80,7 @@ static std::string read_file(const std::string& file_path) {
 int main(int argc, char* argv[]) {
   if (argc < 2) {
     SPDLOG_ERROR(
-        "No config file passed in param. Usage: {} <path to json config file>",
+        "No config file passed in param.\nUsage: {} <path to json config file>",
         argv[0]);
     return 1;
   }
