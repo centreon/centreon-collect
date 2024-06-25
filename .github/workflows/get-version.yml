@@ -46,7 +46,6 @@ jobs:
       img_version: ${{ steps.get_version.outputs.img_version }}
       test_img_version: ${{ steps.get_version.outputs.test_img_version }}
       version: ${{ steps.get_version.outputs.version }}
-      patch: ${{ steps.get_version.outputs.patch }}
       release: ${{ steps.get_version.outputs.release }}
       stability: ${{ steps.get_version.outputs.stability }}
       environment: ${{ steps.get_version.outputs.env }}
@@ -80,8 +79,9 @@ jobs:
             . ${{ inputs.version_file }}
             VERSION="$MAJOR.$MINOR"
           elif [[ "${{ inputs.version_file }}" == */CMakeLists.txt ]]; then
-            VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
-            PATCH=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
+            MAJOR=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
+            MINOR=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
+            VERSION="$MAJOR.$MINOR"
           else
             echo "Unable to parse ${{ inputs.version_file }}"
             exit 1
@@ -105,7 +105,6 @@ jobs:
           echo "img_version=$IMG_VERSION" >> $GITHUB_OUTPUT
           echo "test_img_version=$TEST_IMG_VERSION" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "patch=$PATCH" >> $GITHUB_OUTPUT
 
           if [[ -z "$GITHUB_HEAD_REF" ]]; then
             BRANCHNAME="$GITHUB_REF_NAME"
