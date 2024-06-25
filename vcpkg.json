@@ -6,7 +6,6 @@
         "cxx17"
       ]
     },
-    "libmariadb",
     "libssh2",
     "curl",
     "fmt",

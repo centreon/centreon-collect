@@ -19,8 +19,9 @@
 #ifndef CCB_DATABASE_MYSQL_COLUMN_HH
 #define CCB_DATABASE_MYSQL_COLUMN_HH
 
+#include <mysql.h>
+
 #include <fmt/format.h>
-#include <mysql/mysql.h>
 #include <cmath>
 
 namespace com::centreon::broker {
