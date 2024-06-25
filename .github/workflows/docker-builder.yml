@@ -19,6 +19,8 @@ on:
 jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
+    with:
+      version_file: CMakeLists.txt
 
   create-and-push-docker:
     needs: [get-version]

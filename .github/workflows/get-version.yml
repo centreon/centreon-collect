@@ -2,8 +2,9 @@ on:
   workflow_call:
     inputs:
       version_file:
-        required: true
+        required: false
         type: string
+        default: CMakeLists.txt
     outputs:
       major_version:
         description: "major version"
@@ -20,9 +21,6 @@ on:
       version:
         description: "major version"
         value: ${{ jobs.get-version.outputs.version }}
-      patch:
-        description: "patch version"
-        value: ${{ jobs.get-version.outputs.patch }}
       release:
         description: "release"
         value: ${{ jobs.get-version.outputs.release }}

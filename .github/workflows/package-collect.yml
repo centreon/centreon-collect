@@ -3,7 +3,10 @@ name: Centreon collect packaging
 on:
   workflow_call:
     inputs:
-      version:
+      major_version:
+        required: true
+        type: string
+      minor_version:
         required: true
         type: string
       img_version:
@@ -107,7 +110,7 @@ jobs:
           cd selinux
           for MODULE in "centreon-engine" "centreon-broker"; do
             cd $MODULE
-            sed -i "s/@VERSION@/${{ inputs.version }}/g" $MODULE.te
+            sed -i "s/@VERSION@/${{ inputs.major_version }}.${{ inputs.minor_version }}/g" $MODULE.te
             make -f /usr/share/selinux/devel/Makefile
             cd -
           done
@@ -201,7 +204,8 @@ jobs:
           nfpm_file_pattern: "packaging/*.yaml"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
-          version: ${{ inputs.version }}
+          major_version: ${{ inputs.major_version }}
+          minor_version: ${{ inputs.minor_version }}
           release: ${{ inputs.release }}
           arch: ${{ matrix.arch }}
           commit_hash: ${{ inputs.commit_hash }}
