@@ -78,7 +78,7 @@ jobs:
             . .version
             . ${{ inputs.version_file }}
             VERSION="$MAJOR.$MINOR"
-          elif [[ "${{ inputs.version_file }}" == */CMakeLists.txt ]]; then
+          elif [[ "${{ inputs.version_file }}" == CMakeLists.txt ]]; then
             MAJOR=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
             MINOR=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
             VERSION="$MAJOR.$MINOR"
