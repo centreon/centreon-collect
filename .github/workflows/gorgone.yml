@@ -13,9 +13,9 @@ on:
       - reopened
       - ready_for_review
     # paths:
-    #   - "centreon-gorgone/**"
-    #   - "!centreon-gorgone/veracode.json"
-    #   - "!centreon-gorgone/.veracode-exclusions"
+    #   - "gorgone/**"
+    #   - "!gorgone/veracode.json"
+    #   - "!gorgone/.veracode-exclusions"
   push:
     branches:
       - develop
@@ -23,24 +23,24 @@ on:
       - master
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
-      - "centreon-gorgone/**"
-      - "!centreon-gorgone/veracode.json"
-      - "!centreon-gorgone/.veracode-exclusions"
+      - "gorgone/**"
+      - "!gorgone/veracode.json"
+      - "!gorgone/.veracode-exclusions"
 
 env:
-  base_directory: centreon-gorgone
+  base_directory: gorgone
 
 jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
     with:
-      version_file: centreon-gorgone/.version
+      version_file: gorgone/.version
 
   # veracode-analysis:
   #   needs: [get-version]
   #   uses: ./.github/workflows/veracode-analysis.yml
   #   with:
-  #     module_directory: centreon-gorgone
+  #     module_directory: gorgone
   #     module_name: centreon-gorgone
   #     major_version: ${{ needs.get-version.outputs.major_version }}
   #     minor_version: ${{ needs.get-version.outputs.minor_version }}
@@ -106,20 +106,20 @@ jobs:
       - name: Generate selinux binaries
         if: ${{ matrix.package_extension == 'rpm' }}
         run: |
-          cd centreon-gorgone/selinux
+          cd gorgone/selinux
           sed -i "s/@VERSION@/${{ needs.get-version.outputs.major_version }}.${{ needs.get-version.outputs.minor_version }}/g" centreon-gorgoned.te
           make -f /usr/share/selinux/devel/Makefile
         shell: bash
 
       - name: Remove selinux packaging files on debian
         if: ${{ matrix.package_extension == 'deb' }}
-        run: rm -f centreon-gorgone/packaging/*-selinux.yaml
+        run: rm -f gorgone/packaging/*-selinux.yaml
         shell: bash
 
       - name: Package
         uses: ./.github/actions/package-nfpm
         with:
-          nfpm_file_pattern: "centreon-gorgone/packaging/*.yaml"
+          nfpm_file_pattern: "gorgone/packaging/*.yaml"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
           major_version: ${{ needs.get-version.outputs.major_version }}
@@ -196,7 +196,7 @@ jobs:
           mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/www/install/createTablesCentstorage.sql
 
       - name: Run tests
-        run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBUSER:centreon' centreon-gorgone/tests
+        run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBUSER:centreon' gorgone/tests
 
 
       - name: Upload gorgone and robot debug artifacts
@@ -223,7 +223,7 @@ jobs:
         uses: ./.github/actions/release-sources
         with:
           bucket_directory: centreon-gorgone
-          module_directory: centreon-gorgone
+          module_directory: gorgone
           module_name: centreon-gorgone
           major_version: ${{ needs.get-version.outputs.major_version }}
           minor_version: ${{ needs.get-version.outputs.minor_version }}
