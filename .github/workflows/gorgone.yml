@@ -165,8 +165,27 @@ jobs:
           MYSQL_ROOT_PASSWORD: password
 
     steps:
+      - name: Get linked branch of centreon repository
+        id: centreon_repo_linked_branch
+        run: |
+          CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${{ needs.get-version.outputs.major_version }}\.x$" >/dev/null 2>&1 && echo "dev-${{ needs.get-version.outputs.major_version }}.x" || echo develop)
+
+          GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${{ github.head_ref || github.ref_name }}$" >/dev/null 2>&1 && echo yes || echo no)
+          if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
+            CENTREON_REPO_LINKED_BRANCH="${{ github.head_ref || github.ref_name }}"
+          fi
+
+          echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
+        shell: bash
+
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Checkout sources
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          ref: ${{ steps.centreon_repo_linked_branch.outputs.linked_branch }}
+          path: centreon-repo
 
       - name: get cached gorgone package
         uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
@@ -192,12 +211,11 @@ jobs:
           mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
           mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon.* TO 'centreon'@'%'"
           mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-storage\`.* TO 'centreon'@'%'"
-          mysql -h mariadb -u root -ppassword 'centreon' < centreon/www/install/createTables.sql
-          mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/www/install/createTablesCentstorage.sql
+          mysql -h mariadb -u root -ppassword 'centreon' < centreon-repo/centreon/www/install/createTables.sql
+          mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon-repo/centreon/www/install/createTablesCentstorage.sql
 
       - name: Run tests
         run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBUSER:centreon' gorgone/tests
-
 
       - name: Upload gorgone and robot debug artifacts
         if: failure()
