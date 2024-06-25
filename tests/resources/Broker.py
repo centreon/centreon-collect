@@ -16,9 +16,7 @@
 #
 # For more information : contact@centreon.com
 #
-# This script is a little tcp server working on port 5669. It can simulate
-# a cbd instance. It is useful to test the validity of BBDO packets sent by
-# centengine.
+
 import signal
 from os import setsid
 from os import makedirs

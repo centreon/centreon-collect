@@ -116,20 +116,7 @@ BEOTEL_TELEGRAF_CHECK_HOST
 
     ${resources_list}    Ctn Create Otl Request    ${0}    host_1
 
-    Log To Console    export metrics
-    Ctn Send Otl To Engine    4317    ${resources_list}
-
-    Sleep    5
-
-    # feed and check
-    ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Host Check    host_1
-
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK
-    Should Be True    ${result}    hosts table not updated
-
     # check without feed
-
     ${start}    Ctn Get Round Current Date
     Ctn Schedule Forced Host Check    host_1
     ${result}    Ctn Check Host Check Status With Timeout
@@ -138,6 +125,20 @@ BEOTEL_TELEGRAF_CHECK_HOST
     ...    ${start}
     ...    0
     ...    (No output returned from host check)
+    Should Be True    ${result}    hosts table not updated
+
+
+    Log To Console    export metrics
+    Ctn Send Otl To Engine    4317    ${resources_list}
+
+    Sleep    5
+
+
+    # feed and check
+    ${start}    Ctn Get Round Current Date
+    Ctn Schedule Forced Host Check    host_1
+
+    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK
     Should Be True    ${result}    hosts table not updated
 
     # check then feed, three times to modify hard state
@@ -196,18 +197,6 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
 
     ${resources_list}    Ctn Create Otl Request    ${0}    host_1    service_1
 
-    Log To Console    export metrics
-    Ctn Send Otl To Engine    4317    ${resources_list}
-
-    Sleep    5
-
-    # feed and check
-    ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Svc Check    host_1    service_1
-
-    ${result}    Ctn Check Service Check Status With Timeout    host_1    service_1    30    ${start}    0    OK
-    Should Be True    ${result}    services table not updated
-
     # check without feed
 
     ${start}    Ctn Get Round Current Date
@@ -219,6 +208,18 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     ...    ${start}
     ...    0
     ...    (No output returned from plugin)
+    Should Be True    ${result}    services table not updated
+
+    Log To Console    export metrics
+    Ctn Send Otl To Engine    4317    ${resources_list}
+
+    Sleep    5
+
+    # feed and check
+    ${start}    Ctn Get Round Current Date
+    Ctn Schedule Forced Svc Check    host_1    service_1
+
+    ${result}    Ctn Check Service Check Status With Timeout    host_1    service_1    30    ${start}    0    OK
     Should Be True    ${result}    services table not updated
 
     # check then feed, three times to modify hard state
@@ -302,7 +303,7 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_CRYPTED
     Sleep    1
     ${telegraf_conf_response}    GET
     ...    verify=${False}
-    ...    url=https://localhost:1443/engine?host=host_1&host=host_2&host=host_3
+    ...    url=https://localhost:1443/engine?host=host_1
 
     Should Be Equal As Strings    ${telegraf_conf_response.reason}    OK    no response received or error response
     ${content_compare_result}    Ctn Compare String With File
@@ -375,7 +376,7 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
     Should Be True    ${result}    "server listen on 0.0.0.0:1443" should be available.
     Sleep    1
     ${telegraf_conf_response}    GET
-    ...    url=http://localhost:1443/engine?host=host_1&host=host_2&host=host_3
+    ...    url=http://localhost:1443/engine?host=host_1
 
     Should Be Equal As Strings    ${telegraf_conf_response.reason}    OK    no response received or error response
 

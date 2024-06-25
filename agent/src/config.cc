@@ -26,7 +26,7 @@
 using namespace com::centreon::agent;
 using com::centreon::common::rapidjson_helper;
 
-static constexpr std::string_view _config_schema(R"(
+const std::string_view config::config_schema(R"(
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "agent config",
@@ -100,7 +100,7 @@ static constexpr std::string_view _config_schema(R"(
 )");
 
 config::config(const std::string& path) {
-  static common::json_validator validator(_config_schema);
+  static common::json_validator validator(config_schema);
   rapidjson::Document file_content_d;
   try {
     file_content_d = rapidjson_helper::read_from_file(path);
@@ -136,9 +136,9 @@ config::config(const std::string& path) {
   _log_files_max_size = json_config.get_unsigned("log_files_max_size", 0);
   _log_files_max_number = json_config.get_unsigned("log_files_max_number", 0);
   _encryption = json_config.get_bool("encryption", false);
-  _certificate_file = json_config.get_string("certificate_file", "");
-  _private_key_file = json_config.get_string("private_key_file", "");
-  _ca_certificate_file = json_config.get_string("ca_certificate_file", "");
+  _public_cert_file = json_config.get_string("public_cert", "");
+  _private_key_file = json_config.get_string("private_key", "");
+  _ca_certificate_file = json_config.get_string("ca_certificate", "");
   _ca_name = json_config.get_string("ca_name", "");
   _host = json_config.get_string("host", "");
   if (_host.empty()) {

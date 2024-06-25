@@ -71,8 +71,7 @@ static std::string read_file(const std::string& file_path) {
       return ss.str();
     }
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(g_logger, "{} fail to read {}: {}", file_path,
-                        e.what());
+    SPDLOG_LOGGER_ERROR(g_logger, "fail to read {}: {}", file_path, e.what());
   }
   return "";
 }
@@ -82,6 +81,14 @@ int main(int argc, char* argv[]) {
     SPDLOG_ERROR(
         "No config file passed in param.\nUsage: {} <path to json config file>",
         argv[0]);
+    return 1;
+  }
+
+  if (!strcmp(argv[1], "--help")) {
+    SPDLOG_INFO(
+        "Usage: {} <path to json config file>\nSchema of the config "
+        "file is:\n{}",
+        argv[0], config::config_schema);
     return 1;
   }
 
@@ -131,6 +138,10 @@ int main(int argc, char* argv[]) {
 
   g_logger->set_level(conf->get_log_level());
 
+  g_logger->flush_on(spdlog::level::warn);
+
+  spdlog::flush_every(std::chrono::seconds(1));
+
   SPDLOG_LOGGER_INFO(g_logger,
                      "centreon-monitoring-agent start, you can decrease log "
                      "verbosity by kill -USR1 {} or increase by kill -USR2 {}",
@@ -145,7 +156,7 @@ int main(int argc, char* argv[]) {
 
     grpc_conf = std::make_shared<com::centreon::common::grpc::grpc_config>(
         conf->get_endpoint(), conf->use_encryption(),
-        read_file(conf->get_certificate_file()),
+        read_file(conf->get_public_cert_file()),
         read_file(conf->get_private_key_file()),
         read_file(conf->get_ca_certificate_file()), conf->get_ca_name(), true,
         30);
