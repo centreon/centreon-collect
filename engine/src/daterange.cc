@@ -43,6 +43,7 @@ using namespace com::centreon::engine;
  *  @param[in] ewday
  *  @param[in] ewday_offset
  *  @param[in] skip_interval
+ *  @param[in] a list of timeranges.
  */
 daterange::daterange(type_range type,
                      int syear,
