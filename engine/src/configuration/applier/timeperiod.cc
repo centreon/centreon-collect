@@ -58,12 +58,10 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
 
   // Fill time period structure.
   for (uint32_t i = 0; i < obj.timeranges().size(); i++) {
-    tp->days[i].clear();
     for (auto& tr : obj.timeranges()[i])
       tp->days[i].push_back({tr.range_start(), tr.range_end()});
   }
   for (uint32_t i = 0; i < obj.exceptions().size(); i++) {
-    tp->exceptions[i].clear();
     for (auto& dr : obj.exceptions()[i]) {
       tp->exceptions[i].push_back(
           {static_cast<com::centreon::engine::daterange::type_range>(dr.type()),
