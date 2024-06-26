@@ -19,7 +19,9 @@
 # Global options.
 project("Centreon common" C CXX)
 
-add_subdirectory(log_v2)
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  add_subdirectory(log_v2)
+endif()
 
 # Set directories.
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/common")
@@ -44,15 +46,24 @@ add_custom_command(
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # Set sources.
-set(SOURCES 
-  ${SRC_DIR}/hex_dump.cc
-  ${SRC_DIR}/perfdata.cc
-  ${SRC_DIR}/pool.cc 
-  ${SRC_DIR}/process_stat.cc 
-  ${SRC_DIR}/process_stat.pb.cc
-  ${SRC_DIR}/process_stat.grpc.pb.cc
-  ${SRC_DIR}/rapidjson_helper.cc
-)
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  set(SOURCES 
+    ${SRC_DIR}/hex_dump.cc
+    ${SRC_DIR}/perfdata.cc
+    ${SRC_DIR}/pool.cc 
+    ${SRC_DIR}/process_stat.cc 
+    ${SRC_DIR}/process_stat.pb.cc
+    ${SRC_DIR}/process_stat.grpc.pb.cc
+    ${SRC_DIR}/rapidjson_helper.cc
+  )
+else()
+#we need not many things to just compile centreon-monitoring-agent (centagent)
+  set(SOURCES 
+    ${SRC_DIR}/perfdata.cc
+    ${SRC_DIR}/pool.cc 
+    ${SRC_DIR}/rapidjson_helper.cc
+  )
+endif()
 
 # Include directories.
 include_directories("${INCLUDE_DIR}"

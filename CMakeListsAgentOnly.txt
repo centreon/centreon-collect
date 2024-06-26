@@ -1,0 +1,43 @@
+
+find_package(fmt CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
+find_package(Protobuf REQUIRED)
+find_package(GTest CONFIG REQUIRED)
+add_definitions("-DSPDLOG_FMT_EXTERNAL")
+
+
+# There is a bug with grpc. It is not put in the triplet directory. So we have
+# to search for its plugin.
+file(GLOB_RECURSE GRPC_CPP_PLUGIN_EXE
+  RELATIVE ${CMAKE_BINARY_DIR} grpc_cpp_plugin)
+find_program(GRPC_CPP_PLUGIN
+  NAMES ${GRPC_CPP_PLUGIN_EXE}
+  PATHS ${CMAKE_BINARY_DIR}
+  REQUIRED
+  NO_DEFAULT_PATH)
+
+set(PROTOBUF_LIB_DIR ${Protobuf_DIR}/../../lib)
+set(OTLP_LIB_DIR ${opentelemetry-cpp_DIR}/../../lib)
+set(VCPKG_INCLUDE_DIR ${Protobuf_INCLUDE_DIR})
+include(GNUInstallDirs)
+
+option(WITH_TESTING "Build unit tests." OFF)
+
+set(protobuf_MODULE_COMPATIBLE True)
+
+include_directories(${CMAKE_SOURCE_DIR}
+  ${VCPKG_INCLUDE_DIR}
+  fmt::fmt
+  spdlog::spdlog
+  ${CMAKE_SOURCE_DIR}/clib/inc)
+
+add_subdirectory(common)
+add_subdirectory(agent)
+
+
+add_custom_target(test-common COMMAND tests/ut_common)
+add_custom_target(test-agent COMMAND tests/ut_agent)
+
+add_custom_target(test DEPENDS test-common test-agent)
+

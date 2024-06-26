@@ -16,16 +16,26 @@
 # For more information : contact@centreon.com
 #
 
-add_executable(ut_common
-  process_stat_test.cc
-  hex_dump_test.cc
-  log_v2/log_v2.cc
-  node_allocator_test.cc
-  perfdata_test.cc
-  process_test.cc
-  rapidjson_helper_test.cc
-  test_main.cc
-  ${TESTS_SOURCES})
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  add_executable(ut_common
+    process_stat_test.cc
+    hex_dump_test.cc
+    log_v2/log_v2.cc
+    node_allocator_test.cc
+    perfdata_test.cc
+    process_test.cc
+    rapidjson_helper_test.cc
+    test_main.cc
+    ${TESTS_SOURCES})
+else()
+  add_executable(ut_common
+    perfdata_test.cc
+    process_test.cc
+    rapidjson_helper_test.cc
+    test_main.cc
+    ${TESTS_SOURCES})
+endif()
 
 set_target_properties(
   ut_common
