@@ -20,6 +20,7 @@
 #include "com/centreon/engine/daterange.hh"
 
 #include "com/centreon/engine/common.hh"
+#include "com/centreon/engine/configuration/daterange.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timeperiod.hh"
 #include "com/centreon/engine/timerange.hh"
@@ -43,9 +44,19 @@ using namespace com::centreon::engine;
  *  @param[in] ewday_offset
  *  @param[in] skip_interval
  */
-daterange::daterange(type_range type, int syear, int smon, int smday, int swday,
-                     int swday_offset, int eyear, int emon, int emday,
-                     int ewday, int ewday_offset, int skip_interval)
+daterange::daterange(type_range type,
+                     int syear,
+                     int smon,
+                     int smday,
+                     int swday,
+                     int swday_offset,
+                     int eyear,
+                     int emon,
+                     int emday,
+                     int ewday,
+                     int ewday_offset,
+                     int skip_interval,
+                     const std::list<configuration::timerange>& timeranges)
     : _type{type},
       _syear{syear},
       _smon{smon},
@@ -57,7 +68,10 @@ daterange::daterange(type_range type, int syear, int smon, int smday, int swday,
       _emday{emday},
       _ewday{ewday},
       _ewday_offset{ewday_offset},
-      _skip_interval{skip_interval} {}
+      _skip_interval{skip_interval} {
+  for (auto& tr : timeranges)
+    add_timerange({tr.range_start(), tr.range_end()});
+}
 
 daterange::daterange(type_range type)
     : _type(type),
@@ -167,7 +181,8 @@ static std::ostream& _dump_calendar_date(std::ostream& os,
     os << " - " << std::setfill('0') << std::setw(2) << obj.get_eyear() << "-"
        << std::setfill('0') << std::setw(2) << obj.get_emon() + 1 << "-"
        << std::setfill('0') << std::setw(2) << obj.get_emday();
-  if (obj.get_skip_interval()) os << " / " << obj.get_skip_interval();
+  if (obj.get_skip_interval())
+    os << " / " << obj.get_skip_interval();
   return (os);
 }
 
@@ -187,7 +202,8 @@ static std::ostream& _dump_month_date(std::ostream& os, daterange const& obj) {
     os << " - " << emon << " " << obj.get_emday();
   else if (obj.get_smday() != obj.get_emday())
     os << " - " << obj.get_emday();
-  if (obj.get_skip_interval()) os << " / " << obj.get_skip_interval();
+  if (obj.get_skip_interval())
+    os << " / " << obj.get_skip_interval();
   return (os);
 }
 
@@ -201,8 +217,10 @@ static std::ostream& _dump_month_date(std::ostream& os, daterange const& obj) {
  */
 static std::ostream& _dump_month_day(std::ostream& os, daterange const& obj) {
   os << "day " << obj.get_smday();
-  if (obj.get_smday() != obj.get_emday()) os << " - " << obj.get_emday();
-  if (obj.get_skip_interval()) os << " / " << obj.get_skip_interval();
+  if (obj.get_smday() != obj.get_emday())
+    os << " - " << obj.get_emday();
+  if (obj.get_skip_interval())
+    os << " / " << obj.get_skip_interval();
   return (os);
 }
 
@@ -226,7 +244,8 @@ static std::ostream& _dump_month_week_day(std::ostream& os,
     os << " - " << daterange::get_weekday_name(obj.get_ewday()) << " "
        << obj.get_ewday_offset() << " "
        << daterange::get_month_name(obj.get_emon());
-  if (obj.get_skip_interval()) os << " / " << obj.get_skip_interval();
+  if (obj.get_skip_interval())
+    os << " / " << obj.get_skip_interval();
   return (os);
 }
 
@@ -245,7 +264,8 @@ static std::ostream& _dump_week_day(std::ostream& os, daterange const& obj) {
       obj.get_swday_offset() != obj.get_ewday_offset())
     os << " - " << daterange::get_weekday_name(obj.get_ewday()) << " "
        << obj.get_ewday_offset();
-  if (obj.get_skip_interval()) os << " / " << obj.get_skip_interval();
+  if (obj.get_skip_interval())
+    os << " / " << obj.get_skip_interval();
   return (os);
 }
 
@@ -318,7 +338,8 @@ std::string const& daterange::get_month_name(unsigned int index) {
   static std::string const month[] = {
       "january", "february", "march",     "april",   "may",      "june",
       "july",    "august",   "september", "october", "november", "december"};
-  if (index >= sizeof(month) / sizeof(*month)) return (unknown);
+  if (index >= sizeof(month) / sizeof(*month))
+    return (unknown);
   return (month[index]);
 }
 
@@ -334,6 +355,7 @@ std::string const& daterange::get_weekday_name(unsigned int index) {
   static std::string const days[] = {"sunday",    "monday",   "tuesday",
                                      "wednesday", "thursday", "friday",
                                      "saturday"};
-  if (index >= sizeof(days) / sizeof(*days)) return (unknown);
+  if (index >= sizeof(days) / sizeof(*days))
+    return (unknown);
   return (days[index]);
 }

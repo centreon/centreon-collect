@@ -80,12 +80,13 @@ daterange::daterange(type_range type)
       _skip_interval{0} {}
 
 bool daterange::is_date_data_equal(const configuration::daterange& obj) const {
-  return _type == obj.type() && _syear == obj.syear() && _smon == obj.smon() &&
-         _smday == obj.smday() && _swday == obj.swday() &&
-         _swday_offset == obj.swday_offset() && _eyear == obj.eyear() &&
-         _emon == obj.emon() && _emday == obj.emday() &&
-         _ewday == obj.ewday() && _ewday_offset == obj.ewday_offset() &&
-         _skip_interval == obj.skip_interval();
+  return _type == obj.type() && _syear == obj.get_syear() &&
+         _smon == obj.get_smon() && _smday == obj.get_smday() &&
+         _swday == obj.get_swday() && _swday_offset == obj.get_swday_offset() &&
+         _eyear == obj.get_eyear() && _emon == obj.get_emon() &&
+         _emday == obj.get_emday() && _ewday == obj.get_ewday() &&
+         _ewday_offset == obj.get_ewday_offset() &&
+         _skip_interval == obj.get_skip_interval();
 }
 
 void daterange::set_syear(int32_t syear) {
@@ -137,7 +138,7 @@ void daterange::set_timerange(
   _timerange = timerange;
 }
 
-const std::list<timerange>& daterange::timerange() const {
+const std::list<timerange>& daterange::get_timerange() const {
   return _timerange;
 }
 
@@ -149,13 +150,13 @@ const std::list<timerange>& daterange::timerange() const {
  *  @return True if this object is less than right.
  */
 bool daterange::operator==(const daterange& other) const {
-  return _type == other.type() && _syear == other.syear() &&
-         _smon == other.smon() && _smday == other.smday() &&
-         _swday == other.swday() && _swday_offset == other.swday_offset() &&
-         _eyear == other.eyear() && _emon == other.emon() &&
-         _emday == other.emday() && _ewday == other.ewday() &&
-         _ewday_offset == other.ewday_offset() &&
-         _skip_interval == other.skip_interval() &&
+  return _type == other.type() && _syear == other.get_syear() &&
+         _smon == other._smon && _smday == other._smday &&
+         _swday == other.get_swday() && _swday_offset == other._swday_offset &&
+         _eyear == other._eyear && _emon == other._emon &&
+         _emday == other._emday && _ewday == other._ewday &&
+         _ewday_offset == other._ewday_offset &&
+         _skip_interval == other._skip_interval &&
          _timerange == other._timerange;
 }
 
@@ -239,16 +240,16 @@ std::ostream& operator<<(std::ostream& os, const std::list<timerange>& obj) {
  */
 static std::ostream& _dump_calendar_date(std::ostream& os,
                                          daterange const& obj) {
-  os << std::setfill('0') << std::setw(2) << obj.syear() << "-"
-     << std::setfill('0') << std::setw(2) << obj.smon() + 1 << "-"
-     << std::setfill('0') << std::setw(2) << obj.smday();
-  if (obj.syear() != obj.eyear() || obj.smon() != obj.emon() ||
-      obj.smday() != obj.emday())
-    os << " - " << std::setfill('0') << std::setw(2) << obj.eyear() << "-"
-       << std::setfill('0') << std::setw(2) << obj.emon() + 1 << "-"
-       << std::setfill('0') << std::setw(2) << obj.emday();
-  if (obj.skip_interval())
-    os << " / " << obj.skip_interval();
+  os << std::setfill('0') << std::setw(2) << obj.get_syear() << "-"
+     << std::setfill('0') << std::setw(2) << obj.get_smon() + 1 << "-"
+     << std::setfill('0') << std::setw(2) << obj.get_smday();
+  if (obj.get_syear() != obj.get_eyear() || obj.get_smon() != obj.get_emon() ||
+      obj.get_smday() != obj.get_emday())
+    os << " - " << std::setfill('0') << std::setw(2) << obj.get_eyear() << "-"
+       << std::setfill('0') << std::setw(2) << obj.get_emon() + 1 << "-"
+       << std::setfill('0') << std::setw(2) << obj.get_emday();
+  if (obj.get_skip_interval())
+    os << " / " << obj.get_skip_interval();
   return os;
 }
 
@@ -275,15 +276,15 @@ static const std::string_view& weekday_name(uint32_t index) {
  *  @return The output stream.
  */
 static std::ostream& _dump_month_date(std::ostream& os, daterange const& obj) {
-  const std::string_view& smon = month_name(obj.smon());
-  const std::string_view& emon = month_name(obj.emon());
-  os << smon << " " << obj.smday();
+  const std::string_view& smon = month_name(obj.get_smon());
+  const std::string_view& emon = month_name(obj.get_emon());
+  os << smon << " " << obj.get_smday();
   if (smon != emon)
-    os << " - " << emon << " " << obj.emday();
-  else if (obj.smday() != obj.emday())
-    os << " - " << obj.emday();
-  if (obj.skip_interval())
-    os << " / " << obj.skip_interval();
+    os << " - " << emon << " " << obj.get_emday();
+  else if (obj.get_smday() != obj.get_emday())
+    os << " - " << obj.get_emday();
+  if (obj.get_skip_interval())
+    os << " / " << obj.get_skip_interval();
   return os;
 }
 
@@ -296,11 +297,11 @@ static std::ostream& _dump_month_date(std::ostream& os, daterange const& obj) {
  *  @return The output stream.
  */
 static std::ostream& _dump_month_day(std::ostream& os, daterange const& obj) {
-  os << "day " << obj.smday();
-  if (obj.smday() != obj.emday())
-    os << " - " << obj.emday();
-  if (obj.skip_interval())
-    os << " / " << obj.skip_interval();
+  os << "day " << obj.get_smday();
+  if (obj.get_smday() != obj.get_emday())
+    os << " - " << obj.get_emday();
+  if (obj.get_skip_interval())
+    os << " / " << obj.get_skip_interval();
   return os;
 }
 
@@ -315,14 +316,15 @@ static std::ostream& _dump_month_day(std::ostream& os, daterange const& obj) {
  */
 static std::ostream& _dump_month_week_day(std::ostream& os,
                                           daterange const& obj) {
-  os << weekday_name(obj.swday()) << " " << obj.swday_offset() << " "
-     << month_name(obj.smon());
-  if (obj.swday() != obj.ewday() || obj.swday_offset() != obj.ewday_offset() ||
-      obj.smon() != obj.emon())
-    os << " - " << weekday_name(obj.ewday()) << " " << obj.ewday_offset() << " "
-       << month_name(obj.emon());
-  if (obj.skip_interval())
-    os << " / " << obj.skip_interval();
+  os << weekday_name(obj.get_swday()) << " " << obj.get_swday_offset() << " "
+     << month_name(obj.get_smon());
+  if (obj.get_swday() != obj.get_ewday() ||
+      obj.get_swday_offset() != obj.get_ewday_offset() ||
+      obj.get_smon() != obj.get_emon())
+    os << " - " << weekday_name(obj.get_ewday()) << " "
+       << obj.get_ewday_offset() << " " << month_name(obj.get_emon());
+  if (obj.get_skip_interval())
+    os << " / " << obj.get_skip_interval();
   return os;
 }
 
@@ -335,11 +337,13 @@ static std::ostream& _dump_month_week_day(std::ostream& os,
  *  @return The output stream.
  */
 static std::ostream& _dump_week_day(std::ostream& os, daterange const& obj) {
-  os << weekday_name(obj.swday()) << " " << obj.swday_offset();
-  if (obj.swday() != obj.ewday() || obj.swday_offset() != obj.ewday_offset())
-    os << " - " << weekday_name(obj.ewday()) << " " << obj.ewday_offset();
-  if (obj.skip_interval())
-    os << " / " << obj.skip_interval();
+  os << weekday_name(obj.get_swday()) << " " << obj.get_swday_offset();
+  if (obj.get_swday() != obj.get_ewday() ||
+      obj.get_swday_offset() != obj.get_ewday_offset())
+    os << " - " << weekday_name(obj.get_ewday()) << " "
+       << obj.get_ewday_offset();
+  if (obj.get_skip_interval())
+    os << " / " << obj.get_skip_interval();
   return os;
 }
 
@@ -362,7 +366,7 @@ std::ostream& operator<<(std::ostream& os, const daterange& obj) {
     os << "unknown type " << obj.type();
   else {
     (*(tab[obj.type()]))(os, obj);
-    os << " " << obj.timerange();
+    os << " " << obj.get_timerange();
   }
   return os;
 }

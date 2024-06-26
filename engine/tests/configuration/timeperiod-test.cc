@@ -624,13 +624,17 @@ static bool operator==(
     while (it != end && cit != cend) {
       if (static_cast<uint32_t>(cit->type()) !=
               static_cast<uint32_t>(it->get_type()) ||
-          cit->syear() != it->get_syear() || cit->smon() != it->get_smon() ||
-          cit->smday() != it->get_smday() || cit->swday() != it->get_swday() ||
-          cit->swday_offset() != it->get_swday_offset() ||
-          cit->eyear() != it->get_eyear() || cit->emon() != it->get_emon() ||
-          cit->emday() != it->get_emday() || cit->ewday() != it->get_ewday() ||
-          cit->ewday_offset() != it->get_ewday_offset() ||
-          cit->skip_interval() != it->get_skip_interval())
+          cit->get_syear() != it->get_syear() ||
+          cit->get_smon() != it->get_smon() ||
+          cit->get_smday() != it->get_smday() ||
+          cit->get_swday() != it->get_swday() ||
+          cit->get_swday_offset() != it->get_swday_offset() ||
+          cit->get_eyear() != it->get_eyear() ||
+          cit->get_emon() != it->get_emon() ||
+          cit->get_emday() != it->get_emday() ||
+          cit->get_ewday() != it->get_ewday() ||
+          cit->get_ewday_offset() != it->get_ewday_offset() ||
+          cit->get_skip_interval() != it->get_skip_interval())
         return false;
       ++it;
       ++cit;

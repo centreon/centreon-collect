@@ -65,22 +65,12 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
   for (uint32_t i = 0; i < obj.exceptions().size(); i++) {
     tp->exceptions[i].clear();
     for (auto& dr : obj.exceptions()[i]) {
-      com::centreon::engine::daterange exc{
-          static_cast<com::centreon::engine::daterange::type_range>(dr.type()),
-          dr.syear(),
-          dr.smon(),
-          dr.smday(),
-          dr.swday(),
-          dr.swday_offset(),
-          dr.eyear(),
-          dr.emon(),
-          dr.emday(),
-          dr.ewday(),
-          dr.ewday_offset(),
-          dr.skip_interval()};
-      for (auto& tr : dr.timerange())
-        exc.add_timerange({tr.range_start(), tr.range_end()});
-      tp->exceptions[i].push_back(std::move(exc));
+      tp->exceptions[i].push_back(
+          {static_cast<com::centreon::engine::daterange::type_range>(dr.type()),
+           dr.get_syear(), dr.get_smon(), dr.get_smday(), dr.get_swday(),
+           dr.get_swday_offset(), dr.get_eyear(), dr.get_emon(), dr.get_emday(),
+           dr.get_ewday(), dr.get_ewday_offset(), dr.get_skip_interval(),
+           dr.get_timerange()});
     }
   }
   _add_exclusions(obj.exclude(), tp.get());
@@ -150,9 +140,10 @@ void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
         tp->exceptions[i].push_back(
             {static_cast<com::centreon::engine::daterange::type_range>(
                  dr.type()),
-             dr.syear(), dr.smon(), dr.smday(), dr.swday(), dr.swday_offset(),
-             dr.eyear(), dr.emon(), dr.emday(), dr.ewday(), dr.ewday_offset(),
-             dr.skip_interval()});
+             dr.get_syear(), dr.get_smon(), dr.get_smday(), dr.get_swday(),
+             dr.get_swday_offset(), dr.get_eyear(), dr.get_emon(),
+             dr.get_emday(), dr.get_ewday(), dr.get_ewday_offset(),
+             dr.get_skip_interval(), dr.get_timerange()});
       }
     }
   }

@@ -51,7 +51,8 @@ class daterange {
     month_date = 1,
     month_day = 2,
     month_week_day = 3,
-    week_day = 4
+    week_day = 4,
+    daterange_types = 5,
   };
 
  private:
@@ -91,8 +92,6 @@ class daterange {
   std::list<timerange> _timerange;
 
  public:
-  static constexpr uint32_t daterange_types = 5;
-
   daterange(type_range type,
             int syear,
             int smon,
@@ -108,17 +107,18 @@ class daterange {
   daterange(type_range type);
   bool is_date_data_equal(const daterange& range) const;
   type_range type() const;
-  int32_t syear() const { return _syear; }
-  int32_t smon() const { return _smon; }
-  int32_t smday() const { return _smday; }
-  int32_t swday() const { return _swday; }
-  int32_t swday_offset() const { return _swday_offset; }
-  int32_t eyear() const { return _eyear; }
-  int32_t emon() const { return _emon; }
-  int32_t emday() const { return _emday; }
-  int32_t ewday() const { return _ewday; }
-  int32_t ewday_offset() const { return _ewday_offset; }
-  int32_t skip_interval() const { return _skip_interval; }
+  int32_t get_syear() const { return _syear; }
+  int32_t get_smon() const { return _smon; }
+  int32_t get_smday() const { return _smday; }
+  int32_t get_swday() const { return _swday; }
+  int32_t get_swday_offset() const { return _swday_offset; }
+  int32_t get_eyear() const { return _eyear; }
+  int32_t get_emon() const { return _emon; }
+  int32_t get_emday() const { return _emday; }
+  int32_t get_ewday() const { return _ewday; }
+  int32_t get_ewday_offset() const { return _ewday_offset; }
+  int32_t get_skip_interval() const { return _skip_interval; }
+  const std::list<timerange>& get_timerange() const;
 
   void set_syear(int32_t syear);
   void set_smon(int32_t smon);
@@ -132,7 +132,6 @@ class daterange {
   void set_ewday_offset(int32_t ewday_offset);
   void set_skip_interval(int32_t skip_interval);
   void set_timerange(const std::list<timerange>& timerange);
-  const std::list<timerange>& timerange() const;
 
   bool operator==(const daterange& other) const;
   bool operator<(const daterange& other) const;

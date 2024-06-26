@@ -56,7 +56,8 @@ class daterange {
             int emday,
             int ewday,
             int ewday_offset,
-            int skip_interval);
+            int skip_interval,
+            const std::list<configuration::timerange>& timeranges);
   daterange(type_range type);
 
   type_range get_type() const { return _type; }
