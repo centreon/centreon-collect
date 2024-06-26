@@ -92,7 +92,6 @@ class daterange {
 
   bool operator==(daterange const& obj) const;
   bool operator!=(daterange const& obj2) const;
-  bool operator<(daterange const& right) const;
   bool is_date_data_equal(daterange const& obj) const;
 
   static std::string const& get_month_name(unsigned int index);

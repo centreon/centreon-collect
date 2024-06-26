@@ -129,41 +129,6 @@ bool daterange::operator!=(daterange const& obj) const {
 }
 
 /**
- *  Less-than operator.
- *
- *  @param[in] right Object to compare to.
- *
- *  @return True if this object is less than right.
- */
-bool daterange::operator<(daterange const& right) const {
-  if (_emon != right._emon)
-    return (_emon < right._emon);
-  else if (_smon != right._smon)
-    return (_smon < right._smon);
-  else if (_emday != right._emday)
-    return (_emday < right._emday);
-  else if (_smday != right._smday)
-    return (_smday < right._smday);
-  else if (_skip_interval != right._skip_interval)
-    return (_skip_interval < right._skip_interval);
-  else if (_type != right._type)
-    return (_type < right._type);
-  else if (_ewday != right._ewday)
-    return (_ewday < right._ewday);
-  else if (_swday != right._swday)
-    return (_swday < right._swday);
-  else if (_ewday_offset != right._ewday_offset)
-    return (_ewday_offset < right._ewday_offset);
-  else if (_swday_offset != right._swday_offset)
-    return (_swday_offset < right._swday_offset);
-  else if (_eyear != right._eyear)
-    return (_eyear < right._eyear);
-  else if (_syear != right._syear)
-    return (_syear < right._syear);
-  return (_timerange < right._timerange);
-}
-
-/**
  *  Dump the daterange value into the calendar date format.
  *
  *  @param[out] os  The output stream.

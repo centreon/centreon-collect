@@ -110,41 +110,6 @@ bool timeperiod::operator!=(timeperiod const& obj) noexcept {
 }
 
 /**
- *  Dump timeperiod content into the stream.
- *
- *  @param[out] os  The output stream.
- *  @param[in]  obj The timeperiod to dump.
- *
- *  @return The output stream.
- */
-std::ostream& operator<<(std::ostream& os, timeperiod const& obj) {
-  os << "timeperiod {\n"
-     << "  name:  " << obj.get_name() << "\n"
-     << "  alias: " << obj.get_alias() << "\n"
-     << "  exclusions: " << obj.get_exclusions() << "\n";
-
-  for (uint32_t i = 0; i < obj.days.size(); ++i)
-    if (!obj.days[i].empty())
-      os << "  " << daterange::get_weekday_name(i) << ": " << obj.days[i]
-         << "\n";
-
-  for (uint32_t i = 0; i < obj.exceptions.size(); ++i)
-    for (daterange_list::const_iterator it(obj.exceptions[i].begin()),
-         end(obj.exceptions[i].end());
-         it != end; ++it)
-      os << "  " << *it << "\n";
-  os << "}\n";
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, timeperiodexclusion const& obj) {
-  for (timeperiodexclusion::const_iterator it(obj.begin()), end(obj.end());
-       it != end; ++it)
-    os << it->first << (std::next(it) != obj.end() ? ", " : "");
-  return os;
-}
-
-/**
  *  Add a round number of days (expressed in seconds) to a date.
  *
  *  @param[in] middnight  Midnight of base day.
