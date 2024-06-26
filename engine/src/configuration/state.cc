@@ -18,9 +18,7 @@
  */
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
-#include "com/centreon/engine/broker.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/io/file_entry.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
@@ -1150,9 +1148,9 @@ void state::broker_module_directory(const std::string& value) {
   if (value.empty() || value[0] == '/')
     _broker_module_directory = value;
   else {
-    io::file_entry fe(_cfg_main);
-    std::string base_name(fe.directory_name());
-    _broker_module_directory = base_name + "/" + value;
+    std::filesystem::path fe{_cfg_main};
+    std::string base_name(fe.parent_path());
+    _broker_module_directory = fmt::format("{}/{}", base_name, value);
   }
 }
 
@@ -3562,9 +3560,9 @@ void state::state_retention_file(const std::string& value) {
   if (value.empty() || value[0] == '/')
     _state_retention_file = value;
   else {
-    io::file_entry fe(_cfg_main);
-    std::string base_name(fe.directory_name());
-    _state_retention_file = base_name + "/" + value;
+    std::filesystem::path fe{_cfg_main};
+    std::string base_name{fe.parent_path()};
+    _state_retention_file = fmt::format("{}/{}", base_name, value);
   }
 }
 
@@ -4279,9 +4277,9 @@ void state::_set_cfg_dir(const std::string& value) {
   if (value.empty() || value[0] == '/')
     _cfg_dir.push_back(value);
   else {
-    io::file_entry fe(_cfg_main);
-    std::string base_name(fe.directory_name());
-    _cfg_dir.push_back(base_name + "/" + value);
+    std::filesystem::path fe{_cfg_main};
+    std::string base_name{fe.parent_path()};
+    _cfg_dir.emplace_back(fmt::format("{}/{}", base_name, value));
   }
 }
 
@@ -4294,9 +4292,9 @@ void state::_set_cfg_file(const std::string& value) {
   if (value.empty() || value[0] == '/')
     _cfg_file.push_back(value);
   else {
-    io::file_entry fe(_cfg_main);
-    std::string base_name(fe.directory_name());
-    _cfg_file.push_back(base_name + "/" + value);
+    std::filesystem::path fe{_cfg_main};
+    std::string base_name{fe.parent_path()};
+    _cfg_file.emplace_back(fmt::format("{}/{}", base_name, value));
   }
 }
 
@@ -4344,7 +4342,7 @@ void state::_set_event_broker_options(const std::string& value) {
     detail::setter<unsigned long, &state::event_broker_options>("")
         .apply_from_cfg(*this, value.c_str());
   else {
-    _event_broker_options = BROKER_EVERYTHING;
+    _event_broker_options = std::numeric_limits<unsigned long>::max();
   }
 }
 
@@ -4395,9 +4393,9 @@ void state::_set_resource_file(const std::string& value) {
   if (value.empty() || value[0] == '/')
     _resource_file.push_back(value);
   else {
-    io::file_entry fe(_cfg_main);
-    std::string base_name(fe.directory_name());
-    _resource_file.push_back(base_name + "/" + value);
+    std::filesystem::path fe{_cfg_main};
+    std::string base_name{fe.parent_path()};
+    _resource_file.emplace_back(fmt::format("{}/{}", base_name, value));
   }
 }
 
