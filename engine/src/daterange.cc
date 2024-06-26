@@ -106,16 +106,6 @@ bool daterange::operator==(daterange const& obj) const {
          _timerange == obj._timerange;
 }
 
-bool daterange::is_date_data_equal(daterange const& obj) const {
-  return _type == obj.get_type() && _syear == obj.get_syear() &&
-         _smon == obj.get_smon() && _smday == obj.get_smday() &&
-         _swday == obj.get_swday() && _swday_offset == obj.get_swday_offset() &&
-         _eyear == obj.get_eyear() && _emon == obj.get_emon() &&
-         _emday == obj.get_emday() && _ewday == obj.get_ewday() &&
-         _ewday_offset == obj.get_ewday_offset() &&
-         _skip_interval == obj.get_skip_interval();
-}
-
 /**
  *  Not equal operator.
  *

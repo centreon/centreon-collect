@@ -38,11 +38,6 @@ class timerange {
   bool operator!=(timerange const& obj) const {
     return _range_start != obj._range_start || _range_end != obj._range_end;
   };
-  //  bool operator<(timerange const& obj) const {
-  //    if (_range_start != obj._range_start)
-  //      return (_range_start < obj._range_start);
-  //    return (_range_end < obj._range_end);
-  //  }
 };
 
 using timerange_list = std::list<timerange>;

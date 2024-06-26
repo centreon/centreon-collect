@@ -24,18 +24,19 @@ using namespace com::centreon::engine::configuration;
  *  Create a new exception to a timeperiod.
  *
  *  @param[in] period        Base period.
- *  @param[in] type
- *  @param[in] syear
- *  @param[in] smon
- *  @param[in] smday
- *  @param[in] swday
- *  @param[in] swday_offset
- *  @param[in] eyear
- *  @param[in] emon
- *  @param[in] emday
- *  @param[in] ewday
- *  @param[in] ewday_offset
- *  @param[in] skip_interval
+ *  @param[in] type Type of the range (see header file).
+ *  @param[in] syear The start year.
+ *  @param[in] smon The start month.
+ *  @param[in] smday The start day of month (may 3rd, last day in feb).
+ *  @param[in] swday The start day of week (thursday).
+ *  @param[in] swday_offset The start weekday offset (3rd thursday, last monday
+ * in jan).
+ *  @param[in] eyear The end year.
+ *  @param[in] emon The end month.
+ *  @param[in] emday The end day of month
+ *  @param[in] ewday The end day of week.
+ *  @param[in] ewday_offset The end weekday offset.
+ *  @param[in] skip_interval The interval with the next day.
  */
 daterange::daterange(type_range type,
                      int syear,
@@ -79,6 +80,14 @@ daterange::daterange(type_range type)
       _ewday_offset{0},
       _skip_interval{0} {}
 
+/**
+ * @brief Almost the same as the == operator but here timeranges are not
+ * compared.
+ *
+ * @param obj Only date data are compared.
+ *
+ * @return A boolean that is true if they are "similar".
+ */
 bool daterange::is_date_data_equal(const configuration::daterange& obj) const {
   return _type == obj.type() && _syear == obj.get_syear() &&
          _smon == obj.get_smon() && _smday == obj.get_smday() &&

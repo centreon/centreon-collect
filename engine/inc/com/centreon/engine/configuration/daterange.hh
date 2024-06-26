@@ -23,6 +23,11 @@ namespace com::centreon::engine::configuration {
 
 class daterange;
 
+/**
+ * @brief The timerange configuration object. It is almost the same as the
+ * com::centreon::engine::timerange object. But it is needed for the
+ * configuration library to be Engine independent.
+ */
 class timerange {
   uint64_t _range_start;
   uint64_t _range_end;
@@ -43,6 +48,11 @@ class timerange {
   }
 };
 
+/**
+ * @brief The daterange configuration object. It is almost the same as the
+ * com::centreon::engine::daterange object. But it is needed for the
+ * configuration library to be Engine independent.
+ */
 class daterange {
  public:
   enum type_range {
@@ -89,6 +99,7 @@ class daterange {
 
   int32_t _skip_interval;
 
+  /* A list of timeranges for this daterange */
   std::list<timerange> _timerange;
 
  public:
