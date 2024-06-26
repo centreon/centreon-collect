@@ -18,8 +18,8 @@
  *
  */
 #include "com/centreon/engine/configuration/timeperiod.hh"
-#include "com/centreon/engine/daterange.hh"
 
+#include "com/centreon/engine/configuration/daterange.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
@@ -157,7 +157,7 @@ void timeperiod::merge(object const& obj) {
   MRG_TAB(_timeranges);
 
   // Merge exceptions.
-  for (unsigned int i(0); i < DATERANGE_TYPES; ++i) {
+  for (uint32_t i = 0; i < daterange::daterange_types; ++i) {
     for (std::list<daterange>::const_iterator it(tmpl._exceptions[i].begin()),
          end(tmpl._exceptions[i].end());
          it != end; ++it) {
