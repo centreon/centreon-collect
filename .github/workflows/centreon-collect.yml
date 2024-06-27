@@ -21,6 +21,7 @@ on:
       - conanfile.txt
       - selinux/**
       - "!.veracode-exclusions"
+      - "!veracode.json"
   push:
     branches:
       - develop
@@ -41,6 +42,7 @@ on:
       - conanfile.txt
       - selinux/**
       - "!.veracode-exclusions"
+      - "!veracode.json"
 
 jobs:
   get-version:
@@ -238,6 +240,33 @@ jobs:
           minor_version: ${{ needs.get-version.outputs.patch }}
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
+  delivery-rpm:
+    needs: [rpm-packaging, create-version, get-version]
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    env:
+      version: ${{ needs.create-version.outputs.version }}
+    environment: ${{ needs.get-version.outputs.environment }}
+    runs-on: [self-hosted, common]
+    name: Delivery
+    strategy:
+      matrix:
+        distrib: [el7, el8]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Publish RPM packages
+        uses: ./.github/actions/delivery
+        with:
+          distrib: ${{ matrix.distrib }}
+          version: ${{ env.version }}
+          module_name: collect
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-collect-${{ matrix.distrib }}
+          stability: ${{ needs.get-version.outputs.stability }}
+          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
+
   delivery-debian:
     needs: [debian-packaging, create-version, get-version]
     if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
@@ -261,30 +290,9 @@ jobs:
           version: ${{ env.version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}-debbuild-centreon-collect-${{ matrix.distrib }}
-
-  delivery-centos:
-    needs: [rpm-packaging, create-version, get-version]
-    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
-    env:
-      version: ${{ needs.create-version.outputs.version }}
-    environment: ${{ needs.get-version.outputs.environment }}
-    runs-on: [self-hosted, common]
-    name: Delivery
-    strategy:
-      matrix:
-        distrib: [el7, el8]
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-
-      - name: Publish RPM packages
-        uses: ./.github/actions/delivery
-        with:
-          distrib: ${{ matrix.distrib }}
-          version: ${{ env.version }}
-          module_name: collect
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-collect-${{ matrix.distrib }}
+          stability: ${{ needs.get-version.outputs.stability }}
+          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   promote:
     needs: [get-version]
@@ -308,3 +316,6 @@ jobs:
           minor_version: ${{ needs.get-version.outputs.patch }}
           stability: ${{ needs.get-version.outputs.stability }}
           repository_name: standard
+          github_ref_name: ${{ github.ref_name }}
+          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_cloud: ${{ needs.get-version.outputs.release_cloud }}

@@ -134,6 +134,27 @@ Start Engine
         Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}
     END
 
+Ctn Start Engine With Extend Conf
+    ${count}    Get Engines Count
+    FOR    ${idx}    IN RANGE    0    ${count}
+        ${alias}    Catenate    SEPARATOR=    e    ${idx}
+        ${conf}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg
+        ${log}    Catenate    SEPARATOR=    ${VarRoot}    /log/centreon-engine/config    ${idx}
+        ${lib}    Catenate    SEPARATOR=    ${VarRoot}    /lib/centreon-engine/config    ${idx}
+        Create Directory    ${log}
+        Create Directory    ${lib}
+        TRY
+            Remove File    ${lib}/rw/centengine.cmd
+        EXCEPT
+            Log    can't remove ${lib}/rw/centengine.cmd don't worry
+        END
+        Start Process
+        ...    /usr/sbin/centengine
+        ...    --config-file\=/tmp/centengine_extend.json
+        ...    ${conf}
+        ...    alias=${alias}
+    END
+
 Restart Engine
     Stop Engine
     Start Engine
@@ -280,3 +301,16 @@ Process Service Result Hard
     ...    ${svc}
     ...    ${state}
     ...    ${output}
+
+Ctn Wait For Engine To Be Ready
+    [Arguments]    ${start}    ${nbEngine}=1
+    FOR    ${i}    IN RANGE    ${nbEngine}
+        # Let's wait for the external command check start
+        ${content}    Create List    check_for_external_commands()
+        ${result}    Find In Log With Timeout
+        ...    ${ENGINE_LOG}/config${i}/centengine.log
+        ...    ${start}    ${content}    60
+        Should Be True
+        ...    ${result}
+        ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.
+    END

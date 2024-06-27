@@ -457,6 +457,8 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->log_level_comments(new_cfg.log_level_comments());
   config->log_level_macros(new_cfg.log_level_macros());
   config->use_true_regexp_matching(new_cfg.use_true_regexp_matching());
+  config->use_send_recovery_notifications_anyways(
+      new_cfg.use_send_recovery_notifications_anyways());
   config->user(new_cfg.user());
 
   // Set this variable just the first time.
