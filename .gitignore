@@ -67,6 +67,7 @@ report.html
 
 # agent
 agent/scripts/centagent.service
+agent/conf/centagent.json
 opentelemetry-proto
 
 # bbdo

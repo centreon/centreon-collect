@@ -21,3 +21,4 @@ In the previous example, the second check for the first service will be schedule
 
 In case of check duration is too long, we might exceed maximum of concurrent checks. In that case checks will be executed as soon one will be ended.
 This means that the second check may start later than the scheduled time point (12:00:10) if the other first checks are too long. The order of checks is always respected even in case of a bottleneck.
+For example, a check lambda has a start_expected to 12:00, because of bottleneck, it starts at 12:15. Next start_expected of check lambda will then be 12:15 + check_period.

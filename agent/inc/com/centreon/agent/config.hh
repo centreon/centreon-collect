@@ -26,6 +26,8 @@ class config {
  public:
   enum log_type { to_stdout, to_file };
 
+  static const std::string_view config_schema;
+
  private:
   std::string _endpoint;
   spdlog::level::level_enum _log_level;
@@ -35,7 +37,7 @@ class config {
   unsigned _log_files_max_number;
 
   bool _encryption;
-  std::string _certificate_file;
+  std::string _public_cert_file;
   std::string _private_key_file;
   std::string _ca_certificate_file;
   std::string _ca_name;
@@ -53,7 +55,7 @@ class config {
   unsigned get_log_files_max_number() const { return _log_files_max_number; }
 
   bool use_encryption() const { return _encryption; }
-  const std::string& get_certificate_file() const { return _certificate_file; }
+  const std::string& get_public_cert_file() const { return _public_cert_file; }
   const std::string& get_private_key_file() const { return _private_key_file; }
   const std::string& get_ca_certificate_file() const {
     return _ca_certificate_file;
