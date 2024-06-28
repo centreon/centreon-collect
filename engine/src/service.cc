@@ -693,26 +693,29 @@ com::centreon::engine::service* add_service(
     engine_logger(log_config_error, basic)
         << "Error: Service comes from a database, therefore its service id "
         << "must not be null";
-    config_logger->error(
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
         "Error: Service comes from a database, therefore its service id must "
         "not be null");
     return nullptr;
   } else if (description.empty()) {
     engine_logger(log_config_error, basic)
         << "Error: Service description is not set";
-    config_logger->error("Error: Service description is not set");
+    SPDLOG_LOGGER_ERROR(config_logger, "Error: Service description is not set");
     return nullptr;
   } else if (host_name.empty()) {
     engine_logger(log_config_error, basic)
         << "Error: Host name of service '" << description << "' is not set";
-    config_logger->error("Error: Host name of service '{}' is not set",
-                         description);
+    SPDLOG_LOGGER_ERROR(config_logger,
+                        "Error: Host name of service '{}' is not set",
+                        description);
     return nullptr;
   } else if (check_command.empty()) {
     engine_logger(log_config_error, basic)
         << "Error: Check command of service '" << description << "' on host '"
         << host_name << "' is not set";
-    config_logger->error(
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
         "Error: Check command of service '{}' on host '{}' is not set",
         description, host_name);
     return nullptr;
@@ -724,7 +727,8 @@ com::centreon::engine::service* add_service(
         << "Error: The service '" << description
         << "' cannot be created because"
         << " host '" << host_name << "' does not exist (host_id is null)";
-    config_logger->error(
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
         "Error: The service '{}' cannot be created because host '{}' does not "
         "exist (host_id is null)",
         description, host_name);
@@ -734,7 +738,8 @@ com::centreon::engine::service* add_service(
         << "Error: The service '" << description
         << "' cannot be created because the host id corresponding to the host"
         << " '" << host_name << "' is not the same as the one in configuration";
-    config_logger->error(
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
         "Error: The service '{}' cannot be created because the host id "
         "corresponding to the host '{}' is not the same as the one in "
         "configuration",
@@ -749,7 +754,8 @@ com::centreon::engine::service* add_service(
         << "Error: Invalid max_attempts, check_interval, retry_interval"
            ", or notification_interval value for service '"
         << description << "' on host '" << host_name << "'";
-    config_logger->error(
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
         "Error: Invalid max_attempts, check_interval, retry_interval"
         ", or notification_interval value for service '{}' on host '{}'",
         description, host_name);
@@ -761,7 +767,8 @@ com::centreon::engine::service* add_service(
     engine_logger(log_config_error, basic)
         << "Error: Service '" << description << "' on host '" << host_name
         << "' has already been defined";
-    config_logger->error(
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
         "Error: Service '{}' on host '{}' has already been defined",
         description, host_name);
     return nullptr;
@@ -3874,7 +3881,8 @@ void service::resolve(uint32_t& w, uint32_t& e) {
     engine_logger(log_verification_error, basic)
         << "Error: Service description '" << name() << "' of host '"
         << _hostname << "' has problem in its notifier part: " << e.what();
-    config_logger->error(
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
         "Error: Service description '{}' of host '{}' has problem in its "
         "notifier part: {}",
         name(), _hostname, e.what());
@@ -3892,7 +3900,8 @@ void service::resolve(uint32_t& w, uint32_t& e) {
           << "' specified in service "
              "'"
           << name() << "' not defined anywhere!";
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error: Host '{}' specified in service '{}' not defined anywhere!",
           _hostname, name());
       errors++;
@@ -3953,7 +3962,8 @@ void service::resolve(uint32_t& w, uint32_t& e) {
         << "Error: The description string for service '" << name()
         << "' on host '" << _hostname
         << "' contains one or more illegal characters.";
-    config_logger->error(
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
         "Error: The description string for service '{}' on host '{}' contains "
         "one or more illegal characters.",
         name(), _hostname);

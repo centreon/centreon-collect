@@ -89,6 +89,13 @@ using metric_request_ptr =
                         ExportMetricsServiceRequest>;
 
 /**
+ * @brief the server grpc model used is the callback model
+ * So you need to give to the server this handler to handle incoming requests
+ *
+ */
+using metric_handler = std::function<void(const metric_request_ptr&)>;
+
+/**
  * @brief some metrics will be computed and other not
  * This bean represents a DataPoint, it embeds all ExportMetricsServiceRequest
  * (_parent attribute) in order to avoid useless copies. Many attributes are
@@ -113,6 +120,8 @@ class otl_data_point {
   const google::protobuf::Message& _data_point;
   const ::google::protobuf::RepeatedPtrField<
       ::opentelemetry::proto::common::v1::KeyValue>& _data_point_attributes;
+  const ::google::protobuf::RepeatedPtrField<
+      ::opentelemetry::proto::metrics::v1::Exemplar>& _exemplars;
   uint64_t _nano_timestamp;
   data_point_type _type;
   double _value;
@@ -175,6 +184,12 @@ class otl_data_point {
   }
 
   double get_value() const { return _value; }
+
+  const ::google::protobuf::RepeatedPtrField<
+      ::opentelemetry::proto::metrics::v1::Exemplar>&
+  get_exemplars() const {
+    return _exemplars;
+  }
 
   template <typename data_point_handler>
   static void extract_data_points(const metric_request_ptr& metrics,

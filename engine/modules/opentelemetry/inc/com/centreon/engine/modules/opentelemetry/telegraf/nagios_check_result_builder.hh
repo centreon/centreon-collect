@@ -20,6 +20,7 @@
 #define CCE_MOD_OTL_NAGIOS_CONVERTER_HH
 
 namespace com::centreon::engine::modules::opentelemetry::telegraf {
+
 /**
  * @brief telegraf accept to use nagios plugins
  * This converter parse metrics special naming to rebuild original check_result

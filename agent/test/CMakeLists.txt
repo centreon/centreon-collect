@@ -20,6 +20,9 @@
 
 add_executable(ut_agent 
     config_test.cc
+    check_test.cc 
+    check_exec_test.cc
+    scheduler_test.cc
     test_main.cc
     ${TESTS_SOURCES})
 
@@ -37,6 +40,7 @@ set_target_properties(
 target_link_libraries(ut_agent PRIVATE 
     centagent_lib 
     centreon_common
+    centreon_process
     GTest::gtest 
     GTest::gtest_main 
     GTest::gmock 

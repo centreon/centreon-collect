@@ -87,17 +87,26 @@ host_serv_attributes_extractor::host_serv_attributes_extractor(
       [](po::options_description& desc) {
         desc.add_options()(
             "host_path", po::value<std::string>(),
-            "where to find host name. Example: "
-            "resourceMetrics.scopeMetrics.metrics.dataPoints.attributes.host");
-        desc.add_options()("service_path", po::value<std::string>(),
-                           "where to find service description. Example: "
-                           "resourceMetrics.scopeMetrics.metrics.dataPoints."
-                           "attributes.service");
+            "where to find host name. Example:\n"
+            "resource_metrics.scopeMetrics.metrics.dataPoints.attributes.host\n"
+            "or\n"
+            "resource_metrics.resource.attributes.host\n"
+            "or\n"
+            "resource_metrics.scope_metrics.scope.attributes.host");
+        desc.add_options()(
+            "service_path", po::value<std::string>(),
+            "where to find service description. Example:\n"
+            "resource_metrics.scope_metrics.data.data_points.attributes."
+            "service\n"
+            "or\n"
+            "resource_metrics.resource.attributes.service\n"
+            "or\n"
+            "resource_metrics.scope_metrics.scope.attributes.service");
       });
 
   static auto parse_path = [](const std::string& path, attribute_owner& attr,
                               std::string& key) {
-    static re2::RE2 path_extractor("\\.(\\w+)\\.attributes\\.(\\w+)");
+    static re2::RE2 path_extractor("(?i)\\.(\\w+)\\.attributes\\.([\\.\\w]+)");
     std::string sz_attr;
     if (!RE2::PartialMatch(path, path_extractor, &sz_attr, &key)) {
       throw exceptions::msg_fmt(

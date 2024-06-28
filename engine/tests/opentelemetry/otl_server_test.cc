@@ -32,6 +32,8 @@
 using namespace com::centreon::engine::modules::opentelemetry;
 using namespace ::opentelemetry::proto::collector::metrics::v1;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class otl_client {
   std::shared_ptr<::grpc::Channel> _channel;
   std::unique_ptr<MetricsService::Stub> _stub;
@@ -81,18 +83,18 @@ class otl_server_test : public ::testing::Test {
   template <class metric_handler_type>
   void start_server(const grpc_config::pointer& conf,
                     const metric_handler_type& handler) {
-    _server = otl_server::load(conf, handler, spdlog::default_logger());
+    std::shared_ptr<centreon_agent::agent_config> agent_conf =
+        std::make_shared<centreon_agent::agent_config>(60, 100, 60, 10);
+    _server = otl_server::load(g_io_context, conf, agent_conf, handler,
+                               spdlog::default_logger());
   }
 };
 
 TEST_F(otl_server_test, unsecure_client_server) {
   grpc_config::pointer serv_conf =
       std::make_shared<grpc_config>("127.0.0.1:6789", false);
-  std::shared_ptr<ExportMetricsServiceRequest> received;
-  auto handler =
-      [&](const std::shared_ptr<ExportMetricsServiceRequest>& request) {
-        received = request;
-      };
+  metric_request_ptr received;
+  auto handler = [&](const metric_request_ptr& request) { received = request; };
   start_server(serv_conf, handler);
 
   otl_client client("127.0.0.1:6789");
