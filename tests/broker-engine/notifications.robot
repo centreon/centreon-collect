@@ -457,8 +457,11 @@ not9
     Ctn Kindly Stop Broker
 
 not10
-    [Documentation]    This test case involves scheduling downtime on a down host that already had a critical notification.When The Host return to UP state we should receive a recovery notification.
+    [Documentation]    This test case involves scheduling downtime on a down host that already had
+    ...    a critical notification. When The Host return to UP state we should receive a recovery
+    ...    notification.
     [Tags]    broker    engine    host    notification
+    Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Config Notifications
     Ctn Config Host Command Status    ${0}    checkh1    2
@@ -935,9 +938,11 @@ not15
     Ctn Kindly Stop Broker
 
 not16
-    [Documentation]    notification for a dependensies services group
+    [Documentation]    notification for dependencies services group
     [Tags]    broker    engine    services    unified_sql
+    Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${4}    ${1}
+    Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Ctn Add service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
@@ -998,17 +1003,18 @@ not16
 
     ## Time to set the service3 to CRITICAL HARD.
 
-    ${cmd_id}    Ctn Get Service Command Id    ${3}
-    Ctn Set Command Status    ${cmd_id}    ${0}
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    ${cmd_service_3}    Ctn Get Service Command Id    ${3}
+    ${cmd_service_4}    Ctn Get Service Command Id    ${4}
+
 
     Ctn Process Service Result Hard    host_3    service_3    ${0}    The service_3 is OK
 
     ${result}    Ctn Check Service Status With Timeout    host_3    service_3    ${0}    60    HARD
     Should Be True    ${result}    Service (host_3,service_3) should be OK HARD
-    
+
     ##Time to set the service3 to CRITICAL HARD.
-    ${cmd_id}    Ctn Get Service Command Id    ${3}
-    Ctn Set Command Status    ${cmd_id}    ${2}
+    ${start}    Ctn Get Round Current Date
 
     Ctn Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
 
@@ -1020,8 +1026,7 @@ not16
     Should Be True    ${result}    The notification is not sent for service3
 
     ## Time to set the service3 to OK hard
-    ${cmd_id}    Ctn Get Service Command Id    ${3}
-    Ctn Set Command Status    ${cmd_id}    ${0}
+    ${start}    Ctn Get Round Current Date
 
     Ctn Process Service Result Hard    host_3    service_3    ${0}    The service_3 is OK
 
@@ -1033,8 +1038,7 @@ not16
     Should Be True    ${result}    The notification is not sent for service3
 
     ## Time to set the service1 to CRITICAL HARD.
-    ${cmd_id}    Ctn Get Service Command Id    ${1}
-    Ctn Set Command Status    ${cmd_id}    ${2}
+    ${start}    Ctn Get Round Current Date
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
     ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
@@ -1045,8 +1049,7 @@ not16
     Should Be True    ${result}    The notification is not sent for service1
 
     ## Time to set the service3 to CRITICAL HARD.
-    ${cmd_id}    Ctn Get Service Command Id    ${3}
-    Ctn Set Command Status    ${cmd_id}    ${2}
+    ${start}    Ctn Get Round Current Date
 
     Ctn Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
 
@@ -1058,8 +1061,7 @@ not16
     Should Be True    ${result}    The notification is sent for service3: dependency not working
 
     ## Time to set the service4 to CRITICAL HARD.
-    ${cmd_id}    Ctn Get Service Command Id    ${4}
-    Ctn Set Command Status    ${cmd_id}    ${2}
+    ${start}    Ctn Get Round Current Date
 
     Ctn Process Service Result Hard    host_4    service_4    ${2}    The service_4 is CRITICAL
 
@@ -1072,8 +1074,7 @@ not16
     Should Be True    ${result}    The notification is sent for service4: dependency not working
 
     ## Time to set the service1 to OK hard
-    ${cmd_id}    Ctn Get Service Command Id    ${1}
-    Ctn Set Command Status    ${cmd_id}    ${0}
+    ${start}    Ctn Get Round Current Date
 
     Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
 
