@@ -18,6 +18,14 @@ contents:
   - src: "../lib/{10-neb,15-stats,20-bam,20-storage,20-unified_sql,50-tcp,50-grpc,60-tls,70-rrd,70-lua,80-sql}.so"
     dst: "/usr/share/centreon/lib/centreon-broker/"
 
+  - src: "../lib/caching_sha2_password.so"
+    dst: "/usr/lib64/centreon-broker/caching_sha2_password.so"
+    packager: rpm
+
+  - src: "../lib/caching_sha2_password.so"
+    dst: "/usr/lib/x86_64-linux-gnu/centreon-broker/caching_sha2_password.so"
+    packager: deb
+
   - src: "../broker/script/centreon-broker.logrotate"
     dst: "/etc/logrotate.d/cbd"
     type: config|noreplace
