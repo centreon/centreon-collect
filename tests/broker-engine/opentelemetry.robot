@@ -119,11 +119,12 @@ BEOTEL_TELEGRAF_CHECK_HOST
     # check without feed
     ${start}    Ctn Get Round Current Date
     Ctn Schedule Forced Host Check    host_1
-    ${result}    Ctn Check Host Check Status With Timeout
+    ${result}    Ctn Check Host Output Resource Status With Timeout
     ...    host_1
     ...    35
     ...    ${start}
     ...    0
+    ...    HARD
     ...    (No output returned from host check)
     Should Be True    ${result}    hosts table not updated
 
@@ -138,7 +139,7 @@ BEOTEL_TELEGRAF_CHECK_HOST
     ${start}    Ctn Get Round Current Date
     Ctn Schedule Forced Host Check    host_1
 
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start}    0  HARD  OK
     Should Be True    ${result}    hosts table not updated
 
     # check then feed, three times to modify hard state
@@ -201,12 +202,13 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
 
     ${start}    Ctn Get Round Current Date
     Ctn Schedule Forced Svc Check    host_1    service_1
-    ${result}    Ctn Check Service Check Status With Timeout
+    ${result}    Ctn Check Service Output Resource Status With Timeout
     ...    host_1
     ...    service_1
     ...    35
     ...    ${start}
     ...    0
+    ...    HARD
     ...    (No output returned from plugin)
     Should Be True    ${result}    services table not updated
 
@@ -219,24 +221,24 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     ${start}    Ctn Get Round Current Date
     Ctn Schedule Forced Svc Check    host_1    service_1
 
-    ${result}    Ctn Check Service Check Status With Timeout    host_1    service_1    30    ${start}    0    OK
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    0  HARD   OK
     Should Be True    ${result}    services table not updated
 
     # check then feed, three times to modify hard state
     ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Svc Check    host_1    service_1
-    Sleep    2
     ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
     Ctn Send Otl To Engine    4317    ${resources_list}
-    Ctn Schedule Forced Svc Check    host_1    service_1
     Sleep    2
+    Ctn Schedule Forced Svc Check    host_1    service_1
     ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
     Ctn Send Otl To Engine    4317    ${resources_list}
-    Ctn Schedule Forced Svc Check    host_1    service_1
     Sleep    2
+    Ctn Schedule Forced Svc Check    host_1    service_1
     ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
     Ctn Send Otl To Engine    4317    ${resources_list}
-    ${result}    Ctn Check Service Check Status With Timeout    host_1    service_1    30    ${start}    2    CRITICAL
+    Sleep    2
+    Ctn Schedule Forced Svc Check    host_1    service_1
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    2  HARD  CRITICAL
 
     Should Be True    ${result}    services table not updated
 
