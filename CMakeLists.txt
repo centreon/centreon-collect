@@ -46,53 +46,14 @@ set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems
 
 project("Centreon Collect" C CXX)
 
-option(WITH_ASAN
-       "Add the libasan to check memory leaks and other memory issues." OFF)
-
-option(WITH_TSAN
-       "Add the libtsan to check threads and other multithreading issues." OFF)
-if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_ID
-                                                STREQUAL "Clang")
-  message(
-    FATAL_ERROR "You can build broker with g++ or clang++. CMake will exit.")
-endif()
-
-option(WITH_MALLOC_TRACE "compile centreon-malloc-trace library." OFF)
-
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
 # set(CMAKE_CXX_COMPILER "clang++")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 
-option(DEBUG_ROBOT OFF)
+add_definitions("-DBOOST_PROCESS_USE_STD_FS=1")
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-if(WITH_TSAN)
-  set(CMAKE_CXX_FLAGS_DEBUG
-      "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=thread")
-  set(CMAKE_LINKER_FLAGS_DEBUG
-      "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=thread")
-endif()
-
-if(WITH_ASAN)
-  set(CMAKE_BUILD_TYPE Debug)
-  if(WITH_CLANG)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
-    set(CMAKE_LINKER_FLAGS_DEBUG
-        "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=address")
-  else()
-    set(CMAKE_CXX_FLAGS_DEBUG
-        "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-    set(CMAKE_LINKER_FLAGS_DEBUG
-        "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address"
-    )
-  endif()
-endif()
-
-set(ALLOW_DUPLICATE_EXECUTABLE TRUE)
-
-set(BUILD_ARGS "-w" "dupbuild=warn")
 
 #
 # Get distributions name
@@ -140,23 +101,7 @@ set(COLLECT_MAJOR 24)
 set(COLLECT_MINOR 05)
 set(COLLECT_PATCH 0)
 set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
-#import opentelemetry-proto
-add_custom_command(
-  OUTPUT ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/collector/metrics/v1/metrics_service.proto
-    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/metrics/v1/metrics.proto
-    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/common/v1/common.proto
-    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/resource/v1/resource.proto
-  COMMENT "get opentelemetry proto files from git repository"
-  COMMAND /bin/rm -rf  ${CMAKE_SOURCE_DIR}/opentelemetry-proto
-  COMMAND git ARGS clone --depth=1 --single-branch https://github.com/open-telemetry/opentelemetry-proto.git ${CMAKE_SOURCE_DIR}/opentelemetry-proto
-  WORKING_DIRECTORY  ${CMAKE_SOURCE_DIR}
-)
 
-add_custom_target(opentelemetry-proto-files DEPENDS  ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/collector/metrics/v1/metrics_service.proto
-    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/metrics/v1/metrics.proto
-    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/common/v1/common.proto
-    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/resource/v1/resource.proto
-)
 
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")

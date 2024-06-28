@@ -35,17 +35,17 @@ struct boost_process {
   boost_process(asio::io_context& io_context,
                 const std::string& exe_path,
                 const std::vector<std::string>& args)
-      : stdout(io_context),
-        stderr(io_context),
-        stdin(io_context),
+      : stdout_pipe(io_context),
+        stderr_pipe(io_context),
+        stdin_pipe(io_context),
         proc(io_context,
              exe_path,
              args,
-             proc::process_stdio{stdin, stdout, stderr}) {}
+             proc::process_stdio{stdin_pipe, stdout_pipe, stderr_pipe}) {}
 
-  asio::readable_pipe stdout;
-  asio::readable_pipe stderr;
-  asio::writable_pipe stdin;
+  asio::readable_pipe stdout_pipe;
+  asio::readable_pipe stderr_pipe;
+  asio::writable_pipe stdin_pipe;
   proc::process proc;
 };
 }  // namespace com::centreon::common::detail
@@ -169,7 +169,7 @@ void process::stdin_write_no_lock(const std::shared_ptr<std::string>& data) {
   } else {
     try {
       _write_pending = true;
-      _proc->stdin.async_write_some(
+      _proc->stdin_pipe.async_write_some(
           asio::buffer(*data),
           [me = shared_from_this(), caller = _proc, data](
               const boost::system::error_code& err, size_t nb_written) {
@@ -225,7 +225,7 @@ void process::on_stdin_write(const boost::system::error_code& err) {
 void process::stdout_read() {
   if (_proc) {
     try {
-      _proc->stdout.async_read_some(
+      _proc->stdout_pipe.async_read_some(
           asio::buffer(_stdout_read_buffer),
           [me = shared_from_this(), caller = _proc](
               const boost::system::error_code& err, size_t nb_read) {
@@ -276,7 +276,7 @@ void process::on_stdout_read(const boost::system::error_code& err,
 void process::stderr_read() {
   if (_proc) {
     try {
-      _proc->stderr.async_read_some(
+      _proc->stderr_pipe.async_read_some(
           asio::buffer(_stderr_read_buffer),
           [me = shared_from_this(), caller = _proc](
               const boost::system::error_code& err, size_t nb_read) {

@@ -34,14 +34,14 @@ static std::shared_ptr<streaming_client> _streaming_client;
 
 static std::shared_ptr<streaming_server> _streaming_server;
 
-static asio::signal_set _signals(*g_io_context, SIGTERM, SIGUSR1, SIGUSR2);
+static asio::signal_set _signals(*g_io_context, SIGTERM, SIGINT);
 
 static void signal_handler(const boost::system::error_code& error,
                            int signal_number) {
   if (!error) {
     switch (signal_number) {
-      case SIGTERM:
       case SIGINT:
+      case SIGTERM:
         SPDLOG_LOGGER_INFO(g_logger, "SIGTERM or SIGINT received");
         if (_streaming_client) {
           _streaming_client->shutdown();
@@ -51,20 +51,6 @@ static void signal_handler(const boost::system::error_code& error,
         }
         g_io_context->post([]() { g_io_context->stop(); });
         return;
-      case SIGUSR2:
-        SPDLOG_LOGGER_INFO(g_logger, "SIGUSR2 received");
-        if (g_logger->level()) {
-          g_logger->set_level(
-              static_cast<spdlog::level::level_enum>(g_logger->level() - 1));
-        }
-        break;
-      case SIGUSR1:
-        SPDLOG_LOGGER_INFO(g_logger, "SIGUSR1 received");
-        if (g_logger->level() < spdlog::level::off) {
-          g_logger->set_level(
-              static_cast<spdlog::level::level_enum>(g_logger->level() + 1));
-        }
-        break;
     }
     _signals.async_wait(signal_handler);
   }
@@ -89,34 +75,18 @@ static std::string read_file(const std::string& file_path) {
 }
 
 int main(int argc, char* argv[]) {
-  if (argc < 2) {
-    SPDLOG_ERROR(
-        "No config file passed in param.\nUsage: {} <path to json config file>",
-        argv[0]);
-    return 1;
-  }
-
-  if (!strcmp(argv[1], "--help")) {
-    SPDLOG_INFO(
-        "Usage: {} <path to json config file>\nSchema of the config "
-        "file is:\n{}",
-        argv[0], config::config_schema);
-    return 1;
-  }
+  const char* registry_path = "SOFTWARE\\Centreon\\CentreonMonitoringAgent";
 
   std::unique_ptr<config> conf;
   try {
-    conf = std::make_unique<config>(argv[1]);
+    conf = std::make_unique<config>(registry_path);
   } catch (const std::exception& e) {
-    SPDLOG_ERROR("fail to parse config file {}: {}", argv[1], e.what());
+    SPDLOG_ERROR("fail to read conf from registry {}: {}", registry_path,
+                 e.what());
     return 1;
   }
 
-  SPDLOG_INFO(
-      "centreon-monitoring-agent start, you can decrease log verbosity by kill "
-      "-USR1 "
-      "{} or increase by kill -USR2 {}",
-      getpid(), getpid());
+  SPDLOG_INFO("centreon-monitoring-agent start");
 
   const std::string logger_name = "centreon-monitoring-agent";
 
@@ -154,17 +124,10 @@ int main(int argc, char* argv[]) {
 
   spdlog::flush_every(std::chrono::seconds(1));
 
-  SPDLOG_LOGGER_INFO(g_logger,
-                     "centreon-monitoring-agent start, you can decrease log "
-                     "verbosity by kill -USR1 {} or increase by kill -USR2 {}",
-                     getpid(), getpid());
+  SPDLOG_LOGGER_INFO(g_logger, "centreon-monitoring-agent start");
   std::shared_ptr<com::centreon::common::grpc::grpc_config> grpc_conf;
 
   try {
-    // ignored but mandatory because of forks
-    _signals.add(SIGPIPE);
-    _signals.add(SIGINT);
-
     _signals.async_wait(signal_handler);
 
     grpc_conf = std::make_shared<com::centreon::common::grpc::grpc_config>(

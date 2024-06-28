@@ -36,6 +36,37 @@ class CentreonEngineEnvironment : public testing::Environment {
 std::shared_ptr<spdlog::logger> pool_logger =
     std::make_shared<spdlog::logger>("pool_logger");
 
+#ifdef _WINDOWS
+/**
+ *  Tester entry point.
+ *
+ *  @param[in] argc  Argument count.
+ *  @param[in] argv  Argument values.
+ *
+ *  @return 0 on success, any other value on failure.
+ */
+int main(int argc, char* argv[]) {
+  // GTest initialization.
+  testing::InitGoogleTest(&argc, argv);
+  sigignore(SIGPIPE);
+
+  auto _worker{asio::make_work_guard(*g_io_context)};
+
+  // Set specific environment.
+  testing::AddGlobalTestEnvironment(new CentreonEngineEnvironment());
+
+  std::thread asio_thread([] { g_io_context->run(); });
+  // Run all tests.
+  int ret = RUN_ALL_TESTS();
+  g_io_context->stop();
+  asio_thread.join();
+  com::centreon::common::pool::unload();
+  spdlog::shutdown();
+  return ret;
+}
+
+#else
+
 /**
  *  Tester entry point.
  *
@@ -61,3 +92,5 @@ int main(int argc, char* argv[]) {
   spdlog::shutdown();
   return ret;
 }
+
+#endif

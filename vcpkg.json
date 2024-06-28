@@ -15,6 +15,10 @@
     "boost-program-options",
     "rapidjson",
     "gtest",
+    "boost-beast",
+    "boost-exception",
+    "boost-serialization",
+    "libiconv",
     {
       "name": "libssh2",
       "platform": "linux"
@@ -25,10 +29,6 @@
     },
     {
       "name": "ryml",
-      "platform": "linux"
-    },
-    {
-      "name": "boost-beast",
       "platform": "linux"
     },
     {
@@ -44,20 +44,20 @@
       "platform": "linux"
     },
     {
-      "name": "boost-exception",
-      "platform": "linux"
-    },
-    {
-      "name": "boost-serialization",
-      "platform": "linux"
-    },
-    {
       "name": "boost-url",
       "platform": "linux"
     },
     {
       "name": "nlohmann-json",
       "platform": "linux"
+    },
+    {
+      "name": "upb",
+      "platform": "windows"
+    },
+    {
+      "name": "boost-filesystem",
+      "platform": "windows"
     }
   ]
 }

@@ -84,7 +84,7 @@ void connection_base::gest_keepalive(const response_ptr& resp) {
       if (std::regex_search(keep_alive_info->value().begin(),
                             keep_alive_info->value().end(), res,
                             keep_alive_time_out_r)) {
-        uint second_duration;
+        unsigned int second_duration;
         if (absl::SimpleAtoi(res[1].str(), &second_duration)) {
           _keep_alive_end =
               system_clock::now() + std::chrono::seconds(second_duration);
@@ -236,7 +236,8 @@ void http_connection::on_connect(const boost::beast::error_code& err,
  * callback is useless in this case but is mandatory to have the same interface
  * than https_connection
  *
- * @param callback called via io_context::post (must have the same signature as https)
+ * @param callback called via io_context::post (must have the same signature as
+ * https)
  */
 void http_connection::_on_accept(connect_callback_type&& callback) {
   unsigned expected = e_not_connected;

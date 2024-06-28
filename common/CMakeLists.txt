@@ -60,7 +60,6 @@ else()
 #we need not many things to just compile centreon-monitoring-agent (centagent)
   set(SOURCES 
     ${SRC_DIR}/perfdata.cc
-    ${SRC_DIR}/pool.cc 
     ${SRC_DIR}/rapidjson_helper.cc
   )
 endif()
