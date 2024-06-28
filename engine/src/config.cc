@@ -21,10 +21,10 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
+#include "common/engine_legacy_conf/parser.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;

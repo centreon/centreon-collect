@@ -19,8 +19,8 @@
 
 #include <gtest/gtest.h>
 #include <fstream>
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/globals.hh"
+#include "common/engine_legacy_conf/state.hh"
 
 #include <com/centreon/engine/configuration/applier/command.hh>
 #include <com/centreon/engine/configuration/applier/contact.hh>
@@ -30,11 +30,11 @@
 #include <com/centreon/engine/configuration/applier/servicegroup.hh>
 #include <com/centreon/engine/configuration/applier/state.hh>
 #include <com/centreon/engine/configuration/applier/timeperiod.hh>
-#include <com/centreon/engine/configuration/parser.hh>
 #include <com/centreon/engine/hostescalation.hh>
 #include <com/centreon/engine/macros.hh>
 #include <com/centreon/engine/macros/grab_host.hh>
 #include <com/centreon/engine/macros/process.hh>
+#include <common/engine_legacy_conf/parser.hh>
 #include "../helper.hh"
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"

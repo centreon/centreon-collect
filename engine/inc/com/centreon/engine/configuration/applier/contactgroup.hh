@@ -20,7 +20,7 @@
 #define CCE_CONFIGURATION_APPLIER_CONTACTGROUP_HH
 
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/configuration/contactgroup.hh"
+#include "common/engine_legacy_conf/contactgroup.hh"
 
 namespace com::centreon::engine {
 

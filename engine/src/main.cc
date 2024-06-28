@@ -51,8 +51,6 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/configuration/applier/logging.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/extended_conf.hh"
-#include "com/centreon/engine/configuration/parser.hh"
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/diagnostic.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/enginerpc.hh"
@@ -71,6 +69,8 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/io/directory_entry.hh"
 #include "com/centreon/logging/engine.hh"
+#include "common/engine_legacy_conf/parser.hh"
+#include "common/engine_legacy_conf/state.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;

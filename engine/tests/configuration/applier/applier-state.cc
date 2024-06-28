@@ -21,9 +21,9 @@
 #include <gtest/gtest.h>
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/extended_conf.hh"
-#include "com/centreon/engine/configuration/parser.hh"
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/globals.hh"
+#include "common/engine_legacy_conf/parser.hh"
+#include "common/engine_legacy_conf/state.hh"
 
 using namespace com::centreon::engine;
 

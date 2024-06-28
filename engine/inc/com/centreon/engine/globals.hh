@@ -24,12 +24,12 @@
 #include <stdio.h>
 
 #include "com/centreon/engine/circular_buffer.hh"
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/engine/events/timed_event.hh"
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/restart_stats.hh"
 #include "com/centreon/engine/utils.hh"
+#include "common/engine_legacy_conf/state.hh"
 #include "common/log_v2/log_v2.hh"
 
 /* Start/Restart statistics */

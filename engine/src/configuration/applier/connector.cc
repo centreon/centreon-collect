@@ -189,7 +189,6 @@ void applier::connector::remove_object(configuration::connector const& obj) {
  *
  *  @param[in] obj Unused.
  */
-void applier::connector::resolve_object(configuration::connector const& obj,
-                                        error_cnt& err) {
-  (void)obj;
-}
+void applier::connector::resolve_object(configuration::connector const& obj
+                                        [[maybe_unused]],
+                                        error_cnt& err [[maybe_unused]]) {}

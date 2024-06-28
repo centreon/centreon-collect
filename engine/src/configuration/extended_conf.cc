@@ -17,8 +17,8 @@
  */
 
 #include "com/centreon/engine/configuration/extended_conf.hh"
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_legacy_conf/state.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;

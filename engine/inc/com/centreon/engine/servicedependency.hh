@@ -19,9 +19,9 @@
  */
 #ifndef CCE_OBJECTS_SERVICEDEPENDENCY_HH
 #define CCE_OBJECTS_SERVICEDEPENDENCY_HH
-#include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/dependency.hh"
 #include "com/centreon/engine/hash.hh"
+#include "common/engine_legacy_conf/servicedependency.hh"
 
 /* Forward declaration. */
 namespace com::centreon::engine {

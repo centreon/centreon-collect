@@ -21,10 +21,10 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/tag.hh"
+#include "common/engine_legacy_conf/tag.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

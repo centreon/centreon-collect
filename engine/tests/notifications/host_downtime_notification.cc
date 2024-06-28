@@ -28,10 +28,10 @@
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
-#include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/timeperiod.hh"
+#include "common/engine_legacy_conf/host.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

@@ -352,13 +352,7 @@ configure_file("${INC_DIR}/compatibility/common.h.in"
                "${INC_DIR}/compatibility/common.h")
 
 # Locations definitions
-add_definitions(-DDEFAULT_STATUS_FILE="${ENGINE_VAR_LOG_DIR}/status.dat")
-add_definitions(-DDEFAULT_LOG_FILE="${ENGINE_VAR_LOG_DIR}/centengine.log")
 add_definitions(-DDEFAULT_LOG_ARCHIVE_PATH="${ENGINE_VAR_LOG_ARCHIVE_DIR}")
-add_definitions(-DDEFAULT_DEBUG_FILE="${ENGINE_VAR_LOG_DIR}/centengine.debug")
-add_definitions(-DDEFAULT_RETENTION_FILE="${ENGINE_VAR_LOG_DIR}/retention.dat")
-add_definitions(
-  -DDEFAULT_COMMAND_FILE="${ENGINE_VAR_LIB_DIR}/rw/centengine.cmd")
 add_definitions(-DDEFAULT_CONFIG_FILE="${PREFIX_ENGINE_CONF}/centengine.cfg")
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
@@ -508,6 +502,7 @@ target_link_libraries(
   ${PTHREAD_LIBRARIES}
   ${SOCKET_LIBRARIES}
   centreon_clib
+  engine_legacy_conf
   fmt::fmt
   spdlog::spdlog)
 

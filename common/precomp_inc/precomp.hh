@@ -37,6 +37,7 @@
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
+#include <absl/hash/hash.h>
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_replace.h>
 #include <absl/strings/str_split.h>

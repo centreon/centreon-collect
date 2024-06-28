@@ -19,13 +19,13 @@
 
 #include "com/centreon/engine/diagnostic.hh"
 #include <sys/stat.h>
-#include "com/centreon/engine/configuration/parser.hh"
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/process.hh"
+#include "common/engine_legacy_conf/parser.hh"
+#include "common/engine_legacy_conf/state.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

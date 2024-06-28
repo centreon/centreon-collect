@@ -20,10 +20,10 @@
 #include "com/centreon/engine/daterange.hh"
 
 #include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/configuration/daterange.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timeperiod.hh"
 #include "com/centreon/engine/timerange.hh"
+#include "common/engine_legacy_conf/daterange.hh"
 
 using namespace com::centreon::engine;
 

@@ -19,7 +19,7 @@
 #ifndef CENTREON_ENGINE_TESTS_HELPER_HH_
 #define CENTREON_ENGINE_TESTS_HELPER_HH_
 
-#include <com/centreon/engine/configuration/state.hh>
+#include <common/engine_legacy_conf/state.hh>
 
 extern com::centreon::engine::configuration::state* config;
 

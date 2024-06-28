@@ -20,7 +20,7 @@
 #define CCE_CONFIGURATION_APPLIER_HOSTGROUP_HH
 
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/configuration/hostgroup.hh"
+#include "common/engine_legacy_conf/hostgroup.hh"
 
 namespace com::centreon::engine {
 

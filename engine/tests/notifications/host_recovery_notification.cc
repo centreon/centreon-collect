@@ -24,10 +24,10 @@
 #include "../helper.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
-#include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostescalation.hh"
+#include "common/engine_legacy_conf/host.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
