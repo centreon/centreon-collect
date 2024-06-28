@@ -19,10 +19,13 @@
 
 #ifndef CCE_OBJECTS_TIMERANGE_HH
 #define CCE_OBJECTS_TIMERANGE_HH
-
+#include "com/centreon/engine/configuration/daterange.hh"
 
 namespace com::centreon::engine {
 class timerange {
+  uint64_t _range_start;
+  uint64_t _range_end;
+
  public:
   timerange(uint64_t start, uint64_t end);
   uint64_t get_range_start() const { return _range_start; };
@@ -35,15 +38,6 @@ class timerange {
   bool operator!=(timerange const& obj) const {
     return _range_start != obj._range_start || _range_end != obj._range_end;
   };
-  bool operator<(timerange const& obj) const {
-    if (_range_start != obj._range_start)
-      return (_range_start < obj._range_start);
-    return (_range_end < obj._range_end);
-  }
-
- private:
-  uint64_t _range_start;
-  uint64_t _range_end;
 };
 
 using timerange_list = std::list<timerange>;
@@ -53,6 +47,6 @@ std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::timerange const& obj);
 std::ostream& operator<<(std::ostream& os, timerange_list const& obj);
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_OBJECTS_TIMERANGE_HH

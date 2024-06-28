@@ -19,7 +19,7 @@
  */
 #include "com/centreon/engine/configuration/timeperiod.hh"
 
-#include "com/centreon/engine/timerange.hh"
+#include "com/centreon/engine/configuration/daterange.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
@@ -157,7 +157,7 @@ void timeperiod::merge(object const& obj) {
   MRG_TAB(_timeranges);
 
   // Merge exceptions.
-  for (unsigned int i(0); i < DATERANGE_TYPES; ++i) {
+  for (uint32_t i = 0; i < daterange::daterange_types; ++i) {
     for (std::list<daterange>::const_iterator it(tmpl._exceptions[i].begin()),
          end(tmpl._exceptions[i].end());
          it != end; ++it) {
@@ -219,7 +219,9 @@ std::string const& timeperiod::alias() const noexcept {
  *
  *  @return The exceptions value.
  */
-exception_array const& timeperiod::exceptions() const noexcept {
+std::array<std::list<configuration::daterange>,
+           configuration::daterange::daterange_types> const&
+timeperiod::exceptions() const noexcept {
   return _exceptions;
 }
 
@@ -246,7 +248,8 @@ std::string const& timeperiod::timeperiod_name() const noexcept {
  *
  *  @return The timeranges list.
  */
-days_array const& timeperiod::timeranges() const {
+const std::array<std::list<configuration::timerange>, 7>&
+timeperiod::timeranges() const {
   return _timeranges;
 }
 
@@ -258,8 +261,9 @@ days_array const& timeperiod::timeranges() const {
  *
  *  @return True on success, otherwise false.
  */
-bool timeperiod::_build_timeranges(std::string const& line,
-                                   timerange_list& timeranges) {
+bool timeperiod::_build_timeranges(
+    std::string const& line,
+    std::list<configuration::timerange>& timeranges) {
   auto timeranges_str = absl::StrSplit(line, ',');
   for (auto tr : timeranges_str) {
     tr = absl::StripAsciiWhitespace(tr);
@@ -308,11 +312,11 @@ bool timeperiod::_build_time_t(std::string_view time_str, unsigned long& ret) {
  *
  *  @return True on success, otherwise false.
  */
-bool timeperiod::_has_similar_daterange(std::list<daterange> const& lst,
-                                        daterange const& range) noexcept {
-  for (std::list<daterange>::const_iterator it(lst.begin()), end(lst.end());
-       it != end; ++it)
-    if (it->is_date_data_equal(range))
+bool timeperiod::_has_similar_daterange(
+    const std::list<configuration::daterange>& lst,
+    const configuration::daterange& range) noexcept {
+  for (auto& l : lst)
+    if (l.is_date_data_equal(range))
       return true;
   return false;
 }
@@ -359,11 +363,11 @@ bool timeperiod::_add_calendar_date(std::string const& line) {
       month_day_end = month_day_start;
     }
 
-    timerange_list timeranges;
+    std::list<configuration::timerange> timeranges;
     if (!_build_timeranges(line.substr(pos), timeranges))
       return false;
 
-    daterange range(daterange::calendar_date);
+    configuration::daterange range(daterange::calendar_date);
     range.set_syear(year_start);
     range.set_smon(month_start - 1);
     range.set_smday(month_day_start);
@@ -546,7 +550,7 @@ bool timeperiod::_add_other_date(std::string const& line) {
     }
     range.set_skip_interval(skip_interval);
 
-    timerange_list timeranges;
+    std::list<configuration::timerange> timeranges;
     if (!_build_timeranges(line.substr(pos), timeranges))
       return false;
 

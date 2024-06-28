@@ -79,8 +79,4 @@ void get_next_valid_time(time_t pref_time,
                          time_t* valid_time,
                          com::centreon::engine::timeperiod* tperiod);
 
-std::ostream& operator<<(std::ostream& os,
-                         com::centreon::engine::timeperiod const& obj);
-std::ostream& operator<<(std::ostream& os, timeperiodexclusion const& obj);
-
 #endif  // !CCE_OBJECTS_TIMEPERIOD_HH
