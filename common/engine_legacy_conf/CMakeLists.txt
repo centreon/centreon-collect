@@ -44,6 +44,7 @@ add_library(
   timeperiod.cc
 )
 
+add_dependencies(engine_legacy_conf pb_neb_lib)
 include_directories(${CMAKE_SOURCE_DIR}/common/inc)
 
 target_precompile_headers(engine_legacy_conf PRIVATE ${CMAKE_SOURCE_DIR}/common/precomp_inc/precomp.hh)
