@@ -92,6 +92,7 @@ void process::start_process() {
   try {
     _proc =
         std::make_shared<detail::boost_process>(*_io_context, _exe_path, _args);
+    SPDLOG_LOGGER_DEBUG(_logger, "process started: {}", _exe_path);
     _proc->proc.async_wait(
         [me = shared_from_this(), current = _proc](
             const boost::system::error_code& err, int raw_exit_status) {
@@ -135,9 +136,13 @@ void process::on_process_end(const boost::system::error_code& err,
 void process::kill() {
   absl::MutexLock l(&_protect);
   if (_proc) {
+    SPDLOG_LOGGER_INFO(_logger, "kill process");
     boost::system::error_code err;
     _proc->proc.terminate(err);
-    _proc.reset();
+    if (err) {
+      SPDLOG_LOGGER_INFO(_logger, "fail to kill {}: {}", _exe_path,
+                         err.message());
+    }
   }
 }
 
@@ -255,12 +260,12 @@ void process::stdout_read() {
 void process::on_stdout_read(const boost::system::error_code& err,
                              size_t nb_read) {
   if (err) {
-    if (err == asio::error::eof) {
+    if (err == asio::error::eof || err == asio::error::broken_pipe) {
       SPDLOG_LOGGER_DEBUG(_logger, "fail read from stdout of process {}: {}",
                           _exe_path, err.message());
     } else {
-      SPDLOG_LOGGER_ERROR(_logger, "fail read from stdout of process {}: {}",
-                          _exe_path, err.message());
+      SPDLOG_LOGGER_ERROR(_logger, "fail read from stdout of process {}: {} {}",
+                          _exe_path, err.value(), err.message());
     }
     return;
   }
@@ -306,12 +311,13 @@ void process::stderr_read() {
 void process::on_stderr_read(const boost::system::error_code& err,
                              size_t nb_read) {
   if (err) {
-    if (err == asio::error::eof) {
+    if (err == asio::error::eof || err == asio::error::broken_pipe) {
       SPDLOG_LOGGER_DEBUG(_logger, "fail read from stderr of process {}: {}",
                           _exe_path, err.message());
     } else {
-      SPDLOG_LOGGER_ERROR(_logger, "fail read from stderr of process {}: {}",
-                          _exe_path, err.message());
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "fail read from stderr of process {}: {} {}",
+                          _exe_path, err.value(), err.message());
     }
   } else {
     SPDLOG_LOGGER_TRACE(_logger, " process: {} read from stdout: {}", _exe_path,

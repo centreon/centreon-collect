@@ -31,6 +31,7 @@
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/storage/conflict_manager.hh"
 #include "com/centreon/common/perfdata.hh"
+#include "com/centreon/common/utf8.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -135,10 +136,10 @@ void conflict_manager::_storage_process_service_status(
           "(host_id,host_name,service_id,service_description,must_be_rebuild,"
           "special) VALUES (?,?,?,?,?,?)");
 
-    fmt::string_view hv(misc::string::truncate(
+    fmt::string_view hv(common::truncate_utf8(
         ss.host_name, get_centreon_storage_index_data_col_size(
                           centreon_storage_index_data_host_name)));
-    fmt::string_view sv(misc::string::truncate(
+    fmt::string_view sv(common::truncate_utf8(
         ss.service_description,
         get_centreon_storage_index_data_col_size(
             centreon_storage_index_data_service_description)));
@@ -264,10 +265,10 @@ void conflict_manager::_storage_process_service_status(
 
       std::deque<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
-        pd.resize_name(misc::string::adjust_size_utf8(
+        pd.resize_name(common::adjust_size_utf8(
             pd.name(), get_centreon_storage_metrics_col_size(
                            centreon_storage_metrics_metric_name)));
-        pd.resize_unit(misc::string::adjust_size_utf8(
+        pd.resize_unit(common::adjust_size_utf8(
             pd.unit(), get_centreon_storage_metrics_col_size(
                            centreon_storage_metrics_unit_name)));
         auto it_index_cache = _metric_cache.find({index_id, pd.name()});

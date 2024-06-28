@@ -1,4 +1,3 @@
-
 /**
  * Copyright 2024 Centreon
  * Licensed under the Apache License, Version 2.0(the "License");
@@ -15,6 +14,7 @@
  *
  * For more information : contact@centreon.com
  */
+
 #ifndef CENTREON_AGENT_CONFIG_HH
 #define CENTREON_AGENT_CONFIG_HH
 

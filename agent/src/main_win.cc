@@ -19,6 +19,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/win_eventlog_sink.h>
 
 #include "config.hh"
 #include "streaming_client.hh"
@@ -90,8 +91,14 @@ int main(int argc, char* argv[]) {
 
   const std::string logger_name = "centreon-monitoring-agent";
 
-  if (conf->get_log_type() == config::to_file) {
-    try {
+  auto create_event_logger = []() {
+    auto sink = std::make_shared<spdlog::sinks::win_eventlog_sink_mt>(
+        "CentreonMonitoringAgent");
+    g_logger = std::make_shared<spdlog::logger>("", sink);
+  };
+
+  try {
+    if (conf->get_log_type() == config::to_file) {
       if (!conf->get_log_file().empty()) {
         if (conf->get_log_files_max_size() > 0 &&
             conf->get_log_files_max_number() > 0) {
@@ -107,15 +114,17 @@ int main(int argc, char* argv[]) {
         }
       } else {
         SPDLOG_ERROR(
-            "log-type=file needs the option log-file => log to stdout");
-        g_logger = spdlog::stdout_color_mt(logger_name);
+            "log-type=file needs the option log-file => log to event log");
+        create_event_logger();
       }
-    } catch (const std::exception& e) {
-      SPDLOG_CRITICAL("Can't log to {}: {}", conf->get_log_file(), e.what());
-      return 2;
+    } else if (conf->get_log_type() == config::to_stdout) {
+      g_logger = spdlog::stdout_color_mt(logger_name);
+    } else {
+      create_event_logger();
     }
-  } else {
-    g_logger = spdlog::stdout_color_mt(logger_name);
+  } catch (const std::exception& e) {
+    SPDLOG_CRITICAL("Can't log to {}: {}", conf->get_log_file(), e.what());
+    return 2;
   }
 
   g_logger->set_level(conf->get_log_level());

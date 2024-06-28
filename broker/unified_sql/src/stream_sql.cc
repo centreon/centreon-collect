@@ -29,6 +29,7 @@
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
+#include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 
@@ -2154,25 +2155,25 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
   uint64_t res_id = 0;
   if (h.enabled()) {
     uint64_t sid = 0;
-    fmt::string_view name{misc::string::truncate(
-        h.name(), get_centreon_storage_resources_col_size(
-                      centreon_storage_resources_name))};
-    fmt::string_view address{misc::string::truncate(
+    fmt::string_view name{
+        common::truncate_utf8(h.name(), get_centreon_storage_resources_col_size(
+                                            centreon_storage_resources_name))};
+    fmt::string_view address{common::truncate_utf8(
         h.address(), get_centreon_storage_resources_col_size(
                          centreon_storage_resources_address))};
-    fmt::string_view alias{misc::string::truncate(
+    fmt::string_view alias{common::truncate_utf8(
         h.alias(), get_centreon_storage_resources_col_size(
                        centreon_storage_resources_alias))};
-    fmt::string_view parent_name{misc::string::truncate(
+    fmt::string_view parent_name{common::truncate_utf8(
         h.name(), get_centreon_storage_resources_col_size(
                       centreon_storage_resources_parent_name))};
-    fmt::string_view notes_url{misc::string::truncate(
+    fmt::string_view notes_url{common::truncate_utf8(
         h.notes_url(), get_centreon_storage_resources_col_size(
                            centreon_storage_resources_notes_url))};
-    fmt::string_view notes{misc::string::truncate(
+    fmt::string_view notes{common::truncate_utf8(
         h.notes(), get_centreon_storage_resources_col_size(
                        centreon_storage_resources_notes))};
-    fmt::string_view action_url{misc::string::truncate(
+    fmt::string_view action_url{common::truncate_utf8(
         h.action_url(), get_centreon_storage_resources_col_size(
                             centreon_storage_resources_action_url))};
 
@@ -2581,13 +2582,13 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
                             mapping::entry::invalid_on_zero);
         std::string full_output{
             fmt::format("{}\n{}", hscr.output(), hscr.long_output())};
-        size_t size = misc::string::adjust_size_utf8(
+        size_t size = common::adjust_size_utf8(
             full_output,
             get_centreon_storage_hosts_col_size(centreon_storage_hosts_output));
         b->set_value_as_str(10, fmt::string_view(full_output.data(), size));
-        size = misc::string::adjust_size_utf8(
-            hscr.perfdata(), get_centreon_storage_hosts_col_size(
-                                 centreon_storage_hosts_perfdata));
+        size = common::adjust_size_utf8(hscr.perfdata(),
+                                        get_centreon_storage_hosts_col_size(
+                                            centreon_storage_hosts_perfdata));
         b->set_value_as_str(11, fmt::string_view(hscr.perfdata().data(), size));
         b->set_value_as_bool(12, hscr.flapping());
         b->set_value_as_f64(13, hscr.percent_state_change());
@@ -2632,14 +2633,14 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
                                             mapping::entry::invalid_on_zero);
         std::string full_output{
             fmt::format("{}\n{}", hscr.output(), hscr.long_output())};
-        size_t size = misc::string::adjust_size_utf8(
+        size_t size = common::adjust_size_utf8(
             full_output,
             get_centreon_storage_hosts_col_size(centreon_storage_hosts_output));
         _hscr_update->bind_value_as_str(
             10, fmt::string_view(full_output.data(), size));
-        size = misc::string::adjust_size_utf8(
-            hscr.perfdata(), get_centreon_storage_hosts_col_size(
-                                 centreon_storage_hosts_perfdata));
+        size = common::adjust_size_utf8(hscr.perfdata(),
+                                        get_centreon_storage_hosts_col_size(
+                                            centreon_storage_hosts_perfdata));
         _hscr_update->bind_value_as_str(
             11, fmt::string_view(hscr.perfdata().data(), size));
         _hscr_update->bind_value_as_bool(12, hscr.flapping());
@@ -4031,19 +4032,19 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
 
   if (s.enabled()) {
     uint64_t sid = 0;
-    fmt::string_view name{misc::string::truncate(
+    fmt::string_view name{common::truncate_utf8(
         s.display_name(), get_centreon_storage_resources_col_size(
                               centreon_storage_resources_name))};
-    fmt::string_view parent_name{misc::string::truncate(
+    fmt::string_view parent_name{common::truncate_utf8(
         s.host_name(), get_centreon_storage_resources_col_size(
                            centreon_storage_resources_parent_name))};
-    fmt::string_view notes_url{misc::string::truncate(
+    fmt::string_view notes_url{common::truncate_utf8(
         s.notes_url(), get_centreon_storage_resources_col_size(
                            centreon_storage_resources_notes_url))};
-    fmt::string_view notes{misc::string::truncate(
+    fmt::string_view notes{common::truncate_utf8(
         s.notes(), get_centreon_storage_resources_col_size(
                        centreon_storage_resources_notes))};
-    fmt::string_view action_url{misc::string::truncate(
+    fmt::string_view action_url{common::truncate_utf8(
         s.action_url(), get_centreon_storage_resources_col_size(
                             centreon_storage_resources_action_url))};
 
@@ -4401,10 +4402,10 @@ void stream::_check_and_update_index_cache(const Service& ss) {
 
   auto it_index_cache = _index_cache.find({ss.host_id(), ss.service_id()});
 
-  fmt::string_view hv(misc::string::truncate(
+  fmt::string_view hv(common::truncate_utf8(
       ss.host_name(), get_centreon_storage_index_data_col_size(
                           centreon_storage_index_data_host_name)));
-  fmt::string_view sv(misc::string::truncate(
+  fmt::string_view sv(common::truncate_utf8(
       ss.description(), get_centreon_storage_index_data_col_size(
                             centreon_storage_index_data_service_description)));
   bool special = ss.type() == BA;
@@ -4649,11 +4650,11 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
                             mapping::entry::invalid_on_zero);
         std::string full_output{
             fmt::format("{}\n{}", sscr.output(), sscr.long_output())};
-        size_t size = misc::string::adjust_size_utf8(
+        size_t size = common::adjust_size_utf8(
             full_output, get_centreon_storage_services_col_size(
                              centreon_storage_services_output));
         b->set_value_as_str(11, fmt::string_view(full_output.data(), size));
-        size = misc::string::adjust_size_utf8(
+        size = common::adjust_size_utf8(
             sscr.perfdata(), get_centreon_storage_services_col_size(
                                  centreon_storage_services_perfdata));
         b->set_value_as_str(12, fmt::string_view(sscr.perfdata().data(), size));
@@ -4703,12 +4704,12 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
                                             mapping::entry::invalid_on_zero);
         std::string full_output{
             fmt::format("{}\n{}", sscr.output(), sscr.long_output())};
-        size_t size = misc::string::adjust_size_utf8(
+        size_t size = common::adjust_size_utf8(
             full_output, get_centreon_storage_services_col_size(
                              centreon_storage_services_output));
         _sscr_update->bind_value_as_str(
             11, fmt::string_view(full_output.data(), size));
-        size = misc::string::adjust_size_utf8(
+        size = common::adjust_size_utf8(
             sscr.perfdata(), get_centreon_storage_services_col_size(
                                  centreon_storage_services_perfdata));
         _sscr_update->bind_value_as_str(
@@ -4745,7 +4746,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
     if (_store_in_resources) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
-      size_t output_size = misc::string::adjust_size_utf8(
+      size_t output_size = common::adjust_size_utf8(
           sscr.output(), get_centreon_storage_resources_col_size(
                              centreon_storage_resources_output));
       _logger_sql->debug(
