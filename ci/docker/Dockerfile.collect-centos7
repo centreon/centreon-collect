@@ -41,16 +41,16 @@ RUN yum -y upgrade && yum -y update && \
 RUN yum-config-manager --enable rhel-server-rhscl-7-rpms
 RUN bash -e <<EOF
 for file in $(grep -l mirrorlist /etc/yum.repos.d/CentOS-SCLo*);do
-	echo "Disabling mirrorlist.centos.org"
-	sed -i 's/mirrorlist\=/\#mirrorlist\=/g' $file
+  echo "Disabling mirrorlist.centos.org"
+  sed -i 's/mirrorlist\=/\#mirrorlist\=/g' $file
   if [[ "$file" == "/etc/yum.repos.d/CentOS-SCLo-scl.repo" ]];then
-	  echo "Enabling vault.centos.org in scl."
-	  sed -i 's/\#baseurl\=http\:\/\/mirror\.centos\.org/baseurl\=http\:\/\/vault\.centos\.org/g' $file
+    echo "Enabling vault.centos.org in scl."
+    sed -i 's/\#baseurl\=http\:\/\/mirror\.centos\.org/baseurl\=http\:\/\/vault\.centos\.org/g' $file
   elif [[ "$file" == "/etc/yum.repos.d/CentOS-SCLo-scl-rh.repo" ]];then
-	  echo "Enabling vault.centos.org in scl-rh"
-	  sed -i 's/\#\ baseurl\=http\:\/\/mirror\.centos\.org/baseurl\=http\:\/\/vault\.centos\.org/g' $file
-	else
-		echo "Not a SCL repo file"
+    echo "Enabling vault.centos.org in scl-rh"
+    sed -i 's/\#\ baseurl\=http\:\/\/mirror\.centos\.org/baseurl\=http\:\/\/vault\.centos\.org/g' $file
+  else
+    echo "Not a SCL repo file"
   fi
 done
 EOF
