@@ -27,6 +27,10 @@ using namespace com::centreon::engine::modules::opentelemetry::centreon_agent;
 namespace com::centreon::engine::modules::opentelemetry::centreon_agent::
     detail {
 
+/**
+ * @brief used to create centreon perfdata from agent metric data
+ *
+ */
 struct perf_data {
   std::optional<double> warning_le, warning_lt, warning_ge, warning_gt;
   std::optional<double> critical_le, critical_lt, critical_ge, critical_gt;
@@ -54,6 +58,12 @@ const absl::flat_hash_map<std::string_view, std::optional<double> perf_data::*>
                                    {"min", &perf_data::min},
                                    {"max", &perf_data::max}};
 
+/**
+ * @brief all metrics sub values are stored in exemplars, so we apply above
+ * table to perfdata
+ *
+ * @param exemplar
+ */
 void perf_data::apply_exemplar(
     const ::opentelemetry::proto::metrics::v1::Exemplar& exemplar) {
   if (!exemplar.filtered_attributes().empty()) {
@@ -65,6 +75,11 @@ void perf_data::apply_exemplar(
   }
 }
 
+/**
+ * @brief create a nagios style perfdata string from protobuf received data
+ *
+ * @param to_append
+ */
 void perf_data::append_to_string(std::string* to_append) {
   if (warning_le) {
     absl::StrAppend(to_append, "@", *warning_le, ":");
@@ -115,7 +130,7 @@ void perf_data::append_to_string(std::string* to_append) {
 bool agent_check_result_builder::_build_result_from_metrics(
     metric_name_to_fifo& fifos,
     commands::result& res) {
-  // first we search last state timestamp
+  // first we search last state timestamp from status
   uint64_t last_time = 0;
 
   for (auto& metric_to_fifo : fifos) {

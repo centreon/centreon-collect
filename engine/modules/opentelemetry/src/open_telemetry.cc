@@ -53,12 +53,14 @@ void open_telemetry::_reload() {
       std::make_unique<otl_config>(_config_file_path, *_io_context);
 
   if (new_conf->get_grpc_config()) {
-    if (!_conf || *new_conf->get_grpc_config() != *_conf->get_grpc_config()) {
+    if (!_conf || !_conf->get_grpc_config() ||
+        *new_conf->get_grpc_config() != *_conf->get_grpc_config()) {
       this->_create_otl_server(new_conf->get_grpc_config(),
                                new_conf->get_centreon_agent_config());
     }
-    if (_conf && *_conf->get_centreon_agent_config() !=
-                     *new_conf->get_centreon_agent_config()) {
+    if (_conf && _conf->get_centreon_agent_config() &&
+        *_conf->get_centreon_agent_config() !=
+            *new_conf->get_centreon_agent_config()) {
       _otl_server->update_agent_config(new_conf->get_centreon_agent_config());
     }
   } else {  // only reverse connection

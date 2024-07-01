@@ -25,6 +25,11 @@
 
 namespace com::centreon::engine::modules::opentelemetry::centreon_agent {
 
+/**
+ * @brief this class is a grpc service provided by otel_server for incoming
+ * centreon monitoring agent connection
+ *
+ */
 class agent_service : public agent::AgentService::Service,
                       public std::enable_shared_from_this<agent_service> {
   std::shared_ptr<boost::asio::io_context> _io_context;

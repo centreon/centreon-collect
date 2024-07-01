@@ -62,6 +62,11 @@ static constexpr std::string_view _config_schema(R"(
 }
 )");
 
+/**
+ * @brief Construct a new agent config::agent from json data
+ *
+ * @param json_config_v
+ */
 agent_config::agent_config(const rapidjson::Value& json_config_v) {
   static json_validator validator(_config_schema);
 
@@ -85,6 +90,14 @@ agent_config::agent_config(const rapidjson::Value& json_config_v) {
   }
 }
 
+/**
+ * @brief Constructor used by tests
+ *
+ * @param check_interval
+ * @param max_concurrent_checks
+ * @param export_period
+ * @param check_timeout
+ */
 agent_config::agent_config(uint32_t check_interval,
                            uint32_t max_concurrent_checks,
                            uint32_t export_period,
@@ -94,6 +107,15 @@ agent_config::agent_config(uint32_t check_interval,
       _export_period(export_period),
       _check_timeout(check_timeout) {}
 
+/**
+ * @brief Constructor used by tests
+ *
+ * @param check_interval
+ * @param max_concurrent_checks
+ * @param export_period
+ * @param check_timeout
+ * @param endpoints
+ */
 agent_config::agent_config(
     uint32_t check_interval,
     uint32_t max_concurrent_checks,
@@ -106,6 +128,13 @@ agent_config::agent_config(
       _export_period(export_period),
       _check_timeout(check_timeout) {}
 
+/**
+ * @brief equality operator
+ *
+ * @param right
+ * @return true
+ * @return false
+ */
 bool agent_config::operator==(const agent_config& right) const {
   if (_check_interval != right._check_interval ||
       _max_concurrent_checks != right._max_concurrent_checks ||

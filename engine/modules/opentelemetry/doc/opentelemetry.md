@@ -216,7 +216,7 @@ Every time engine configuration is updated, we calculate configuration for each 
 So, the opentelemetry engine server supports two services, opentelemetry service and agent streaming service.
 OpenTelemetry data is different from telegraf one:
 * host service attributes are stored in resource_metrics.resource.attributes
-* performance data is stored in exemplar, service status is stored in status metric
+* performance data (min, max, critical lt, warning gt...) is stored in exemplar, service status is stored in status metric
   
 Example:
 ```json

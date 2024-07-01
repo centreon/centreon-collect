@@ -26,6 +26,12 @@
 
 namespace com::centreon::engine::modules::opentelemetry::centreon_agent {
 
+/**
+ * @brief this class manages connection with centreon monitoring agent
+ * reverse connection or no
+ *
+ * @tparam bireactor_class (grpc::bireactor<,>)
+ */
 template <class bireactor_class>
 class agent_impl
     : public bireactor_class,

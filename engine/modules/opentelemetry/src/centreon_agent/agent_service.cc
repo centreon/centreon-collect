@@ -23,6 +23,10 @@ using namespace com::centreon::engine::modules::opentelemetry::centreon_agent;
 
 namespace com::centreon::engine::modules::opentelemetry::centreon_agent {
 
+/**
+ * @brief managed incoming centreon monitoring agent connection
+ *
+ */
 class server_bireactor
     : public agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
                                                   agent::MessageToAgent>> {

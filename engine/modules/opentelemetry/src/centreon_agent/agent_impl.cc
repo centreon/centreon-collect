@@ -150,6 +150,8 @@ static bool add_command_to_agent_conf(
 
 /**
  * @brief this function must be called in the engine main thread
+ * It calculates agent configuration, if different to the older, it sends it to
+ * agent
  *
  * @tparam bireactor_class
  */
@@ -199,6 +201,12 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
   }
 }
 
+/**
+ * @brief manages incoming request (init or otel data)
+ *
+ * @tparam bireactor_class
+ * @param request
+ */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::on_request(
     const std::shared_ptr<agent::MessageFromAgent>& request) {
@@ -219,6 +227,12 @@ void agent_impl<bireactor_class>::on_request(
   }
 }
 
+/**
+ * @brief send request to agent
+ *
+ * @tparam bireactor_class
+ * @param request
+ */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::_write(
     const std::shared_ptr<agent::MessageToAgent>& request) {
@@ -232,6 +246,12 @@ void agent_impl<bireactor_class>::_write(
   start_write();
 }
 
+/**
+ * @brief all grpc streams are stored in an static container
+ *
+ * @tparam bireactor_class
+ * @param strm
+ */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::register_stream(
     const std::shared_ptr<agent_impl>& strm) {
@@ -239,6 +259,11 @@ void agent_impl<bireactor_class>::register_stream(
   _instances.insert(strm);
 }
 
+/**
+ * @brief start an asynchronous read
+ *
+ * @tparam bireactor_class
+ */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::start_read() {
   absl::MutexLock l(&_protect);
@@ -253,6 +278,12 @@ void agent_impl<bireactor_class>::start_read() {
   bireactor_class::StartRead(to_read.get());
 }
 
+/**
+ * @brief we have receive a request or an eof
+ *
+ * @tparam bireactor_class
+ * @param ok
+ */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::OnReadDone(bool ok) {
   if (ok) {
@@ -275,6 +306,11 @@ void agent_impl<bireactor_class>::OnReadDone(bool ok) {
   }
 }
 
+/**
+ * @brief starts an asynchronous write
+ *
+ * @tparam bireactor_class
+ */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::start_write() {
   std::shared_ptr<agent::MessageToAgent> to_send;
@@ -292,6 +328,12 @@ void agent_impl<bireactor_class>::start_write() {
   bireactor_class::StartWrite(to_send.get());
 }
 
+/**
+ * @brief write handler
+ *
+ * @tparam bireactor_class
+ * @param ok
+ */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::OnWriteDone(bool ok) {
   if (ok) {
@@ -312,6 +354,12 @@ void agent_impl<bireactor_class>::OnWriteDone(bool ok) {
   }
 }
 
+/**
+ * @brief called when server agent connection is closed
+ * When grpc layers call this handler, oject must be deleted
+ *
+ * @tparam bireactor_class
+ */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::OnDone() {
   /**grpc has a bug, sometimes if we delete this class in this handler as it is
@@ -329,6 +377,13 @@ void agent_impl<bireactor_class>::OnDone() {
   });
 }
 
+/**
+ * @brief called when client agent connection is closed
+ * When grpc layers call this handler, oject must be deleted
+ *
+ * @tparam bireactor_class
+ * @param status status passed to Finish agent side method
+ */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::OnDone(const ::grpc::Status& status) {
   /**grpc has a bug, sometimes if we delete this class in this handler as it is
@@ -353,12 +408,22 @@ void agent_impl<bireactor_class>::OnDone(const ::grpc::Status& status) {
   });
 }
 
+/**
+ * @brief just log, must be inherited
+ *
+ * @tparam bireactor_class
+ */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::shutdown() {
   SPDLOG_LOGGER_DEBUG(_logger, "{:p} {}::shutdown", static_cast<void*>(this),
                       _class_name);
 }
 
+/**
+ * @brief static method used to shutdown all connections
+ *
+ * @tparam bireactor_class
+ */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::shutdown_all() {
   std::set<std::shared_ptr<agent_impl>> to_shutdown;
