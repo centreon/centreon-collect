@@ -147,7 +147,7 @@ jobs:
           esac
 
           case "$BRANCHNAME" in
-            develop | dev-[2-9][0-9].[0-9][0-9].x)
+            develop | dev-[2-9][0-9].[0-9][0-9].x |develop-tun)
               STABILITY="unstable"
               ENV="development"
               ;;
