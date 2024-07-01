@@ -10,9 +10,8 @@ RUN echo 'http_caching=none' >> /etc/yum.conf && \
     sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf && \
     dnf install -y dnf-plugins-core
 RUN dnf config-manager --set-enabled powertools
-RUN curl -o centreon-release.rpm "http://yum-1.centreon.com/standard/21.10/el8/stable/noarch/RPMS/centreon-release-21.10-1.el8.noarch.rpm"
-RUN dnf install --nogpgcheck centreon-release.rpm
-RUN dnf config-manager --set-enabled 'centreon-testing*'
+RUN dnf config-manager --add-repo https://packages.centreon.com/artifactory/rpm-standard/22.10/el8/centreon-22.10.repo
+RUN dnf config-manager --set-enabled 'centreon-22.10-testing*'
 RUN curl -LsS "https://r.mariadb.com/downloads/mariadb_repo_setup" | bash -s -- --os-type=rhel --os-version=8 --mariadb-server-version="mariadb-10.5"
 RUN dnf clean all && dnf install -y cmake \
     gcc \
@@ -42,7 +41,7 @@ RUN dnf clean all && dnf install -y cmake \
     rpm-build
 RUN dnf update libarchive
 
-RUN pip3 install conan==1.57.0 --prefix=/usr --upgrade
+RUN pip3 install conan==1.62.0 --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt

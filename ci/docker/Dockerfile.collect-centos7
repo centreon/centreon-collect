@@ -12,6 +12,19 @@ RUN curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/
     curl http://yum-1.centreon.com/standard/21.10/el7/stable/x86_64/RPMS/rrdtool-devel-1.7.2-1.el7.centos.x86_64.rpm --output rrdtool-devel-1.7.2-1.el7.centos.x86_64.rpm && \
     curl http://yum-1.centreon.com/standard/21.10/el7/stable/x86_64/RPMS/rrdtool-1.7.2-1.el7.centos.x86_64.rpm --output rrdtool-1.7.2-1.el7.centos.x86_64.rpm && \
     curl https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip --output sonar-scanner-cli-4.7.0.2747-linux.zip
+RUN bash -e <<'EOF'
+for file in $(grep -l mirrorlist /etc/yum.repos.d/CentOS-*);do
+  if [[ "$file" == "/etc/yum.repos.d/CentOS-CR.repo" ]];then
+    echo "Enabling vault.centos.org in $file"
+    sed -i 's/baseurl\=http\:\/\/mirror\.centos\.org/baseurl\=http\:\/\/vault\.centos\.org/g' $file
+  else
+    echo "Disabling mirrorlist.centos.org in $file"
+    sed -i 's/mirrorlist\=/\#mirrorlist\=/g' $file
+    echo "Enabling vault.centos.org in $file"
+    sed -i 's/\#baseurl\=http\:\/\/mirror\.centos\.org/baseurl\=http\:\/\/vault\.centos\.org/g' $file
+  fi
+done
+EOF
 RUN yum -y upgrade && yum -y update && \
     yum -y install make \
     openssh-server \
@@ -31,6 +44,21 @@ RUN yum -y upgrade && yum -y update && \
     rrdtool*.rpm  && \
     yum clean all
 RUN yum-config-manager --enable rhel-server-rhscl-7-rpms
+RUN bash -e <<'EOF'
+for file in $(grep -l mirrorlist /etc/yum.repos.d/CentOS-SCLo*);do
+  echo "Disabling mirrorlist.centos.org in $file"
+  sed -i 's/mirrorlist\=/\#mirrorlist\=/g' $file
+  if [[ "$file" == "/etc/yum.repos.d/CentOS-SCLo-scl.repo" ]];then
+    echo "Enabling vault.centos.org in scl."
+    sed -i 's/\#\ baseurl\=http\:\/\/mirror\.centos\.org/baseurl\=http\:\/\/vault\.centos\.org/g' $file
+  elif [[ "$file" == "/etc/yum.repos.d/CentOS-SCLo-scl-rh.repo" ]];then
+    echo "Enabling vault.centos.org in scl-rh"
+    sed -i 's/\#baseurl\=http\:\/\/mirror\.centos\.org/baseurl\=http\:\/\/vault\.centos\.org/g' $file
+  else
+    echo "Not a SCL repo file"
+  fi
+done
+EOF
 RUN yum -y install devtoolset-9 \
     MariaDB*.rpm \
     rh-python38 \
@@ -49,7 +77,7 @@ RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
 COPY conanfile.txt .
 RUN cat conanfile.txt
 RUN source /opt/rh/devtoolset-9/enable && source /opt/rh/rh-python38/enable && \
-    pip3 install conan==1.57.0 --upgrade &&\
+    pip3 install conan==1.62.0 --upgrade &&\
     /opt/rh/rh-python38/root/usr/local/bin/conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
 
 RUN unzip -q sonar-scanner-cli-4.7.0.2747-linux.zip
