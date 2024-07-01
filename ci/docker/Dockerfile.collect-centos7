@@ -12,6 +12,14 @@ RUN curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/
     curl http://yum-1.centreon.com/standard/21.10/el7/stable/x86_64/RPMS/rrdtool-devel-1.7.2-1.el7.centos.x86_64.rpm --output rrdtool-devel-1.7.2-1.el7.centos.x86_64.rpm && \
     curl http://yum-1.centreon.com/standard/21.10/el7/stable/x86_64/RPMS/rrdtool-1.7.2-1.el7.centos.x86_64.rpm --output rrdtool-1.7.2-1.el7.centos.x86_64.rpm && \
     curl https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip --output sonar-scanner-cli-4.7.0.2747-linux.zip
+RUN bash -e <<EOF
+for file in $(grep -l mirrorlist /etc/yum.repos.d/CentOS-*);do
+	echo "Disabling mirrorlist.centos.org"
+	sed -i 's/mirrorlist\=/\#mirrorlist\=/g' $file
+	echo "Enabling vault.centos.org"
+	sed -i 's/\#baseurl\=http\:\/\/mirror\.centos\.org/baseurl\=http\:\/\/vault\.centos\.org/g' $file
+done
+EOF
 RUN yum -y upgrade && yum -y update && \
     yum -y install make \
     openssh-server \
