@@ -20,6 +20,7 @@
 project("Centreon common" C CXX)
 
 add_subdirectory(log_v2)
+add_subdirectory(engine_legacy_conf)
 
 # Set directories.
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/common")

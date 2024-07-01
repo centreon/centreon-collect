@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/engine/configuration/severity.hh"
+#include "common/engine_legacy_conf/severity.hh"
 #include <gtest/gtest.h>
 
 #include "helper.hh"

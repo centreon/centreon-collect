@@ -22,7 +22,7 @@
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/configuration/state.hh"
+#include "common/engine_legacy_conf/state.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;

@@ -16,7 +16,7 @@
  * For more information : contact@centreon.com
  *
  */
-#include "com/centreon/engine/configuration/contact.hh"
+#include "common/engine_legacy_conf/contact.hh"
 #include <gtest/gtest.h>
 
 #include "helper.hh"

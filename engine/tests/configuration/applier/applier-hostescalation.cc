@@ -18,13 +18,13 @@
  */
 
 #include <gtest/gtest.h>
-#include <com/centreon/engine/configuration/applier/host.hh>
-#include <com/centreon/engine/configuration/applier/hostescalation.hh>
-#include <com/centreon/engine/configuration/applier/state.hh>
-#include <com/centreon/engine/configuration/state.hh>
 #include <com/centreon/engine/host.hh>
 #include <com/centreon/engine/hostescalation.hh>
 #include <helper.hh>
+#include "com/centreon/engine/configuration/applier/host.hh"
+#include "com/centreon/engine/configuration/applier/hostescalation.hh"
+#include "com/centreon/engine/configuration/applier/state.hh"
+#include "common/engine_legacy_conf/state.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

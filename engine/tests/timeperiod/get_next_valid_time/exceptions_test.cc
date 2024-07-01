@@ -19,10 +19,10 @@
 #include <gtest/gtest.h>
 #include "../../timeperiod/utils.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timeperiod.hh"
+#include "common/engine_legacy_conf/timeperiod.hh"
 
 #include "helper.hh"
 

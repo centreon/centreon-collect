@@ -21,8 +21,8 @@
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
-#include "com/centreon/engine/configuration/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
+#include "common/engine_legacy_conf/contact.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

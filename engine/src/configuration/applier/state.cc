@@ -43,7 +43,6 @@
 #include "com/centreon/engine/configuration/applier/severity.hh"
 #include "com/centreon/engine/configuration/applier/tag.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/broker_sink.hh"
@@ -52,6 +51,7 @@
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xpddefault.hh"
 #include "com/centreon/engine/xsddefault.hh"
+#include "common/engine_legacy_conf/command.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;

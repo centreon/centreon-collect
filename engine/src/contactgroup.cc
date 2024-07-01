@@ -16,7 +16,7 @@
  * For more information : contact@centreon.com
  *
  */
-#include "com/centreon/engine/configuration/contactgroup.hh"
+#include "common/engine_legacy_conf/contactgroup.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/contact.hh"

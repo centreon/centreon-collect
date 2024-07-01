@@ -28,11 +28,11 @@
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/extended_conf.hh"
-#include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/logging/engine.hh"
+#include "common/engine_legacy_conf/parser.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::events;

@@ -32,17 +32,24 @@ add_definitions(-DCENTREON_CURRENT_YEAR="${CENTREON_CURRENT_YEAR}")
 
 if(DEFINED ENV{VCPKG_ROOT})
   set(VCPKG_ROOT "$ENV{VCPKG_ROOT}")
-  message(STATUS "TOOLCHAIN set to ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
-  set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file")
+  message(
+    STATUS "TOOLCHAIN set to ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+  set(CMAKE_TOOLCHAIN_FILE
+      "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      CACHE STRING "Vcpkg toolchain file")
 else()
-  message(STATUS "TOOLCHAIN set to ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
-  set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file")
+  message(
+    STATUS
+      "TOOLCHAIN set to ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+  )
+  set(CMAKE_TOOLCHAIN_FILE
+      "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      CACHE STRING "Vcpkg toolchain file")
 endif()
 
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file")
+set(CMAKE_TOOLCHAIN_FILE
+    "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    CACHE STRING "Vcpkg toolchain file")
 
 project("Centreon Collect" C CXX)
 
@@ -142,14 +149,13 @@ set(COLLECT_PATCH 0)
 set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${COLLECT_VERSION}\")
 
-if (DEBUG_ROBOT)
+if(DEBUG_ROBOT)
   add_definitions(-DDEBUG_ROBOT)
 endif()
 
 # ########### CONSTANTS ###########
 set(USER_BROKER centreon-broker)
 set(USER_ENGINE centreon-engine)
-
 
 find_package(fmt CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
@@ -168,12 +174,14 @@ pkg_check_modules(LIBSSH2 REQUIRED libssh2)
 
 # There is a bug with grpc. It is not put in the triplet directory. So we have
 # to search for its plugin.
-file(GLOB_RECURSE GRPC_CPP_PLUGIN_EXE
-  RELATIVE ${CMAKE_BINARY_DIR} grpc_cpp_plugin)
-find_program(GRPC_CPP_PLUGIN
+file(
+  GLOB_RECURSE GRPC_CPP_PLUGIN_EXE
+  RELATIVE ${CMAKE_BINARY_DIR}
+  grpc_cpp_plugin)
+find_program(
+  GRPC_CPP_PLUGIN
   NAMES ${GRPC_CPP_PLUGIN_EXE}
-  PATHS ${CMAKE_BINARY_DIR}
-  REQUIRED
+  PATHS ${CMAKE_BINARY_DIR} REQUIRED
   NO_DEFAULT_PATH)
 
 set(PROTOBUF_LIB_DIR ${Protobuf_DIR}/../../lib)
@@ -181,19 +189,25 @@ set(OTLP_LIB_DIR ${opentelemetry-cpp_DIR}/../../lib)
 set(VCPKG_INCLUDE_DIR ${Protobuf_INCLUDE_DIR})
 include(GNUInstallDirs)
 
-#import opentelemetry-proto
+# import opentelemetry-proto
 add_custom_command(
-  OUTPUT ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/collector/metrics/v1/metrics_service.proto
+  OUTPUT
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/collector/metrics/v1/metrics_service.proto
     ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/metrics/v1/metrics.proto
     ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/common/v1/common.proto
     ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/resource/v1/resource.proto
   COMMENT "get opentelemetry proto files from git repository"
-  COMMAND /bin/rm -rf  ${CMAKE_SOURCE_DIR}/opentelemetry-proto
-  COMMAND git ARGS clone --depth=1 --single-branch https://github.com/open-telemetry/opentelemetry-proto.git ${CMAKE_SOURCE_DIR}/opentelemetry-proto
-  WORKING_DIRECTORY  ${CMAKE_SOURCE_DIR}
-)
+  COMMAND /bin/rm -rf ${CMAKE_SOURCE_DIR}/opentelemetry-proto
+  COMMAND
+    git ARGS clone --depth=1 --single-branch
+    https://github.com/open-telemetry/opentelemetry-proto.git
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-add_custom_target(opentelemetry-proto-files DEPENDS  ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/collector/metrics/v1/metrics_service.proto
+add_custom_target(
+  opentelemetry-proto-files
+  DEPENDS
+    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/collector/metrics/v1/metrics_service.proto
     ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/metrics/v1/metrics.proto
     ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/common/v1/common.proto
     ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/resource/v1/resource.proto
@@ -210,6 +224,11 @@ set(ENGINE_VAR_LOG_ARCHIVE_DIR
     "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine/archives")
 set(ENGINE_VAR_LIB_DIR
     "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-engine")
+add_definitions(-DDEFAULT_COMMAND_FILE="${ENGINE_VAR_LIB_DIR}/rw/centengine.cmd"
+                -DDEFAULT_DEBUG_FILE="${ENGINE_VAR_LOG_DIR}/centengine.debug"
+		-DDEFAULT_LOG_FILE="${ENGINE_VAR_LOG_DIR}/centengine.log"
+                -DDEFAULT_RETENTION_FILE="${ENGINE_VAR_LOG_DIR}/retention.dat"
+                -DDEFAULT_STATUS_FILE="${ENGINE_VAR_LOG_DIR}/status.dat")
 
 set(CMAKE_INSTALL_PREFIX "/usr")
 option(WITH_TESTING "Build unit tests." OFF)
@@ -227,11 +246,8 @@ endif()
 
 set(protobuf_MODULE_COMPATIBLE True)
 
-include_directories(${CMAKE_SOURCE_DIR}
-  ${VCPKG_INCLUDE_DIR}
-  fmt::fmt
-  spdlog::spdlog
-  ${CMAKE_SOURCE_DIR}/clib/inc)
+include_directories(${CMAKE_SOURCE_DIR} ${VCPKG_INCLUDE_DIR} fmt::fmt
+                    spdlog::spdlog ${CMAKE_SOURCE_DIR}/clib/inc)
 
 add_subdirectory(clib)
 add_subdirectory(common)
@@ -242,10 +258,9 @@ add_subdirectory(connectors)
 add_subdirectory(ccc)
 add_subdirectory(agent)
 
-if (WITH_MALLOC_TRACE)
+if(WITH_MALLOC_TRACE)
   add_subdirectory(malloc-trace)
 endif()
-
 
 add_custom_target(test-broker COMMAND tests/ut_broker)
 add_custom_target(test-engine COMMAND tests/ut_engine)

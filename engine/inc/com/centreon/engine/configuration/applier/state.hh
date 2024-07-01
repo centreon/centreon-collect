@@ -19,8 +19,8 @@
 #define CCE_CONFIGURATION_APPLIER_STATE_HH
 
 #include "com/centreon/engine/configuration/applier/difference.hh"
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/servicedependency.hh"
+#include "common/engine_legacy_conf/state.hh"
 
 namespace com::centreon::engine {
 

@@ -17,10 +17,10 @@
  *
  */
 
-#include "com/centreon/engine/configuration/tag.hh"
+#include "common/engine_legacy_conf/tag.hh"
 #include <gtest/gtest.h>
 
-#include "com/centreon/engine/configuration/object.hh"
+#include "common/engine_legacy_conf/object.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

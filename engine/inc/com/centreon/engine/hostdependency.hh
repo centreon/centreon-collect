@@ -19,8 +19,8 @@
 #ifndef CCE_OBJECTS_HOSTDEPENDENCY_HH
 #define CCE_OBJECTS_HOSTDEPENDENCY_HH
 
-#include "com/centreon/engine/configuration/hostdependency.hh"
 #include "com/centreon/engine/dependency.hh"
+#include "common/engine_legacy_conf/hostdependency.hh"
 
 /* Forward declaration. */
 namespace com::centreon::engine {

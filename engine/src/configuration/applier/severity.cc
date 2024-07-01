@@ -21,10 +21,10 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/severity.hh"
+#include "common/engine_legacy_conf/severity.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
