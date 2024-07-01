@@ -14,14 +14,14 @@ RUN curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/
     curl https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip --output sonar-scanner-cli-4.7.0.2747-linux.zip
 RUN bash -e <<EOF
 for file in $(grep -l mirrorlist /etc/yum.repos.d/CentOS-*);do
-  if [[ $file == "/etc/yum.repos.d/CentOS-CR.repo" ]];then
+  if [[ "$file" == "/etc/yum.repos.d/CentOS-CR.repo" ]];then
     echo "Enabling vault.centos.org in $file"
-    sed -i 's/baseurl\=http\:\/\/mirror\.centos\.org/baseurl\=http\:\/\/vault\.centos\.org/g' $file
+    sed -i "s/baseurl\=http\:\/\/mirror\.centos\.org/baseurl\=http\:\/\/vault\.centos\.org/g" $file
   else
     echo "Disabling mirrorlist.centos.org in $file"
-    sed -i 's/mirrorlist\=/\#mirrorlist\=/g' $file
+    sed -i "s/mirrorlist\=/\#mirrorlist\=/g" $file
     echo "Enabling vault.centos.org in $file"
-    sed -i 's/\#baseurl\=http\:\/\/mirror\.centos\.org/baseurl\=http\:\/\/vault\.centos\.org/g' $file
+    sed -i "s/\#baseurl\=http\:\/\/mirror\.centos\.org/baseurl\=http\:\/\/vault\.centos\.org/g" $file
   fi
 done
 EOF
