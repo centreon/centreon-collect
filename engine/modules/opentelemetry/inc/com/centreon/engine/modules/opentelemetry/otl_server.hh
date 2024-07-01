@@ -24,6 +24,7 @@
 #include "otl_data_point.hh"
 
 #include "com/centreon/common/grpc/grpc_server.hh"
+#include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_service.hh"
 
 namespace com::centreon::engine::modules::opentelemetry {
 
@@ -32,21 +33,18 @@ class metric_service;
 };
 
 /**
- * @brief the server grpc model used is the callback model
- * So you need to give to the server this handler to handle incoming requests
- *
- */
-using metric_handler = std::function<void(const metric_request_ptr&)>;
-
-/**
  * @brief grpc metric receiver server
  * must be constructed with load method
  *
  */
 class otl_server : public common::grpc::grpc_server_base {
   std::shared_ptr<detail::metric_service> _service;
+  std::shared_ptr<centreon_agent::agent_service> _agent_service;
+  absl::Mutex _protect;
 
-  otl_server(const grpc_config::pointer& conf,
+  otl_server(const std::shared_ptr<boost::asio::io_context>& io_context,
+             const grpc_config::pointer& conf,
+             const centreon_agent::agent_config::pointer& agent_config,
              const metric_handler& handler,
              const std::shared_ptr<spdlog::logger>& logger);
   void start();
@@ -56,9 +54,15 @@ class otl_server : public common::grpc::grpc_server_base {
 
   ~otl_server();
 
-  static pointer load(const grpc_config::pointer& conf,
-                      const metric_handler& handler,
-                      const std::shared_ptr<spdlog::logger>& logger);
+  static pointer load(
+      const std::shared_ptr<boost::asio::io_context>& io_context,
+      const grpc_config::pointer& conf,
+      const centreon_agent::agent_config::pointer& agent_config,
+      const metric_handler& handler,
+      const std::shared_ptr<spdlog::logger>& logger);
+
+  void update_agent_config(
+      const centreon_agent::agent_config::pointer& agent_config);
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry

@@ -98,7 +98,9 @@ class open_telemetry : public commands::otel::open_telemetry_base {
       const telegraf::conf_server_config::pointer& conf);
 
  protected:
-  virtual void _create_otl_server(const grpc_config::pointer& server_conf);
+  virtual void _create_otl_server(
+      const grpc_config::pointer& server_conf,
+      const centreon_agent::agent_config::pointer& agent_conf);
   void _on_metric(const metric_request_ptr& metric);
   void _reload();
   void _start_second_timer();

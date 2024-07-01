@@ -207,3 +207,97 @@ An example of configuration:
         }
     }
   ```
+
+### centreon monitoring agent
+Event if all protobuf objects are opentelemetry objects, grpc communication is made in streaming mode. It is more efficient, it allows reverse connection (engine can connect to an agent running in a DMZ) and 
+Engine can send configuration on each config update.
+You can find all grpc definitions are agent/proto/agent.proto.
+Every time engine configuration is updated, we calculate configuration for each connected agent and send it on the wire if we find a difference with the old configuration. That's why each connection has a ```agent::MessageToAgent _last_config``` attribute.
+So, the opentelemetry engine server supports two services, opentelemetry service and agent streaming service.
+OpenTelemetry data is different from telegraf one:
+* host service attributes are stored in resource_metrics.resource.attributes
+* performance data is stored in exemplar, service status is stored in status metric
+  
+Example:
+```json
+  resource_metrics {
+    resource {
+      attributes {
+        key: "host.name"
+        value {
+          string_value: "host_1"
+        }
+      }
+      attributes {
+        key: "service.name"
+        value {
+          string_value: "service_1"
+        }
+      }
+    }
+    scope_metrics {
+      metrics {
+        name: "status"
+        description: "Test check 456 "
+        gauge {
+          data_points {
+            time_unix_nano: 1719840466101937188
+            as_int: 2
+          }
+        }
+      }
+      metrics {
+        name: "metric"
+        gauge {
+          data_points {
+            time_unix_nano: 1719840466101937188
+            exemplars {
+              as_double: 0.87999999523162842
+              filtered_attributes {
+                key: "crit_gt"
+              }
+            }
+            exemplars {
+              as_double: 0
+              filtered_attributes {
+                key: "crit_lt"
+              }
+            }
+            exemplars {
+              as_double: 0.6600000262260437
+              filtered_attributes {
+                key: "warn_gt"
+              }
+            }
+            exemplars {
+              as_double: 0
+              filtered_attributes {
+                key: "warn_lt"
+              }
+            }
+            as_int: 1
+          }
+        }
+      }
+    }
+  }
+}
+```
+Parsing of this format is done by ```agent_check_result_builder``` class
+
+Configuration of agent is divided in two parts:
+* A common part to all agents: 
+  ```protobuf
+    uint32 check_interval = 2;
+    //limit the number of active checks in order to limit charge
+    uint32 max_concurrent_checks = 3;
+    //period of metric exports (in seconds)
+    uint32 export_period = 4;
+    //after this timeout, process is killed (in seconds)
+    uint32 check_timeout = 5;
+  ```
+* A list of services that agent have to check
+  
+The first part is owned by agent protobuf service (agent_service.cc), the second is build by a common code shared with telegraf server (conf_helper.hh)
+
+So when centengine receives a HUP signal, opentelemetry::reload check configuration changes on each established connection and update also agent service conf part1 which is used to configure future incoming connections.
