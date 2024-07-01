@@ -42,7 +42,7 @@ RUN dnf clean all && dnf install -y cmake \
     rpm-build
 RUN dnf update libarchive
 
-RUN pip3 install conan==1.57.0 --prefix=/usr --upgrade
+RUN pip3 install conan==1.62.0 --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt
