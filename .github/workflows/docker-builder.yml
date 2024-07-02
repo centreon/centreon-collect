@@ -40,6 +40,14 @@ jobs:
             image: centreon-collect-alma9-test
             tag: ${{ needs.get-version.outputs.test_img_version }}
           - runner: collect
+            dockerfile: centreon-collect-mysql-alma9
+            image: centreon-collect-mysql-alma9
+            tag: ${{ needs.get-version.outputs.img_version }}
+          - runner: collect
+            dockerfile: centreon-collect-mysql-alma9-test
+            image: centreon-collect-mysql-alma9-test
+            tag: ${{ needs.get-version.outputs.test_img_version }}
+          - runner: collect
             dockerfile: centreon-collect-debian-bullseye
             image: centreon-collect-debian-bullseye
             tag: ${{ needs.get-version.outputs.img_version }}

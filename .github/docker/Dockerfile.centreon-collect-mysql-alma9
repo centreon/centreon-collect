@@ -13,16 +13,24 @@ dnf config-manager --set-enabled crb
 
 dnf install -y epel-release
 
+echo '[goreleaser]
+name=GoReleaser
+baseurl=https://repo.goreleaser.com/yum/
+enabled=1
+gpgcheck=0' | tee /etc/yum.repos.d/goreleaser.repo
+
 dnf --best install -y cmake \
     gcc \
     gcc-c++ \
+    gdb \
     gettext \
     git \
     ninja-build \
     openssh-server \
-    mariadb-server \
-    mariadb \
+    mysql-server \
+    mysql \
     gnutls-devel \
+    iproute \
     libgcrypt-devel \
     lua-devel \
     make \
@@ -32,16 +40,13 @@ dnf --best install -y cmake \
     perl-Thread-Queue \
     rpm-build \
     rrdtool-devel \
-    selinux-policy-devel \
     yum-utils \
     perl-interpreter \
     rpm-build \
     procps-ng \
     zstd \
+    nfpm \
     sudo
-
-# TEMPORARY PYTHON UPGRADE TO 3.18 TO HELP WITH DATA_FILTER ISSUE
-dnf upgrade -y python3
 
 pip3 install conan==1.64.0 --prefix=/usr --upgrade
 rm -rf ~/.conan/profiles/default

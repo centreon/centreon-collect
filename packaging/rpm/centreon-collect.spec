@@ -186,10 +186,21 @@ Requires: gnutls >= 3.3.29
 Requires: lua
 Requires: centreon-broker = %{version}-%{release}
 Requires: centreon-broker-storage = %{version}-%{release}
+Requires: centreon-broker-caching_sha2_password = %{version}-%{release}
 
 %description -n centreon-broker-core
 %{COMMIT_HASH}
 Centreon core holds Centreon Broker's default modules;
+
+
+%package -n centreon-broker-caching_sha2_password
+Summary: caching_sha2_password plugind provided by mariafb connector.
+Group: Application/System
+License: Apache-2.0
+
+%description -n centreon-broker-caching_sha2_password
+%{COMMIT_HASH}
+caching_sha2_password plugind provided by mariadb connector.
 
 
 %package -n centreon-broker-storage
@@ -510,6 +521,11 @@ fi
 %{_datadir}/centreon/lib/centreon-broker/60-tls.so
 %{_datadir}/centreon/lib/centreon-broker/70-lua.so
 %{_datadir}/centreon/lib/centreon-broker/80-sql.so
+
+%files -n centreon-broker-caching_sha2_password
+%defattr(-,root,root,-)
+%{_libdir}/centreon-broker/caching_sha2_password.so
+
 %{_sysconfdir}/logrotate.d/cbd
 %defattr(0775,centreon-broker,centreon-broker,-)
 %{_datadir}/centreon-broker
