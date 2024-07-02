@@ -92,6 +92,7 @@ void process::start_process() {
   try {
     _proc =
         std::make_shared<detail::boost_process>(*_io_context, _exe_path, _args);
+    SPDLOG_LOGGER_TRACE(_logger, "process started: {}", _exe_path);
     _proc->proc.async_wait(
         [me = shared_from_this(), current = _proc](
             const boost::system::error_code& err, int raw_exit_status) {
