@@ -82,7 +82,7 @@ namespace com::centreon::engine::modules::opentelemetry::centreon_agent {
                         ]
                     }
                 ],
-                "asInt": "30"
+                "asDouble": 30
             }
         ]
     }
