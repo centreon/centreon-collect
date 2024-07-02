@@ -60,7 +60,9 @@ extern std::shared_ptr<asio::io_context> g_io_context;
 class open_telemetry
     : public com::centreon::engine::modules::opentelemetry::open_telemetry {
  protected:
-  void _create_otl_server(const grpc_config::pointer& server_conf) override {}
+  void _create_otl_server(
+      const grpc_config::pointer& server_conf,
+      const centreon_agent::agent_config::pointer&) override {}
 
  public:
   open_telemetry(const std::string_view config_file_path,

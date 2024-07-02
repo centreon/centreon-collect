@@ -41,14 +41,17 @@ class TestEngine : public ::testing::Test {
       std::string const& name,
       bool full,
       const std::string& notif = "a") const;
-  configuration::host new_configuration_host(std::string const& hostname,
-                                             std::string const& contacts,
-                                             uint64_t hst_id = 12);
+  configuration::host new_configuration_host(
+      std::string const& hostname,
+      std::string const& contacts,
+      uint64_t hst_id = 12,
+      const std::string_view& connector = "");
   configuration::service new_configuration_service(
       std::string const& hostname,
       std::string const& description,
       std::string const& contacts,
-      uint64_t svc_id = 13);
+      uint64_t svc_id = 13,
+      const std::string_view& connector = "");
   configuration::anomalydetection new_configuration_anomalydetection(
       std::string const& hostname,
       std::string const& description,

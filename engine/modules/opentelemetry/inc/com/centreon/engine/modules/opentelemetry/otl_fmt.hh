@@ -63,6 +63,72 @@ struct formatter<
   }
 };
 
+template <>
+struct formatter<com::centreon::agent::MessageFromAgent>
+    : formatter<std::string> {
+  /**
+   * @brief if this static parameter is < 0, we dump all request, otherwise, we
+   * limit dump length to this value
+   *
+   */
+  template <typename FormatContext>
+  auto format(const com::centreon::agent::MessageFromAgent& p,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
+    using otl_formatter =
+        formatter< ::opentelemetry::proto::collector::metrics::v1::
+                       ExportMetricsServiceRequest>;
+
+    if (otl_formatter::json_grpc_format) {
+      std::string output;
+      google::protobuf::util::MessageToJsonString(p, &output);
+      return formatter<std::string>::format(
+          otl_formatter::max_length_log > 0
+              ? output.substr(0, otl_formatter::max_length_log)
+              : output,
+          ctx);
+    } else {
+      return formatter<std::string>::format(
+          otl_formatter::max_length_log > 0
+              ? p.ShortDebugString().substr(0, otl_formatter::max_length_log)
+              : p.ShortDebugString(),
+          ctx);
+    }
+  }
+};
+
+template <>
+struct formatter<com::centreon::agent::MessageToAgent>
+    : formatter<std::string> {
+  /**
+   * @brief if this static parameter is < 0, we dump all request, otherwise, we
+   * limit dump length to this value
+   *
+   */
+  template <typename FormatContext>
+  auto format(const com::centreon::agent::MessageToAgent& p,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
+    using otl_formatter =
+        formatter< ::opentelemetry::proto::collector::metrics::v1::
+                       ExportMetricsServiceRequest>;
+
+    if (otl_formatter::json_grpc_format) {
+      std::string output;
+      google::protobuf::util::MessageToJsonString(p, &output);
+      return formatter<std::string>::format(
+          otl_formatter::max_length_log > 0
+              ? output.substr(0, otl_formatter::max_length_log)
+              : output,
+          ctx);
+    } else {
+      return formatter<std::string>::format(
+          otl_formatter::max_length_log > 0
+              ? p.ShortDebugString().substr(0, otl_formatter::max_length_log)
+              : p.ShortDebugString(),
+          ctx);
+    }
+  }
+};
+
 };  // namespace fmt
 
 #endif

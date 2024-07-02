@@ -55,6 +55,12 @@ class otl_converter_test : public TestEngine {
 void otl_converter_test::SetUp() {
   configuration::error_cnt err;
   init_config_state();
+  timeperiod::timeperiods.clear();
+  contact::contacts.clear();
+  host::hosts.clear();
+  host::hosts_by_id.clear();
+  service::services.clear();
+  service::services_by_id.clear();
   config->contacts().clear();
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("admin", true)};
