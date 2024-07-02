@@ -116,7 +116,6 @@ if(WITH_TESTING)
       "${TESTS_DIR}/opentelemetry/otl_server_test.cc"
       "${TESTS_DIR}/opentelemetry/otl_converter_test.cc"
       "${TESTS_DIR}/opentelemetry/open_telemetry_test.cc"
-      "${TESTS_DIR}/perfdata/perfdata.cc"
       "${TESTS_DIR}/retention/host.cc"
       "${TESTS_DIR}/retention/service.cc"
       "${TESTS_DIR}/string/string.cc"

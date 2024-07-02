@@ -113,12 +113,6 @@ class state {
     ilf_smart      // smart interleave
   };
 
-  /**
-   *  @enum state::perdata_file_mode
-   *
-   */
-  enum perfdata_file_mode { mode_pipe = 0, mode_file, mode_file_append };
-
   state();
   state(state const& right);
   ~state() noexcept = default;
@@ -256,18 +250,6 @@ class state {
   void host_freshness_check_interval(unsigned int value);
   inter_check_delay host_inter_check_delay_method() const noexcept;
   void host_inter_check_delay_method(inter_check_delay value);
-  std::string const& host_perfdata_command() const noexcept;
-  void host_perfdata_command(std::string const& value);
-  std::string const& host_perfdata_file() const noexcept;
-  void host_perfdata_file(std::string const& value);
-  perfdata_file_mode host_perfdata_file_mode() const noexcept;
-  void host_perfdata_file_mode(perfdata_file_mode value);
-  std::string const& host_perfdata_file_processing_command() const noexcept;
-  void host_perfdata_file_processing_command(std::string const& value);
-  unsigned int host_perfdata_file_processing_interval() const noexcept;
-  void host_perfdata_file_processing_interval(unsigned int value);
-  std::string const& host_perfdata_file_template() const noexcept;
-  void host_perfdata_file_template(std::string const& value);
   std::string const& illegal_object_chars() const noexcept;
   void illegal_object_chars(std::string const& value);
   std::string const& illegal_output_chars() const noexcept;
@@ -382,18 +364,6 @@ class state {
   void service_inter_check_delay_method(inter_check_delay value);
   interleave_factor service_interleave_factor_method() const noexcept;
   void service_interleave_factor_method(interleave_factor value);
-  std::string const& service_perfdata_command() const noexcept;
-  void service_perfdata_command(std::string const& value);
-  std::string const& service_perfdata_file() const noexcept;
-  void service_perfdata_file(std::string const& value);
-  perfdata_file_mode service_perfdata_file_mode() const noexcept;
-  void service_perfdata_file_mode(perfdata_file_mode value);
-  std::string const& service_perfdata_file_processing_command() const noexcept;
-  void service_perfdata_file_processing_command(std::string const& value);
-  unsigned int service_perfdata_file_processing_interval() const noexcept;
-  void service_perfdata_file_processing_interval(unsigned int value);
-  std::string const& service_perfdata_file_template() const noexcept;
-  void service_perfdata_file_template(std::string const& value);
   float sleep_time() const noexcept;
   void sleep_time(float value);
   bool soft_state_dependencies() const noexcept;
@@ -491,12 +461,10 @@ class state {
   void _set_date_format(std::string const& value);
   void _set_event_broker_options(std::string const& value);
   void _set_host_inter_check_delay_method(std::string const& value);
-  void _set_host_perfdata_file_mode(std::string const& value);
   void _set_object_cache_file(std::string const& value);
   void _set_resource_file(std::string const& value);
   void _set_service_inter_check_delay_method(std::string const& value);
   void _set_service_interleave_factor_method(std::string const& value);
-  void _set_service_perfdata_file_mode(std::string const& value);
 
   bool _accept_passive_host_checks;
   bool _accept_passive_service_checks;
@@ -556,12 +524,6 @@ class state {
   unsigned int _host_check_timeout;
   unsigned int _host_freshness_check_interval;
   inter_check_delay _host_inter_check_delay_method;
-  std::string _host_perfdata_command;
-  std::string _host_perfdata_file;
-  perfdata_file_mode _host_perfdata_file_mode;
-  std::string _host_perfdata_file_processing_command;
-  unsigned int _host_perfdata_file_processing_interval;
-  std::string _host_perfdata_file_template;
   std::string _illegal_object_chars;
   std::string _illegal_output_chars;
   unsigned int _interval_length;
@@ -613,12 +575,6 @@ class state {
   unsigned int _service_freshness_check_interval;
   inter_check_delay _service_inter_check_delay_method;
   interleave_factor _service_interleave_factor_method;
-  std::string _service_perfdata_command;
-  std::string _service_perfdata_file;
-  perfdata_file_mode _service_perfdata_file_mode;
-  std::string _service_perfdata_file_processing_command;
-  unsigned int _service_perfdata_file_processing_interval;
-  std::string _service_perfdata_file_template;
   static setter_map _setters;
   float _sleep_time;
   bool _soft_state_dependencies;

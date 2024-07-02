@@ -43,7 +43,6 @@
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
 #include "com/centreon/exceptions/interruption.hh"
-#include "compatibility/xpddefault.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -2422,8 +2421,6 @@ int service::update_service_performance_data() {
   if (!this->get_process_performance_data())
     return OK;
 
-  /* process the performance data! */
-  xpddefault_update_service_performance_data(this);
   return OK;
 }
 
