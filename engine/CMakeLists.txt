@@ -407,7 +407,6 @@ set(FILES
     "${SRC_DIR}/timezone_locker.cc"
     "${SRC_DIR}/timezone_manager.cc"
     "${SRC_DIR}/utils.cc"
-    "${SRC_DIR}/xpddefault.cc"
     "${SRC_DIR}/xsddefault.cc"
     # Headers.
     "${INC_DIR}/com/centreon/engine/anomalydetection.hh"
@@ -460,7 +459,6 @@ set(FILES
     "${INC_DIR}/com/centreon/engine/timezone_manager.hh"
     "${INC_DIR}/com/centreon/engine/utils.hh"
     "${INC_DIR}/com/centreon/engine/version.hh"
-    "${INC_DIR}/com/centreon/engine/xpddefault.hh"
     "${INC_DIR}/com/centreon/engine/xsddefault.hh")
 
 # Subdirectories with core features.

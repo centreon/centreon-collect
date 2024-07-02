@@ -43,7 +43,6 @@
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
-#include "com/centreon/engine/xpddefault.hh"
 #include "com/centreon/exceptions/interruption.hh"
 
 using namespace com::centreon;
@@ -2465,9 +2464,6 @@ void host::update_performance_data() {
   /* should we process performance data for this host? */
   if (!get_process_performance_data())
     return;
-
-  /* process the performance data! */
-  xpddefault_update_host_performance_data(this);
 }
 
 /**
