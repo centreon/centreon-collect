@@ -11,14 +11,16 @@ on:
       - develop
       - dev-[2-9][0-9].[0-9][0-9].x
     paths:
-      - '.github/docker/**'
+      - '.github/docker/Dockerfile.centreon-collect-*'
   pull_request:
     paths:
-      - '.github/docker/**'
+      - '.github/docker/Dockerfile.centreon-collect-*'
 
 jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
+    with:
+      version_file: CMakeLists.txt
 
   create-and-push-docker:
     needs: [get-version]
