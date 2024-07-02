@@ -1,20 +1,21 @@
 /*
-** Copyright 2018-2023 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2018-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
+
 #include <errmsg.h>
 
 #include "com/centreon/broker/config/applier/init.hh"
@@ -188,6 +189,9 @@ bool mysql_connection::_try_to_reconnect() {
 
   uint32_t timeout = 10;
   mysql_options(_conn, MYSQL_OPT_CONNECT_TIMEOUT, &timeout);
+
+  mysql_optionsv(_conn, MYSQL_PLUGIN_DIR,
+                 (const void*)_extension_directory.c_str());
 
   if (!mysql_real_connect(_conn, _host.c_str(), _user.c_str(), _pwd.c_str(),
                           _name.c_str(), _port,
@@ -836,6 +840,9 @@ void mysql_connection::_run() {
     uint32_t timeout = 10;
     mysql_options(_conn, MYSQL_OPT_CONNECT_TIMEOUT, &timeout);
 
+    mysql_optionsv(_conn, MYSQL_PLUGIN_DIR,
+                   (const void*)_extension_directory.c_str());
+
     while (config::applier::mode != config::applier::finished &&
            !mysql_real_connect(_conn, _host.c_str(), _user.c_str(),
                                _pwd.c_str(), _name.c_str(), _port,
@@ -1076,6 +1083,7 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
       _pwd(db_cfg.get_password()),
       _name(db_cfg.get_name()),
       _port(db_cfg.get_port()),
+      _extension_directory(db_cfg.get_extension_directory()),
       _max_second_commit_delay(db_cfg.get_max_commit_delay()),
       _last_commit(db_cfg.get_queries_per_transaction() > 1
                        ? 0

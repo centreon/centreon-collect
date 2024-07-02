@@ -65,6 +65,9 @@ class database_config {
   bool get_check_replication() const;
   int get_connections_count() const;
   unsigned get_max_commit_delay() const;
+  const std::string& get_extension_directory() const {
+    return _extension_directory;
+  }
 
   void set_type(std::string const& type);
   void set_host(std::string const& host);
@@ -89,6 +92,8 @@ class database_config {
   bool _check_replication;
   int _connections_count;
   unsigned _max_commit_delay;
+  // where mariadb will find extension such as caching_sha2_password.so
+  std::string _extension_directory;
 };
 
 std::ostream& operator<<(std::ostream& s, const database_config cfg);
