@@ -209,6 +209,8 @@ An example of configuration:
   ```
 
 ### centreon monitoring agent
+
+#### agent connects to engine
 Even if all protobuf objects are opentelemetry objects, grpc communication is made in streaming mode. It is more efficient, it allows reverse connection (engine can connect to an agent running in a DMZ) and 
 Engine can send configuration on each config update.
 You can find all grpc definitions are agent/proto/agent.proto.
@@ -361,3 +363,31 @@ Configuration of agent is divided in two parts:
 The first part is owned by agent protobuf service (agent_service.cc), the second is build by a common code shared with telegraf server (conf_helper.hh)
 
 So when centengine receives a HUP signal, opentelemetry::reload check configuration changes on each established connection and update also agent service conf part1 which is used to configure future incoming connections.
+
+#### engine connects to agent
+
+##### configuration
+Each agent has his own grpc configuration. Each object in this array is a grpc configuration object like those we can find in Agent or server
+
+An example:
+```json
+{
+    "max_length_grpc_log": 0,
+    "centreon_agent": {
+        "check_interval": 10,
+        "export_period": 15,
+        "reverse_connections": [
+            {
+                "host": "127.0.0.1",
+                "port": 4317
+            }
+        ]
+    }
+}
+```
+
+#### classes
+From this configuration a agent_reverse_client object maintains a list of endpoint engine has to connect to. He manages also agent list update.
+He contains a map config=> to_agent_connector
+The role to_agent_connector is to maintain an alive connection to agent (agent_connection class). It owns a agent_connection class and recreate it in case of network failure.
+agent_connection holds a weak_ptr to agent_connection to warn him about connection failure.
