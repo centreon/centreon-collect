@@ -179,6 +179,16 @@ Requires: centreon-broker-storage = %{version}-%{release}
 Centreon core holds Centreon Broker's default modules;
 
 
+%package -n centreon-broker-caching_sha2_password
+Summary: caching_sha2_password plugind provided by mariafb connector.
+Group: Application/System
+License: Apache-2.0
+
+%description -n centreon-broker-caching_sha2_password
+%{COMMIT_HASH}
+caching_sha2_password plugind provided by mariadb connector.
+
+
 %package -n centreon-broker-storage
 Summary: Centreon Broker's shared library for prefdata storage.
 Group: Applications/Communications
@@ -465,6 +475,10 @@ fi
 %defattr(0775,centreon-broker,centreon-broker,-)
 %{_datadir}/centreon-broker
 %{_datadir}/centreon-broker/lua
+
+%files -n centreon-broker-caching_sha2_password
+%defattr(-,root,root,-)
+%{_libdir}/centreon-broker/caching_sha2_password.so
 
 %files -n centreon-broker-cbmod
 %defattr(-,centreon-broker,centreon-broker,-)
