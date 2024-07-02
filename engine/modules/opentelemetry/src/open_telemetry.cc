@@ -92,6 +92,17 @@ void open_telemetry::_reload() {
                                        new_conf->get_max_fifo_size());
 
     _conf = std::move(new_conf);
+
+    if (!_agent_reverse_client) {
+      _agent_reverse_client =
+          std::make_unique<centreon_agent::agent_reverse_client>(
+              _io_context,
+              [me = shared_from_this()](const metric_request_ptr& request) {
+                me->_on_metric(request);
+              },
+              _logger);
+    }
+    _agent_reverse_client->update(_conf->get_centreon_agent_config());
   }
   // push new configuration to connected agents
   centreon_agent::agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
