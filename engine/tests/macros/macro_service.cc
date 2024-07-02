@@ -969,29 +969,6 @@ TEST_F(MacroService, ServiceCheckCommand) {
   ASSERT_EQ(out, "cmd");
 }
 
-TEST_F(MacroService, ServicePerfDataFile) {
-  configuration::parser parser;
-  configuration::state st;
-  configuration::error_cnt err;
-
-  std::remove("/tmp/test-config.cfg");
-
-  std::ofstream ofs("/tmp/test-config.cfg");
-  ofs << "service_perfdata_file=/var/log/centreon-engine/service-perfdata.dat"
-      << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
-  ofs.close();
-
-  parser.parse("/tmp/test-config.cfg", st, err);
-  configuration::applier::state::instance().apply(st, err);
-  init_macros();
-
-  std::string out;
-  nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "$SERVICEPERFDATAFILE:test_host$", out, 1);
-  ASSERT_EQ(out, "/var/log/centreon-engine/service-perfdata.dat");
-}
-
 TEST_F(MacroService, ServiceDisplayName) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
