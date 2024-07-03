@@ -17,11 +17,14 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <boost/process/v2/process.hpp>
 #include <boost/process/v2/stdio.hpp>
 #include <boost/program_options/parsers.hpp>
 
-#include "process.hh"
+#include "com/centreon/common/process/process.hh"
+
+#include "com/centreon/common/process/detail/centreon_posix_process_launcher.hh"
+
+#include <boost/process/v2/process.hpp>
 
 namespace proc = boost::process::v2;
 
@@ -32,6 +35,7 @@ namespace com::centreon::common::detail {
  *
  */
 struct boost_process {
+#if defined(BOOST_PROCESS_V2_WINDOWS)
   boost_process(asio::io_context& io_context,
                 const std::string& exe_path,
                 const std::vector<std::string>& args)
@@ -42,6 +46,20 @@ struct boost_process {
              exe_path,
              args,
              proc::process_stdio{stdin, stdout, stderr}) {}
+#else
+  boost_process(asio::io_context& io_context,
+                const std::string& exe_path,
+                const std::vector<std::string>& args)
+      : stdout(io_context),
+        stderr(io_context),
+        stdin(io_context),
+        proc(proc::posix::centreon_posix_default_launcher()
+             /*proc::default_process_launcher()*/ (
+                 io_context.get_executor(),
+                 exe_path,
+                 args,
+                 proc::posix::centreon_process_stdio{stdin, stdout, stderr})) {}
+#endif
 
   asio::readable_pipe stdout;
   asio::readable_pipe stderr;
@@ -92,7 +110,8 @@ void process::start_process() {
   try {
     _proc =
         std::make_shared<detail::boost_process>(*_io_context, _exe_path, _args);
-    SPDLOG_LOGGER_TRACE(_logger, "process started: {}", _exe_path);
+    SPDLOG_LOGGER_TRACE(_logger, "process started: {} pid: {}", _exe_path,
+                        _proc->proc.id());
     _proc->proc.async_wait(
         [me = shared_from_this(), current = _proc](
             const boost::system::error_code& err, int raw_exit_status) {

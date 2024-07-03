@@ -117,6 +117,7 @@ include_directories(
   ${SRC_DIR} 
   ${CMAKE_SOURCE_DIR}/common/inc
   ${CMAKE_SOURCE_DIR}/common/grpc/inc
+  ${CMAKE_SOURCE_DIR}/common/process/inc
 )
 
 target_precompile_headers(centagent_lib PRIVATE precomp_inc/precomp.hh)
@@ -138,12 +139,6 @@ target_link_libraries(
   fmt::fmt)
 
 target_precompile_headers(${CENTREON_AGENT}  REUSE_FROM centagent_lib)
-
-target_include_directories(${CENTREON_AGENT} PRIVATE 
-  ${INCLUDE_DIR} 
-  ${SRC_DIR} 
-  ${CMAKE_SOURCE_DIR}/common/inc
-)
 
 set(AGENT_VAR_LOG_DIR
     "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-monitoring-agent")

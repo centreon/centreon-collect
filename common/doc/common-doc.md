@@ -116,3 +116,7 @@ class process_wait : public process {
 
 ```
 
+### Asio bug work around
+There is an issue in io_context::notify_fork. Internally, ctx.notify_fork calls epoll_reactor::notify_fork which locks registered_descriptors_mutex_. An issue occurs when registered_descriptors_mutex_ is locked by another thread at fork timepoint. 
+In such a case, child process starts with registered_descriptors_mutex_ already locked and both child and parent process will hang.
+

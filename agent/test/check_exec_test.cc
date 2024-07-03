@@ -32,6 +32,7 @@ TEST(check_exec_test, echo) {
   command_line = "/bin/echo hello toto";
   int status;
   std::list<std::string> outputs;
+  std::mutex mut;
   std::condition_variable cond;
   std::shared_ptr<check_exec> check = check_exec::load(
       g_io_context, spdlog::default_logger(), time_point(), serv, cmd_name,
@@ -40,13 +41,15 @@ TEST(check_exec_test, echo) {
           int statuss,
           const std::list<com::centreon::common::perfdata>& perfdata,
           const std::list<std::string>& output) {
-        status = statuss;
-        outputs = output;
+        {
+          std::lock_guard l(mut);
+          status = statuss;
+          outputs = output;
+        }
         cond.notify_one();
       });
   check->start_check(std::chrono::seconds(1));
 
-  std::mutex mut;
   std::unique_lock l(mut);
   cond.wait(l);
   ASSERT_EQ(status, 0);

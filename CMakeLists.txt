@@ -69,6 +69,7 @@ option(WITH_MALLOC_TRACE "compile centreon-malloc-trace library." OFF)
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
 # set(CMAKE_CXX_COMPILER "clang++")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
+add_definitions("-DBOOST_PROCESS_USE_STD_FS=1")
 
 option(DEBUG_ROBOT OFF)
 
