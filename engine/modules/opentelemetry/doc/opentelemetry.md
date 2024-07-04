@@ -367,7 +367,7 @@ So when centengine receives a HUP signal, opentelemetry::reload check configurat
 #### engine connects to agent
 
 ##### configuration
-Each agent has his own grpc configuration. Each object in this array is a grpc configuration object like those we can find in Agent or server
+Each agent has its own grpc configuration. Each object in this array is a grpc configuration object like those we can find in Agent or server
 
 An example:
 ```json
@@ -387,7 +387,7 @@ An example:
 ```
 
 #### classes
-From this configuration a agent_reverse_client object maintains a list of endpoint engine has to connect to. He manages also agent list update.
-He contains a map config=> to_agent_connector
-The role to_agent_connector is to maintain an alive connection to agent (agent_connection class). It owns a agent_connection class and recreate it in case of network failure.
-agent_connection holds a weak_ptr to agent_connection to warn him about connection failure.
+From this configuration an agent_reverse_client object maintains a list of endpoints engine has to connect to. It manages also agent list updates.
+It contains a map of to_agent_connector indexed by config.
+The role to_agent_connector is to maintain an alive connection to agent (agent_connection class). It owns an agent_connection class and recreates it in case of network failure.
+Agent_connection holds a weak_ptr to agent_connection to warn it about connection failure.
