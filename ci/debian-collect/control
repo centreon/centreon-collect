@@ -132,6 +132,10 @@ Depends:
     ${shlibs:Depends}
 Description: core holds Centreon Broker's default modules.
 
+Package: centreon-broker-caching-sha2-password
+Architecture: any
+Description: caching-sha2-password plugind provided by mariadb connector.
+
 Package: centreon-broker-cbmod
 Architecture: any
 Depends:
