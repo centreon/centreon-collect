@@ -143,12 +143,17 @@ jobs:
           else
             echo "::warning::No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
-          echo "[INFO] - Keeping only build's non empty folders"
-          find build -empty -type d -delete
-          ls -la build
 
-          echo "[INFO] - Generating the tarball"
-          tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
+          if [ "${{ inputs.module_name }}" = "centreon-collect" ]; then
+            echo "[INFO] - Keeping only build's non empty folders"
+            find build -empty -type d -delete
+            ls -la build
+            echo "[INFO] - Generating the tarball"
+            tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
+          else
+            echo "[INFO] - Generating the tarball"
+            zip -rq "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip" *
+          fi
 
       - name: Cache
         uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
