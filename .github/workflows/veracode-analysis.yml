@@ -35,6 +35,7 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       development_stage: ${{ steps.routing-mode.outputs.development_stage }}
+      skip_analysis: ${{ steps.routing-mode.outputs.skip_analysis }}
 
     steps:
       - name: Set routing mode
@@ -49,14 +50,21 @@ jobs:
             fi
           done
 
+          # skip analysis of draft PR and analysis on development branches using workflow dispatch
+          SKIP_ANALYSIS="true"
+          if [[ "${{ github.event_name }}" == "pull_request" && -n "${{ github.event.pull_request.number }}" && -n "${{ github.event.pull_request.draft }}" && "${{ github.event.pull_request.draft }}" == "false" ]] || [[ "$DEVELOPMENT_STAGE" != "Development" ]]; then
+            SKIP_ANALYSIS="false"
+          fi
+
           echo "development_stage=$DEVELOPMENT_STAGE" >> $GITHUB_OUTPUT
+          echo "skip_analysis=$SKIP_ANALYSIS" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
 
   build:
     name: Binary preparation
     runs-on: [self-hosted, collect]
     needs: [routing]
-    if: needs.routing.outputs.development_stage != 'Development'
+    if: needs.build.outputs.skip_analysis == 'false'
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
       credentials:
