@@ -2,6 +2,9 @@
 on:
   workflow_call:
     inputs:
+      module_directory:
+        required: false
+        type: string
       module_name:
         required: true
         type: string
@@ -63,7 +66,8 @@ jobs:
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
-      - name: Compiling Cpp sources
+      - if: ${{ inputs.module_name == 'centreon-collect' }}
+        name: Compiling Cpp sources
         run: |
           mv /root/.cache /github/home
           export VCPKG_ROOT=/vcpkg
@@ -101,11 +105,17 @@ jobs:
           echo "[DEBUG] - Build size"
           du -sh $(find build/{broker,engine,clib,connectors,common} -name "*.so" -type f) | sort -rh
 
-      - name: Binary preparation
+      - if: ${{ inputs.module_name == 'centreon-collect' }}
+        name: Preserve centreon-collect binaries from cleaning
         run: |
           echo "[INFO] - Keeping only compiled files"
-          # preserve binaries from cleaning
           find build -type f -not \( -name "*.so" -or -name "cbd" -or -name "centengine" -or -name "cbwd" -or -name "centreon_connector_*" \) -delete
+
+      - name: Binary preparation of ${{ inputs.module_name }}
+        run: |
+          if [ -n "${{ inputs.module_directory }}" ]; then
+            cd ${{ inputs.module_directory }}
+          fi
 
           echo "[INFO] - Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then
