@@ -19,8 +19,8 @@
 #include <gtest/gtest.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
+#include "com/centreon/common/process/process.hh"
 #include "pool.hh"
-#include "process.hh"
 
 using namespace com::centreon::common;
 

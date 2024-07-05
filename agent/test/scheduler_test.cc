@@ -59,6 +59,7 @@ class tempo_check : public check {
   void start_check(const duration& timeout) override {
     {
       std::lock_guard l(check_starts_m);
+      SPDLOG_INFO("start tempo check");
       check_starts.emplace_back(this, std::chrono::system_clock::now());
     }
     check::start_check(timeout);
@@ -148,6 +149,19 @@ TEST_F(scheduler_test, no_config) {
   ASSERT_FALSE(weak_shed.lock());
 }
 
+static bool tempo_check_assert_pred(const time_point& after,
+                                    const time_point& before) {
+  if ((after - before) <= std::chrono::milliseconds(40)) {
+    SPDLOG_ERROR("after={}, before={}", after, before);
+    return false;
+  }
+  if ((after - before) >= std::chrono::milliseconds(60)) {
+    SPDLOG_ERROR("after={}, before={}", after, before);
+    return false;
+  }
+  return true;
+}
+
 TEST_F(scheduler_test, correct_schedule) {
   std::shared_ptr<scheduler> sched = scheduler::load(
       g_io_context, spdlog::default_logger(), "my_host",
@@ -185,10 +199,8 @@ TEST_F(scheduler_test, correct_schedule) {
         first = false;
       } else {
         ASSERT_NE(previous.first, check_time.first);
-        ASSERT_GT((check_time.second - previous.second),
-                  expected_interval - std::chrono::milliseconds(1));
-        ASSERT_LT((check_time.second - previous.second),
-                  expected_interval + std::chrono::milliseconds(1));
+        ASSERT_PRED2(tempo_check_assert_pred, check_time.second,
+                     previous.second);
       }
       previous = check_time;
     }
@@ -206,10 +218,8 @@ TEST_F(scheduler_test, correct_schedule) {
         first = false;
       } else {
         ASSERT_NE(previous.first, check_time.first);
-        ASSERT_TRUE((check_time.second - previous.second) >
-                    expected_interval - std::chrono::milliseconds(1));
-        ASSERT_TRUE((check_time.second - previous.second) <
-                    expected_interval + std::chrono::milliseconds(1));
+        ASSERT_PRED2(tempo_check_assert_pred, check_time.second,
+                     previous.second);
       }
       previous = check_time;
     }

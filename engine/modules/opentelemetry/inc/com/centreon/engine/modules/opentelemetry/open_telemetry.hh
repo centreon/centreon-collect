@@ -22,6 +22,7 @@
 
 #include "com/centreon/engine/commands/otel_interface.hh"
 
+#include "centreon_agent/agent_reverse_client.hh"
 #include "data_point_fifo_container.hh"
 #include "host_serv_extractor.hh"
 #include "otl_check_result_builder.hh"
@@ -48,6 +49,7 @@ class open_telemetry : public commands::otel::open_telemetry_base {
   asio::system_timer _second_timer;
   std::shared_ptr<otl_server> _otl_server;
   std::shared_ptr<http::server> _telegraf_conf_server;
+  std::unique_ptr<centreon_agent::agent_reverse_client> _agent_reverse_client;
 
   using cmd_line_to_extractor_map =
       absl::btree_map<std::string, std::shared_ptr<host_serv_extractor>>;

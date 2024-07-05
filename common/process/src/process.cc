@@ -1,27 +1,29 @@
-/*
+/**
  * Copyright 2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
  */
 
-#include <boost/process/v2/process.hpp>
 #include <boost/process/v2/stdio.hpp>
 #include <boost/program_options/parsers.hpp>
 
-#include "process.hh"
+#include "com/centreon/common/process/process.hh"
+
+#include "com/centreon/common/process/detail/centreon_posix_process_launcher.hh"
+
+#include <boost/process/v2/process.hpp>
 
 namespace proc = boost::process::v2;
 
@@ -32,6 +34,7 @@ namespace com::centreon::common::detail {
  *
  */
 struct boost_process {
+#if defined(BOOST_PROCESS_V2_WINDOWS)
   boost_process(asio::io_context& io_context,
                 const std::string& exe_path,
                 const std::vector<std::string>& args)
@@ -42,6 +45,20 @@ struct boost_process {
              exe_path,
              args,
              proc::process_stdio{stdin, stdout, stderr}) {}
+#else
+  boost_process(asio::io_context& io_context,
+                const std::string& exe_path,
+                const std::vector<std::string>& args)
+      : stdout(io_context),
+        stderr(io_context),
+        stdin(io_context),
+        proc(proc::posix::centreon_posix_default_launcher()
+             /*proc::default_process_launcher()*/ (
+                 io_context.get_executor(),
+                 exe_path,
+                 args,
+                 proc::posix::centreon_process_stdio{stdin, stdout, stderr})) {}
+#endif
 
   asio::readable_pipe stdout;
   asio::readable_pipe stderr;
@@ -92,6 +109,8 @@ void process::start_process() {
   try {
     _proc =
         std::make_shared<detail::boost_process>(*_io_context, _exe_path, _args);
+    SPDLOG_LOGGER_TRACE(_logger, "process started: {} pid: {}", _exe_path,
+                        _proc->proc.id());
     _proc->proc.async_wait(
         [me = shared_from_this(), current = _proc](
             const boost::system::error_code& err, int raw_exit_status) {
