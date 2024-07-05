@@ -64,7 +64,7 @@ jobs:
     name: Binary preparation
     runs-on: [self-hosted, collect]
     needs: [routing]
-    if: needs.build.outputs.skip_analysis == 'false'
+    if: needs.routing.outputs.skip_analysis == 'false'
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
       credentials:
