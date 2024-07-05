@@ -168,6 +168,15 @@ jobs:
           registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
           registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
+      # set condition to true if artifacts are needed
+      - if: ${{ false }}
+        name: Upload package artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: packages-rpm
+          path: ./*.rpm
+          retention-days: 7
+
       - name: Use cache RPM files
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         env:
@@ -210,6 +219,15 @@ jobs:
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ env.imgversion }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ env.version }}" -e RELEASE="${{ env.release }}"
+
+      # set condition to true if artifacts are needed
+      - if: ${{ false }}
+        name: Upload package artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: packages-deb
+          path: ./*.deb
+          retention-days: 7
 
       - name: Use cache DEB files
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
