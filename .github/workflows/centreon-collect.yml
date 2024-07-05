@@ -57,6 +57,8 @@ on:
 jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
+    with:
+      version_file: CMakeLists.txt
 
   unit-test:
     needs: [get-version]
@@ -93,7 +95,8 @@ jobs:
     if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
     uses: ./.github/workflows/package-collect.yml
     with:
-      version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
+      major_version: ${{ needs.get-version.outputs.major_version }}
+      minor_version: ${{ needs.get-version.outputs.minor_version }}
       img_version: ${{ needs.get-version.outputs.img_version }}
       release: ${{ needs.get-version.outputs.release }}
       commit_hash: ${{ github.sha }}
@@ -117,8 +120,8 @@ jobs:
           bucket_directory: centreon-collect
           module_directory: centreon-collect
           module_name: centreon-collect
-          major_version: ${{ needs.get-version.outputs.version }}
-          minor_version: ${{ needs.get-version.outputs.patch }}
+          major_version: ${{ needs.get-version.outputs.major_version }}
+          minor_version: ${{ needs.get-version.outputs.minor_version }}
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
@@ -145,7 +148,7 @@ jobs:
         with:
           module_name: collect
           distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.version }}
+          major_version: ${{ needs.get-version.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-version.outputs.stability }}
@@ -180,7 +183,7 @@ jobs:
         with:
           module_name: collect
           distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.version }}
+          major_version: ${{ needs.get-version.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-version.outputs.stability }}
@@ -205,8 +208,8 @@ jobs:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           module_name: collect
           distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-version.outputs.version }}
-          minor_version: ${{ needs.get-version.outputs.patch }}
+          major_version: ${{ needs.get-version.outputs.major_version }}
+          minor_version: ${{ needs.get-version.outputs.minor_version }}
           stability: ${{ needs.get-version.outputs.stability }}
           github_ref_name: ${{ github.ref_name }}
           release_type: ${{ needs.get-version.outputs.release_type }}
