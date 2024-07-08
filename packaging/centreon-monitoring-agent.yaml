@@ -67,7 +67,6 @@ scripts:
   preremove: ./scripts/centreon-monitoring-agent-preremove.sh
   postremove: ./scripts/centreon-monitoring-agent-postremove.sh
 
-
 rpm:
   summary: Centreon Collect Agent. It can be used to execute plugins remotely
   compression: zstd
