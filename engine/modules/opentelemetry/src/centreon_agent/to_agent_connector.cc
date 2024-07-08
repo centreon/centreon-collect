@@ -74,7 +74,8 @@ agent_connection::agent_connection(
           "reverse_client",
           conf,
           handler,
-          logger) {
+          logger),
+      _parent(parent) {
   _peer = parent->get_conf()->get_hostport();
 }
 

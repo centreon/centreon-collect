@@ -40,6 +40,7 @@
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/common/perfdata.hh"
+#include "com/centreon/common/utf8.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -654,10 +655,10 @@ static int l_broker_parse_perfdata(lua_State* L) {
       com::centreon::common::perfdata::parse_perfdata(0, 0, perf_data, logger)};
   lua_createtable(L, 0, pds.size());
   for (auto& pd : pds) {
-    pd.resize_name(misc::string::adjust_size_utf8(
+    pd.resize_name(com::centreon::common::adjust_size_utf8(
         pd.name(), get_centreon_storage_metrics_col_size(
                        centreon_storage_metrics_metric_name)));
-    pd.resize_unit(misc::string::adjust_size_utf8(
+    pd.resize_unit(com::centreon::common::adjust_size_utf8(
         pd.unit(), get_centreon_storage_metrics_col_size(
                        centreon_storage_metrics_unit_name)));
 

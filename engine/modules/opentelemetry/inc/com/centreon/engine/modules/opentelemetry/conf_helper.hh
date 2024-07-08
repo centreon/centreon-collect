@@ -41,15 +41,17 @@ bool get_otel_commands(const std::string& host_name,
                        command_handler&& handler,
                        const std::shared_ptr<spdlog::logger>& logger) {
   auto use_otl_command = [](const checkable& to_test) -> bool {
-    if (to_test.get_check_command_ptr()->get_type() ==
-        commands::command::e_type::otel)
-      return true;
-    if (to_test.get_check_command_ptr()->get_type() ==
-        commands::command::e_type::forward) {
-      return std::static_pointer_cast<commands::forward>(
-                 to_test.get_check_command_ptr())
-                 ->get_sub_command()
-                 ->get_type() == commands::command::e_type::otel;
+    if (to_test.get_check_command_ptr()) {
+      if (to_test.get_check_command_ptr()->get_type() ==
+          commands::command::e_type::otel)
+        return true;
+      if (to_test.get_check_command_ptr()->get_type() ==
+          commands::command::e_type::forward) {
+        return std::static_pointer_cast<commands::forward>(
+                   to_test.get_check_command_ptr())
+                   ->get_sub_command()
+                   ->get_type() == commands::command::e_type::otel;
+      }
     }
     return false;
   };

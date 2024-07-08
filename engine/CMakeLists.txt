@@ -520,6 +520,7 @@ target_link_libraries(
   enginerpc
   centreon_grpc
   centreon_http
+  centreon_common
   -L${Boost_LIBRARY_DIR_RELEASE}
   boost_url
   cce_core
