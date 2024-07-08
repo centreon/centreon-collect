@@ -157,9 +157,9 @@ jobs:
           echo "xray_token=$xray_token" >> $GITHUB_OUTPUT
         shell: bash
 
-      - name: Send report to xrays
-        run: |
-          curl -H "Content-Type: multipart/form-data" -X POST -F info=@tests/issueFields.json -F results=@tests/output.xml -F testInfo=@tests/testIssueFields.json -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" https://xray.cloud.getxray.app/api/v2/import/execution/robot/multipart
+      # - name: Send report to xrays
+      #   run: |
+      #     curl -H "Content-Type: multipart/form-data" -X POST -F info=@tests/issueFields.json -F results=@tests/output.xml -F testInfo=@tests/testIssueFields.json -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" https://xray.cloud.getxray.app/api/v2/import/execution/robot/multipart
 
       - name: Move reports
         if: ${{ failure() }}
@@ -247,12 +247,12 @@ jobs:
       - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
         if: ${{ inputs.distrib  == 'el7'}}
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         if: ${{ inputs.distrib != 'el7' }}
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - run: |
           pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
