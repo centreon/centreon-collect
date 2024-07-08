@@ -55,8 +55,10 @@ class process_wait : public process {
   void on_stdout_read(const boost::system::error_code& err,
                       size_t nb_read) override {
     if (!err) {
-      _stdout += std::string_view(_stdout_read_buffer, nb_read);
-    } else if (err == asio::error::eof) {
+      std::string_view line(_stdout_read_buffer, nb_read);
+      _stdout += line;
+      SPDLOG_LOGGER_DEBUG(_logger, "read from stdout: {}", line);
+    } else if (err == asio::error::eof || err == asio::error::broken_pipe) {
       _stdout_eof = true;
       _notify();
     }
@@ -66,8 +68,10 @@ class process_wait : public process {
   void on_stderr_read(const boost::system::error_code& err,
                       size_t nb_read) override {
     if (!err) {
-      _stderr += std::string_view(_stderr_read_buffer, nb_read);
-    } else if (err == asio::error::eof) {
+      std::string_view line(_stderr_read_buffer, nb_read);
+      _stderr += line;
+      SPDLOG_LOGGER_DEBUG(_logger, "read from stderr: {}", line);
+    } else if (err == asio::error::eof || err == asio::error::broken_pipe) {
       _stderr_eof = true;
       _notify();
     }
@@ -77,6 +81,7 @@ class process_wait : public process {
   void on_process_end(const boost::system::error_code& err,
                       int raw_exit_status) override {
     process::on_process_end(err, raw_exit_status);
+    SPDLOG_LOGGER_DEBUG(_logger, "process end");
     _process_ended = true;
     _notify();
   }
@@ -107,7 +112,7 @@ TEST_F(process_test, echo) {
   using namespace std::literals;
   std::shared_ptr<process_wait> to_wait(
       new process_wait(g_io_context, _logger, "/bin/echo", {"hello"s}));
-  to_wait->start_process();
+  to_wait->start_process(true);
   to_wait->wait();
   ASSERT_EQ(to_wait->get_exit_status(), 0);
   ASSERT_EQ(to_wait->get_stdout(), "hello\n");
@@ -118,14 +123,14 @@ TEST_F(process_test, throw_on_error) {
   using namespace std::literals;
   std::shared_ptr<process_wait> to_wait(
       new process_wait(g_io_context, _logger, "turlututu", {"hello"s}));
-  ASSERT_THROW(to_wait->start_process(), std::exception);
+  ASSERT_THROW(to_wait->start_process(true), std::exception);
 }
 
 TEST_F(process_test, script_error) {
   using namespace std::literals;
   std::shared_ptr<process_wait> to_wait(
       new process_wait(g_io_context, _logger, "/bin/sh", {"taratata"s}));
-  to_wait->start_process();
+  to_wait->start_process(true);
   to_wait->wait();
   ASSERT_NE(to_wait->get_exit_status(), 0);
   ASSERT_EQ(to_wait->get_stdout(), "");
@@ -138,7 +143,7 @@ TEST_F(process_test, call_start_several_time) {
   std::string expected;
   for (int ii = 0; ii < 10; ++ii) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    to_wait->start_process();
+    to_wait->start_process(true);
     expected += "hello\n";
   }
   to_wait->wait();
@@ -155,7 +160,7 @@ TEST_F(process_test, stdin_to_stdout) {
   std::shared_ptr<process_wait> loopback(
       new process_wait(g_io_context, _logger, "/bin/sh  toto.sh"));
 
-  loopback->start_process();
+  loopback->start_process(true);
 
   std::string expected;
   for (unsigned ii = 0; ii < 10; ++ii) {
@@ -174,7 +179,7 @@ TEST_F(process_test, shell_stdin_to_stdout) {
   std::shared_ptr<process_wait> loopback(
       new process_wait(g_io_context, _logger, "/bin/sh"));
 
-  loopback->start_process();
+  loopback->start_process(true);
 
   std::string expected;
   for (unsigned ii = 0; ii < 10; ++ii) {
