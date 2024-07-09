@@ -108,7 +108,6 @@ on:
       - "!./broker/http_tsdb/test/**"
       - "!./clib/test/**"
 
-
 jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
