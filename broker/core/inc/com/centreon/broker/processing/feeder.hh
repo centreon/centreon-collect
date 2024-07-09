@@ -39,6 +39,7 @@ namespace processing {
  *  Take events from a source and send them to a destination.
  */
 class feeder : public stat_visitable,
+               public multiplexing::muxer::data_handler,
                public std::enable_shared_from_this<feeder> {
   enum class state : unsigned { running, finished };
   // Condition variable used when waiting for the thread to finish
@@ -63,6 +64,8 @@ class feeder : public stat_visitable,
          const multiplexing::muxer_filter& read_filters,
          const multiplexing::muxer_filter& write_filters);
 
+  void init();
+
   const std::string& _get_read_filters() const override;
   const std::string& _get_write_filters() const override;
   void _forward_statistic(nlohmann::json& tree) override;
@@ -73,9 +76,6 @@ class feeder : public stat_visitable,
 
   void _start_read_from_stream_timer();
   void _read_from_stream_timer_handler(const boost::system::error_code& err);
-
-  unsigned _write_to_client(
-      const std::vector<std::shared_ptr<io::data>>& events);
 
   void _stop_no_lock();
 
@@ -98,6 +98,9 @@ class feeder : public stat_visitable,
   bool is_finished() const noexcept;
 
   bool wait_for_all_events_written(unsigned ms_timeout);
+
+  uint32_t on_events(
+      const std::vector<std::shared_ptr<io::data>>& events) override;
 };
 }  // namespace processing
 

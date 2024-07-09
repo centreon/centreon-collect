@@ -415,6 +415,6 @@ Ctn Kindly Stop Agent
         IF    ${result.rc} != 0
             Ctn Save Logs
             Ctn Coredump Info    centreon_agent    /usr/bin/centagent    centreon_agent
-            Should Be Equal As Integers    ${result.rc}    0    centreon_agent not correctly stopped
+            Fail   centreon_agent not correctly stopped, result status: ${result.rc} 
         END
     END

@@ -54,11 +54,11 @@ contents:
 overrides:
   rpm:
     depends:
-      - openssl-libs  >= 3
+      - openssl-libs >= 3
       - zlib
   deb:
     depends:
-      - libssl3
+      - libssl1.1 | libssl3
       - zlib1g
 
 scripts:
