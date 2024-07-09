@@ -12,7 +12,7 @@ check gorgone proxy do not leak file descriptor
     Log To Console    \nStarting the gorgone setup
         @{central_push_config}=    Create List    ${push_central_config}    ${gorgone_core_config}
 
-        Setup Gorgone Config    ${central_push_config}    gorgone_name=push_gorgone_central    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
+        Setup Gorgone Config    @{central_push_config}    gorgone_name=push_gorgone_central    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
 
     Start Gorgone    debug    push_gorgone_central
 
