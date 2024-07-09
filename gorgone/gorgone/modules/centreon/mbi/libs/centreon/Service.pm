@@ -146,6 +146,55 @@ sub getServicesWithHostAndCategory {
 	return (\@results);
 }
 
+sub IstemplateLooping {
+	my $self = shift;
+	my $db = $self->{"centreon"};
+	my $logger = $self->{"logger"};
+	my $currentTemplate = shift;
+
+	my $query = "SELECT service_id, service_description, service_template_model_stm_id FROM service WHERE service_id = $currentTemplate";
+	my $sth = $db->query($query);
+	my $row = $sth->fetchrow_hashref();
+
+	my $parentId = $row->{"service_template_model_stm_id"};
+	
+	my $isLooping = 0;
+	my $hasParent = 0;
+
+	my @parent_templates  = (); # already used template
+
+	if (defined($parentId)) {
+		$hasParent = 1;
+		push(@parent_templates, $parentId);# add used template to array
+	}
+	
+	while($hasParent){
+		my $query = "SELECT service_id, service_description, service_template_model_stm_id FROM service WHERE service_id = $parentId LIMIT 1";
+		my $sth = $db->query($query);
+		my $row = $sth->fetchrow_hashref();			
+		my $grandParentId = $row->{"service_template_model_stm_id"};
+		
+		if (!defined($grandParentId)) {
+			$hasParent = 0;
+			last;
+		}
+
+		for (my $i = 0; $i <= $#parent_templates; $i++)
+        {
+              	if($parent_templates[$i] == $grandParentId)
+              	{
+    	       		$logger->writeLog("ERROR", "The service template with id = $currentTemplate inherits the template ID = $grandParentId more than once, please check relations of the template with ID = $currentTemplate !");
+	                $logger->close();
+					$hasParent = 0;
+            	    $isLooping = 1;
+					last;
+               }
+         }
+		 $parentId = $grandParentId;
+	}
+	return $isLooping;
+}
+
 sub getServicesTemplatesCategories {
 	my $self = shift;
 	my $db = $self->{"centreon"};
@@ -157,7 +206,7 @@ sub getServicesTemplatesCategories {
 		my $currentTemplate = $row->{"service_id"};
 		my $categories = $self->getServiceCategories($row->{"service_id"});
 		my $parentId = $row->{"service_template_model_stm_id"};
-		if (defined($parentId)) {
+		if (defined($parentId) && !IstemplateLooping($self,$currentTemplate)) {
 			my $hasParent = 1;
 			# getting all parent templates category relations
 			while ($hasParent) {
