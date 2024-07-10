@@ -44,7 +44,7 @@ if not defined VCPKG_ROOT (
 
 cmake.exe --preset=%build_type%
 
-cmake.exe --build build_%os%
+cmake.exe --build build_windows
 
 goto :eof
 

@@ -17,7 +17,6 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
       - name: install msvc command prompt
         uses: ilammy/msvc-dev-cmd@v1.4.1
 

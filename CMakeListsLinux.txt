@@ -86,6 +86,10 @@ find_package(Boost REQUIRED COMPONENTS url)
 find_package(ryml CONFIG REQUIRED)
 add_definitions("-DSPDLOG_FMT_EXTERNAL")
 
+add_definitions("-DCOLLECT_MAJOR=${COLLECT_MAJOR}")
+add_definitions("-DCOLLECT_MINOR=${COLLECT_MINOR}")
+add_definitions("-DCOLLECT_PATCH=${COLLECT_PATCH}")
+
 include(FindPkgConfig)
 pkg_check_modules(MARIADB REQUIRED libmariadb)
 pkg_check_modules(LIBSSH2 REQUIRED libssh2)

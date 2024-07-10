@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
+  
       - name: install msvc command prompt
         uses: ilammy/msvc-dev-cmd@v1.4.1
 
@@ -51,3 +51,4 @@ jobs:
           Write-Host "aws s3 cp $file_name_extension s3://centreon-collect-robot-report/$file_name_extension"
           [System.Environment]::SetEnvironmentVariable("AWS_EC2_METADATA_DISABLED","true")
           aws s3 cp $file_name_extension s3://centreon-collect-robot-report/$file_name_extension
+  

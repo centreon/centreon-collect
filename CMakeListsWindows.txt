@@ -8,9 +8,12 @@ find_package(boost_asio CONFIG REQUIRED)
 find_package(boost_process CONFIG REQUIRED)
 find_package(boost_multi_index CONFIG REQUIRED)
 find_package(boost_program_options CONFIG REQUIRED)
-find_package(Boost REQUIRED COMPONENTS beast)
 find_package(boost_multi_index CONFIG REQUIRED)
 add_definitions("-DSPDLOG_FMT_EXTERNAL")
+
+add_definitions("-DCOLLECT_MAJOR=${COLLECT_MAJOR}")
+add_definitions("-DCOLLECT_MINOR=${COLLECT_MINOR}")
+add_definitions("-DCOLLECT_PATCH=${COLLECT_PATCH}")
 
 
 # There is a bug with grpc. It is not put in the triplet directory. So we have

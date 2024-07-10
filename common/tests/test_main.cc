@@ -18,7 +18,6 @@
  */
 
 #include <gtest/gtest.h>
-
 #include "pool.hh"
 
 std::shared_ptr<asio::io_context> g_io_context(

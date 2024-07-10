@@ -69,13 +69,8 @@ std::shared_ptr<std::string> certificate_cache::get_certificate(
         throw msg_fmt("stat fail of certificate: {} : {}", path,
                       strerror(errno));
       }
-#ifdef _WINDOWS
-      if (file_stat.st_mtime >
-          exist->second.last_access) {  // modified on disk => reload}
-#else
       if (file_stat.st_mtim.tv_sec >
           exist->second.last_access) {  // modified on disk => reload}
-#endif
         _certs.erase(exist);
       } else {  // not modified => return cache content
         exist->second.last_access = now;
