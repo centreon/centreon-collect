@@ -54,7 +54,7 @@ jobs:
       environment: ${{ steps.get_version.outputs.env }}
       release_type: ${{ steps.get_version.outputs.release_type }}
       release_cloud: ${{ steps.get_version.outputs.release_cloud}}
-      gorgone_docker_version: ${{ steps.get_version.outputs.gorgone_docker_version}}
+      gorgone_docker_version: ${{ steps.get_version.outputs.gorgone_docker_version }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
