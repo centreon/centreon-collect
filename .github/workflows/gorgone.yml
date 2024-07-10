@@ -13,10 +13,10 @@ on:
       - reopened
       - ready_for_review
     paths:
-      - "centreon-gorgone/**"
-      - "!centreon-gorgone/veracode.json"
-      - "!centreon-gorgone/.veracode-exclusions"
-      - ".github/workflows/gorgone.yml"
+      - "gorgone/**"
+      - "!gorgone/tests/**"
+      - "!gorgone/veracode.json"
+      - "!gorgone/.veracode-exclusions"
   push:
     branches:
       - develop
@@ -24,37 +24,35 @@ on:
       - master
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
-      - "centreon-gorgone/**"
-      - "!centreon-gorgone/veracode.json"
-      - "!centreon-gorgone/.veracode-exclusions"
-      - ".github/workflows/gorgone.yml"
+      - "gorgone/**"
+      - "!gorgone/tests/**"
+      - "!gorgone/veracode.json"
+      - "!gorgone/.veracode-exclusions"
 
 env:
-  base_directory: centreon-gorgone
+  base_directory: gorgone
 
 jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
     with:
-      version_file: centreon-gorgone/.version
+      version_file: gorgone/.version
 
   veracode-analysis:
     needs: [get-version]
     uses: ./.github/workflows/veracode-analysis.yml
     with:
-      module_directory: centreon-gorgone
+      module_directory: gorgone
       module_name: centreon-gorgone
       major_version: ${{ needs.get-version.outputs.major_version }}
       minor_version: ${{ needs.get-version.outputs.minor_version }}
-      stability: ${{ needs.get-version.outputs.stability }}
-      is_perl_project: true
+      img_version: ${{ needs.get-version.outputs.img_version }}
     secrets:
       veracode_api_id: ${{ secrets.VERACODE_API_ID_GORG }}
       veracode_api_key: ${{ secrets.VERACODE_API_KEY_GORG }}
       veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
-      jira_base_url: ${{ secrets.JIRA_BASE_URL }}
-      jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
-      jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+      docker_registry_id: ${{ secrets.DOCKER_REGISTRY_ID }}
+      docker_registry_passwd: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
   package:
     needs: [get-version]
@@ -108,20 +106,20 @@ jobs:
       - name: Generate selinux binaries
         if: ${{ matrix.package_extension == 'rpm' }}
         run: |
-          cd centreon-gorgone/selinux
+          cd gorgone/selinux
           sed -i "s/@VERSION@/${{ needs.get-version.outputs.major_version }}.${{ needs.get-version.outputs.minor_version }}/g" centreon-gorgoned.te
           make -f /usr/share/selinux/devel/Makefile
         shell: bash
 
       - name: Remove selinux packaging files on debian
         if: ${{ matrix.package_extension == 'deb' }}
-        run: rm -f centreon-gorgone/packaging/*-selinux.yaml
+        run: rm -f gorgone/packaging/*-selinux.yaml
         shell: bash
 
       - name: Package
-        uses: ./.github/actions/package-nfpm
+        uses: ./.github/actions/package
         with:
-          nfpm_file_pattern: "centreon-gorgone/packaging/*.yaml"
+          nfpm_file_pattern: "gorgone/packaging/*.yaml"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
           major_version: ${{ needs.get-version.outputs.major_version }}
@@ -167,8 +165,31 @@ jobs:
           MYSQL_ROOT_PASSWORD: password
 
     steps:
+      - name: Get linked branch of centreon repository
+        id: centreon_repo_linked_branch
+        run: |
+          CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${{ needs.get-version.outputs.major_version }}\.x$" >/dev/null 2>&1 && echo "dev-${{ needs.get-version.outputs.major_version }}.x" || echo develop)
+
+          GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${{ github.head_ref || github.ref_name }}$" >/dev/null 2>&1 && echo yes || echo no)
+          if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
+            CENTREON_REPO_LINKED_BRANCH="${{ github.head_ref || github.ref_name }}"
+          fi
+
+          echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
+        shell: bash
+
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Checkout sources
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          repository: centreon/centreon
+          path: centreon
+          ref: ${{ steps.centreon_repo_linked_branch.outputs.linked_branch }}
+          sparse-checkout: |
+            centreon/www/install/createTables.sql
+            centreon/www/install/createTablesCentstorage.sql
 
       - name: get cached gorgone package
         uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
@@ -194,12 +215,11 @@ jobs:
           mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
           mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon.* TO 'centreon'@'%'"
           mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-storage\`.* TO 'centreon'@'%'"
-          mysql -h mariadb -u root -ppassword 'centreon' < centreon/www/install/createTables.sql
-          mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/www/install/createTablesCentstorage.sql
+          mysql -h mariadb -u root -ppassword 'centreon' < centreon/centreon/www/install/createTables.sql
+          mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/centreon/www/install/createTablesCentstorage.sql
 
       - name: Run tests
-        run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBUSER:centreon' centreon-gorgone/tests
-
+        run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBUSER:centreon' gorgone/tests
 
       - name: Upload gorgone and robot debug artifacts
         if: failure()
@@ -225,7 +245,7 @@ jobs:
         uses: ./.github/actions/release-sources
         with:
           bucket_directory: centreon-gorgone
-          module_directory: centreon-gorgone
+          module_directory: gorgone
           module_name: centreon-gorgone
           major_version: ${{ needs.get-version.outputs.major_version }}
           minor_version: ${{ needs.get-version.outputs.minor_version }}
@@ -297,7 +317,7 @@ jobs:
         uses: ./.github/actions/promote-to-stable
         with:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          module: gorgone
+          module_name: gorgone
           distrib: ${{ matrix.distrib }}
           major_version: ${{ needs.get-version.outputs.major_version }}
           minor_version: ${{ needs.get-version.outputs.minor_version }}
