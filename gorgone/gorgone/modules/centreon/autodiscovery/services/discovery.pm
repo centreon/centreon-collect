@@ -41,13 +41,18 @@ sub new {
     $connector->{class_object_centreon} = $options{class_object_centreon};
     $connector->{class_object_centstorage} = $options{class_object_centstorage};
     $connector->{class_autodiscovery} = $options{class_autodiscovery};
-    $connector->{tpapi_clapi} = $options{tpapi_clapi};
+    $connector->{tpapi_centreonv2} = $options{tpapi_centreonv2};
     $connector->{mail_subject} = defined($connector->{config}->{mail_subject}) ? $connector->{config}->{mail_subject} : 'Centreon Auto Discovery';
     $connector->{mail_from} = defined($connector->{config}->{mail_from}) ? $connector->{config}->{mail_from} : 'centreon-autodisco';
+    $connector->{service_parrallel_commands_poller} = (defined($options{config}->{service_parrallel_commands_poller}) &&
+        $options{config}->{service_parrallel_commands_poller} =~ /(\d+)/) ? $1 : 8;
+    $connector->{service_check_interval} = (defined($options{config}->{service_check_interval}) &&
+        $options{config}->{service_check_interval} =~ /(\d+)/) ? $1 : 15;
+    $connector->{service_timeout} = (defined($options{config}->{service_timeout}) &&
+        $options{config}->{service_timeout} =~ /(\d+)/) ? $1 : 90;
 
     $connector->{service_pollers} = {};
     $connector->{audit_user_id} = undef;
-    $connector->{service_parrallel_commands_poller} = 8;
     $connector->{service_current_commands_poller} = {};
     $connector->{finished} = 0;
     $connector->{post_execution} = 0;
@@ -188,17 +193,11 @@ sub restart_pollers {
     my $poller_ids = {};
     foreach my $poller_id (keys %{$self->{discovery}->{pollers_reload}}) {
         $self->{logger}->writeLogInfo("[autodiscovery] -servicediscovery- $self->{uuid} generate poller config '" . $poller_id . "'");
-        $self->send_internal_action({
-            action => 'COMMAND',
-            token => $self->{discovery}->{token} . ':config',
-            data => {
-                content => [
-                    {
-                        command => $self->{tpapi_clapi}->get_applycfg_command(poller_id => $poller_id)
-                    }
-                ]
-            }
-        });
+
+        my ($status, $results) = $self->{tpapi_centreonv2}->monitoring_server_generate_reload(monitoring_server_id => $poller_id);
+        if ($status != 0) {
+            $self->{logger}->writeLogError("[autodiscovery] -servicediscovery- $self->{uuid} cannot generate poller config - " . $self->{tpapi_centreonv2}->error());
+        }
     }
 }
 
@@ -785,8 +784,8 @@ sub service_execute_commands {
                             event => 'SERVICEDISCOVERYLISTENER',
                             target => $poller_id,
                             token => 'svc-disco-' . $self->{uuid} . '-' . $rule_id . '-' . $host_id,
-                            timeout => 120,
-                            log_pace => 15
+                            timeout => $self->{service_timeout} + $self->{service_check_interval} + 15,
+                            log_pace => $self->{service_check_interval}
                         }
                     ]
                 });
@@ -800,7 +799,7 @@ sub service_execute_commands {
                         content => [
                             {
                                 command => $command,
-                                timeout => 90
+                                timeout => $self->{service_timeout}
                             }
                         ]
                     }
@@ -850,13 +849,18 @@ sub launchdiscovery {
         return -1;
     }
 
-    if (!defined($self->{tpapi_clapi}->get_username())) {
-        $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => 'clapi ' . $self->{tpapi_clapi}->error());
+    if (!defined($self->{tpapi_centreonv2}->get_username())) {
+        $self->send_log_msg_error(
+            token => $options{token},
+            subname => 'servicediscovery',
+            number => $self->{uuid},
+            message => 'cannot get api user: ' . $self->{tpapi_centreonv2}->error()
+        );
         return -1;
     }
     ($status, $message, my $user_id) = gorgone::modules::centreon::autodiscovery::services::resources::get_audit_user_id(
         class_object_centreon => $self->{class_object_centreon},
-        clapi_user => $self->{tpapi_clapi}->get_username()
+        user => $self->{tpapi_centreonv2}->get_username()
     );
     if ($status < 0) {
         $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => $message);
