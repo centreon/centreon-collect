@@ -115,7 +115,7 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [el8, el9]
+        distrib: [el7, el8]
 
     steps:
       - name: Checkout sources
@@ -164,7 +164,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye]
+        distrib: [el7, el8, bullseye]
 
     steps:
       - name: Checkout sources
