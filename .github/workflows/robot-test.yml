@@ -97,7 +97,7 @@ jobs:
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: ./*.rpm
-          key: ${{ github.run_id }}-${{ github.sha }}-rpmbuild-centreon-collect-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
+          key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
 
       - name: Test ${{ matrix.feature }}
         run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }} ${{inputs.database_type }}

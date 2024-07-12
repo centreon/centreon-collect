@@ -71,7 +71,7 @@ jobs:
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: ./*.rpm
-          key: ${{ github.run_id }}-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
+          key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
 
       - name: Cleaning not needed rpm packages
         shell: bash
@@ -122,4 +122,4 @@ jobs:
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: ./*.deb
-          key: ${{ github.run_id }}-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
+          key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
