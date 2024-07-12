@@ -8,23 +8,18 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - agent/**
       - bbdo/**
       - broker/**
       - ccc/**
       - clib/**
       - connectors/**
-      - custom-triplets/**
       - engine/**
       - grpc/**
       - packaging/**
       - cmake.sh
-      - cmake-vcpkg.sh
       - CMakeLists.txt
-      - vcpkg.json
-      - overlays/**
+      - conanfile.txt
       - selinux/**
-      - vcpkg/**
       - "!.veracode-exclusions"
       - "!veracode.json"
       - "!**/test/**"
@@ -35,23 +30,18 @@ on:
       - master
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
-      - agent/**
       - bbdo/**
       - broker/**
       - ccc/**
       - clib/**
       - connectors/**
-      - custom-triplets/**
       - engine/**
       - grpc/**
       - packaging/**
       - cmake.sh
-      - cmake-vcpkg.sh
       - CMakeLists.txt
-      - vcpkg.json
-      - overlays/**
+      - conanfile.txt
       - selinux/**
-      - vcpkg/**
       - "!.veracode-exclusions"
       - "!veracode.json"
       - "!**/test/**"
@@ -70,7 +60,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [alma8, alma9, debian-bullseye, debian-bookworm]
+        image: [alma8, alma9, debian-bullseye]
     name: unit test ${{ matrix.image }}
 
     steps:
@@ -169,10 +159,6 @@ jobs:
             arch: amd64
           - distrib: bullseye
             arch: arm64
-          - distrib: bookworm
-            arch: amd64
-          - distrib: jammy
-            arch: amd64
 
     name: deliver ${{ matrix.distrib }}
 
@@ -198,7 +184,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy]
+        distrib: [el8, el9, bullseye]
 
     steps:
       - name: Checkout sources

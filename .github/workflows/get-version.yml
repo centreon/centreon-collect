@@ -13,7 +13,7 @@ on:
         description: "minor version"
         value: ${{ jobs.get-version.outputs.minor_version }}
       img_version:
-        description: "docker image version (vcpkg checksum)"
+        description: "docker image version (conan checksum)"
         value: ${{ jobs.get-version.outputs.img_version }}
       test_img_version:
         description: "test docker image version (checksum of database sql, script and dockerfiles)"
@@ -100,7 +100,7 @@ jobs:
             exit 1
           fi
 
-          IMG_VERSION=$( cat `ls .github/docker/Dockerfile.centreon-collect-* | grep -v test` vcpkg.json | md5sum | awk '{print substr($1, 0, 8)}')
+          IMG_VERSION=$( cat `ls .github/docker/Dockerfile.centreon-collect-* | grep -v test` conanfile.txt | md5sum | awk '{print substr($1, 0, 8)}')
           TEST_IMG_VERSION=$(cat .github/docker/Dockerfile.centreon-collect-*-test .github/scripts/collect-prepare-test-robot.sh resources/*.sql | md5sum | cut -c1-8)
           echo "img_version=$IMG_VERSION" >> $GITHUB_OUTPUT
           echo "test_img_version=$TEST_IMG_VERSION" >> $GITHUB_OUTPUT

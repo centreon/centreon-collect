@@ -77,19 +77,16 @@ jobs:
       - if: ${{ inputs.module_name == 'centreon-collect' }}
         name: Compiling Cpp sources
         run: |
-          mv /root/.cache /github/home
-          export VCPKG_ROOT=/vcpkg
-          export PATH=$VCPKG_ROOT:$PATH
           rm -rf build
-          cmake \
-            -B build \
-            -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
-            -DVCPKG_TARGET_TRIPLET=x64-linux-release \
-            -DVCPKG_OVERLAY_PORTS=/overlays \
-            -S . \
-            -GNinja \
+          mkdir build
+          cd build
+
+          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
+          sudo conan install .. -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
+
+          sudo cmake \
+            -G "Ninja" \
             -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
-            -DDEBUG_ROBOT=OFF \
             -DWITH_TESTING=OFF \
             -DWITH_BENCH=OFF \
             -DWITH_MODULE_SIMU=OFF \
@@ -104,14 +101,14 @@ jobs:
             -DWITH_DAEMONS=ON \
             -DWITH_CREATE_FILES=OFF \
             -DWITH_CONFIG_FILES=ON \
-            -DNG=ON
+            ..
 
-          ninja -Cbuild
+          sudo ninja
 
           echo "[DEBUG] - Find compiled files"
-          find build/{broker,engine,clib,connectors,common} -name "*.so" -type f
+          find ./ -name "*.so"
           echo "[DEBUG] - Build size"
-          du -sh $(find build/{broker,engine,clib,connectors,common} -name "*.so" -type f) | sort -rh
+          du -sh ./lib/*.so | sort -rh
 
       - if: ${{ inputs.module_name == 'centreon-collect' }}
         name: Preserve centreon-collect binaries from cleaning

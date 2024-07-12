@@ -29,10 +29,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-nfpm-alma8
+          - image: packaging-alma8
             distrib: el8
             arch: amd64
-          - image: packaging-nfpm-alma9
+          - image: packaging-alma9
             distrib: el9
             arch: amd64
 
@@ -50,8 +50,12 @@ jobs:
       - name: package rpm
         run: |
           dnf install -y wget rpmdevtools rpmlint epel-release
-          dnf config-manager --set-enabled crb || true # alma 9
-          dnf config-manager --set-enabled powertools || true # alma 8
+          if [ "${{ matrix.distrib }}" = "el8" ]; then
+            dnf config-manager --set-enabled powertools
+            rpm --import https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux
+          else
+            dnf config-manager --set-enabled crb
+          fi
           dnf install -y asciidoc autoconf automake gcc gcc-c++ glib2-devel libbsd-devel libtool make rpm-build xmlto
 
           cd /github/home
@@ -79,16 +83,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-nfpm-bullseye
+          - image: packaging-bullseye
             distrib: bullseye
-            runner: ubuntu-22.04
-            arch: amd64
-          - image: packaging-nfpm-bookworm
-            distrib: bookworm
-            runner: ubuntu-22.04
-            arch: amd64
-          - image: packaging-nfpm-jammy
-            distrib: jammy
             runner: ubuntu-22.04
             arch: amd64
           - image: packaging-bullseye-arm64
@@ -179,10 +175,6 @@ jobs:
             arch: amd64
           - distrib: bullseye
             arch: arm64
-          - distrib: bookworm
-            arch: amd64
-          - distrib: jammy
-            arch: amd64
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
@@ -208,7 +200,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy]
+        distrib: [el8, el9, bullseye]
 
     steps:
       - name: Checkout sources

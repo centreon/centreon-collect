@@ -57,18 +57,6 @@ jobs:
             dockerfile: centreon-collect-debian-bullseye-test
             image: centreon-collect-debian-bullseye-test
             tag: ${{ needs.get-version.outputs.test_img_version }}
-          - runner: collect
-            dockerfile: centreon-collect-debian-bookworm
-            image: centreon-collect-debian-bookworm
-            tag: ${{ needs.get-version.outputs.img_version }}
-          - runner: collect
-            dockerfile: centreon-collect-debian-bookworm-test
-            image: centreon-collect-debian-bookworm-test
-            tag: ${{ needs.get-version.outputs.test_img_version }}
-          - runner: collect
-            dockerfile: centreon-collect-ubuntu-jammy
-            image: centreon-collect-ubuntu-jammy
-            tag: ${{ needs.get-version.outputs.img_version }}
           - runner: collect-arm64
             dockerfile: centreon-collect-debian-bullseye
             image: centreon-collect-debian-bullseye-arm64
@@ -76,14 +64,6 @@ jobs:
           - runner: collect-arm64
             dockerfile: centreon-collect-debian-bullseye-test
             image: centreon-collect-debian-bullseye-arm64-test
-            tag: ${{ needs.get-version.outputs.test_img_version }}
-          - runner: collect-arm64
-            dockerfile: centreon-collect-debian-bookworm
-            image: centreon-collect-debian-bookworm-arm64
-            tag: ${{ needs.get-version.outputs.img_version }}
-          - runner: collect-arm64
-            dockerfile: centreon-collect-debian-bookworm-test
-            image: centreon-collect-debian-bookworm-arm64-test
             tag: ${{ needs.get-version.outputs.test_img_version }}
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
@@ -115,9 +95,7 @@ jobs:
         with:
           file: .github/docker/Dockerfile.${{ matrix.dockerfile }}
           context: .
-          build-args: |
-            "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
-            "TRIPLET=${{ contains(matrix.runner, 'arm') && 'arm64-linux' || 'x64-linux' }}"
+          build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
           platforms: ${{ contains(matrix.runner, 'arm') && 'linux/arm64' || 'linux/amd64' }}
           pull: true
           push: true
