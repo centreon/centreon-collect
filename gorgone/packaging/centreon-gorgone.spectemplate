@@ -75,8 +75,8 @@ SElinux context for centreon-gorgoned.
 
 %build
 
-sed -i 's#@VERSION@#%{version}#' centreon-gorgone/selinux/*
-(cd centreon-gorgone/selinux && %{__make} -f %{selinuxdevel}/Makefile)
+sed -i 's#@VERSION@#%{version}#' gorgone/selinux/*
+(cd gorgone/selinux && %{__make} -f %{selinuxdevel}/Makefile)
 
 %install
 rm -rf %{buildroot}
@@ -87,36 +87,36 @@ mkdir -p %{buildroot}/%{perl_vendorlib}/gorgone
 %{__install} -d %buildroot%{_localstatedir}/lib/centreon-gorgone
 %{__install} -d %buildroot%{_localstatedir}/log/centreon-gorgone
 %{__install} -d %buildroot%{_localstatedir}/cache/centreon-gorgone
-%{__cp} centreon-gorgone/config/systemd/gorgoned-service %{buildroot}%{_sysconfdir}/systemd/system/gorgoned.service
+%{__cp} gorgone/config/systemd/gorgoned-service %{buildroot}%{_sysconfdir}/systemd/system/gorgoned.service
 %{__install} -d %{buildroot}%{_sysconfdir}/sysconfig
-%{__cp} centreon-gorgone/config/systemd/gorgoned-sysconfig %{buildroot}%{_sysconfdir}/sysconfig/gorgoned
+%{__cp} gorgone/config/systemd/gorgoned-sysconfig %{buildroot}%{_sysconfdir}/sysconfig/gorgoned
 %{__install} -d %{buildroot}%{_sysconfdir}/logrotate.d
-%{__cp} centreon-gorgone/config/logrotate/gorgoned %{buildroot}%{_sysconfdir}/logrotate.d/gorgoned
+%{__cp} gorgone/config/logrotate/gorgoned %{buildroot}%{_sysconfdir}/logrotate.d/gorgoned
 
-%{__cp} -R centreon-gorgone/gorgone/* %{buildroot}/%{perl_vendorlib}/gorgone/
-%{__cp} centreon-gorgone/gorgoned %{buildroot}%{_bindir}/
-%{__cp} centreon-gorgone/contrib/gorgone_config_init.pl %{buildroot}%{_usr}/local/bin/
-%{__cp} centreon-gorgone/contrib/gorgone_audit.pl %{buildroot}%{_usr}/local/bin/
-%{__cp} centreon-gorgone/contrib/gorgone_install_plugins.pl %{buildroot}%{_usr}/local/bin/
-%{__cp} centreon-gorgone/contrib/gorgone_key_thumbprint.pl %{buildroot}%{_usr}/local/bin/
+%{__cp} -R gorgone/gorgone/* %{buildroot}/%{perl_vendorlib}/gorgone/
+%{__cp} gorgone/gorgoned %{buildroot}%{_bindir}/
+%{__cp} gorgone/contrib/gorgone_config_init.pl %{buildroot}%{_usr}/local/bin/
+%{__cp} gorgone/contrib/gorgone_audit.pl %{buildroot}%{_usr}/local/bin/
+%{__cp} gorgone/contrib/gorgone_install_plugins.pl %{buildroot}%{_usr}/local/bin/
+%{__cp} gorgone/contrib/gorgone_key_thumbprint.pl %{buildroot}%{_usr}/local/bin/
 
 %{__install} -d %{buildroot}%{_sysconfdir}/centreon-gorgone
 %{__install} -d %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/
 %{__install} -d %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/cron.d/
 %{__install} -d %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/whitelist.conf.d/
 %{__install} -d %buildroot%{_localstatedir}/cache/centreon-gorgone/autodiscovery
-%{__cp} centreon-gorgone/packaging/config.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/
-%{__cp} centreon-gorgone/packaging/centreon.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/30-centreon.yaml
-%{__cp} centreon-gorgone/packaging/centreon-api.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/31-centreon-api.yaml
-%{__cp} centreon-gorgone/packaging/action.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/39-action.yaml
-%{__cp} centreon-gorgone/packaging/centreon-audit.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/50-centreon-audit.yaml
-%{__cp} centreon-gorgone/packaging/whitelist.conf.d/centreon.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/whitelist.conf.d/centreon.yaml
+%{__cp} gorgone/packaging/config.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/
+%{__cp} gorgone/packaging/centreon.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/30-centreon.yaml
+%{__cp} gorgone/packaging/centreon-api.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/31-centreon-api.yaml
+%{__cp} gorgone/packaging/action.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/39-action.yaml
+%{__cp} gorgone/packaging/centreon-audit.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/50-centreon-audit.yaml
+%{__cp} gorgone/packaging/whitelist.conf.d/centreon.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/whitelist.conf.d/centreon.yaml
 
 %{__install} -d %buildroot%{_sysconfdir}/sudoers.d/
-%{__cp} centreon-gorgone/packaging/sudoers.d/centreon-gorgone %buildroot%{_sysconfdir}/sudoers.d/centreon-gorgone
+%{__cp} gorgone/packaging/sudoers.d/centreon-gorgone %buildroot%{_sysconfdir}/sudoers.d/centreon-gorgone
 
 %{__mkdir} -p %buildroot%{_datadir}/selinux/packages/centreon
-%{__install} -m 655 centreon-gorgone/selinux/centreon-gorgoned.pp %buildroot%{_datadir}/selinux/packages/centreon/centreon-gorgoned.pp
+%{__install} -m 655 gorgone/selinux/centreon-gorgoned.pp %buildroot%{_datadir}/selinux/packages/centreon/centreon-gorgoned.pp
 
 %{_fixperms} $RPM_BUILD_ROOT/*
 
