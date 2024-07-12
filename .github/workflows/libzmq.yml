@@ -87,10 +87,6 @@ jobs:
             distrib: bullseye
             runner: ubuntu-22.04
             arch: amd64
-          - image: packaging-bullseye-arm64
-            distrib: bullseye
-            runner: ["self-hosted", "collect-arm64"]
-            arch: arm64
 
     runs-on: ${{ matrix.runner }}
 
@@ -173,8 +169,6 @@ jobs:
         include:
           - distrib: bullseye
             arch: amd64
-          - distrib: bullseye
-            arch: arm64
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
