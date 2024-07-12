@@ -44,6 +44,10 @@ class bireactor
   std::shared_ptr<spdlog::logger> _logger;
 
   bool _alive;
+  /**
+   * @brief All attributes of this object are protected by this mutex
+   *
+   */
   mutable std::mutex _protect;
 
  public:

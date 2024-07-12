@@ -72,6 +72,10 @@ class streaming_client : public common::grpc::grpc_client_base,
   std::shared_ptr<client_reactor> _reactor;
   std::shared_ptr<scheduler> _sched;
 
+  /**
+   * @brief All attributes of this object are protected by this mutex
+   *
+   */
   std::mutex _protect;
 
   void _create_reactor();

@@ -39,11 +39,15 @@ class streaming_server : public common::grpc::grpc_server_base,
                          public ReversedAgentService::Service {
   std::shared_ptr<boost::asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
-  std::string _supervised_host;
+  const std::string _supervised_host;
 
   /** active engine to agent connection*/
   std::shared_ptr<server_reactor> _incoming;
 
+  /**
+   * @brief All attributes of this object are protected by this mutex
+   *
+   */
   mutable std::mutex _protect;
 
   void _start();

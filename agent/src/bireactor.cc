@@ -81,18 +81,18 @@ void bireactor<bireactor_class>::start_read() {
 template <class bireactor_class>
 void bireactor<bireactor_class>::OnReadDone(bool ok) {
   if (ok) {
-    std::shared_ptr<MessageToAgent> readden;
+    std::shared_ptr<MessageToAgent> read;
     {
       std::lock_guard l(_protect);
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} peer {} receive: {}",
                           static_cast<const void*>(this), _class_name, _peer,
                           _read_current->ShortDebugString());
-      readden = _read_current;
+      read = _read_current;
       _read_current.reset();
     }
     start_read();
-    if (readden->has_config()) {
-      on_incomming_request(readden);
+    if (read->has_config()) {
+      on_incomming_request(read);
     }
   } else {
     SPDLOG_LOGGER_ERROR(_logger, "{:p} {} peer:{} fail read from stream",
