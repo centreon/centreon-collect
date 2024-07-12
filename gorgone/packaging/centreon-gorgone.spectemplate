@@ -75,7 +75,7 @@ SElinux context for centreon-gorgoned.
 
 %build
 
-sed -i 's#@VERSION@#%{version}#' centreon-gorgone/selinux/*
+sed -i 's#@VERSION@#%{version}#' gorgone/selinux/*
 (cd gorgone/selinux && %{__make} -f %{selinuxdevel}/Makefile)
 
 %install
