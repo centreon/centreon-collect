@@ -60,7 +60,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [alma8, alma9, debian-bullseye]
+        image: [centos7, alma8, debian-bullseye]
     name: unit test ${{ matrix.image }}
 
     steps:
@@ -78,7 +78,7 @@ jobs:
         uses: ./.github/actions/runner-docker
         with:
           registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          script_name: /src/.github/scripts/collect-unit-tests
+          script_name: /src/ci/scripts/collect-unit-tests
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ needs.get-version.outputs.img_version }}
 
@@ -117,16 +117,16 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
-    if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     needs: [get-version, package]
     environment: ${{ needs.get-version.outputs.environment }}
     runs-on: [self-hosted, common]
     strategy:
       matrix:
         include:
-          - distrib: el8
+          - distrib: el7
             arch: amd64
-          - distrib: el9
+          - distrib: el8
             arch: amd64
 
     name: deliver ${{ matrix.distrib }}
@@ -148,7 +148,7 @@ jobs:
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   deliver-deb:
-    if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     needs: [get-version, package]
     environment: ${{ needs.get-version.outputs.environment }}
     runs-on: [self-hosted, common]
@@ -182,7 +182,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye]
+        distrib: [el7, el8, bullseye]
 
     steps:
       - name: Checkout sources

@@ -38,7 +38,7 @@ sed -i "s/^centreon:version=.*$/centreon:version=$(echo $VERSION-$RELEASE)/" deb
 sed -i "s/^centreon:versionThreshold=.*$/centreon:versionThreshold=$(echo $MAJOR_THRESHOLD | egrep -o '^[0-9][0-9].[0-9][0-9]')/" debian/substvars
 
 echo "debmake begin"
-debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$RELEASE"
+debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -y -r "$RELEASE"
 echo "version de dwz"
 /usr/bin/dwz -v
 echo "version de gcc"

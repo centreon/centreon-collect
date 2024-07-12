@@ -15,9 +15,6 @@ on:
       img_version:
         description: "docker image version (conan checksum)"
         value: ${{ jobs.get-version.outputs.img_version }}
-      test_img_version:
-        description: "test docker image version (checksum of database sql, script and dockerfiles)"
-        value: ${{ jobs.get-version.outputs.test_img_version }}
       version:
         description: "major version"
         value: ${{ jobs.get-version.outputs.version }}
@@ -44,7 +41,6 @@ jobs:
       major_version: ${{ steps.get_version.outputs.major_version }}
       minor_version: ${{ steps.get_version.outputs.minor_version }}
       img_version: ${{ steps.get_version.outputs.img_version }}
-      test_img_version: ${{ steps.get_version.outputs.test_img_version }}
       version: ${{ steps.get_version.outputs.version }}
       release: ${{ steps.get_version.outputs.release }}
       stability: ${{ steps.get_version.outputs.stability }}
@@ -100,10 +96,8 @@ jobs:
             exit 1
           fi
 
-          IMG_VERSION=$( cat `ls .github/docker/Dockerfile.centreon-collect-* | grep -v test` conanfile.txt | md5sum | awk '{print substr($1, 0, 8)}')
-          TEST_IMG_VERSION=$(cat .github/docker/Dockerfile.centreon-collect-*-test .github/scripts/collect-prepare-test-robot.sh resources/*.sql | md5sum | cut -c1-8)
+          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
           echo "img_version=$IMG_VERSION" >> $GITHUB_OUTPUT
-          echo "test_img_version=$TEST_IMG_VERSION" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
           if [[ -z "$GITHUB_HEAD_REF" ]]; then

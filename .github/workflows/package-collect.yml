@@ -29,10 +29,10 @@ jobs:
     strategy:
       matrix:
         include:
+          - image: centos7
+            distrib: el7
           - image: alma8
             distrib: el8
-          - image: alma9
-            distrib: el9
     name: package ${{ matrix.distrib }}
 
     steps:
@@ -48,7 +48,7 @@ jobs:
 
       - name: package rpm ${{ matrix.image }}
         run: |
-          docker run -i --entrypoint ./.github/scripts/collect-rpm-package.sh \
+          docker run -i --entrypoint ./ci/scripts/collect-rpm-package.sh \
             -v "$PWD:/src" \
             -e DISTRIB="${{ matrix.distrib }}" \
             -e VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}" \
@@ -113,7 +113,7 @@ jobs:
         uses: ./centreon-collect/.github/actions/runner-docker
         with:
           registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          script_name: centreon-collect/.github/scripts/collect-deb-package
+          script_name: centreon-collect/ci/scripts/collect-deb-package
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ inputs.img_version }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}" -e RELEASE="${{ inputs.release }}"
