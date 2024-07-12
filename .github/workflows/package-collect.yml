@@ -1,0 +1,125 @@
+name: Centreon collect packaging
+
+on:
+  workflow_call:
+    inputs:
+      major_version:
+        required: true
+        type: string
+      minor_version:
+        required: true
+        type: string
+      img_version:
+        required: true
+        type: string
+      release:
+        required: true
+        type: string
+      commit_hash:
+        required: true
+        type: string
+      stability:
+        required: true
+        type: string
+
+jobs:
+  package-rpm:
+    runs-on: [self-hosted, collect]
+
+    strategy:
+      matrix:
+        include:
+          - image: alma8
+            distrib: el8
+          - image: alma9
+            distrib: el9
+    name: package ${{ matrix.distrib }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Login to Registry
+        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+      - name: package rpm ${{ matrix.image }}
+        run: |
+          docker run -i --entrypoint ./.github/scripts/collect-rpm-package.sh \
+            -v "$PWD:/src" \
+            -e DISTRIB="${{ matrix.distrib }}" \
+            -e VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}" \
+            -e RELEASE="${{ inputs.release }}" \
+            -e COMMIT_HASH="${{ inputs.commit_hash }}" \
+            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.image }}:${{ inputs.img_version }}
+        shell: bash
+
+      - name: sign rpm ${{ matrix.image }}
+        uses: ./.github/actions/package-sign
+        with:
+          script_name: rpm-signing
+          image_name: rpm-signing
+          image_version: ubuntu
+          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+      - name: Cache RPM files
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: ./*.rpm
+          key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
+
+      - name: Cleaning not needed rpm packages
+        shell: bash
+        run: |
+          rm -rf *-devel*.rpm
+          rm -rf *-debuginfo*.rpm
+          rm -rf *-debugsource*.rpm
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        with:
+          name: packages-rpm-${{ matrix.distrib }}
+          path: ./*.rpm
+          retention-days: 1
+
+  package-deb:
+    runs-on: [self-hosted, collect]
+    strategy:
+      matrix:
+        include:
+          - image: debian-bullseye
+            distrib: bullseye
+    name: package ${{ matrix.distrib }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          path: centreon-collect
+
+      - name: Login to Registry
+        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+      - name: debmake ${{ matrix.image }}
+        uses: ./centreon-collect/.github/actions/runner-docker
+        with:
+          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          script_name: centreon-collect/.github/scripts/collect-deb-package
+          image_name: centreon-collect-${{ matrix.image }}
+          image_version: ${{ inputs.img_version }}
+          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}" -e RELEASE="${{ inputs.release }}"
+
+      - name: Use cache DEB files
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: ./*.deb
+          key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
