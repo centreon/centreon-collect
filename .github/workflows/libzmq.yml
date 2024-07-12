@@ -29,17 +29,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-alma8
+          - image: packaging-nfpm-alma8
             distrib: el8
             arch: amd64
-          - image: packaging-alma9
+          - image: packaging-nfpm-alma9
             distrib: el9
             arch: amd64
 
     runs-on: ubuntu-22.04
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.major_version }}
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
@@ -50,12 +50,8 @@ jobs:
       - name: package rpm
         run: |
           dnf install -y wget rpmdevtools rpmlint epel-release
-          if [ "${{ matrix.distrib }}" = "el8" ]; then
-            dnf config-manager --set-enabled powertools
-            rpm --import https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux
-          else
-            dnf config-manager --set-enabled crb
-          fi
+          dnf config-manager --set-enabled crb || true # alma 9
+          dnf config-manager --set-enabled powertools || true # alma 8
           dnf install -y asciidoc autoconf automake gcc gcc-c++ glib2-devel libbsd-devel libtool make rpm-build xmlto
 
           cd /github/home
@@ -71,7 +67,7 @@ jobs:
         shell: bash
 
       - name: cache rpm
-        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: ./*.rpm
           key: ${{ github.run_id }}-${{ github.sha }}-rpm-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
@@ -83,8 +79,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-bullseye
+          - image: packaging-nfpm-bullseye
             distrib: bullseye
+            runner: ubuntu-22.04
+            arch: amd64
+          - image: packaging-nfpm-bookworm
+            distrib: bookworm
+            runner: ubuntu-22.04
+            arch: amd64
+          - image: packaging-nfpm-jammy
+            distrib: jammy
             runner: ubuntu-22.04
             arch: amd64
           - image: packaging-bullseye-arm64
@@ -95,7 +99,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.major_version }}
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
@@ -127,7 +131,7 @@ jobs:
         shell: bash
 
       - name: cache deb
-        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: ./*.deb
           key: ${{ github.run_id }}-${{ github.sha }}-deb-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
@@ -149,14 +153,14 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Publish RPM packages
         uses: ./.github/actions/delivery
         with:
           module_name: libzmq
           distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.version }}
+          major_version: ${{ needs.get-version.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
           stability: ${{ needs.get-version.outputs.stability }}
@@ -175,19 +179,23 @@ jobs:
             arch: amd64
           - distrib: bullseye
             arch: arm64
+          - distrib: bookworm
+            arch: amd64
+          - distrib: jammy
+            arch: amd64
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Publish DEB packages
         uses: ./.github/actions/delivery
         with:
           module_name: libzmq
           distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.version }}
+          major_version: ${{ needs.get-version.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
           stability: ${{ needs.get-version.outputs.stability }}
@@ -200,11 +208,11 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye]
+        distrib: [el8, el9, bullseye, bookworm, jammy]
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable
@@ -212,8 +220,8 @@ jobs:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           module_name: libzmq
           distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-version.outputs.version }}
-          minor_version: ${{ needs.get-version.outputs.patch }}
+          major_version: ${{ needs.get-version.outputs.major_version }}
+          minor_version: ${{ needs.get-version.outputs.minor_version }}
           stability: ${{ needs.get-version.outputs.stability }}
           github_ref_name: ${{ github.ref_name }}
           release_type: ${{ needs.get-version.outputs.release_type }}
