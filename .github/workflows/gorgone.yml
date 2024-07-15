@@ -60,7 +60,6 @@ jobs:
 
     strategy:
       fail-fast: false
-     
       matrix:
         distrib: [el8, el9, bullseye, bookworm, jammy]
         include:
