@@ -1,4 +1,3 @@
-
 name: actionlint
 
 concurrency:
@@ -70,6 +69,7 @@ jobs:
               type: unix
             new-line-at-end-of-file: enable
           EOF
+
       - name: Lint YAML files
         run: |
           yamllint -c ./yamllint_rules.yml ./.github/actions/ ./.github/workflows/
