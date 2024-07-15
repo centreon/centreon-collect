@@ -101,6 +101,7 @@ add_custom_command(
 add_library(centagent_lib STATIC
     ${SRC_DIR}/agent.grpc.pb.cc 
     ${SRC_DIR}/agent.pb.cc 
+    ${SRC_DIR}/bireactor.cc
     ${SRC_DIR}/check.cc
     ${SRC_DIR}/check_exec.cc
     ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
@@ -110,6 +111,8 @@ add_library(centagent_lib STATIC
     ${SRC_DIR}/opentelemetry/proto/resource/v1/resource.pb.cc
     ${SRC_DIR}/config.cc
     ${SRC_DIR}/scheduler.cc
+    ${SRC_DIR}/streaming_client.cc
+    ${SRC_DIR}/streaming_server.cc
 )
 
 include_directories(
@@ -136,7 +139,9 @@ target_link_libraries(
   centreon_process
   -L${Boost_LIBRARY_DIR_RELEASE}
   boost_program_options
-  fmt::fmt)
+  fmt::fmt
+  stdc++fs
+  )
 
 target_precompile_headers(${CENTREON_AGENT}  REUSE_FROM centagent_lib)
 

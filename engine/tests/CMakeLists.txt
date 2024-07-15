@@ -113,6 +113,7 @@ if(WITH_TESTING)
       "${TESTS_DIR}/notifications/service_downtime_notification_test.cc"
       "${TESTS_DIR}/opentelemetry/agent_check_result_builder_test.cc"
       "${TESTS_DIR}/opentelemetry/agent_reverse_client_test.cc"
+      "${TESTS_DIR}/opentelemetry/agent_to_engine_test.cc"
       "${TESTS_DIR}/opentelemetry/grpc_config_test.cc"
       "${TESTS_DIR}/opentelemetry/host_serv_extractor_test.cc"
       "${TESTS_DIR}/opentelemetry/otl_server_test.cc"
@@ -196,12 +197,14 @@ if(WITH_TESTING)
             cce_core
             log_v2
             opentelemetry
+            centagent_lib
             "-Wl,-no-whole-archive"
             pb_open_telemetry_lib
             centreon_grpc
             centreon_http
-	          -L${Boost_LIBRARY_DIR_RELEASE}
-	          boost_url
+            centreon_process
+            -L${Boost_LIBRARY_DIR_RELEASE}
+            boost_url
             boost_program_options
             pthread
             ${GCOV}
