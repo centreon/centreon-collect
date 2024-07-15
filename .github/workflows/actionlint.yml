@@ -47,10 +47,12 @@ jobs:
       - name: Install Yaml
         run: |
           pip install yamllint==1.32.0
+
       - name: Add Yaml Lint Rules
         run: |
           cat <<EOF >>./yamllint_rules.yml
           extends: default
+
           rules:
             document-start: disable
             line-length: disable
@@ -73,4 +75,3 @@ jobs:
       - name: Lint YAML files
         run: |
           yamllint -c ./yamllint_rules.yml ./.github/actions/ ./.github/workflows/
-          
