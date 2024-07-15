@@ -1,4 +1,9 @@
-name: centreon collect nightly robot
+name: robot-nightly
+run-name: nightly robot ${{ github.head_ref || github.ref_name }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 on:
   workflow_dispatch:
@@ -14,8 +19,8 @@ jobs:
     uses: ./.github/workflows/veracode-analysis.yml
     with:
       module_name: centreon-collect
-      major_version: ${{ needs.get-version.outputs.version }}
-      minor_version: ${{ needs.get-version.outputs.patch }}
+      major_version: ${{ needs.get-version.outputs.major_version }}
+      minor_version: ${{ needs.get-version.outputs.minor_version }}
       img_version: ${{ needs.get-version.outputs.img_version }}
     secrets:
       veracode_api_id: ${{ secrets.VERACODE_API_ID_COLL }}

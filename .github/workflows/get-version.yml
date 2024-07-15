@@ -1,15 +1,23 @@
 on:
   workflow_call:
+    inputs:
+      version_file:
+        required: false
+        type: string
+        default: CMakeLists.txt
     outputs:
+      major_version:
+        description: "major version"
+        value: ${{ jobs.get-version.outputs.major_version }}
+      minor_version:
+        description: "minor version"
+        value: ${{ jobs.get-version.outputs.minor_version }}
       img_version:
         description: "docker image version (conan checksum)"
         value: ${{ jobs.get-version.outputs.img_version }}
       version:
         description: "major version"
         value: ${{ jobs.get-version.outputs.version }}
-      patch:
-        description: "patch version"
-        value: ${{ jobs.get-version.outputs.patch }}
       release:
         description: "release"
         value: ${{ jobs.get-version.outputs.release }}
@@ -30,9 +38,10 @@ jobs:
   get-version:
     runs-on: ubuntu-22.04
     outputs:
+      major_version: ${{ steps.get_version.outputs.major_version }}
+      minor_version: ${{ steps.get_version.outputs.minor_version }}
       img_version: ${{ steps.get_version.outputs.img_version }}
       version: ${{ steps.get_version.outputs.version }}
-      patch: ${{ steps.get_version.outputs.patch }}
       release: ${{ steps.get_version.outputs.release }}
       stability: ${{ steps.get_version.outputs.stability }}
       environment: ${{ steps.get_version.outputs.env }}
@@ -40,7 +49,8 @@ jobs:
       release_cloud: ${{ steps.get_version.outputs.release_cloud}}
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
       - name: install gh cli on self-hosted runner
         run: |
           if ! command -v gh &> /dev/null; then
@@ -59,12 +69,36 @@ jobs:
       - id: get_version
         run: |
           set -x
+
+          if [[ "${{ inputs.version_file }}" == */.version ]]; then
+            . .version
+            . ${{ inputs.version_file }}
+            VERSION="$MAJOR.$MINOR"
+          elif [[ "${{ inputs.version_file }}" == CMakeLists.txt ]]; then
+            MAJOR=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
+            MINOR=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
+            VERSION="$MAJOR.$MINOR"
+          else
+            echo "Unable to parse ${{ inputs.version_file }}"
+            exit 1
+          fi
+
+          echo "VERSION=$VERSION"
+
+          if egrep '^[2-9][0-9]\.[0-9][0-9]\.[0-9]+' <<<"$VERSION" >/dev/null 2>&1 ; then
+            n=${VERSION//[!0-9]/ }
+            a=(${n//\./ })
+            echo "major_version=${a[0]}.${a[1]}" >> $GITHUB_OUTPUT
+            MAJOR=${a[0]}.${a[1]}
+            echo "minor_version=${a[2]}" >> $GITHUB_OUTPUT
+          else
+            echo "Cannot parse version number from ${{ inputs.version_file }}"
+            exit 1
+          fi
+
           IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
-          VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
-          PATCH=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
           echo "img_version=$IMG_VERSION" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "patch=$PATCH" >> $GITHUB_OUTPUT
 
           if [[ -z "$GITHUB_HEAD_REF" ]]; then
             BRANCHNAME="$GITHUB_REF_NAME"
@@ -114,7 +148,7 @@ jobs:
                 GITHUB_RELEASE_CLOUD=1
                 # Debug
                 echo "GITHUB_RELEASE_TYPE is: $GITHUB_RELEASE_TYPE"
-                echo "GITHUB_RELEASE_BRANCH_PR_NUMBER is: $GITHUB_RELEASE_BRANCH_PR_NUMBER"
+                echo "GITHUB_RELEASE_BRANCH_PR_NUMBER is: $GITHUB_RELEASE_BRANCH_PR_NUMBER" # We do leave this here as debug help.
                 echo "GITHUB_RELEASE_CLOUD is: $GITHUB_RELEASE_CLOUD"
                 # Github ouputs
                 echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
@@ -159,7 +193,6 @@ jobs:
               ;;
             *)
               STABILITY="canary"
-              ENV="development"
               ;;
           esac
           echo "stability=$STABILITY" >> $GITHUB_OUTPUT
