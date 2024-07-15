@@ -60,6 +60,7 @@ jobs:
 
     strategy:
       fail-fast: false
+     
       matrix:
         distrib: [el8, el9, bullseye, bookworm, jammy]
         include:
@@ -139,7 +140,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, bullseye, jammy]
+        distrib: [el8, bullseye, bookworm, jammy]
         include:
           - package_extension: rpm
             image: gorgone-testing-alma8
@@ -150,6 +151,10 @@ jobs:
           - package_extension: deb
             image: gorgone-testing-jammy
             distrib: jammy
+          - package_extension: deb
+            image: gorgone-testing-bookworm
+            distrib: bookworm
+
     runs-on: ubuntu-22.04
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.major_version }}
