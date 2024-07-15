@@ -51,6 +51,16 @@ contents:
       owner: centreon-monitoring-agent
       group: centreon-monitoring-agent
 
+overrides:
+  rpm:
+    depends:
+      - openssl-libs >= 3
+      - zlib
+  deb:
+    depends:
+      - libssl1.1 | libssl3
+      - zlib1g
+
 scripts:
   preinstall: ./scripts/centreon-monitoring-agent-preinstall.sh
   postinstall: ./scripts/centreon-monitoring-agent-postinstall.sh
