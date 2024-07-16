@@ -122,7 +122,7 @@ Setup Two Gorgone Instances
     # gorgone can generate it's own key, but as we need the thumbprint in the configuration we need to generate them before launching gorgone.
     # this script only create key if the files don't exists, and silently finish if the files already exists.
     IF    '${communication_mode}' == 'push_zmq'
-        Setup Gorgone Config    ${push_central_config}    ${gorgone_core_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}push_db_1_poller.sql
+        Setup Gorgone Config    ${push_central_config}    ${gorgone_core_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
         Setup Gorgone Config    ${push_poller_config}    gorgone_name=${poller_name}
 
         Start Gorgone    debug    ${central_name}
@@ -131,7 +131,7 @@ Setup Two Gorgone Instances
         Check Poller Is Connected    port=5556    expected_nb=2
         Check Poller Communicate     2
     ELSE IF    '${communication_mode}' == 'pullwss'
-        Setup Gorgone Config    ${pullwss_central_config}    ${ROOT_CONFIG}pullwss_node_register_one_node.yaml    ${gorgone_core_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}push_db_1_poller.sql
+        Setup Gorgone Config    ${pullwss_central_config}    ${ROOT_CONFIG}pullwss_node_register_one_node.yaml    ${gorgone_core_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
         Setup Gorgone Config    ${gorgone_core_config}    ${pullwss_poller_config}    gorgone_name=${poller_name}
 
         Start Gorgone    debug    ${central_name}
@@ -140,7 +140,7 @@ Setup Two Gorgone Instances
         Check Poller Is Connected    port=8086    expected_nb=2
         Check Poller Communicate     2
     ELSE IF    '${communication_mode}' == 'pull'
-        Setup Gorgone Config    ${pull_central_config}    ${ROOT_CONFIG}pull_node_register_one_node.yaml    ${gorgone_core_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}push_db_1_poller.sql
+        Setup Gorgone Config    ${pull_central_config}    ${ROOT_CONFIG}pull_node_register_one_node.yaml    ${gorgone_core_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
         Setup Gorgone Config    ${gorgone_core_config}    ${pull_poller_config}    gorgone_name=${poller_name}
 
         Start Gorgone    debug    ${central_name}
