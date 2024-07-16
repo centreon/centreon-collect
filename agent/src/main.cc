@@ -21,6 +21,8 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 #include "config.hh"
+#include "streaming_client.hh"
+#include "streaming_server.hh"
 
 using namespace com::centreon::agent;
 
@@ -28,6 +30,9 @@ std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
 
 std::shared_ptr<spdlog::logger> g_logger;
+static std::shared_ptr<streaming_client> _streaming_client;
+
+static std::shared_ptr<streaming_server> _streaming_server;
 
 static asio::signal_set _signals(*g_io_context, SIGTERM, SIGUSR1, SIGUSR2);
 
@@ -36,9 +41,16 @@ static void signal_handler(const boost::system::error_code& error,
   if (!error) {
     switch (signal_number) {
       case SIGTERM:
-        SPDLOG_LOGGER_INFO(g_logger, "SIGTERM received");
-        g_io_context->stop();
-        break;
+      case SIGINT:
+        SPDLOG_LOGGER_INFO(g_logger, "SIGTERM or SIGINT received");
+        if (_streaming_client) {
+          _streaming_client->shutdown();
+        }
+        if (_streaming_server) {
+          _streaming_server->shutdown();
+        }
+        g_io_context->post([]() { g_io_context->stop(); });
+        return;
       case SIGUSR2:
         SPDLOG_LOGGER_INFO(g_logger, "SIGUSR2 received");
         if (g_logger->level()) {
@@ -151,6 +163,7 @@ int main(int argc, char* argv[]) {
   try {
     // ignored but mandatory because of forks
     _signals.add(SIGPIPE);
+    _signals.add(SIGINT);
 
     _signals.async_wait(signal_handler);
 
@@ -164,6 +177,14 @@ int main(int argc, char* argv[]) {
   } catch (const std::exception& e) {
     SPDLOG_CRITICAL("fail to parse input params: {}", e.what());
     return -1;
+  }
+
+  if (conf->use_reverse_connection()) {
+    _streaming_server = streaming_server::load(g_io_context, g_logger,
+                                               grpc_conf, conf->get_host());
+  } else {
+    _streaming_client = streaming_client::load(g_io_context, g_logger,
+                                               grpc_conf, conf->get_host());
   }
 
   try {

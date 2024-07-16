@@ -139,17 +139,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, bullseye]
+        distrib: [el8, el9, bullseye, bookworm, jammy]
         include:
           - package_extension: rpm
             image: gorgone-testing-alma8
             distrib: el8
+          - package_extension: rpm
+            image: gorgone-testing-alma9
+            distrib: el9
           - package_extension: deb
             image: gorgone-testing-bullseye
             distrib: bullseye
+          - package_extension: deb
+            image: gorgone-testing-jammy
+            distrib: jammy
+          - package_extension: deb
+            image: gorgone-testing-bookworm
+            distrib: bookworm
+
     runs-on: ubuntu-22.04
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.major_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.gorgone_docker_version }}
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
@@ -202,6 +212,7 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
+            apt update
             apt install -y ./centreon-gorgone*${{ matrix.distrib }}*
           else
             dnf install -y ./centreon-gorgone*${{ matrix.distrib }}* ./centreon-gorgone-centreon-config*${{ matrix.distrib }}*

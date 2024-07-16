@@ -311,28 +311,34 @@ uint32_t muxer::event_queue_max_size() noexcept {
  * execute the data handler.
  */
 void muxer::_execute_reader_if_needed() {
-  _logger->debug("muxer '{}' execute reader if needed data_handler: {}", _name,
-                 static_cast<bool>(_data_handler));
-  if (_data_handler) {
-    bool expected = false;
-    if (_reader_running.compare_exchange_strong(expected, true)) {
-      com::centreon::common::pool::io_context_ptr()->post(
-          [me = shared_from_this()] {
+  SPDLOG_LOGGER_DEBUG(
+      _logger, "muxer '{}' execute reader if needed data_handler", _name);
+  bool expected = false;
+  if (_reader_running.compare_exchange_strong(expected, true)) {
+    com::centreon::common::pool::io_context_ptr()->post(
+        [me = shared_from_this(), this] {
+          std::shared_ptr<data_handler> to_call;
+          {
+            absl::MutexLock lck(&_events_m);
+            to_call = _data_handler;
+          }
+          if (to_call) {
             std::vector<std::shared_ptr<io::data>> to_fill;
-            to_fill.reserve(me->_events_size);
-            bool still_events_to_read = me->read(to_fill, me->_events_size);
-            uint32_t written = me->_data_handler(to_fill);
+            to_fill.reserve(_events_size);
+            bool still_events_to_read = read(to_fill, _events_size);
+            uint32_t written = to_call->on_events(to_fill);
             if (written > 0)
-              me->ack_events(written);
+              ack_events(written);
             if (written != to_fill.size()) {
-              me->_logger->error(
+              SPDLOG_LOGGER_ERROR(
+                  _logger,
                   "Unable to handle all the incoming events in muxer '{}'",
-                  me->_name);
-              me->clear_action_on_new_data();
+                  _name);
+              clear_action_on_new_data();
             }
-            me->_reader_running.store(false);
-          });
-    }
+            _reader_running.store(false);
+          }
+        });
   }
 }
 
@@ -784,13 +790,12 @@ void muxer::unsubscribe() {
 }
 
 void muxer::set_action_on_new_data(
-    std::function<uint32_t(std::vector<std::shared_ptr<io::data>>)>&&
-        data_handler) {
+    const std::shared_ptr<data_handler>& handler) {
   absl::MutexLock lck(&_events_m);
-  _data_handler = data_handler;
+  _data_handler = handler;
 }
 
 void muxer::clear_action_on_new_data() {
   absl::MutexLock lck(&_events_m);
-  _data_handler = nullptr;
+  _data_handler.reset();
 }

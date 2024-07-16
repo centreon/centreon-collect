@@ -12,9 +12,11 @@ on:
       - dev-[2-9][0-9].[0-9][0-9].x
     paths:
       - ".github/docker/Dockerfile.gorgone-testing-*"
+      - ".github/workflows/docker-gorgone-testing.yml"
   pull_request:
     paths:
       - ".github/docker/Dockerfile.gorgone-testing-*"
+      - ".github/workflows/docker-gorgone-testing.yml"
 
 jobs:
   get-version:
@@ -26,7 +28,7 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [alma8, bullseye]
+        distrib: [alma8, alma9, bullseye, bookworm, jammy]
     steps:
       - name: Checkout sources
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -46,4 +48,4 @@ jobs:
           context: .
           pull: true
           push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ needs.get-version.outputs.major_version }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ needs.get-version.outputs.gorgone_docker_version }}
