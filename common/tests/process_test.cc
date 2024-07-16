@@ -20,9 +20,16 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 #include "com/centreon/common/process/process.hh"
-#include "pool.hh"
 
 using namespace com::centreon::common;
+
+#ifdef _WINDOWS
+#define ECHO_PATH "tests\\echo.bat"
+#define END_OF_LINE "\r\n"
+#else
+#define ECHO_PATH "/bin/echo"
+#define END_OF_LINE "\n"
+#endif
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
@@ -111,11 +118,11 @@ class process_wait : public process {
 TEST_F(process_test, echo) {
   using namespace std::literals;
   std::shared_ptr<process_wait> to_wait(
-      new process_wait(g_io_context, _logger, "/bin/echo", {"hello"s}));
+      new process_wait(g_io_context, _logger, ECHO_PATH, {"hello"s}));
   to_wait->start_process(true);
   to_wait->wait();
   ASSERT_EQ(to_wait->get_exit_status(), 0);
-  ASSERT_EQ(to_wait->get_stdout(), "hello\n");
+  ASSERT_EQ(to_wait->get_stdout(), "hello" END_OF_LINE);
   ASSERT_EQ(to_wait->get_stderr(), "");
 }
 
@@ -128,8 +135,13 @@ TEST_F(process_test, throw_on_error) {
 
 TEST_F(process_test, script_error) {
   using namespace std::literals;
+#ifdef _WINDOWS
+  std::shared_ptr<process_wait> to_wait(
+      new process_wait(g_io_context, _logger, "tests\\\\bad_script.bat"));
+#else
   std::shared_ptr<process_wait> to_wait(
       new process_wait(g_io_context, _logger, "/bin/sh", {"taratata"s}));
+#endif
   to_wait->start_process(true);
   to_wait->wait();
   ASSERT_NE(to_wait->get_exit_status(), 0);
@@ -139,18 +151,35 @@ TEST_F(process_test, script_error) {
 
 TEST_F(process_test, call_start_several_time) {
   std::shared_ptr<process_wait> to_wait(
-      new process_wait(g_io_context, _logger, "/bin/echo", {"hello"}));
+      new process_wait(g_io_context, _logger, ECHO_PATH, {"hello"}));
   std::string expected;
   for (int ii = 0; ii < 10; ++ii) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     to_wait->start_process(true);
-    expected += "hello\n";
+    expected += "hello" END_OF_LINE;
   }
   to_wait->wait();
   ASSERT_EQ(to_wait->get_exit_status(), 0);
   ASSERT_EQ(to_wait->get_stdout(), expected);
   ASSERT_EQ(to_wait->get_stderr(), "");
 }
+
+TEST_F(process_test, call_start_several_time_no_args) {
+  std::shared_ptr<process_wait> to_wait(
+      new process_wait(g_io_context, _logger, ECHO_PATH " hello"));
+  std::string expected;
+  for (int ii = 0; ii < 10; ++ii) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    to_wait->start_process(true);
+    expected += "hello" END_OF_LINE;
+  }
+  to_wait->wait();
+  ASSERT_EQ(to_wait->get_exit_status(), 0);
+  ASSERT_EQ(to_wait->get_stdout(), expected);
+  ASSERT_EQ(to_wait->get_stderr(), "");
+}
+
+#ifndef _WINDOWS
 
 TEST_F(process_test, stdin_to_stdout) {
   ::remove("toto.sh");
@@ -193,3 +222,5 @@ TEST_F(process_test, shell_stdin_to_stdout) {
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
   ASSERT_EQ(expected, loopback->get_stdout());
 }
+
+#endif
