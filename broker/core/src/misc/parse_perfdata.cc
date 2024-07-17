@@ -37,8 +37,8 @@ using namespace com::centreon::broker::misc;
  *
  *  @return Extracted real value if successful, NaN otherwise.
  */
-static inline double extract_double(char const** str, bool skip = true) {
-  double retval;
+static inline float extract_float(char const** str, bool skip = true) {
+  float retval;
   char* tmp;
   if (isspace(**str))
     retval = NAN;
@@ -50,13 +50,13 @@ static inline double extract_double(char const** str, bool skip = true) {
       size_t t = strcspn(comma, " \t\n\r;");
       char* nb = strndup(*str, (comma - *str) + t);
       nb[comma - *str] = '.';
-      retval = strtod(nb, &tmp);
+      retval = strtof(nb, &tmp);
       if (nb == tmp)
         retval = NAN;
       *str = *str + (tmp - nb);
       free(nb);
     } else {
-      retval = strtod(*str, &tmp);
+      retval = strtof(*str, &tmp);
       if (*str == tmp)
         retval = NAN;
       *str = tmp;
@@ -76,8 +76,8 @@ static inline double extract_double(char const** str, bool skip = true) {
  *                           otherwise.
  *  @param[in,out] str       Pointer to a perfdata string.
  */
-static inline void extract_range(double* low,
-                                 double* high,
+static inline void extract_range(float* low,
+                                 float* high,
                                  bool* inclusive,
                                  char const** str) {
   // Exclusive range ?
@@ -88,15 +88,15 @@ static inline void extract_range(double* low,
     *inclusive = false;
 
   // Low threshold value.
-  double low_value;
+  float low_value;
   if ('~' == **str) {
-    low_value = -std::numeric_limits<double>::infinity();
+    low_value = -std::numeric_limits<float>::infinity();
     ++*str;
   } else
-    low_value = extract_double(str);
+    low_value = extract_float(str);
 
   // High threshold value.
-  double high_value;
+  float high_value;
   if (**str != ':') {
     high_value = low_value;
     if (!std::isnan(low_value))
@@ -104,9 +104,9 @@ static inline void extract_range(double* low,
   } else {
     ++*str;
     char const* ptr(*str);
-    high_value = extract_double(str);
+    high_value = extract_float(str);
     if (std::isnan(high_value) && ((*str == ptr) || (*str == (ptr + 1))))
-      high_value = std::numeric_limits<double>::infinity();
+      high_value = std::numeric_limits<float>::infinity();
   }
 
   // Set values.
@@ -205,7 +205,8 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
     if (end - s + 1 > 0) {
       std::string name(s, end - s + 1);
       name.resize(misc::string::adjust_size_utf8(
-          name, get_metrics_col_size(metrics_metric_name)));
+          name, get_centreon_storage_metrics_col_size(
+                    centreon_storage_metrics_metric_name)));
       p.name(std::move(name));
     } else {
       log_v2::perfdata()->error(
@@ -233,7 +234,7 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
     }
 
     // Extract value.
-    p.value(extract_double(const_cast<char const**>(&tmp), false));
+    p.value(extract_float(const_cast<char const**>(&tmp), false));
     if (std::isnan(p.value())) {
       int i;
       for (i = 0; i < 10 && tmp[i]; i++)
@@ -253,7 +254,8 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
     {
       std::string unit(tmp, t);
       unit.resize(misc::string::adjust_size_utf8(
-          unit, get_metrics_col_size(metrics_unit_name)));
+          unit, get_centreon_storage_metrics_col_size(
+                    centreon_storage_metrics_unit_name)));
       p.unit(std::move(unit));
     }
     tmp += t;
@@ -262,8 +264,8 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
 
     // Extract warning.
     {
-      double warning_high;
-      double warning_low;
+      float warning_high;
+      float warning_low;
       bool warning_mode;
       extract_range(&warning_low, &warning_high, &warning_mode,
                     const_cast<char const**>(&tmp));
@@ -274,8 +276,8 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
 
     // Extract critical.
     {
-      double critical_high;
-      double critical_low;
+      float critical_high;
+      float critical_low;
       bool critical_mode;
       extract_range(&critical_low, &critical_high, &critical_mode,
                     const_cast<const char**>(&tmp));
@@ -285,10 +287,10 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
     }
 
     // Extract minimum.
-    p.min(extract_double(const_cast<const char**>(&tmp)));
+    p.min(extract_float(const_cast<const char**>(&tmp)));
 
     // Extract maximum.
-    p.max(extract_double(const_cast<const char**>(&tmp)));
+    p.max(extract_float(const_cast<const char**>(&tmp)));
 
     // Log new perfdata.
     log_v2::perfdata()->debug(

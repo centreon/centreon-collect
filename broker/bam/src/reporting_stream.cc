@@ -537,47 +537,54 @@ struct bulk_dimension_kpi_binder {
 
       binder.set_value_as_i32(0, dk.kpi_id);
       binder.set_value_as_str(
-          1, misc::string::truncate(kpi_name,
-                                    get_mod_bam_reporting_kpi_col_size(
-                                        mod_bam_reporting_kpi_kpi_name)));
+          1,
+          misc::string::truncate(
+              kpi_name, get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                            centreon_storage_mod_bam_reporting_kpi_kpi_name)));
       binder.set_value_as_i32(2, dk.ba_id);
       binder.set_value_as_str(
-          3, misc::string::truncate(dk.ba_name,
-                                    get_mod_bam_reporting_kpi_col_size(
-                                        mod_bam_reporting_kpi_ba_name)));
+          3,
+          misc::string::truncate(
+              dk.ba_name, get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                              centreon_storage_mod_bam_reporting_kpi_ba_name)));
       binder.set_value_as_i32(4, dk.host_id);
       binder.set_value_as_str(
-          5, misc::string::truncate(dk.host_name,
-                                    get_mod_bam_reporting_kpi_col_size(
-                                        mod_bam_reporting_kpi_host_name)));
+          5, misc::string::truncate(
+                 dk.host_name,
+                 get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                     centreon_storage_mod_bam_reporting_kpi_host_name)));
       binder.set_value_as_i32(6, dk.service_id);
       binder.set_value_as_str(
-          7, misc::string::truncate(
-                 dk.service_description,
-                 get_mod_bam_reporting_kpi_col_size(
-                     mod_bam_reporting_kpi_service_description)));
+          7,
+          misc::string::truncate(
+              dk.service_description,
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_service_description)));
       if (dk.kpi_ba_id)
         binder.set_value_as_i32(8, dk.kpi_ba_id);
       else
         binder.set_null_i32(8);
       binder.set_value_as_str(
-          9, misc::string::truncate(dk.kpi_ba_name,
-                                    get_mod_bam_reporting_kpi_col_size(
-                                        mod_bam_reporting_kpi_kpi_ba_name)));
+          9, misc::string::truncate(
+                 dk.kpi_ba_name,
+                 get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                     centreon_storage_mod_bam_reporting_kpi_kpi_ba_name)));
       binder.set_value_as_i32(10, dk.meta_service_id);
       binder.set_value_as_str(
           11,
-          misc::string::truncate(dk.meta_service_name,
-                                 get_mod_bam_reporting_kpi_col_size(
-                                     mod_bam_reporting_kpi_meta_service_name)));
-      binder.set_value_as_f64(12, dk.impact_warning);
-      binder.set_value_as_f64(13, dk.impact_critical);
-      binder.set_value_as_f64(14, dk.impact_unknown);
+          misc::string::truncate(
+              dk.meta_service_name,
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_meta_service_name)));
+      binder.set_value_as_f32(12, dk.impact_warning);
+      binder.set_value_as_f32(13, dk.impact_critical);
+      binder.set_value_as_f32(14, dk.impact_unknown);
       binder.set_value_as_i32(15, dk.boolean_id);
       binder.set_value_as_str(
-          16, misc::string::truncate(dk.boolean_name,
-                                     get_mod_bam_reporting_kpi_col_size(
-                                         mod_bam_reporting_kpi_boolean_name)));
+          16, misc::string::truncate(
+                  dk.boolean_name,
+                  get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                      centreon_storage_mod_bam_reporting_kpi_boolean_name)));
     } else {
       const DimensionKpiEvent& dk =
           std::static_pointer_cast<bam::pb_dimension_kpi_event const>(event)
@@ -599,47 +606,54 @@ struct bulk_dimension_kpi_binder {
 
       binder.set_value_as_i32(0, dk.kpi_id());
       binder.set_value_as_str(
-          1, misc::string::truncate(kpi_name,
-                                    get_mod_bam_reporting_kpi_col_size(
-                                        mod_bam_reporting_kpi_kpi_name)));
+          1,
+          misc::string::truncate(
+              kpi_name, get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                            centreon_storage_mod_bam_reporting_kpi_kpi_name)));
       binder.set_value_as_i32(2, dk.ba_id());
       binder.set_value_as_str(
-          3, misc::string::truncate(dk.ba_name(),
-                                    get_mod_bam_reporting_kpi_col_size(
-                                        mod_bam_reporting_kpi_ba_name)));
+          3, misc::string::truncate(
+                 dk.ba_name(),
+                 get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                     centreon_storage_mod_bam_reporting_kpi_ba_name)));
       binder.set_value_as_i32(4, dk.host_id());
       binder.set_value_as_str(
-          5, misc::string::truncate(dk.host_name(),
-                                    get_mod_bam_reporting_kpi_col_size(
-                                        mod_bam_reporting_kpi_host_name)));
+          5, misc::string::truncate(
+                 dk.host_name(),
+                 get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                     centreon_storage_mod_bam_reporting_kpi_host_name)));
       binder.set_value_as_i32(6, dk.service_id());
       binder.set_value_as_str(
-          7, misc::string::truncate(
-                 dk.service_description(),
-                 get_mod_bam_reporting_kpi_col_size(
-                     mod_bam_reporting_kpi_service_description)));
+          7,
+          misc::string::truncate(
+              dk.service_description(),
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_service_description)));
       if (dk.kpi_ba_id())
         binder.set_value_as_i32(8, dk.kpi_ba_id());
       else
         binder.set_null_i32(8);
       binder.set_value_as_str(
-          9, misc::string::truncate(dk.kpi_ba_name(),
-                                    get_mod_bam_reporting_kpi_col_size(
-                                        mod_bam_reporting_kpi_kpi_ba_name)));
+          9, misc::string::truncate(
+                 dk.kpi_ba_name(),
+                 get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                     centreon_storage_mod_bam_reporting_kpi_kpi_ba_name)));
       binder.set_value_as_i32(10, dk.meta_service_id());
       binder.set_value_as_str(
           11,
-          misc::string::truncate(dk.meta_service_name(),
-                                 get_mod_bam_reporting_kpi_col_size(
-                                     mod_bam_reporting_kpi_meta_service_name)));
-      binder.set_value_as_f64(12, dk.impact_warning());
-      binder.set_value_as_f64(13, dk.impact_critical());
-      binder.set_value_as_f64(14, dk.impact_unknown());
+          misc::string::truncate(
+              dk.meta_service_name(),
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_meta_service_name)));
+      binder.set_value_as_f32(12, dk.impact_warning());
+      binder.set_value_as_f32(13, dk.impact_critical());
+      binder.set_value_as_f32(14, dk.impact_unknown());
       binder.set_value_as_i32(15, dk.boolean_id());
       binder.set_value_as_str(
-          16, misc::string::truncate(dk.boolean_name(),
-                                     get_mod_bam_reporting_kpi_col_size(
-                                         mod_bam_reporting_kpi_boolean_name)));
+          16, misc::string::truncate(
+                  dk.boolean_name(),
+                  get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                      centreon_storage_mod_bam_reporting_kpi_boolean_name)));
     }
     binder.next_row();
   }
@@ -671,34 +685,39 @@ struct dimension_kpi_binder {
       return fmt::format(
           "({},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},{},{},{},'{}')",
           dk.kpi_id,
-          misc::string::truncate(kpi_name, get_mod_bam_reporting_kpi_col_size(
-                                               mod_bam_reporting_kpi_kpi_name)),
+          misc::string::truncate(
+              kpi_name, get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                            centreon_storage_mod_bam_reporting_kpi_kpi_name)),
           dk.ba_id,
-          misc::string::truncate(dk.ba_name,
-                                 get_mod_bam_reporting_kpi_col_size(
-                                     mod_bam_reporting_kpi_ba_name)),
+          misc::string::truncate(
+              dk.ba_name, get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                              centreon_storage_mod_bam_reporting_kpi_ba_name)),
           dk.host_id,
-          misc::string::truncate(dk.host_name,
-                                 get_mod_bam_reporting_kpi_col_size(
-                                     mod_bam_reporting_kpi_host_name)),
+          misc::string::truncate(
+              dk.host_name,
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_host_name)),
           dk.service_id,
           misc::string::truncate(
               dk.service_description,
-              get_mod_bam_reporting_kpi_col_size(
-                  mod_bam_reporting_kpi_service_description)),
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_service_description)),
           sz_kpi_ba_id,
-          misc::string::truncate(dk.kpi_ba_name,
-                                 get_mod_bam_reporting_kpi_col_size(
-                                     mod_bam_reporting_kpi_kpi_ba_name)),
+          misc::string::truncate(
+              dk.kpi_ba_name,
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_kpi_ba_name)),
           dk.meta_service_id,
-          misc::string::truncate(dk.meta_service_name,
-                                 get_mod_bam_reporting_kpi_col_size(
-                                     mod_bam_reporting_kpi_meta_service_name)),
+          misc::string::truncate(
+              dk.meta_service_name,
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_meta_service_name)),
           dk.impact_warning, dk.impact_critical, dk.impact_unknown,
           dk.boolean_id,
-          misc::string::truncate(dk.boolean_name,
-                                 get_mod_bam_reporting_kpi_col_size(
-                                     mod_bam_reporting_kpi_boolean_name)));
+          misc::string::truncate(
+              dk.boolean_name,
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_boolean_name)));
     } else {
       const DimensionKpiEvent& dk =
           std::static_pointer_cast<bam::pb_dimension_kpi_event const>(event)
@@ -722,34 +741,40 @@ struct dimension_kpi_binder {
       return fmt::format(
           "({},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},{},{},{},'{}')",
           dk.kpi_id(),
-          misc::string::truncate(kpi_name, get_mod_bam_reporting_kpi_col_size(
-                                               mod_bam_reporting_kpi_kpi_name)),
+          misc::string::truncate(
+              kpi_name, get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                            centreon_storage_mod_bam_reporting_kpi_kpi_name)),
           dk.ba_id(),
-          misc::string::truncate(dk.ba_name(),
-                                 get_mod_bam_reporting_kpi_col_size(
-                                     mod_bam_reporting_kpi_ba_name)),
+          misc::string::truncate(
+              dk.ba_name(),
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_ba_name)),
           dk.host_id(),
-          misc::string::truncate(dk.host_name(),
-                                 get_mod_bam_reporting_kpi_col_size(
-                                     mod_bam_reporting_kpi_host_name)),
+          misc::string::truncate(
+              dk.host_name(),
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_host_name)),
           dk.service_id(),
           misc::string::truncate(
               dk.service_description(),
-              get_mod_bam_reporting_kpi_col_size(
-                  mod_bam_reporting_kpi_service_description)),
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_service_description)),
           sz_kpi_ba_id,
-          misc::string::truncate(dk.kpi_ba_name(),
-                                 get_mod_bam_reporting_kpi_col_size(
-                                     mod_bam_reporting_kpi_kpi_ba_name)),
+          misc::string::truncate(
+              dk.kpi_ba_name(),
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_kpi_ba_name)),
           dk.meta_service_id(),
-          misc::string::truncate(dk.meta_service_name(),
-                                 get_mod_bam_reporting_kpi_col_size(
-                                     mod_bam_reporting_kpi_meta_service_name)),
+          misc::string::truncate(
+              dk.meta_service_name(),
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_meta_service_name)),
           dk.impact_warning(), dk.impact_critical(), dk.impact_unknown(),
           dk.boolean_id(),
-          misc::string::truncate(dk.boolean_name(),
-                                 get_mod_bam_reporting_kpi_col_size(
-                                     mod_bam_reporting_kpi_boolean_name)));
+          misc::string::truncate(
+              dk.boolean_name(),
+              get_centreon_storage_mod_bam_reporting_kpi_col_size(
+                  centreon_storage_mod_bam_reporting_kpi_boolean_name)));
     }
   }
 };
@@ -1428,12 +1453,13 @@ void reporting_stream::_process_dimension_ba(
   _dimension_ba_insert.bind_value_as_i32(0, dba.ba_id);
   _dimension_ba_insert.bind_value_as_str(
       1, misc::string::truncate(
-             dba.ba_name,
-             get_mod_bam_reporting_ba_col_size(mod_bam_reporting_ba_ba_name)));
+             dba.ba_name, get_centreon_storage_mod_bam_reporting_ba_col_size(
+                              centreon_storage_mod_bam_reporting_ba_ba_name)));
   _dimension_ba_insert.bind_value_as_str(
-      2, misc::string::truncate(dba.ba_description,
-                                get_mod_bam_reporting_ba_col_size(
-                                    mod_bam_reporting_ba_ba_description)));
+      2, misc::string::truncate(
+             dba.ba_description,
+             get_centreon_storage_mod_bam_reporting_ba_col_size(
+                 centreon_storage_mod_bam_reporting_ba_ba_description)));
   _dimension_ba_insert.bind_value_as_f64(3, dba.sla_month_percent_crit);
   _dimension_ba_insert.bind_value_as_f64(4, dba.sla_month_percent_warn);
   _dimension_ba_insert.bind_value_as_f64(5, dba.sla_duration_crit);
@@ -1455,13 +1481,15 @@ void reporting_stream::_process_pb_dimension_ba(
                       dba.ba_id(), dba.ba_description());
   _dimension_ba_insert.bind_value_as_i32(0, dba.ba_id());
   _dimension_ba_insert.bind_value_as_str(
-      1, misc::string::truncate(
-             dba.ba_name(),
-             get_mod_bam_reporting_ba_col_size(mod_bam_reporting_ba_ba_name)));
+      1,
+      misc::string::truncate(
+          dba.ba_name(), get_centreon_storage_mod_bam_reporting_ba_col_size(
+                             centreon_storage_mod_bam_reporting_ba_ba_name)));
   _dimension_ba_insert.bind_value_as_str(
-      2, misc::string::truncate(dba.ba_description(),
-                                get_mod_bam_reporting_ba_col_size(
-                                    mod_bam_reporting_ba_ba_description)));
+      2, misc::string::truncate(
+             dba.ba_description(),
+             get_centreon_storage_mod_bam_reporting_ba_col_size(
+                 centreon_storage_mod_bam_reporting_ba_ba_description)));
   _dimension_ba_insert.bind_value_as_f64(3, dba.sla_month_percent_crit());
   _dimension_ba_insert.bind_value_as_f64(4, dba.sla_month_percent_warn());
   _dimension_ba_insert.bind_value_as_f64(5, dba.sla_duration_crit());
@@ -1485,12 +1513,13 @@ void reporting_stream::_process_dimension_bv(
   _dimension_bv_insert.bind_value_as_i32(0, dbv.bv_id);
   _dimension_bv_insert.bind_value_as_str(
       1, misc::string::truncate(
-             dbv.bv_name,
-             get_mod_bam_reporting_bv_col_size(mod_bam_reporting_bv_bv_name)));
+             dbv.bv_name, get_centreon_storage_mod_bam_reporting_bv_col_size(
+                              centreon_storage_mod_bam_reporting_bv_bv_name)));
   _dimension_bv_insert.bind_value_as_str(
-      2, misc::string::truncate(dbv.bv_description,
-                                get_mod_bam_reporting_bv_col_size(
-                                    mod_bam_reporting_bv_bv_description)));
+      2, misc::string::truncate(
+             dbv.bv_description,
+             get_centreon_storage_mod_bam_reporting_bv_col_size(
+                 centreon_storage_mod_bam_reporting_bv_bv_description)));
   _mysql.run_statement(_dimension_bv_insert, database::mysql_error::insert_bv);
 }
 
@@ -1509,13 +1538,15 @@ void reporting_stream::_process_pb_dimension_bv(
 
   _dimension_bv_insert.bind_value_as_i32(0, dbv.bv_id());
   _dimension_bv_insert.bind_value_as_str(
-      1, misc::string::truncate(
-             dbv.bv_name(),
-             get_mod_bam_reporting_bv_col_size(mod_bam_reporting_bv_bv_name)));
+      1,
+      misc::string::truncate(
+          dbv.bv_name(), get_centreon_storage_mod_bam_reporting_bv_col_size(
+                             centreon_storage_mod_bam_reporting_bv_bv_name)));
   _dimension_bv_insert.bind_value_as_str(
-      2, misc::string::truncate(dbv.bv_description(),
-                                get_mod_bam_reporting_bv_col_size(
-                                    mod_bam_reporting_bv_bv_description)));
+      2, misc::string::truncate(
+             dbv.bv_description(),
+             get_centreon_storage_mod_bam_reporting_bv_col_size(
+                 centreon_storage_mod_bam_reporting_bv_bv_description)));
   _mysql.run_statement(_dimension_bv_insert, database::mysql_error::insert_bv);
 }
 
@@ -1871,37 +1902,45 @@ void reporting_stream::_process_pb_dimension_timeperiod(
       tp.name());
   _dimension_timeperiod_insert.bind_value_as_i32(0, tp.id());
   _dimension_timeperiod_insert.bind_value_as_str(
-      1, misc::string::truncate(tp.name(),
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_name)));
+      1, misc::string::truncate(
+             tp.name(),
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_name)));
   _dimension_timeperiod_insert.bind_value_as_str(
-      2, misc::string::truncate(tp.sunday(),
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_sunday)));
+      2, misc::string::truncate(
+             tp.sunday(),
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_sunday)));
   _dimension_timeperiod_insert.bind_value_as_str(
-      3, misc::string::truncate(tp.monday(),
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_monday)));
+      3, misc::string::truncate(
+             tp.monday(),
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_monday)));
   _dimension_timeperiod_insert.bind_value_as_str(
-      4, misc::string::truncate(tp.tuesday(),
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_tuesday)));
+      4, misc::string::truncate(
+             tp.tuesday(),
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_tuesday)));
   _dimension_timeperiod_insert.bind_value_as_str(
-      5, misc::string::truncate(tp.wednesday(),
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_wednesday)));
+      5, misc::string::truncate(
+             tp.wednesday(),
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_wednesday)));
   _dimension_timeperiod_insert.bind_value_as_str(
-      6, misc::string::truncate(tp.thursday(),
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_thursday)));
+      6, misc::string::truncate(
+             tp.thursday(),
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_thursday)));
   _dimension_timeperiod_insert.bind_value_as_str(
-      7, misc::string::truncate(tp.friday(),
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_friday)));
+      7, misc::string::truncate(
+             tp.friday(),
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_friday)));
   _dimension_timeperiod_insert.bind_value_as_str(
-      8, misc::string::truncate(tp.saturday(),
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_saturday)));
+      8, misc::string::truncate(
+             tp.saturday(),
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_saturday)));
   _mysql.run_statement(_dimension_timeperiod_insert,
                        database::mysql_error::insert_timeperiod);
 
@@ -1924,37 +1963,45 @@ void reporting_stream::_process_dimension_timeperiod(
 
   _dimension_timeperiod_insert.bind_value_as_i32(0, tp.id);
   _dimension_timeperiod_insert.bind_value_as_str(
-      1, misc::string::truncate(tp.name,
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_name)));
+      1,
+      misc::string::truncate(
+          tp.name, get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                       centreon_storage_mod_bam_reporting_timeperiods_name)));
   _dimension_timeperiod_insert.bind_value_as_str(
-      2, misc::string::truncate(tp.sunday,
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_sunday)));
+      2, misc::string::truncate(
+             tp.sunday,
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_sunday)));
   _dimension_timeperiod_insert.bind_value_as_str(
-      3, misc::string::truncate(tp.monday,
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_monday)));
+      3, misc::string::truncate(
+             tp.monday,
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_monday)));
   _dimension_timeperiod_insert.bind_value_as_str(
-      4, misc::string::truncate(tp.tuesday,
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_tuesday)));
+      4, misc::string::truncate(
+             tp.tuesday,
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_tuesday)));
   _dimension_timeperiod_insert.bind_value_as_str(
-      5, misc::string::truncate(tp.wednesday,
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_wednesday)));
+      5, misc::string::truncate(
+             tp.wednesday,
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_wednesday)));
   _dimension_timeperiod_insert.bind_value_as_str(
-      6, misc::string::truncate(tp.thursday,
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_thursday)));
+      6, misc::string::truncate(
+             tp.thursday,
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_thursday)));
   _dimension_timeperiod_insert.bind_value_as_str(
-      7, misc::string::truncate(tp.friday,
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_friday)));
+      7, misc::string::truncate(
+             tp.friday,
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_friday)));
   _dimension_timeperiod_insert.bind_value_as_str(
-      8, misc::string::truncate(tp.saturday,
-                                get_mod_bam_reporting_timeperiods_col_size(
-                                    mod_bam_reporting_timeperiods_saturday)));
+      8, misc::string::truncate(
+             tp.saturday,
+             get_centreon_storage_mod_bam_reporting_timeperiods_col_size(
+                 centreon_storage_mod_bam_reporting_timeperiods_saturday)));
   _mysql.run_statement(_dimension_timeperiod_insert,
                        database::mysql_error::insert_timeperiod);
   DimensionTimeperiod convert;

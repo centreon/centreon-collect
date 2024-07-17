@@ -22,6 +22,7 @@ on:
       - selinux/**
       - "!.veracode-exclusions"
       - "!veracode.json"
+      - "!**/test/**"
   push:
     branches:
       - develop
@@ -43,6 +44,7 @@ on:
       - selinux/**
       - "!.veracode-exclusions"
       - "!veracode.json"
+      - "!**/test/**"
 
 jobs:
   get-version:

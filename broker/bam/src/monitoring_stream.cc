@@ -189,9 +189,9 @@ struct bulk_ba_binder {
   void operator()(database::mysql_bulk_bind& binder) const {
     if (event->type() == ba_status::static_type()) {
       const ba_status& status = *std::static_pointer_cast<ba_status>(event);
-      binder.set_value_as_f64(0, status.level_nominal);
-      binder.set_value_as_f64(1, status.level_acknowledgement);
-      binder.set_value_as_f64(2, status.level_downtime);
+      binder.set_value_as_f32(0, status.level_nominal);
+      binder.set_value_as_f32(1, status.level_acknowledgement);
+      binder.set_value_as_f32(2, status.level_downtime);
       binder.set_value_as_u32(7, status.ba_id);
       if (status.last_state_change.is_null())
         binder.set_null_u64(3);
@@ -203,9 +203,9 @@ struct bulk_ba_binder {
     } else {
       const BaStatus& status =
           static_cast<const pb_ba_status*>(event.get())->obj();
-      binder.set_value_as_f64(0, status.level_nominal());
-      binder.set_value_as_f64(1, status.level_acknowledgement());
-      binder.set_value_as_f64(2, status.level_downtime());
+      binder.set_value_as_f32(0, status.level_nominal());
+      binder.set_value_as_f32(1, status.level_acknowledgement());
+      binder.set_value_as_f32(2, status.level_downtime());
       binder.set_value_as_u32(7, status.ba_id());
       if (status.last_state_change() <= 0)
         binder.set_null_u64(3);
@@ -260,32 +260,32 @@ struct bulk_kpi_binder {
   void operator()(database::mysql_bulk_bind& binder) const {
     if (event->type() == kpi_status::static_type()) {
       const kpi_status& status = *std::static_pointer_cast<kpi_status>(event);
-      binder.set_value_as_f64(0, status.level_acknowledgement_hard);
+      binder.set_value_as_f32(0, status.level_acknowledgement_hard);
       binder.set_value_as_i32(1, status.state_hard);
-      binder.set_value_as_f64(2, status.level_downtime_hard);
-      binder.set_value_as_f64(3, status.level_nominal_hard);
+      binder.set_value_as_f32(2, status.level_downtime_hard);
+      binder.set_value_as_f32(3, status.level_nominal_hard);
       binder.set_value_as_i32(4, 1 + 1);
       if (status.last_state_change.is_null())
         binder.set_null_u64(5);
       else
         binder.set_value_as_u64(5, status.last_state_change.get_time_t());
-      binder.set_value_as_f64(6, status.last_impact);
+      binder.set_value_as_f32(6, status.last_impact);
       binder.set_value_as_bool(7, status.valid);
       binder.set_value_as_bool(8, status.in_downtime);
       binder.set_value_as_u32(9, status.kpi_id);
     } else {
       const KpiStatus& status(
           std::static_pointer_cast<pb_kpi_status>(event)->obj());
-      binder.set_value_as_f64(0, status.level_acknowledgement_hard());
+      binder.set_value_as_f32(0, status.level_acknowledgement_hard());
       binder.set_value_as_i32(1, status.state_hard());
-      binder.set_value_as_f64(2, status.level_downtime_hard());
-      binder.set_value_as_f64(3, status.level_nominal_hard());
+      binder.set_value_as_f32(2, status.level_downtime_hard());
+      binder.set_value_as_f32(3, status.level_nominal_hard());
       binder.set_value_as_i32(4, 1 + 1);
       if (status.last_state_change() <= 0)
         binder.set_null_u64(5);
       else
         binder.set_value_as_u64(5, status.last_state_change());
-      binder.set_value_as_f64(6, status.last_impact());
+      binder.set_value_as_f32(6, status.last_impact());
       binder.set_value_as_bool(7, status.valid());
       binder.set_value_as_bool(8, status.in_downtime());
       binder.set_value_as_u32(9, status.kpi_id());

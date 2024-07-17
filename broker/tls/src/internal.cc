@@ -18,12 +18,6 @@
 
 #include <gnutls/gnutls.h>
 
-#if GNUTLS_VERSION_NUMBER < 0x030000
-#include <gcrypt.h>
-#include <pthread.h>
-
-#include <cerrno>
-#endif  // GNU TLS < 3.0.0
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -56,10 +50,6 @@ unsigned char const tls::dh_params_2048[] =
 
 gnutls_dh_params_t tls::dh_params;
 
-#if GNUTLS_VERSION_NUMBER < 0x030000
-GCRY_THREAD_OPTION_PTHREAD_IMPL;
-#endif  // GNU TLS < 3.0.0
-
 /**
  *  Deinit the TLS library.
  */
@@ -81,12 +71,6 @@ void tls::initialize() {
                               sizeof(dh_params_2048)};
   int ret;
 
-  // Eventually initialize libgcrypt.
-#if GNUTLS_VERSION_NUMBER < 0x030000
-  log_v2::tls()->info("TLS: initializing libgcrypt (GNU TLS <= 2.11.0)");
-  gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
-#endif  // GNU TLS < 3.0.0
-
   // Initialize GNU TLS library.
   if (gnutls_global_init() != GNUTLS_E_SUCCESS) {
     log_v2::tls()->error("TLS: GNU TLS library initialization failed");
@@ -97,16 +81,14 @@ void tls::initialize() {
   {
     log_v2::tls()->info("TLS: compiled with GNU TLS version {}",
                         GNUTLS_VERSION);
-    char const* v(gnutls_check_version(GNUTLS_VERSION));
+    char const* v(gnutls_check_version("3.6.0"));
     if (!v) {
       log_v2::tls()->error(
-          "TLS: GNU TLS run-time version is incompatible with the compile-time "
-          "version ({}): please update your GNU TLS library",
-          GNUTLS_VERSION);
+          "TLS: The GNU TLS run-time version is older than version 3.6.0. "
+          "Please updgrade your GNU TLS library");
       throw msg_fmt(
-          "TLS: GNU TLS run-time version is incompatible with the compile-time "
-          "version ({}): please update your GNU TLS library",
-          GNUTLS_VERSION);
+          "TLS: The GNU TLS run-time version is older than version 3.6.0. "
+          "Please updgrade your GNU TLS library");
     }
     log_v2::tls()->info("TLS: loading GNU TLS version {}", v);
     // gnutls_global_set_log_function(log_gnutls_message);
