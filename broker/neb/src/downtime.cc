@@ -1,20 +1,20 @@
 /**
-* Copyright 2009-2013 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/neb/downtime.hh"
 
@@ -158,7 +158,8 @@ mapping::entry const downtime::entries[] = {
                    mapping::entry::invalid_on_minus_one),
     mapping::entry(&downtime::author,
                    "author",
-                   get_downtimes_col_size(downtimes_author)),
+                   get_centreon_storage_downtimes_col_size(
+                       centreon_storage_downtimes_author)),
     mapping::entry(&downtime::downtime_type, "type"),
     mapping::entry(&downtime::deletion_time,
                    "deletion_time",
@@ -191,7 +192,8 @@ mapping::entry const downtime::entries[] = {
     mapping::entry(&downtime::was_started, "started"),
     mapping::entry(&downtime::comment,
                    "comment_data",
-                   get_downtimes_col_size(downtimes_comment_data)),
+                   get_centreon_storage_downtimes_col_size(
+                       centreon_storage_downtimes_comment_data)),
     mapping::entry(&downtime::come_from, ""),
     mapping::entry()};
 

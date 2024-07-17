@@ -26,6 +26,7 @@ on:
       - vcpkg/**
       - "!.veracode-exclusions"
       - "!veracode.json"
+      - "!**/test/**"
   push:
     branches:
       - develop
@@ -51,6 +52,7 @@ on:
       - vcpkg/**
       - "!.veracode-exclusions"
       - "!veracode.json"
+      - "!**/test/**"
 
 jobs:
   get-version:

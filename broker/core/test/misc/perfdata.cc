@@ -81,29 +81,29 @@ TEST(MiscPerfdata, Assign) {
   p1.warning_mode(false);
 
   // Check objects properties values.
-  ASSERT_FALSE(fabs(p1.critical() - 9432.5) > 0.00001);
-  ASSERT_FALSE(fabs(p1.critical_low() - 1000.0001) > 0.00001);
+  ASSERT_FALSE(fabs(p1.critical() - 9432.5f) > 0.00001f);
+  ASSERT_TRUE(fabs(p1.critical_low() - 1000.0001f) < 0.0001f);
   ASSERT_FALSE(!p1.critical_mode());
-  ASSERT_FALSE(fabs(p1.max() - 123.0) > 0.00001);
-  ASSERT_FALSE(fabs(p1.min() - 843.876) > 0.00001);
+  ASSERT_FALSE(fabs(p1.max() - 123.0f) > 0.00001f);
+  ASSERT_TRUE(fabs(p1.min() - 843.876f) < 0.0001f);
   ASSERT_FALSE(p1.name() != "baz");
   ASSERT_FALSE(p1.unit() != "qux");
-  ASSERT_FALSE(fabs(p1.value() - 3485.9) > 0.00001);
+  ASSERT_TRUE(fabs(p1.value() - 3485.9f) < 0.0001f);
   ASSERT_FALSE(p1.value_type() != misc::perfdata::derive);
-  ASSERT_FALSE(fabs(p1.warning() - 3612.0) > 0.00001);
-  ASSERT_FALSE(fabs(p1.warning_low() + 987579.0) > 0.01);
+  ASSERT_FALSE(fabs(p1.warning() - 3612.0f) > 0.00001f);
+  ASSERT_FALSE(fabs(p1.warning_low() + 987579.0f) > 0.01f);
   ASSERT_FALSE(p1.warning_mode());
-  ASSERT_FALSE(fabs(p2.critical() - 42.0) > 0.00001);
-  ASSERT_FALSE(fabs(p2.critical_low() + 456.032) > 0.00001);
+  ASSERT_FALSE(fabs(p2.critical() - 42.0f) > 0.00001f);
+  ASSERT_FALSE(fabs(p2.critical_low() + 456.032f) > 0.00001f);
   ASSERT_FALSE(p2.critical_mode());
-  ASSERT_FALSE(fabs(p2.max() - 76.3) > 0.00001);
-  ASSERT_FALSE(fabs(p2.min() - 567.2) > 0.00001);
+  ASSERT_FALSE(fabs(p2.max() - 76.3f) > 0.00001f);
+  ASSERT_FALSE(fabs(p2.min() - 567.2f) > 0.00001f);
   ASSERT_FALSE(p2.name() != "foo");
   ASSERT_FALSE(p2.unit() != "bar");
-  ASSERT_FALSE(fabs(p2.value() - 52189.912) > 0.00001);
+  ASSERT_FALSE(fabs(p2.value() - 52189.912f) > 0.00001f);
   ASSERT_FALSE(p2.value_type() != misc::perfdata::counter);
-  ASSERT_FALSE(fabs(p2.warning() - 4548.0) > 0.00001);
-  ASSERT_FALSE(fabs(p2.warning_low() - 42.42) > 0.00001);
+  ASSERT_FALSE(fabs(p2.warning() - 4548.0f) > 0.00001f);
+  ASSERT_FALSE(fabs(p2.warning_low() - 42.42f) > 0.00001f);
   ASSERT_FALSE(!p2.warning_mode());
 }
 
@@ -144,29 +144,29 @@ TEST(MiscPerfdata, CopyCtor) {
   p1.warning_mode(false);
 
   // Check objects properties values.
-  ASSERT_FALSE(fabs(p1.critical() - 9432.5) > 0.00001);
-  ASSERT_FALSE(fabs(p1.critical_low() - 1000.0001) > 0.00001);
+  ASSERT_FALSE(fabs(p1.critical() - 9432.5f) > 0.00001f);
+  ASSERT_FALSE(fabs(p1.critical_low() - 1000.0001f) > 0.00001f);
   ASSERT_FALSE(!p1.critical_mode());
-  ASSERT_FALSE(fabs(p1.max() - 123.0) > 0.00001);
-  ASSERT_FALSE(fabs(p1.min() - 843.876) > 0.00001);
+  ASSERT_FALSE(fabs(p1.max() - 123.0f) > 0.00001f);
+  ASSERT_FALSE(fabs(p1.min() - 843.876f) > 0.00001f);
   ASSERT_FALSE(p1.name() != "baz");
   ASSERT_FALSE(p1.unit() != "qux");
-  ASSERT_FALSE(fabs(p1.value() - 3485.9) > 0.00001);
+  ASSERT_FALSE(fabs(p1.value() - 3485.9f) > 0.00001f);
   ASSERT_FALSE(p1.value_type() != misc::perfdata::derive);
-  ASSERT_FALSE(fabs(p1.warning() - 3612.0) > 0.00001);
-  ASSERT_FALSE(fabs(p1.warning_low() + 987579.0) > 0.01);
+  ASSERT_FALSE(fabs(p1.warning() - 3612.0f) > 0.00001f);
+  ASSERT_FALSE(fabs(p1.warning_low() + 987579.0f) > 0.01f);
   ASSERT_FALSE(p1.warning_mode());
-  ASSERT_FALSE(fabs(p2.critical() - 42.0) > 0.00001);
-  ASSERT_FALSE(fabs(p2.critical_low() + 456.032) > 0.00001);
+  ASSERT_FALSE(fabs(p2.critical() - 42.0f) > 0.00001f);
+  ASSERT_FALSE(fabs(p2.critical_low() + 456.032f) > 0.00001f);
   ASSERT_FALSE(p2.critical_mode());
-  ASSERT_FALSE(fabs(p2.max() - 76.3) > 0.00001);
-  ASSERT_FALSE(fabs(p2.min() - 567.2) > 0.00001);
+  ASSERT_FALSE(fabs(p2.max() - 76.3f) > 0.00001f);
+  ASSERT_FALSE(fabs(p2.min() - 567.2f) > 0.00001f);
   ASSERT_FALSE(p2.name() != "foo");
   ASSERT_FALSE(p2.unit() != "bar");
-  ASSERT_FALSE(fabs(p2.value() - 52189.912) > 0.00001);
+  ASSERT_FALSE(fabs(p2.value() - 52189.912f) > 0.00001f);
   ASSERT_FALSE(p2.value_type() != misc::perfdata::counter);
-  ASSERT_FALSE(fabs(p2.warning() - 4548.0) > 0.00001);
-  ASSERT_FALSE(fabs(p2.warning_low() - 42.42) > 0.00001);
+  ASSERT_FALSE(fabs(p2.warning() - 4548.0f) > 0.00001f);
+  ASSERT_FALSE(fabs(p2.warning_low() - 42.42f) > 0.00001f);
   ASSERT_FALSE(!p2.warning_mode());
 }
 

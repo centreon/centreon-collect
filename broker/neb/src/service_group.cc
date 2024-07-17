@@ -1,20 +1,20 @@
 /**
-* Copyright 2009-2013,2015 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2013,2015 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/neb/service_group.hh"
 
@@ -73,7 +73,8 @@ mapping::entry const service_group::entries[] = {
                    mapping::entry::invalid_on_zero),
     mapping::entry(&service_group::name,
                    "name",
-                   get_servicegroups_col_size(servicegroups_name)),
+                   get_centreon_storage_servicegroups_col_size(
+                       centreon_storage_servicegroups_name)),
     mapping::entry(&service_group::enabled, nullptr),
     mapping::entry(&service_group::poller_id,
                    nullptr,

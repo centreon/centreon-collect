@@ -1,20 +1,20 @@
 /**
-* Copyright 2009-2013,2015 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2013,2015 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/neb/service.hh"
 
@@ -144,14 +144,16 @@ mapping::entry const service::entries[] = {
     mapping::entry(&service::acknowledgement_type, "acknowledgement_type"),
     mapping::entry(static_cast<std::string(service::*)>(&service::action_url),
                    "action_url",
-                   get_services_col_size(services_action_url)),
+                   get_centreon_storage_services_col_size(
+                       centreon_storage_services_action_url)),
     mapping::entry(&service::active_checks_enabled, "active_checks"),
     mapping::entry(static_cast<bool(service::*)>(&service::check_freshness),
                    "check_freshness"),
     mapping::entry(&service::check_interval, "check_interval"),
     mapping::entry(&service::check_period,
                    "check_period",
-                   get_services_col_size(services_check_period)),
+                   get_centreon_storage_services_col_size(
+                       centreon_storage_services_check_period)),
     mapping::entry(&service::check_type, "check_type"),
     mapping::entry(&service::current_check_attempt, "check_attempt"),
     mapping::entry(&service::current_state, "state"),
@@ -173,11 +175,13 @@ mapping::entry const service::entries[] = {
     mapping::entry(&service::downtime_depth, "scheduled_downtime_depth"),
     mapping::entry(static_cast<std::string(service::*)>(&service::display_name),
                    "display_name",
-                   get_services_col_size(services_display_name)),
+                   get_centreon_storage_services_col_size(
+                       centreon_storage_services_display_name)),
     mapping::entry(&service::enabled, "enabled"),
     mapping::entry(&service::event_handler,
                    "event_handler",
-                   get_services_col_size(services_event_handler)),
+                   get_centreon_storage_services_col_size(
+                       centreon_storage_services_event_handler)),
     mapping::entry(&service::event_handler_enabled, "event_handler_enabled"),
     mapping::entry(&service::execution_time, "execution_time"),
     mapping::entry(
@@ -204,11 +208,13 @@ mapping::entry const service::entries[] = {
     mapping::entry(&service::host_name, nullptr, 0),
     mapping::entry(static_cast<std::string(service::*)>(&service::icon_image),
                    "icon_image",
-                   get_services_col_size(services_icon_image)),
+                   get_centreon_storage_services_col_size(
+                       centreon_storage_services_icon_image)),
     mapping::entry(
         static_cast<std::string(service::*)>(&service::icon_image_alt),
         "icon_image_alt",
-        get_services_col_size(services_icon_image_alt)),
+        get_centreon_storage_services_col_size(
+            centreon_storage_services_icon_image_alt)),
     mapping::entry(&service::service_id,
                    "service_id",
                    mapping::entry::invalid_on_zero),
@@ -256,10 +262,12 @@ mapping::entry const service::entries[] = {
     mapping::entry(&service::no_more_notifications, "no_more_notifications"),
     mapping::entry(static_cast<std::string(service::*)>(&service::notes),
                    "notes",
-                   get_services_col_size(services_notes)),
+                   get_centreon_storage_services_col_size(
+                       centreon_storage_services_notes)),
     mapping::entry(static_cast<std::string(service::*)>(&service::notes_url),
                    "notes_url",
-                   get_services_col_size(services_notes_url)),
+                   get_centreon_storage_services_col_size(
+                       centreon_storage_services_notes_url)),
     mapping::entry(
         static_cast<double(service::*)>(&service::notification_interval),
         "notification_interval"),
@@ -269,7 +277,8 @@ mapping::entry const service::entries[] = {
     mapping::entry(
         static_cast<std::string(service::*)>(&service::notification_period),
         "notification_period",
-        get_services_col_size(services_notification_period)),
+        get_centreon_storage_services_col_size(
+            centreon_storage_services_notification_period)),
     mapping::entry(&service_status::notifications_enabled, "notify"),
     mapping::entry(&service::notify_on_critical, "notify_on_critical"),
     mapping::entry(static_cast<bool(service::*)>(&service::notify_on_downtime),
@@ -286,7 +295,8 @@ mapping::entry const service::entries[] = {
     mapping::entry(&service::retry_interval, "retry_interval"),
     mapping::entry(&service::service_description,
                    "description",
-                   get_services_col_size(services_description)),
+                   get_centreon_storage_services_col_size(
+                       centreon_storage_services_description)),
     mapping::entry(&service::should_be_scheduled, "should_be_scheduled"),
     mapping::entry(&service::stalk_on_critical, "stalk_on_critical"),
     mapping::entry(&service::stalk_on_ok, "stalk_on_ok"),
@@ -295,13 +305,16 @@ mapping::entry const service::entries[] = {
     mapping::entry(&service::state_type, "state_type"),
     mapping::entry(&service::check_command,
                    "check_command",
-                   get_services_col_size(services_check_command)),
+                   get_centreon_storage_services_col_size(
+                       centreon_storage_services_check_command)),
     mapping::entry(&service::output,
                    "output",
-                   get_services_col_size(services_output)),
+                   get_centreon_storage_services_col_size(
+                       centreon_storage_services_output)),
     mapping::entry(&service::perf_data,
                    "perfdata",
-                   get_services_col_size(services_perfdata)),
+                   get_centreon_storage_services_col_size(
+                       centreon_storage_services_perfdata)),
     mapping::entry(
         static_cast<bool(service::*)>(&service::retain_nonstatus_information),
         "retain_nonstatus_information"),
