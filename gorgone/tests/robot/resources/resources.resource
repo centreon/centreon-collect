@@ -5,6 +5,7 @@ Library            Process
 Library            RequestsLibrary
 Library            OperatingSystem
 
+Library             DatabaseLibrary
 *** Variables ***
 ${gorgone_binary}             /usr/bin/gorgoned
 ${ROOT_CONFIG}                ${CURDIR}${/}..${/}config${/}
@@ -44,7 +45,7 @@ Stop Gorgone And Remove Gorgone Config
 
     FOR    ${process}    IN    @{process_alias}
         ${result}    Terminate Process    ${process}
-        BuiltIn.Run Keyword And Continue On Failure    Should Be True    ${result.rc} == -15 or ${result.rc} == -9 or ${result.rc} == 0    Engine badly stopped alias = ${process} - code returned ${result.rc}.
+        BuiltIn.Run Keyword And Continue On Failure    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Gorgone ${process} badly stopped, code returned is ${result.rc}.
     END
 
 Gorgone Execute Sql
@@ -90,7 +91,6 @@ Check Poller Is Connected
           BREAK
         END
     END
-    Log To Console    TCP connection establishing after ${i} attempt
     Should Be True    ${i} < 39    Gorgone did not establish tcp connection in 160 seconds.
     Log To Console    TCP connection established after ${i} attempt (4 seconds each)
 
@@ -111,7 +111,7 @@ Check Poller Communicate
         END
     END
     Log To Console    json response : ${response.json()}
-    Should Be True    ${i} < 20    timeout after ${i} time waiting for poller status in gorgone rest api (/api/internal/constatus) : ${response.json()}
+    Should Be True    ${i} < 19    timeout after ${i} time waiting for poller status in gorgone rest api (/api/internal/constatus) : ${response.json()}
     Should Be True    0 == ${response.json()}[data][${poller_id}][ping_failed]    there was failed ping between the central and the poller ${poller_id}
     Should Be True    0 < ${response.json()}[data][${poller_id}][ping_ok]    there was no successful ping between the central and the poller ${poller_id}
 
@@ -159,5 +159,13 @@ Wait Until Port Is Bind
           BREAK
         END
     END
-    Should Be True    ${i} < 10    Gorgone did not listen on port ${port} on time.
+    Should Be True    ${i} < 9    Gorgone did not listen on port ${port} on time.
     Log To Console    tcp port ${port} bind after ${i} attempt (0.5 seconds each)
+
+Ctn Check No Error In Logs
+    [Arguments]    ${gorgone_id}
+    ${cmd}=    Set Variable     grep -vP '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} ' /var/log/centreon-gorgone/${gorgone_id}/gorgoned.log
+    Log To Console    \n\n${cmd}\n\n
+
+    ${log_line_wrong}    RUN    ${cmd}
+    Should Be Empty     ${log_line_wrong}    There is Log in ${gorgone_id} not mathcing the standard gorgone format : ${log_line_wrong}
