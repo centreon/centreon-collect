@@ -34,8 +34,9 @@ std::ostream& operator<<(std::ostream& s, const database_config cfg) {
   }
   s << "queries per transaction:" << cfg.get_queries_per_transaction()
     << " check replication:" << cfg.get_check_replication()
-    << " connnexion count:" << cfg.get_connections_count()
-    << " max comit delay:" << cfg.get_max_commit_delay() << 's';
+    << " connection count:" << cfg.get_connections_count()
+    << " max commit delay:" << cfg.get_max_commit_delay() << 's'
+    << " extension_directory" << cfg.get_extension_directory();
   return s;
 }
 
@@ -47,7 +48,8 @@ CCB_END()
 database_config::database_config()
     : _queries_per_transaction(1),
       _check_replication(true),
-      _connections_count(1) {}
+      _connections_count(1),
+      _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR) {}
 
 /**
  *  Constructor.
@@ -87,14 +89,16 @@ database_config::database_config(const std::string& type,
       _queries_per_transaction(queries_per_transaction),
       _check_replication(check_replication),
       _connections_count(connections_count),
-      _max_commit_delay(max_commit_delay) {}
+      _max_commit_delay(max_commit_delay),
+      _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR) {}
 
 /**
  *  Build a database configuration from a configuration set.
  *
  *  @param[in] cfg  Endpoint configuration.
  */
-database_config::database_config(config::endpoint const& cfg) {
+database_config::database_config(config::endpoint const& cfg)
+    : _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR) {
   std::map<std::string, std::string>::const_iterator it, end;
   end = cfg.params.end();
 
@@ -206,6 +210,11 @@ database_config::database_config(config::endpoint const& cfg) {
     }
   } else
     _max_commit_delay = 5;
+
+  it = cfg.params.find("extension_directory");
+  if (it != end) {
+    _extension_directory = it->second;
+  }
 }
 
 /**
@@ -525,4 +534,5 @@ void database_config::_internal_copy(database_config const& other) {
   _check_replication = other._check_replication;
   _connections_count = other._connections_count;
   _max_commit_delay = other._max_commit_delay;
+  _extension_directory = other._extension_directory;
 }
