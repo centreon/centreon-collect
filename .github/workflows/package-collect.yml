@@ -3,7 +3,10 @@ name: Centreon collect packaging
 on:
   workflow_call:
     inputs:
-      version:
+      major_version:
+        required: true
+        type: string
+      minor_version:
         required: true
         type: string
       img_version:
@@ -13,6 +16,9 @@ on:
         required: true
         type: string
       commit_hash:
+        required: true
+        type: string
+      stability:
         required: true
         type: string
 
@@ -45,7 +51,7 @@ jobs:
           docker run -i --entrypoint ./.github/scripts/collect-rpm-package.sh \
             -v "$PWD:/src" \
             -e DISTRIB="${{ matrix.distrib }}" \
-            -e VERSION="${{ inputs.version }}" \
+            -e VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}" \
             -e RELEASE="${{ inputs.release }}" \
             -e COMMIT_HASH="${{ inputs.commit_hash }}" \
             ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.image }}:${{ inputs.img_version }}
@@ -65,7 +71,7 @@ jobs:
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: ./*.rpm
-          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+          key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
 
       - name: Cleaning not needed rpm packages
         shell: bash
@@ -110,10 +116,10 @@ jobs:
           script_name: centreon-collect/.github/scripts/collect-deb-package
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ inputs.img_version }}
-          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.version }}" -e RELEASE="${{ inputs.release }}"
+          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}" -e RELEASE="${{ inputs.release }}"
 
       - name: Use cache DEB files
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: ./*.deb
-          key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+          key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
