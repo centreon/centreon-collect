@@ -230,7 +230,7 @@ jobs:
           mysql -h mariadb -u root -ppassword 'centreon-storage${{ matrix.distrib }}' < centreon/centreon/www/install/createTablesCentstorage.sql
 
       - name: Run tests
-        run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon${{ matrix.distrib }}' -v 'DBNAME_STORAGE:DBNAME_STORAGE${{ matrix.distrib }}' -v 'DBUSER:centreon' gorgone/tests
+        run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon${{ matrix.distrib }}' -v 'DBNAME_STORAGE:centreon-storage${{ matrix.distrib }}' -v 'DBUSER:centreon' gorgone/tests
 
       - name: Upload gorgone and robot debug artifacts
         if: failure()
