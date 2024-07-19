@@ -57,6 +57,8 @@ on:
 jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
+    with:
+      version_file: CMakeLists.txt
 
   unit-test:
     needs: [get-version]
@@ -71,10 +73,10 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Login to Registry
-        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446 # v3.2.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           username: ${{ secrets.DOCKER_REGISTRY_ID }}
@@ -93,7 +95,8 @@ jobs:
     if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
     uses: ./.github/workflows/package-collect.yml
     with:
-      version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
+      major_version: ${{ needs.get-version.outputs.major_version }}
+      minor_version: ${{ needs.get-version.outputs.minor_version }}
       img_version: ${{ needs.get-version.outputs.img_version }}
       release: ${{ needs.get-version.outputs.release }}
       commit_hash: ${{ github.sha }}
@@ -107,7 +110,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           path: centreon-collect
 
@@ -117,8 +120,8 @@ jobs:
           bucket_directory: centreon-collect
           module_directory: centreon-collect
           module_name: centreon-collect
-          major_version: ${{ needs.get-version.outputs.version }}
-          minor_version: ${{ needs.get-version.outputs.patch }}
+          major_version: ${{ needs.get-version.outputs.major_version }}
+          minor_version: ${{ needs.get-version.outputs.minor_version }}
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
@@ -138,14 +141,14 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Publish RPM packages
         uses: ./.github/actions/delivery
         with:
           module_name: collect
           distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.version }}
+          major_version: ${{ needs.get-version.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-version.outputs.stability }}
@@ -173,14 +176,14 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Publish DEB packages
         uses: ./.github/actions/delivery
         with:
           module_name: collect
           distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.version }}
+          major_version: ${{ needs.get-version.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-version.outputs.stability }}
@@ -197,7 +200,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable
@@ -205,8 +208,8 @@ jobs:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           module_name: collect
           distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-version.outputs.version }}
-          minor_version: ${{ needs.get-version.outputs.patch }}
+          major_version: ${{ needs.get-version.outputs.major_version }}
+          minor_version: ${{ needs.get-version.outputs.minor_version }}
           stability: ${{ needs.get-version.outputs.stability }}
           github_ref_name: ${{ github.ref_name }}
           release_type: ${{ needs.get-version.outputs.release_type }}
