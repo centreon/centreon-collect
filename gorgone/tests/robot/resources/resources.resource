@@ -163,7 +163,7 @@ Setup Two Gorgone Instances
         Append To List    ${poller_pull_config}    ${pull_poller_config}    ${gorgone_core_config}
 
         Setup Gorgone Config    ${central_pull_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
-        Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}
+        Setup Gorgone Config    ${poller_pull_config}     gorgone_name=${poller_name}
 
         Start Gorgone    debug    ${central_name}
         Wait Until Port Is Bind    5556
