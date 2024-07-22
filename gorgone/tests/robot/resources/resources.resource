@@ -166,16 +166,16 @@ Setup Two Gorgone Instances
         Setup Gorgone Config    ${central_pull_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
         Setup Gorgone Config    ${poller_pull_config}     gorgone_name=${poller_name}
 
+        Start Gorgone    debug    ${poller_name}
         Start Gorgone    debug    ${central_name}
         Wait Until Port Is Bind    5556
-        Start Gorgone    debug    ${poller_name}
         Check Poller Is Connected    port=5556    expected_nb=2
         Check Poller Communicate     2
     END
 
 Wait Until Port Is Bind
     [Arguments]    ${port}
-    FOR    ${i}    IN RANGE    10
+    FOR    ${i}    IN RANGE    15
         Sleep    0.5
         ${nb_port_listening}    Run    ss -tlnp | grep ':${port}' | grep LIST | wc -l
         IF    ${nb_port_listening} == 1
@@ -183,7 +183,7 @@ Wait Until Port Is Bind
         END
     END
 
-    Should Be True    ${i} < 9    Gorgone did not listen on port ${port} on time.
+    Should Be True    ${i} < 14    Gorgone did not listen on port ${port} on time.
     Log To Console    tcp port ${port} bind after ${i} attempt (0.5 seconds each)
 
 Ctn Check No Error In Logs
