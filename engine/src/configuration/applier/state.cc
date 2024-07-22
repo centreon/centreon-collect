@@ -460,6 +460,8 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->log_level_downtimes(new_cfg.log_level_downtimes());
   config->log_level_comments(new_cfg.log_level_comments());
   config->log_level_macros(new_cfg.log_level_macros());
+  config->log_level_process(new_cfg.log_level_process());
+  config->log_level_otl(new_cfg.log_level_otl());
   config->use_true_regexp_matching(new_cfg.use_true_regexp_matching());
   config->use_send_recovery_notifications_anyways(
       new_cfg.use_send_recovery_notifications_anyways());
@@ -1183,6 +1185,7 @@ void applier::state::apply_log_config(configuration::state& new_cfg) {
     log_cfg.set_level("macros", new_cfg.log_level_macros());
     log_cfg.set_level("process", new_cfg.log_level_process());
     log_cfg.set_level("runtime", new_cfg.log_level_runtime());
+    log_cfg.set_level("otel", new_cfg.log_level_otl());
     if (has_already_been_loaded)
       log_cfg.allow_only_atomic_changes(true);
     log_v2::instance().apply(log_cfg);
