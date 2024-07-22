@@ -37,7 +37,7 @@ jobs:
           #   image: centreon-collect-alma9
           #   distrib: el9
           - package_extension: deb
-            image: centreon-collect-bullseye
+            image: centreon-collect-debian-bullseye
             distrib: bullseye
             lua_version: 5.3
           # - package_extension: deb
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:latest
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.img_version }}
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
