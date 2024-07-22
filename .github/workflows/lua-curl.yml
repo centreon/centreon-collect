@@ -152,14 +152,15 @@ jobs:
         shell: bash
 
       - name: Package
-        uses: ./.github/actions/package-nfpm
+        uses: ./.github/actions/package
         with:
           nfpm_file_pattern: "lua-curl/packaging/lua-curl.yaml"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
+          major_version: ${{ needs.get-version.outputs.major_version }}
+          minor_version: ${{ needs.get-version.outputs.minor_version }}
+          release: ${{ needs.get-version.outputs.release }}
           arch: amd64
-          version: "0.3.13"
-          release: "7"
           commit_hash: ${{ github.sha }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-lua-curl-${{ matrix.distrib }}
           rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
