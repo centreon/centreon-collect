@@ -85,12 +85,16 @@ jobs:
             dnf install -y make gcc openssl openssl-devel libcurl-devel lua lua-devel
             cd lua-curl-src
             make
+            cd ..
           else
             apt-get update
             apt-get install -y make openssl libssl-dev libcurl4-openssl-dev lua${{ matrix.lua_version }} liblua${{ matrix.lua_version }} liblua${{ matrix.lua_version }}-dev
             cd lua-curl-src
             make LUA_IMPL=lua${{ matrix.lua_version }} LUA_INC=/usr/include/lua${{ matrix.lua_version }}
+            cd ..
           fi
+
+          sed -i "s/@luaver@/${{ matrix.lua_version }}/g" lua-curl/packaging/lua-curl.yaml
 
           # if [ "${{ matrix.package_extension }}" == "rpm" ]; then
           #   dnf install -y make cmake gcc openssl openssl-devel libcurl-devel python3-pip cpanminus
