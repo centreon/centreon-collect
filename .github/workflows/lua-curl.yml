@@ -18,11 +18,14 @@ on:
     paths:
       - lua-curl/**
 
+env:
+  major_version: 0.3
+  minor_version: 13
+  release: 11 # 1 for openssl 1.1.1 / 11 for openssl system
+
 jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
-    with:
-      version_file: lua-curl/.version
 
   package:
     needs: [get-version]
@@ -72,7 +75,7 @@ jobs:
         with:
           repository: Lua-cURL/Lua-cURLv3
           path: lua-curl-src
-          ref: v0.3.13
+          ref: v${{ env.major_version }}.${{ env.minor_version }}
 
       - name: Compile lua-curl and prepare packaging
         run: |
@@ -104,9 +107,9 @@ jobs:
           nfpm_file_pattern: "lua-curl/packaging/lua-curl.yaml"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
-          major_version: ${{ needs.get-version.outputs.major_version }}
-          minor_version: ${{ needs.get-version.outputs.minor_version }}
-          release: ${{ needs.get-version.outputs.release }}
+          major_version: ${{ env.major_version }}
+          minor_version: ${{ env.minor_version }}
+          release: ${{ env.release }}
           arch: amd64
           commit_hash: ${{ github.sha }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-lua-curl-${{ matrix.distrib }}
@@ -184,7 +187,6 @@ jobs:
           module_name: lua-curl
           distrib: ${{ matrix.distrib }}
           major_version: ${{ needs.get-version.outputs.major_version }}
-          minor_version: ${{ needs.get-version.outputs.minor_version }}
           stability: ${{ needs.get-version.outputs.stability }}
           github_ref_name: ${{ github.ref_name }}
           release_type: ${{ needs.get-version.outputs.release_type }}
