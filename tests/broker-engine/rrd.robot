@@ -434,7 +434,7 @@ RRD1
 
 BRRDSTATUS
     [Documentation]    We are working with BBDO3. This test checks status are correctly handled independently from their value.
-    [Tags]    rrd    status    bbdo3
+    [Tags]    rrd    status    bbdo3    MON-141934
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
