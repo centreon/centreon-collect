@@ -1,4 +1,4 @@
-name: "@NAME@"
+name: "lua-curl"
 arch: "${ARCH}"
 platform: "linux"
 version_schema: "none"
