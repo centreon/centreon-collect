@@ -21,24 +21,16 @@ contents:
       mode: 0644
     packager: rpm
   - src: "../../lua-curl-src/lcurl.so"
-    dst: "/usr/lib/x86_64-linux-gnu/lua/5.3/lcurl.so"
+    dst: "/usr/lib/x86_64-linux-gnu/lua/@luaver@/lcurl.so"
     file_info:
       mode: 0644
     packager: deb
 
   - src: "../../lua-curl-src/lua/cURL.lua"
     dst: "/usr/share/lua/@luaver@/cURL.lua"
-    packager: rpm
-  - src: "../../lua-curl-src/lua/cURL.lua"
-    dst: "/usr/share/lua/5.3/cURL.lua"
-    packager: deb
 
   - src: "../../lua-curl-src/lua/cURL"
     dst: "/usr/share/lua/@luaver@/cURL"
-    packager: rpm
-  - src: "../../lua-curl-src/lua/cURL"
-    dst: "/usr/share/lua/5.3/cURL"
-    packager: deb
 
 overrides:
   rpm:
@@ -46,7 +38,13 @@ overrides:
       - lua
   deb:
     depends:
-      - lua5.3
+      - lua@luaver@
+    provides:
+      - lua@luaver@-curl
+    conflicts:
+      - lua@luaver@-curl
+    replaces:
+      - lua@luaver@-curl
 
 rpm:
   summary: lua curl

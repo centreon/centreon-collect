@@ -21,6 +21,8 @@ on:
 jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
+    with:
+      version_file: lua-curl/.version
 
   package:
     needs: [get-version]
@@ -28,24 +30,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # distrib: [el8, el9, bullseye, bookworm, jammy]
         include:
-          # - package_extension: rpm
-          #   image: centreon-collect-alma8
-          #   distrib: el8
-          # - package_extension: rpm
-          #   image: centreon-collect-alma9
-          #   distrib: el9
+          - package_extension: rpm
+            image: centreon-collect-alma8
+            distrib: el8
+            lua_version: 5.3
+          - package_extension: rpm
+            image: centreon-collect-alma9
+            distrib: el9
+            lua_version: 5.4
           - package_extension: deb
             image: centreon-collect-debian-bullseye
             distrib: bullseye
             lua_version: 5.3
-          # - package_extension: deb
-          #   image: centreon-collect-bookworm
-          #   distrib: bookworm
-          # - package_extension: deb
-          #   image: centreon-collect-jammy
-          #   distrib: jammy
+          - package_extension: deb
+            image: centreon-collect-debian-bookworm
+            distrib: bookworm
+            lua_version: 5.3
+          - package_extension: deb
+            image: centreon-collect-debian-jammy
+            distrib: jammy
+            lua_version: 5.3
 
     runs-on: ubuntu-24.04
 
@@ -70,10 +75,21 @@ jobs:
 
       - name: Compile lua-curl and prepare packaging
         run: |
-          apt-get update
-          apt-get install -y make openssl libssl-dev libcurl4-openssl-dev lua${{ matrix.lua_version }} liblua${{ matrix.lua_version }} liblua${{ matrix.lua_version }}-dev
-          cd lua-curl-src
-          make LUA_IMPL=lua5.3 LUA_INC=/usr/include/lua${{ matrix.lua_version }}
+          if [ "${{ matrix.package_extension }}" == "rpm" ]; then
+            dnf install -y dnf-plugins-core
+            if [ "${{ matrix.distrib }}" == "el8" ]; then
+              dnf config-manager --set-enabled powertools
+            else
+              dnf config-manager --set-enabled crb
+            fi
+            dnf install -y make gcc openssl openssl-devel libcurl-devel lua lua-devel
+            make
+          else
+            apt-get update
+            apt-get install -y make openssl libssl-dev libcurl4-openssl-dev lua${{ matrix.lua_version }} liblua${{ matrix.lua_version }} liblua${{ matrix.lua_version }}-dev
+            cd lua-curl-src
+            make LUA_IMPL=lua${{ matrix.lua_version }} LUA_INC=/usr/include/lua${{ matrix.lua_version }}
+          fi
 
           # if [ "${{ matrix.package_extension }}" == "rpm" ]; then
           #   dnf install -y make cmake gcc openssl openssl-devel libcurl-devel python3-pip cpanminus
