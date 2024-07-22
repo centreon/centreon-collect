@@ -83,6 +83,7 @@ jobs:
               dnf config-manager --set-enabled crb
             fi
             dnf install -y make gcc openssl openssl-devel libcurl-devel lua lua-devel
+            cd lua-curl-src
             make
           else
             apt-get update
