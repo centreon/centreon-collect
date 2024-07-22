@@ -571,8 +571,8 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
   ++ait;
 
   // replace \\n with \n
-  std::string output;
-  absl::CUnescape(*ait, &output);
+  std::string output(ait->data(), ait->size());
+  string::unescape(output);
 
   timeval tv;
   gettimeofday(&tv, nullptr);
