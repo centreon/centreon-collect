@@ -26,10 +26,10 @@ contents:
       mode: 0644
     packager: deb
 
-  - src: "../../lua-curl-src/lua/cURL.lua"
+  - src: "../../lua-curl-src/src/lua/cURL.lua"
     dst: "/usr/share/lua/@luaver@/cURL.lua"
 
-  - src: "../../lua-curl-src/lua/cURL"
+  - src: "../../lua-curl-src/src/lua/cURL"
     dst: "/usr/share/lua/@luaver@/cURL"
 
 overrides:
