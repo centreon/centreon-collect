@@ -21,7 +21,7 @@ on:
 env:
   major_version: 0.3
   minor_version: 13
-  release: 11 # 1 for openssl 1.1.1 / 11 for openssl system
+  release: 20 # 10 for openssl 1.1.1 / 20 for openssl system
 
 jobs:
   get-version:
