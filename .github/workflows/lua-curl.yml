@@ -72,6 +72,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y make openssl libssl-dev libcurl4-openssl-dev lua${{ matrix.lua_version }} liblua${{ matrix.lua_version }} liblua${{ matrix.lua_version }}-dev
+          cd lua-curl-src
           make LUA_IMPL=lua5.3 LUA_INC=/usr/include/lua${{ matrix.lua_version }}
 
           # if [ "${{ matrix.package_extension }}" == "rpm" ]; then
