@@ -1,0 +1,211 @@
+name: lua-curl
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - lua-curl/**
+  push:
+    branches:
+      - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
+      - master
+      - "[2-9][0-9].[0-9][0-9].x"
+    paths:
+      - lua-curl/**
+
+jobs:
+  get-version:
+    uses: ./.github/workflows/get-version.yml
+
+  package:
+    needs: [get-version]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # distrib: [el8, el9, bullseye, bookworm, jammy]
+        include:
+          # - package_extension: rpm
+          #   image: centreon-collect-alma8
+          #   distrib: el8
+          # - package_extension: rpm
+          #   image: centreon-collect-alma9
+          #   distrib: el9
+          - package_extension: deb
+            image: centreon-collect-bullseye
+            distrib: bullseye
+            lua_version: 5.3
+          # - package_extension: deb
+          #   image: centreon-collect-bookworm
+          #   distrib: bookworm
+          # - package_extension: deb
+          #   image: centreon-collect-jammy
+          #   distrib: jammy
+
+    runs-on: ubuntu-24.04
+
+    container:
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:latest
+      credentials:
+        username: ${{ secrets.DOCKER_REGISTRY_ID }}
+        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+    name: package ${{ matrix.distrib }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Checkout sources of lua-curl
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          repository: Lua-cURL/Lua-cURLv3
+          path: lua-curl-src
+          ref: v0.3.13
+
+      - name: Compile lua-curl and prepare packaging
+        run: |
+          apt-get update
+          apt-get install -y make openssl libssl-dev libcurl4-openssl-dev lua${{ matrix.lua_version }} liblua${{ matrix.lua_version }} liblua${{ matrix.lua_version }}-dev
+          make LUA_IMPL=lua5.3 LUA_INC=/usr/include/lua${{ matrix.lua_version }}
+
+          # if [ "${{ matrix.package_extension }}" == "rpm" ]; then
+          #   dnf install -y make cmake gcc openssl openssl-devel libcurl-devel python3-pip cpanminus
+          # else
+          #   apt-get update
+          #   apt-get install -y openssl libssl-dev libcurl4-openssl-dev lua5.3 liblua5.3-dev luarocks
+          # fi
+
+          # luarocks install lua-curl 0.3.13 CURL_INCDIR=/usr/include/x86_64-linux-gnu LUA_INCDIR=/usr/include/lua${{ matrix.lua_version }} LUA_LIBDIR=/usr/local/lib/lua/${{ matrix.lua_version }} LUA_BINDIR=/usr/lib/x86_64-linux-gnu/lua/5.3 LUA_DIR=/usr/local/lib/lua/5.3
+
+          # lua_interpreter = "lua5.3";
+          # variables = {
+          #     LUA_INCDIR = "/usr/include/lua5.3";
+          #     LUA_BINDIR = "/usr/lib/x86_64-linux-gnu/lua/5.3";
+          #     LUA_LIBDIR = "YOUR LUA LIBRARY PATH";
+          # }
+
+          # cpanm -v \
+          #   IPC::Cmd \
+          #   Digest::SHA \
+          #   Thread::Queue \
+          #   IO::Socket::SSL \
+          #   File::Copy \
+          #   File::Compare
+
+          # cd lua-curl-src
+
+          # if [ "${{ matrix.distrib }}" == "bookworm" ]; then
+          #   pip3 install conan --break-system-packages
+          # else
+          #   pip3 install conan
+          # fi
+          # conan profile detect
+
+          # cat <<'EOF' >> conanfile.txt
+          # [requires]
+          # libcurl/8.0.1
+          # openssl/1.1.1t
+          # zlib/1.2.13
+
+          # [generators]
+          # CMakeToolchain
+
+          # [options]
+          # libcurl/*:with_ca_bundle=/etc/ssl/certs/ca-bundle.crt
+          # libcurl/*:with_ca_fallback=False
+          # libcurl/*:with_ca_path=/etc/ssl/certs/
+          # EOF
+
+          # conan install . --build=missing --deployer=full_deploy
+
+          # if [ "${{ matrix.package_extension }}" == "rpm" ]; then
+          #   sed -i "s#^CURL_LIBS.*#CURL_LIBS=-Lfull_deploy/host/libcurl/8.0.1/Release/x86_64/lib -l:libcurl.a -Lfull_deploy/host/openssl/1.1.1t/Release/x86_64/lib -l:libssl.a -l:libcrypto.a -Lfull_deploy/host/zlib/1.2.13/Release/x86_64/lib -l:libz.a -lpthread#" Makefile
+          # else
+          #   sed -i "s#^CURL_LIBS.*#CURL_LIBS=-Lfull_deploy/host/libcurl/8.0.1/Release/x86_64/lib -l:libcurl.a -Lfull_deploy/host/openssl/1.1.1t/Release/x86_64/lib -l:libssl.a -l:libcrypto.a -Lfull_deploy/host/zlib/1.2.13/Release/x86_64/lib -l:libz.a -lpthread -I/usr/include/lua5.3#" Makefile
+          # fi
+
+          # make
+
+          # cd ..
+
+          # mkdir -p dependencies/lua-curl/lua-curl/
+          # cp -p lua-curl-src/lcurl.so dependencies/lua-curl/lua-curl/
+          # cp -rp lua-curl-src/src/lua/cURL dependencies/lua-curl/lua-curl/
+          # cp -p lua-curl-src/src/lua/cURL.lua dependencies/lua-curl/lua-curl/
+        shell: bash
+
+      - name: Update package name
+        run: |
+          if [ "${{ matrix.package_extension }}" == "rpm" ]; then
+            NAME="lua-curl"
+          else
+            NAME="lua${{ matrix.lua_version }}-curl"
+          fi
+          sed -i "s/@NAME@/$NAME/g" ./lua-curl/packaging/lua-curl.yaml
+        shell: bash
+
+      - name: Package
+        uses: ./.github/actions/package-nfpm
+        with:
+          nfpm_file_pattern: "lua-curl/packaging/lua-curl.yaml"
+          distrib: ${{ matrix.distrib }}
+          package_extension: ${{ matrix.package_extension }}
+          arch: amd64
+          version: "0.3.13"
+          release: "7"
+          commit_hash: ${{ github.sha }}
+          cache_key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-lua-curl-${{ matrix.distrib }}
+          rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
+          rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
+          rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
+          stability: ${{ needs.get-version.outputs.stability }}
+
+  deliver-rpm:
+    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
+    needs: [get-version, package]
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        distrib: [el8, el9]
+    name: deliver ${{ matrix.distrib }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Publish RPM packages
+        uses: ./.github/actions/rpm-delivery
+        with:
+          module_name: lua-curl
+          distrib: ${{ matrix.distrib }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-lua-curl-${{ matrix.distrib }}
+          stability: ${{ needs.get-version.outputs.stability }}
+
+  deliver-deb:
+    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
+    needs: [get-version, package]
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        distrib: [bullseye, bookworm, jammy]
+    name: deliver ${{ matrix.distrib }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Publish DEB packages
+        uses: ./.github/actions/deb-delivery
+        with:
+          module_name: lua-curl
+          distrib: ${{ matrix.distrib }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-lua-curl-${{ matrix.distrib }}
+          stability: ${{ needs.get-version.outputs.stability }}
