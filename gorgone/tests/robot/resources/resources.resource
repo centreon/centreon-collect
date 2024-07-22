@@ -74,6 +74,7 @@ Setup Gorgone Config
     ${CMD}    Catenate
     ...    sed -i -e 's/@KEYTHUMBPRINT@/${key_thumbprint}/g'
     ...    -e 's/@DBNAME@/${DBNAME}/g'
+    ...    -e 's/@DBNAME_STORAGE@/${DBNAME_STORAGE}/g'
     ...    -e 's/@DBHOST@/${DBHOST}/g'
     ...    -e 's/@DBPASSWORD@/${DBPASSWORD}/g'
     ...    -e 's/@DBUSER@/${DBUSER}/g'

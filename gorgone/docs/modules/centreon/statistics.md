@@ -2,7 +2,7 @@
 
 ## Description
 
-This module aims to deal with statistics collection of Centreon Engine and Broker.
+This module aims to deal with statistics collection of Centreon Engine and Broker. It require action module to be configured on each poller and on the central.
 
 ## Configuration
 
@@ -30,12 +30,38 @@ cron:
 
 ## Events
 
-| Event           | Description                                      |
-| :-------------- | :----------------------------------------------- |
-| STATISTICSREADY | Internal event to notify the core                |
-| BROKERSTATS     | Collect Centreon Broker statistics files on node |
+| Event              | Description                                       |
+|:-------------------|:--------------------------------------------------|
+| STATISTICSREADY    | Internal event to notify the core                 | 
+| STATISTICSLISTENER | Internal Event to receive data from action module |
+| BROKERSTATS        | Collect Centreon Broker statistics files on node  |
+| ENGINESTATS        | Collect Centreon engine statistics on node        |
 
 ## API
+
+
+
+### Collect Centreon engine statistics on every nodes configured
+
+The api send back a token to monitor advancement. Please note this token don't allow to monitor the whole process, only the first part until action command are sent.
+
+
+| Endpoint                    | Method |
+|:----------------------------| :----- |
+| /centreon/statistics/engine | `GET`  |
+
+#### Headers
+
+| Header | Value            |
+| :----- | :--------------- |
+| Accept | application/json |
+
+#### Example
+
+```bash
+curl --request POST "https://hostname:8443/api/centreon/statistics/engine" \
+  --header "Accept: application/json"
+```
 
 ### Collect Centreon Broker statistics on one or several nodes
 
