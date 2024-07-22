@@ -1653,6 +1653,41 @@ def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
     return False
 
 
+def ctn_get_service_index(host_id: int, service_id: int, timeout: int = 60):
+    """
+    Try to get the index data of a service.
+
+    Args:
+        host_id (int): The ID of the host.
+        service_id (int): The ID of the service.
+
+    Returns:
+        An integer representing the index data.
+    """
+    select_request = f"SELECT id FROM index_data WHERE host_id={host_id} AND service_id={service_id}"
+    limit = time.time() + timeout
+    while time.time() < limit:
+        # Connect to the database
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(select_request)
+                result = cursor.fetchall()
+                my_id = [r['id'] for r in result]
+                if len(my_id) > 0:
+                    logger.console(
+                            f"Index data {id} found for service {host_id}:{service_id}")
+                    return my_id[0]
+                time.sleep(2)
+    logger.console(f"no index data found for service {host_id}:{service_id}")
+    return None
+
+
 def ctn_get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: int = 60):
     """
     Try to get the metric IDs of a service.

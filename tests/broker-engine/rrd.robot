@@ -432,9 +432,58 @@ RRD1
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Not Be True    ${result}    Database did not receive command to rebuild metrics
 
+BRRDSTATUS
+    [Documentation]    We are working with BBDO3. This test checks status are correctly handled independently from their value.
+    [Tags]    rrd    status    bbdo3
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Set Services Passive    ${0}    service_1
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Process Service Result Hard    host_1    service_1    2    output critical for service_1
+    ${index}    Ctn Get Service Index    1    1
+    log to console    Service 1:1 has index ${index}
+    ${content}    Create List    RRD: new pb status data for index ${index} (state 2)
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
+    Should Be True    ${result}    host_1:service_1 is not CRITICAL as expected
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Process Service Result Hard    host_1    service_1    1    output warning for service_1
+    ${content}    Create List    RRD: new pb status data for index ${index} (state 1)
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
+    Should Be True    ${result}    host_1:service_1 is not WARNING as expected
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Process Service Result Hard    host_1    service_1    0    output ok for service_1
+    ${content}    Create List    RRD: new pb status data for index ${index} (state 0)
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
+    Should Be True    ${result}    host_1:service_1 is not OK as expected
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Process Service Result Hard    host_1    service_1    3    output UNKNOWN for service_1
+    ${content}    Create List    RRD: new pb status data for index ${index} (state 3)
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
+    Should Be True    ${result}    host_1:service_1 is not UNKNOWN as expected
+
+    ${content}    Create List    RRD: ignored update non-float value '' in file '${VarRoot}/lib/centreon/status/82884.rrd'
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    1
+    Should Be Equal    ${result}    ${False}    We shouldn't have any error about empty value in RRD
+
 
 *** Keywords ***
 Ctn Test Clean
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Ctn Save Logs If Failed

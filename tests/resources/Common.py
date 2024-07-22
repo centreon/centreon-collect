@@ -214,7 +214,7 @@ def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int, **kwargs
     c = ""
     kwargs['regex'] = False
 
-    while time.time() < limit:
+    while time.time() <= limit:
         ok, c = ctn_find_in_log(log, date, content, **kwargs)
         if ok:
             return True
