@@ -2,8 +2,6 @@ ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/almalinux:9
 
-ARG VERSION
-
 COPY . /tmp/collect
 
 RUN bash -e <<EOF
@@ -14,9 +12,6 @@ echo 'assumeyes=1' >> /etc/yum.conf
 sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf
 dnf install -y dnf-plugins-core
 dnf config-manager --set-enabled crb
-
-dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/${VERSION}/el9/centreon-${VERSION}.repo
-dnf config-manager --set-enabled 'centreon*'
 
 dnf install -y epel-release
 

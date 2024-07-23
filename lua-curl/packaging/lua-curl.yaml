@@ -36,14 +36,11 @@ overrides:
   rpm:
     depends:
       - lua
-    provides:
-      - lua-curl-system-openssl
   deb:
     depends:
       - lua@luaver@
     provides:
       - lua@luaver@-curl
-      - lua-curl-system-openssl
     conflicts:
       - lua@luaver@-curl
     replaces:

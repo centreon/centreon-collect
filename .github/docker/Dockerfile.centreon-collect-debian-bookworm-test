@@ -2,27 +2,13 @@ ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/debian:bookworm
 
-ARG VERSION
-
 COPY . /tmp/collect
 
 RUN bash -e <<EOF
 
-VERSION_CODENAME=\$(
-    . /etc/os-release
-    echo \$VERSION_CODENAME
-)
-
-echo "deb https://packages.centreon.com/apt-standard-${VERSION}-stable/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-stable.list
-echo "deb https://packages.centreon.com/apt-standard-${VERSION}-testing/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-testing.list
-echo "deb https://packages.centreon.com/apt-standard-${VERSION}-unstable/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-unstable.list
-wget -O- https://packages.centreon.com/api/security/keypair/APT-GPG-KEY/public | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
-
 apt-get update
 
-apt-get -y install \
-    ca-certificates \
-    curl \
+apt-get -y install curl \
     gcc \
     g++ \
     gdb \
@@ -46,8 +32,7 @@ apt-get -y install \
     zstd \
     psmisc \
     sudo \
-    perl-base \
-    wget
+    perl-base
 
 apt-get clean
 
