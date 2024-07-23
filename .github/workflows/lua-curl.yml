@@ -106,7 +106,7 @@ jobs:
 
           cd lua-curl-src
 
-          pip3 install conan==1.64.0
+          pip3 install conan==2.5.0
 
           conan profile detect
 
