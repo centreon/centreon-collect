@@ -253,7 +253,7 @@ TEST_F(MiscParserParsePerfdata, Simple2) {
 TEST_F(MiscParserParsePerfdata, SeveralIdenticalMetrics) {
   // Parse perfdata.
   std::list<misc::perfdata> list{misc::parse_perfdata(
-      0, 0, "'et'=18.00%;15:;10:;0;100 other=15 et=13.00%", _logger)};
+      0, 0, "'et'=18.00%;15:;10:;0;100 other=15 et=13.00%")};
 
   // Assertions.
   ASSERT_EQ(list.size(), 2u);
@@ -279,7 +279,7 @@ TEST_F(MiscParserParsePerfdata, SeveralIdenticalMetrics) {
 TEST_F(MiscParserParsePerfdata, ComplexSeveralIdenticalMetrics) {
   // Parse perfdata.
   std::list<misc::perfdata> list{misc::parse_perfdata(
-      0, 0, "'d[foo]'=18.00%;15:;10:;0;100 other=15 a[foo]=13.00%", _logger)};
+      0, 0, "'d[foo]'=18.00%;15:;10:;0;100 other=15 a[foo]=13.00%")};
 
   // Assertions.
   ASSERT_EQ(list.size(), 2u);
