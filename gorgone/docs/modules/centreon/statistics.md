@@ -2,7 +2,7 @@
 
 ## Description
 
-This module aims to deal with statistics collection of Centreon Engine and Broker. It require action module to be configured on each poller and on the central.
+This module aims to manage the collection of Centreon Engine and Broker statistics. It requires the configuration of an action module on each poller and on the central.
 
 ## Configuration
 
@@ -10,7 +10,7 @@ This module aims to deal with statistics collection of Centreon Engine and Broke
 | :--------------- | :--------------------------------------------------------------------------------------------- | :-------------------------------- |
 | broker_cache_dir | Path to the Centreon Broker statistics directory (local) use to store node's broker statistics | `/var/lib/centreon/broker-stats/` |
 
-The configuration needs a cron definition to unsure that statistics collection will be done cyclically.
+The configuration needs a cron definition to ensure that statistics are collected regularly.
 
 #### Example
 
@@ -39,22 +39,15 @@ cron:
 
 ## API
 
-
-
 ### Collect Centreon engine statistics on every nodes configured
 
-The api send back a token to monitor advancement. Please note this token don't allow to monitor the whole process, only the first part until action command are sent.
+The API returns a token to monitor the progess. Please note this token does not allow to monitor the whole process but only the first part until an action command is sent.
 
+Data will be stored in the `centreon_storage.nagios_stats` table and in the rrd database.
 
 | Endpoint                    | Method |
 |:----------------------------| :----- |
 | /centreon/statistics/engine | `GET`  |
-
-#### Headers
-
-| Header | Value            |
-| :----- | :--------------- |
-| Accept | application/json |
 
 #### Example
 
