@@ -209,7 +209,6 @@ jobs:
           module_name: collect
           distrib: ${{ matrix.distrib }}
           major_version: ${{ needs.get-version.outputs.major_version }}
-          minor_version: ${{ needs.get-version.outputs.minor_version }}
           stability: ${{ needs.get-version.outputs.stability }}
           github_ref_name: ${{ github.ref_name }}
           release_type: ${{ needs.get-version.outputs.release_type }}
