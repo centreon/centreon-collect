@@ -117,6 +117,7 @@ jobs:
           context: .
           build-args: |
             "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
+            "VERSION=${{ needs.get-version.outputs.major_version }}"
             "TRIPLET=${{ contains(matrix.runner, 'arm') && 'arm64-linux' || 'x64-linux' }}"
           platforms: ${{ contains(matrix.runner, 'arm') && 'linux/arm64' || 'linux/amd64' }}
           pull: true

@@ -141,7 +141,7 @@ jobs:
           stability: ${{ needs.get-version.outputs.stability }}
 
   deliver-rpm:
-    # if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     needs: [get-version, package]
     runs-on: ubuntu-22.04
     strategy:
@@ -165,13 +165,12 @@ jobs:
           version: ${{ needs.get-version.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-lua-curl-${{ matrix.distrib }}-${{ matrix.arch }}
-          # stability: ${{ needs.get-version.outputs.stability }}
-          stability: unstable
+          stability: ${{ needs.get-version.outputs.stability }}
           release_type: ${{ needs.get-version.outputs.release_type }}
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   deliver-deb:
-    # if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     needs: [get-version, package]
     runs-on: ubuntu-22.04
     strategy:
@@ -199,8 +198,7 @@ jobs:
           version: ${{ needs.get-version.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-lua-curl-${{ matrix.distrib }}-${{ matrix.arch }}
-          # stability: ${{ needs.get-version.outputs.stability }}
-          stability: unstable
+          stability: ${{ needs.get-version.outputs.stability }}
           release_type: ${{ needs.get-version.outputs.release_type }}
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
