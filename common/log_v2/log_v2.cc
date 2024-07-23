@@ -252,7 +252,10 @@ void log_v2::create_loggers(config::logger_type typ, size_t length) {
       else
         logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
     }
-    logger->set_level(level::level_enum::info);
+    if (id > 1)
+      logger->set_level(level::level_enum::err);
+    else
+      logger->set_level(level::level_enum::info);
     spdlog::register_logger(logger);
     _loggers[id] = std::move(logger);
 
