@@ -857,7 +857,7 @@ def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value
         key (str): The key whose value needs to change.
         value (str): The new value to set.
     """
-    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
 
