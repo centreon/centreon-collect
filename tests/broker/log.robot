@@ -67,3 +67,142 @@ BLEC3
     Ctn Start Broker
     ${result}    Ctn Set Broker Log Level    51001    foo    trace
     Should Be Equal    ${result}    The 'foo' logger does not exist
+
+BLBD
+    [Documentation]    Start Broker with loggers levels by default
+    [Tags]    broker    log-v2    MON-144646
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Broker Config Remove Item    central    log:loggers
+    ${start}    Get Current Date
+    Ctn Start Broker
+    ${result}    Ctn Get Broker Log Info    51001    ALL
+    log to console    ${result}
+    ${LOG_RES}    Catenate    SEPARATOR=${\n}    @{LOG_RESULT}
+    Should Be Equal    ${result}    ${LOG_RES}     Default loggers levels are wrong
+
+
+*** Variables ***
+@{LOG_RESULT}    log_name: "cbd"
+...    log_file: "/tmp/var/log/centreon-broker//central-broker-master.log"
+...    level {
+...    ${SPACE}${SPACE}key: "victoria_metrics"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "tls"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "tcp"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "stats"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "sql"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "runtime"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "rrd"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "process"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "processing"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "perfdata"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "otel"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "notifications"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "neb"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "macros"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "lua"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "influxdb"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "grpc"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "graphite"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "functions"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "external_command"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "events"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "eventbroker"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "downtimes"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "core"
+...    ${SPACE}${SPACE}value: "info"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "config"
+...    ${SPACE}${SPACE}value: "info"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "comments"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "commands"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "checks"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "bbdo"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
+...    ${SPACE}${SPACE}key: "bam"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...
