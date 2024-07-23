@@ -20,7 +20,9 @@ wget -O- https://packages.centreon.com/api/security/keypair/APT-GPG-KEY/public |
 
 apt-get update
 
-apt-get -y install curl \
+apt-get -y install \
+    ca-certificates \
+    curl \
     gcc \
     g++ \
     gdb \
@@ -44,7 +46,8 @@ apt-get -y install curl \
     zstd \
     psmisc \
     sudo \
-    perl-base
+    perl-base \
+    wget
 
 apt-get clean
 
