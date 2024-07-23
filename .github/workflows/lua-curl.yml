@@ -39,24 +39,46 @@ jobs:
             image: centreon-collect-alma8
             distrib: el8
             lua_version: 5.3
+            runner: ubuntu-24.04
+            arch: amd64
           - package_extension: rpm
             image: centreon-collect-alma9
             distrib: el9
             lua_version: 5.4
+            runner: ubuntu-24.04
+            arch: amd64
           - package_extension: deb
             image: centreon-collect-debian-bullseye
             distrib: bullseye
             lua_version: 5.3
+            runner: ubuntu-24.04
+            arch: amd64
           - package_extension: deb
             image: centreon-collect-debian-bookworm
             distrib: bookworm
             lua_version: 5.3
+            runner: ubuntu-24.04
+            arch: amd64
           - package_extension: deb
             image: centreon-collect-ubuntu-jammy
             distrib: jammy
             lua_version: 5.3
+            runner: ubuntu-24.04
+            arch: amd64
+          - package_extension: deb
+            image: centreon-collect-debian-bullseye-arm64
+            distrib: bullseye
+            lua_version: 5.3
+            runner: ["self-hosted", "collect-arm64"]
+            arch: arm64
+          - package_extension: deb
+            image: centreon-collect-debian-bookworm-arm64
+            distrib: bookworm
+            lua_version: 5.3
+            runner: ["self-hosted", "collect-arm64"]
+            arch: arm64
 
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.img_version }}
@@ -110,7 +132,7 @@ jobs:
           major_version: ${{ env.major_version }}
           minor_version: ${{ env.minor_version }}
           release: ${{ env.release }}
-          arch: amd64
+          arch: ${{ matrix.arch }}
           commit_hash: ${{ github.sha }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-lua-curl-${{ matrix.distrib }}
           rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
