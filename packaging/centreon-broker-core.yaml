@@ -40,7 +40,6 @@ overrides:
   rpm:
     depends:
       - lua
-      - lua-curl-system-openssl
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
       - centreon-broker = ${VERSION}-${RELEASE}${DIST}
       - gnutls >= 3.6.0
@@ -57,7 +56,6 @@ overrides:
   deb:
     depends:
       - ${LUA_VERSION}
-      - lua-curl-system-openssl
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-broker (= ${VERSION}-${RELEASE}${DIST})
       - libgnutls30
