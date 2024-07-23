@@ -1097,7 +1097,8 @@ def ctn_broker_config_remove_item(name, key):
 
     Args:
         name: The broker instance name among central, rrd and module%d
-        key: The key to remove. It must be defined at the first level of the configuration.
+        key: The key to remove. It must be defined from the "centreonBroker" level.
+        We can define several levels by splitting them with a colon.
 
     *Example:*
 
@@ -1113,7 +1114,14 @@ def ctn_broker_config_remove_item(name, key):
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
         buf = f.read()
     conf = json.loads(buf)
-    conf["centreonBroker"].pop(key)
+    cc = conf["centreonBroker"]
+    if ":" in key:
+        steps = key.split(':')
+        for s in steps[:-1]:
+            cc = cc[s]
+        key = steps[-1]
+
+    cc.pop(key)
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 
@@ -2873,3 +2881,35 @@ def check_last_checked_services_with_given_metric_more_than(metric_like: str, no
                     return True
                 time.sleep(1)
     return False
+
+
+def ctn_get_broker_log_info(port, log, timeout=TIMEOUT):
+    """
+    Get the log info of a given logger or all of them by specifying "ALL" as log
+    value.
+
+    Args:
+        port: The gRPC port.
+        log: The name of the logger or the string "ALL".
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call SetLogLevel")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericString()
+            if log != "ALL":
+                ref.logger = log
+
+            try:
+                res = stub.GetLogInfo(ref)
+                break
+            except grpc.RpcError as rpc_error:
+                if rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
+                    res = rpc_error.details()
+                break
+            except:
+                logger.console("gRPC server not ready")
+    return str(res)
