@@ -8,7 +8,7 @@ concurrency:
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 0 * * 2-6'
+    - cron: '30 0 * * 1-5'
 
 jobs:
   dispatch-to-maintained-branches:
