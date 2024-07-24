@@ -1,23 +1,22 @@
 /**
  * Copyright 2011-2013 Merethis
- * Copyright 2020-2021 Centreon
+ * Copyright 2020-2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
+ *
  */
-
 #include "com/centreon/engine/modules/external_commands/utils.hh"
 #include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/common.hh"
@@ -42,8 +41,15 @@ int open_command_file(void) {
   struct stat st;
 
   /* if we're not checking external commands, don't do anything */
-  if (config->check_external_commands() == false)
+#ifdef LEGACY_CONF
+  if (!config->check_external_commands())
     return OK;
+  const std::string& command_file{config->command_file()};
+#else
+  if (!pb_config.check_external_commands())
+    return OK;
+  const std::string& command_file{pb_config.command_file()};
+#endif
 
   /* the command file was already created */
   if (command_file_created)
@@ -53,15 +59,13 @@ int open_command_file(void) {
   umask(S_IWOTH);
 
   /* use existing FIFO if possible */
-  if (!(stat(config->command_file().c_str(), &st) != -1 &&
-        (st.st_mode & S_IFIFO))) {
+  if (!(stat(command_file.c_str(), &st) != -1 && (st.st_mode & S_IFIFO))) {
     /* create the external command file as a named pipe (FIFO) */
-    if (mkfifo(config->command_file().c_str(),
-               S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) != 0) {
+    if (mkfifo(command_file.c_str(), S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) !=
+        0) {
       engine_logger(log_runtime_error, basic)
-          << "Error: Could not create external command file '"
-          << config->command_file() << "' as named pipe: (" << errno << ") -> "
-          << strerror(errno)
+          << "Error: Could not create external command file '" << command_file
+          << "' as named pipe: (" << errno << ") -> " << strerror(errno)
           << ".  If this file already exists and "
              "you are sure that another copy of Centreon Engine is not "
              "running, "
@@ -72,7 +76,7 @@ int open_command_file(void) {
           "you are sure that another copy of Centreon Engine is not "
           "running, "
           "you should delete this file.",
-          config->command_file(), errno, strerror(errno));
+          command_file, errno, strerror(errno));
       return ERROR;
     }
   }
@@ -80,8 +84,7 @@ int open_command_file(void) {
   /* open the command file for reading (non-blocked) - O_TRUNC flag cannot be
    * used due to errors on some systems */
   /* NOTE: file must be opened read-write for poll() to work */
-  if ((command_file_fd =
-           open(config->command_file().c_str(), O_RDWR | O_NONBLOCK)) < 0) {
+  if ((command_file_fd = open(command_file.c_str(), O_RDWR | O_NONBLOCK)) < 0) {
     engine_logger(log_runtime_error, basic)
         << "Error: Could not open external command file for reading "
            "via open(): ("
@@ -145,7 +148,7 @@ int open_command_file(void) {
     fclose(command_file_fp);
 
     /* delete the named pipe */
-    unlink(config->command_file().c_str());
+    unlink(command_file.c_str());
 
     return ERROR;
   }
@@ -159,8 +162,13 @@ int open_command_file(void) {
 /* closes the external command file FIFO and deletes it */
 int close_command_file(void) {
   /* if we're not checking external commands, don't do anything */
-  if (config->check_external_commands() == false)
+#ifdef LEGACY_CONF
+  if (!config->check_external_commands())
     return OK;
+#else
+  if (!pb_config.check_external_commands())
+    return OK;
+#endif
 
   /* the command file wasn't created or was already cleaned up */
   if (command_file_created == false)
@@ -255,8 +263,13 @@ static void command_file_worker_thread() {
       select(0, nullptr, nullptr, nullptr, &tv);
     }
 
+#ifdef LEGACY_CONF
     external_command_buffer.set_capacity(
         config->external_command_buffer_slots());
+#else
+    external_command_buffer.set_capacity(
+        pb_config.external_command_buffer_slots());
+#endif
 
     /* process all commands in the file (named pipe) if there's some space in
      * the buffer */

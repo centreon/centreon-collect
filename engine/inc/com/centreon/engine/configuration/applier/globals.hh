@@ -19,11 +19,14 @@
 #ifndef CCE_CONFIGURATION_APPLIER_GLOBALS_HH
 #define CCE_CONFIGURATION_APPLIER_GLOBALS_HH
 
+#ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/state.hh"
+#else
+#include "common/engine_conf/state_helper.hh"
+#endif
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::configuration {
 
-namespace configuration {
 namespace applier {
 /**
  *  @class globals globals.hh
@@ -42,13 +45,16 @@ class globals {
   void _set_global(char*& property, std::string const& value);
 
  public:
+#ifdef LEGACY_CONF
   void apply(configuration::state& globals);
+#else
+  void apply(configuration::State& globals);
+#endif
   static globals& instance();
   void clear();
 };
 }  // namespace applier
-}  // namespace configuration
 
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_APPLIER_GLOBALS_HH

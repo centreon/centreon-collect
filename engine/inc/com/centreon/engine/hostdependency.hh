@@ -20,7 +20,9 @@
 #define CCE_OBJECTS_HOSTDEPENDENCY_HH
 
 #include "com/centreon/engine/dependency.hh"
+#ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/hostdependency.hh"
+#endif
 
 /* Forward declaration. */
 namespace com::centreon::engine {
@@ -29,7 +31,7 @@ class hostdependency;
 class timeperiod;
 }  // namespace com::centreon::engine
 
-typedef std::unordered_multimap<
+typedef absl::btree_multimap<
     std::string,
     std::shared_ptr<com::centreon::engine::hostdependency>>
     hostdependency_mmap;
@@ -64,8 +66,13 @@ class hostdependency : public dependency {
   bool operator<(hostdependency const& obj) throw();
 
   static hostdependency_mmap hostdependencies;
+#ifdef LEGACY_CONF
   static hostdependency_mmap::iterator hostdependencies_find(
-      configuration::hostdependency const& k);
+      const configuration::hostdependency& k);
+#else
+  static hostdependency_mmap::iterator hostdependencies_find(
+      const std::pair<std::string_view, size_t>& key);
+#endif
 
   host* master_host_ptr;
   host* dependent_host_ptr;

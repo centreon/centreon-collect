@@ -49,21 +49,26 @@ static int xsddefault_status_log_fd(-1);
 
 /* initialize status data */
 int xsddefault_initialize_status_data() {
-  if (verify_config || config->status_file().empty())
+#ifdef LEGACY_CONF
+  const std::string& status_file = config->status_file();
+#else
+  const std::string& status_file = pb_config.status_file();
+#endif
+  if (verify_config || status_file.empty())
     return OK;
 
   if (xsddefault_status_log_fd == -1) {
     // delete the old status log (it might not exist).
-    unlink(config->status_file().c_str());
+    unlink(status_file.c_str());
 
     if ((xsddefault_status_log_fd =
-             open(config->status_file().c_str(), O_WRONLY | O_CREAT,
+             open(status_file.c_str(), O_WRONLY | O_CREAT,
                   S_IRUSR | S_IWUSR | S_IRGRP)) == -1) {
       engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
-          << "Error: Unable to open status data file '" << config->status_file()
+          << "Error: Unable to open status data file '" << status_file
           << "': " << strerror(errno);
       runtime_logger->error("Error: Unable to open status data file '{}': {}",
-                            config->status_file(), strerror(errno));
+                            status_file, strerror(errno));
       return ERROR;
     }
     set_cloexec(xsddefault_status_log_fd);
@@ -76,9 +81,14 @@ int xsddefault_cleanup_status_data(int delete_status_data) {
   if (verify_config)
     return OK;
 
+#ifdef LEGACY_CONF
+  const std::string& status_file = config->status_file();
+#else
+  const std::string& status_file = pb_config.status_file();
+#endif
   // delete the status log.
-  if (delete_status_data && !config->status_file().empty()) {
-    if (unlink(config->status_file().c_str()))
+  if (delete_status_data && !status_file.empty()) {
+    if (unlink(status_file.c_str()))
       return ERROR;
   }
 
@@ -105,8 +115,44 @@ int xsddefault_save_status_data() {
       << "save_status_data()";
   functions_logger->trace("save_status_data()");
 
+#ifdef LEGACY_CONF
+  bool check_external_commands = config->check_external_commands();
+  bool enable_notifications = config->enable_notifications();
+  bool execute_service_checks = config->execute_service_checks();
+  bool accept_passive_service_checks = config->accept_passive_service_checks();
+  bool execute_host_checks = config->execute_host_checks();
+  bool accept_passive_host_checks = config->accept_passive_host_checks();
+  bool enable_event_handlers = config->enable_event_handlers();
+  bool obsess_over_services = config->obsess_over_services();
+  bool obsess_over_hosts = config->obsess_over_hosts();
+  bool check_service_freshness = config->check_service_freshness();
+  bool check_host_freshness = config->check_host_freshness();
+  bool enable_flap_detection = config->enable_flap_detection();
+  bool process_performance_data = config->process_performance_data();
+  const std::string& global_host_event_handler = config->global_host_event_handler();
+  const std::string& global_service_event_handler = config->global_service_event_handler();
+  uint32_t external_command_buffer_slots = config->external_command_buffer_slots();
+#else
+  bool check_external_commands = pb_config.check_external_commands();
+  bool enable_notifications = pb_config.enable_notifications();
+  bool execute_service_checks = pb_config.execute_service_checks();
+  bool accept_passive_service_checks = pb_config.accept_passive_service_checks();
+  bool execute_host_checks = pb_config.execute_host_checks();
+  bool accept_passive_host_checks = pb_config.accept_passive_host_checks();
+  bool enable_event_handlers = pb_config.enable_event_handlers();
+  bool obsess_over_services = pb_config.obsess_over_services();
+  bool obsess_over_hosts = pb_config.obsess_over_hosts();
+  bool check_service_freshness = pb_config.check_service_freshness();
+  bool check_host_freshness = pb_config.check_host_freshness();
+  bool enable_flap_detection = pb_config.enable_flap_detection();
+  bool process_performance_data = pb_config.process_performance_data();
+  const std::string& global_host_event_handler = pb_config.global_host_event_handler();
+  const std::string& global_service_event_handler = pb_config.global_service_event_handler();
+  uint32_t external_command_buffer_slots = pb_config.external_command_buffer_slots();
+#endif
+
   // get number of items in the command buffer
-  if (config->check_external_commands()) {
+  if (check_external_commands) {
     used_external_command_buffer_slots = external_command_buffer.size();
     high_external_command_buffer_slots = external_command_buffer.high();
   }
@@ -155,46 +201,46 @@ int xsddefault_save_status_data() {
       << static_cast<long long>(last_log_rotation)
       << "\n"
          "\tenable_notifications="
-      << config->enable_notifications()
+      << enable_notifications
       << "\n"
          "\tactive_service_checks_enabled="
-      << config->execute_service_checks()
+      << execute_service_checks
       << "\n"
          "\tpassive_service_checks_enabled="
-      << config->accept_passive_service_checks()
+      << accept_passive_service_checks
       << "\n"
          "\tactive_host_checks_enabled="
-      << config->execute_host_checks()
+      << execute_host_checks
       << "\n"
          "\tpassive_host_checks_enabled="
-      << config->accept_passive_host_checks()
+      << accept_passive_host_checks
       << "\n"
          "\tenable_event_handlers="
-      << config->enable_event_handlers()
+      << enable_event_handlers
       << "\n"
          "\tobsess_over_services="
-      << config->obsess_over_services()
+      << obsess_over_services
       << "\n"
          "\tobsess_over_hosts="
-      << config->obsess_over_hosts()
+      << obsess_over_hosts
       << "\n"
          "\tcheck_service_freshness="
-      << config->check_service_freshness()
+      << check_service_freshness
       << "\n"
          "\tcheck_host_freshness="
-      << config->check_host_freshness()
+      << check_host_freshness
       << "\n"
          "\tenable_flap_detection="
-      << config->enable_flap_detection()
+      << enable_flap_detection
       << "\n"
          "\tprocess_performance_data="
-      << config->process_performance_data()
+      << process_performance_data
       << "\n"
          "\tglobal_host_event_handler="
-      << config->global_host_event_handler().c_str()
+      << global_host_event_handler
       << "\n"
          "\tglobal_service_event_handler="
-      << config->global_service_event_handler().c_str()
+      << global_service_event_handler
       << "\n"
          "\tnext_comment_id="
       << comment::get_next_comment_id()
@@ -209,7 +255,7 @@ int xsddefault_save_status_data() {
       << next_notification_id
       << "\n"
          "\ttotal_external_command_buffer_slots="
-      << config->external_command_buffer_slots()
+      << external_command_buffer_slots
       << "\n"
          "\tused_external_command_buffer_slots="
       << used_external_command_buffer_slots
@@ -723,16 +769,22 @@ int xsddefault_save_status_data() {
   // Write data in buffer.
   stream.flush();
 
+#ifdef LEGACY_CONF
+  const std::string& status_file = config->status_file();
+#else
+  const std::string& status_file = pb_config.status_file();
+#endif
+
   // Prepare status file for overwrite.
   if ((ftruncate(xsddefault_status_log_fd, 0) == -1) ||
       (fsync(xsddefault_status_log_fd) == -1) ||
       (lseek(xsddefault_status_log_fd, 0, SEEK_SET) == (off_t)-1)) {
     char const* msg(strerror(errno));
     engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
-        << "Error: Unable to update status data file '" << config->status_file()
+        << "Error: Unable to update status data file '" << status_file
         << "': " << msg;
     runtime_logger->error("Error: Unable to update status data file '{}': {}",
-                          config->status_file(), msg);
+                          status_file, msg);
     return ERROR;
   }
 
@@ -746,9 +798,9 @@ int xsddefault_save_status_data() {
       char const* msg(strerror(errno));
       engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
           << "Error: Unable to update status data file '"
-          << config->status_file() << "': " << msg;
+          << status_file << "': " << msg;
       runtime_logger->error("Error: Unable to update status data file '{}': {}",
-                            config->status_file(), msg);
+                            status_file, msg);
       return ERROR;
     }
     data_ptr += wb;

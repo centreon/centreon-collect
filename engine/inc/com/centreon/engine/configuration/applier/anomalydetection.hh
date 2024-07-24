@@ -20,9 +20,13 @@
 #define CCE_CONFIGURATION_APPLIER_ANOMALYDETECTION_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
 
-namespace com::centreon::engine {
+#ifndef LEGACY_CONF
+#include "common/engine_conf/anomalydetection_helper.hh"
+#include "common/engine_conf/state.pb.h"
+#endif
 
-namespace configuration {
+namespace com::centreon::engine::configuration {
+
 // Forward declarations.
 class anomalydetection;
 class state;
@@ -39,16 +43,24 @@ class anomalydetection {
   anomalydetection(const anomalydetection&) = delete;
   ~anomalydetection() noexcept = default;
   anomalydetection& operator=(const anomalydetection&) = delete;
+#ifdef LEGACY_CONF
   void add_object(configuration::anomalydetection const& obj);
   void modify_object(configuration::anomalydetection const& obj);
   void remove_object(configuration::anomalydetection const& obj);
   void expand_objects(configuration::state& s);
   void resolve_object(configuration::anomalydetection const& obj,
                       error_cnt& err);
+#else
+  void add_object(const configuration::Anomalydetection& obj);
+  void modify_object(configuration::Anomalydetection* old_obj,
+                     const configuration::Anomalydetection& new_obj);
+  void remove_object(ssize_t idx);
+  void expand_objects(configuration::State& s);
+  void resolve_object(const configuration::Anomalydetection& obj,
+                      error_cnt& err);
+#endif
 };
 }  // namespace applier
-}  // namespace configuration
-
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_APPLIER_ANOMALYDETECTION_HH

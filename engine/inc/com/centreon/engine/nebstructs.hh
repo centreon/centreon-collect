@@ -95,9 +95,9 @@ typedef struct nebstruct_comment_struct {
 /* Custom variable structure. */
 typedef struct nebstruct_custom_variable_struct {
   int type;
-  struct timeval timestamp;
-  char* var_name;
-  char* var_value;
+  struct timeval timestamp = {};
+  std::string_view var_name;
+  std::string_view var_value;
   void* object_ptr;
 } nebstruct_custom_variable_data;
 

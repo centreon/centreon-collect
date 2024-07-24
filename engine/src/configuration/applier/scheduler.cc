@@ -33,6 +33,7 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::logging;
 
+#ifdef LEGACY_CONF
 /**
  *  Apply new configuration.
  *
@@ -199,6 +200,184 @@ void applier::scheduler::apply(
     }
   }
 }
+#else
+/**
+ *  Apply new configuration.
+ *
+ *  @param[in] config        The new configuration.
+ *  @param[in] diff_hosts    The difference between old and the
+ *                           new host configuration.
+ *  @param[in] diff_services The difference between old and the
+ *                           new service configuration.
+ *  @param[in] diff_anomalydetections The difference between old and the
+ *                           new cwanomalydetectionservice configuration.
+ */
+void applier::scheduler::apply(
+    configuration::State& config,
+    const pb_difference<configuration::Host, uint64_t>& diff_hosts,
+    const pb_difference<configuration::Service, std::pair<uint64_t, uint64_t>>&
+        diff_services,
+    const pb_difference<configuration::Anomalydetection,
+                        std::pair<uint64_t, uint64_t>>&
+        diff_anomalydetections) {
+  // Internal pointer will be used in private methods.
+  _pb_config = &config;
+
+  // Remove and create misc event.
+  _apply_misc_event();
+
+  // Objects set.
+  std::vector<uint64_t> hst_to_unschedule;
+  for (auto& d : diff_hosts.deleted())
+    hst_to_unschedule.emplace_back(d.second);
+
+  std::vector<std::pair<uint64_t, uint64_t>> svc_to_unschedule;
+  for (auto& d : diff_services.deleted())
+    svc_to_unschedule.emplace_back(d.second);
+
+  std::vector<std::pair<uint64_t, uint64_t>> ad_to_unschedule;
+  for (auto& d : diff_anomalydetections.deleted())
+    ad_to_unschedule.emplace_back(d.second);
+
+  std::vector<uint64_t> hst_to_schedule;
+  for (auto& a : diff_hosts.added())
+    hst_to_schedule.emplace_back(a.host_id());
+
+  std::vector<std::pair<uint64_t, uint64_t>> svc_to_schedule;
+  for (auto& a : diff_services.added())
+    svc_to_schedule.emplace_back(a.host_id(), a.service_id());
+
+  std::vector<std::pair<uint64_t, uint64_t>> ad_to_schedule;
+  for (auto& a : diff_anomalydetections.added())
+    ad_to_schedule.emplace_back(a.host_id(), a.service_id());
+
+  for (auto& m : diff_hosts.modified()) {
+    auto it_hst = engine::host::hosts.find(m.second.host_name());
+    if (it_hst != engine::host::hosts.end()) {
+      bool has_event(events::loop::instance().find_event(
+                         events::loop::low, timed_event::EVENT_HOST_CHECK,
+                         it_hst->second.get()) !=
+                     events::loop::instance().list_end(events::loop::low));
+      bool should_schedule(m.second.checks_active() &&
+                           m.second.check_interval() > 0);
+      if (has_event && should_schedule) {
+        hst_to_unschedule.emplace_back(m.second.host_id());
+        hst_to_schedule.emplace_back(m.second.host_id());
+      } else if (!has_event && should_schedule)
+        hst_to_schedule.emplace_back(m.second.host_id());
+      else if (has_event && !should_schedule)
+        hst_to_unschedule.emplace_back(m.second.host_id());
+      // Else it has no event and should not be scheduled, so do nothing.
+    }
+  }
+
+  for (auto& m : diff_services.modified()) {
+    auto it_svc = engine::service::services_by_id.find(
+        {m.second.host_id(), m.second.service_id()});
+    if (it_svc != engine::service::services_by_id.end()) {
+      bool has_event(events::loop::instance().find_event(
+                         events::loop::low, timed_event::EVENT_SERVICE_CHECK,
+                         it_svc->second.get()) !=
+                     events::loop::instance().list_end(events::loop::low));
+      bool should_schedule(m.second.checks_active() &&
+                           (m.second.check_interval() > 0));
+      if (has_event && should_schedule) {
+        svc_to_unschedule.emplace_back(m.second.host_id(),
+                                       m.second.service_id());
+        svc_to_schedule.emplace_back(m.second.host_id(), m.second.service_id());
+      } else if (!has_event && should_schedule)
+        svc_to_schedule.emplace_back(m.second.host_id(), m.second.service_id());
+      else if (has_event && !should_schedule)
+        svc_to_unschedule.emplace_back(m.second.host_id(),
+                                       m.second.service_id());
+      // Else it has no event and should not be scheduled, so do nothing.
+    }
+  }
+
+  for (auto& m : diff_anomalydetections.modified()) {
+    auto it_svc = engine::service::services_by_id.find(
+        {m.second.host_id(), m.second.service_id()});
+    if (it_svc != engine::service::services_by_id.end()) {
+      bool has_event(events::loop::instance().find_event(
+                         events::loop::low, timed_event::EVENT_SERVICE_CHECK,
+                         it_svc->second.get()) !=
+                     events::loop::instance().list_end(events::loop::low));
+      bool should_schedule =
+          m.second.checks_active() && m.second.check_interval() > 0;
+      if (has_event && should_schedule) {
+        ad_to_unschedule.emplace_back(m.second.host_id(),
+                                      m.second.service_id());
+        ad_to_schedule.emplace_back(m.second.host_id(), m.second.service_id());
+      } else if (!has_event && should_schedule)
+        ad_to_schedule.emplace_back(m.second.host_id(), m.second.service_id());
+      else if (has_event && !should_schedule)
+        ad_to_unschedule.emplace_back(m.second.host_id(),
+                                      m.second.service_id());
+      // Else it has no event and should not be scheduled, so do nothing.
+    }
+  }
+
+  // Remove deleted host check from the scheduler.
+  {
+    std::vector<com::centreon::engine::host*> old_hosts =
+        _get_hosts(hst_to_unschedule, false);
+    _unschedule_host_events(old_hosts);
+  }
+
+  // Remove deleted service check from the scheduler.
+  {
+    std::vector<engine::service*> old_services =
+        _get_services(svc_to_unschedule, false);
+    _unschedule_service_events(old_services);
+  }
+
+  // Remove deleted anomalydetection check from the scheduler.
+  {
+    std::vector<engine::service*> old_anomalydetections =
+        _get_anomalydetections(ad_to_unschedule, false);
+    _unschedule_service_events(old_anomalydetections);
+  }
+  // Check if we need to add or modify objects into the scheduler.
+  if (!hst_to_schedule.empty() || !svc_to_schedule.empty() ||
+      !ad_to_schedule.empty()) {
+    memset(&scheduling_info, 0, sizeof(scheduling_info));
+
+    if (config.service_interleave_factor_method().type() ==
+        configuration::InterleaveFactor::ilf_user)
+      scheduling_info.service_interleave_factor = config.service_interleave_factor_method().user_value();
+    if (config.service_inter_check_delay_method().type() ==
+        configuration::InterCheckDelay::user)
+      scheduling_info.service_inter_check_delay = config.service_inter_check_delay_method().user_value();
+    if (config.host_inter_check_delay_method().type() ==
+        configuration::InterCheckDelay::user)
+      scheduling_info.host_inter_check_delay = config.host_inter_check_delay_method().user_value();
+
+    // Calculate scheduling parameters.
+    _calculate_host_scheduling_params();
+    _calculate_service_scheduling_params();
+
+    // Get and schedule new hosts.
+    {
+      std::vector<com::centreon::engine::host*> new_hosts =
+          _get_hosts(hst_to_schedule, true);
+      _schedule_host_events(new_hosts);
+    }
+
+    // Get and schedule new services and anomalydetections.
+    {
+      std::vector<engine::service*> new_services =
+          _get_services(svc_to_schedule, true);
+      std::vector<engine::service*> new_anomalydetections =
+          _get_anomalydetections(ad_to_schedule, true);
+      new_services.insert(
+          new_services.end(),
+          std::make_move_iterator(new_anomalydetections.begin()),
+          std::make_move_iterator(new_anomalydetections.end()));
+      _schedule_service_events(new_services);
+    }
+  }
+}
+#endif
 
 /**
  *  Get the singleton instance of scheduler applier.
@@ -210,6 +389,7 @@ applier::scheduler& applier::scheduler::instance() {
   return instance;
 }
 
+#ifdef LEGACY_CONF
 void applier::scheduler::clear() {
   _config = nullptr;
   _evt_check_reaper = nullptr;
@@ -224,16 +404,34 @@ void applier::scheduler::clear() {
   _old_check_reaper_interval = 0;
   _old_command_check_interval = 0;
   _old_host_freshness_check_interval = 0;
-  _old_host_perfdata_file_processing_interval = 0;
   _old_retention_update_interval = 0;
   _old_service_freshness_check_interval = 0;
-  _old_service_perfdata_file_processing_interval = 0;
   _old_status_update_interval = 0;
-  _old_host_perfdata_file_processing_command.clear();
-  _old_service_perfdata_file_processing_command.clear();
 
   memset(&scheduling_info, 0, sizeof(scheduling_info));
 }
+#else
+void applier::scheduler::clear() {
+  _pb_config = nullptr;
+  _evt_check_reaper = nullptr;
+  _evt_command_check = nullptr;
+  _evt_hfreshness_check = nullptr;
+  _evt_orphan_check = nullptr;
+  _evt_reschedule_checks = nullptr;
+  _evt_retention_save = nullptr;
+  _evt_sfreshness_check = nullptr;
+  _evt_status_save = nullptr;
+  _old_auto_rescheduling_interval = 0;
+  _old_check_reaper_interval = 0;
+  _old_command_check_interval = 0;
+  _old_host_freshness_check_interval = 0;
+  _old_retention_update_interval = 0;
+  _old_service_freshness_check_interval = 0;
+  _old_status_update_interval = 0;
+
+  memset(&scheduling_info, 0, sizeof(scheduling_info));
+}
+#endif
 
 /**
  *  Remove some host from scheduling.
@@ -269,7 +467,12 @@ void applier::scheduler::remove_service(uint64_t host_id, uint64_t service_id) {
  *  Default constructor.
  */
 applier::scheduler::scheduler()
-    : _config(nullptr),
+    :
+#ifdef LEGACY_CONF
+      _config(nullptr),
+#else
+      _pb_config(nullptr),
+#endif
       _evt_check_reaper(nullptr),
       _evt_command_check(nullptr),
       _evt_hfreshness_check(nullptr),
@@ -282,10 +485,8 @@ applier::scheduler::scheduler()
       _old_check_reaper_interval(0),
       _old_command_check_interval(0),
       _old_host_freshness_check_interval(0),
-      _old_host_perfdata_file_processing_interval(0),
       _old_retention_update_interval(0),
       _old_service_freshness_check_interval(0),
-      _old_service_perfdata_file_processing_interval(0),
       _old_status_update_interval(0) {}
 
 /**
@@ -293,6 +494,7 @@ applier::scheduler::scheduler()
  */
 applier::scheduler::~scheduler() noexcept {}
 
+#ifdef LEGACY_CONF
 /**
  *  Remove and create misc event if necessary.
  */
@@ -406,7 +608,126 @@ void applier::scheduler::_apply_misc_event() {
     _old_status_update_interval = _config->status_update_interval();
   }
 }
+#else
+/**
+ *  Remove and create misc event if necessary.
+ */
+void applier::scheduler::_apply_misc_event() {
+  // Get current time.
+  time_t const now = time(nullptr);
 
+  // Remove and add check result reaper event.
+  if (!_evt_check_reaper ||
+      _old_check_reaper_interval != _pb_config->check_reaper_interval()) {
+    _remove_misc_event(_evt_check_reaper);
+    _evt_check_reaper =
+        _create_misc_event(timed_event::EVENT_CHECK_REAPER,
+                           now + _pb_config->check_reaper_interval(),
+                           _pb_config->check_reaper_interval());
+    _old_check_reaper_interval = _pb_config->check_reaper_interval();
+  }
+
+  // Remove and add an external command check event.
+  if ((!_evt_command_check && _pb_config->check_external_commands()) ||
+      (_evt_command_check && !_pb_config->check_external_commands()) ||
+      (_old_command_check_interval != _pb_config->command_check_interval())) {
+    _remove_misc_event(_evt_command_check);
+    if (_pb_config->check_external_commands()) {
+      unsigned long interval(5);
+      if (_pb_config->command_check_interval() != -1)
+        interval = (unsigned long)_pb_config->command_check_interval();
+      _evt_command_check = _create_misc_event(timed_event::EVENT_COMMAND_CHECK,
+                                              now + interval, interval);
+    }
+    _old_command_check_interval = _pb_config->command_check_interval();
+  }
+
+  // Remove and add a host result "freshness" check event.
+  if ((!_evt_hfreshness_check && _pb_config->check_host_freshness()) ||
+      (_evt_hfreshness_check && !_pb_config->check_host_freshness()) ||
+      (_old_host_freshness_check_interval !=
+       _pb_config->host_freshness_check_interval())) {
+    _remove_misc_event(_evt_hfreshness_check);
+    if (_pb_config->check_host_freshness())
+      _evt_hfreshness_check =
+          _create_misc_event(timed_event::EVENT_HFRESHNESS_CHECK,
+                             now + _pb_config->host_freshness_check_interval(),
+                             _pb_config->host_freshness_check_interval());
+    _old_host_freshness_check_interval =
+        _pb_config->host_freshness_check_interval();
+  }
+
+  // Remove and add an orphaned check event.
+  if ((!_evt_orphan_check && _pb_config->check_orphaned_services()) ||
+      (!_evt_orphan_check && _pb_config->check_orphaned_hosts()) ||
+      (_evt_orphan_check && !_pb_config->check_orphaned_services() &&
+       !_pb_config->check_orphaned_hosts())) {
+    _remove_misc_event(_evt_orphan_check);
+    if (_pb_config->check_orphaned_services() ||
+        _pb_config->check_orphaned_hosts())
+      _evt_orphan_check = _create_misc_event(
+          timed_event::EVENT_ORPHAN_CHECK, now + DEFAULT_ORPHAN_CHECK_INTERVAL,
+          DEFAULT_ORPHAN_CHECK_INTERVAL);
+  }
+
+  // Remove and add a host and service check rescheduling event.
+  if ((!_evt_reschedule_checks && _pb_config->auto_reschedule_checks()) ||
+      (_evt_reschedule_checks && !_pb_config->auto_reschedule_checks()) ||
+      (_old_auto_rescheduling_interval !=
+       _pb_config->auto_rescheduling_interval())) {
+    _remove_misc_event(_evt_reschedule_checks);
+    if (_pb_config->auto_reschedule_checks())
+      _evt_reschedule_checks =
+          _create_misc_event(timed_event::EVENT_RESCHEDULE_CHECKS,
+                             now + _pb_config->auto_rescheduling_interval(),
+                             _pb_config->auto_rescheduling_interval());
+    _old_auto_rescheduling_interval = _pb_config->auto_rescheduling_interval();
+  }
+
+  // Remove and add a retention data save event if needed.
+  if ((!_evt_retention_save && _pb_config->retain_state_information()) ||
+      (_evt_retention_save && !_pb_config->retain_state_information()) ||
+      (_old_retention_update_interval !=
+       _pb_config->retention_update_interval())) {
+    _remove_misc_event(_evt_retention_save);
+    if (_pb_config->retain_state_information() &&
+        _pb_config->retention_update_interval() > 0) {
+      unsigned long interval(_pb_config->retention_update_interval() * 60);
+      _evt_retention_save = _create_misc_event(
+          timed_event::EVENT_RETENTION_SAVE, now + interval, interval);
+    }
+    _old_retention_update_interval = _pb_config->retention_update_interval();
+  }
+
+  // Remove add a service result "freshness" check event.
+  if ((!_evt_sfreshness_check && _pb_config->check_service_freshness()) ||
+      (!_evt_sfreshness_check && !_pb_config->check_service_freshness()) ||
+      _old_service_freshness_check_interval !=
+          _pb_config->service_freshness_check_interval()) {
+    _remove_misc_event(_evt_sfreshness_check);
+    if (_pb_config->check_service_freshness())
+      _evt_sfreshness_check = _create_misc_event(
+          timed_event::EVENT_SFRESHNESS_CHECK,
+          now + _pb_config->service_freshness_check_interval(),
+          _pb_config->service_freshness_check_interval());
+    _old_service_freshness_check_interval =
+        _pb_config->service_freshness_check_interval();
+  }
+
+  // Remove and add a status save event.
+  if (!_evt_status_save ||
+      (_old_status_update_interval != _pb_config->status_update_interval())) {
+    _remove_misc_event(_evt_status_save);
+    _evt_status_save =
+        _create_misc_event(timed_event::EVENT_STATUS_SAVE,
+                           now + _pb_config->status_update_interval(),
+                           _pb_config->status_update_interval());
+    _old_status_update_interval = _pb_config->status_update_interval();
+  }
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  How should we determine the host inter-check delay to use.
  *
@@ -479,7 +800,71 @@ void applier::scheduler::_calculate_host_inter_check_delay(
                            scheduling_info.host_inter_check_delay);
   }
 }
+#else
+/**
+ *  How should we determine the host inter-check delay to use.
+ *
+ *  @param[in] method The method to use to calculate inter check delay.
+ */
+void applier::scheduler::_calculate_host_inter_check_delay(
+    const configuration::InterCheckDelay& method) {
+  switch (method.type()) {
+    case configuration::InterCheckDelay::none:
+      scheduling_info.host_inter_check_delay = 0.0;
+      break;
 
+    case configuration::InterCheckDelay::dumb:
+      scheduling_info.host_inter_check_delay = 1.0;
+      break;
+
+    case configuration::InterCheckDelay::user:
+      // the user specified a delay, so don't try to calculate one.
+      break;
+
+    case configuration::InterCheckDelay::smart:
+    default:
+      // be smart and calculate the best delay to use
+      // to minimize local load...
+      if (scheduling_info.total_scheduled_hosts > 0 &&
+          scheduling_info.host_check_interval_total > 0) {
+        // calculate the average check interval for hosts.
+        scheduling_info.average_host_check_interval =
+            scheduling_info.host_check_interval_total /
+            (double)scheduling_info.total_scheduled_hosts;
+
+        // calculate the average inter check delay (in seconds)
+        // needed to evenly space the host checks out.
+        scheduling_info.average_host_inter_check_delay =
+            scheduling_info.average_host_check_interval /
+            (double)scheduling_info.total_scheduled_hosts;
+
+        // set the global inter check delay value.
+        scheduling_info.host_inter_check_delay =
+            scheduling_info.average_host_inter_check_delay;
+
+        // calculate max inter check delay and see if we should use that
+        // instead.
+        double const max_inter_check_delay(
+            (scheduling_info.max_host_check_spread * 60) /
+            (double)scheduling_info.total_scheduled_hosts);
+        if (scheduling_info.host_inter_check_delay > max_inter_check_delay)
+          scheduling_info.host_inter_check_delay = max_inter_check_delay;
+      } else
+        scheduling_info.host_inter_check_delay = 0.0;
+
+      events_logger->debug("Total scheduled host checks:  {}",
+                           scheduling_info.total_scheduled_hosts);
+      events_logger->debug("Host check interval total:    {}",
+                           scheduling_info.host_check_interval_total);
+      events_logger->debug("Average host check interval:  {:.2f} sec",
+                           scheduling_info.average_host_check_interval);
+      events_logger->debug("Host inter-check delay:       {:.2f} sec",
+                           scheduling_info.host_inter_check_delay);
+  }
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  Calculate host scheduling params.
  */
@@ -535,7 +920,66 @@ void applier::scheduler::_calculate_host_scheduling_params() {
 
   _calculate_host_inter_check_delay(_config->host_inter_check_delay_method());
 }
+#else
+/**
+ *  Calculate host scheduling params.
+ */
+void applier::scheduler::_calculate_host_scheduling_params() {
+  engine_logger(dbg_events, most)
+      << "Determining host scheduling parameters...";
+  events_logger->debug("Determining host scheduling parameters...");
 
+  // get current time.
+  time_t const now(time(nullptr));
+
+  // get total hosts and total scheduled hosts.
+  for (host_map::const_iterator it(engine::host::hosts.begin()),
+       end(engine::host::hosts.end());
+       it != end; ++it) {
+    com::centreon::engine::host& hst(*it->second);
+
+    bool schedule_check(true);
+    if (!hst.check_interval() || !hst.active_checks_enabled())
+      schedule_check = false;
+    else {
+      timezone_locker lock(hst.get_timezone());
+      if (!check_time_against_period(now, hst.check_period_ptr)) {
+        time_t next_valid_time(0);
+        get_next_valid_time(now, &next_valid_time, hst.check_period_ptr);
+        if (now == next_valid_time)
+          schedule_check = false;
+      }
+    }
+
+    if (schedule_check) {
+      hst.set_should_be_scheduled(true);
+      ++scheduling_info.total_scheduled_hosts;
+      scheduling_info.host_check_interval_total +=
+          static_cast<unsigned long>(hst.check_interval());
+    } else {
+      hst.set_should_be_scheduled(false);
+      engine_logger(dbg_events, more)
+          << "Host " << hst.name() << " should not be scheduled.";
+      events_logger->debug("Host {} should not be scheduled.", hst.name());
+    }
+
+    ++scheduling_info.total_hosts;
+  }
+
+  // Default max host check spread (in minutes).
+  scheduling_info.max_host_check_spread = _pb_config->max_host_check_spread();
+
+  // Adjust the check interval total to correspond to
+  // the interval length.
+  scheduling_info.host_check_interval_total =
+      scheduling_info.host_check_interval_total * _pb_config->interval_length();
+
+  _calculate_host_inter_check_delay(
+      _pb_config->host_inter_check_delay_method());
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  How should we determine the service inter-check delay
  *  to use (in seconds).
@@ -600,7 +1044,65 @@ void applier::scheduler::_calculate_service_inter_check_delay(
                            scheduling_info.service_inter_check_delay);
   }
 }
+#else
+/**
+ *  How should we determine the service inter-check delay
+ *  to use (in seconds).
+ *
+ *  @param[in] method The method to use to calculate inter check delay.
+ */
+void applier::scheduler::_calculate_service_inter_check_delay(
+    const configuration::InterCheckDelay& method) {
+  switch (method.type()) {
+    case configuration::InterCheckDelay::none:
+      scheduling_info.service_inter_check_delay = 0.0;
+      break;
 
+    case configuration::InterCheckDelay::dumb:
+      scheduling_info.service_inter_check_delay = 1.0;
+      break;
+
+    case configuration::InterCheckDelay::user:
+      // the user specified a delay, so don't try to calculate one.
+      break;
+
+    case configuration::InterCheckDelay::smart:
+    default:
+      // be smart and calculate the best delay to use to
+      // minimize local load...
+      if (scheduling_info.total_scheduled_services > 0 &&
+          scheduling_info.service_check_interval_total > 0) {
+        // calculate the average inter check delay (in seconds) needed
+        // to evenly space the service checks out.
+        scheduling_info.average_service_inter_check_delay =
+            scheduling_info.average_service_check_interval /
+            (double)scheduling_info.total_scheduled_services;
+
+        // set the global inter check delay value.
+        scheduling_info.service_inter_check_delay =
+            scheduling_info.average_service_inter_check_delay;
+
+        // calculate max inter check delay and see if we should use that
+        // instead.
+        double const max_inter_check_delay(
+            (scheduling_info.max_service_check_spread * 60) /
+            (double)scheduling_info.total_scheduled_services);
+        if (scheduling_info.service_inter_check_delay > max_inter_check_delay)
+          scheduling_info.service_inter_check_delay = max_inter_check_delay;
+      } else
+        scheduling_info.service_inter_check_delay = 0.0;
+
+      events_logger->debug("Total scheduled service checks:  {}",
+                           scheduling_info.total_scheduled_services);
+      events_logger->debug("Average service check interval:  {:.2f} sec",
+                           scheduling_info.average_service_check_interval);
+      events_logger->debug("Service inter-check delay:       {:.2f} sec",
+                           scheduling_info.service_inter_check_delay);
+  }
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  How should we determine the service interleave factor.
  *
@@ -634,7 +1136,35 @@ void applier::scheduler::_calculate_service_interleave_factor(
                            scheduling_info.service_interleave_factor);
   }
 }
+#else
+/**
+ *  How should we determine the service interleave factor.
+ *
+ *  @param[in] method The method to use to calculate interleave factor.
+ */
+void applier::scheduler::_calculate_service_interleave_factor(
+    const configuration::InterleaveFactor& method) {
+  switch (method.type()) {
+    case configuration::InterleaveFactor::ilf_user:
+      // the user supplied a value, so don't do any calculation.
+      break;
 
+    case configuration::InterleaveFactor::ilf_smart:
+    default:
+      scheduling_info.service_interleave_factor =
+          (int)(ceil(scheduling_info.average_scheduled_services_per_host));
+
+      events_logger->debug("Total scheduled service checks: {}",
+                           scheduling_info.total_scheduled_services);
+      events_logger->debug("Total hosts:                    {}",
+                           scheduling_info.total_hosts);
+      events_logger->debug("Service Interleave factor:      {}",
+                           scheduling_info.service_interleave_factor);
+  }
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  Calculate service scheduling params.
  */
@@ -711,6 +1241,80 @@ void applier::scheduler::_calculate_service_scheduling_params() {
   _calculate_service_interleave_factor(
       _config->service_interleave_factor_method());
 }
+#else
+/**
+ *  Calculate service scheduling params.
+ */
+void applier::scheduler::_calculate_service_scheduling_params() {
+  events_logger->debug("Determining service scheduling parameters...");
+
+  // get current time.
+  time_t const now(time(nullptr));
+
+  // get total services and total scheduled services.
+  for (service_id_map::const_iterator
+           it(engine::service::services_by_id.begin()),
+       end(engine::service::services_by_id.end());
+       it != end; ++it) {
+    engine::service& svc(*it->second);
+
+    bool schedule_check(true);
+    if (!svc.check_interval() || !svc.active_checks_enabled())
+      schedule_check = false;
+
+    {
+      timezone_locker lock(svc.get_timezone());
+      if (!check_time_against_period(now, svc.check_period_ptr)) {
+        time_t next_valid_time(0);
+        get_next_valid_time(now, &next_valid_time, svc.check_period_ptr);
+        if (now == next_valid_time)
+          schedule_check = false;
+      }
+    }
+
+    if (schedule_check) {
+      svc.set_should_be_scheduled(true);
+      ++scheduling_info.total_scheduled_services;
+      scheduling_info.service_check_interval_total +=
+          static_cast<unsigned long>(svc.check_interval());
+    } else {
+      svc.set_should_be_scheduled(false);
+      events_logger->debug("Service {} on host {} should not be scheduled.",
+                           svc.description(), svc.get_hostname());
+    }
+    ++scheduling_info.total_services;
+  }
+
+  // default max service check spread (in minutes).
+  scheduling_info.max_service_check_spread =
+      _pb_config->max_service_check_spread();
+
+  // used later in inter-check delay calculations.
+  scheduling_info.service_check_interval_total =
+      scheduling_info.service_check_interval_total *
+      _pb_config->interval_length();
+
+  if (scheduling_info.total_hosts) {
+    scheduling_info.average_services_per_host =
+        scheduling_info.total_services / (double)scheduling_info.total_hosts;
+    scheduling_info.average_scheduled_services_per_host =
+        scheduling_info.total_scheduled_services /
+        (double)scheduling_info.total_hosts;
+  }
+
+  // calculate rolling average execution time (available
+  // from retained state information).
+  if (scheduling_info.total_scheduled_services)
+    scheduling_info.average_service_check_interval =
+        scheduling_info.service_check_interval_total /
+        (double)scheduling_info.total_scheduled_services;
+
+  _calculate_service_inter_check_delay(
+      _pb_config->service_inter_check_delay_method());
+  _calculate_service_interleave_factor(
+      _pb_config->service_interleave_factor_method());
+}
+#endif
 
 /**
  *  Create and register new misc event.
@@ -733,6 +1337,7 @@ timed_event* applier::scheduler::_create_misc_event(int type,
   return retval;
 }
 
+#ifdef LEGACY_CONF
 /**
  *  Get engine hosts struct with configuration hosts objects.
  *
@@ -761,7 +1366,32 @@ std::vector<com::centreon::engine::host*> applier::scheduler::_get_hosts(
   }
   return retval;
 }
+#else
+/**
+ *  Get engine hosts struct with configuration hosts objects.
+ *
+ *  @param[in]  hst_ids             The list of host IDs to get.
+ *  @param[in]  throw_if_not_found  Flag to throw if an host is not
+ *                                  found.
+ */
+std::vector<com::centreon::engine::host*> applier::scheduler::_get_hosts(
+    const std::vector<uint64_t>& hst_ids,
+    bool throw_if_not_found) {
+  std::vector<engine::host*> retval;
+  for (auto host_id : hst_ids) {
+    auto it_hst = engine::host::hosts_by_id.find(host_id);
+    if (it_hst == engine::host::hosts_by_id.end()) {
+      if (throw_if_not_found)
+        throw engine_error()
+            << "Could not schedule non-existing host with ID " << host_id;
+    } else
+      retval.push_back(it_hst->second.get());
+  }
+  return retval;
+}
+#endif
 
+#ifdef LEGACY_CONF
 /**
  *  Get engine services struct with configuration services objects.
  *
@@ -791,7 +1421,35 @@ std::vector<com::centreon::engine::service*> applier::scheduler::_get_services(
   }
   return retval;
 }
+#else
+/**
+ *  Get engine services struct with configuration services objects.
+ *
+ *  @param[in]  svc_ids             The list of configuration service IDs
+ * objects.
+ *  @param[in]  throw_if_not_found  Flag to throw if an host is not
+ *                                  found.
+ *  @return a vector of services.
+ */
+std::vector<com::centreon::engine::service*> applier::scheduler::_get_services(
+    const std::vector<std::pair<uint64_t, uint64_t>>& svc_ids,
+    bool throw_if_not_found) {
+  std::vector<com::centreon::engine::service*> retval;
+  for (auto& p : svc_ids) {
+    service_id_map::const_iterator it_svc =
+        engine::service::services_by_id.find({p.first, p.second});
+    if (it_svc == engine::service::services_by_id.end()) {
+      if (throw_if_not_found)
+        throw engine_error() << fmt::format(
+            "Cannot schedule non-existing service ({},{})", p.first, p.second);
+    } else
+      retval.push_back(it_svc->second.get());
+  }
+  return retval;
+}
+#endif
 
+#ifdef LEGACY_CONF
 /**
  *  Get engine services struct with configuration services objects.
  *
@@ -821,6 +1479,34 @@ applier::scheduler::_get_anomalydetections(set_anomalydetection const& ad_cfg,
   }
   return retval;
 }
+#else
+/**
+ *  Get engine services struct with configuration services objects.
+ *
+ *  @param[in]  svc_cfg             The list of configuration services objects.
+ *  @param[in]  throw_if_not_found  Flag to throw if an host is not
+ *                                  found.
+ *  @return a vector of services.
+ */
+std::vector<com::centreon::engine::service*>
+applier::scheduler::_get_anomalydetections(
+    const std::vector<std::pair<uint64_t, uint64_t>>& ad_ids,
+    bool throw_if_not_found) {
+  std::vector<engine::service*> retval;
+  for (auto& p : ad_ids) {
+    service_id_map::const_iterator it_svc =
+        engine::service::services_by_id.find({p.first, p.second});
+    if (it_svc == engine::service::services_by_id.end()) {
+      if (throw_if_not_found)
+        throw engine_error() << fmt::format(
+            "Cannot schedule non-existing anomalydetection ({},{})", p.first,
+            p.second);
+    } else
+      retval.push_back(it_svc->second.get());
+  }
+  return retval;
+}
+#endif
 
 /**
  *  Remove misc event.

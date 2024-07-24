@@ -21,6 +21,7 @@ project("Centreon common" C CXX)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_subdirectory(log_v2)
+  add_subdirectory(engine_conf)
   add_subdirectory(engine_legacy_conf)
 endif()
 

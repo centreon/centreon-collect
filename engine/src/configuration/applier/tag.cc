@@ -24,12 +24,16 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/tag.hh"
+#include "gtest/gtest.h"
+#ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/tag.hh"
+#endif
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
+#ifdef LEGACY_CONF
 /**
  *  Add new tag.
  *
@@ -59,7 +63,43 @@ void applier::tag::add_object(const configuration::tag& obj) {
 
   broker_adaptive_tag_data(NEBTYPE_TAG_ADD, tg.get());
 }
+#else
+/**
+ * @brief Add a new tag.
+ *
+ * @param obj The new protobuf configuration tag to add.
+ */
+void applier::tag::add_object(const configuration::Tag& obj) {
+  // Logging.
+  config_logger->debug("Creating new tag ({},{}).", obj.key().id(),
+                       obj.key().type());
 
+  // Add tag to the global configuration set.
+  configuration::Tag* new_tg = pb_config.add_tags();
+  new_tg->CopyFrom(obj);
+
+  auto tg = std::make_shared<engine::tag>(
+      new_tg->key().id(),
+      static_cast<engine::tag::tagtype>(new_tg->key().type()),
+      new_tg->tag_name());
+  if (!tg)
+    throw engine_error() << fmt::format("Could not register tag ({},{})",
+                                        new_tg->key().id(),
+                                        new_tg->key().type());
+
+  // Add new items to the configuration state.
+  auto res = engine::tag::tags.insert(
+      {{new_tg->key().id(), new_tg->key().type()}, tg});
+  if (!res.second)
+    config_logger->error(
+        "Could not insert tag ({},{}) into cache because it already exists",
+        new_tg->key().id(), new_tg->key().type());
+
+  broker_adaptive_tag_data(NEBTYPE_TAG_ADD, tg.get());
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  @brief Expand a contact.
  *
@@ -69,7 +109,9 @@ void applier::tag::add_object(const configuration::tag& obj) {
  *  @param[in,out] s  Configuration state.
  */
 void applier::tag::expand_objects(configuration::state&) {}
+#endif
 
+#ifdef LEGACY_CONF
 /**
  *  Modify tag.
  *
@@ -109,7 +151,43 @@ void applier::tag::modify_object(const configuration::tag& obj) {
     config_logger->debug("Tag ({},{}) did not change", obj.key().first,
                          obj.key().second);
 }
+#else
+/**
+ * @brief Modify tag.
+ *
+ * @param obj The new tag protobuf configuration.
+ */
+void applier::tag::modify_object(configuration::Tag* to_modify,
+                                 const configuration::Tag& new_object) {
+  // Logging.
+  config_logger->debug("Modifying tag ({},{}).", to_modify->key().id(),
+                       to_modify->key().type());
 
+  // Find tag object.
+  tag_map::iterator it_obj =
+      engine::tag::tags.find({new_object.key().id(), new_object.key().type()});
+  if (it_obj == engine::tag::tags.end()) {
+    throw engine_error() << fmt::format(
+        "Could not modify non-existing tag object ({},{})",
+        new_object.key().id(), new_object.key().type());
+  }
+
+  engine::tag* t = it_obj->second.get();
+
+  // Update the global configuration set.
+  if (to_modify->tag_name() != new_object.tag_name()) {
+    to_modify->set_tag_name(new_object.tag_name());
+    t->set_name(new_object.tag_name());
+
+    // Notify event broker.
+    broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, t);
+  } else
+    config_logger->debug("Tag ({},{}) did not change", new_object.key().id(),
+                         new_object.key().type());
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  Remove old tag.
  *
@@ -136,16 +214,65 @@ void applier::tag::remove_object(const configuration::tag& obj) {
   // Remove tag from the global configuration set.
   config->mut_tags().erase(obj);
 }
+#else
+/**
+ * @brief Remove old tag.
+ *
+ * @param idx The idx in the tags configuration objects to remove.
+ */
+void applier::tag::remove_object(ssize_t idx) {
+  const configuration::Tag& obj = pb_config.tags().at(idx);
 
+  // Logging.
+  config_logger->debug("Removing tag ({},{}).", obj.key().id(),
+                       obj.key().type());
+
+  // Find tag.
+  tag_map::iterator it =
+      engine::tag::tags.find({obj.key().id(), obj.key().type()});
+  if (it != engine::tag::tags.end()) {
+    engine::tag* tg = it->second.get();
+
+    // Notify event broker.
+    broker_adaptive_tag_data(NEBTYPE_TAG_DELETE, tg);
+
+    // Erase tag object (this will effectively delete the object).
+    engine::tag::tags.erase(it);
+  }
+
+  // Remove tag from the global configuration set.
+  pb_config.mutable_tags()->DeleteSubrange(idx, 1);
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  Resolve a tag.
  *
  *  @param[in] obj  Object to resolve.
  */
-void applier::tag::resolve_object(const configuration::tag& obj) {
+void applier::tag::resolve_object(const configuration::tag& obj,
+                                  error_cnt& err) {
   tag_map::const_iterator tg_it{engine::tag::tags.find(obj.key())};
   if (tg_it == engine::tag::tags.end() || !tg_it->second) {
+    err.config_errors++;
     throw engine_error() << "Cannot resolve non-existing tag ("
                          << obj.key().first << "," << obj.key().second << ")";
   }
 }
+#else
+/**
+ *  Resolve a tag.
+ *
+ *  @param[in] obj  Object to resolve.
+ */
+void applier::tag::resolve_object(const configuration::Tag& obj,
+                                  error_cnt& err [[maybe_unused]]) {
+  tag_map::const_iterator tg_it{
+      engine::tag::tags.find({obj.key().id(), obj.key().type()})};
+  if (tg_it == engine::tag::tags.end() || !tg_it->second) {
+    throw engine_error() << "Cannot resolve non-existing tag ("
+                         << obj.key().id() << "," << obj.key().type() << ")";
+  }
+}
+#endif

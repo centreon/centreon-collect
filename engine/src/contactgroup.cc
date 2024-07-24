@@ -16,7 +16,9 @@
  * For more information : contact@centreon.com
  *
  */
+#ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/contactgroup.hh"
+#endif
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/contact.hh"
@@ -32,11 +34,7 @@ using namespace com::centreon::engine::logging;
 
 contactgroup_map contactgroup::contactgroups;
 
-/**
- * Constructor.
- */
-contactgroup::contactgroup() {}
-
+#ifdef LEGACY_CONF
 /**
  *  Constructor from a configuration contactgroup
  *
@@ -52,6 +50,20 @@ contactgroup::contactgroup(configuration::contactgroup const& obj)
   // Notify event broker.
   broker_group(NEBTYPE_CONTACTGROUP_ADD, this);
 }
+#else
+/**
+ *  Constructor from a protobuf configuration contactgroup
+ *
+ * @param obj Configuration contactgroup
+ */
+contactgroup::contactgroup(const configuration::Contactgroup& obj)
+    : _alias{obj.alias().empty() ? obj.contactgroup_name() : obj.alias()},
+      _name{obj.contactgroup_name()} {
+  assert(!_name.empty());
+  // Notify event broker.
+  broker_group(NEBTYPE_CONTACTGROUP_ADD, this);
+}
+#endif
 
 /**
  * Assignment operator.

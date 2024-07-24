@@ -20,12 +20,16 @@
 #define CCE_CONFIGURATION_APPLIER_CONTACT_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
 
-namespace com::centreon::engine {
+#ifndef LEGACY_CONF
+#include "common/engine_conf/contact_helper.hh"
+#endif
 
-namespace configuration {
+namespace com::centreon::engine::configuration {
 // Forward declarations.
+#ifdef LEGACY_CONF
 class contact;
 class state;
+#endif
 
 namespace applier {
 class contact {
@@ -42,15 +46,22 @@ class contact {
   contact(contact const&) = delete;
   contact& operator=(const contact&) = delete;
 
+#ifdef LEGACY_CONF
   void add_object(const configuration::contact& obj);
   void modify_object(const configuration::contact& obj);
   void remove_object(const configuration::contact& obj);
   void expand_objects(configuration::state& s);
   void resolve_object(const configuration::contact& obj, error_cnt& err);
+#else
+  void add_object(const configuration::Contact& obj);
+  void modify_object(configuration::Contact* to_modify,
+                     const configuration::Contact& new_object);
+  void remove_object(ssize_t idx);
+  void expand_objects(configuration::State& s);
+  void resolve_object(const configuration::Contact& obj, error_cnt& err);
+#endif
 };
 }  // namespace applier
-}  // namespace configuration
-
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_APPLIER_CONTACT_HH
