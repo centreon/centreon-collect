@@ -78,3 +78,23 @@ set_property(
   PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Link target with libraries.
 target_link_libraries(${ENGINERPC} cerpc centreon_common spdlog::spdlog)
+
+# mod_enginerpc target.
+add_library(
+  enginerpc_legacy STATIC
+  # Sources.
+  engine_impl.cc enginerpc.cc
+  # Headers.
+  "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
+
+add_dependencies(enginerpc_legacy centreon_common)
+target_compile_definitions(enginerpc_legacy PRIVATE LEGACY_CONF)
+target_precompile_headers(enginerpc_legacy PRIVATE precomp_inc/precomp.hh)
+
+# Prettier name.
+set_property(
+  TARGET enginerpc_legacy
+  PROPERTY PREFIX ""
+  PROPERTY POSITION_INDEPENDENT_CODE ON)
+# Link target with libraries.
+target_link_libraries(enginerpc_legacy cerpc centreon_common spdlog::spdlog)

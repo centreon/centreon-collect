@@ -32,14 +32,14 @@ timerange::timerange(uint64_t start, uint64_t end) {
     config_logger->error("Error: Start time {} is not valid for timeperiod",
                          start);
     throw engine_error() << "Could not create timerange "
-                         << "start'" << start << "' end '" << end << "'";
+                         << "start '" << start << "' end '" << end << "'";
   }
   if (end > 86400) {
     engine_logger(log_config_error, basic)
-        << "Error: End time " << end << " is not value for timeperiod";
-    config_logger->error("Error: End time {} is not value for timeperiod", end);
+        << "Error: End time " << end << " is not valid for timeperiod";
+    config_logger->error("Error: End time {} is not valid for timeperiod", end);
     throw engine_error() << "Could not create timerange "
-                         << "start'" << start << "' end '" << end << "'";
+                         << "start '" << start << "' end '" << end << "'";
   }
 
   _range_start = start;

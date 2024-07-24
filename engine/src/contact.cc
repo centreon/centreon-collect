@@ -78,6 +78,15 @@ std::vector<std::string> const& contact::get_addresses() const {
  *
  *  @param[in] addresses  New addresses.
  */
+void contact::set_addresses(std::vector<std::string>&& addresses) {
+  _addresses = std::move(addresses);
+}
+
+/**
+ *  Set addresses.
+ *
+ *  @param[in] addresses  New addresses.
+ */
 void contact::set_addresses(std::vector<std::string> const& addresses) {
   _addresses = addresses;
 }
@@ -510,7 +519,7 @@ std::shared_ptr<contact> add_contact(
     std::string const& alias,
     std::string const& email,
     std::string const& pager,
-    std::array<std::string, MAX_CONTACT_ADDRESSES> const& addresses,
+    const std::vector<std::string>& addresses,
     std::string const& svc_notification_period,
     std::string const& host_notification_period,
     int notify_service_ok,
@@ -537,8 +546,7 @@ std::shared_ptr<contact> add_contact(
   }
 
   // Check if the contact already exist.
-  std::string const& id(name);
-  if (contact::contacts.count(id)) {
+  if (contact::contacts.count(name)) {
     engine_logger(log_config_error, basic)
         << "Error: Contact '" << name << "' has already been defined";
     config_logger->error("Error: Contact '{}' has already been defined", name);
@@ -556,12 +564,8 @@ std::shared_ptr<contact> add_contact(
     obj->set_host_notification_period(host_notification_period);
     obj->set_pager(pager);
     obj->set_service_notification_period(svc_notification_period);
-    std::vector<std::string> addr;
-    addr.resize(MAX_CONTACT_ADDRESSES);
 
-    for (unsigned int x(0); x < MAX_CONTACT_ADDRESSES; ++x)
-      addr[x] = addresses[x];
-    obj->set_addresses(addr);
+    obj->set_addresses(addresses);
 
     // Set remaining contact properties.
     obj->set_can_submit_commands(can_submit_commands > 0);

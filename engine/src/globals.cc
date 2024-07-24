@@ -29,7 +29,11 @@
 using namespace com::centreon::engine;
 using com::centreon::common::log_v2::log_v2;
 
+#ifdef LEGACY_CONF
 configuration::state* config = nullptr;
+#else
+configuration::State pb_config;
+#endif
 
 char const* sigs[] = {"EXIT", "HUP",    "INT",    "QUIT",  "ILL",    "TRAP",
                       "ABRT", "BUS",    "FPE",    "KILL",  "USR1",   "SEGV",
@@ -52,8 +56,9 @@ std::shared_ptr<spdlog::logger> macros_logger;
 std::shared_ptr<spdlog::logger> notifications_logger;
 std::shared_ptr<spdlog::logger> process_logger;
 std::shared_ptr<spdlog::logger> runtime_logger;
+std::shared_ptr<spdlog::logger> otl_logger;
 
-char* config_file(NULL);
+std::string config_file;
 char* debug_file(NULL);
 char* global_host_event_handler(NULL);
 char* global_service_event_handler(NULL);
@@ -143,4 +148,5 @@ void init_loggers() {
   notifications_logger = log_v2::instance().get(log_v2::NOTIFICATIONS);
   process_logger = log_v2::instance().get(log_v2::PROCESS);
   runtime_logger = log_v2::instance().get(log_v2::RUNTIME);
+  otl_logger = log_v2::instance().get(log_v2::OTL);
 }

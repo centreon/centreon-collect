@@ -23,6 +23,10 @@
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
+#ifdef LEGACY_CONF
+#else
+#include "common/engine_conf/state.pb.h"
+#endif
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -126,6 +130,7 @@ void hostescalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   }
 }
 
+#ifdef LEGACY_CONF
 /**
  * @brief Checks that this hostescalation corresponds to the Configuration
  * object obj. This function doesn't check contactgroups as it is usually used
@@ -156,3 +161,35 @@ bool hostescalation::matches(const configuration::hostescalation& obj) const {
 
   return true;
 }
+#else
+/**
+ * @brief Checks that this hostescalation corresponds to the Configuration
+ * object obj. This function doesn't check contactgroups as it is usually used
+ * to modify them.
+ *
+ * @param obj A host escalation configuration object.
+ *
+ * @return A boolean that is True if they match.
+ */
+bool hostescalation::matches(const configuration::Hostescalation& obj) const {
+  uint32_t escalate_on =
+      ((obj.escalation_options() & configuration::action_he_down)
+           ? notifier::down
+           : notifier::none) |
+      ((obj.escalation_options() & configuration::action_he_unreachable)
+           ? notifier::unreachable
+           : notifier::none) |
+      ((obj.escalation_options() & configuration::action_he_recovery)
+           ? notifier::up
+           : notifier::none);
+  if (_hostname != *obj.hosts().data().begin() ||
+      get_first_notification() != obj.first_notification() ||
+      get_last_notification() != obj.last_notification() ||
+      get_notification_interval() != obj.notification_interval() ||
+      get_escalation_period() != obj.escalation_period() ||
+      get_escalate_on() != escalate_on)
+    return false;
+
+  return true;
+}
+#endif

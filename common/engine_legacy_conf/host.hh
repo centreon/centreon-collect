@@ -28,9 +28,7 @@
 
 using com::centreon::common::opt;
 
-namespace com::centreon::engine {
-
-namespace configuration {
+namespace com::centreon::engine::configuration {
 
 class host : public object {
  public:
@@ -223,11 +221,9 @@ class host : public object {
   std::set<std::pair<uint64_t, uint16_t>> _tags;
 };
 
-typedef std::shared_ptr<host> host_ptr;
+using host_ptr = std::shared_ptr<host>;
 typedef std::list<host> list_host;
 using set_host = std::set<host>;
-}  // namespace configuration
-
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_HOST_HH

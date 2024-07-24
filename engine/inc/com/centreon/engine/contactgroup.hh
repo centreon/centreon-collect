@@ -24,6 +24,10 @@
 #include <memory>
 #include <string>
 
+#ifndef LEGACY_CONF
+#include "common/engine_conf/contactgroup_helper.hh"
+#endif
+
 /* Forward declaration. */
 namespace com::centreon::engine {
 class contact;
@@ -46,8 +50,12 @@ namespace com::centreon::engine {
 
 class contactgroup {
  public:
-  contactgroup();
+  contactgroup() = default;
+#ifdef LEGACY_CONF
   contactgroup(configuration::contactgroup const& obj);
+#else
+  contactgroup(const configuration::Contactgroup& obj);
+#endif
   virtual ~contactgroup();
   std::string const& get_name() const;
   std::string const& get_alias() const;
