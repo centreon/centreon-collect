@@ -20,7 +20,6 @@
 # Global settings.
 #
 
-
 option(WITH_ASAN
        "Add the libasan to check memory leaks and other memory issues." OFF)
 
@@ -164,7 +163,8 @@ include_directories(${CMAKE_SOURCE_DIR}
   ${VCPKG_INCLUDE_DIR}
   fmt::fmt
   spdlog::spdlog
-  ${CMAKE_SOURCE_DIR}/clib/inc)
+  ${CMAKE_SOURCE_DIR}/clib/inc
+  ${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(clib)
 add_subdirectory(common)

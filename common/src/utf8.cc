@@ -30,8 +30,8 @@
 #include "utf8.hh"
 
 std::string com::centreon::common::check_string_utf8(
-    std::string const& str) noexcept {
-  std::string::const_iterator it;
+    const std::string_view& str) noexcept {
+  std::string_view::const_iterator it;
   for (it = str.begin(); it != str.end();) {
     uint32_t val = (*it & 0xff);
     if ((val & 0x80) == 0) {
@@ -68,7 +68,7 @@ std::string com::centreon::common::check_string_utf8(
   }
 
   if (it == str.end())
-    return str;
+    return std::string(str);
 
   /* Not an UTF-8 string */
   bool is_cp1252 = true, is_iso8859 = true;
