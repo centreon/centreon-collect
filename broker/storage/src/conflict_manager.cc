@@ -56,7 +56,7 @@ void (conflict_manager::*const conflict_manager::_neb_processing_table[])(
     nullptr,
     nullptr,
     &conflict_manager::_process_host_check,
-    &conflict_manager::_process_host_dependency,
+    nullptr,
     &conflict_manager::_process_host_group,
     &conflict_manager::_process_host_group_member,
     &conflict_manager::_process_host,
@@ -67,7 +67,7 @@ void (conflict_manager::*const conflict_manager::_neb_processing_table[])(
     &conflict_manager::_process_log,
     nullptr,
     &conflict_manager::_process_service_check,
-    &conflict_manager::_process_service_dependency,
+    nullptr,
     &conflict_manager::_process_service_group,
     &conflict_manager::_process_service_group_member,
     &conflict_manager::_process_service,
@@ -955,8 +955,7 @@ void conflict_manager::process_stop(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::hosts | actions::acknowledgements |
                          actions::modules | actions::downtimes |
                          actions::comments | actions::servicegroups |
-                         actions::hostgroups | actions::service_dependencies |
-                         actions::host_dependencies);
+                         actions::hostgroups);
 
   // Log message.
   _logger_sql->info("SQL: Disabling poller (id: {}, running: no)",

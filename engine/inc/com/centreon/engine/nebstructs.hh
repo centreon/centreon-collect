@@ -98,7 +98,7 @@ typedef struct nebstruct_custom_variable_struct {
   struct timeval timestamp = {};
   std::string_view var_name;
   std::string_view var_value;
-  void* object_ptr;
+  void* object_ptr = nullptr;
 } nebstruct_custom_variable_data;
 
 /* Downtime data structure. */
