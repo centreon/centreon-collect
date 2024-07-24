@@ -28,6 +28,7 @@
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 
+#ifdef LEGACY_CONF
 /**
  *  Apply new configuration.
  *
@@ -74,6 +75,54 @@ void applier::logging::apply(state& config) {
     _del_syslog();
   }
 }
+#else
+/**
+ *  Apply new configuration.
+ *
+ *  @param[in] config The new configuration.
+ */
+void applier::logging::apply(State& config) {
+  if (verify_config || test_scheduling)
+    return;
+
+  if (config.log_legacy_enabled()) {
+    // Syslog.
+    if (config.use_syslog() && !_syslog)
+      _add_syslog();
+    else if (!config.use_syslog() && _syslog)
+      _del_syslog();
+
+    // Standard log file.
+
+    if (config.log_file() == "")
+      _del_log_file();
+    else if (!_log || config.log_file() != _log->filename()) {
+      _add_log_file(config);
+      _del_stdout();
+      _del_stderr();
+    }
+
+    // Debug file.
+    if ((config.debug_file() == "") || !config.debug_level() ||
+        !config.debug_verbosity()) {
+      _del_debug();
+      _debug_level = config.debug_level();
+      _debug_verbosity = config.debug_verbosity();
+      _debug_max_size = config.max_debug_file_size();
+    } else if (!_debug || config.debug_file() != _debug->filename() ||
+               config.debug_level() != _debug_level ||
+               config.debug_verbosity() != _debug_verbosity ||
+               config.max_debug_file_size() != _debug_max_size)
+      _add_debug(config);
+  } else {
+    _del_stdout();
+    _del_stderr();
+    _del_debug();
+    _del_log_file();
+    _del_syslog();
+  }
+}
+#endif
 
 /**
  *  Get the singleton instance of logging applier.
@@ -120,6 +169,7 @@ applier::logging::logging()
   _add_stderr();
 }
 
+#ifdef LEGACY_CONF
 /**
  *  Construct and apply configuration.
  *
@@ -138,11 +188,31 @@ applier::logging::logging(state& config)
   _add_stderr();
   apply(config);
 }
+#else
+/**
+ *  Construct and apply configuration.
+ *
+ *  @param[in] config The initial confiuration.
+ */
+applier::logging::logging(State& config)
+    : _debug(nullptr),
+      _debug_level(0),
+      _debug_max_size(0),
+      _debug_verbosity(0),
+      _log(nullptr),
+      _stderr(nullptr),
+      _stdout(nullptr),
+      _syslog(nullptr) {
+  _add_stdout();
+  _add_stderr();
+  apply(config);
+}
+#endif
 
 /**
  *  Default destructor.
  */
-applier::logging::~logging() throw() {
+applier::logging::~logging() noexcept {
   _del_stdout();
   _del_stderr();
   _del_syslog();
@@ -200,6 +270,7 @@ void applier::logging::_add_syslog() {
   }
 }
 
+#ifdef LEGACY_CONF
 /**
  *  Add file object logging.
  */
@@ -210,7 +281,20 @@ void applier::logging::_add_log_file(state const& config) {
   com::centreon::logging::engine::instance().add(_log, engine::logging::log_all,
                                                  engine::logging::most);
 }
+#else
+/**
+ *  Add file object logging.
+ */
+void applier::logging::_add_log_file(const State& config) {
+  _del_log_file();
+  _log = new com::centreon::logging::file(config.log_file(), true,
+                                          config.log_pid());
+  com::centreon::logging::engine::instance().add(_log, engine::logging::log_all,
+                                                 engine::logging::most);
+}
+#endif
 
+#ifdef LEGACY_CONF
 /**
  *  Add debug object logging.
  */
@@ -224,6 +308,21 @@ void applier::logging::_add_debug(state const& config) {
   com::centreon::logging::engine::instance().add(_debug, _debug_level,
                                                  _debug_verbosity);
 }
+#else
+/**
+ *  Add debug object logging.
+ */
+void applier::logging::_add_debug(const State& config) {
+  _del_debug();
+  _debug_level = (config.debug_level() << 32) | engine::logging::log_all;
+  _debug_verbosity = config.debug_verbosity();
+  _debug_max_size = config.max_debug_file_size();
+  _debug = new com::centreon::engine::logging::debug_file(config.debug_file(),
+                                                          _debug_max_size);
+  com::centreon::logging::engine::instance().add(_debug, _debug_level,
+                                                 _debug_verbosity);
+}
+#endif
 
 /**
  *  Remove syslog object logging.

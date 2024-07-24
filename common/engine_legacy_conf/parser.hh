@@ -22,10 +22,9 @@
 #include <fstream>
 #include "file_info.hh"
 #include "state.hh"
+#include "host.hh"
 
-namespace com::centreon::engine {
-
-namespace configuration {
+namespace com::centreon::engine::configuration {
 
 class parser {
   std::shared_ptr<spdlog::logger> _logger;
@@ -63,7 +62,8 @@ class parser {
   void _apply(std::list<std::string> const& lst,
               void (parser::*pfunc)(std::string const&));
   file_info const& _get_file_info(object* obj) const;
-  void _get_hosts_by_hostgroups(hostgroup const& hostgroups, list_host& hosts);
+  void _get_hosts_by_hostgroups(const hostgroup& hostgroups,
+                                list_host& hosts);
   void _get_hosts_by_hostgroups_name(set_string const& lst_group,
                                      list_host& hosts);
   template <typename T>
@@ -95,8 +95,6 @@ class parser {
   static store _store[];
   std::array<map_object, 19> _templates;
 };
-}  // namespace configuration
-
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_PARSER_HH

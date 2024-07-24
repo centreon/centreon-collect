@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  *
  */
-
 #define C4_NO_DEBUG_BREAK 1
 
 #include "com/centreon/engine/configuration/whitelist.hh"

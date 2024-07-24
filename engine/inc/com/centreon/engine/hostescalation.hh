@@ -32,7 +32,11 @@ typedef std::unordered_multimap<
 
 namespace com::centreon::engine {
 namespace configuration {
+#ifdef LEGACY_CONF
 class hostescalation;
+#else
+class Hostescalation;
+#endif
 }
 
 class hostescalation : public escalation {
@@ -50,7 +54,11 @@ class hostescalation : public escalation {
   bool is_viable(int state, uint32_t notification_number) const override;
   void resolve(uint32_t& w, uint32_t& e) override;
 
+#ifdef LEGACY_CONF
   bool matches(const configuration::hostescalation& obj) const;
+#else
+  bool matches(const configuration::Hostescalation& obj) const;
+#endif
 
   static hostescalation_mmap hostescalations;
 

@@ -70,7 +70,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Get distributions name
 #
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  file(STRINGS "/etc/os-release" release REGEX "^ID")
+  file(STRINGS "/etc/os-release" release REGEX "ID")
 
   foreach(line ${release})
     if(${line} MATCHES "ID_LIKE=.*")
@@ -79,6 +79,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
     if(${line} MATCHES "ID=.*")
       string(REGEX REPLACE "ID=\"(.*)\"" "\\1" id ${line})
+    endif()
+
+    if(${line} MATCHES "VERSION_ID=.*")
+      string(REGEX REPLACE "VERSION_ID=\"([0-9]+)\..*" "\\1" os_version ${line})
     endif()
   endforeach()
 
@@ -98,6 +102,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   endif()
 else()
   set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
+endif()
+
+if(OS_DISTRIBUTOR STREQUAL "CentOS" AND os_version STREQUAL "8")
+  message(STATUS "Legacy gettimeofday")
+  add_definitions("-DLEGACY_GETTIMEOFDAY")
 endif()
 
 message(STATUS "${id} detected (compatible with ${OS_DISTRIBUTOR})")

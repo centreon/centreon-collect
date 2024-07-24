@@ -50,6 +50,18 @@ int obsessive_compulsive_host_check_processor(
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
   nagios_macros* mac(get_global_macros());
 
+  bool obsess_over_hosts;
+  uint32_t ochp_timeout;
+#ifdef LEGACY_CONF
+  obsess_over_hosts = config->obsess_over_hosts();
+  const std::string& ochp_command = config->ochp_command();
+  ochp_timeout = config->ochp_timeout();
+#else
+  obsess_over_hosts = pb_config.obsess_over_hosts();
+  const std::string& ochp_command = pb_config.ochp_command();
+  ochp_timeout = pb_config.ochp_timeout();
+#endif
+
   engine_logger(dbg_functions, basic)
       << "obsessive_compulsive_host_check_processor()";
   functions_logger->trace("obsessive_compulsive_host_check_processor()");
@@ -58,20 +70,20 @@ int obsessive_compulsive_host_check_processor(
     return ERROR;
 
   /* bail out if we shouldn't be obsessing */
-  if (!config->obsess_over_hosts())
+  if (!obsess_over_hosts)
     return OK;
   if (!hst->obsess_over())
     return OK;
 
   /* if there is no valid command, exit */
-  if (config->ochp_command().empty())
+  if (ochp_command.empty())
     return ERROR;
 
   /* update macros */
   grab_host_macros_r(mac, hst);
 
   /* get the raw command line */
-  get_raw_command_line_r(mac, ochp_command_ptr, config->ochp_command().c_str(),
+  get_raw_command_line_r(mac, ochp_command_ptr, ochp_command.c_str(),
                          raw_command, macro_options);
   if (raw_command.empty()) {
     clear_volatile_macros_r(mac);
@@ -105,7 +117,7 @@ int obsessive_compulsive_host_check_processor(
     /* run the command */
     try {
       std::string tmp;
-      my_system_r(mac, processed_command, config->ochp_timeout(),
+      my_system_r(mac, processed_command, ochp_timeout,
                   &early_timeout, &exectime, tmp, 0);
     } catch (std::exception const& e) {
       engine_logger(log_runtime_error, basic)
@@ -128,11 +140,11 @@ int obsessive_compulsive_host_check_processor(
   if (early_timeout)
     engine_logger(log_runtime_warning, basic)
         << "Warning: OCHP command '" << processed_command << "' for host '"
-        << hst->name() << "' timed out after " << config->ochp_timeout()
+        << hst->name() << "' timed out after " << ochp_timeout
         << " seconds";
   runtime_logger->warn(
       "Warning: OCHP command '{}' for host '{}' timed out after {} seconds",
-      processed_command, hst->name(), config->ochp_timeout());
+      processed_command, hst->name(), ochp_timeout);
 
   return OK;
 }
@@ -156,15 +168,30 @@ int run_global_service_event_handler(nagios_macros* mac,
   engine_logger(dbg_functions, basic) << "run_global_service_event_handler()";
   functions_logger->trace("run_global_service_event_handler()");
 
+  bool enable_event_handlers;
+  bool log_event_handlers;
+  uint32_t event_handler_timeout;
+#ifdef LEGACY_CONF
+  enable_event_handlers = config->enable_event_handlers();
+  const std::string& global_service_event_handler = config->global_service_event_handler();
+  log_event_handlers = config->log_event_handlers();
+  event_handler_timeout = config->event_handler_timeout();
+#else
+  enable_event_handlers = pb_config.enable_event_handlers();
+  const std::string& global_service_event_handler = pb_config.global_service_event_handler();
+  log_event_handlers = pb_config.log_event_handlers();
+  event_handler_timeout = pb_config.event_handler_timeout();
+#endif
+
   if (svc == nullptr)
     return ERROR;
 
   /* bail out if we shouldn't be running event handlers */
-  if (config->enable_event_handlers() == false)
+  if (!enable_event_handlers)
     return OK;
 
   /* a global service event handler command has not been defined */
-  if (config->global_service_event_handler().empty())
+  if (global_service_event_handler.empty())
     return ERROR;
 
   engine_logger(dbg_eventhandlers, more)
@@ -179,11 +206,10 @@ int run_global_service_event_handler(nagios_macros* mac,
 
   /* get the raw command line */
   get_raw_command_line_r(mac, global_service_event_handler_ptr,
-                         config->global_service_event_handler().c_str(),
+                         global_service_event_handler.c_str(),
                          raw_command, macro_options);
-  if (raw_command.empty()) {
+  if (raw_command.empty())
     return ERROR;
-  }
 
   engine_logger(dbg_eventhandlers, most)
       << "Raw global service event handler command line: " << raw_command;
@@ -203,12 +229,12 @@ int run_global_service_event_handler(nagios_macros* mac,
       "Processed global service event handler command line: {}",
       processed_command);
 
-  if (config->log_event_handlers()) {
+  if (log_event_handlers) {
     std::ostringstream oss;
     oss << "GLOBAL SERVICE EVENT HANDLER: " << svc->get_hostname() << ';'
         << svc->description()
         << ";$SERVICESTATE$;$SERVICESTATETYPE$;$SERVICEATTEMPT$;"
-        << config->global_service_event_handler();
+        << global_service_event_handler;
     process_macros_r(mac, oss.str(), processed_logentry, macro_options);
     engine_logger(log_event_handler, basic) << processed_logentry;
     events_logger->debug(processed_logentry);
@@ -220,7 +246,7 @@ int run_global_service_event_handler(nagios_macros* mac,
                                                  cached_cmd)) {
     /* run the command */
     try {
-      my_system_r(mac, processed_command, config->event_handler_timeout(),
+      my_system_r(mac, processed_command, event_handler_timeout,
                   &early_timeout, &exectime, command_output, 0);
     } catch (std::exception const& e) {
       engine_logger(log_runtime_error, basic)
@@ -244,11 +270,11 @@ int run_global_service_event_handler(nagios_macros* mac,
     engine_logger(log_event_handler | log_runtime_warning, basic)
         << "Warning: Global service event handler command '"
         << processed_command << "' timed out after "
-        << config->event_handler_timeout() << " seconds";
+        << event_handler_timeout << " seconds";
     events_logger->info(
         "Warning: Global service event handler command '{}' timed out after {} "
         "seconds",
-        processed_command, config->event_handler_timeout());
+        processed_command, event_handler_timeout);
   }
   return OK;
 }
@@ -264,6 +290,16 @@ int run_service_event_handler(nagios_macros* mac,
   double exectime = 0.0;
   struct timeval start_time;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+
+  bool log_event_handlers;
+  uint32_t event_handler_timeout;
+#ifdef LEGACY_CONF
+  log_event_handlers = config->log_event_handlers();
+  event_handler_timeout = config->event_handler_timeout();
+#else
+  log_event_handlers = pb_config.log_event_handlers();
+  event_handler_timeout = pb_config.event_handler_timeout();
+#endif
 
   engine_logger(dbg_functions, basic) << "run_service_event_handler()";
   functions_logger->trace("run_service_event_handler()");
@@ -306,7 +342,7 @@ int run_service_event_handler(nagios_macros* mac,
   events_logger->debug("Processed service event handler command line: {}",
                        processed_command);
 
-  if (config->log_event_handlers()) {
+  if (log_event_handlers) {
     std::ostringstream oss;
     oss << "SERVICE EVENT HANDLER: " << svc->get_hostname() << ';'
         << svc->description()
@@ -321,7 +357,7 @@ int run_service_event_handler(nagios_macros* mac,
                                            checkable::EVH_TYPE)) {
     /* run the command */
     try {
-      my_system_r(mac, processed_command, config->event_handler_timeout(),
+      my_system_r(mac, processed_command, event_handler_timeout,
                   &early_timeout, &exectime, command_output, 0);
     } catch (std::exception const& e) {
       engine_logger(log_runtime_error, basic)
@@ -342,12 +378,12 @@ int run_service_event_handler(nagios_macros* mac,
   if (early_timeout) {
     engine_logger(log_event_handler | log_runtime_warning, basic)
         << "Warning: Service event handler command '" << processed_command
-        << "' timed out after " << config->event_handler_timeout()
+        << "' timed out after " << event_handler_timeout
         << " seconds";
     events_logger->info(
         "Warning: Service event handler command '{}' timed out after {} "
         "seconds",
-        processed_command, config->event_handler_timeout());
+        processed_command, event_handler_timeout);
   }
   return OK;
 }
@@ -366,6 +402,16 @@ int handle_host_event(com::centreon::engine::host* hst) {
   if (hst == nullptr)
     return ERROR;
 
+  bool enable_event_handlers;
+  std::string_view global_host_event_handler;
+#ifdef LEGACY_CONF
+  enable_event_handlers = config->enable_event_handlers();
+  global_host_event_handler = config->global_host_event_handler();
+#else
+  enable_event_handlers = pb_config.enable_event_handlers();
+  global_host_event_handler = pb_config.global_host_event_handler();
+#endif
+
   /* send event data to broker */
   broker_statechange_data(
       NEBTYPE_STATECHANGE_END, NEBFLAG_NONE, NEBATTR_NONE, HOST_STATECHANGE,
@@ -373,7 +419,7 @@ int handle_host_event(com::centreon::engine::host* hst) {
       hst->get_current_attempt(), hst->max_check_attempts(), nullptr);
 
   /* bail out if we shouldn't be running event handlers */
-  if (!config->enable_event_handlers())
+  if (!enable_event_handlers)
     return OK;
   if (!hst->event_handler_enabled())
     return OK;
@@ -410,15 +456,30 @@ int run_global_host_event_handler(nagios_macros* mac,
   engine_logger(dbg_functions, basic) << "run_global_host_event_handler()";
   functions_logger->trace("run_global_host_event_handler()");
 
+  bool enable_event_handlers;
+  bool log_event_handlers;
+  uint32_t event_handler_timeout;
+#ifdef LEGACY_CONF
+  enable_event_handlers = config->enable_event_handlers();
+  const std::string& global_host_event_handler = config->global_host_event_handler();
+  log_event_handlers = config->log_event_handlers();
+  event_handler_timeout = config->event_handler_timeout();
+#else
+  enable_event_handlers = pb_config.enable_event_handlers();
+  const std::string& global_host_event_handler = pb_config.global_host_event_handler();
+  log_event_handlers = pb_config.log_event_handlers();
+  event_handler_timeout = pb_config.event_handler_timeout();
+#endif
+
   if (hst == nullptr)
     return ERROR;
 
   /* bail out if we shouldn't be running event handlers */
-  if (config->enable_event_handlers() == false)
+  if (!enable_event_handlers)
     return OK;
 
   /* no global host event handler command is defined */
-  if (config->global_host_event_handler() == "")
+  if (global_host_event_handler.empty())
     return ERROR;
 
   engine_logger(dbg_eventhandlers, more)
@@ -431,7 +492,7 @@ int run_global_host_event_handler(nagios_macros* mac,
 
   /* get the raw command line */
   get_raw_command_line_r(mac, global_host_event_handler_ptr,
-                         config->global_host_event_handler().c_str(),
+                         global_host_event_handler.c_str(),
                          raw_command, macro_options);
   if (raw_command.empty())
     return ERROR;
@@ -453,11 +514,11 @@ int run_global_host_event_handler(nagios_macros* mac,
   events_logger->debug("Processed global host event handler command line: {}",
                        processed_command);
 
-  if (config->log_event_handlers() == true) {
+  if (log_event_handlers) {
     std::ostringstream oss;
     oss << "GLOBAL HOST EVENT HANDLER: " << hst->name()
         << "$HOSTSTATE$;$HOSTSTATETYPE$;$HOSTATTEMPT$;"
-        << config->global_host_event_handler();
+        << global_host_event_handler;
     process_macros_r(mac, oss.str(), processed_logentry, macro_options);
     engine_logger(log_event_handler, basic) << processed_logentry;
     events_logger->info(processed_logentry);
@@ -468,7 +529,7 @@ int run_global_host_event_handler(nagios_macros* mac,
   if (host::command_is_allowed_by_whitelist(processed_command, cached_cmd)) {
     /* run the command */
     try {
-      my_system_r(mac, processed_command, config->event_handler_timeout(),
+      my_system_r(mac, processed_command, event_handler_timeout,
                   &early_timeout, &exectime, command_output, 0);
     } catch (std::exception const& e) {
       engine_logger(log_runtime_error, basic)
@@ -490,12 +551,12 @@ int run_global_host_event_handler(nagios_macros* mac,
   if (early_timeout) {
     engine_logger(log_event_handler | log_runtime_warning, basic)
         << "Warning: Global host event handler command '" << processed_command
-        << "' timed out after " << config->event_handler_timeout()
+        << "' timed out after " << event_handler_timeout
         << " seconds";
     events_logger->info(
         "Warning: Global host event handler command '{}' timed out after {} "
         "seconds",
-        processed_command, config->event_handler_timeout());
+        processed_command, event_handler_timeout);
   }
 
   return OK;
@@ -512,6 +573,16 @@ int run_host_event_handler(nagios_macros* mac,
   double exectime = 0.0;
   struct timeval start_time;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+
+  bool log_event_handlers;
+  uint32_t event_handler_timeout;
+#ifdef LEGACY_CONF
+  log_event_handlers = config->log_event_handlers();
+  event_handler_timeout = config->event_handler_timeout();
+#else
+  log_event_handlers = pb_config.log_event_handlers();
+  event_handler_timeout = pb_config.event_handler_timeout();
+#endif
 
   engine_logger(dbg_functions, basic) << "run_host_event_handler()";
   functions_logger->trace("run_host_event_handler()");
@@ -551,7 +622,7 @@ int run_host_event_handler(nagios_macros* mac,
   events_logger->debug("Processed host event handler command line: {}",
                        processed_command);
 
-  if (config->log_event_handlers() == true) {
+  if (log_event_handlers) {
     std::ostringstream oss;
     oss << "HOST EVENT HANDLER: " << hst->name()
         << ";$HOSTSTATE$;$HOSTSTATETYPE$;$HOSTATTEMPT$;"
@@ -565,7 +636,7 @@ int run_host_event_handler(nagios_macros* mac,
                                            checkable::EVH_TYPE)) {
     /* run the command */
     try {
-      my_system_r(mac, processed_command, config->event_handler_timeout(),
+      my_system_r(mac, processed_command, event_handler_timeout,
                   &early_timeout, &exectime, command_output, 0);
     } catch (std::exception const& e) {
       engine_logger(log_runtime_error, basic)
@@ -586,15 +657,11 @@ int run_host_event_handler(nagios_macros* mac,
   if (early_timeout) {
     engine_logger(log_event_handler | log_runtime_warning, basic)
         << "Warning: Host event handler command '" << processed_command
-        << "' timed out after " << config->event_handler_timeout()
+        << "' timed out after " << event_handler_timeout
         << " seconds";
     events_logger->info(
         "Warning: Host event handler command '{}' timed out after {} seconds",
-        processed_command, config->event_handler_timeout());
+        processed_command, event_handler_timeout);
   }
   return OK;
 }
-
-/******************************************************************/
-/****************** HOST STATE HANDLER FUNCTIONS ******************/
-/******************************************************************/

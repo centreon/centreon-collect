@@ -22,7 +22,11 @@
 
 #include "com/centreon/logging/file.hh"
 #include "com/centreon/logging/syslogger.hh"
+#ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/state.hh"
+#else
+#include "common/engine_conf/state_helper.hh"
+#endif
 
 namespace com::centreon::engine {
 
@@ -36,21 +40,34 @@ namespace applier {
  */
 class logging {
  public:
+#ifdef LEGACY_CONF
   void apply(configuration::state& config);
+#else
+  void apply(configuration::State& config);
+#endif
   static logging& instance();
   void clear();
 
  private:
   logging();
+#ifdef LEGACY_CONF
   logging(configuration::state& config);
+#else
+  logging(configuration::State& config);
+#endif
   logging(logging const&);
   ~logging() throw();
   logging& operator=(logging const&);
   void _add_stdout();
   void _add_stderr();
   void _add_syslog();
+#ifdef LEGACY_CONF
   void _add_log_file(configuration::state const& config);
   void _add_debug(configuration::state const& config);
+#else
+  void _add_log_file(configuration::State const& config);
+  void _add_debug(configuration::State const& config);
+#endif
   void _del_syslog();
   void _del_log_file();
   void _del_debug();

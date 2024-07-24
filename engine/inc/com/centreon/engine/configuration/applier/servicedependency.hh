@@ -21,17 +21,23 @@
 
 #include "com/centreon/engine/configuration/applier/state.hh"
 
-namespace com::centreon::engine {
+#ifndef LEGACY_CONF
+#include "common/engine_conf/servicedependency_helper.hh"
+#endif
 
-namespace configuration {
+namespace com::centreon::engine::configuration {
+
+#ifdef LEGACY_CONF
 // Forward declarations.
 class servicedependency;
 class state;
+#endif
 
 size_t servicedependency_key(const servicedependency& sd);
 
 namespace applier {
 class servicedependency {
+#ifdef LEGACY_CONF
   void _expand_services(
       std::list<std::string> const& hst,
       std::list<std::string> const& hg,
@@ -39,22 +45,39 @@ class servicedependency {
       std::list<std::string> const& sg,
       configuration::state& s,
       std::set<std::pair<std::string, std::string>>& expanded);
+#else
+  void _expand_services(
+      const ::google::protobuf::RepeatedPtrField<std::string>& hst,
+      const ::google::protobuf::RepeatedPtrField<std::string>& hg,
+      const ::google::protobuf::RepeatedPtrField<std::string>& svc,
+      const ::google::protobuf::RepeatedPtrField<std::string>& sg,
+      configuration::State& s,
+      absl::flat_hash_set<std::pair<std::string, std::string>>& expanded);
+#endif
 
  public:
   servicedependency() = default;
   ~servicedependency() noexcept = default;
   servicedependency(const servicedependency&) = delete;
   servicedependency& operator=(const servicedependency&) = delete;
+#ifdef LEGACY_CONF
   void add_object(configuration::servicedependency const& obj);
   void modify_object(configuration::servicedependency const& obj);
   void expand_objects(configuration::state& s);
   void remove_object(configuration::servicedependency const& obj);
   void resolve_object(configuration::servicedependency const& obj,
                       error_cnt& err);
+#else
+  void add_object(const configuration::Servicedependency& obj);
+  void modify_object(configuration::Servicedependency* old_obj,
+                     const configuration::Servicedependency& new_obj);
+  void expand_objects(configuration::State& s);
+  void remove_object(ssize_t idx);
+  void resolve_object(const configuration::Servicedependency& obj,
+                      error_cnt& err);
+#endif
 };
 }  // namespace applier
-}  // namespace configuration
-
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SERVICEDEPENDENCY_HH
