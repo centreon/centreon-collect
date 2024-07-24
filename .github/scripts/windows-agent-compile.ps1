@@ -25,14 +25,14 @@ Write-Host $env:VCPKG_BINARY_SOURCES
 $current_dir = $pwd.ToString()
 
 #get cache from s3
-$files_to_hash= "vcpkg.json", "custom-triplets\x64-windows.cmake", "CMakeLists.txt", "CMakeListsWindows.txt"
-$files_content= Get-Content -Path $files_to_hash -Raw
+$files_to_hash = "vcpkg.json", "custom-triplets\x64-windows.cmake", "CMakeLists.txt", "CMakeListsWindows.txt"
+$files_content = Get-Content -Path $files_to_hash -Raw
 $stringAsStream = [System.IO.MemoryStream]::new()
 $writer = [System.IO.StreamWriter]::new($stringAsStream)
 $writer.write($files_content -join " ")
 $writer.Flush()
 $stringAsStream.Position = 0
-$vcpkg_hash=Get-FileHash -InputStream $stringAsStream -Algorithm SHA256 | Select-Object Hash
+$vcpkg_hash = Get-FileHash -InputStream $stringAsStream -Algorithm SHA256 | Select-Object Hash
 $file_name = "windows-agent-vcpkg-dependencies-cache-" + $vcpkg_hash.Hash
 $file_name_extension = "${file_name}.7z"
 

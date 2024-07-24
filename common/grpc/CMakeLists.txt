@@ -33,6 +33,4 @@ target_include_directories(centreon_grpc PRIVATE ${INC_DIR})
 
 target_precompile_headers(centreon_grpc REUSE_FROM centreon_common)
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set_target_properties(centreon_grpc PROPERTIES COMPILE_FLAGS "-fPIC")
-endif()
+set_target_properties(centreon_grpc PROPERTIES POSITION_INDEPENDENT_CODE ON)
