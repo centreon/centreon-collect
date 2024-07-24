@@ -2813,13 +2813,19 @@ def ctn_process_service_check_result(hst: str, svc: str, state: int, output: str
         0 on success.
     """
     if use_grpc > 0:
+        ts = Timestamp()
+        ts.GetCurrentTime()
         port = 50001 + int(config[6:])
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
-            for i in range(nb_check):
-                indexed_output = f"{output}_{i}"
+            if nb_check > 1:
+                for i in range(nb_check):
+                    indexed_output = f"{output}_{i}"
+                    stub.ProcessServiceCheckResult(engine_pb2.Check(
+                        host_name=hst, svc_desc=svc, check_time=ts, output=indexed_output, code=state))
+            else:
                 stub.ProcessServiceCheckResult(engine_pb2.Check(
-                    host_name=hst, svc_desc=svc, output=indexed_output, code=state))
+                    host_name=hst, svc_desc=svc, check_time=ts, output=output, code=state))
 
     else:
         now = int(time.time())
