@@ -108,9 +108,6 @@ void randomize_init() {
                    &neb::downtime::operations, neb::downtime::entries);
   e.register_event(make_type(io::neb, neb::de_host_check), "host_check",
                    &neb::host_check::operations, neb::host_check::entries);
-  e.register_event(make_type(io::neb, neb::de_host_dependency),
-                   "host_dependency", &neb::host_dependency::operations,
-                   neb::host_dependency::entries);
   e.register_event(make_type(io::neb, neb::de_host), "host",
                    &neb::host::operations, neb::host::entries);
   e.register_event(make_type(io::neb, neb::de_host_parent), "host_parent",
@@ -127,9 +124,6 @@ void randomize_init() {
   e.register_event(make_type(io::neb, neb::de_service_check), "service_check",
                    &neb::service_check::operations,
                    neb::service_check::entries);
-  e.register_event(make_type(io::neb, neb::de_service_dependency),
-                   "service_dependency", &neb::service_dependency::operations,
-                   neb::service_dependency::entries);
   e.register_event(make_type(io::neb, neb::de_service), "service",
                    &neb::service::operations, neb::service::entries);
   e.register_event(make_type(io::neb, neb::de_service_status), "service_status",
@@ -143,7 +137,7 @@ void randomize_init() {
 void randomize_cleanup() {
   for (std::list<char*>::iterator it(generated.begin()), end(generated.end());
        it != end; ++it)
-    delete[] * it;
+    delete[] *it;
   generated.clear();
   io::events::unload();
   io::protocols::unload();

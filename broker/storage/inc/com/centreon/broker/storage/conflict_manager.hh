@@ -78,11 +78,9 @@ class conflict_manager {
   enum special_conn {
     custom_variable,
     downtime,
-    host_dependency,
     host_group,
     host_parent,
     log,
-    service_dependency,
     service_group,
     severity,
     tag,
@@ -94,21 +92,19 @@ class conflict_manager {
     comments = 1 << 1,
     custom_variables = 1 << 2,
     downtimes = 1 << 3,
-    host_dependencies = 1 << 4,
-    host_hostgroups = 1 << 5,
-    host_parents = 1 << 6,
-    hostgroups = 1 << 7,
-    hosts = 1 << 8,
-    instances = 1 << 9,
-    modules = 1 << 10,
-    service_dependencies = 1 << 11,
-    service_servicegroups = 1 << 12,
-    servicegroups = 1 << 13,
-    services = 1 << 14,
-    index_data = 1 << 15,
-    metrics = 1 << 16,
-    severities = 1 << 17,
-    tags = 1 << 18,
+    host_hostgroups = 1 << 4,
+    host_parents = 1 << 5,
+    hostgroups = 1 << 6,
+    hosts = 1 << 7,
+    instances = 1 << 8,
+    modules = 1 << 9,
+    service_servicegroups = 1 << 10,
+    servicegroups = 1 << 11,
+    services = 1 << 12,
+    index_data = 1 << 13,
+    metrics = 1 << 14,
+    severities = 1 << 15,
+    tags = 1 << 16,
   };
 
   struct index_info {
@@ -247,7 +243,6 @@ class conflict_manager {
   database::mysql_stmt _event_handler_insupdate;
   database::mysql_stmt _flapping_status_insupdate;
   database::mysql_stmt _host_check_update;
-  database::mysql_stmt _host_dependency_insupdate;
   database::mysql_stmt _host_group_insupdate;
   database::mysql_stmt _host_group_member_delete;
   database::mysql_stmt _host_group_member_insert;
@@ -259,7 +254,6 @@ class conflict_manager {
   database::mysql_stmt _instance_status_insupdate;
   database::mysql_stmt _module_insert;
   database::mysql_stmt _service_check_update;
-  database::mysql_stmt _service_dependency_insupdate;
   database::mysql_stmt _service_group_insupdate;
   database::mysql_stmt _service_group_member_delete;
   database::mysql_stmt _service_group_member_insert;
@@ -304,8 +298,6 @@ class conflict_manager {
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_host_check(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_host_dependency(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_host_group(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_host_group_member(
@@ -321,8 +313,6 @@ class conflict_manager {
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_log(std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_service_check(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_service_dependency(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_service_group(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);

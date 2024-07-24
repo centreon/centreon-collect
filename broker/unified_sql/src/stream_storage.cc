@@ -817,9 +817,8 @@ void stream::_check_queues(boost::system::error_code ec) {
 
     try {
       if (_bulk_prepared_statement) {
-        _finish_action(-1, actions::host_parents | actions::comments |
-                               actions::downtimes | actions::host_dependencies |
-                               actions::service_dependencies);
+        _finish_action(
+            -1, actions::host_parents | actions::comments | actions::downtimes);
         if (_store_in_hosts_services) {
           if (_hscr_bind) {
             SPDLOG_LOGGER_TRACE(
@@ -962,9 +961,7 @@ void stream::_check_queues(boost::system::error_code ec) {
           SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new downtimes inserted",
                               _downtimes->row_count());
           _finish_action(-1, actions::hosts | actions::instances |
-                                 actions::downtimes | actions::host_parents |
-                                 actions::host_dependencies |
-                                 actions::service_dependencies);
+                                 actions::downtimes | actions::host_parents);
           int32_t conn = special_conn::downtime % _mysql.connections_count();
           _downtimes->execute(_mysql, database::mysql_error::store_downtime,
                               conn);

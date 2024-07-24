@@ -19,15 +19,9 @@
 #ifndef CCB_NEB_INITIAL_HH_
 #define CCB_NEB_INITIAL_HH_
 
-namespace com {
-namespace centreon {
-namespace broker {
-namespace neb {
+namespace com::centreon::broker::neb {
 void send_initial_configuration();
 void send_initial_pb_configuration();
-}  // namespace neb
-}  // namespace broker
-}  // namespace centreon
-}  // namespace com
+}  // namespace com::centreon::broker::neb
 
 #endif /* !CCB_NEB_INITIAL_HH_ */

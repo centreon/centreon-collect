@@ -42,7 +42,7 @@ fmt::string_view truncate_utf8(const T& str, size_t s) {
   return fmt::string_view(str.data(), s);
 }
 
-std::string check_string_utf8(std::string const& str) noexcept;
+std::string check_string_utf8(const std::string_view& str) noexcept;
 size_t adjust_size_utf8(const std::string& str, size_t s);
 }  // namespace com::centreon::common
 
