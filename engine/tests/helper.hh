@@ -19,9 +19,16 @@
 #ifndef CENTREON_ENGINE_TESTS_HELPER_HH_
 #define CENTREON_ENGINE_TESTS_HELPER_HH_
 
-#include <common/engine_legacy_conf/state.hh>
+#include "com/centreon/engine/globals.hh"
+#ifdef LEGACY_CONF
+#include "common/engine_legacy_conf/state.hh"
+#endif
 
+#ifdef LEGACY_CONF
 extern com::centreon::engine::configuration::state* config;
+#else
+extern com::centreon::engine::configuration::State pb_config;
+#endif
 
 void init_config_state(void);
 void deinit_config_state(void);

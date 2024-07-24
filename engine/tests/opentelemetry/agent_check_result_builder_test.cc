@@ -411,7 +411,7 @@ class otl_agent_check_result_builder_test : public TestEngine {
     otl_data_point::extract_data_points(
         request, [&](const otl_data_point& data_pt) {
           std::string service_name;
-          for (const auto attrib : data_pt.get_resource().attributes()) {
+          for (const auto& attrib : data_pt.get_resource().attributes()) {
             if (attrib.key() == "service.name") {
               service_name = attrib.value().string_value();
               break;

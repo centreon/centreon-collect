@@ -31,7 +31,11 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/timeperiod.hh"
+#ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/host.hh"
+#else
+#include "common/engine_conf/timeperiod_helper.hh"
+#endif
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -46,12 +50,22 @@ class HostDowntimeNotification : public TestEngine {
     init_config_state();
 
     configuration::applier::contact ct_aply;
+#ifdef LEGACY_CONF
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
+#else
+    configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
+    ct_aply.add_object(ctct);
+    ct_aply.expand_objects(pb_config);
+#endif
     ct_aply.resolve_object(ctct, err);
 
+#ifdef LEGACY_CONF
     configuration::host hst{new_configuration_host("test_host", "admin")};
+#else
+    configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
+#endif
     configuration::applier::host aply;
     aply.add_object(hst);
     aply.resolve_object(hst, err);
@@ -84,10 +98,33 @@ TEST_F(HostDowntimeNotification, SimpleHostDowntime) {
    */
   set_time(43000);
   _host->set_last_hard_state_change(43000);
+#ifdef LEGACY_CONF
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (size_t i = 0; i < tperiod->days.size(); ++i)
     tperiod->days[i].emplace_back(0, 86400);
+#else
+  configuration::Timeperiod tp;
+  configuration::timeperiod_helper tp_hlp(&tp);
+  tp.set_timeperiod_name("tperiod");
+  tp.set_alias("alias");
+#define add_day(day)                                \
+  {                                                 \
+    auto* d = tp.mutable_timeranges()->add_##day(); \
+    d->set_range_start(0);                          \
+    d->set_range_end(86400);                        \
+  }
+
+  add_day(sunday);
+  add_day(monday);
+  add_day(tuesday);
+  add_day(wednesday);
+  add_day(thursday);
+  add_day(friday);
+  add_day(saturday);
+
+  std::unique_ptr<engine::timeperiod> tperiod{new engine::timeperiod(tp)};
+#endif
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
@@ -133,10 +170,26 @@ TEST_F(HostDowntimeNotification,
   contact_map::iterator it{engine::contact::contacts.find("admin")};
   engine::contact* ctct{it->second.get()};
   ctct->set_notify_on(notifier::host_notification, notifier::none);
+#ifdef LEGACY_CONF
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (size_t i = 0; i < tperiod->days.size(); ++i)
     tperiod->days[i].emplace_back(0, 86400);
+#else
+  configuration::Timeperiod tp;
+  configuration::timeperiod_helper tp_hlp(&tp);
+  tp.set_timeperiod_name("tperiod");
+  tp.set_alias("alias");
+  add_day(sunday);
+  add_day(monday);
+  add_day(tuesday);
+  add_day(wednesday);
+  add_day(thursday);
+  add_day(friday);
+  add_day(saturday);
+
+  std::unique_ptr<engine::timeperiod> tperiod{new engine::timeperiod(tp)};
+#endif
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};

@@ -31,9 +31,14 @@ using namespace com::centreon::engine;
 using com::centreon::common::log_v2::log_v2;
 using log_v2_config = com::centreon::common::log_v2::config;
 
+#ifdef LEGACY_CONF
 extern configuration::state* config;
+#else
+extern configuration::State pb_config;
+#endif
 
-void init_config_state(void) {
+#ifdef LEGACY_CONF
+void init_config_state() {
   if (config == nullptr)
     config = new configuration::state;
 
@@ -51,10 +56,36 @@ void init_config_state(void) {
 
   checks::checker::init(true);
 }
+#else
+void init_config_state() {
+  /* Cleanup */
+  pb_config.Clear();
+
+  configuration::state_helper cfg_hlp(&pb_config);
+  pb_config.set_log_file_line(true);
+  pb_config.set_log_file("");
+
+  log_v2_config log_conf("engine-tests",
+                         log_v2_config::logger_type::LOGGER_STDOUT,
+                         pb_config.log_flush_period(), pb_config.log_pid(),
+                         pb_config.log_file_line());
+
+  log_v2::instance().apply(log_conf);
+
+  // Hack to instanciate the logger.
+  configuration::applier::logging::instance().apply(pb_config);
+
+  checks::checker::init(true);
+}
+#endif
 
 void deinit_config_state(void) {
+#ifdef LEGACY_CONF
   delete config;
   config = nullptr;
+#else
+  pb_config.Clear();
+#endif
 
   configuration::applier::state::instance().clear();
   checks::checker::deinit();
