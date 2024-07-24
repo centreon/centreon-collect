@@ -27,6 +27,7 @@
 #include "com/centreon/broker/neb/host_group.hh"
 #include "com/centreon/broker/neb/host_group_member.hh"
 #include "com/centreon/broker/neb/instance.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
@@ -42,14 +43,26 @@ class macro_cache {
   std::shared_ptr<persistent_cache> _cache;
   absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _instances;
   absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _hosts;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _host_groups;
+  /* The host groups cache stores also a set with the pollers telling they need
+   * the cache. So if no more poller needs a host group, we can remove it from
+   * the cache. */
+  absl::flat_hash_map<uint64_t,
+                      std::pair<std::shared_ptr<neb::pb_host_group>,
+                                absl::flat_hash_set<uint32_t>>>
+      _host_groups;
   absl::btree_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _host_group_members;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _custom_vars;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _services;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _service_groups;
+  /* The service groups cache stores also a set with the pollers telling they
+   * need the cache. So if no more poller needs a service group, we can remove
+   * it from the cache. */
+  absl::flat_hash_map<uint64_t,
+                      std::pair<std::shared_ptr<neb::pb_service_group>,
+                                absl::flat_hash_set<uint32_t>>>
+      _service_groups;
   absl::btree_map<std::tuple<uint64_t, uint64_t, uint64_t>,
                   std::shared_ptr<io::data>>
       _service_group_members;

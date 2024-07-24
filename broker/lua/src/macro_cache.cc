@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2022 Centreon
+ * Copyright 2017-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,14 @@
  */
 
 #include "com/centreon/broker/lua/macro_cache.hh"
+#include <absl/container/flat_hash_set.h>
+#include <memory>
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -367,17 +370,15 @@ macro_cache::get_host_group_members() const {
  *
  *  @return             The name of the host group.
  */
-std::string const& macro_cache::get_host_group_name(uint64_t id) const {
-  auto const found = _host_groups.find(id);
+const std::string& macro_cache::get_host_group_name(uint64_t id) const {
+  const auto found = _host_groups.find(id);
 
-  if (found == _host_groups.end())
+  if (found == _host_groups.end()) {
+    _cache->logger()->error("lua: could not find information on host group {}",
+                            id);
     throw msg_fmt("lua: could not find information on host group {}", id);
-  if (found->second->type() == neb::host_group::static_type())
-    return std::static_pointer_cast<neb::host_group>(found->second)->name;
-  else
-    return std::static_pointer_cast<neb::pb_host_group>(found->second)
-        ->obj()
-        .name();
+  }
+  return found->second.first->obj().name();
 }
 
 /**
@@ -428,14 +429,12 @@ macro_cache::get_service_group_members() const {
 std::string const& macro_cache::get_service_group_name(uint64_t id) const {
   auto found = _service_groups.find(id);
 
-  if (found == _service_groups.end())
+  if (found == _service_groups.end()) {
+    _cache->logger()->error(
+        "lua: could not find information on service group {}", id);
     throw msg_fmt("lua: could not find information on service group {}", id);
-  if (found->second->type() == neb::service_group::static_type())
-    return std::static_pointer_cast<neb::service_group>(found->second)->name;
-  else
-    return std::static_pointer_cast<neb::pb_service_group>(found->second)
-        ->obj()
-        .name();
+  }
+  return found->second.first->obj().name();
 }
 
 /**
@@ -830,14 +829,42 @@ void macro_cache::_process_pb_adaptive_host(
  *  @param data  The event.
  */
 void macro_cache::_process_host_group(std::shared_ptr<io::data> const& data) {
-  std::shared_ptr<neb::host_group> const& hg =
+  const std::shared_ptr<neb::host_group>& hg =
       std::static_pointer_cast<neb::host_group>(data);
   SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing host group '{}' of id {} enabled: {}",
                       hg->name, hg->id, hg->enabled);
-  if (hg->enabled)
-    _host_groups[hg->id] = data;
-  // erasure is desactivated because a group cen be owned by several pollers
+  if (hg->enabled) {
+    auto found = _host_groups.find(hg->id);
+    if (found != _host_groups.end()) {
+      /* here, we complete the set of pollers */
+      found->second.second.insert(hg->poller_id);
+      found->second.first->mut_obj().set_name(hg->name);
+    } else {
+      /* Here, we add the hostgroup and the first poller that needs it */
+      absl::flat_hash_set<uint32_t> pollers{hg->poller_id};
+      auto pb_hg = std::make_shared<neb::pb_host_group>();
+      auto& obj = pb_hg->mut_obj();
+      obj.set_enabled(hg->enabled);
+      obj.set_hostgroup_id(hg->id);
+      obj.set_name(hg->name);
+      obj.set_poller_id(hg->poller_id);
+      _host_groups[hg->id] = std::make_pair(std::move(pb_hg), pollers);
+    }
+  } else {
+    /* We check that no more pollers need this host group. So if the set is
+     * empty, we can also remove the host group. */
+    auto found = _host_groups.find(hg->id);
+    if (found != _host_groups.end()) {
+      auto f = found->second.second.find(hg->poller_id);
+      if (f != found->second.second.end()) {
+        found->second.second.erase(f);
+        if (found->second.second.empty()) {
+          _host_groups.erase(found);
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -846,15 +873,39 @@ void macro_cache::_process_host_group(std::shared_ptr<io::data> const& data) {
  *  @param data  The event.
  */
 void macro_cache::_process_pb_host_group(
-    std::shared_ptr<io::data> const& data) {
-  const HostGroup& hg =
-      std::static_pointer_cast<neb::pb_host_group>(data)->obj();
+    const std::shared_ptr<io::data>& data) {
+  auto pb_hg = std::static_pointer_cast<neb::pb_host_group>(data);
+  const HostGroup& hg = pb_hg->obj();
   SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing pb host group '{}' of id {}, enabled {}",
                       hg.name(), hg.hostgroup_id(), hg.enabled());
-  if (hg.enabled())
-    _host_groups[hg.hostgroup_id()] = data;
-  // erasure is desactivated because a group cen be owned by several pollers
+  if (hg.enabled()) {
+    auto found = _host_groups.find(hg.hostgroup_id());
+    if (found != _host_groups.end()) {
+      found->second.second.insert(hg.poller_id());
+      HostGroup& current_hg =
+          std::static_pointer_cast<neb::pb_host_group>(found->second.first)
+              ->mut_obj();
+      current_hg.set_name(hg.name());
+    } else {
+      absl::flat_hash_set<uint32_t> pollers{hg.poller_id()};
+      _host_groups[hg.hostgroup_id()] =
+          std::make_pair(std::move(pb_hg), pollers);
+    }
+  } else {
+    /* We check that no more pollers need this host group. So if the set is
+     * empty, we can also remove the host group. */
+    auto found = _host_groups.find(hg.hostgroup_id());
+    if (found != _host_groups.end()) {
+      auto f = found->second.second.find(hg.poller_id());
+      if (f != found->second.second.end()) {
+        found->second.second.erase(f);
+        if (found->second.second.empty()) {
+          _host_groups.erase(found);
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -1113,9 +1164,37 @@ void macro_cache::_process_service_group(
   SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing service group '{}' of id {}", sg->name,
                       sg->id);
-  if (sg->enabled)
-    _service_groups[sg->id] = data;
-  // erasure is desactivated because a group cen be owned by several pollers
+  if (sg->enabled) {
+    auto found = _service_groups.find(sg->id);
+    if (found != _service_groups.end()) {
+      /* here, we complete the set of pollers */
+      found->second.second.insert(sg->poller_id);
+      found->second.first->mut_obj().set_name(sg->name);
+    } else {
+      /* Here, we add the servicegroup and the first poller that needs it */
+      absl::flat_hash_set<uint32_t> pollers{sg->poller_id};
+      auto pb_sg = std::make_shared<neb::pb_service_group>();
+      auto& obj = pb_sg->mut_obj();
+      obj.set_servicegroup_id(sg->id);
+      obj.set_enabled(sg->enabled);
+      obj.set_name(sg->name);
+      obj.set_poller_id(sg->poller_id);
+      _service_groups[sg->id] = std::make_pair(std::move(pb_sg), pollers);
+    }
+  } else {
+    /* We check that no more pollers need this service group. So if the set is
+     * empty, we can also remove the service group. */
+    auto found = _service_groups.find(sg->id);
+    if (found != _service_groups.end()) {
+      auto f = found->second.second.find(sg->poller_id);
+      if (f != found->second.second.end()) {
+        found->second.second.erase(f);
+        if (found->second.second.empty()) {
+          _service_groups.erase(found);
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -1124,15 +1203,38 @@ void macro_cache::_process_service_group(
  *  @param sg  The event.
  */
 void macro_cache::_process_pb_service_group(
-    std::shared_ptr<io::data> const& data) {
-  const ServiceGroup& sg =
-      std::static_pointer_cast<neb::pb_service_group>(data)->obj();
+    const std::shared_ptr<io::data>& data) {
+  auto pb_sg = std::static_pointer_cast<neb::pb_service_group>(data);
+  const ServiceGroup& sg = pb_sg->obj();
   SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing pb service group '{}' of id {}",
                       sg.name(), sg.servicegroup_id());
-  if (sg.enabled())
-    _service_groups[sg.servicegroup_id()] = data;
-  // erasure is desactivated because a group cen be owned by several pollers
+  if (sg.enabled()) {
+    auto found = _service_groups.find(sg.servicegroup_id());
+    if (found != _service_groups.end()) {
+      found->second.second.insert(sg.poller_id());
+      ServiceGroup& current_sg = found->second.first->mut_obj();
+      current_sg.set_name(sg.name());
+    } else {
+      /* Here, we add the servicegroup and the first poller that needs it */
+      absl::flat_hash_set<uint32_t> pollers{sg.poller_id()};
+      _service_groups[sg.servicegroup_id()] =
+          std::make_pair(std::move(pb_sg), pollers);
+    }
+  } else {
+    /* We check that no more pollers need this service group. So if the set is
+     * empty, we can also remove the service group. */
+    auto found = _service_groups.find(sg.servicegroup_id());
+    if (found != _service_groups.end()) {
+      auto f = found->second.second.find(sg.poller_id());
+      if (f != found->second.second.end()) {
+        found->second.second.erase(f);
+        if (found->second.second.empty()) {
+          _service_groups.erase(found);
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -1166,12 +1268,12 @@ void macro_cache::_process_pb_service_group_member(
     std::shared_ptr<io::data> const& data) {
   const ServiceGroupMember& sgm =
       std::static_pointer_cast<neb::pb_service_group_member>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(
-      _cache->logger(),
-      "lua: processing pb service group member (group_name: {}, group_id: {}, "
-      "host_id: {}, service_id: {} enabled: {}",
-      sgm.name(), sgm.servicegroup_id(), sgm.host_id(), sgm.service_id(),
-      sgm.enabled());
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
+                      "lua: processing pb service group member (group_name: "
+                      "{}, group_id: {}, "
+                      "host_id: {}, service_id: {} enabled: {}",
+                      sgm.name(), sgm.servicegroup_id(), sgm.host_id(),
+                      sgm.service_id(), sgm.enabled());
   if (sgm.enabled())
     _service_group_members[std::make_tuple(sgm.host_id(), sgm.service_id(),
                                            sgm.servicegroup_id())] = data;
@@ -1290,10 +1392,10 @@ void macro_cache::_process_dimension_ba_bv_relation_event(
   } else {
     auto const& rel =
         std::static_pointer_cast<bam::dimension_ba_bv_relation_event>(data);
-    SPDLOG_LOGGER_DEBUG(
-        _cache->logger(),
-        "lua: processing dimension ba bv relation event (ba_id: {}, bv_id: {})",
-        rel->ba_id, rel->bv_id);
+    SPDLOG_LOGGER_DEBUG(_cache->logger(),
+                        "lua: processing dimension ba bv relation event "
+                        "(ba_id: {}, bv_id: {})",
+                        rel->ba_id, rel->bv_id);
     auto pb_data(std::make_shared<bam::pb_dimension_ba_bv_relation_event>());
     pb_data->mut_obj().set_ba_id(rel->ba_id);
     pb_data->mut_obj().set_bv_id(rel->bv_id);
@@ -1372,11 +1474,11 @@ void macro_cache::_process_custom_variable(
     std::shared_ptr<io::data> const& data) {
   auto const& cv = std::static_pointer_cast<neb::custom_variable>(data);
   if (cv->name == "CRITICALITY_LEVEL") {
-    SPDLOG_LOGGER_DEBUG(
-        _cache->logger(),
-        "lua: processing custom variable representing a criticality level for "
-        "host_id {} and service_id {} and level {}",
-        cv->host_id, cv->service_id, cv->value);
+    SPDLOG_LOGGER_DEBUG(_cache->logger(),
+                        "lua: processing custom variable representing a "
+                        "criticality level for "
+                        "host_id {} and service_id {} and level {}",
+                        cv->host_id, cv->service_id, cv->value);
     int32_t value = std::atoi(cv->value.c_str());
     if (value)
       _custom_vars[{cv->host_id, cv->service_id}] = cv;
@@ -1427,8 +1529,13 @@ void macro_cache::_save_to_disk() {
   for (auto it(_hosts.begin()), end(_hosts.end()); it != end; ++it)
     _cache->add(it->second);
 
-  for (auto it(_host_groups.begin()), end(_host_groups.end()); it != end; ++it)
-    _cache->add(it->second);
+  for (auto it = _host_groups.begin(), end = _host_groups.end(); it != end;
+       ++it) {
+    for (auto poller_id : it->second.second) {
+      it->second.first->mut_obj().set_poller_id(poller_id);
+      _cache->add(it->second.first);
+    }
+  }
 
   for (auto it(_host_group_members.begin()), end(_host_group_members.end());
        it != end; ++it)
@@ -1437,9 +1544,13 @@ void macro_cache::_save_to_disk() {
   for (auto it(_services.begin()), end(_services.end()); it != end; ++it)
     _cache->add(it->second);
 
-  for (auto it(_service_groups.begin()), end(_service_groups.end()); it != end;
-       ++it)
-    _cache->add(it->second);
+  for (auto it = _service_groups.begin(), end = _service_groups.end();
+       it != end; ++it) {
+    for (auto poller_id : it->second.second) {
+      it->second.first->mut_obj().set_poller_id(poller_id);
+      _cache->add(it->second.first);
+    }
+  }
 
   for (auto it = _service_group_members.begin(),
             end = _service_group_members.end();
