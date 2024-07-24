@@ -39,17 +39,18 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/timeperiod.hh"
+#include "gtest/gtest.h"
+#ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/host.hh"
 #include "common/engine_legacy_conf/service.hh"
 #include "common/engine_legacy_conf/state.hh"
+#endif
 #include "helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
-
-// extern configuration::state* config;
 
 class ServiceTimePeriodNotification : public TestEngine {
  public:
@@ -58,21 +59,43 @@ class ServiceTimePeriodNotification : public TestEngine {
     init_config_state();
 
     configuration::applier::contact ct_aply;
+#ifdef LEGACY_CONF
     configuration::contact ctct{new_configuration_contact("admin", true)};
+#else
+    configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
+#endif
     ct_aply.add_object(ctct);
+#ifdef LEGACY_CONF
     configuration::contact ctct1{
         new_configuration_contact("admin1", false, "c,r")};
+#else
+    configuration::Contact ctct1{
+        new_pb_configuration_contact("admin1", false, "c,r")};
+#endif
     ct_aply.add_object(ctct1);
+#ifdef LEGACY_CONF
     ct_aply.expand_objects(*config);
+#else
+    ct_aply.expand_objects(pb_config);
+#endif
     ct_aply.resolve_object(ctct, err);
     ct_aply.resolve_object(ctct1, err);
 
+#ifdef LEGACY_CONF
     configuration::host hst{new_configuration_host("test_host", "admin")};
+#else
+    configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
+#endif
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
 
+#ifdef LEGACY_CONF
     configuration::service svc{
         new_configuration_service("test_host", "test_svc", "admin,admin1")};
+#else
+    configuration::Service svc{
+        new_pb_configuration_service("test_host", "test_svc", "admin,admin1")};
+#endif
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
@@ -124,28 +147,55 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodOk) {
   error_cnt err;
   init_macros();
   std::unique_ptr<engine::timeperiod> tperiod{
-      new engine::timeperiod("tperiod", "alias")};
+      new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
 
   configuration::applier::contact ct_aply;
+#ifdef LEGACY_CONF
   configuration::contact ctct{new_configuration_contact("test_contact", false)};
+#else
+  configuration::Contact ctct{
+      new_pb_configuration_contact("test_contact", false)};
+#endif
   ct_aply.add_object(ctct);
+#ifdef LEGACY_CONF
   ct_aply.expand_objects(*config);
+#else
+  ct_aply.expand_objects(pb_config);
+#endif
   ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
+#ifdef LEGACY_CONF
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
+#else
+  configuration::Contactgroup cg{
+      new_pb_configuration_contactgroup("test_cg", "test_contact")};
+#endif
   cg_aply.add_object(cg);
+#ifdef LEGACY_CONF
   cg_aply.expand_objects(*config);
+#else
+  cg_aply.expand_objects(pb_config);
+#endif
   cg_aply.resolve_object(cg, err);
 
   configuration::applier::serviceescalation se_aply;
+#ifdef LEGACY_CONF
   configuration::serviceescalation se{
       new_configuration_serviceescalation("test_host", "test_svc", "test_cg")};
+#else
+  configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
+      "test_host", "test_svc", "test_cg")};
+#endif
   se_aply.add_object(se);
+#ifdef LEGACY_CONF
   se_aply.expand_objects(*config);
+#else
+  se_aply.expand_objects(pb_config);
+#endif
   se_aply.resolve_object(se, err);
 
   // uint64_t id{_svc->get_next_notification_id()};
@@ -229,24 +279,43 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodKo) {
   error_cnt err;
   init_macros();
   std::unique_ptr<engine::timeperiod> tperiod{
-      new engine::timeperiod("tperiod", "alias")};
+      new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
 
   configuration::applier::contact ct_aply;
+#ifdef LEGACY_CONF
   configuration::contact ctct{new_configuration_contact("test_contact", false)};
+#else
+  configuration::Contact ctct{
+      new_pb_configuration_contact("test_contact", false)};
+#endif
   ct_aply.add_object(ctct);
+#ifdef LEGACY_CONF
   ct_aply.expand_objects(*config);
+#else
+  ct_aply.expand_objects(pb_config);
+#endif
   ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
+#ifdef LEGACY_CONF
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
+#else
+  configuration::Contactgroup cg{
+      new_pb_configuration_contactgroup("test_cg", "test_contact")};
+#endif
   cg_aply.add_object(cg);
+#ifdef LEGACY_CONF
   cg_aply.expand_objects(*config);
+#else
+  cg_aply.expand_objects(pb_config);
+#endif
   cg_aply.resolve_object(cg, err);
 
   configuration::applier::serviceescalation se_aply;
+#ifdef LEGACY_CONF
   configuration::serviceescalation se;
   se.parse("first_notification", "1");
   se.parse("last_notification", "1");
@@ -255,8 +324,23 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodKo) {
   se.parse("host_name", "test_host");
   se.parse("service_description", "test_svc");
   se.parse("contact_groups", "test_cg");
+#else
+  configuration::Serviceescalation se;
+  configuration::serviceescalation_helper se_hlp(&se);
+  se.set_first_notification(1);
+  se.set_last_notification(1);
+  se.set_notification_interval(0);
+  se_hlp.hook("escalation_options", "w,u,c,r");
+  se_hlp.hook("host_name", "test_host");
+  se_hlp.hook("service_description", "test_svc");
+  se_hlp.hook("contact_groups", "test_cg");
+#endif
   se_aply.add_object(se);
+#ifdef LEGACY_CONF
   se_aply.expand_objects(*config);
+#else
+  se_aply.expand_objects(pb_config);
+#endif
   se_aply.resolve_object(se, err);
   for (int i = 0; i < 7; ++i) {
     timerange_list list_time;
@@ -345,28 +429,55 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodOut) {
   error_cnt err;
   init_macros();
   std::unique_ptr<engine::timeperiod> tperiod{
-      new engine::timeperiod("tperiod", "alias")};
+      new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
 
   configuration::applier::contact ct_aply;
+#ifdef LEGACY_CONF
   configuration::contact ctct{new_configuration_contact("test_contact", false)};
+#else
+  configuration::Contact ctct{
+      new_pb_configuration_contact("test_contact", false)};
+#endif
   ct_aply.add_object(ctct);
+#ifdef LEGACY_CONF
   ct_aply.expand_objects(*config);
+#else
+  ct_aply.expand_objects(pb_config);
+#endif
   ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
+#ifdef LEGACY_CONF
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
+#else
+  configuration::Contactgroup cg{
+      new_pb_configuration_contactgroup("test_cg", "test_contact")};
+#endif
   cg_aply.add_object(cg);
+#ifdef LEGACY_CONF
   cg_aply.expand_objects(*config);
+#else
+  cg_aply.expand_objects(pb_config);
+#endif
   cg_aply.resolve_object(cg, err);
 
   configuration::applier::serviceescalation se_aply;
+#ifdef LEGACY_CONF
   configuration::serviceescalation se{
       new_configuration_serviceescalation("test_host", "test_svc", "test_cg")};
+#else
+  configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
+      "test_host", "test_svc", "test_cg")};
+#endif
   se_aply.add_object(se);
+#ifdef LEGACY_CONF
   se_aply.expand_objects(*config);
+#else
+  se_aply.expand_objects(pb_config);
+#endif
   se_aply.resolve_object(se, err);
 
   // uint64_t id{_svc->get_next_notification_id()};
@@ -450,9 +561,10 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserOut) {
   error_cnt err;
   init_macros();
   std::unique_ptr<engine::timeperiod> tiperiod{
-      new engine::timeperiod("tperiod", "alias")};
+      new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
+#ifdef LEGACY_CONF
   configuration::timeperiod tperiod;
   tperiod.parse("timeperiod_name", "24x9");
   tperiod.parse("alias", "24x9");
@@ -463,10 +575,24 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserOut) {
   tperiod.parse("friday", "00:00-09:00");
   tperiod.parse("saterday", "00:00-09:00");
   tperiod.parse("sunday", "00:00-09:00");
+#else
+  configuration::Timeperiod tperiod;
+  configuration::timeperiod_helper tperiod_hlp(&tperiod);
+  tperiod.set_timeperiod_name("24x9");
+  tperiod.set_alias("24x9");
+  tperiod_hlp.hook("monday", "00:00-09:00");
+  tperiod_hlp.hook("tuesday", "00:00-09:00");
+  tperiod_hlp.hook("wednesday", "00:00-09:00");
+  tperiod_hlp.hook("thursday", "00:00-09:00");
+  tperiod_hlp.hook("friday", "00:00-09:00");
+  tperiod_hlp.hook("saterday", "00:00-09:00");
+  tperiod_hlp.hook("sunday", "00:00-09:00");
+#endif
   configuration::applier::timeperiod aplyr;
   aplyr.add_object(tperiod);
 
   configuration::applier::contact ct_aply;
+#ifdef LEGACY_CONF
   configuration::contact ctct;
   ctct.parse("contact_name", "test_contact");
   ctct.parse("service_notification_period", "24x9");
@@ -476,23 +602,57 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserOut) {
   ctct.parse("service_notification_options", "a");
   ctct.parse("host_notifications_enabled", "1");
   ctct.parse("service_notifications_enabled", "1");
+#else
+  configuration::Contact ctct;
+  configuration::contact_helper ctct_hlp(&ctct);
+  ctct.set_contact_name("test_contact");
+  ctct.set_service_notification_period("24x9");
+  ctct_hlp.hook("host_notification_commands", "cmd");
+  ctct_hlp.hook("service_notification_commands", "cmd");
+  ctct_hlp.hook("host_notification_options", "d,r,f,s");
+  ctct_hlp.hook("service_notification_options", "a");
+  ctct.set_host_notifications_enabled(true);
+  ctct.set_service_notifications_enabled(true);
+#endif
 
   ct_aply.add_object(ctct);
+#ifdef LEGACY_CONF
   ct_aply.expand_objects(*config);
+#else
+  ct_aply.expand_objects(pb_config);
+#endif
   ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
+#ifdef LEGACY_CONF
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
+#else
+  configuration::Contactgroup cg{
+      new_pb_configuration_contactgroup("test_cg", "test_contact")};
+#endif
   cg_aply.add_object(cg);
+#ifdef LEGACY_CONF
   cg_aply.expand_objects(*config);
+#else
+  cg_aply.expand_objects(pb_config);
+#endif
   cg_aply.resolve_object(cg, err);
 
   configuration::applier::serviceescalation se_aply;
+#ifdef LEGACY_CONF
   configuration::serviceescalation se{
       new_configuration_serviceescalation("test_host", "test_svc", "test_cg")};
+#else
+  configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
+      "test_host", "test_svc", "test_cg")};
+#endif
   se_aply.add_object(se);
+#ifdef LEGACY_CONF
   se_aply.expand_objects(*config);
+#else
+  se_aply.expand_objects(pb_config);
+#endif
   se_aply.resolve_object(se, err);
 
   // uint64_t id{_svc->get_next_notification_id()};
@@ -575,9 +735,10 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserIn) {
   error_cnt err;
   init_macros();
   std::unique_ptr<engine::timeperiod> tiperiod{
-      new engine::timeperiod("tperiod", "alias")};
+      new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
+#ifdef LEGACY_CONF
   configuration::timeperiod tperiod;
   tperiod.parse("timeperiod_name", "24x9");
   tperiod.parse("alias", "24x9");
@@ -588,10 +749,24 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserIn) {
   tperiod.parse("friday", "09:00-20:00");
   tperiod.parse("saterday", "09:00-20:00");
   tperiod.parse("sunday", "09:00-20:00");
+#else
+  configuration::Timeperiod tperiod;
+  configuration::timeperiod_helper tperiod_hlp(&tperiod);
+  tperiod.set_timeperiod_name("24x9");
+  tperiod.set_alias("24x9");
+  tperiod_hlp.hook("monday", "09:00-20:00");
+  tperiod_hlp.hook("tuesday", "09:00-20:00");
+  tperiod_hlp.hook("wednesday", "09:00-20:00");
+  tperiod_hlp.hook("thursday", "09:00-20:00");
+  tperiod_hlp.hook("friday", "09:00-20:00");
+  tperiod_hlp.hook("saterday", "09:00-20:00");
+  tperiod_hlp.hook("sunday", "09:00-20:00");
+#endif
   configuration::applier::timeperiod aplyr;
   aplyr.add_object(tperiod);
 
   configuration::applier::contact ct_aply;
+#ifdef LEGACY_CONF
   configuration::contact ctct;
   ctct.parse("contact_name", "test_contact");
   ctct.parse("service_notification_period", "24x9");
@@ -601,23 +776,57 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserIn) {
   ctct.parse("service_notification_options", "a");
   ctct.parse("host_notifications_enabled", "1");
   ctct.parse("service_notifications_enabled", "1");
+#else
+  configuration::Contact ctct;
+  configuration::contact_helper ctct_hlp(&ctct);
+  ctct.set_contact_name("test_contact");
+  ctct.set_service_notification_period("24x9");
+  ctct_hlp.hook("host_notification_commands", "cmd");
+  ctct_hlp.hook("service_notification_commands", "cmd");
+  ctct_hlp.hook("host_notification_options", "d,r,f,s");
+  ctct_hlp.hook("service_notification_options", "a");
+  ctct.set_host_notifications_enabled(true);
+  ctct.set_service_notifications_enabled(true);
+#endif
 
   ct_aply.add_object(ctct);
+#ifdef LEGACY_CONF
   ct_aply.expand_objects(*config);
+#else
+  ct_aply.expand_objects(pb_config);
+#endif
   ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
+#ifdef LEGACY_CONF
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
+#else
+  configuration::Contactgroup cg{
+      new_pb_configuration_contactgroup("test_cg", "test_contact")};
+#endif
   cg_aply.add_object(cg);
+#ifdef LEGACY_CONF
   cg_aply.expand_objects(*config);
+#else
+  cg_aply.expand_objects(pb_config);
+#endif
   cg_aply.resolve_object(cg, err);
 
   configuration::applier::serviceescalation se_aply;
+#ifdef LEGACY_CONF
   configuration::serviceescalation se{
       new_configuration_serviceescalation("test_host", "test_svc", "test_cg")};
+#else
+  configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
+      "test_host", "test_svc", "test_cg")};
+#endif
   se_aply.add_object(se);
+#ifdef LEGACY_CONF
   se_aply.expand_objects(*config);
+#else
+  se_aply.expand_objects(pb_config);
+#endif
   se_aply.resolve_object(se, err);
 
   // uint64_t id{_svc->get_next_notification_id()};
@@ -699,9 +908,10 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserIn) {
 TEST_F(ServiceTimePeriodNotification, TimePeriodUserAll) {
   init_macros();
   std::unique_ptr<engine::timeperiod> tiperiod{
-      new engine::timeperiod("tperiod", "alias")};
+      new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
+#ifdef LEGACY_CONF
   configuration::timeperiod tperiod;
   tperiod.parse("timeperiod_name", "24x9");
   tperiod.parse("alias", "24x9");
@@ -712,10 +922,24 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserAll) {
   tperiod.parse("friday", "00:00-24:00");
   tperiod.parse("saterday", "00:00-24:00");
   tperiod.parse("sunday", "00:00-24:00");
+#else
+  configuration::Timeperiod tperiod;
+  configuration::timeperiod_helper tperiod_hlp(&tperiod);
+  tperiod.set_timeperiod_name("24x9");
+  tperiod.set_alias("24x9");
+  tperiod_hlp.hook("monday", "00:00-24:00");
+  tperiod_hlp.hook("tuesday", "00:00-24:00");
+  tperiod_hlp.hook("wednesday", "00:00-24:00");
+  tperiod_hlp.hook("thursday", "00:00-24:00");
+  tperiod_hlp.hook("friday", "00:00-24:00");
+  tperiod_hlp.hook("saterday", "00:00-24:00");
+  tperiod_hlp.hook("sunday", "00:00-24:00");
+#endif
   configuration::applier::timeperiod aplyr;
   aplyr.add_object(tperiod);
 
   configuration::applier::contact ct_aply;
+#ifdef LEGACY_CONF
   configuration::contact ctct;
   ctct.parse("contact_name", "test_contact");
   ctct.parse("service_notification_period", "24x9");
@@ -725,24 +949,58 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserAll) {
   ctct.parse("service_notification_options", "a");
   ctct.parse("host_notifications_enabled", "1");
   ctct.parse("service_notifications_enabled", "1");
+#else
+  configuration::Contact ctct;
+  configuration::contact_helper ctct_hlp(&ctct);
+  ctct.set_contact_name("test_contact");
+  ctct.set_service_notification_period("24x9");
+  ctct_hlp.hook("host_notification_commands", "cmd");
+  ctct_hlp.hook("service_notification_commands", "cmd");
+  ctct_hlp.hook("host_notification_options", "d,r,f,s");
+  ctct_hlp.hook("service_notification_options", "a");
+  ctct.set_host_notifications_enabled(true);
+  ctct.set_service_notifications_enabled(true);
+#endif
 
   error_cnt err;
   ct_aply.add_object(ctct);
+#ifdef LEGACY_CONF
   ct_aply.expand_objects(*config);
+#else
+  ct_aply.expand_objects(pb_config);
+#endif
   ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
+#ifdef LEGACY_CONF
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
+#else
+  configuration::Contactgroup cg{
+      new_pb_configuration_contactgroup("test_cg", "test_contact")};
+#endif
   cg_aply.add_object(cg);
+#ifdef LEGACY_CONF
   cg_aply.expand_objects(*config);
+#else
+  cg_aply.expand_objects(pb_config);
+#endif
   cg_aply.resolve_object(cg, err);
 
   configuration::applier::serviceescalation se_aply;
+#ifdef LEGACY_CONF
   configuration::serviceescalation se{
       new_configuration_serviceescalation("test_host", "test_svc", "test_cg")};
+#else
+  configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
+      "test_host", "test_svc", "test_cg")};
+#endif
   se_aply.add_object(se);
+#ifdef LEGACY_CONF
   se_aply.expand_objects(*config);
+#else
+  se_aply.expand_objects(pb_config);
+#endif
   se_aply.resolve_object(se, err);
 
   // uint64_t id{_svc->get_next_notification_id()};
@@ -824,16 +1082,24 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserAll) {
 TEST_F(ServiceTimePeriodNotification, TimePeriodUserNone) {
   init_macros();
   std::unique_ptr<engine::timeperiod> tiperiod{
-      new engine::timeperiod("tperiod", "alias")};
+      new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
+#ifdef LEGACY_CONF
   configuration::timeperiod tperiod;
   tperiod.parse("timeperiod_name", "24x9");
   tperiod.parse("alias", "24x9");
+#else
+  configuration::Timeperiod tperiod;
+  configuration::timeperiod_helper tperiod_hlp(&tperiod);
+  tperiod.set_timeperiod_name("24x9");
+  tperiod.set_alias("24x9");
+#endif
   configuration::applier::timeperiod aplyr;
   aplyr.add_object(tperiod);
 
   configuration::applier::contact ct_aply;
+#ifdef LEGACY_CONF
   configuration::contact ctct;
   ctct.parse("contact_name", "test_contact");
   ctct.parse("service_notification_period", "24x9");
@@ -843,24 +1109,58 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserNone) {
   ctct.parse("service_notification_options", "a");
   ctct.parse("host_notifications_enabled", "1");
   ctct.parse("service_notifications_enabled", "1");
+#else
+  configuration::Contact ctct;
+  configuration::contact_helper ctct_hlp(&ctct);
+  ctct.set_contact_name("test_contact");
+  ctct.set_service_notification_period("24x9");
+  ctct_hlp.hook("host_notification_commands", "cmd");
+  ctct_hlp.hook("service_notification_commands", "cmd");
+  ctct_hlp.hook("host_notification_options", "d,r,f,s");
+  ctct_hlp.hook("service_notification_options", "a");
+  ctct.set_host_notifications_enabled(true);
+  ctct.set_service_notifications_enabled(true);
+#endif
 
   error_cnt err;
   ct_aply.add_object(ctct);
+#ifdef LEGACY_CONF
   ct_aply.expand_objects(*config);
+#else
+  ct_aply.expand_objects(pb_config);
+#endif
   ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
+#ifdef LEGACY_CONF
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
+#else
+  configuration::Contactgroup cg{
+      new_pb_configuration_contactgroup("test_cg", "test_contact")};
+#endif
   cg_aply.add_object(cg);
+#ifdef LEGACY_CONF
   cg_aply.expand_objects(*config);
+#else
+  cg_aply.expand_objects(pb_config);
+#endif
   cg_aply.resolve_object(cg, err);
 
   configuration::applier::serviceescalation se_aply;
+#ifdef LEGACY_CONF
   configuration::serviceescalation se{
       new_configuration_serviceescalation("test_host", "test_svc", "test_cg")};
+#else
+  configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
+      "test_host", "test_svc", "test_cg")};
+#endif
   se_aply.add_object(se);
+#ifdef LEGACY_CONF
   se_aply.expand_objects(*config);
+#else
+  se_aply.expand_objects(pb_config);
+#endif
   se_aply.resolve_object(se, err);
 
   // uint64_t id{_svc->get_next_notification_id()};
@@ -942,16 +1242,24 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserNone) {
 TEST_F(ServiceTimePeriodNotification, NoTimePeriodUser) {
   init_macros();
   std::unique_ptr<engine::timeperiod> tiperiod{
-      new engine::timeperiod("tperiod", "alias")};
+      new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
+#ifdef LEGACY_CONF
   configuration::timeperiod tperiod;
   tperiod.parse("timeperiod_name", "24x9");
   tperiod.parse("alias", "24x9");
+#else
+  configuration::Timeperiod tperiod;
+  configuration::timeperiod_helper tperiod_hlp(&tperiod);
+  tperiod.set_timeperiod_name("24x9");
+  tperiod.set_alias("24x9");
+#endif
   configuration::applier::timeperiod aplyr;
   aplyr.add_object(tperiod);
 
   configuration::applier::contact ct_aply;
+#ifdef LEGACY_CONF
   configuration::contact ctct;
   ctct.parse("contact_name", "test_contact");
   ctct.parse("host_notification_commands", "cmd");
@@ -960,24 +1268,57 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodUser) {
   ctct.parse("service_notification_options", "a");
   ctct.parse("host_notifications_enabled", "1");
   ctct.parse("service_notifications_enabled", "1");
+#else
+  configuration::Contact ctct;
+  configuration::contact_helper ctct_hlp(&ctct);
+  ctct.set_contact_name("test_contact");
+  ctct_hlp.hook("host_notification_commands", "cmd");
+  ctct_hlp.hook("service_notification_commands", "cmd");
+  ctct_hlp.hook("host_notification_options", "d,r,f,s");
+  ctct_hlp.hook("service_notification_options", "a");
+  ctct.set_host_notifications_enabled(true);
+  ctct.set_service_notifications_enabled(true);
+#endif
 
   error_cnt err;
   ct_aply.add_object(ctct);
+#ifdef LEGACY_CONF
   ct_aply.expand_objects(*config);
+#else
+  ct_aply.expand_objects(pb_config);
+#endif
   ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
+#ifdef LEGACY_CONF
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
+#else
+  configuration::Contactgroup cg{
+      new_pb_configuration_contactgroup("test_cg", "test_contact")};
+#endif
   cg_aply.add_object(cg);
+#ifdef LEGACY_CONF
   cg_aply.expand_objects(*config);
+#else
+  cg_aply.expand_objects(pb_config);
+#endif
   cg_aply.resolve_object(cg, err);
 
   configuration::applier::serviceescalation se_aply;
+#ifdef LEGACY_CONF
   configuration::serviceescalation se{
       new_configuration_serviceescalation("test_host", "test_svc", "test_cg")};
+#else
+  configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
+      "test_host", "test_svc", "test_cg")};
+#endif
   se_aply.add_object(se);
+#ifdef LEGACY_CONF
   se_aply.expand_objects(*config);
+#else
+  se_aply.expand_objects(pb_config);
+#endif
   se_aply.resolve_object(se, err);
 
   // uint64_t id{_svc->get_next_notification_id()};
