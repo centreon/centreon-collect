@@ -69,7 +69,6 @@ request::request(boost::beast::http::verb method,
 
 static constexpr std::string_view _sz_metric = "metric,id=";
 static constexpr std::string_view _sz_status = "status,id=";
-static constexpr std::string_view _sz_space = " ";
 static constexpr std::string_view _sz_name = ",name=";
 static constexpr std::string_view _sz_unit = ",unit=";
 static constexpr std::string_view _sz_host_id = ",host_id=";
