@@ -21,7 +21,6 @@
 #include <fstream>
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
 #include "common/engine_legacy_conf/parser.hh"
-
 #include "common/engine_legacy_conf/state.hh"
 #include "helper.hh"
 

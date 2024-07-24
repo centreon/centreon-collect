@@ -1,22 +1,21 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2011-2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
+ *
  */
-
 #include <absl/container/btree_map.h>
 #include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_map.h>
@@ -29,8 +28,10 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
+#ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/host.hh"
 #include "common/engine_legacy_conf/service.hh"
+#endif
 
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 #include "opentelemetry/proto/common/v1/common.pb.h"
@@ -61,19 +62,40 @@ void otl_converter_test::SetUp() {
   host::hosts_by_id.clear();
   service::services.clear();
   service::services_by_id.clear();
+#ifdef LEGACY_CONF
   config->contacts().clear();
+#else
+  pb_config.mutable_contacts()->Clear();
+#endif
   configuration::applier::contact ct_aply;
+#ifdef LEGACY_CONF
   configuration::contact ctct{new_configuration_contact("admin", true)};
+#else
+  configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
+#endif
   ct_aply.add_object(ctct);
+#ifdef LEGACY_CONF
   ct_aply.expand_objects(*config);
+#else
+  ct_aply.expand_objects(pb_config);
+#endif
   ct_aply.resolve_object(ctct, err);
 
+#ifdef LEGACY_CONF
   configuration::host hst{new_configuration_host("localhost", "admin")};
+#else
+  configuration::Host hst{new_pb_configuration_host("localhost", "admin")};
+#endif
   configuration::applier::host hst_aply;
   hst_aply.add_object(hst);
 
+#ifdef LEGACY_CONF
   configuration::service svc{
       new_configuration_service("localhost", "check_icmp", "admin")};
+#else
+  configuration::Service svc{
+      new_pb_configuration_service("localhost", "check_icmp", "admin")};
+#endif
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
