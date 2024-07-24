@@ -1442,6 +1442,7 @@ TEST_F(LuaTest, ServiceGroupCacheTestName) {
   auto sg{std::make_shared<neb::service_group>()};
   sg->id = 28;
   sg->name = "centreon";
+  sg->enabled = true;
   _cache->write(sg);
 
   CreateScript(filename,
