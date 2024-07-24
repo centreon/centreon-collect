@@ -98,13 +98,13 @@ static void send_custom_variables_list(
       std::string name{cit->first};
       if (cit->second.is_sent()) {
         // Fill callback struct.
-        nebstruct_custom_variable_data nscvd;
-        memset(&nscvd, 0, sizeof(nscvd));
-        nscvd.type = NEBTYPE_SERVICECUSTOMVARIABLE_ADD;
-        nscvd.timestamp.tv_sec = time(nullptr);
-        nscvd.var_name = const_cast<char*>(name.c_str());
-        nscvd.var_value = const_cast<char*>(cit->second.value().c_str());
-        nscvd.object_ptr = it->second.get();
+        nebstruct_custom_variable_data nscvd{
+            .type = NEBTYPE_SERVICECUSTOMVARIABLE_ADD,
+            .timestamp = {time(nullptr), 0},
+            .var_name = std::string_view(name),
+            .var_value = std::string_view(cit->second.value()),
+            .object_ptr = it->second.get(),
+        };
 
         // Callback.
         sender(NEBCALLBACK_CUSTOM_VARIABLE_DATA, &nscvd);

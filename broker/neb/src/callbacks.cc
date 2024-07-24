@@ -53,7 +53,6 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
-using com::centreon::common::log_v2::log_v2;
 
 // List of Nagios modules.
 extern nebmodule* neb_module_list;
@@ -462,7 +461,7 @@ int neb::callback_pb_custom_variable(int, void* data) {
       std::make_shared<neb::pb_custom_variable>();
   neb::pb_custom_variable::pb_type& obj = cv->mut_obj();
   bool ok_to_send = false;
-  if (cvar && cvar->var_name && cvar->var_value) {
+  if (cvar && !cvar->var_name.empty() && !cvar->var_value.empty()) {
     // Host custom variable.
     if (NEBTYPE_HOSTCUSTOMVARIABLE_ADD == cvar->type ||
         NEBTYPE_HOSTCUSTOMVARIABLE_DELETE == cvar->type) {
@@ -566,7 +565,7 @@ int neb::callback_custom_variable(int callback_type, void* data) {
     // Input variable.
     nebstruct_custom_variable_data const* cvar(
         static_cast<nebstruct_custom_variable_data*>(data));
-    if (cvar && cvar->var_name && cvar->var_value) {
+    if (cvar && !cvar->var_name.empty() && !cvar->var_value.empty()) {
       // Host custom variable.
       if (NEBTYPE_HOSTCUSTOMVARIABLE_ADD == cvar->type) {
         engine::host* hst(static_cast<engine::host*>(cvar->object_ptr));
@@ -1406,7 +1405,8 @@ int neb::callback_group(int callback_type, void* data) {
         auto new_hg{std::make_shared<neb::host_group>()};
         new_hg->poller_id = config::applier::state::instance().poller_id();
         new_hg->id = host_group->get_id();
-        new_hg->enabled = (group_data->type != NEBTYPE_HOSTGROUP_DELETE &&
+        new_hg->enabled = group_data->type == NEBTYPE_HOSTGROUP_ADD ||
+                          (group_data->type == NEBTYPE_ADAPTIVEHOST_UPDATE &&
                            !host_group->members.empty());
         new_hg->name = common::check_string_utf8(host_group->get_group_name());
 
@@ -1436,7 +1436,8 @@ int neb::callback_group(int callback_type, void* data) {
         auto new_sg{std::make_shared<neb::service_group>()};
         new_sg->poller_id = config::applier::state::instance().poller_id();
         new_sg->id = service_group->get_id();
-        new_sg->enabled = (group_data->type != NEBTYPE_SERVICEGROUP_DELETE &&
+        new_sg->enabled = group_data->type == NEBTYPE_SERVICEGROUP_ADD ||
+                          (group_data->type == NEBTYPE_SERVICEGROUP_UPDATE &&
                            !service_group->members.empty());
         new_sg->name =
             common::check_string_utf8(service_group->get_group_name());
@@ -1484,26 +1485,26 @@ int neb::callback_pb_group(int callback_type, void* data) {
   nebstruct_group_data const* group_data(
       static_cast<nebstruct_group_data*>(data));
 
-  SPDLOG_LOGGER_DEBUG(neb_logger,
-                      "callbacks: generating pb group event type:{}",
-                      group_data->type);
-
   // Host group.
   if ((NEBTYPE_HOSTGROUP_ADD == group_data->type) ||
       (NEBTYPE_HOSTGROUP_UPDATE == group_data->type) ||
       (NEBTYPE_HOSTGROUP_DELETE == group_data->type)) {
     engine::hostgroup const* host_group(
         static_cast<engine::hostgroup*>(group_data->object_ptr));
+    SPDLOG_LOGGER_DEBUG(
+        neb_logger,
+        "callbacks: generating pb host group {} (id: {}) event type:{}",
+        host_group->get_group_name(), host_group->get_id(), group_data->type);
+
     if (!host_group->get_group_name().empty()) {
       auto new_hg{std::make_shared<neb::pb_host_group>()};
-      new_hg->mut_obj().set_poller_id(
-          config::applier::state::instance().poller_id());
-      new_hg->mut_obj().set_hostgroup_id(host_group->get_id());
-      new_hg->mut_obj().set_enabled(group_data->type !=
-                                        NEBTYPE_HOSTGROUP_DELETE &&
-                                    !host_group->members.empty());
-      new_hg->mut_obj().set_name(
-          common::check_string_utf8(host_group->get_group_name()));
+      auto& obj = new_hg->mut_obj();
+      obj.set_poller_id(config::applier::state::instance().poller_id());
+      obj.set_hostgroup_id(host_group->get_id());
+      obj.set_enabled(group_data->type == NEBTYPE_HOSTGROUP_ADD ||
+                      (group_data->type == NEBTYPE_HOSTGROUP_UPDATE &&
+                       !host_group->members.empty()));
+      obj.set_name(common::check_string_utf8(host_group->get_group_name()));
 
       // Send host group event.
       if (host_group->get_id()) {
@@ -1532,16 +1533,21 @@ int neb::callback_pb_group(int callback_type, void* data) {
            (NEBTYPE_SERVICEGROUP_DELETE == group_data->type)) {
     engine::servicegroup const* service_group(
         static_cast<engine::servicegroup*>(group_data->object_ptr));
+    SPDLOG_LOGGER_DEBUG(
+        neb_logger,
+        "callbacks: generating pb host group {} (id: {}) event type:{}",
+        service_group->get_group_name(), service_group->get_id(),
+        group_data->type);
+
     if (!service_group->get_group_name().empty()) {
       auto new_sg{std::make_shared<neb::pb_service_group>()};
-      new_sg->mut_obj().set_poller_id(
-          config::applier::state::instance().poller_id());
-      new_sg->mut_obj().set_servicegroup_id(service_group->get_id());
-      new_sg->mut_obj().set_enabled(group_data->type !=
-                                        NEBTYPE_SERVICEGROUP_DELETE &&
-                                    !service_group->members.empty());
-      new_sg->mut_obj().set_name(
-          common::check_string_utf8(service_group->get_group_name()));
+      auto& obj = new_sg->mut_obj();
+      obj.set_poller_id(config::applier::state::instance().poller_id());
+      obj.set_servicegroup_id(service_group->get_id());
+      obj.set_enabled(group_data->type == NEBTYPE_SERVICEGROUP_ADD ||
+                      (group_data->type == NEBTYPE_SERVICEGROUP_UPDATE &&
+                       !service_group->members.empty()));
+      obj.set_name(common::check_string_utf8(service_group->get_group_name()));
 
       // Send service group event.
       if (service_group->get_id()) {
@@ -1698,8 +1704,8 @@ int neb::callback_pb_group_member(int callback_type, void* data) {
       static_cast<nebstruct_group_member_data*>(data));
 
   // Host group member.
-  if ((member_data->type == NEBTYPE_HOSTGROUPMEMBER_ADD) ||
-      (member_data->type == NEBTYPE_HOSTGROUPMEMBER_DELETE)) {
+  if (member_data->type == NEBTYPE_HOSTGROUPMEMBER_ADD ||
+      member_data->type == NEBTYPE_HOSTGROUPMEMBER_DELETE) {
     engine::host const* hst(
         static_cast<engine::host*>(member_data->object_ptr));
     engine::hostgroup const* hg(
