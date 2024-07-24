@@ -6,9 +6,24 @@ concurrency:
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - agent/**
+      - custom-triplets/**
+      - CMakeLists.txt
+      - CMakeListsWindows.txt
+      - vcpkg.json
+  push:
+    branches:
+      - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
+      - master
+      - "[2-9][0-9].[0-9][0-9].x"
+    paths:
+      - agent/**
 
 jobs:
-  build-agent:
+  build-and-test-agent:
     runs-on: windows-latest
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
@@ -18,51 +33,26 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: install msvc command prompt
-        uses: ilammy/msvc-dev-cmd@v1.4.1
+      - name: Compile Agent
+        run: .github/scripts/windows-agent-compile.ps1
+        shell: powershell
 
-      - name: get built packages and build agent
-        run: |
-          $files_to_hash= "vcpkg.json", "custom-triplets\x64-windows.cmake", "CMakeLists.txt", "CMakeListsWindows.txt"
-          $files_content= Get-Content -Path $files_to_hash -Raw
-          $stringAsStream = [System.IO.MemoryStream]::new()
-          $writer = [System.IO.StreamWriter]::new($stringAsStream)
-          $writer.write($files_content -join " ")
-          $writer.Flush()
-          $stringAsStream.Position = 0
-          $vcpkg_hash=Get-FileHash -InputStream $stringAsStream -Algorithm SHA256 | Select-Object Hash
-          $file_name = "centreon-agent-prebuild-" + $vcpkg_hash.Hash
-          $file_name_extension = "${file_name}.7z"
-          [System.Environment]::SetEnvironmentVariable("AWS_EC2_METADATA_DISABLED","true")
-          Write-Host "get $file_name_extension from s3"
-          aws --quiet s3 cp s3://centreon-collect-robot-report/$file_name_extension $file_name_extension
-          Write-Host "unzip $file_name_extension"
-          7z x $file_name_extension
-
-          [System.Environment]::SetEnvironmentVariable("VCPKG_ROOT",$pwd.Path + "\vcpkg")
-          [System.Environment]::SetEnvironmentVariable("PATH",$pwd.Path + "\vcpkg:" + $env:Path)
-
-          Write-Host "create cmake files"
-          cmake --preset=release-ci
-          Write-Host "build agent and tests"
-          cmake --build build_windows
-
-      - name: common test
+      - name: Common test
         run: |
           cd build_windows
           tests/ut_common
 
-      - name: agent test
+      - name: Agent test
         run: |
           cd build_windows
           tests/ut_agent
 
-      - name: zip agent
+      - name: Zip agent
         run: |
-          $files_to_compress = ".\agent\conf\centagent.reg", "build_windows\agent\centagent.exe"
+          $files_to_compress = "agent\conf\centagent.reg", "build_windows\agent\Release\centagent.exe"
           Compress-Archive -Path $files_to_compress -DestinationPath centreon-monitoring-agent.zip
 
-      - name: save agent package in cache
+      - name: Save agent package in cache
         uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: centreon-monitoring-agent.zip

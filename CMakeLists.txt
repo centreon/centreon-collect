@@ -30,26 +30,30 @@ set(CMAKE_CXX_STANDARD 17)
 string(TIMESTAMP CENTREON_CURRENT_YEAR "%Y")
 add_definitions(-DCENTREON_CURRENT_YEAR="${CENTREON_CURRENT_YEAR}")
 
-if(DEFINED ENV{VCPKG_ROOT})
-  set(VCPKG_ROOT "$ENV{VCPKG_ROOT}")
-  message(
-    STATUS "TOOLCHAIN set to ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
-  set(CMAKE_TOOLCHAIN_FILE
-      "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-      CACHE STRING "Vcpkg toolchain file")
-else()
-  message(
-    STATUS
-      "TOOLCHAIN set to ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-  )
+#when we build from cache(CI), we don't use vcpkg because it recompiles often everything
+if (NOT BUILD_FROM_CACHE)
+  if(DEFINED ENV{VCPKG_ROOT})
+    set(VCPKG_ROOT "$ENV{VCPKG_ROOT}")
+    message(
+      STATUS "TOOLCHAIN set to ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+    set(CMAKE_TOOLCHAIN_FILE
+        "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file")
+  else()
+    message(
+      STATUS
+        "TOOLCHAIN set to ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    )
+    set(CMAKE_TOOLCHAIN_FILE
+        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file")
+  endif()
+
   set(CMAKE_TOOLCHAIN_FILE
       "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
       CACHE STRING "Vcpkg toolchain file")
-endif()
 
-set(CMAKE_TOOLCHAIN_FILE
-    "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-    CACHE STRING "Vcpkg toolchain file")
+endif()
 
 project("Centreon Collect" C CXX)
 
