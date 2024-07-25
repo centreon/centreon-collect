@@ -23,7 +23,7 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 #    Broker Config Source Log    central    True
 #    Broker Config Add Lua Output    central    dump-otl-event    ${SCRIPTS}dump-otl-event.lua
 
-#    Ctn ConfigBBDO3    1
+#    Ctn Config BBDO3    1
 #    Config Broker Sql Output    central    unified_sql
 #    Ctn Clear Retention
 
@@ -103,7 +103,7 @@ BEOTEL_TELEGRAF_CHECK_HOST
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    sql    trace
 
-    Ctn ConfigBBDO3    1
+    Ctn Config BBDO3    1
     Ctn Clear Retention
 
     ${start}    Get Current Date
@@ -174,7 +174,7 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     Ctn Config Broker    module
     Ctn Config Broker    rrd
 
-    Ctn ConfigBBDO3    1
+    Ctn Config BBDO3    1
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
 

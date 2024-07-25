@@ -319,7 +319,12 @@ def ctn_create_certificate(host: str, cert: str):
 
 
 def ctn_run_env():
-    return getoutput("echo $RUN_ENV | awk '{print $1}'")
+    """
+    ctn_run_env
+
+    Get RUN_ENV env variable content
+    """
+    return os.environ.get('RUN_ENV', '')
 
 
 def ctn_start_mysql():

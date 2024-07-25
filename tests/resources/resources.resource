@@ -394,9 +394,19 @@ Ctn Wait For Engine To Be Ready
 
 
 Ctn Start Agent
-    Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent.json    alias=centreon_agent
+    ${run_env}    Ctn Run Env
+
+    IF    "${run_env}" != "WSL"
+        Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent.json    alias=centreon_agent
+    END
 
 Ctn Kindly Stop Agent
+    ${run_env}    Ctn Run Env
+
+    IF    "${run_env}" == "WSL"
+        RETURN
+    END
+
     #in most case centreon_agent is not started
     ${centreon_agent_process}    Get Process Object  centreon_agent
 

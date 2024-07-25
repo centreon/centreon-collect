@@ -13,44 +13,44 @@ jobs:
     with:
       version_file: CMakeLists.txt
 
-  # build-collect:
-  #   needs: [get-version]
-  #   runs-on: [self-hosted, collect]
+  build-collect:
+    needs: [get-version]
+    runs-on: [self-hosted, collect]
 
-  #   env:
-  #     SCCACHE_PATH: "/usr/bin/sccache"
-  #     SCCACHE_BUCKET: "centreon-github-sccache"
-  #     SCCACHE_REGION: "eu-west-1"
-  #     AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-  #     AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+    env:
+      SCCACHE_PATH: "/usr/bin/sccache"
+      SCCACHE_BUCKET: "centreon-github-sccache"
+      SCCACHE_REGION: "eu-west-1"
+      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
-  #   container:
-  #     image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-debian-bullseye:${{ needs.get-version.outputs.img_version }}
-  #     credentials:
-  #       username: ${{ secrets.DOCKER_REGISTRY_ID }}
-  #       password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+    container:
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-debian-bullseye:${{ needs.get-version.outputs.img_version }}
+      credentials:
+        username: ${{ secrets.DOCKER_REGISTRY_ID }}
+        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-  #   steps:
-  #     - name: Checkout sources
-  #       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-  #     - name: compile and package collect
-  #       uses: ./.github/actions/compile-package
-  #       with:
-  #         major_version: ${{ needs.get-version.outputs.major_version }}
-  #         minor_version: ${{ needs.get-version.outputs.minor_version }}
-  #         distrib: bullseye
-  #         package_extension: deb
-  #         arch: amd64
-  #         release: ${{ needs.get-version.outputs.release }}
-  #         commit_hash: ${{ github.sha }}
-  #         stability: ${{ needs.get-version.outputs.stability }}
-  #         rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
-  #         rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
-  #         rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
+      - name: compile and package collect
+        uses: ./.github/actions/compile-package
+        with:
+          major_version: ${{ needs.get-version.outputs.major_version }}
+          minor_version: ${{ needs.get-version.outputs.minor_version }}
+          distrib: bullseye
+          package_extension: deb
+          arch: amd64
+          release: ${{ needs.get-version.outputs.release }}
+          commit_hash: ${{ github.sha }}
+          stability: ${{ needs.get-version.outputs.stability }}
+          rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
+          rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
+          rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
 
   build-agent-and-execute-test:
-  #  needs: [build-collect]
+    needs: [build-collect]
     runs-on: windows-latest
 
     env:
@@ -83,14 +83,10 @@ jobs:
             python3-pip
             rrdtool
 
-      - name: info wsl
+      - name: IP info
         run: |
           Write-Host "ip config"
           ipconfig /all
-          Write-Host "ip route"
-          wsl ip route show
-          Write-Host "hostname -I"
-          wsl hostname -I
           Write-Host "ip address show"
           wsl ip address show
 
@@ -130,13 +126,14 @@ jobs:
           $wsl_path =  "/mnt/" + $current_dir.SubString(0,1).ToLower() + "/" + $current_dir.SubString(3).replace('\','/')
           wsl cd $wsl_path `&`& dpkg -i --force-all ./*.deb
 
-      - name: robot tests
+      - name: prepare robot tests
         run: |
-          $current_dir = (pwd).Path
-          $wsl_path =  "/mnt/" + $current_dir.SubString(0,1).ToLower() + "/" + $current_dir.SubString(3).replace('\','/')
-          Write-Host "IP wsl:"
-          wsl hostname -I
-          wsl cd $wsl_path `&`& .github/scripts/wsl-collect-test-robot.sh
-
+          copy tests\resources\engine-scripts\echo.ps1 C:\Users\public\
+          copy tests\resources\engine-scripts\check.pl C:\Users\public\
+  
+      - name: robot tests
+        run: .github/scripts/agent_robot_test.ps1
+        shell: powershell
+  
       - name: collect binaries
         run: wsl ls -l /usr/sbin/cbd /usr/sbin/centengine /usr/lib64/centreon-engine/ /usr/share/centreon/lib/centreon-broker

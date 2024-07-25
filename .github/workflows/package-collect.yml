@@ -214,14 +214,15 @@ jobs:
 
       - uses: ./.github/actions/package
         with:
-          major_version: ${{ inputs.major_version }}
-          minor_version: ${{ inputs.minor_version }}
+          nfpm_file_pattern: "packaging/*.yaml"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
-          arch: ${{ matrix.arch }}
+          major_version: ${{ inputs.major_version }}
+          minor_version: ${{ inputs.minor_version }}
           release: ${{ inputs.release }}
+          arch: ${{ matrix.arch }}
           commit_hash: ${{ inputs.commit_hash }}
-          stability: ${{ inputs.stability }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
           rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
           rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}

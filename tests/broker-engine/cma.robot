@@ -32,11 +32,10 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
-    Ctn Engine Config Add Command
-    ...    ${0}
-    ...    otel_check_icmp
-    ...    /bin/echo "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
-    ...    OTEL connector
+
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+
+    Ctn Engine Config Add Command    ${0}  otel_check_icmp   ${echo_command}    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
@@ -46,7 +45,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     Ctn Config Centreon Agent
     Ctn Broker Config Log    central    sql    trace
 
-    Ctn ConfigBBDO3    1
+    Ctn Config BBDO3    1
     Ctn Clear Retention
 
     ${start}    Get Current Date
@@ -67,11 +66,9 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     Should Be True    ${result}    hosts table not updated
 
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp_2
-    Ctn Engine Config Add Command
-    ...    ${0}
-    ...    otel_check_icmp_2
-    ...    /bin/echo "OK check2 - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
-    ...    OTEL connector
+    
+    ${echo_command}   Ctn Echo Command  "OK check2 - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command  ${0}    otel_check_icmp_2  ${echo_command}    OTEL connector
 
     #update conf engine, it must be taken into account by agent
     Log To Console    modify engine conf and reload engine
@@ -102,11 +99,10 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
-    Ctn Engine Config Add Command
-    ...    ${0}
-    ...    otel_check
-    ...    /tmp/var/lib/centreon-engine/check.pl --id 456
-    ...    OTEL connector
+
+    ${check_cmd}  Ctn Check Pl Command   --id 456
+
+    Ctn Engine Config Add Command    ${0}    otel_check   ${check_cmd}    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
@@ -119,7 +115,7 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     Ctn Config Centreon Agent
     Ctn Broker Config Log    central    sql    trace
 
-    Ctn ConfigBBDO3    1
+    Ctn Config BBDO3    1
     Ctn Clear Retention
 
     ${start}    Ctn Get Round Current Date
@@ -155,23 +151,68 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     Should Be True    ${result}    services table not updated
 
 
-BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
-    [Documentation]    agent check host with reversed connection and we expect to get it in check result
+BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
+    [Documentation]    agent check host with encrypted connection and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    MON-63843
     Ctn Config Engine    ${1}    ${2}    ${2}
+
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "127.0.0.1","port": 4317}]}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "server_2345.crt", "private_key": "server_2345.key", "ca_certificate": "ca_2345.crt"},"max_length_grpc_log":0}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
-    Ctn Engine Config Add Command
-    ...    ${0}
-    ...    otel_check_icmp
-    ...    /bin/echo "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp  ${echo_command}   OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent  ${None}  ${None}  ca_2345.crt
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+    Sleep    1
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Schedule Forced Host Check    host_1
+
+    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK - 127.0.0.1
+    Should Be True    ${result}    hosts table not updated
+
+
+BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
+    [Documentation]    agent check host with reversed connection and we expect to get it in check result
+    [Tags]    broker    engine    opentelemetry    MON-63843
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    ${host_host_name}      Ctn Host Hostname
+    ${config_content}    Catenate  {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "${host_host_name}","port": 4320}]}} 
+    Ctn Add Otl ServerModule   0    ${config_content}
+    Ctn Config Add Otl Connector
+    ...    0
     ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+
+    ${echo_command}   Ctn Echo Command  "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
@@ -181,7 +222,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
     Ctn Config Reverse Centreon Agent
     Ctn Broker Config Log    central    sql    trace
 
-    Ctn ConfigBBDO3    1
+    Ctn Config BBDO3    1
     Ctn Clear Retention
 
     ${start}    Get Current Date
@@ -190,9 +231,9 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
     Ctn Start Agent
 
     # Let's wait for engine to connect to agent
-    ${content}    Create List    init from [.\\s]*127.0.0.1:4317
+    ${content}    Create List    init from ${host_host_name}:4320
     ${result}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    "init from localhost:4317" not found in log
+    Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
     Sleep    1
 
     ${start}    Ctn Get Round Current Date
@@ -202,11 +243,9 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
     Should Be True    ${result}    hosts table not updated
 
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp_2
-    Ctn Engine Config Add Command
-    ...    ${0}
-    ...    otel_check_icmp_2
-    ...    /bin/echo "OK check2 - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
-    ...    OTEL connector
+
+    ${echo_command}   Ctn Echo Command   "OK check2 - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp_2   ${echo_command}    OTEL connector
 
     #update conf engine, it must be taken into account by agent
     Log To Console    modify engine conf and reload engine
@@ -229,19 +268,18 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
     [Documentation]    agent check service with reversed connection and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    MON-63843
     Ctn Config Engine    ${1}    ${2}    ${2}
-    Ctn Add Otl ServerModule
-    ...    0
-    ...    {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "127.0.0.1","port": 4317}]}}
+
+    ${host_host_name}      Ctn Host Hostname
+    ${config_content}    Catenate  {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "${host_host_name}","port":4320}]}} 
+    Ctn Add Otl ServerModule   0    ${config_content}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
-    Ctn Engine Config Add Command
-    ...    ${0}
-    ...    otel_check
-    ...    /tmp/var/lib/centreon-engine/check.pl --id 456
-    ...    OTEL connector
+
+    ${check_cmd}  Ctn Check Pl Command   --id 456
+    Ctn Engine Config Add Command    ${0}    otel_check   ${check_cmd}    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
@@ -254,7 +292,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
     Ctn Config Reverse Centreon Agent
     Ctn Broker Config Log    central    sql    trace
 
-    Ctn ConfigBBDO3    1
+    Ctn Config BBDO3    1
     Ctn Clear Retention
 
     ${start}    Ctn Get Round Current Date
@@ -263,9 +301,9 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
     Ctn Start Agent
 
     # Let's wait for engine to connect to agent
-    ${content}    Create List    init from [.\\s]*127.0.0.1:4317
-    ${result}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    "init from 127.0.0.1:4317" not found in log
+    ${content}    Create List    init from ${host_host_name}:4320
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
 
     
     ${content}    Create List    fifos:{"host_1,service_1"
@@ -290,89 +328,34 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
     ${result}    Ctn Check Service Check Status With Timeout    host_1  service_1  60  ${start}  0  Test check 456
     Should Be True    ${result}    services table not updated
 
-BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
-    [Documentation]    agent check host with encrypted connection and we expect to get it in check result
-    [Tags]    broker    engine    opentelemetry    MON-63843
-    Ctn Config Engine    ${1}    ${2}    ${2}
-    Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
-    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
-    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-    Ctn Add Otl ServerModule
-    ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317, "encryption": true, "public_cert": "/tmp/server_1234.crt", "private_key": "/tmp/server_1234.key", "ca_certificate": "/tmp/ca_1234.crt"},"max_length_grpc_log":0}
-    Ctn Config Add Otl Connector
-    ...    0
-    ...    OTEL connector
-    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
-    Ctn Engine Config Add Command
-    ...    ${0}
-    ...    otel_check_icmp
-    ...    /bin/echo "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
-    ...    OTEL connector
-
-    Ctn Engine Config Set Value    0    log_level_checks    trace
-
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config Broker    rrd
-    Ctn Config Centreon Agent  ${None}  ${None}  /tmp/ca_1234.crt
-    Ctn Broker Config Log    central    sql    trace
-
-    Ctn ConfigBBDO3    1
-    Ctn Clear Retention
-
-    ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
-    Ctn Start Agent
-
-    # Let's wait for the otel server start
-    ${content}    Create List    encrypted server listening on 0.0.0.0:4317
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4317" should be available.
-    Sleep    1
-
-    ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Host Check    host_1
-
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK - 127.0.0.1
-    Should Be True    ${result}    hosts table not updated
-
-
-
 BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     [Documentation]    agent check host with encrypted reversed connection and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    MON-63843
     Ctn Config Engine    ${1}    ${2}    ${2}
-    Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
-    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
-    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
 
+    ${host_host_name}      Ctn Host Hostname
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "localhost","port": 4317, "encryption": true, "ca_certificate": "/tmp/ca_1234.crt"}]}}
+    ...    {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": true, "ca_certificate": "ca_2345.crt"}]}}
 
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
-    Ctn Engine Config Add Command
-    ...    ${0}
-    ...    otel_check_icmp
-    ...    /bin/echo "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
-    ...    OTEL connector
+
+    ${echo_command}   Ctn Echo Command  "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent  /tmp/server_1234.key  /tmp/server_1234.crt  /tmp/ca_1234.crt
+    Ctn Config Reverse Centreon Agent  server_2345.key  server_2345.crt  ca_2345.crt
     Ctn Broker Config Log    central    sql    trace
 
-    Ctn ConfigBBDO3    1
+    Ctn Config BBDO3    1
     Ctn Clear Retention
 
     ${start}    Get Current Date
@@ -381,9 +364,9 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Ctn Start Agent
 
     # Let's wait for engine to connect to agent
-    ${content}    Create List    init from localhost:4317
+    ${content}    Create List    init from ${host_host_name}:4321
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    "init from localhost:4317" not found in log
+    Should Be True    ${result}    "init from ${host_host_name}:4321" not found in log
     Sleep    1
 
     ${start}    Ctn Get Round Current Date
@@ -391,4 +374,3 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK - 127.0.0.1
     Should Be True    ${result}    hosts table not updated
-
