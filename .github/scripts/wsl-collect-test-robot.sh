@@ -4,16 +4,12 @@ set -x
 
 export RUN_ENV=docker
 
-
-#remove git dubious ownership
-/usr/bin/git config --global --add safe.directory $PWD
-
-echo "###### git clone opentelemetry-proto  #######"
-git clone --depth=1 --single-branch https://github.com/open-telemetry/opentelemetry-proto.git opentelemetry-proto
+echo "##### windows host IP #####"
+ip route show | grep -i default | awk '{ print $3}'
 
 echo "##### Starting tests #####"
 cd tests
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
-robot ccc/ccc.robot
+robot broker-engine/cma.robot
