@@ -1028,7 +1028,7 @@ def ctn_check_service_check_status_with_timeout(hostname: str, service_desc: str
 
 def ctn_check_service_output_resource_status_with_timeout(hostname: str, service_desc: str, timeout: int, min_last_check: int, status: int, status_type: str,  output:str):
     """
-    ctn_check_host_output_resource_status_with_timeout
+    ctn_check_service_output_resource_status_with_timeout
 
     check if resource checks infos of an host have been updated
 
@@ -1141,6 +1141,9 @@ def ctn_check_host_check_status_with_timeout(hostname: str, timeout: int, min_la
                         f"last_check={result[0]['last_check']} state={result[0]['state']} output={result[0]['output']} ")
                     if result[0]['last_check'] is not None and result[0]['last_check'] >= min_last_check and output in result[0]['output'] and result[0]['state'] == state:
                         return True
+                    else:
+                        logger.console(
+                                f"last_check: {result[0]['last_check']} - min_last_check: {min_last_check} - expected output: {output} - output: {result[0]['output']} - expected state: {state} - state: {result[0]['state']}")
         time.sleep(1)
     return False
 
