@@ -79,7 +79,7 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 BEOTEL_TELEGRAF_CHECK_HOST
     [Documentation]    we send nagios telegraf formatted datas and we expect to get it in check result
-    [Tags]    broker    engine    opentelemetry    mon-34004
+    [Tags]    broker    engine    opentelemetry    MON-34004
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
@@ -99,7 +99,6 @@ BEOTEL_TELEGRAF_CHECK_HOST
 
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    sql    trace
 
@@ -196,7 +195,6 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
 
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
 
     Ctn ConfigBBDO3    1
@@ -321,7 +319,6 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_CRYPTED
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
     Ctn Config Broker    module
-    Ctn Broker Config Log    module0    otel    info
 
     Ctn Clear Retention
 
@@ -396,7 +393,6 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
     Ctn Config Broker    module
-    Ctn Broker Config Log    module0    otel    info
 
     Ctn Clear Retention
 
@@ -445,7 +441,6 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
 
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
     Ctn Config Centreon Agent
     Ctn Broker Config Log    central    sql    trace
@@ -462,9 +457,14 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
-    Sleep    1
 
+    # We wait for the connection with the agent before scheduling the check, otherwise the delay between the scheduling and the real time of the check is too long and makes the test to fail.
     ${start}    Ctn Get Round Current Date
+    ${content}    Create List    connected with agent
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Be True    ${result}    Engine seems not connected to the agent
+    Sleep    10s
+
     Ctn Schedule Forced Host Check    host_1
 
     ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK - 127.0.0.1
@@ -519,7 +519,6 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
 
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
     Ctn Config Centreon Agent
     Ctn Broker Config Log    central    sql    trace
@@ -582,7 +581,6 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
 
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
     Ctn Config Reverse Centreon Agent
     Ctn Broker Config Log    central    sql    trace
@@ -656,7 +654,6 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
 
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
     Ctn Config Reverse Centreon Agent
     Ctn Broker Config Log    central    sql    trace
@@ -722,12 +719,11 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
     Ctn Config Centreon Agent  ${None}  ${None}  /tmp/ca_1234.crt
-    Ctn Broker Config Log    central    sql    trace
 
-    Ctn ConfigBBDO3    1
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
 
     ${start}    Get Current Date
@@ -739,9 +735,14 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ${content}    Create List    encrypted server listening on 0.0.0.0:4317
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4317" should be available.
-    Sleep    1
 
+    # We wait for the connection with the agent before scheduling the check, otherwise the delay between the scheduling and the real time of the check is too long and makes the test to fail.
     ${start}    Ctn Get Round Current Date
+    ${content}    Create List    connected with agent
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    Engine seems not connected to the agent
+    Sleep    10s
+
     Ctn Schedule Forced Host Check    host_1
 
     ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK - 127.0.0.1
@@ -776,12 +777,11 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
     Ctn Config Reverse Centreon Agent  /tmp/server_1234.key  /tmp/server_1234.crt  /tmp/ca_1234.crt
     Ctn Broker Config Log    central    sql    trace
 
-    Ctn ConfigBBDO3    1
+    Ctn Config BBDO3    1
     Ctn Clear Retention
 
     ${start}    Get Current Date
