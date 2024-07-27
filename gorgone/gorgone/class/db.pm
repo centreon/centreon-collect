@@ -231,6 +231,8 @@ sub connect() {
     my $self = shift;
     my ($status, $count) = (0, 0);
 
+    $self->{transaction_begin} = 0;
+
     while (1) {
         $self->{port} = 3306 if (!defined($self->{port}) && $self->{type} eq 'mysql');
         if (defined($self->{dsn})) {
