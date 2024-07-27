@@ -48,7 +48,7 @@ sub new {
 
     $self->{die} = defined($options{die}) ? 1 : 0;
     $self->{instance} = undef;
-    $self->{transaction_begin} = 0;
+    $self->{in_transaction} = 0;
     bless $self, $class;
     return $self;
 }
@@ -172,7 +172,7 @@ sub start_transaction {
         $self->error($self->{instance}->errstr, 'begin work');
         return -1;
     }
-    $self->{transaction_begin} = 1;
+    $self->{in_transaction} = 1;
 
     return 0;
 }
@@ -180,7 +180,7 @@ sub start_transaction {
 sub transaction_cleanup {
     my $self = shift;
 
-    $self->{transaction_begin} = 0;
+    $self->{in_transaction} = 0;
     $self->{instance}->{AutoCommit} = 1 if (defined($self->{instance}));
 
     return 0;
@@ -189,7 +189,7 @@ sub transaction_cleanup {
 sub commit {
     my ($self) = @_;
 
-    if (!$self->{transaction_begin}) {
+    if (!$self->{in_transaction}) {
         $self->error('commit outside of a transaction', 'commit');
         return 0;
     }
@@ -216,7 +216,7 @@ sub commit {
 sub rollback {
     my ($self) = @_;
 
-    if (!$self->{transaction_begin}) {
+    if (!$self->{in_transaction}) {
         $self->error('rollback outside of a transaction', 'rollback');
         return;
     }
@@ -243,7 +243,7 @@ sub connect() {
     my $self = shift;
     my ($status, $count) = (0, 0);
 
-    $self->{transaction_begin} = 0;
+    $self->{in_transaction} = 0;
 
     while (1) {
         $self->{port} = 3306 if (!defined($self->{port}) && $self->{type} eq 'mysql');
@@ -339,7 +339,7 @@ Query: $query
     unless ($options{no_error_log}) {
         $self->{logger}->writeLogError($error);
     }
-    if ($self->{transaction_begin} == 1) {
+    if ($self->{in_transaction} == 1) {
         $self->rollback();
     }
     $self->disconnect();
