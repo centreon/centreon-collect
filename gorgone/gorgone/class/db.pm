@@ -202,9 +202,10 @@ sub commit {
     my $status = $self->{instance}->commit();
 
     if (!$status) {
-        $self->error($self->{instance}->errstr, 'commit');
+        # Note that the call to error() does a rollback, which is what we want
+        # in case of failure
         # https://stackoverflow.com/questions/24316603/why-should-i-rollback-after-failed-commit
-        self->rollback();
+        $self->error($self->{instance}->errstr, 'commit');
         return -1;
     }
 
