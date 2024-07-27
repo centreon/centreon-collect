@@ -194,6 +194,7 @@ sub commit {
     if ($self->{instance}->{AutoCommit} != 1) {
         my $status = $self->{instance}->commit();
         $self->{transaction_begin} = 0;
+        $self->{instance}->{AutoCommit} = 1;
 
         if (!$status) {
             $self->error($self->{instance}->errstr, 'commit');
@@ -209,6 +210,7 @@ sub rollback {
 
     $self->{instance}->rollback() if (defined($self->{instance}));
     $self->{transaction_begin} = 0;
+    $self->{instance}->{AutoCommit} = 1;
 }
 
 sub kill {
