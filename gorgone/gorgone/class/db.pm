@@ -197,12 +197,15 @@ sub commit {
     # Commit only if autocommit isn't enabled
     if ($self->{instance}->{AutoCommit} != 1) {
         my $status = $self->{instance}->commit();
-        $self->transaction_cleanup();
 
         if (!$status) {
             $self->error($self->{instance}->errstr, 'commit');
+            # https://stackoverflow.com/questions/24316603/why-should-i-rollback-after-failed-commit
+            self->rollback();
             return -1;
         }
+
+        $self->transaction_cleanup();
     }
 
     return 0;
