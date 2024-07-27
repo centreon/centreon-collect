@@ -158,8 +158,8 @@ sub set_inactive_destroy {
     }
 }
 
-sub transaction_mode {
-    my ($self, $mode) = @_;
+sub start_transaction {
+    my $self = shift;
 
     my $status;
     if (!defined($self->{instance})) {
@@ -167,17 +167,21 @@ sub transaction_mode {
         return -1 if ($status == -1);
     }
 
-    if ($mode) {
-        $status = $self->{instance}->begin_work();
-        if (!$status) {
-            $self->error($self->{instance}->errstr, 'begin work');
-            return -1;
-        }
-        $self->{transaction_begin} = 1;
-    } else {
-        $self->{transaction_begin} = 0;
-        $self->{instance}->{AutoCommit} = 1;
+    $status = $self->{instance}->begin_work();
+    if (!$status) {
+        $self->error($self->{instance}->errstr, 'begin work');
+        return -1;
     }
+    $self->{transaction_begin} = 1;
+
+    return 0;
+}
+
+sub transaction_cleanup {
+    my $self = shift;
+
+    $self->{transaction_begin} = 0;
+    $self->{instance}->{AutoCommit} = 1 if (defined($self->{instance}));
 
     return 0;
 }
@@ -186,15 +190,14 @@ sub commit {
     my ($self) = @_;
 
     if (!defined($self->{instance})) {
-        $self->{transaction_begin} = 0;
+        $self->transaction_cleanup();
         return -1;
     }
 
     # Commit only if autocommit isn't enabled
     if ($self->{instance}->{AutoCommit} != 1) {
         my $status = $self->{instance}->commit();
-        $self->{transaction_begin} = 0;
-        $self->{instance}->{AutoCommit} = 1;
+        $self->transaction_cleanup();
 
         if (!$status) {
             $self->error($self->{instance}->errstr, 'commit');
@@ -209,8 +212,7 @@ sub rollback {
     my ($self) = @_;
 
     $self->{instance}->rollback() if (defined($self->{instance}));
-    $self->{transaction_begin} = 0;
-    $self->{instance}->{AutoCommit} = 1;
+    $self->transaction_cleanup();
 }
 
 sub kill {
