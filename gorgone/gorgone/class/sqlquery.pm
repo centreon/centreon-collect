@@ -87,7 +87,7 @@ sub transaction_query_multi {
 
     my ($status, $sth);
 
-    $status = $self->transaction_mode(1);
+    $status = $self->begin_transaction();
     return -1 if ($status == -1);
 
     ($status, $sth) = $self->{db_centreon}->query({ query => $options{request}, prepare_only => 1 });
@@ -119,7 +119,7 @@ sub transaction_query {
     my ($self, %options) = @_;
     my $status;
 
-    $status = $self->transaction_mode(1);
+    $status = $self->begin_transaction();
     return -1 if ($status == -1);
 
     ($status) = $self->do(request => $options{request});
@@ -134,10 +134,10 @@ sub transaction_query {
     return 0;
 }
 
-sub transaction_mode {
+sub begin_transaction {
     my ($self) = @_;
 
-    return $self->{db_centreon}->transaction_mode($_[1]);
+    return $self->{db_centreon}->begin_transaction();
 };
 
 sub commit {
