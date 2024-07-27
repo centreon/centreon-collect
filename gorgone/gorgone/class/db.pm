@@ -161,6 +161,11 @@ sub set_inactive_destroy {
 sub start_transaction {
     my $self = shift;
 
+    if ($self->{in_transaction}) {
+        $self->error('starting a transaction while already in a transaction', 'begin work');
+        return -1;
+    }
+
     my $status;
     if (!defined($self->{instance})) {
         $status = $self->connect();
