@@ -189,30 +189,37 @@ sub transaction_cleanup {
 sub commit {
     my ($self) = @_;
 
+    if (!$self->{transaction_begin}) {
+        $self->error('commit outside of a transaction', 'commit');
+        return 0;
+    }
+
     if (!defined($self->{instance})) {
         $self->transaction_cleanup();
         return -1;
     }
 
-    # Commit only if autocommit isn't enabled
-    if ($self->{instance}->{AutoCommit} != 1) {
-        my $status = $self->{instance}->commit();
+    my $status = $self->{instance}->commit();
 
-        if (!$status) {
-            $self->error($self->{instance}->errstr, 'commit');
-            # https://stackoverflow.com/questions/24316603/why-should-i-rollback-after-failed-commit
-            self->rollback();
-            return -1;
-        }
-
-        $self->transaction_cleanup();
+    if (!$status) {
+        $self->error($self->{instance}->errstr, 'commit');
+        # https://stackoverflow.com/questions/24316603/why-should-i-rollback-after-failed-commit
+        self->rollback();
+        return -1;
     }
+
+    $self->transaction_cleanup();
 
     return 0;
 }
 
 sub rollback {
     my ($self) = @_;
+
+    if (!$self->{transaction_begin}) {
+        $self->error('rollback outside of a transaction', 'rollback');
+        return;
+    }
 
     $self->{instance}->rollback() if (defined($self->{instance}));
     $self->transaction_cleanup();
