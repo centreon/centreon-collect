@@ -336,8 +336,10 @@ grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
       return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, msg);
     }
   } else {
-    for (auto& p : lvs)
-      map[p.first] = p.second;
+    for (auto& p : lvs) {
+      auto level = to_string_view(p.second);
+      map[p.first] = std::string(level.data(), level.size());
+    }
     return grpc::Status::OK;
   }
 }

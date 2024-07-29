@@ -1097,7 +1097,8 @@ def ctn_broker_config_remove_item(name, key):
 
     Args:
         name: The broker instance name among central, rrd and module%d
-        key: The key to remove. It must be defined at the first level of the configuration.
+        key: The key to remove. It must be defined from the "centreonBroker" level.
+        We can define several levels by splitting them with a colon.
 
     *Example:*
 
@@ -1113,7 +1114,14 @@ def ctn_broker_config_remove_item(name, key):
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
         buf = f.read()
     conf = json.loads(buf)
-    conf["centreonBroker"].pop(key)
+    cc = conf["centreonBroker"]
+    if ":" in key:
+        steps = key.split(':')
+        for s in steps[:-1]:
+            cc = cc[s]
+        key = steps[-1]
+
+    cc.pop(key)
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 
@@ -1653,6 +1661,41 @@ def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
                 return True
         time.sleep(5)
     return False
+
+
+def ctn_get_service_index(host_id: int, service_id: int, timeout: int = 60):
+    """
+    Try to get the index data of a service.
+
+    Args:
+        host_id (int): The ID of the host.
+        service_id (int): The ID of the service.
+
+    Returns:
+        An integer representing the index data.
+    """
+    select_request = f"SELECT id FROM index_data WHERE host_id={host_id} AND service_id={service_id}"
+    limit = time.time() + timeout
+    while time.time() < limit:
+        # Connect to the database
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(select_request)
+                result = cursor.fetchall()
+                my_id = [r['id'] for r in result]
+                if len(my_id) > 0:
+                    logger.console(
+                            f"Index data {id} found for service {host_id}:{service_id}")
+                    return my_id[0]
+                time.sleep(2)
+    logger.console(f"no index data found for service {host_id}:{service_id}")
+    return None
 
 
 def ctn_get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: int = 60):
@@ -2838,3 +2881,35 @@ def check_last_checked_services_with_given_metric_more_than(metric_like: str, no
                     return True
                 time.sleep(1)
     return False
+
+
+def ctn_get_broker_log_info(port, log, timeout=TIMEOUT):
+    """
+    Get the log info of a given logger or all of them by specifying "ALL" as log
+    value.
+
+    Args:
+        port: The gRPC port.
+        log: The name of the logger or the string "ALL".
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call SetLogLevel")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericString()
+            if log != "ALL":
+                ref.logger = log
+
+            try:
+                res = stub.GetLogInfo(ref)
+                break
+            except grpc.RpcError as rpc_error:
+                if rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
+                    res = rpc_error.details()
+                break
+            except:
+                logger.console("gRPC server not ready")
+    return str(res)
