@@ -345,7 +345,7 @@ const rapidjson::Value& rapidjson_helper::get_member(
  */
 rapidjson::Document rapidjson_helper::read_from_file(
     const std::string_view& path) {
-  FILE* to_close = fopen(path.data(), "r+b");
+  FILE* to_close = fopen(path.data(), "r");
   if (!to_close) {
     throw exceptions::msg_fmt("Fail to read file '{}' : {}", path,
                               strerror(errno));
