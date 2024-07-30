@@ -28,7 +28,6 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::simu;
-using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -39,7 +38,7 @@ using com::centreon::common::log_v2::log_v2;
 luabinding::luabinding(std::string const& lua_script,
                        std::map<std::string, misc::variant> const& conf_params,
                        const std::shared_ptr<spdlog::logger>& logger)
-    : _lua_script(lua_script), _total(0), _logger(logger) {
+    : _logger(logger), _lua_script(lua_script), _total(0) {
   size_t pos(lua_script.find_last_of('/'));
   std::string path(lua_script.substr(0, pos));
   _L = _load_interpreter();
