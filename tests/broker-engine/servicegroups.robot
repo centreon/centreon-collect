@@ -113,8 +113,9 @@ EBNSGU2
 
 EBNSGU3_${test_label}
     [Documentation]    New service group with several pollers and connections to DB with broker and rename this servicegroup
-    [Tags]    broker    engine    servicegroup unified_sql
+    [Tags]    broker    engine    servicegroup
     Ctn Config Engine    ${3}
+    Ctn Engine Config Set Value    ${0}    log_level_config    debug
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
@@ -132,12 +133,12 @@ EBNSGU3_${test_label}
 
     IF    ${Use_BBDO3}    Ctn Config BBDO3    ${3}
 
-    Ctn Config BBDO3    ${3}
-
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-    Sleep    3s
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
     Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Ctn Add Service Group    ${1}    ${1}    ["host_18","service_341", "host_19","service_362","host_19", "service_363"]
     Ctn Add Service Group    ${2}    ${1}    ["host_35","service_681", "host_35","service_682","host_36", "service_706"]
@@ -145,6 +146,7 @@ EBNSGU3_${test_label}
     Ctn Config Engine Add Cfg File    ${1}    servicegroups.cfg
     Ctn Config Engine Add Cfg File    ${2}    servicegroups.cfg
 
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Broker
     Ctn Reload Engine
 
@@ -183,18 +185,22 @@ EBNSGU3_${test_label}
     Ctn Reload Engine
     Ctn Reload Broker
 
-    Log To Console    \nremove servicegroup
+    Log To Console    \nRemove servicegroup 1
 
     ${result}    Ctn Check Number Of Relations Between Servicegroup And Services    1    0    30
     Should Be True    ${result}    still a relation between the servicegroup 1 and services.
 
-    # clear lua file
-    # this part of test is disable because group erasure is desactivated in macrocache.cc
-    # it will be reactivated when global cache will be implemented
-    # Create File    /tmp/lua-engine.log
-    # Sleep    2s
-    # ${grep_result}    Grep File    /tmp/lua-engine.log    no service_group_name 1
-    # Should Be True    len("""${grep_result}""") < 10    servicegroup 1 still exist
+    # Waiting to observe no service group.
+    FOR    ${index}    IN RANGE    60
+        Create File    /tmp/lua-engine.log
+        Sleep    1s
+        ${grep_result}    Grep File    /tmp/lua-engine.log    no service_group_name
+        IF    len("""${grep_result}""") > 0    BREAK
+    END
+    Sleep    10s
+    # Do we still have no service group?
+    ${grep_result}    Grep File    /tmp/lua-engine.log    service_group_name:
+    Should Be True    len("""${grep_result}""") == 0    The servicegroup 1 still exists
 
     Examples:    Use_BBDO3    test_label    --
     ...    True    BBDO3
