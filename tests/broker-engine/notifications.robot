@@ -672,6 +672,7 @@ not12
     Ctn Config Engine    ${1}    ${2}    ${1}
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
+    Ctn Engine Config Set Value    ${0}    log_level_config    trace
     Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
     Ctn Config Notifications
     Ctn Config Escalations
@@ -694,7 +695,7 @@ not12
     Ctn Start Broker
     Ctn Start Engine
 
-  # Let's wait for the external command check start
+    # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
@@ -777,10 +778,11 @@ not12
     Should Be True    ${result}    The second notification of U4 is not sent
 
 not13
-    [Documentation]    notification for a dependensies host
-    [Tags]    broker    engine    host    unified_sql
+    [Documentation]    notification for a dependencies host
+    [Tags]    broker    engine    host
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_config    trace
     Ctn Config Notifications
     Ctn Config Engine Add Cfg File    ${0}    dependencies.cfg
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -969,7 +971,7 @@ not14
 
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    60
-    Should Be True    ${result}     the dependency not working and the service_é has recieved a notification
+    Should Be True    ${result}     The dependency not working and the service_é has recieved a notification
 
     ## Time to set the service1 to OK  hard
     Ctn Set Command Status    ${cmd_service_1}    ${0}
