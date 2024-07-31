@@ -23,7 +23,7 @@ EBNHG1
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
@@ -51,7 +51,7 @@ EBNHGU1
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
@@ -80,7 +80,7 @@ EBNHGU2
     Ctn Config BBDO3    3
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
@@ -110,7 +110,7 @@ EBNHGU3
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
     Ctn Add Host Group    ${1}    ${1}    ["host_21", "host_22", "host_23"]
     Ctn Add Host Group    ${2}    ${1}    ["host_31", "host_32", "host_33"]
@@ -144,7 +144,7 @@ EBNHG4
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    3s
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
@@ -190,7 +190,6 @@ EBNHGU4_${test_label}
 
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    lua    trace
-    Ctn Broker Config Log    central    neb    debug
     Ctn Broker Config Source Log    central    1
     Ctn Broker Config Source Log    module0    1
     Ctn Config Broker Sql Output    central    unified_sql    5
@@ -294,10 +293,17 @@ EBNHGU4_${test_label}
     END
     Should Be Equal As Strings    ${output}    ()    hostgroup_test not deleted
 
-    # Clear the Lua file
-    Create File    /tmp/lua-engine.log
-    ${grep_result}    Grep File    /tmp/lua-engine.log    no host_group_name 1
-    Should Be True    len("""${grep_result}""") < 10    hostgroup 1 still exists
+    # Waiting to observe no host group.
+    FOR    ${index}    IN RANGE    60
+        Create File    /tmp/lua-engine.log
+        Sleep    1s
+        ${grep_result}    Grep File    /tmp/lua-engine.log    no host_group_name
+        IF    len("""${grep_result}""") > 0    BREAK
+    END
+    Sleep    10s
+    # Do we still have no host group?
+    ${grep_result}    Grep File    /tmp/lua-engine.log    host_group_name:
+    Should Be True    len("""${grep_result}""") == 0    The hostgroup 1 still exists
 
     Examples:    Use_BBDO3    test_label    --
     ...    True    BBDO3
