@@ -47,9 +47,11 @@ overrides:
     conflicts:
       - centreon-broker-storage
       - centreon-broker-core-devel
+      - centreon-broker-caching_sha2_password
     replaces:
       - centreon-broker-storage
       - centreon-broker-core-devel
+      - centreon-broker-caching_sha2_password
     provides:
       - centreon-broker-storage
       - centreon-broker-core-devel
@@ -65,9 +67,11 @@ overrides:
     conflicts:
       - centreon-broker-storage
       - centreon-broker-core-dev
+      - centreon-broker-caching-sha2-password
     replaces:
       - centreon-broker-storage
       - centreon-broker-core-dev
+      - centreon-broker-caching-sha2-password
     provides:
       - centreon-broker-storage
       - centreon-broker-core-dev
