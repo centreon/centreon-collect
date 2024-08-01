@@ -57,7 +57,7 @@ jobs:
           Compress-Archive -Path $files_to_compress -DestinationPath centreon-monitoring-agent.zip
 
       - name: Save agent package in cache
-        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: centreon-monitoring-agent.zip
           key: ${{ github.run_id }}-${{ github.sha }}-CMA-${{ github.head_ref || github.ref_name }}
