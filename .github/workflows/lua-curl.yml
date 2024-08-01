@@ -21,7 +21,7 @@ on:
 env:
   major_version: 0.3
   minor_version: 13
-  release: 20 # 10 for openssl 1.1.1 / 20 for openssl system
+  release: 21 # 10 for openssl 1.1.1 / 20 for openssl system / 21 for openssl system and possible issue with ~
 
 jobs:
   get-version:
