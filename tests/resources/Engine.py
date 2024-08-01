@@ -422,7 +422,7 @@ define command {
                 level = i % 5 + 1
                 content += f"""define severity {{
     id                     {i + 1}
-    name                   severity{i + offset}
+    severity_name          severity{i + offset}
     level                  {level}
     icon_id                {6 - level}
     type                   {typ[i % 2]}
