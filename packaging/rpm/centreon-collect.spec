@@ -194,13 +194,13 @@ Centreon core holds Centreon Broker's default modules;
 
 
 %package -n centreon-broker-caching_sha2_password
-Summary: caching_sha2_password plugind provided by mariafb connector.
+Summary: caching_sha2_password plugin provided by mariadb connector.
 Group: Application/System
 License: Apache-2.0
 
 %description -n centreon-broker-caching_sha2_password
 %{COMMIT_HASH}
-caching_sha2_password plugind provided by mariadb connector.
+caching_sha2_password plugin provided by mariadb connector.
 
 
 %package -n centreon-broker-storage
