@@ -78,7 +78,7 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 #    Should Be True    ${test_ret}    protobuf object sent to engine mus be in lua.log
 
 BEOTEL_TELEGRAF_CHECK_HOST
-    [Documentation]    we send nagios telegraf formated datas and we expect to get it in check result
+    [Documentation]    we send nagios telegraf formatted datas and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    mon-34004
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
@@ -99,6 +99,7 @@ BEOTEL_TELEGRAF_CHECK_HOST
 
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    sql    trace
 
@@ -176,7 +177,7 @@ BEOTEL_TELEGRAF_CHECK_HOST
     Should Be True    ${result}    hosts table not updated
 
 BEOTEL_TELEGRAF_CHECK_SERVICE
-    [Documentation]    we send nagios telegraf formated datas and we expect to get it in check result
+    [Documentation]    we send nagios telegraf formatted datas and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    mon-34004
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule    0    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
@@ -195,6 +196,7 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
 
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
 
     Ctn ConfigBBDO3    1
@@ -319,6 +321,7 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_CRYPTED
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
     Ctn Config Broker    module
+    Ctn Broker Config Log    module0    otel    info
 
     Ctn Clear Retention
 
@@ -393,6 +396,7 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
     Ctn Config Broker    module
+    Ctn Broker Config Log    module0    otel    info
 
     Ctn Clear Retention
 
@@ -441,6 +445,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
 
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
     Ctn Config Centreon Agent
     Ctn Broker Config Log    central    sql    trace
@@ -514,6 +519,7 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
 
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
     Ctn Config Centreon Agent
     Ctn Broker Config Log    central    sql    trace
@@ -576,6 +582,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
 
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
     Ctn Config Reverse Centreon Agent
     Ctn Broker Config Log    central    sql    trace
@@ -649,6 +656,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
 
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
     Ctn Config Reverse Centreon Agent
     Ctn Broker Config Log    central    sql    trace
@@ -714,6 +722,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
     Ctn Config Centreon Agent  ${None}  ${None}  /tmp/ca_1234.crt
     Ctn Broker Config Log    central    sql    trace
@@ -767,6 +776,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Broker Config Log    module0    otel    info
     Ctn Config Broker    rrd
     Ctn Config Reverse Centreon Agent  /tmp/server_1234.key  /tmp/server_1234.crt  /tmp/ca_1234.crt
     Ctn Broker Config Log    central    sql    trace
