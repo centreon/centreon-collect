@@ -299,7 +299,18 @@ BRRDRM1
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
-    ${index}    Ctn Get Indexes To Rebuild    3
+    FOR    ${idx}    IN RANGE    60
+        ${index}    Ctn Get Indexes To Rebuild    3
+	IF    len(${index}) == 3
+            BREAK
+	ELSE
+	    # If not available, we force checks to have them.
+            Ctn Schedule Forced Svc Check    host_1    service_1
+            Ctn Schedule Forced Svc Check    host_1    service_2
+            Ctn Schedule Forced Svc Check    host_1    service_3
+        END
+	Sleep    1s
+    END
     Ctn Rebuild Rrd Graphs    51001    ${index}    1
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
@@ -324,7 +335,7 @@ BRRDRM1
         ${result}    Ctn Compare Rrd Average Value    ${m}    ${value}
         Should Be True
         ...    ${result}
-        ...    Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
+        ...    Data before RRD rebuild for metric ${m} contained alternatively the metric ID and 0. The expected average is metric_id / 2 = ${value}.
     END
 
     FOR    ${index_id}    IN    @{index}
@@ -358,7 +369,18 @@ BRRDRMU1
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
-    ${index}    Ctn Get Indexes To Rebuild    3
+    FOR    ${idx}    IN RANGE    60
+        ${index}    Ctn Get Indexes To Rebuild    3
+	IF    len(${index}) == 3
+            BREAK
+	ELSE
+	    # If not available, we force checks to have them.
+            Ctn Schedule Forced Svc Check    host_1    service_1
+            Ctn Schedule Forced Svc Check    host_1    service_2
+            Ctn Schedule Forced Svc Check    host_1    service_3
+        END
+	Sleep    1s
+    END
     Ctn Rebuild Rrd Graphs    51001    ${index}    1
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
@@ -383,7 +405,7 @@ BRRDRMU1
         ${result}    Ctn Compare Rrd Average Value    ${m}    ${value}
         Should Be True
         ...    ${result}
-        ...    Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
+        ...    Data before RRD rebuild for metric ${m} contained alternatively the metric ID and 0. The expected average is metric_id / 2 = ${value}.
         # 48 = 60(octal)
         ${result}    Ctn Has File Permissions    ${VarRoot}/lib/centreon/metrics/${m}.rrd    48
         Should Be True    ${result}    ${VarRoot}/lib/centreon/metrics/${m}.rrd has not RW group permission
