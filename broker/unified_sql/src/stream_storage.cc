@@ -1117,6 +1117,6 @@ void stream::_check_rebuild_index() {
     auto& obj = rg->mut_obj();
     for (auto& i : index_to_rebuild)
       obj.add_index_ids(i);
-    _rebuilder.rebuild_graphs(rg);
+    _rebuilder.rebuild_graphs(rg, _logger_sql);
   }
 }
