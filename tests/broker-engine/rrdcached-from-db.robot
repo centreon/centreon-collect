@@ -190,5 +190,5 @@ BRRDCDRBUDB1
         ${result}    Ctn Compare Rrd Average Value    ${m}    ${value}
         Should Be True
         ...    ${result}
-        ...    Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
+        ...    Data before RRD rebuild for metric ${m} contained alternatively the metric ID and 0. The expected average is metric_id / 2 = ${value}.
     END
