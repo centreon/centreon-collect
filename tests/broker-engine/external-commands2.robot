@@ -1399,19 +1399,15 @@ BEHOSTCHECK
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
-    Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Execute SQL String    UPDATE hosts SET command_line='toto' WHERE name='host_1'
+    ${start}    Ctn Get Round Current Date
     Ctn Schedule Forced Host Check    host_1
-    ${result}    Ctn Check Host Check With Timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl --id 0
-    Should Be True    ${result}    hosts table not updated
+    ${result}    Ctn Check Host Check With Timeout    host_1    ${start}    30
+    Should Be True    ${result}    last_check column in resources table not updated.
 
 
 BE_BACKSLASH_CHECK_RESULT

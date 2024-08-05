@@ -1071,7 +1071,19 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
 
 
 
-def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
+def ctn_check_host_check_with_timeout(hostname: str, start: int, timeout: int):
+    """
+    ctl_check_host_check_with_timeout
+
+    Checks that the last_check is after the start timestamp.
+
+    Args:
+        hostname: the host concerned by the check
+        start: a timestamp that should be approximatively the date of the check.
+        timeout: A timeout.
+
+    Returns: True on success.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1085,12 +1097,13 @@ def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line:
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT command_line FROM hosts WHERE name='{hostname}'")
+                    f"SELECT last_check FROM resources WHERE name='{hostname}'")
                 result = cursor.fetchall()
-                if len(result) > 0:
+                if len(result) > 0 and len(result[0]) > 0 and result[0]['last_check'] is not None:
                     logger.console(
-                        f"command_line={result[0]['command_line']} ")
-                    if result[0]['command_line'] is not None and command_line in result[0]['command_line']:
+                        f"last_check={result[0]['last_check']} ")
+                    last_check = int(result[0]['last_check'])
+                    if last_check > start:
                         return True
         time.sleep(1)
     return False
