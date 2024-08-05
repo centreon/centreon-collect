@@ -733,7 +733,7 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
   } else if (cat == io::bbdo) {
     switch (elem) {
       case bbdo::de_rebuild_graphs:
-        _rebuilder.rebuild_graphs(data);
+        _rebuilder.rebuild_graphs(data, _logger_sql);
         break;
       case bbdo::de_remove_graphs:
         remove_graphs(data);
