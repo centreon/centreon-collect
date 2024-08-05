@@ -210,11 +210,11 @@ BRRDUPLICATE
     Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
-    ${index}    Ctn Get Indexes To Rebuild    3    2
-    ${duplicates}    Ctn Add Duplicate Metrics
+    ${index}    Ctn Get Indexes To Rebuild    3
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
+    ${duplicates}    Ctn Add Duplicate Metrics    ${metrics}
     Ctn Rebuild Rrd Graphs From Db    ${index}
     Log To Console    Indexes to rebuild: ${index}
-    ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
     Ctn Reload Broker
 

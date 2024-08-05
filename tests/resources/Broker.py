@@ -21,6 +21,7 @@ import signal
 from os import setsid
 from os import makedirs
 from os.path import exists
+import datetime
 import pymysql.cursors
 import time
 import re
@@ -2027,19 +2028,28 @@ def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
                 if int(r['metric_id']) in ids:
                     index_id = int(r['index_id'])
                     logger.console(
-                        "building data for metric {} index_id {}".format(r['metric_id'], index_id))
+                        f"building data for metric {r['metric_id']} index_id {index_id}")
                     # We go back to 180 days with steps of 5 mn
-                    start = int(time.time() / 86400) * 86400 - \
-                        24 * 60 * 60 * nb_day
+                    now = datetime.datetime.now()
+                    dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                    start = dt - datetime.timedelta(days=nb_day)
+                    start = int(start.timestamp())
+                    logger.console(f">>>>>>>>>> start = {datetime.datetime.fromtimestamp(start)}")
                     value = int(r['metric_id']) // 2
                     status_value = index_id % 3
                     cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                         r['metric_id'], start))
                     # We set the value to a constant on 180 days
-                    for i in range(0, 24 * 60 * 60 * nb_day, 60 * 5):
+                    now = int(now.timestamp())
+                    logger.console(f">>>>>>>>>> end = {datetime.datetime.fromtimestamp(now)}")
+                    for i in range(start, now, 60 * 5):
+                        if i == start:
+                            logger.console(
+                                "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
+                                    r['metric_id'], i, value, status_value))
                         cursor.execute(
                             "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
-                                r['metric_id'], start + i, value, status_value))
+                                r['metric_id'], i, value, status_value))
                     connection.commit()
                     retval.append(index_id)
 
@@ -2051,12 +2061,15 @@ def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
     return retval
 
 
-def ctn_add_duplicate_metrics():
+def ctn_add_duplicate_metrics(metric_ids):
     """
-    Add a value at the middle of the first day of each metric
+    Add a value at the middle of the last day of each metric in the provided list.
+
+    Args:
+        metric_ids: A list of metric IDs.
 
     Returns:
-        A list of indexes of pair <time of oldest value>, <metric id>
+        A list of pairs <time,metric id> corresponding to the inserted rows.
     """
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
@@ -2067,32 +2080,35 @@ def ctn_add_duplicate_metrics():
     retval = []
     with connection:
         with connection.cursor() as cursor:
-            sql = "SELECT * FROM(SELECT  min(ctime) AS ctime, count(*) AS nb, id_metric FROM data_bin GROUP BY id_metric) s WHERE nb > 100"
-            cursor.execute(sql)
+            ids_str = ",".join(map(str, metric_ids))
+            query = f"SELECT id_metric, ctime FROM data_bin WHERE id_metric IN ({ids_str}) AND ctime > UNIX_TIMESTAMP(CURRENT_TIMESTAMP()) - 43200 ORDER BY ctime limit {len(metric_ids)}"
+            logger.console(query)
+            cursor.execute(query)
             result = cursor.fetchall()
             for metric_info in result:
                 # insert a duplicate value at the mid of the day
-                low_limit = metric_info['ctime'] + 43200 - 60
-                upper_limit = metric_info['ctime'] + 43200 + 60
+                id_metric = metric_info['id_metric']
+                ctime = metric_info['ctime']
                 cursor.execute(
-                    f"INSERT INTO data_bin SELECT * FROM data_bin WHERE id_metric={metric_info['id_metric']} AND ctime BETWEEN {low_limit} AND {upper_limit}")
+                    f"INSERT INTO data_bin SELECT * FROM data_bin WHERE id_metric={id_metric} AND ctime={ctime}")
                 retval.append({metric_info['id_metric'], metric_info['ctime']})
             connection.commit()
     return retval
 
 
-def ctn_check_for_NaN_metric(add_duplicate_metrics_ret):
+def ctn_check_for_nan_metric(add_duplicate_metrics_ret):
     """
-    Check that metrics are not a NaN during one day
+    Check that metrics are not NaN during one day
 
     Args:
-        add_duplicate_metrics_ret (): an array of pair <time of oldest value>, <metric id> returned by ctn_add_duplicate_metrics
+        add_duplicate_metrics_ret (): an array of pairs <time,metric id> returned by ctn_add_duplicate_metrics
 
     Returns:
         True on Success, otherwise False.
     """
-    for min_timestamp, metric_id in add_duplicate_metrics_ret:
-        max_timestamp = min_timestamp + 86400
+    for timestamp, metric_id in add_duplicate_metrics_ret:
+        min_timestamp = timestamp - 86400
+        max_timestamp = timestamp + 86400
         res = getoutput(
             f"rrdtool dump {VAR_ROOT}/lib/centreon/metrics/{metric_id}.rrd")
         # we search a string like <!-- 2022-12-07 23: 00: 00 CET / 1670450400 - -> < row > <v > NaN < /v > </row >
