@@ -2007,7 +2007,7 @@ def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
          A list of indexes.
     """
     files = [os.path.basename(x) for x in glob.glob(
-        VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
+        VAR_ROOT + "/lib/centreon/status/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
 
     # Connect to the database
@@ -2017,44 +2017,51 @@ def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
                                  database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
-    retval = []
+    retval = set()
     with connection:
         with connection.cursor() as cursor:
             # Read a single record
-            sql = "SELECT `metric_id`,`index_id` FROM `metrics`"
+            sql = "SELECT `metric_id`,`index_id` FROM `metrics` ORDER BY index_id"
             cursor.execute(sql)
             result = cursor.fetchall()
+            last_index = 0
             for r in result:
-                if int(r['metric_id']) in ids:
-                    index_id = int(r['index_id'])
-                    logger.console(
-                        f"building data for metric {r['metric_id']} index_id {index_id}")
-                    # We go back to 180 days with steps of 5 mn
-                    now = datetime.datetime.now()
-                    dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
-                    start = dt - datetime.timedelta(days=nb_day)
-                    start = int(start.timestamp())
-                    logger.console(f">>>>>>>>>> start = {datetime.datetime.fromtimestamp(start)}")
-                    value = int(r['metric_id']) // 2
-                    status_value = index_id % 3
-                    cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
-                        r['metric_id'], start))
-                    # We set the value to a constant on 180 days
-                    now = int(now.timestamp())
-                    logger.console(f">>>>>>>>>> end = {datetime.datetime.fromtimestamp(now)}")
-                    for i in range(start, now, 60 * 5):
-                        if i == start:
-                            logger.console(
-                                "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
-                                    r['metric_id'], i, value, status_value))
-                        cursor.execute(
+                index_id = int(r['index_id'])
+
+                if index_id not in ids:
+                    continue
+
+                # We must rebuild all the metrics of a given index.
+                if last_index != index_id and len(retval) == count:
+                    return retval
+
+                logger.console(
+                    f"building data for metric {r['metric_id']} index_id {index_id}")
+                # We go back to 180 days with steps of 5 mn
+                now = datetime.datetime.now()
+                dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                start = dt - datetime.timedelta(days=nb_day)
+                start = int(start.timestamp())
+                logger.console(f">>>>>>>>>> start = {datetime.datetime.fromtimestamp(start)}")
+                value = int(r['metric_id']) // 2
+                status_value = index_id % 3
+                cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
+                    r['metric_id'], start))
+                # We set the value to a constant on 180 days
+                now = int(now.timestamp())
+                logger.console(f">>>>>>>>>> end = {datetime.datetime.fromtimestamp(now)}")
+                for i in range(start, now, 60 * 5):
+                    if i == start:
+                        logger.console(
                             "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
                                 r['metric_id'], i, value, status_value))
-                    connection.commit()
-                    retval.append(index_id)
+                    cursor.execute(
+                        "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
+                            r['metric_id'], i, value, status_value))
+                connection.commit()
+                retval.add(index_id)
 
-                if len(retval) == count:
-                    return retval
+                last_index = index_id
 
     # if the loop is already and retval length is not sufficiently long, we
     # still return what we get.

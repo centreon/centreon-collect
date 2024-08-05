@@ -84,7 +84,17 @@ Service_increased_huge_check_interval
     ${content}    Create List    new pb data for metric
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
 
-    ${index}    Ctn Get Indexes To Rebuild    2
+    FOR    ${idx}    IN RANGE    60
+        ${index}    Ctn Get Indexes To Rebuild    2
+	IF    len(${index}) == 2
+            BREAK
+	ELSE
+	    # If not available, we force checks to have them.
+            Ctn Schedule Forced Svc Check    host_1    service_1
+            Ctn Schedule Forced Svc Check    host_1    service_2
+        END
+	Sleep    1s
+    END
     ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics: ${metrics}
 
