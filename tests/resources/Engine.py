@@ -1171,11 +1171,11 @@ def ctn_rename_host_group(index: int, id_host_group: int, name: str, members: li
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/hostgroups.cfg", "w") as f:
         logger.console(mbs)
         f.write(f"""define hostgroup {{
-        hostgroup_id                    {id_host_group}
-        hostgroup_name                  hostgroup_{name}
-        alias                           hostgroup_{name}
-        members                         {mbs_str}
-    }}
+    hostgroup_id                    {id_host_group}
+    hostgroup_name                  hostgroup_{name}
+    alias                           hostgroup_{name}
+    members                         {mbs_str}
+}}
 """)
 
 

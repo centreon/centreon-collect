@@ -1460,6 +1460,7 @@ def ctn_check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, va
                     "SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={}".format(hostgroup))
                 result = cursor.fetchall()
                 if len(result) > 0:
+                    logger.console(f"SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={hostgroup} => {result[0]}")
                     if int(result[0]['count(*)']) == value:
                         return True
         time.sleep(1)
