@@ -122,7 +122,7 @@ otel_connector::otel_connector(const std::string& connector_name,
                                commands::command_listener* listener)
     : command(connector_name, cmd_line, listener, e_type::otel),
       _host_serv_list(std::make_shared<otel::host_serv_list>()),
-      _logger(log_v2::instance().get(log_v2::OTEL)) {
+      _logger(log_v2::instance().get(log_v2::OTL)) {
   init();
 }
 
