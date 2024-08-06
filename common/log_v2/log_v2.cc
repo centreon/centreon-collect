@@ -21,12 +21,12 @@
 #include <absl/container/flat_hash_set.h>
 #include <grpc/impl/codegen/log.h>
 #include <spdlog/common.h>
-#include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/sinks/syslog_sink.h>
+#include "centreon_file_sink.hh"
 
 #include <atomic>
 #include <initializer_list>
@@ -67,7 +67,7 @@ const std::array<std::string, log_v2::LOGGER_SIZE> log_v2::_logger_name = {
     "comments",
     "macros",
     "runtime",
-    "otel"};
+    "otl"};
 
 /**
  * @brief this function is passed to grpc in order to log grpc layer's events to
@@ -227,7 +227,7 @@ void log_v2::create_loggers(config::logger_type typ, size_t length) {
         my_sink = std::make_shared<sinks::rotating_file_sink_mt>(
             _file_path, _current_max_size, 99);
       else
-        my_sink = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
+        my_sink = std::make_shared<sinks::centreon_file_sink_mt>(_file_path);
     } break;
     case config::logger_type::LOGGER_SYSLOG:
       my_sink = std::make_shared<sinks::syslog_sink_mt>(_log_name, 0, 0, true);
@@ -302,7 +302,7 @@ void log_v2::apply(const config& log_conf) {
           my_sink = std::make_shared<sinks::rotating_file_sink_mt>(
               _file_path, log_conf.max_size(), 99);
         else
-          my_sink = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
+          my_sink = std::make_shared<sinks::centreon_file_sink_mt>(_file_path);
       } break;
       case config::logger_type::LOGGER_SYSLOG:
         my_sink =
@@ -372,6 +372,13 @@ void log_v2::apply(const config& log_conf) {
       else
         logger->flush_on(lvl);
     }
+  }
+
+  for (auto& s : _loggers[0]->sinks()) {
+    spdlog::sinks::centreon_file_sink_mt* file_sink =
+        dynamic_cast<spdlog::sinks::centreon_file_sink_mt*>(s.get());
+    if (file_sink)
+      file_sink->reopen();
   }
 }
 
