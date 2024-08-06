@@ -222,15 +222,15 @@ jobs:
 
       - name: Create databases
         run: |
-          mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon\`"
-          mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
-          mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon.* TO 'centreon'@'%'"
-          mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-storage\`.* TO 'centreon'@'%'"
-          mysql -h mariadb -u root -ppassword 'centreon' < centreon/centreon/www/install/createTables.sql
-          mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/centreon/www/install/createTablesCentstorage.sql
+          mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon${{ matrix.distrib }}\`"
+          mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-storage${{ matrix.distrib }}\`"
+          mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon${{ matrix.distrib }}.* TO 'centreon'@'%'"
+          mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-storage${{ matrix.distrib }}\`.* TO 'centreon'@'%'"
+          mysql -h mariadb -u root -ppassword 'centreon${{ matrix.distrib }}' < centreon/centreon/www/install/createTables.sql
+          mysql -h mariadb -u root -ppassword 'centreon-storage${{ matrix.distrib }}' < centreon/centreon/www/install/createTablesCentstorage.sql
 
       - name: Run tests
-        run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBUSER:centreon' gorgone/tests
+        run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon${{ matrix.distrib }}' -v 'DBNAME_STORAGE:centreon-storage${{ matrix.distrib }}' -v 'DBUSER:centreon' gorgone/tests
 
       - name: Upload gorgone and robot debug artifacts
         if: failure()
