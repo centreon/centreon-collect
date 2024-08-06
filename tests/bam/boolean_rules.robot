@@ -210,9 +210,7 @@ BABOOORREL
     ${start}    Get Current Date
     Ctn Start engine
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
     # 302 is set to critical => {host_16 service_302} {IS} {OK} is then False
     Ctn Process Service Result Hard    host_16    service_302    2    output critical for service_302
     ${result}    Ctn Check Service Status With Timeout    host_16    service_302    2    30    HARD
@@ -236,13 +234,12 @@ BABOOORREL
     ...    ${id_bool}
     ...    {host_16 service_302} {IS} {OK} {OR} {host_16 service_304} {IS} {OK}
 
+    ${start}    Get Current Date
     Ctn Reload Engine
     Ctn Reload Broker
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     Ctn Process Service Result Hard    host_16    service_302    2    output ok for service_302
     Ctn Process Service Result Hard    host_16    service_304    0    output ok for service_304
