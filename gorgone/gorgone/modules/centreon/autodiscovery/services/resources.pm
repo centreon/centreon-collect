@@ -484,7 +484,7 @@ sub substitute_service_discovery_command {
     $command =~ s/\$HOSTADDRESS\$/$options{host}->{host_address}/g;
     $command =~ s/\$HOSTNAME\$/$options{host}->{host_name}/g;
 
-    if (defined($options{vault_count}) && $options{vault_count} && $options{vault_count} > 0) {
+    if (defined($options{vault_count}) && $options{vault_count} > 0) {
         $command .= ' --pass-manager="centreonvault"';
     }
     
