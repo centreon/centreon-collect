@@ -891,30 +891,11 @@ sub launchdiscovery {
     ##################
     # get vault config
     ##################
-    my $vault_count;
-    # Check if vault config file exists
-    if (-e $self->{config}->{vault_file}) {
-        my ($fh, $size);
-        # Read config file
-        if (!open($fh, '<', $self->{config}->{vault_file})) {
-            $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => "Could not open $self->{config}->{vault_file}: $!");
-            return (-1);
-        }
-        my $content = do {
-            local $/;
-            <$fh>
-        };
-        close $fh;
-        # Check JSON validity
-        my $vault_config;
-        eval {
-            $vault_config = JSON::XS->new->decode($content);
-        };
-        if ($@) {
-            $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => "Cannot decode json $self->{config}->{vault_file}: $!");
-            return (-1);
-        }
-        $vault_count = 1;
+
+    ($status, $message, my $vault_count) = get_vault_count();
+    if ($status < 0) {
+        $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => $message);
+        return -1;
     }
 
     ################
@@ -1003,6 +984,33 @@ sub event {
     my ($self, %options) = @_;
 
     $self->{class_autodiscovery}->event();
+}
+
+sub get_vault_count() {
+    my (%options) = @_;
+
+    # Check if vault config file exists
+    if (-e $self->{config}->{vault_file}) {
+        my ($fh, $size);
+        # Read config file
+        if (!open($fh, '<', $self->{config}->{vault_file})) {
+            return (-1, "Could not open $self->{config}->{vault_file}: $!");
+        }
+        my $content = do {
+            local $/;
+            <$fh>
+        };
+        close $fh;
+        # Check JSON validity
+        my $vault_config;
+        eval {
+            $vault_config = JSON::XS->new->decode($content);
+        };
+        if ($@) {
+            return (-1, "Cannot decode json $self->{config}->{vault_file}: $!");
+        }
+        return (0, '', 1);
+    }
 }
 
 1;
