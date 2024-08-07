@@ -911,7 +911,7 @@ sub launchdiscovery {
             $vault_config = JSON::XS->new->decode($content);
         };
         if ($@) {
-            $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => "Cannot decode json $connector->{config}->{vault_file}: $!");
+            $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => "Cannot decode json $self->{config}->{vault_file}: $!");
             return (-1);
         }
         $vault_count = 1;
