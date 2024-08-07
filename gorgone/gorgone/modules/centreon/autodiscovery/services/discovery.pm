@@ -31,6 +31,7 @@ use Net::SMTP;
 use XML::Simple;
 use POSIX qw(strftime);
 use Safe;
+use JSON::XS;
 
 sub new {
     my ($class, %options) = @_;
@@ -890,12 +891,28 @@ sub launchdiscovery {
     ##################
     # get vault config
     ##################
-    ($status, $message, my $vault_count) = gorgone::modules::centreon::autodiscovery::services::resources::get_vault_configured(
-        class_object_centreon => $self->{class_object_centreon}
-    );
-    if ($status < 0) {
-        $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => $message);
-        return -1;
+    my $vault_count;
+    # Check if vault config file exists
+    if (-e $connector->{config}->{vault_file}) {
+        my ($fh, $size);
+        # Read config file
+        if (!open($fh, '<', $connector->{config}->{vault_file})) {
+            $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => "Could not open $connector->{config}->{vault_file}: $!");
+            return (-1);
+        }
+        my $content = do {
+            local $/;
+            <$fh>
+        };
+        close $fh;
+        # Check JSON validity
+        try {
+            my $vault_config = JSON::XS->new->decode($content);
+        } catch {
+            $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => "Cannot decode json $connector->{config}->{vault_file}: $!");
+            return (-1);
+        };
+        $vault_count = 1;
     }
 
     ################
