@@ -893,11 +893,11 @@ sub launchdiscovery {
     ##################
     my $vault_count;
     # Check if vault config file exists
-    if (-e $connector->{config}->{vault_file}) {
+    if (-e $self->{config}->{vault_file}) {
         my ($fh, $size);
         # Read config file
-        if (!open($fh, '<', $connector->{config}->{vault_file})) {
-            $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => "Could not open $connector->{config}->{vault_file}: $!");
+        if (!open($fh, '<', $self->{config}->{vault_file})) {
+            $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => "Could not open $self->{config}->{vault_file}: $!");
             return (-1);
         }
         my $content = do {
@@ -906,12 +906,14 @@ sub launchdiscovery {
         };
         close $fh;
         # Check JSON validity
-        try {
-            my $vault_config = JSON::XS->new->decode($content);
-        } catch {
+        my $vault_config;
+        eval {
+            $vault_config = JSON::XS->new->decode($content);
+        };
+        if ($@) {
             $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => "Cannot decode json $connector->{config}->{vault_file}: $!");
             return (-1);
-        };
+        }
         $vault_count = 1;
     }
 
