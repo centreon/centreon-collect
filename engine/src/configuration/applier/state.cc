@@ -1102,7 +1102,7 @@ void applier::state::apply_log_config(configuration::state& new_cfg) {
     log_cfg.set_level("macros", new_cfg.log_level_macros());
     log_cfg.set_level("process", new_cfg.log_level_process());
     log_cfg.set_level("runtime", new_cfg.log_level_runtime());
-    log_cfg.set_level("otel", new_cfg.log_level_otl());
+    log_cfg.set_level("otl", new_cfg.log_level_otl());
     if (has_already_been_loaded)
       log_cfg.allow_only_atomic_changes(true);
     log_v2::instance().apply(log_cfg);
