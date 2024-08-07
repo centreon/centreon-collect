@@ -508,10 +508,10 @@ sub periodic_exec {
                 $connector->{clients}->{$_}->{class}->close();
                 $connector->{clients}->{$_}->{class}->cleanup();
             }
-            # if the connection to the node is not established, we stop listenning for new event for this destination,
-            # so event will be stored in zmq buffer until we start processng them again (see proxy_addnode)
-            # zmq queue have a limit in size (high water mark), so if the node never connect we will loose some message,
-            # stoping us from memory leak or other nasty problem.
+            # if the connection to the node is not established, we stop listening for new event for this destination,
+            # so event will be stored in zmq buffer until we start processing them again (see proxy_addnode)
+            # zmq queues have a size limit (high water mark), so if the node never connects, we lose some messages,
+            # preventing us from having memory leaks or other inconvenient problems.
             delete $connector->{watchers}->{$_};
             $connector->{clients}->{$_}->{class}             = undef;
             $connector->{clients}->{$_}->{delete}            = 0;

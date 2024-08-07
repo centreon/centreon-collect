@@ -12,19 +12,15 @@ A SSH client library make routing to non-gorgoned nodes possible.
 
 ## Configuration
 
-| Directive | Description                                         | Default value |
-|:----------|:----------------------------------------------------|:--------------|
-| pool      | Number of children to instantiate to process events | `5`           |
-
-| synchistory_time     | Time in seconds between two log synchronisations                    | `60`          |
-
-| synchistory_timeout  | Time in seconds before log synchronisation is considered timed out | `30`          |
-
-| ping                 | Time in seconds between two node pings                              | `60`          |
-| pong_discard_timeout | Time in seconds before a node is considered dead                    | `300`         |
+| Directive            | Description                                                        | Default value  |
+|:---------------------|:-------------------------------------------------------------------|:---------------|
+| pool                 | Number of children to instantiate to process events                | `5`            |
+| synchistory_time     | Time in seconds between two log synchronisations                   | `60`           |
+| synchistory_timeout  | Time in seconds before log synchronisation is considered timed out | `30`           |
+| ping                 | Time in seconds between two node pings                             | `60`           |
+| pong_discard_timeout | Time in seconds before a ping is considered lost                   | `300`          |
 
 This part of the configuration is only used if some poller must connect with the pullwss module.
-
 
 
 | Directive     | Description                                                                                    | Default value |
