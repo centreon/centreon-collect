@@ -1,6 +1,10 @@
-// Copyright(c) 2015-present, Gabi Melman & spdlog contributors.
-// Distributed under the MIT License (http://opensource.org/licenses/MIT)
-
+/**
+ * Copyright(c) 2015-present, Gabi Melman & spdlog contributors.
+ * Distributed under the MIT License (http://opensource.org/licenses/MIT)
+ *
+ * This file is copied from basic_file_sink{-inl.h,.h}
+ * The goal here is just to add a method `reopen()` using the file_helper mutex.
+ */
 #pragma once
 
 #include <spdlog/common.h>
