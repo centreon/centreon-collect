@@ -337,11 +337,8 @@ sub update_service {
                 value => $options{macros}->{$macro_name}
             };
             if ($self->{discovery}->{is_manual} == 1) {
-                $self->{discovery}->{manual}->{ $options{host_id} }->{rules}->{ $options{rule_id} }->{discovery}->{ $options{discovery_svc}->{service_name} }->{macros}->{$macro_name} = { value =>
-                                                                                                                                                                                           $options{macros}
-                                                                                                                                                                                               ->{$macro_name},
-                                                                                                                                                                                           type  =>
-                                                                                                                                                                                           1 };
+                $self->{discovery}->{manual}->{ $options{host_id} }->{rules}->{ $options{rule_id} }->{discovery}->{ $options{discovery_svc}->{service_name} }->{macros}->{$macro_name} =
+                    { value => $options{macros} ->{$macro_name}, type => 1 };
             }
         } elsif ($options{service}->{macros}->{'$_SERVICE' . $macro_name . '$'} ne $options{macros}->{$macro_name}) {
             push @update_macros, {
@@ -349,11 +346,8 @@ sub update_service {
                 value => $options{macros}->{$macro_name}
             };
             if ($self->{discovery}->{is_manual} == 1) {
-                $self->{discovery}->{manual}->{ $options{host_id} }->{rules}->{ $options{rule_id} }->{discovery}->{ $options{discovery_svc}->{service_name} }->{macros}->{$macro_name} = { value =>
-                                                                                                                                                                                           $options{macros}
-                                                                                                                                                                                               ->{$macro_name},
-                                                                                                                                                                                           type  =>
-                                                                                                                                                                                           0 };
+                $self->{discovery}->{manual}->{ $options{host_id} }->{rules}->{ $options{rule_id} }->{discovery}->{ $options{discovery_svc}->{service_name} }->{macros}->{$macro_name} =
+                    { value => $options{macros}->{$macro_name}, type => 0 };
             }
         }
     }
