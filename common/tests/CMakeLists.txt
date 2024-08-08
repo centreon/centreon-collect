@@ -19,11 +19,12 @@
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_executable(ut_common
-    process_stat_test.cc
+    engine_conf/parser.cc
     hex_dump_test.cc
     log_v2/log_v2.cc
     node_allocator_test.cc
     perfdata_test.cc
+    process_stat_test.cc
     process_test.cc
     rapidjson_helper_test.cc
     test_main.cc
@@ -72,8 +73,10 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     boost_program_options
     re2::re2
     log_v2
-    crypto 
+    crypto
     ssl
+    engine_conf
+    stdc++fs
     GTest::gtest
     GTest::gtest_main
     GTest::gmock
@@ -82,7 +85,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     absl::log
     absl::base
     absl::bits
-    fmt::fmt pthread)
+    fmt::fmt pthread
+    )
 
     add_dependencies(ut_common centreon_common centreon_http)
 

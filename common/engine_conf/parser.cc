@@ -17,6 +17,9 @@
  *
  */
 #include "parser.hh"
+#include <absl/hash/hash.h>
+#include <filesystem>
+#include <forward_list>
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/io/directory_entry.hh"
 #include "common/log_v2/log_v2.hh"
@@ -754,4 +757,40 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
       }
     }
   }
+}
+
+/**
+ * @brief Compute the hash of a directory content.
+ *
+ * @param dir_path The directory to parse.
+ *
+ * @return a size_t hash.
+ */
+size_t parser::hash_directory(const std::filesystem::path& dir_path) {
+  absl::Hash<std::string> str_hasher;
+  std::list<std::filesystem::path> files;
+  absl::Hash<std::vector<size_t>> final_hasher;
+
+  /* Recursively parse the directory */
+  for (const auto& entry :
+       std::filesystem::recursive_directory_iterator(dir_path)) {
+    if (entry.is_regular_file())
+      files.push_back(entry.path());
+  }
+
+  files.sort([&dir_path](const auto& f1, const auto& f2) {
+    auto ff1 = std::filesystem::relative(f1, dir_path);
+    auto ff2 = std::filesystem::relative(f2, dir_path);
+    return ff1 <= ff2;
+  });
+  std::vector<size_t> hashes;
+  hashes.reserve(files.size());
+  for (auto& f : files) {
+    hashes.push_back(
+        str_hasher(std::filesystem::relative(f, dir_path).string()));
+    std::string content = read_file_content(f);
+    hashes.push_back(str_hasher(content));
+  }
+
+  return final_hasher(hashes);
 }

@@ -20,6 +20,7 @@
 #define CCE_CONFIGURATION_PARSER_HH
 
 #include <fstream>
+#include <filesystem>
 #include "common/engine_conf/file_info.hh"
 #include "state_helper.hh"
 // #include "host.hh"
@@ -92,6 +93,7 @@ class parser {
   parser& operator=(const parser&) = delete;
   ~parser() noexcept = default;
   void parse(const std::string& path, State* config, error_cnt& err);
+  static size_t hash_directory(const std::filesystem::path& dir_path);
 
  private:
   /**
