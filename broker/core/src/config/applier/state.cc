@@ -118,6 +118,9 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   _cache_dir.append("/");
   _cache_dir.append(s.broker_name());
 
+  // Engine configuration directory (for cbmod).
+  _engine_config_dir = s.engine_config_dir();
+
   // Apply modules configuration.
   _modules.apply(s.module_list(), s.module_directory(), &s);
   static bool first_application(true);
