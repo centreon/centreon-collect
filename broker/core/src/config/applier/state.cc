@@ -119,6 +119,9 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   _cache_dir.append("/");
   _cache_dir.append(s.broker_name());
 
+  // Engine configuration directory (for cbmod).
+  _engine_config_dir = s.engine_config_dir();
+
   // Apply modules configuration.
   _modules.apply(s.module_list(), s.module_directory(), &s);
   static bool first_application(true);
@@ -297,4 +300,23 @@ void state::remove_poller(uint64_t poller_id) {
 bool state::has_connection_from_poller(uint64_t poller_id) const {
   std::lock_guard<std::mutex> lck(_connected_pollers_m);
   return _connected_pollers.contains(poller_id);
+}
+
+/**
+ * @brief Get the Engine configuration directory.
+ *
+ * @return The Engine configuration directory.
+ */
+const std::filesystem::path& state::engine_config_dir() const noexcept {
+  return _engine_config_dir;
+}
+
+/**
+ * @brief Set the Engine configuration directory.
+ *
+ * @param engine_conf_dir The Engine configuration directory.
+ */
+void state::set_engine_config_dir(
+    const std::filesystem::path& engine_conf_dir) {
+  _engine_config_dir = engine_conf_dir;
 }
