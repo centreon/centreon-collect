@@ -1005,6 +1005,7 @@ sub get_vault_count() {
         }
         return (0, '', 1);
     }
+    return (0, '', 0);
 }
 
 1;
