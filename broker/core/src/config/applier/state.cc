@@ -118,6 +118,9 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   _cache_dir.append("/");
   _cache_dir.append(s.broker_name());
 
+  // Engine configuration directory (for cbmod).
+  _engine_config_dir = s.engine_config_dir();
+
   // Apply modules configuration.
   _modules.apply(s.module_list(), s.module_directory(), &s);
   static bool first_application(true);
@@ -313,4 +316,23 @@ std::vector<std::pair<uint64_t, state::peer>> state::connected_peers() const {
   for (auto& [id, name] : _connected_peers)
     retval.emplace_back(id, name);
   return retval;
+}
+
+/**
+ * @brief Get the Engine configuration directory.
+ *
+ * @return The Engine configuration directory.
+ */
+const std::filesystem::path& state::engine_config_dir() const noexcept {
+  return _engine_config_dir;
+}
+
+/**
+ * @brief Set the Engine configuration directory.
+ *
+ * @param engine_conf_dir The Engine configuration directory.
+ */
+void state::set_engine_config_dir(
+    const std::filesystem::path& engine_conf_dir) {
+  _engine_config_dir = engine_conf_dir;
 }
