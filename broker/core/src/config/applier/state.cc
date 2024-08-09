@@ -119,6 +119,37 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   if (_cache_dir.empty())
     _cache_dir = std::filesystem::path(PREFIX_VAR) / s.broker_name();
 
+  // Set pollers directory (for broker central).
+  _pollers_conf_dir = s.pollers_conf_dir();
+  if (!_pollers_conf_dir.empty()) {
+    logger->debug("Pollers configuration php cache detected at '{}'",
+                  _pollers_conf_dir.string());
+    _local_pollers_conf_dir = _cache_dir / "pollers";
+    try {
+      if (!std::filesystem::exists(_local_pollers_conf_dir))
+        std::filesystem::create_directory(_local_pollers_conf_dir);
+      else if (!std::filesystem::is_directory(_local_pollers_conf_dir)) {
+        std::filesystem::remove(_local_pollers_conf_dir);
+        std::filesystem::create_directory(_local_pollers_conf_dir);
+      }
+      std::filesystem::path working = _local_pollers_conf_dir / "working";
+      std::filesystem::remove_all(working);
+      std::filesystem::create_directory(working);
+    } catch (const std::exception& e) {
+      logger->error(
+          "Issues while attempting to create the local pollers configuration "
+          "directory '{}': {}",
+          _local_pollers_conf_dir.string(), e.what());
+      /* They are disabled because of the previous errors. */
+      _pollers_conf_dir = "";
+      _local_pollers_conf_dir = "";
+    }
+  } else {
+    logger->info(
+        "This server is not a central as there is no pollers configuration "
+        "directory");
+  }
+
   // Engine configuration directory (for cbmod)
   _engine_conf_dir = s.engine_conf_dir();
 
@@ -318,4 +349,23 @@ void state::remove_poller(uint64_t poller_id) {
 bool state::has_connection_from_poller(uint64_t poller_id) const {
   std::lock_guard<std::mutex> lck(_connected_pollers_m);
   return _connected_pollers.contains(poller_id);
+}
+
+/**
+ * @brief Get the pollers configuration directory used by the php if available.
+ * Otherwise returns an empty string.
+ *
+ * @return A directory name or an empty string.
+ */
+const std::filesystem::path& state::pollers_conf_dir() const noexcept {
+  return _pollers_conf_dir;
+}
+
+/**
+ * @brief Set the pollers configuration directory used by the php.
+ *
+ * @param dir The name of the directory to set.
+ */
+void state::set_pollers_conf_dir(const std::string& dir) {
+  _pollers_conf_dir = dir;
 }

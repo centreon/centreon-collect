@@ -52,6 +52,15 @@ class state {
   /* In a cbmod configuration, this string contains the directory containing
    * the Engine configuration */
   std::filesystem::path _engine_conf_dir;
+
+  /* In a Broker Central, currently we need the cache directory used by the PHP
+   * to generate all the pollers configurations. */
+  std::filesystem::path _pollers_conf_dir;
+
+  /* There is also the local pollers configuration directory where broker copies
+   * the pollers configuration. It is safer to work in a separate directory. */
+  std::filesystem::path _local_pollers_conf_dir;
+
   modules _modules;
 
   static stats _stats_conf;
@@ -79,6 +88,8 @@ class state {
   const std::string& poller_name() const noexcept;
   const std::filesystem::path& engine_conf_dir() const;
   void set_engine_conf_dir(const std::string& engine_conf_dir);
+  const std::filesystem::path& pollers_conf_dir() const noexcept;
+  void set_pollers_conf_dir(const std::string& dir);
   modules& get_modules();
   void add_poller(uint64_t poller_id, const std::string& poller_name);
   void remove_poller(uint64_t poller_id);

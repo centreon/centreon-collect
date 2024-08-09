@@ -257,6 +257,19 @@ state parser::parse(std::string const& file) {
           if (!misc::filesystem::readable(retval.module_directory()))
             throw msg_fmt("The module directory '{}' is not accessible",
                           retval.module_directory());
+        } else if (get_conf<state>({it.key(), it.value()}, "pollers_conf_dir",
+                                   retval, &state::pollers_conf_dir,
+                                   &json::is_string)) {
+          if (!std::filesystem::is_directory(retval.pollers_conf_dir()))
+            throw msg_fmt(
+                "The pollers configuration directory '{}' must be a directory",
+                retval.pollers_conf_dir());
+          if (!misc::filesystem::readable(retval.pollers_conf_dir()))
+            throw msg_fmt(
+                "The pollers configuration directory '{}' is not readable",
+                retval.pollers_conf_dir());
+          logger_config->debug("The pollers configuration is set to '{}' now",
+                               retval.pollers_conf_dir());
         } else if (get_conf<state>({it.key(), it.value()}, "cache_directory",
                                    retval, &state::cache_directory,
                                    &json::is_string)) {

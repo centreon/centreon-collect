@@ -43,6 +43,11 @@ class state {
   uint64_t _event_queues_total_size = 0u;
   bbdo::bbdo_version _bbdo_version;
   std::string _cache_directory;
+
+  /* This should be temporary, currently we take the files directly from the
+   * PHP centreon cache, in a little future, we will use an API. */
+  std::string _pollers_conf_dir;
+
   std::string _command_file;
   std::string _command_protocol;
   std::list<endpoint> _endpoints;
@@ -109,6 +114,8 @@ class state {
   bbdo::bbdo_version get_bbdo_version() const noexcept;
   void cache_directory(const std::string& dir);
   const std::string& cache_directory() const noexcept;
+  void pollers_conf_dir(const std::string& dir);
+  const std::string& pollers_conf_dir() const noexcept;
   void command_file(const std::string& file);
   const std::string& command_file() const noexcept;
   void command_protocol(const std::string& prot);

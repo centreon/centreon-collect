@@ -58,6 +58,7 @@ state::state(const state& other)
       _listen_address{other._listen_address},
       _broker_name(other._broker_name),
       _cache_directory(other._cache_directory),
+      _pollers_conf_dir(other._pollers_conf_dir),
       _command_file(other._command_file),
       _command_protocol(other._command_protocol),
       _endpoints(other._endpoints),
@@ -83,13 +84,14 @@ state::~state() {}
  *
  *  @return This object.
  */
-state& state::operator=(state const& other) {
+state& state::operator=(const state& other) {
   if (this != &other) {
     _broker_id = other._broker_id;
     _rpc_port = other._rpc_port;
     _listen_address = other._listen_address;
     _broker_name = other._broker_name;
     _cache_directory = other._cache_directory;
+    _pollers_conf_dir = other._pollers_conf_dir;
     _command_file = other._command_file;
     _command_protocol = other._command_protocol;
     _endpoints = other._endpoints;
@@ -219,6 +221,28 @@ void state::cache_directory(const std::string& dir) {
  */
 const std::string& state::cache_directory() const noexcept {
   return _cache_directory;
+}
+
+/**
+ *  Set the pollers configuration directory, i.e. the cache directory used by
+ *  the php to generate pollers configurations.
+ *
+ *  @param[in] dir  the directory name.
+ */
+void state::pollers_conf_dir(const std::string& dir) {
+  _pollers_conf_dir = dir;
+  if (_pollers_conf_dir[_pollers_conf_dir.size() - 1] != '/')
+    _pollers_conf_dir.append("/");
+}
+
+/**
+ *  Get the pollers configuration directory, i.e. the cache directory used by
+ *  the php to generate pollers configurations.
+ *
+ *  @return The pollers configuration directory name.
+ */
+const std::string& state::pollers_conf_dir() const noexcept {
+  return _pollers_conf_dir;
 }
 
 /**
