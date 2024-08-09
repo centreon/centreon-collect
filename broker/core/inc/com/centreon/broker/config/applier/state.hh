@@ -42,7 +42,7 @@ class state {
   };
 
  private:
-  std::string _cache_dir;
+  std::filesystem::path _cache_dir;
   uint32_t _poller_id;
   uint32_t _rpc_port;
   bbdo::bbdo_version _bbdo_version;
@@ -71,7 +71,7 @@ class state {
   state(const state&) = delete;
   state& operator=(const state&) = delete;
   void apply(const config::state& s, bool run_mux = true);
-  const std::string& cache_dir() const noexcept;
+  const std::filesystem::path& cache_dir() const noexcept;
   uint32_t rpc_port() const noexcept;
   bbdo::bbdo_version get_bbdo_version() const noexcept;
   uint32_t poller_id() const noexcept;

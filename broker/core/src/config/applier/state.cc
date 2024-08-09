@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/config/applier/state.hh"
 #include <filesystem>
-#include <system_error>
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/instance_broadcast.hh"
@@ -118,9 +117,7 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   // Set cache directory.
   _cache_dir = s.cache_directory();
   if (_cache_dir.empty())
-    _cache_dir.append(PREFIX_VAR);
-  _cache_dir.append("/");
-  _cache_dir.append(s.broker_name());
+    _cache_dir = std::filesystem::path(PREFIX_VAR) / s.broker_name();
 
   // Engine configuration directory (for cbmod)
   _engine_conf_dir = s.engine_conf_dir();
@@ -167,7 +164,7 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
  *
  *  @return Cache directory.
  */
-const std::string& state::cache_dir() const noexcept {
+const std::filesystem::path& state::cache_dir() const noexcept {
   return _cache_dir;
 }
 
