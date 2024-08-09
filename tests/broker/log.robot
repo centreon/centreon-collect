@@ -126,7 +126,7 @@ BLBD
 ...    ${SPACE}${SPACE}value: "error"
 ...    }
 ...    level {
-...    ${SPACE}${SPACE}key: "otel"
+...    ${SPACE}${SPACE}key: "otl"
 ...    ${SPACE}${SPACE}value: "error"
 ...    }
 ...    level {
