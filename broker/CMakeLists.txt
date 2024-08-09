@@ -455,6 +455,7 @@ target_link_libraries(
   crypto
   ssl
   pthread
+  engine_conf
   dl)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)

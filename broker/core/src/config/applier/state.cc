@@ -17,6 +17,8 @@
  */
 
 #include "com/centreon/broker/config/applier/state.hh"
+#include <filesystem>
+#include <system_error>
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/instance_broadcast.hh"
@@ -120,6 +122,9 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   _cache_dir.append("/");
   _cache_dir.append(s.broker_name());
 
+  // Engine configuration directory (for cbmod)
+  _engine_conf_dir = s.engine_conf_dir();
+
   // Apply modules configuration.
   _modules.apply(s.module_list(), s.module_directory(), &s);
   static bool first_application(true);
@@ -218,6 +223,24 @@ uint32_t state::poller_id() const noexcept {
  */
 const std::string& state::poller_name() const noexcept {
   return _poller_name;
+}
+
+/**
+ * @brief Get the Engine configuration directory. Available on an Engine cbmod.
+ *
+ * @return The Engine configuration directory.
+ */
+const std::filesystem::path& state::engine_conf_dir() const {
+  return _engine_conf_dir;
+}
+
+/**
+ * @brief Set the Engine configuration directory. Available on an Engine cbmod.
+ *
+ * @param engine_conf_dir The directory to set.
+ */
+void state::set_engine_conf_dir(const std::string& engine_conf_dir) {
+  _engine_conf_dir = engine_conf_dir;
 }
 
 /**

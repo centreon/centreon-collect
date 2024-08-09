@@ -34,9 +34,9 @@
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/parser.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -757,12 +757,19 @@ void stream::negotiate(stream::negotiation_type neg) {
       _write(welcome_packet);
     } else {
       auto welcome{std::make_shared<pb_welcome>()};
-      welcome->mut_obj().mutable_version()->set_major(_bbdo_version.major_v);
-      welcome->mut_obj().mutable_version()->set_minor(_bbdo_version.minor_v);
-      welcome->mut_obj().mutable_version()->set_patch(_bbdo_version.patch);
-      welcome->mut_obj().set_extensions(extensions);
-      welcome->mut_obj().set_poller_id(
-          config::applier::state::instance().poller_id());
+      auto& obj = welcome->mut_obj();
+      obj.mutable_version()->set_major(_bbdo_version.major_v);
+      obj.mutable_version()->set_minor(_bbdo_version.minor_v);
+      obj.mutable_version()->set_patch(_bbdo_version.patch);
+      obj.set_extensions(extensions);
+      obj.set_poller_id(config::applier::state::instance().poller_id());
+      const std::string& engine_conf_dir =
+          config::applier::state::instance().engine_conf_dir();
+      if (!engine_conf_dir.empty()) {
+        obj.set_version_conf(
+            com::centreon::engine::configuration::parser::hash_directory(
+                engine_conf_dir));
+      }
       welcome->mut_obj().set_poller_name(
           config::applier::state::instance().poller_name());
       _write(welcome);
@@ -868,14 +875,13 @@ void stream::negotiate(stream::negotiation_type neg) {
       /* if _negotiate, we send all the extensions we would like to have,
        * otherwise we only send the mandatory extensions */
       auto welcome(std::make_shared<pb_welcome>());
-      welcome->mut_obj().mutable_version()->set_major(_bbdo_version.major_v);
-      welcome->mut_obj().mutable_version()->set_minor(_bbdo_version.minor_v);
-      welcome->mut_obj().mutable_version()->set_patch(_bbdo_version.patch);
-      welcome->mut_obj().set_extensions(extensions);
-      welcome->mut_obj().set_poller_id(
-          config::applier::state::instance().poller_id());
-      welcome->mut_obj().set_poller_name(
-          config::applier::state::instance().poller_name());
+      auto& obj = welcome->mut_obj();
+      obj.mutable_version()->set_major(_bbdo_version.major_v);
+      obj.mutable_version()->set_minor(_bbdo_version.minor_v);
+      obj.mutable_version()->set_patch(_bbdo_version.patch);
+      obj.set_extensions(extensions);
+      obj.set_poller_id(config::applier::state::instance().poller_id());
+      obj.set_poller_name(config::applier::state::instance().poller_name());
 
       _write(welcome);
       _substream->flush();

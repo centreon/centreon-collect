@@ -68,6 +68,7 @@ state::state(const state& other)
       _poller_id(other._poller_id),
       _poller_name(other._poller_name),
       _pool_size(other._pool_size),
+      _engine_conf_dir(other._engine_conf_dir),
       _log_conf(other._log_conf) {}
 
 /**
@@ -99,6 +100,7 @@ state& state::operator=(state const& other) {
     _poller_id = other._poller_id;
     _poller_name = other._poller_name;
     _pool_size = other._pool_size;
+    _engine_conf_dir = other._engine_conf_dir;
   }
   return *this;
 }
@@ -147,7 +149,7 @@ int state::broker_id() const noexcept {
  *
  *  @param[in] name  Broker name.
  */
-void state::broker_name(std::string const& name) {
+void state::broker_name(const std::string& name) {
   _broker_name = name;
 }
 
@@ -156,7 +158,7 @@ void state::broker_name(std::string const& name) {
  *
  *  @return Broker name.
  */
-std::string const& state::broker_name() const noexcept {
+const std::string& state::broker_name() const noexcept {
   return _broker_name;
 }
 
@@ -204,7 +206,7 @@ bbdo::bbdo_version state::get_bbdo_version() const noexcept {
  *
  *  @param[in] dir  Cache directory.
  */
-void state::cache_directory(std::string const& dir) {
+void state::cache_directory(const std::string& dir) {
   _cache_directory = dir;
   if (_cache_directory[_cache_directory.size() - 1] != '/')
     _cache_directory.append("/");
@@ -215,7 +217,7 @@ void state::cache_directory(std::string const& dir) {
  *
  *  @return Cache directory.
  */
-std::string const& state::cache_directory() const noexcept {
+const std::string& state::cache_directory() const noexcept {
   return _cache_directory;
 }
 
@@ -224,7 +226,7 @@ std::string const& state::cache_directory() const noexcept {
  *
  *  @param[in] file  The command file.
  */
-void state::command_file(std::string const& file) {
+void state::command_file(const std::string& file) {
   _command_file = file;
 }
 
@@ -233,7 +235,7 @@ void state::command_file(std::string const& file) {
  *
  *  @return  The command file.
  */
-std::string const& state::command_file() const noexcept {
+const std::string& state::command_file() const noexcept {
   return _command_file;
 }
 
@@ -242,7 +244,7 @@ std::string const& state::command_file() const noexcept {
  *
  *  @param[in] prot  The command protocol.
  */
-void state::command_protocol(std::string const& prot) {
+void state::command_protocol(const std::string& prot) {
   _command_protocol = prot;
 }
 
@@ -251,7 +253,7 @@ void state::command_protocol(std::string const& prot) {
  *
  *  @return  The command protocol.
  */
-std::string const& state::command_protocol() const noexcept {
+const std::string& state::command_protocol() const noexcept {
   return _command_protocol;
 }
 
@@ -299,7 +301,7 @@ int state::event_queue_max_size() const noexcept {
  *
  *  @return Module directory.
  */
-std::string const& state::module_directory() const noexcept {
+const std::string& state::module_directory() const noexcept {
   return _module_dir;
 }
 
@@ -308,7 +310,7 @@ std::string const& state::module_directory() const noexcept {
  *
  *  @param[in] dir Module directory.
  */
-void state::module_directory(std::string const& dir) {
+void state::module_directory(const std::string& dir) {
   _module_dir = dir;
 }
 
@@ -417,7 +419,7 @@ int state::pool_size() const noexcept {
  *
  *  @param[in] name  Poller name.
  */
-void state::poller_name(std::string const& name) {
+void state::poller_name(const std::string& name) {
   _poller_name = name;
 }
 
@@ -426,8 +428,26 @@ void state::poller_name(std::string const& name) {
  *
  *  @return Poller name.
  */
-std::string const& state::poller_name() const noexcept {
+const std::string& state::poller_name() const noexcept {
   return _poller_name;
+}
+
+/**
+ *  Set the Engine configuration directory. Useful for a cbmod.
+ *
+ *  @param[in] name  Engine configuration directory name.
+ */
+void state::set_engine_conf_dir(const std::string& name) {
+  _engine_conf_dir = name;
+}
+
+/**
+ *  Get the Engine configuration directory.
+ *
+ *  @return Engine configuration directory name.
+ */
+const std::string& state::engine_conf_dir() const {
+  return _engine_conf_dir;
 }
 
 void state::rpc_port(uint16_t port) noexcept {

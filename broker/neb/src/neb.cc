@@ -162,8 +162,7 @@ int nebmodule_init(int flags, const char* args, void* handle) {
       com::centreon::broker::config::state s{
           p.parse(neb::gl_configuration_file)};
 
-      com::centreon::broker::config::applier::state::instance()
-          .set_engine_conf_dir(engine_conf_dir);
+      s.set_engine_conf_dir(engine_conf_dir);
 
       // Initialization.
       /* This is a little hack to avoid to replace the log file set by
