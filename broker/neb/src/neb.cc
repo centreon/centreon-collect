@@ -152,17 +152,14 @@ int nebmodule_init(int flags, const char* args, void* handle) {
 
       std::string engine_conf_dir;
 
-      if (vm.count("engine_conf_dir"))
+      if (vm.count("engine_conf_dir")) {
         engine_conf_dir = vm["engine_conf_dir"].as<std::string>();
-      else
-        throw msg_fmt("main: no Engine configuration directory provided");
+      }
 
       // Try configuration parsing.
       com::centreon::broker::config::parser p;
       com::centreon::broker::config::state s{
           p.parse(neb::gl_configuration_file)};
-
-      s.set_engine_conf_dir(engine_conf_dir);
 
       // Initialization.
       /* This is a little hack to avoid to replace the log file set by
@@ -173,6 +170,12 @@ int nebmodule_init(int flags, const char* args, void* handle) {
         log_v2::instance().apply(s.log_conf());
       } catch (const std::exception& e) {
         log_v2::instance().get(log_v2::CORE)->error("main: {}", e.what());
+      }
+
+      if (!engine_conf_dir.empty()) {
+        neb_logger->debug("Engine configuration directory set to '{}'",
+                          engine_conf_dir);
+        s.set_engine_conf_dir(engine_conf_dir);
       }
 
       com::centreon::broker::config::applier::state::instance().apply(s);

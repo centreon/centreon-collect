@@ -3648,3 +3648,23 @@ def ctn_send_otl_to_engine(port: int, resource_metrics: list):
             logger.console("gRPC server not ready")
 
 
+def ctn_config_engine_add_engine_conf_dir(pollers: int):
+    """
+    Add the needed configuration to cbmod so that it knows where is the Engine configuration.
+
+    Args:
+        pollers (int): The number of pollers to modify.
+    """
+    for poller in range(pollers):
+        with open(f"{CONF_DIR}/config{poller}/centengine.cfg", "r") as ff:
+            lines = ff.readlines()
+        r = re.compile(r"^\s*broker_module=/usr/lib64/nagios/cbmod.so (.*)$")
+        for i in range(len(lines)):
+            m = r.match(lines[i])
+            if m:
+                lines[i] = f"broker_module=/usr/lib64/nagios/cbmod.so --config_file={m.group(1)} --engine_conf_dir={CONF_DIR}/config{poller}\n"
+                break
+        with open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w+") as ff:
+            ff.writelines(lines)
+
+
