@@ -181,8 +181,7 @@ void availability_thread::_build_availabilities(time_t midnight) {
   if (_should_rebuild_all) {
     query_str = fmt::format(
         "SELECT MIN(start_time), MAX(end_time), MIN(IFNULL(end_time, '0'))"
-        "  FROM mod_bam_reporting_ba_events"
-        "  WHERE ba_id IN ({})",
+        " FROM mod_bam_reporting_ba_events  WHERE ba_id IN ({})",
         _bas_to_rebuild);
     try {
       std::promise<database::mysql_result> promise;
@@ -197,7 +196,7 @@ void availability_thread::_build_availabilities(time_t midnight) {
       // If there is opened events, rebuild until midnight of this day.
       // If not, rebuild until the last closed events.
       if (res.value_as_i32(2) != 0)
-        last_day = misc::start_of_day(res.value_as_f64(1));
+        last_day = misc::start_of_day(res.value_as_i32(1));
 
       _delete_all_availabilities();
     } catch (const std::exception& e) {

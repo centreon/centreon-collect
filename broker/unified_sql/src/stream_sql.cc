@@ -501,9 +501,11 @@ void stream::_process_pb_acknowledgement(const std::shared_ptr<io::data>& d) {
               {3, "instance_id", io::protobuf_base::invalid_on_zero, 0},
               {4, "type", 0, 0},
               {5, "author", 0,
-               get_acknowledgements_col_size(acknowledgements_author)},
+               get_centreon_storage_acknowledgements_col_size(
+                   centreon_storage_acknowledgements_author)},
               {6, "comment_data", 0,
-               get_acknowledgements_col_size(acknowledgements_comment_data)},
+               get_centreon_storage_acknowledgements_col_size(
+                   centreon_storage_acknowledgements_comment_data)},
               {7, "sticky", 0, 0},
               {8, "notify_contacts", 0, 0},
               {9, "entry_time", 0, 0},
@@ -548,11 +550,13 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
     auto binder = [&](database::mysql_bulk_bind& b) {
       b.set_value_as_str(
           0, misc::string::escape(cmmnt.author,
-                                  get_comments_col_size(comments_author)));
+                                  get_centreon_storage_comments_col_size(
+                                      centreon_storage_comments_author)));
       b.set_value_as_i32(1, cmmnt.comment_type);
       b.set_value_as_str(
           2, misc::string::escape(cmmnt.data,
-                                  get_comments_col_size(comments_data)));
+                                  get_centreon_storage_comments_col_size(
+                                      centreon_storage_comments_data)));
       if (cmmnt.deletion_time.is_null())
         b.set_null_i64(3);
       else
@@ -580,9 +584,11 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
     _comments->add_multi_row(fmt::format(
         "('{}',{},'{}',{},{},{},{},{},{},{},{},{},{},{})",
         misc::string::escape(cmmnt.author,
-                             get_comments_col_size(comments_author)),
+                             get_centreon_storage_comments_col_size(
+                                 centreon_storage_comments_author)),
         cmmnt.comment_type,
-        misc::string::escape(cmmnt.data, get_comments_col_size(comments_data)),
+        misc::string::escape(cmmnt.data, get_centreon_storage_comments_col_size(
+                                             centreon_storage_comments_data)),
         cmmnt.deletion_time, cmmnt.entry_time, cmmnt.entry_type,
         cmmnt.expire_time, cmmnt.expires, int64_not_minus_one{cmmnt.host_id},
         cmmnt.internal_id, int(cmmnt.persistent),
@@ -619,15 +625,18 @@ void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
     std::lock_guard<std::mutex> lck(_queues_m);
     _cv.push_query(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
-        misc::string::escape(
-            cv.name(), get_customvariables_col_size(customvariables_name)),
+        misc::string::escape(cv.name(),
+                             get_centreon_storage_customvariables_col_size(
+                                 centreon_storage_customvariables_name)),
         cv.host_id(), cv.service_id(),
         misc::string::escape(
             cv.default_value(),
-            get_customvariables_col_size(customvariables_default_value)),
+            get_centreon_storage_customvariables_col_size(
+                centreon_storage_customvariables_default_value)),
         cv.modified() ? 1 : 0, cv.type(), cv.update_time(),
-        misc::string::escape(
-            cv.value(), get_customvariables_col_size(customvariables_value))));
+        misc::string::escape(cv.value(),
+                             get_centreon_storage_customvariables_col_size(
+                                 centreon_storage_customvariables_value))));
   } else {
     int conn = special_conn::custom_variable % _mysql.connections_count();
     _finish_action(-1, actions::custom_variables);
@@ -666,11 +675,13 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
     auto binder = [&](database::mysql_bulk_bind& b) {
       b.set_value_as_str(
           0, misc::string::escape(cmmnt.author(),
-                                  get_comments_col_size(comments_author)));
+                                  get_centreon_storage_comments_col_size(
+                                      centreon_storage_comments_author)));
       b.set_value_as_i32(1, int(cmmnt.type()));
       b.set_value_as_str(
           2, misc::string::escape(cmmnt.data(),
-                                  get_comments_col_size(comments_data)));
+                                  get_centreon_storage_comments_col_size(
+                                      centreon_storage_comments_data)));
       b.set_value_as_i64(3, cmmnt.deletion_time(),
                          mapping::entry::invalid_on_minus_one |
                              mapping::entry::invalid_on_zero);
@@ -695,10 +706,12 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
     _comments->add_multi_row(fmt::format(
         "('{}',{},'{}',{},{},{},{},{},{},{},{},{},{},{})",
         misc::string::escape(cmmnt.author(),
-                             get_comments_col_size(comments_author)),
+                             get_centreon_storage_comments_col_size(
+                                 centreon_storage_comments_author)),
         cmmnt.type(),
         misc::string::escape(cmmnt.data(),
-                             get_comments_col_size(comments_data)),
+                             get_centreon_storage_comments_col_size(
+                                 centreon_storage_comments_data)),
         uint64_not_null_not_neg_1{cmmnt.deletion_time()},
         uint64_not_null_not_neg_1{cmmnt.entry_time()}, cmmnt.entry_type(),
         uint64_not_null_not_neg_1{cmmnt.expire_time()}, cmmnt.expires(),
@@ -735,15 +748,18 @@ void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
     std::lock_guard<std::mutex> lck(_queues_m);
     _cv.push_query(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
-        misc::string::escape(
-            cv.name, get_customvariables_col_size(customvariables_name)),
+        misc::string::escape(cv.name,
+                             get_centreon_storage_customvariables_col_size(
+                                 centreon_storage_customvariables_name)),
         cv.host_id, cv.service_id,
         misc::string::escape(
             cv.default_value,
-            get_customvariables_col_size(customvariables_default_value)),
+            get_centreon_storage_customvariables_col_size(
+                centreon_storage_customvariables_default_value)),
         cv.modified ? 1 : 0, cv.var_type, cv.update_time,
-        misc::string::escape(
-            cv.value, get_customvariables_col_size(customvariables_value))));
+        misc::string::escape(cv.value,
+                             get_centreon_storage_customvariables_col_size(
+                                 centreon_storage_customvariables_value))));
     /* Here, we do not update the custom variable boolean ack flag,
      * because it will be updated later when the bulk query will be
      * done: stream::_update_customvariables() */
@@ -780,10 +796,12 @@ void stream::_process_custom_variable_status(
   _cvs.push_query(fmt::format(
       "('{}',{},{},{},{},'{}')",
       misc::string::escape(cv.name,
-                           get_customvariables_col_size(customvariables_name)),
+                           get_centreon_storage_customvariables_col_size(
+                               centreon_storage_customvariables_name)),
       cv.host_id, cv.service_id, cv.modified ? 1 : 0, cv.update_time,
-      misc::string::escape(
-          cv.value, get_customvariables_col_size(customvariables_value))));
+      misc::string::escape(cv.value,
+                           get_centreon_storage_customvariables_col_size(
+                               centreon_storage_customvariables_value))));
 
   SPDLOG_LOGGER_INFO(log_v2::sql(),
                      "SQL: updating custom variable '{}' of ({}, {})", cv.name,
@@ -807,11 +825,13 @@ void stream::_process_pb_custom_variable_status(
   _cvs.push_query(fmt::format(
       "('{}',{},{},{},{},'{}')",
       misc::string::escape(data.name(),
-                           get_customvariables_col_size(customvariables_name)),
+                           get_centreon_storage_customvariables_col_size(
+                               centreon_storage_customvariables_name)),
       data.host_id(), data.service_id(), data.modified() ? 1 : 0,
       data.update_time(),
-      misc::string::escape(
-          data.value(), get_customvariables_col_size(customvariables_value))));
+      misc::string::escape(data.value(),
+                           get_centreon_storage_customvariables_col_size(
+                               centreon_storage_customvariables_value))));
 
   SPDLOG_LOGGER_INFO(log_v2::sql(),
                      "SQL: updating custom variable '{}' of ({}, {})",
@@ -855,7 +875,8 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
           b.set_value_as_i64(1, dd.actual_start_time.get_time_t());
         b.set_value_as_str(
             2, misc::string::escape(dd.author,
-                                    get_downtimes_col_size(downtimes_author)));
+                                    get_centreon_storage_downtimes_col_size(
+                                        centreon_storage_downtimes_author)));
         b.set_value_as_i32(3, dd.downtime_type);
         if (dd.deletion_time.is_null())
           b.set_null_i64(4);
@@ -886,8 +907,9 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
         b.set_value_as_tiny(15, int(dd.was_cancelled));
         b.set_value_as_tiny(16, int(dd.was_started));
         b.set_value_as_str(
-            17, misc::string::escape(dd.comment, get_downtimes_col_size(
-                                                     downtimes_comment_data)));
+            17, misc::string::escape(
+                    dd.comment, get_centreon_storage_downtimes_col_size(
+                                    centreon_storage_downtimes_comment_data)));
         b.next_row();
       };
       _downtimes->add_bulk_row(binder);
@@ -896,13 +918,16 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
           "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
           dd.actual_end_time, dd.actual_start_time,
           misc::string::escape(dd.author,
-                               get_downtimes_col_size(downtimes_author)),
-          dd.downtime_type, dd.deletion_time, dd.duration, dd.end_time,
-          dd.entry_time, dd.fixed, dd.host_id, dd.poller_id, dd.internal_id,
-          dd.service_id, dd.start_time, int64_not_minus_one{dd.triggered_by},
-          dd.was_cancelled, dd.was_started,
-          misc::string::escape(
-              dd.comment, get_downtimes_col_size(downtimes_comment_data))));
+                               get_centreon_storage_downtimes_col_size(
+                                   centreon_storage_downtimes_author)),
+          dd.downtime_type, dd.deletion_time, dd.duration,
+          dd.end_time, dd.entry_time, dd.fixed,
+          dd.host_id, dd.poller_id, dd.internal_id, dd.service_id,
+          dd.start_time, int64_not_minus_one{dd.triggered_by}, dd.was_cancelled,
+          dd.was_started,
+          misc::string::escape(dd.comment,
+                               get_centreon_storage_downtimes_col_size(
+                                   centreon_storage_downtimes_comment_data))));
     }
   }
 }
@@ -943,7 +968,8 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
                            mapping::entry::invalid_on_minus_one);
         b.set_value_as_str(
             2, misc::string::escape(dt_obj.author(),
-                                    get_downtimes_col_size(downtimes_author)));
+                                    get_centreon_storage_downtimes_col_size(
+                                        centreon_storage_downtimes_author)));
         b.set_value_as_i32(3, int(dt_obj.type()));
         b.set_value_as_i64(4, dt_obj.deletion_time(),
                            mapping::entry::invalid_on_minus_one);
@@ -965,10 +991,11 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
           b.set_value_as_i32(14, dt_obj.triggered_by());
         b.set_value_as_tiny(15, int(dt_obj.cancelled()));
         b.set_value_as_tiny(16, int(dt_obj.started()));
-        b.set_value_as_str(17,
-                           misc::string::escape(
-                               dt_obj.comment_data(),
-                               get_downtimes_col_size(downtimes_comment_data)));
+        b.set_value_as_str(
+            17,
+            misc::string::escape(dt_obj.comment_data(),
+                                 get_centreon_storage_downtimes_col_size(
+                                     centreon_storage_downtimes_comment_data)));
         b.next_row();
       };
       _downtimes->add_bulk_row(binder);
@@ -978,7 +1005,8 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
           uint64_not_null_not_neg_1{dt_obj.actual_end_time()},
           uint64_not_null_not_neg_1{dt_obj.actual_start_time()},
           misc::string::escape(dt_obj.author(),
-                               get_downtimes_col_size(downtimes_author)),
+                               get_centreon_storage_downtimes_col_size(
+                                   centreon_storage_downtimes_author)),
           dt_obj.type(), uint64_not_null_not_neg_1{dt_obj.deletion_time()},
           dt_obj.duration(), uint64_not_null_not_neg_1{dt_obj.end_time()},
           int64_not_minus_one{dt_obj.entry_time()}, dt_obj.fixed(),
@@ -986,9 +1014,9 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
           dt_obj.service_id(), uint64_not_null_not_neg_1{dt_obj.start_time()},
           uint64_not_null{dt_obj.triggered_by()}, dt_obj.cancelled(),
           dt_obj.started(),
-          misc::string::escape(
-              dt_obj.comment_data(),
-              get_downtimes_col_size(downtimes_comment_data))));
+          misc::string::escape(dt_obj.comment_data(),
+                               get_centreon_storage_downtimes_col_size(
+                                   centreon_storage_downtimes_comment_data))));
     }
   }
 }
@@ -1119,7 +1147,9 @@ void stream::_process_pb_host_check(const std::shared_ptr<io::data>& d) {
           _mysql, "hosts ", /*space is mandatory to avoid conflict with
                                _process_host_check request*/
           {{5, "host_id", io::protobuf_base::invalid_on_zero, 0},
-           {4, "command_line", 0, get_hosts_col_size(hosts_command_line)}});
+           {4, "command_line", 0,
+            get_centreon_storage_hosts_col_size(
+                centreon_storage_hosts_command_line)}});
     }
 
     // Processing.
@@ -1590,15 +1620,19 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                 {5, "enabled", 0, 0},
                 {6, "scheduled_downtime_depth", 0, 0},
                 {7, "check_command", 0,
-                 get_hosts_col_size(hosts_check_command)},
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_check_command)},
                 {8, "check_interval", 0, 0},
-                {9, "check_period", 0, get_hosts_col_size(hosts_check_period)},
+                {9, "check_period", 0,
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_check_period)},
                 {10, "check_type", 0, 0},
                 {11, "check_attempt", 0, 0},
                 {12, "state", 0, 0},
                 {13, "event_handler_enabled", 0, 0},
                 {14, "event_handler", 0,
-                 get_hosts_col_size(hosts_event_handler)},
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_event_handler)},
                 {15, "execution_time", 0, 0},
                 {16, "flap_detection", 0, 0},
                 {17, "checked", 0, 0},
@@ -1624,41 +1658,63 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                  io::protobuf_base::invalid_on_zero, 0},
                 {33, "no_more_notifications", 0, 0},
                 {34, "notify", 0, 0},
-                {35, "output", 0, get_hosts_col_size(hosts_output)},
+                {35, "output", 0,
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_output)},
                 {36, "passive_checks", 0, 0},
                 {37, "percent_state_change", 0, 0},
-                {38, "perfdata", 0, get_hosts_col_size(hosts_perfdata)},
+                {38, "perfdata", 0,
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_perfdata)},
                 {39, "retry_interval", 0, 0},
                 {40, "should_be_scheduled", 0, 0},
                 {41, "obsess_over_host", 0, 0},
                 {42, "state_type", 0, 0},
-                {43, "action_url", 0, get_hosts_col_size(hosts_action_url)},
-                {44, "address", 0, get_hosts_col_size(hosts_address)},
-                {45, "alias", 0, get_hosts_col_size(hosts_alias)},
+                {43, "action_url", 0,
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_action_url)},
+                {44, "address", 0,
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_address)},
+                {45, "alias", 0,
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_alias)},
                 {46, "check_freshness", 0, 0},
                 {47, "default_active_checks", 0, 0},
                 {48, "default_event_handler_enabled", 0, 0},
                 {49, "default_flap_detection", 0, 0},
                 {50, "default_notify", 0, 0},
                 {51, "default_passive_checks", 0, 0},
-                {52, "display_name", 0, get_hosts_col_size(hosts_display_name)},
+                {52, "display_name", 0,
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_display_name)},
                 {53, "first_notification_delay", 0, 0},
                 {54, "flap_detection_on_down", 0, 0},
                 {55, "flap_detection_on_unreachable", 0, 0},
                 {56, "flap_detection_on_up", 0, 0},
                 {57, "freshness_threshold", 0, 0},
                 {58, "high_flap_threshold", 0, 0},
-                {59, "name", 0, get_hosts_col_size(hosts_name)},
-                {60, "icon_image", 0, get_hosts_col_size(hosts_icon_image)},
+                {59, "name", 0,
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_name)},
+                {60, "icon_image", 0,
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_icon_image)},
                 {61, "icon_image_alt", 0,
-                 get_hosts_col_size(hosts_icon_image_alt)},
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_icon_image_alt)},
                 {62, "instance_id", mapping::entry::invalid_on_zero, 0},
                 {63, "low_flap_threshold", 0, 0},
-                {64, "notes", 0, get_hosts_col_size(hosts_notes)},
-                {65, "notes_url", 0, get_hosts_col_size(hosts_notes_url)},
+                {64, "notes", 0,
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_notes)},
+                {65, "notes_url", 0,
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_notes_url)},
                 {66, "notification_interval", 0, 0},
                 {67, "notification_period", 0,
-                 get_hosts_col_size(hosts_notification_period)},
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_notification_period)},
                 {68, "notify_on_down", 0, 0},
                 {69, "notify_on_downtime", 0, 0},
                 {70, "notify_on_flapping", 0, 0},
@@ -1668,10 +1724,13 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                 {74, "stalk_on_unreachable", 0, 0},
                 {75, "stalk_on_up", 0, 0},
                 {76, "statusmap_image", 0,
-                 get_hosts_col_size(hosts_statusmap_image)},
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_statusmap_image)},
                 {77, "retain_nonstatus_information", 0, 0},
                 {78, "retain_status_information", 0, 0},
-                {79, "timezone", 0, get_hosts_col_size(hosts_timezone)},
+                {79, "timezone", 0,
+                 get_centreon_storage_hosts_col_size(
+                     centreon_storage_hosts_timezone)},
             });
         if (_store_in_resources) {
           _resources_host_insert = _mysql.prepare_query(
@@ -1749,19 +1808,26 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
   if (h.enabled()) {
     uint64_t sid = 0;
     fmt::string_view name{misc::string::truncate(
-        h.name(), get_resources_col_size(resources_name))};
+        h.name(), get_centreon_storage_resources_col_size(
+                      centreon_storage_resources_name))};
     fmt::string_view address{misc::string::truncate(
-        h.address(), get_resources_col_size(resources_address))};
+        h.address(), get_centreon_storage_resources_col_size(
+                         centreon_storage_resources_address))};
     fmt::string_view alias{misc::string::truncate(
-        h.alias(), get_resources_col_size(resources_alias))};
+        h.alias(), get_centreon_storage_resources_col_size(
+                       centreon_storage_resources_alias))};
     fmt::string_view parent_name{misc::string::truncate(
-        h.name(), get_resources_col_size(resources_parent_name))};
+        h.name(), get_centreon_storage_resources_col_size(
+                      centreon_storage_resources_parent_name))};
     fmt::string_view notes_url{misc::string::truncate(
-        h.notes_url(), get_resources_col_size(resources_notes_url))};
+        h.notes_url(), get_centreon_storage_resources_col_size(
+                           centreon_storage_resources_notes_url))};
     fmt::string_view notes{misc::string::truncate(
-        h.notes(), get_resources_col_size(resources_notes))};
+        h.notes(), get_centreon_storage_resources_col_size(
+                       centreon_storage_resources_notes))};
     fmt::string_view action_url{misc::string::truncate(
-        h.action_url(), get_resources_col_size(resources_action_url))};
+        h.action_url(), get_centreon_storage_resources_col_size(
+                            centreon_storage_resources_action_url))};
 
     // INSERT
     if (found == _resource_cache.end()) {
@@ -2033,12 +2099,14 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
     query += fmt::format(
         " event_handler='{}',",
         misc::string::escape(ah.event_handler(),
-                             get_hosts_col_size(hosts_event_handler)));
+                             get_centreon_storage_hosts_col_size(
+                                 centreon_storage_hosts_event_handler)));
   if (ah.has_check_command())
     query += fmt::format(
         " check_command='{}',",
         misc::string::escape(ah.check_command(),
-                             get_hosts_col_size(hosts_check_command)));
+                             get_centreon_storage_hosts_col_size(
+                                 centreon_storage_hosts_check_command)));
   if (ah.has_check_interval())
     query += fmt::format(" check_interval={},", ah.check_interval());
   if (ah.has_retry_interval())
@@ -2052,13 +2120,15 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
     query += fmt::format(
         " check_period='{}',",
         misc::string::escape(ah.check_period(),
-                             get_hosts_col_size(hosts_check_period)));
+                             get_centreon_storage_hosts_col_size(
+                                 centreon_storage_hosts_check_period)));
   if (ah.has_notification_period())
     query +=
         fmt::format(" notification_period='{}',",
                     misc::string::escape(
                         ah.notification_period(),
-                        get_services_col_size(services_notification_period)));
+                        get_centreon_storage_services_col_size(
+                            centreon_storage_services_notification_period)));
 
   // If nothing was added to query, we can exit immediately.
   if (query.size() > buf.size()) {
@@ -2162,10 +2232,12 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         std::string full_output{
             fmt::format("{}\n{}", hscr.output(), hscr.long_output())};
         size_t size = misc::string::adjust_size_utf8(
-            full_output, get_hosts_col_size(hosts_output));
+            full_output,
+            get_centreon_storage_hosts_col_size(centreon_storage_hosts_output));
         b->set_value_as_str(10, fmt::string_view(full_output.data(), size));
         size = misc::string::adjust_size_utf8(
-            hscr.perfdata(), get_hosts_col_size(hosts_perfdata));
+            hscr.perfdata(), get_centreon_storage_hosts_col_size(
+                                 centreon_storage_hosts_perfdata));
         b->set_value_as_str(11, fmt::string_view(hscr.perfdata().data(), size));
         b->set_value_as_bool(12, hscr.flapping());
         b->set_value_as_f64(13, hscr.percent_state_change());
@@ -2211,11 +2283,13 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         std::string full_output{
             fmt::format("{}\n{}", hscr.output(), hscr.long_output())};
         size_t size = misc::string::adjust_size_utf8(
-            full_output, get_hosts_col_size(hosts_output));
+            full_output,
+            get_centreon_storage_hosts_col_size(centreon_storage_hosts_output));
         _hscr_update->bind_value_as_str(
             10, fmt::string_view(full_output.data(), size));
         size = misc::string::adjust_size_utf8(
-            hscr.perfdata(), get_hosts_col_size(hosts_perfdata));
+            hscr.perfdata(), get_centreon_storage_hosts_col_size(
+                                 centreon_storage_hosts_perfdata));
         _hscr_update->bind_value_as_str(
             11, fmt::string_view(hscr.perfdata().data(), size));
         _hscr_update->bind_value_as_bool(12, hscr.flapping());
@@ -2400,14 +2474,20 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
       query_preparator qp(neb::pb_instance::static_type(), unique);
       _pb_instance_insupdate = qp.prepare_insert_or_update_table(
           _mysql, "instances ",
-          {{2, "engine", 0, get_instances_col_size(instances_engine)},
+          {{2, "engine", 0,
+            get_centreon_storage_instances_col_size(
+                centreon_storage_instances_engine)},
            {3, "running", 0, 0},
-           {4, "name", 0, get_instances_col_size(instances_name)},
+           {4, "name", 0,
+            get_centreon_storage_instances_col_size(
+                centreon_storage_instances_name)},
            {5, "pid", io::protobuf_base::invalid_on_zero, 0},
            {6, "instance_id", io::protobuf_base::invalid_on_zero, 0},
            {7, "end_time", 0, 0},
            {8, "start_time", 0, 0},
-           {9, "version", 0, get_instances_col_size(instances_version)}});
+           {9, "version", 0,
+            get_centreon_storage_instances_col_size(
+                centreon_storage_instances_version)}});
     }
 
     // Process object.
@@ -2503,9 +2583,11 @@ void stream::_process_pb_instance_status(const std::shared_ptr<io::data>& d) {
            {7, "check_hosts_freshness", 0, 0},
            {8, "check_services_freshness", 0, 0},
            {9, "global_host_event_handler", 0,
-            get_instances_col_size(instances_global_host_event_handler)},
+            get_centreon_storage_instances_col_size(
+                centreon_storage_instances_global_host_event_handler)},
            {10, "global_service_event_handler", 0,
-            get_instances_col_size(instances_global_service_event_handler)},
+            get_centreon_storage_instances_col_size(
+                centreon_storage_instances_global_service_event_handler)},
            {11, "last_alive", 0, 0},
            {12, "last_command_check", 0, 0},
            {13, "obsess_over_hosts", 0, 0},
@@ -2547,25 +2629,33 @@ void stream::_process_log(const std::shared_ptr<io::data>& d) {
       b.set_value_as_i64(2, le.service_id);
       b.set_value_as_str(
           3, misc::string::escape(le.host_name,
-                                  get_logs_col_size(logs_host_name)));
+                                  get_centreon_storage_logs_col_size(
+                                      centreon_storage_logs_host_name)));
       b.set_value_as_str(
           4, misc::string::escape(le.poller_name,
-                                  get_logs_col_size(logs_instance_name)));
+                                  get_centreon_storage_logs_col_size(
+                                      centreon_storage_logs_instance_name)));
       b.set_value_as_i32(5, le.log_type);
       b.set_value_as_i32(6, le.msg_type);
       b.set_value_as_str(
           7, misc::string::escape(le.notification_cmd,
-                                  get_logs_col_size(logs_notification_cmd)));
-      b.set_value_as_str(8, misc::string::escape(
-                                le.notification_contact,
-                                get_logs_col_size(logs_notification_contact)));
+                                  get_centreon_storage_logs_col_size(
+                                      centreon_storage_logs_notification_cmd)));
+      b.set_value_as_str(8,
+                         misc::string::escape(
+                             le.notification_contact,
+                             get_centreon_storage_logs_col_size(
+                                 centreon_storage_logs_notification_contact)));
       b.set_value_as_i32(9, le.retry);
-      b.set_value_as_str(10, misc::string::escape(
-                                 le.service_description,
-                                 get_logs_col_size(logs_service_description)));
-      b.set_value_as_tiny(11, le.status);
       b.set_value_as_str(
-          12, misc::string::escape(le.output, get_logs_col_size(logs_output)));
+          10,
+          misc::string::escape(le.service_description,
+                               get_centreon_storage_logs_col_size(
+                                   centreon_storage_logs_service_description)));
+      b.set_value_as_tiny(11, le.status);
+      b.set_value_as_str(12, misc::string::escape(
+                                 le.output, get_centreon_storage_logs_col_size(
+                                                centreon_storage_logs_output)));
       b.next_row();
     };
     _logs->add_bulk_row(binder);
@@ -2573,19 +2663,26 @@ void stream::_process_log(const std::shared_ptr<io::data>& d) {
     _logs->add_multi_row(fmt::format(
         "({},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},'{}')", le.c_time,
         le.host_id, le.service_id,
-        misc::string::escape(le.host_name, get_logs_col_size(logs_host_name)),
+        misc::string::escape(le.host_name,
+                             get_centreon_storage_logs_col_size(
+                                 centreon_storage_logs_host_name)),
         misc::string::escape(le.poller_name,
-                             get_logs_col_size(logs_instance_name)),
+                             get_centreon_storage_logs_col_size(
+                                 centreon_storage_logs_instance_name)),
         le.log_type, le.msg_type,
         misc::string::escape(le.notification_cmd,
-                             get_logs_col_size(logs_notification_cmd)),
+                             get_centreon_storage_logs_col_size(
+                                 centreon_storage_logs_notification_cmd)),
         misc::string::escape(le.notification_contact,
-                             get_logs_col_size(logs_notification_contact)),
+                             get_centreon_storage_logs_col_size(
+                                 centreon_storage_logs_notification_contact)),
         le.retry,
         misc::string::escape(le.service_description,
-                             get_logs_col_size(logs_service_description)),
+                             get_centreon_storage_logs_col_size(
+                                 centreon_storage_logs_service_description)),
         le.status,
-        misc::string::escape(le.output, get_logs_col_size(logs_output))));
+        misc::string::escape(le.output, get_centreon_storage_logs_col_size(
+                                            centreon_storage_logs_output))));
   }
 }
 
@@ -2614,26 +2711,34 @@ void stream::_process_pb_log(const std::shared_ptr<io::data>& d) {
       b.set_value_as_i64(2, le_obj.service_id());
       b.set_value_as_str(
           3, misc::string::escape(le_obj.host_name(),
-                                  get_logs_col_size(logs_host_name)));
+                                  get_centreon_storage_logs_col_size(
+                                      centreon_storage_logs_host_name)));
       b.set_value_as_str(
           4, misc::string::escape(le_obj.instance_name(),
-                                  get_logs_col_size(logs_instance_name)));
+                                  get_centreon_storage_logs_col_size(
+                                      centreon_storage_logs_instance_name)));
       b.set_value_as_i32(5, le_obj.type());
       b.set_value_as_i32(6, le_obj.msg_type());
       b.set_value_as_str(
           7, misc::string::escape(le_obj.notification_cmd(),
-                                  get_logs_col_size(logs_notification_cmd)));
-      b.set_value_as_str(8, misc::string::escape(
-                                le_obj.notification_contact(),
-                                get_logs_col_size(logs_notification_contact)));
+                                  get_centreon_storage_logs_col_size(
+                                      centreon_storage_logs_notification_cmd)));
+      b.set_value_as_str(8,
+                         misc::string::escape(
+                             le_obj.notification_contact(),
+                             get_centreon_storage_logs_col_size(
+                                 centreon_storage_logs_notification_contact)));
       b.set_value_as_i32(9, le_obj.retry());
-      b.set_value_as_str(10, misc::string::escape(
-                                 le_obj.service_description(),
-                                 get_logs_col_size(logs_service_description)));
+      b.set_value_as_str(
+          10,
+          misc::string::escape(le_obj.service_description(),
+                               get_centreon_storage_logs_col_size(
+                                   centreon_storage_logs_service_description)));
       b.set_value_as_tiny(11, le_obj.status());
-      b.set_value_as_str(12,
-                         misc::string::escape(le_obj.output(),
-                                              get_logs_col_size(logs_output)));
+      b.set_value_as_str(
+          12, misc::string::escape(le_obj.output(),
+                                   get_centreon_storage_logs_col_size(
+                                       centreon_storage_logs_output)));
       b.next_row();
     };
     _logs->add_bulk_row(binder);
@@ -2642,19 +2747,26 @@ void stream::_process_pb_log(const std::shared_ptr<io::data>& d) {
         "({},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},'{}')", le_obj.ctime(),
         le_obj.host_id(), le_obj.service_id(),
         misc::string::escape(le_obj.host_name(),
-                             get_logs_col_size(logs_host_name)),
+                             get_centreon_storage_logs_col_size(
+                                 centreon_storage_logs_host_name)),
         misc::string::escape(le_obj.instance_name(),
-                             get_logs_col_size(logs_instance_name)),
+                             get_centreon_storage_logs_col_size(
+                                 centreon_storage_logs_instance_name)),
         le_obj.type(), le_obj.msg_type(),
         misc::string::escape(le_obj.notification_cmd(),
-                             get_logs_col_size(logs_notification_cmd)),
+                             get_centreon_storage_logs_col_size(
+                                 centreon_storage_logs_notification_cmd)),
         misc::string::escape(le_obj.notification_contact(),
-                             get_logs_col_size(logs_notification_contact)),
+                             get_centreon_storage_logs_col_size(
+                                 centreon_storage_logs_notification_contact)),
         le_obj.retry(),
         misc::string::escape(le_obj.service_description(),
-                             get_logs_col_size(logs_service_description)),
+                             get_centreon_storage_logs_col_size(
+                                 centreon_storage_logs_service_description)),
         le_obj.status(),
-        misc::string::escape(le_obj.output(), get_logs_col_size(logs_output))));
+        misc::string::escape(
+            le_obj.output(),
+            get_centreon_storage_logs_col_size(centreon_storage_logs_output))));
   }
 }
 
@@ -2784,7 +2896,8 @@ void stream::_process_pb_service_check(const std::shared_ptr<io::data>& d) {
           {{5, "host_id", io::protobuf_base::invalid_on_zero, 0},
            {7, "service_id", io::protobuf_base::invalid_on_zero, 0},
            {4, "command_line", 0,
-            get_services_col_size(services_command_line)}});
+            get_centreon_storage_services_col_size(
+                centreon_storage_services_command_line)}});
     }
 
     // Processing.
@@ -3143,16 +3256,19 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               {6, "enabled", 0, 0},
               {7, "scheduled_downtime_depth", 0, 0},
               {8, "check_command", 0,
-               get_services_col_size(services_check_command)},
+               get_centreon_storage_services_col_size(
+                   centreon_storage_services_check_command)},
               {9, "check_interval", 0, 0},
               {10, "check_period", 0,
-               get_services_col_size(services_check_period)},
+               get_centreon_storage_services_col_size(
+                   centreon_storage_services_check_period)},
               {11, "check_type", 0, 0},
               {12, "check_attempt", 0, 0},
               {13, "state", 0, 0},
               {14, "event_handler_enabled", 0, 0},
               {15, "event_handler", 0,
-               get_services_col_size(services_event_handler)},
+               get_centreon_storage_services_col_size(
+                   centreon_storage_services_event_handler)},
               {16, "execution_time", 0, 0},
               {17, "flap_detection", 0, 0},
               {18, "checked", 0, 0},
@@ -3175,19 +3291,26 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               {34, "next_notification", io::protobuf_base::invalid_on_zero, 0},
               {35, "no_more_notifications", 0, 0},
               {36, "notify", 0, 0},
-              {37, "output", 0, get_services_col_size(services_output)},
+              {37, "output", 0,
+               get_centreon_storage_services_col_size(
+                   centreon_storage_services_output)},
 
               {39, "passive_checks", 0, 0},
               {40, "percent_state_change", 0, 0},
-              {41, "perfdata", 0, get_services_col_size(services_perfdata)},
+              {41, "perfdata", 0,
+               get_centreon_storage_services_col_size(
+                   centreon_storage_services_perfdata)},
               {42, "retry_interval", 0, 0},
 
               {44, "description", 0,
-               get_services_col_size(services_description)},
+               get_centreon_storage_services_col_size(
+                   centreon_storage_services_description)},
               {45, "should_be_scheduled", 0, 0},
               {46, "obsess_over_service", 0, 0},
               {47, "state_type", 0, 0},
-              {48, "action_url", 0, get_services_col_size(services_action_url)},
+              {48, "action_url", 0,
+               get_centreon_storage_services_col_size(
+                   centreon_storage_services_action_url)},
               {49, "check_freshness", 0, 0},
               {50, "default_active_checks", 0, 0},
               {51, "default_event_handler_enabled", 0, 0},
@@ -3195,7 +3318,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               {53, "default_notify", 0, 0},
               {54, "default_passive_checks", 0, 0},
               {55, "display_name", 0,
-               get_services_col_size(services_display_name)},
+               get_centreon_storage_services_col_size(
+                   centreon_storage_services_display_name)},
               {56, "first_notification_delay", 0, 0},
               {57, "flap_detection_on_critical", 0, 0},
               {58, "flap_detection_on_ok", 0, 0},
@@ -3203,16 +3327,24 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               {60, "flap_detection_on_warning", 0, 0},
               {61, "freshness_threshold", 0, 0},
               {62, "high_flap_threshold", 0, 0},
-              {63, "icon_image", 0, get_services_col_size(services_icon_image)},
+              {63, "icon_image", 0,
+               get_centreon_storage_services_col_size(
+                   centreon_storage_services_icon_image)},
               {64, "icon_image_alt", 0,
-               get_services_col_size(services_icon_image_alt)},
+               get_centreon_storage_services_col_size(
+                   centreon_storage_services_icon_image_alt)},
               {65, "volatile", 0, 0},
               {66, "low_flap_threshold", 0, 0},
-              {67, "notes", 0, get_services_col_size(services_notes)},
-              {68, "notes_url", 0, get_services_col_size(services_notes_url)},
+              {67, "notes", 0,
+               get_centreon_storage_services_col_size(
+                   centreon_storage_services_notes)},
+              {68, "notes_url", 0,
+               get_centreon_storage_services_col_size(
+                   centreon_storage_services_notes_url)},
               {69, "notification_interval", 0, 0},
               {70, "notification_period", 0,
-               get_services_col_size(services_notification_period)},
+               get_centreon_storage_services_col_size(
+                   centreon_storage_services_notification_period)},
               {71, "notify_on_critical", 0, 0},
               {72, "notify_on_downtime", 0, 0},
               {73, "notify_on_flapping", 0, 0},
@@ -3299,15 +3431,20 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
   if (s.enabled()) {
     uint64_t sid = 0;
     fmt::string_view name{misc::string::truncate(
-        s.display_name(), get_resources_col_size(resources_name))};
+        s.display_name(), get_centreon_storage_resources_col_size(
+                              centreon_storage_resources_name))};
     fmt::string_view parent_name{misc::string::truncate(
-        s.host_name(), get_resources_col_size(resources_parent_name))};
+        s.host_name(), get_centreon_storage_resources_col_size(
+                           centreon_storage_resources_parent_name))};
     fmt::string_view notes_url{misc::string::truncate(
-        s.notes_url(), get_resources_col_size(resources_notes_url))};
+        s.notes_url(), get_centreon_storage_resources_col_size(
+                           centreon_storage_resources_notes_url))};
     fmt::string_view notes{misc::string::truncate(
-        s.notes(), get_resources_col_size(resources_notes))};
+        s.notes(), get_centreon_storage_resources_col_size(
+                       centreon_storage_resources_notes))};
     fmt::string_view action_url{misc::string::truncate(
-        s.action_url(), get_resources_col_size(resources_action_url))};
+        s.action_url(), get_centreon_storage_resources_col_size(
+                            centreon_storage_resources_action_url))};
 
     // INSERT
     if (found == _resource_cache.end()) {
@@ -3581,12 +3718,14 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
     query += fmt::format(
         " event_handler='{}',",
         misc::string::escape(as.event_handler(),
-                             get_services_col_size(services_event_handler)));
+                             get_centreon_storage_services_col_size(
+                                 centreon_storage_services_event_handler)));
   if (as.has_check_command())
     query += fmt::format(
         " check_command='{}',",
         misc::string::escape(as.check_command(),
-                             get_services_col_size(services_check_command)));
+                             get_centreon_storage_services_col_size(
+                                 centreon_storage_services_check_command)));
   if (as.has_check_interval())
     query += fmt::format(" check_interval={},", as.check_interval());
   if (as.has_retry_interval())
@@ -3600,13 +3739,15 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
     query += fmt::format(
         " check_period='{}',",
         misc::string::escape(as.check_period(),
-                             get_services_col_size(services_check_period)));
+                             get_centreon_storage_services_col_size(
+                                 centreon_storage_services_check_period)));
   if (as.has_notification_period())
     query +=
         fmt::format(" notification_period='{}',",
                     misc::string::escape(
                         as.notification_period(),
-                        get_services_col_size(services_notification_period)));
+                        get_centreon_storage_services_col_size(
+                            centreon_storage_services_notification_period)));
 
   // If nothing was added to query, we can exit immediately.
   if (query.size() > buf.size()) {
@@ -3659,10 +3800,11 @@ void stream::_check_and_update_index_cache(const Service& ss) {
   auto it_index_cache = _index_cache.find({ss.host_id(), ss.service_id()});
 
   fmt::string_view hv(misc::string::truncate(
-      ss.host_name(), get_index_data_col_size(index_data_host_name)));
+      ss.host_name(), get_centreon_storage_index_data_col_size(
+                          centreon_storage_index_data_host_name)));
   fmt::string_view sv(misc::string::truncate(
-      ss.description(),
-      get_index_data_col_size(index_data_service_description)));
+      ss.description(), get_centreon_storage_index_data_col_size(
+                            centreon_storage_index_data_service_description)));
   bool special = ss.type() == BA;
 
   int32_t conn =
@@ -3911,10 +4053,12 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         std::string full_output{
             fmt::format("{}\n{}", sscr.output(), sscr.long_output())};
         size_t size = misc::string::adjust_size_utf8(
-            full_output, get_services_col_size(services_output));
+            full_output, get_centreon_storage_services_col_size(
+                             centreon_storage_services_output));
         b->set_value_as_str(11, fmt::string_view(full_output.data(), size));
         size = misc::string::adjust_size_utf8(
-            sscr.perfdata(), get_services_col_size(services_perfdata));
+            sscr.perfdata(), get_centreon_storage_services_col_size(
+                                 centreon_storage_services_perfdata));
         b->set_value_as_str(12, fmt::string_view(sscr.perfdata().data(), size));
         b->set_value_as_bool(13, sscr.flapping());
         b->set_value_as_f64(14, sscr.percent_state_change());
@@ -3963,11 +4107,13 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         std::string full_output{
             fmt::format("{}\n{}", sscr.output(), sscr.long_output())};
         size_t size = misc::string::adjust_size_utf8(
-            full_output, get_services_col_size(services_output));
+            full_output, get_centreon_storage_services_col_size(
+                             centreon_storage_services_output));
         _sscr_update->bind_value_as_str(
             11, fmt::string_view(full_output.data(), size));
         size = misc::string::adjust_size_utf8(
-            sscr.perfdata(), get_services_col_size(services_perfdata));
+            sscr.perfdata(), get_centreon_storage_services_col_size(
+                                 centreon_storage_services_perfdata));
         _sscr_update->bind_value_as_str(
             12, fmt::string_view(sscr.perfdata().data(), size));
         _sscr_update->bind_value_as_bool(13, sscr.flapping());
@@ -4003,7 +4149,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
       size_t output_size = misc::string::adjust_size_utf8(
-          sscr.output(), get_resources_col_size(resources_output));
+          sscr.output(), get_centreon_storage_resources_col_size(centreon_storage_resources_output));
       if (_bulk_prepared_statement) {
         std::lock_guard<bulk_bind> lck(*_sscr_resources_bind);
         if (!_sscr_resources_bind->bind(conn))
