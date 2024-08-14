@@ -169,6 +169,7 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${poller_name}
         Start Gorgone    debug    ${central_name}
         Wait Until Port Is Bind    5556
+
         Check Poller Is Connected    port=5556    expected_nb=2
         Check Poller Communicate     2
     END
