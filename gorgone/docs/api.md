@@ -6,14 +6,14 @@ Centreon Gorgone provides a RestAPI through its HTTP server module.
 
 ### Get Nodes Connection Status
 
-| Endpoint | Method |
-| :- | :- |
-| /internal/constatus | `GET` |
+| Endpoint            | Method |
+|:--------------------|:-------|
+| /internal/constatus | `GET`  |
 
 #### Headers
 
-| Header | Value |
-| :- | :- |
+| Header | Value            |
+|:-------|:-----------------|
 | Accept | application/json |
 
 #### Example
@@ -42,14 +42,14 @@ curl --request GET "https://hostname:8443/api/internal/constatus" \
 
 ### Get Public Key Thumbprint
 
-| Endpoint | Method |
-| :- | :- |
-| /internal/thumbprint | `GET` |
+| Endpoint             | Method |
+|:---------------------|:-------|
+| /internal/thumbprint | `GET`  |
 
 #### Headers
 
-| Header | Value |
-| :- | :- |
+| Header | Value            |
+|:-------|:-----------------|
 | Accept | application/json |
 
 #### Example
@@ -73,14 +73,14 @@ curl --request GET "https://hostname:8443/api/internal/thumbprint" \
 
 ### Get Runtime Informations And Statistics
 
-| Endpoint | Method |
-| :- | :- |
-| /internal/information | `GET` |
+| Endpoint              | Method |
+|:----------------------|:-------|
+| /internal/information | `GET`  |
 
 #### Headers
 
-| Header | Value |
-| :- | :- |
+| Header | Value            |
+|:-------|:-----------------|
 | Accept | application/json |
 
 #### Example
@@ -158,6 +158,7 @@ The available endpoints depend on which modules are loaded.
 Endpoints are basically built from:
 
 * API root,
+* optional target node, local if not present ( `/nodes/:nodeid/` )
 * Module's namespace,
 * Module's name,
 * Action
@@ -175,7 +176,7 @@ curl --request POST "https://hostname:8443/api/core/action/command" \
 ]"
 ```
 
-Find more informations directly from modules documentations [here](../docs/modules.md).
+Find more informations directly from modules documentations [here](./modules.md).
 
 As Centreon Gorgone is asynchronous, those endpoints will return a token corresponding to the action.
 
@@ -187,7 +188,7 @@ As Centreon Gorgone is asynchronous, those endpoints will return a token corresp
 }
 ```
 
-That being said, its possible to make Gorgone work synchronously by providing two parameters.
+That being said, it is possible to make Gorgone work synchronously by providing two parameters.
 
 First one is `log_wait` with a numeric value in microseconds: this value defines the amount of time the API will wait before trying to retrieve log results.
 
@@ -202,7 +203,7 @@ Note: the `sync_wait` parameter is induced if you ask for a log directly specify
 Using the `/core/action/command` endpoint with `log_wait` parameter set to 100000:
 
 ```bash
-curl --request POST "https://hostname:8443/api/core/action/command&log_wait=100000" \
+curl --request POST "https://hostname:8443/api/core/action/command?log_wait=100000" \
   --header "Accept: application/json" \
   --header "Content-Type: application/json" \
   --data "[
@@ -219,12 +220,12 @@ This call will ask for the API to execute an action and will give a result after
 
 Note: there is no need for logs synchronisation when dealing with local actions.
 
-##### Launch a command remotly and wait for the result
+##### Launch a command remotely and wait for the result
 
 Using the `/nodes/:id/core/action/command` endpoint with `log_wait` parameter set to 100000:
 
 ```bash
-curl --request POST "https://hostname:8443/api/nodes/2/core/action/command&log_wait=100000&sync_wait=200000" \
+curl --request POST "https://hostname:8443/api/nodes/2/core/action/command?log_wait=100000&sync_wait=200000" \
   --header "Accept: application/json" \
   --header "Content-Type: application/json" \
   --data "[
@@ -241,23 +242,24 @@ This call will ask for the API to execute an action on the node with ID 2, will 
 
 ## Log endpoint
 
-To retrieve the logs, a specific endpoint can be called as follow.
+To retrieve the logs, a specific endpoint can be called as follows.
 
-| Endpoint | Method |
-| :- | :- |
-| /log/:token | `GET` |
+| Endpoint                      | Method |
+|:------------------------------|:-------|
+| /api/nodes/:nodeid/log/:token | `GET`  |
 
 #### Headers
 
-| Header | Value |
-| :- | :- |
-| Accept | application/json |
+| Header | Value             |
+|:-------|:------------------|
+| Accept | application/json  |
 
 #### Path variables
 
-| Variable | Description |
-| :- | :- |
-| token | Token of the action |
+| Variable | Description                |
+|:---------|:---------------------------|
+| token    | Token of the action        |
+| nodeid   | node id to search log into |  
 
 #### Examples
 
@@ -271,7 +273,7 @@ curl --request GET "https://hostname:8443/api/nodes/2/log/3f25bc3a797fe989d1fb05
   --header "Accept: application/json"
 ```
 
-This second example will force logs synchonisation before looking for results to retrieve. Default temporisation is 10ms and can be changed by providing `sync_wait` parameter.
+This second example will force logs synchronisation before looking for results to retrieve. Default wait time is 10ms and can be changed by providing `sync_wait` parameter.
 
 #### Response example
 

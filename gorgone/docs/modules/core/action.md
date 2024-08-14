@@ -7,7 +7,7 @@ This module aims to execute actions on the server running the Gorgone daemon or 
 ## Configuration
 
 | Directive        | Description                                                    | Default value |
-| :--------------- | :------------------------------------------------------------- | :------------ |
+|:-----------------|:---------------------------------------------------------------|:--------------|
 | command_timeout  | Time in seconds before a command is considered timed out       | `30`          |
 | whitelist_cmds   | Boolean to enable commands whitelist                           | `false`       |
 | allowed_cmds     | Regexp list of allowed commands                                |               |
@@ -38,7 +38,7 @@ allowed_cmds:
 ## Events
 
 | Event       | Description                                                                             |
-| :---------- | :-------------------------------------------------------------------------------------- |
+|:------------|:----------------------------------------------------------------------------------------|
 | ACTIONREADY | Internal event to notify the core                                                       |
 | PROCESSCOPY | Process file or archive received from another daemon                                    |
 | COMMAND     | Execute a shell command on the server running the daemon or on another server using SSH |
@@ -48,20 +48,20 @@ allowed_cmds:
 ### Execute a command line
 
 | Endpoint             | Method |
-| :------------------- | :----- |
+|:---------------------|:-------|
 | /core/action/command | `POST` |
 
 #### Headers
 
 | Header       | Value            |
-| :----------- | :--------------- |
+|:-------------|:-----------------|
 | Accept       | application/json |
 | Content-Type | application/json |
 
 #### Body
 
 | Key               | Value                                                    |
-| :---------------- | :------------------------------------------------------- |
+|:------------------|:---------------------------------------------------------|
 | command           | Command to execute                                       |
 | timeout           | Time in seconds before a command is considered timed out |
 | continue_on_error | Behaviour in case of execution issue                     |
@@ -76,7 +76,10 @@ allowed_cmds:
 ]
 ```
 
+
 #### Example
+
+See a complete exemple of this endpoint in the [api documentation](../../api.md)
 
 ```bash
 curl --request POST "https://hostname:8443/api/core/action/command" \
@@ -88,3 +91,8 @@ curl --request POST "https://hostname:8443/api/core/action/command" \
     }
 ]"
 ```
+Output : 
+```bash
+{"token":"b3f825f87d64764316d872c59e4bae69299b0003f6e5d27bbc7de4e27c50eb65fc17440baf218578343eff7f4d67f7e98ab6da40b050a2635bb735c7cec276bd"}
+```
+
