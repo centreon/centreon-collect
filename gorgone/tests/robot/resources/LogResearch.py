@@ -25,11 +25,11 @@ import requests
 
 
 def ctn_get_api_log_with_timeout(token: str, node_path='', host='http://127.0.0.1:8085', timeout=15):
-    """! Query gorgone log api until the response contain a log with code 2 (success) or 1 (failure)
-        @param token: token to search in the api
-        @param node_path: part of the api url defining if we use the local gorgone or another one, ex node/2/
-        @param timeout: time out in second
-        @param host: gorgone api url with the port
+    """! Query gorgone log API until the response contains a log with code 2 (success) or 1 (failure)
+        @param token: token to search in the API
+        @param node_path: part of the API URL defining if we use the local gorgone or another one, ex node/2/
+        @param timeout: timeout in seconds
+        @param host: gorgone API URL with the port
         @return True(when output of the command is found)/False(on failure or timeout),
                 and a json object containing the incriminated log for failure or success.
         """
