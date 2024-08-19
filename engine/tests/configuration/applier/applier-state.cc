@@ -20,17 +20,16 @@
 #include <google/protobuf/util/message_differencer.h>
 #include <gtest/gtest.h>
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/configuration/parser.hh"
+#include "com/centreon/engine/configuration/extended_conf.hh"
 #include "com/centreon/engine/globals.hh"
+#include "common/engine_legacy_conf/parser.hh"
+#include "common/engine_legacy_conf/state.hh"
 
 using namespace com::centreon::engine;
 
 class ApplierState : public ::testing::Test {
  public:
-  void SetUp() override {
-    config_errors = 0;
-    config_warnings = 0;
-  }
+  void SetUp() override {}
 
   void TearDown() override {}
 };
@@ -280,7 +279,6 @@ static void CreateConf() {
              "define service {\n"
              "    host_name                       host_1\n"
              "    name                            service_template\n"
-             "    hostgroups                      hg1,hg2\n"
              "    contacts                        contact1\n"
              "    _SERVICE_ID                     1001\n"
              "    check_command                   command_19\n"
@@ -702,8 +700,9 @@ constexpr size_t SERVICEGROUPS = 3u;
 TEST_F(ApplierState, StateLegacyParsing) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateConf();
-  p.parse("/tmp/centengine.cfg", config);
+  p.parse("/tmp/centengine.cfg", config, err);
   ASSERT_EQ(config.check_service_freshness(), true);
   ASSERT_EQ(config.enable_flap_detection(), false);
   ASSERT_EQ(config.instance_heartbeat_interval(), 30);
@@ -731,7 +730,6 @@ TEST_F(ApplierState, StateLegacyParsing) {
   /* Service */
   ASSERT_EQ(config.services().size(), SERVICES);
   auto sit = config.services().begin();
-  ASSERT_EQ(sit->hosts().size(), 1u);
   ASSERT_EQ(sit->service_id(), 1);
   ASSERT_TRUE(sit->should_register());
   ASSERT_TRUE(sit->checks_active());
@@ -744,10 +742,8 @@ TEST_F(ApplierState, StateLegacyParsing) {
     ++it;
     ASSERT_EQ(*it, std::string("cg3"));
   }
-  ASSERT_EQ(*sit->hosts().begin(), std::string("host_1"));
-  ASSERT_EQ(sit->service_description(), std::string("service_1"));
-  EXPECT_EQ(sit->hostgroups().size(), 2u);
-  EXPECT_EQ(*sit->hostgroups().begin(), std::string("hg1"));
+  ASSERT_EQ(sit->host_name(), std::string_view("host_1"));
+  ASSERT_EQ(sit->service_description(), std::string_view("service_1"));
   EXPECT_EQ(sit->contacts().size(), 2u);
   EXPECT_EQ(*sit->contacts().begin(), std::string("contact1"));
   EXPECT_EQ(sit->notification_options(), configuration::service::warning |
@@ -780,15 +776,15 @@ TEST_F(ApplierState, StateLegacyParsing) {
   EXPECT_EQ(tit->alias(), std::string("24_Hours_A_Day,_7_Days_A_Week"));
   EXPECT_EQ(tit->timeranges()[0].size(),
             1u);  // std::string("00:00-24:00"));
-  EXPECT_EQ(tit->timeranges()[0].begin()->get_range_start(), 0);
-  EXPECT_EQ(tit->timeranges()[0].begin()->get_range_end(), 3600 * 24);
+  EXPECT_EQ(tit->timeranges()[0].begin()->range_start(), 0);
+  EXPECT_EQ(tit->timeranges()[0].begin()->range_end(), 3600 * 24);
   EXPECT_EQ(tit->timeranges()[1].size(), 2u);
   auto itt = tit->timeranges()[1].begin();
-  EXPECT_EQ(itt->get_range_start(), 0);  // 00:00-08:00
-  EXPECT_EQ(itt->get_range_end(), 3600 * 8);
+  EXPECT_EQ(itt->range_start(), 0);  // 00:00-08:00
+  EXPECT_EQ(itt->range_end(), 3600 * 8);
   ++itt;
-  EXPECT_EQ(itt->get_range_start(), 3600 * 18);  // 18:00-24:00
-  ASSERT_EQ(itt->get_range_end(), 3600 * 24);
+  EXPECT_EQ(itt->range_start(), 3600 * 18);  // 18:00-24:00
+  ASSERT_EQ(itt->range_end(), 3600 * 24);
   EXPECT_EQ(tit->timeranges()[2].size(), 1u);  // tuesday
   EXPECT_EQ(tit->timeranges()[3].size(), 1u);  // wednesday
   EXPECT_EQ(tit->timeranges()[4].size(), 1u);  // thursday
@@ -890,7 +886,7 @@ TEST_F(ApplierState, StateLegacyParsing) {
   ASSERT_EQ(adit->dependent_service_id(), 1);
   ASSERT_TRUE(adit->metric_name() == "metric2");
   ASSERT_EQ(adit->customvariables().size(), 1);
-  ASSERT_EQ(adit->customvariables().at("ad_cv").get_value(),
+  ASSERT_EQ(adit->customvariables().at("ad_cv").value(),
             std::string("this_is_a_test"));
   ASSERT_EQ(adit->contactgroups().size(), 2);
   ASSERT_EQ(adit->contacts().size(), 1);
@@ -972,48 +968,100 @@ TEST_F(ApplierState, StateLegacyParsing) {
 TEST_F(ApplierState, StateLegacyParsingServicegroupValidityFailed) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateBadConf(ConfigurationObject::SERVICEGROUP);
-  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config, err), std::exception);
 }
 
 TEST_F(ApplierState, StateLegacyParsingTagValidityFailed) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateBadConf(ConfigurationObject::TAG);
-  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config, err), std::exception);
 }
 
 TEST_F(ApplierState, StateLegacyParsingServicedependencyValidityFailed) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateBadConf(ConfigurationObject::SERVICEDEPENDENCY);
-  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config, err), std::exception);
 }
 
 TEST_F(ApplierState, StateLegacyParsingAnomalydetectionValidityFailed) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateBadConf(ConfigurationObject::ANOMALYDETECTION);
-  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config, err), std::exception);
 }
 
 TEST_F(ApplierState, StateLegacyParsingContactgroupWithoutName) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateBadConf(ConfigurationObject::CONTACTGROUP);
-  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config, err), std::exception);
 }
 
 TEST_F(ApplierState, StateLegacyParsingHostescalationWithoutHost) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateBadConf(ConfigurationObject::HOSTESCALATION);
-  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config, err), std::exception);
 }
 
 TEST_F(ApplierState, StateLegacyParsingHostdependencyWithoutHost) {
   configuration::state config;
   configuration::parser p;
+  configuration::error_cnt err;
   CreateBadConf(ConfigurationObject::HOSTDEPENDENCY);
-  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config, err), std::exception);
+}
+
+TEST_F(ApplierState, extended_override_conf) {
+  configuration::state config;
+  configuration::parser p;
+  configuration::error_cnt err;
+  CreateConf();
+  p.parse("/tmp/centengine.cfg", config, err);
+
+  const char* file_paths[] = {"/tmp/extended_conf.json"};
+  CreateFile(file_paths[0],
+             R"({"instance_heartbeat_interval":120,
+  "log_level_functions":"debug",
+  "log_level_checks":"trace",
+  "enable_flap_detection": true,
+  "rpc_port": 12345
+})");
+
+  configuration::extended_conf::load_all(file_paths, file_paths + 1);
+  configuration::extended_conf::update_state(config);
+  ASSERT_EQ(config.log_level_functions(), std::string("debug"));
+  ASSERT_EQ(config.log_level_checks(), std::string("trace"));
+  ASSERT_EQ(config.instance_heartbeat_interval(), 120);
+  ASSERT_EQ(config.enable_flap_detection(), true);
+  ASSERT_EQ(config.rpc_port(), 12345);
+}
+
+TEST_F(ApplierState, extended_override_conf_overflow) {
+  configuration::state config;
+  configuration::parser p;
+  configuration::error_cnt err;
+  CreateConf();
+  p.parse("/tmp/centengine.cfg", config, err);
+
+  const char* file_paths[] = {"/tmp/extended_conf.json"};
+  CreateFile(file_paths[0],
+             R"({
+  "enable_flap_detection": "etetge",
+  "rpc_port": 12345456
+})");
+
+  configuration::extended_conf::load_all(file_paths, file_paths + 1);
+  configuration::extended_conf::update_state(config);
+  ASSERT_EQ(config.enable_flap_detection(), false);
+  ASSERT_EQ(config.rpc_port(), 0);
 }

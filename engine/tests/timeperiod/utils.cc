@@ -1,21 +1,21 @@
 /**
-* Copyright 2016 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2016 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include <array>
 #include <cstring>
@@ -106,7 +106,8 @@ daterange* timeperiod_creator::new_calendar_date(int start_year,
 
   target->exceptions[daterange::calendar_date].emplace_back(
       daterange::calendar_date, start_year, start_month, start_day, 0, 0,
-      end_year, end_month, end_day, 0, 0, 0);
+      end_year, end_month, end_day, 0, 0, 0,
+      std::list<configuration::timerange>());
   return &*target->exceptions[daterange::calendar_date].rbegin();
 }
 
@@ -131,7 +132,7 @@ daterange* timeperiod_creator::new_specific_month_date(int start_month,
 
   target->exceptions[daterange::month_date].emplace_back(
       daterange::month_date, 0, start_month, start_day, 0, 0, 0, end_month,
-      end_day, 0, 0, 0);
+      end_day, 0, 0, 0, std::list<configuration::timerange>());
   return &*target->exceptions[daterange::month_date].rbegin();
 }
 
@@ -151,10 +152,11 @@ daterange* timeperiod_creator::new_generic_month_date(int start_day,
     target = _timeperiods.begin()->get();
 
   std::shared_ptr<daterange> dr{new daterange(
-      daterange::month_day, 0, 0, start_day, 0, 0, 0, 0, end_day, 0, 0, 0)};
+      daterange::month_day, 0, 0, start_day, 0, 0, 0, 0, end_day, 0, 0, 0, {})};
 
   target->exceptions[daterange::month_day].emplace_back(
-      daterange::month_day, 0, 0, start_day, 0, 0, 0, 0, end_day, 0, 0, 0);
+      daterange::month_day, 0, 0, start_day, 0, 0, 0, 0, end_day, 0, 0, 0,
+      std::list<configuration::timerange>());
   return &*target->exceptions[daterange::month_day].rbegin();
 }
 
@@ -184,7 +186,8 @@ daterange* timeperiod_creator::new_offset_weekday_of_specific_month(
 
   target->exceptions[daterange::month_week_day].emplace_back(
       daterange::month_week_day, 0, start_month, 0, start_wday, start_offset, 0,
-      end_month, 0, end_wday, end_offset, 0);
+      end_month, 0, end_wday, end_offset, 0,
+      std::list<configuration::timerange>());
   return &*target->exceptions[daterange::month_week_day].rbegin();
 }
 
@@ -210,7 +213,7 @@ daterange* timeperiod_creator::new_offset_weekday_of_generic_month(
 
   target->exceptions[daterange::week_day].emplace_back(
       daterange::week_day, 0, 0, 0, start_wday, start_offset, 0, 0, 0, end_wday,
-      end_offset, 0);
+      end_offset, 0, std::list<configuration::timerange>());
   return &*target->exceptions[daterange::week_day].rbegin();
 }
 

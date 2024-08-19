@@ -28,12 +28,12 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
-#include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "com/centreon/process_manager.hh"
+#include "common/engine_legacy_conf/host.hh"
+#include "common/engine_legacy_conf/service.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -45,13 +45,14 @@ using namespace com::centreon::engine::retention;
 class ServiceFlappingNotification : public TestEngine {
  public:
   void SetUp() override {
+    error_cnt err;
     init_config_state();
 
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
-    ct_aply.resolve_object(ctct);
+    ct_aply.resolve_object(ctct, err);
 
     configuration::applier::command cmd_aply;
     configuration::command cmd("cmd");
@@ -65,7 +66,7 @@ class ServiceFlappingNotification : public TestEngine {
     hst.parse("_HOST_ID", "12");
     hst.parse("check_command", "cmd");
     hst_aply.add_object(hst);
-    hst_aply.resolve_object(hst);
+    hst_aply.resolve_object(hst, err);
 
     configuration::applier::service svc_aply;
     configuration::service svc;
@@ -79,7 +80,7 @@ class ServiceFlappingNotification : public TestEngine {
     svc.set_host_id(12);
 
     svc_aply.add_object(svc);
-    svc_aply.resolve_object(svc);
+    svc_aply.resolve_object(svc, err);
 
     service_map const& sv{engine::service::services};
 
@@ -130,7 +131,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlapping) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_service->get_next_notification_id()};
@@ -183,7 +184,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStartTwoTimes) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_service->get_next_notification_id()};
@@ -223,7 +224,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStopTwoTimes) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_service->get_next_notification_id()};

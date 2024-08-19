@@ -1,22 +1,22 @@
 /**
-* Copyright 1999-2008           Ethan Galstad
-* Copyright 2011-2013,2015-2022 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 1999-2008           Ethan Galstad
+ * Copyright 2011-2013,2015-2022 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/commands/processing.hh"
@@ -34,7 +34,6 @@
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
@@ -54,7 +53,7 @@ using namespace com::centreon::engine::logging;
 int check_for_external_commands() {
   engine_logger(dbg_functions, basic) << "check_for_external_commands()";
 
-  log_v2::functions()->trace("check_for_external_commands()");
+  functions_logger->trace("check_for_external_commands()");
 
   /* bail out if we shouldn't be checking for external commands */
   if (!config->check_external_commands())
@@ -98,7 +97,7 @@ int process_external_commands_from_file(char const* file, int delete_file) {
   engine_logger(dbg_functions, basic)
       << "process_external_commands_from_file()";
 
-  log_v2::functions()->trace("process_external_commands_from_file()");
+  functions_logger->trace("process_external_commands_from_file()");
 
   if (!file)
     return ERROR;
@@ -107,7 +106,7 @@ int process_external_commands_from_file(char const* file, int delete_file) {
       << "Processing commands from file '" << file << "'.  File will "
       << (delete_file ? "be" : "NOT be") << " deleted after processing.";
 
-  log_v2::external_command()->debug(
+  external_command_logger->debug(
       "Processing commands from file '{}'.  File will {} deleted after "
       "processing.",
       file, delete_file ? "be" : "NOT be");
@@ -118,7 +117,7 @@ int process_external_commands_from_file(char const* file, int delete_file) {
     engine_logger(log_info_message, basic)
         << "Error: Cannot open file '" << file
         << "' to process external commands!";
-    log_v2::config()->info(
+    config_logger->info(
         "Error: Cannot open file '{}' to process external commands!", file);
     return ERROR;
   }
@@ -203,7 +202,7 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
     return ERROR;
 
   if (!absl::SimpleAtob(temp_ptr, &persistent)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not {} : persistent '{}' must be 1 or 0", command_name,
         temp_ptr);
     return ERROR;
@@ -224,9 +223,8 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
       comment_data, persistent, comment::external, false, (time_t)0);
   uint64_t comment_id = com->get_comment_id();
   comment::comments.insert({comment_id, com});
-  log_v2::external_command()->trace("{}, comment_id: {}, data: {}",
-                                    command_name, comment_id,
-                                    com->get_comment_data());
+  external_command_logger->trace("{}, comment_id: {}, data: {}", command_name,
+                                 comment_id, com->get_comment_data());
   return OK;
 }
 
@@ -235,7 +233,7 @@ int cmd_delete_comment(int cmd [[maybe_unused]], char* args) {
   uint64_t comment_id{0};
   /* get the comment id we should delete */
   if (!absl::SimpleAtoi(args, &comment_id)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not delete comment : comment_id '{}' must be an "
         "integer >= 0",
         args);
@@ -326,7 +324,7 @@ int cmd_delay_notification(int cmd, char* args) {
   if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not delay notification : delay_time '{}' must be "
         "an integer",
         temp_ptr);
@@ -381,7 +379,7 @@ int cmd_schedule_check(int cmd, char* args) {
   if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not schedule check : delay_time '{}' must be "
         "an integer",
         temp_ptr);
@@ -442,7 +440,7 @@ int cmd_schedule_host_service_checks(int cmd, char* args, int force) {
   if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not schedule host service checks : delay_time '{}' "
         "must be an integer",
         temp_ptr);
@@ -471,7 +469,7 @@ void cmd_signal_process(int cmd, char* args) {
   if ((temp_ptr = my_strtok(args, "\n")) == nullptr)
     scheduled_time = 0L;
   else if (!absl::SimpleAtoi(temp_ptr, &scheduled_time)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not signal process : scheduled_time '{}' "
         "must be an integer",
         temp_ptr);
@@ -539,7 +537,7 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << real_host_name
         << "', but the host could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on host "
         "'{}', but the host could not be found!",
         fmt::string_view(svc_description.data(), svc_description.size()),
@@ -555,7 +553,7 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << real_host_name
         << "', but the service could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on "
         "host "
         "'{}', but the service could not be found!",
@@ -640,7 +638,7 @@ int process_passive_service_check(time_t check_time,
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the host could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on "
         "host "
         "'{}', but the host could not be found!",
@@ -656,7 +654,7 @@ int process_passive_service_check(time_t check_time,
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the service could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on "
         "host "
         "'{}', but the service could not be found!",
@@ -772,7 +770,7 @@ int process_passive_host_check(time_t check_time,
     engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for host '" << host_name
         << "', but the host could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for host '{}', but the "
         "host could not be found!",
         host_name);
@@ -844,7 +842,7 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   /* get the type */
   if (!arg.extract(';', type))
     return ERROR;
-  log_v2::external_command()->trace("New acknowledgement with type {}", type);
+  external_command_logger->trace("New acknowledgement with type {}", type);
 
   /* get the notification option */
   int ival;
@@ -980,7 +978,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if (ait == a.end())
     return ERROR;
   if (!absl::SimpleAtoi(*ait, &start_time)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not schedule downtime : start_time '{}' must be "
         "an integer",
         *ait);
@@ -992,7 +990,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if (ait == a.end())
     return ERROR;
   if (!absl::SimpleAtoi(*ait, &end_time)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not schedule downtime : end_time '{}' must be "
         "an integer",
         *ait);
@@ -1004,7 +1002,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if (ait == a.end())
     return ERROR;
   if (!absl::SimpleAtob(*ait, &fixed)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not schedule downtime : fixed '{}' must be 1 or 0", *ait);
     return ERROR;
   }
@@ -1014,7 +1012,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if (ait == a.end())
     return ERROR;
   if (!absl::SimpleAtoi(*ait, &triggered_by)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not schedule downtime : triggered_by '{}' must be an "
         "integer >= 0",
         *ait);
@@ -1027,7 +1025,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
     return ERROR;
   if (!ait->empty()) {
     if (!absl::SimpleAtoi(*ait, &duration)) {
-      log_v2::external_command()->error(
+      external_command_logger->error(
           "Error: could not schedule downtime : duration '{}' must be an "
           "integer "
           ">= 0",
@@ -1055,7 +1053,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   ** duration>0 is needed.
   */
   if (!fixed && !duration) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(),
+    SPDLOG_LOGGER_ERROR(external_command_logger,
                         "no duration defined for a fixed downtime");
     return ERROR;
   }
@@ -1198,7 +1196,7 @@ int cmd_delete_downtime(int cmd, char* args) {
     return ERROR;
 
   if (!absl::SimpleAtoi(temp_ptr, &downtime_id)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not delete downtime : downtime_id '{}' must be an "
         "integer >= 0",
         temp_ptr);
@@ -1218,7 +1216,7 @@ int cmd_delete_downtime(int cmd, char* args) {
  *  @param[in] args  Command arguments.
  */
 int cmd_delete_downtime_full(int cmd, char* args) {
-  log_v2::functions()->trace("cmd_delete_downtime_full() args = {}", args);
+  functions_logger->trace("cmd_delete_downtime_full() args = {}", args);
   downtime_finder::criteria_set criterias;
 
   auto a{absl::StrSplit(args, ';')};

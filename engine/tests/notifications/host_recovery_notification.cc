@@ -24,9 +24,10 @@
 #include "../helper.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
-#include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostescalation.hh"
+#include "common/engine_legacy_conf/host.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -59,9 +60,10 @@ class HostRecovery : public ::testing::Test {
     for (size_t i = 0; i < _tperiod->days.size(); ++i)
       _tperiod->days[i].emplace_back(0, 86400);
 
+    /* 12345 is here to simulate a key. It won't allow any look up */
     std::unique_ptr<engine::hostescalation> host_escalation{
         new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7,
-                                   Uuid())};
+                                   12345)};
 
     _host->get_next_notification_id();
     _host->set_notification_period_ptr(_tperiod.get());

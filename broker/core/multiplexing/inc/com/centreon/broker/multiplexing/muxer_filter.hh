@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Centreon
+ * Copyright 2023-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ class muxer_filter {
   struct zero_init {};
 
   /**
-   * @brief constructor witch only initialize all to zero
+   * @brief constructor which only initializes all to zero
    *
    */
   constexpr muxer_filter(const zero_init&) : _mask{0} {
@@ -137,14 +137,13 @@ class muxer_filter {
   constexpr muxer_filter& operator|=(const muxer_filter& other) {
     const uint64_t* to_or = other._mask;
     for (uint64_t* to_fill = _mask; to_fill < _mask + max_filter_category;
-         ++to_fill, ++to_or) {
+         ++to_fill, ++to_or)
       *to_fill |= *to_or;
-    }
     return *this;
   }
 
   /**
-   * @brief do a and with the filter passed as an argument
+   * @brief do an *and* with the filter passed as an argument
    *
    * @param other
    * @return const muxer_filter&
@@ -159,6 +158,62 @@ class muxer_filter {
   }
 
   /**
+   * @brief Remove events that appears in other filter.
+   *
+   * @param other A filter.
+   *
+   * @return a reference on the current filter.
+   */
+  constexpr muxer_filter& operator-=(const muxer_filter& other) {
+    const uint64_t* to_remove = other._mask;
+    for (uint64_t* to_fill = _mask; to_fill < _mask + max_filter_category;
+         ++to_fill, ++to_remove)
+      *to_fill &= ~(*to_remove);
+    return *this;
+  }
+
+  /**
+   * @brief reverse the filter, allowed events becomes forbidden and vice versa.
+   *
+   * @return A reference to the filter.
+   */
+  constexpr muxer_filter& reverse() {
+    for (uint64_t* m = _mask; m < _mask + max_filter_category; ++m)
+      *m = ~*m;
+    return *this;
+  }
+
+  /**
+   * @brief Remove all the events of a given category.
+   *
+   * @param category A category given by its integer value.
+   *
+   * @return A reference to the muxer_filter we work on.
+   */
+  constexpr muxer_filter& remove_category(uint16_t category) {
+    if (category < io::max_data_category)
+      _mask[category] = 0;
+    else if (category == io::internal)
+      _mask[0] = 0;
+    return *this;
+  }
+
+  /**
+   * @brief Add all the events of a given category.
+   *
+   * @param category A category given by its integer value.
+   *
+   * @return A reference to the muxer_filter we work on.
+   */
+  constexpr muxer_filter& add_category(uint16_t category) {
+    if (category < io::max_data_category)
+      _mask[category] = detail::all_events;
+    else if (category == io::internal)
+      _mask[0] = detail::all_events;
+    return *this;
+  }
+
+  /**
    * @brief Equals operator.
    *
    * @param other
@@ -168,7 +223,8 @@ class muxer_filter {
     const uint64_t* other_mask = other._mask;
     for (uint64_t* to_compare = _mask; to_compare < _mask + max_filter_category;
          ++to_compare, ++other_mask) {
-      if (*to_compare != *other_mask) return false;
+      if (*to_compare != *other_mask)
+        return false;
     }
     return true;
   }
@@ -191,8 +247,18 @@ class muxer_filter {
     return true;
   }
 
+  constexpr bool contains_some_of(const muxer_filter& other) const {
+    const uint64_t* o = other._mask;
+    for (const uint64_t* cat = _mask; cat < _mask + max_filter_category;
+         ++cat, ++o) {
+      if (*cat & *o)
+        return true;
+    }
+    return false;
+  }
+
   /**
-   * @brief return true if filter allows all events
+   * @brief return true if filter allows all events.
    *
    * @return true
    * @return false
@@ -200,15 +266,14 @@ class muxer_filter {
   constexpr bool allows_all() const {
     for (const uint64_t* cat = _mask; cat < _mask + max_filter_category;
          ++cat) {
-      if (*cat != detail::all_events) {
+      if (*cat != detail::all_events)
         return false;
-      }
     }
     return true;
   }
 
   /**
-   * @brief list all categories for witch at least one event is allowed
+   * @brief list all categories for which at least one event is allowed.
    *
    * @return std::string
    */

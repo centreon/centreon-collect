@@ -20,28 +20,29 @@
 #include <gtest/gtest.h>
 #include <fstream>
 #include "com/centreon/engine/globals.hh"
+#include "common/engine_legacy_conf/state.hh"
 
-#include <com/centreon/engine/configuration/applier/command.hh>
-#include <com/centreon/engine/configuration/applier/contact.hh>
-#include <com/centreon/engine/configuration/applier/host.hh>
-#include <com/centreon/engine/configuration/applier/hostgroup.hh>
-#include <com/centreon/engine/configuration/applier/service.hh>
-#include <com/centreon/engine/configuration/applier/servicegroup.hh>
-#include <com/centreon/engine/configuration/applier/state.hh>
-#include <com/centreon/engine/configuration/applier/timeperiod.hh>
-#include <com/centreon/engine/configuration/parser.hh>
-#include <com/centreon/engine/hostescalation.hh>
-#include <com/centreon/engine/macros.hh>
-#include <com/centreon/engine/macros/grab_host.hh>
-#include <com/centreon/engine/macros/process.hh>
 #include "../helper.hh"
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
+#include "com/centreon/engine/configuration/applier/command.hh"
+#include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
+#include "com/centreon/engine/configuration/applier/host.hh"
+#include "com/centreon/engine/configuration/applier/hostgroup.hh"
+#include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
+#include "com/centreon/engine/configuration/applier/servicegroup.hh"
+#include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/configuration/applier/timeperiod.hh"
+#include "com/centreon/engine/hostescalation.hh"
+#include "com/centreon/engine/macros.hh"
+#include "com/centreon/engine/macros/grab_host.hh"
+#include "com/centreon/engine/macros/process.hh"
 #include "com/centreon/engine/timeperiod.hh"
+#include "common/engine_legacy_conf/parser.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -518,6 +519,7 @@ TEST_F(MacroHostname, HostPercentChange) {
 }
 
 TEST_F(MacroHostname, HostGroupName) {
+  configuration::error_cnt err;
   configuration::applier::hostgroup hg_aply;
   configuration::applier::host hst_aply;
   configuration::hostgroup hg;
@@ -543,9 +545,9 @@ TEST_F(MacroHostname, HostGroupName) {
   ASSERT_NO_THROW(hst_aply.expand_objects(*config));
   ASSERT_NO_THROW(hg_aply.expand_objects(*config));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
 
   int now{500000000};
   set_time(now);
@@ -584,9 +586,10 @@ TEST_F(MacroHostname, HostGroupAlias) {
   ASSERT_NO_THROW(hst_aply.expand_objects(*config));
   ASSERT_NO_THROW(hg_aply.expand_objects(*config));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
+  configuration::error_cnt err;
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
 
   int now{500000000};
   set_time(now);
@@ -688,28 +691,6 @@ TEST_F(MacroHostname, HostCheckCommand) {
   nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTCHECKCOMMAND:test_host$", out, 1);
   ASSERT_EQ(out, "cmd");
-}
-
-TEST_F(MacroHostname, HostPerDataFile) {
-  configuration::parser parser;
-  configuration::state st;
-
-  std::remove("/tmp/test-config.cfg");
-
-  std::ofstream ofs("/tmp/test-config.cfg");
-  ofs << "host_perfdata_file=/var/log/centreon-engine/host-perfdata.dat"
-      << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
-  ofs.close();
-
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
-  init_macros();
-
-  std::string out;
-  nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "$HOSTPERFDATAFILE:test_host$", out, 1);
-  ASSERT_EQ(out, "/var/log/centreon-engine/host-perfdata.dat");
 }
 
 TEST_F(MacroHostname, HostDisplayName) {
@@ -1095,9 +1076,10 @@ TEST_F(MacroHostname, HostGroupNames) {
   ASSERT_NO_THROW(hst_aply.expand_objects(*config));
   ASSERT_NO_THROW(hg_aply.expand_objects(*config));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
+  configuration::error_cnt err;
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
 
   int now{500000000};
   set_time(now);
@@ -1256,9 +1238,10 @@ TEST_F(MacroHostname, HostGroupNotes) {
   ASSERT_NO_THROW(hst_aply.expand_objects(*config));
   ASSERT_NO_THROW(hg_aply.expand_objects(*config));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
+  configuration::error_cnt err;
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
 
   int now{500000000};
   set_time(now);
@@ -1297,9 +1280,10 @@ TEST_F(MacroHostname, HostGroupNotesUrl) {
   ASSERT_NO_THROW(hst_aply.expand_objects(*config));
   ASSERT_NO_THROW(hg_aply.expand_objects(*config));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
+  configuration::error_cnt err;
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
 
   int now{500000000};
   set_time(now);
@@ -1338,9 +1322,10 @@ TEST_F(MacroHostname, HostGroupActionUrl) {
   ASSERT_NO_THROW(hst_aply.expand_objects(*config));
   ASSERT_NO_THROW(hg_aply.expand_objects(*config));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
+  configuration::error_cnt err;
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
 
   int now{500000000};
   set_time(now);
@@ -1379,9 +1364,10 @@ TEST_F(MacroHostname, HostGroupMembers) {
   ASSERT_NO_THROW(hst_aply.expand_objects(*config));
   ASSERT_NO_THROW(hg_aply.expand_objects(*config));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
+  configuration::error_cnt err;
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
 
   int now{500000000};
   set_time(now);
@@ -1522,9 +1508,10 @@ TEST_F(MacroHostname, HostChildren) {
 
   ASSERT_EQ(engine::host::hosts.size(), 2u);
 
+  configuration::error_cnt err;
   hst_aply.expand_objects(*config);
-  hst_aply.resolve_object(hst_child);
-  hst_aply.resolve_object(hst_parent);
+  hst_aply.resolve_object(hst_child, err);
+  hst_aply.resolve_object(hst_parent, err);
 
   int now{500000000};
   set_time(now);

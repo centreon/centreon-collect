@@ -34,10 +34,10 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
-#include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
+#include "common/engine_legacy_conf/host.hh"
+#include "common/engine_legacy_conf/service.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -48,16 +48,18 @@ using namespace com::centreon::engine::configuration::applier;
 class AnomalydetectionCheck : public TestEngine {
  public:
   void SetUp() override {
+    ::unlink("/tmp/thresholds_status_change.json");
     init_config_state();
 
-    log_v2::checks()->set_level(spdlog::level::trace);
-    log_v2::commands()->set_level(spdlog::level::trace);
+    checks_logger->set_level(spdlog::level::trace);
+    commands_logger->set_level(spdlog::level::trace);
 
+    error_cnt err;
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
-    ct_aply.resolve_object(ctct);
+    ct_aply.resolve_object(ctct, err);
 
     configuration::host hst{new_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
@@ -68,8 +70,8 @@ class AnomalydetectionCheck : public TestEngine {
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
-    hst_aply.resolve_object(hst);
-    svc_aply.resolve_object(svc);
+    hst_aply.resolve_object(hst, err);
+    svc_aply.resolve_object(svc, err);
 
     configuration::anomalydetection ad{new_configuration_anomalydetection(
         "test_host", "test_ad", "admin", 9, 8,
@@ -77,7 +79,7 @@ class AnomalydetectionCheck : public TestEngine {
     configuration::applier::anomalydetection ad_aply;
     ad_aply.add_object(ad);
 
-    ad_aply.resolve_object(ad);
+    ad_aply.resolve_object(ad, err);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
@@ -1061,6 +1063,8 @@ TEST_P(AnomalydetectionCheckFileTooOld, FileTooOld) {
   ASSERT_EQ(_ad->get_perf_data(), "metric=70%;50;75");
 
   ::unlink("/tmp/thresholds_status_change.json");
+  // let's time to callback to be called
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
 
 INSTANTIATE_TEST_SUITE_P(

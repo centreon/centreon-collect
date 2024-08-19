@@ -19,13 +19,15 @@
 #include <gtest/gtest.h>
 #include <com/centreon/engine/macros.hh>
 
+#include "com/centreon/engine/commands/command.hh"
+#include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
-#include "com/centreon/engine/configuration/command.hh"
-#include "com/centreon/engine/configuration/connector.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
+#include "common/engine_legacy_conf/command.hh"
+#include "common/engine_legacy_conf/connector.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -120,6 +122,7 @@ TEST_F(ApplierCommand, NewCommandWithConnectorFromConfig) {
 // Then the applier add_object adds the command into the configuration set
 // but not in the commands map (the connector is not defined).
 TEST_F(ApplierCommand, NewCommandAndConnectorWithSameName) {
+  error_cnt err;
   configuration::applier::command aply;
   configuration::applier::connector cnn_aply;
   configuration::command cmd("cmd");
@@ -139,7 +142,7 @@ TEST_F(ApplierCommand, NewCommandAndConnectorWithSameName) {
   ASSERT_EQ(found->second->get_name(), "cmd");
   ASSERT_EQ(found->second->get_command_line(), "echo 1");
 
-  aply.resolve_object(cmd);
+  aply.resolve_object(cmd, err);
   connector_map::iterator found_con{
       commands::connector::connectors.find("cmd")};
   ASSERT_TRUE(found_con != commands::connector::connectors.end());
@@ -225,6 +228,7 @@ TEST_F(ApplierCommand, RemoveCommandWithConnector) {
 // When the command is removed from the configuration,
 // Then the command is totally removed.
 TEST_F(ApplierCommand, ComplexCommand) {
+  error_cnt err;
   configuration::applier::command cmd_aply;
   configuration::applier::host hst_aply;
 
@@ -254,7 +258,7 @@ TEST_F(ApplierCommand, ComplexCommand) {
   ASSERT_TRUE(config->hosts().size() == 1);
 
   hst_aply.expand_objects(*config);
-  hst_aply.resolve_object(hst);
+  hst_aply.resolve_object(hst, err);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
   nagios_macros* macros(get_global_macros());
   grab_host_macros_r(macros, hst_found->second.get());
@@ -269,6 +273,7 @@ TEST_F(ApplierCommand, ComplexCommand) {
 // When the command is removed from the configuration,
 // Then the command is totally removed.
 TEST_F(ApplierCommand, ComplexCommandWithContact) {
+  error_cnt err;
   configuration::applier::command cmd_aply;
   configuration::applier::host hst_aply;
   configuration::applier::contact cnt_aply;
@@ -308,7 +313,7 @@ TEST_F(ApplierCommand, ComplexCommandWithContact) {
   ASSERT_TRUE(config->hosts().size() == 1);
 
   hst_aply.expand_objects(*config);
-  hst_aply.resolve_object(hst);
+  hst_aply.resolve_object(hst, err);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
   nagios_macros* macros(get_global_macros());
   grab_host_macros_r(macros, hst_found->second.get());

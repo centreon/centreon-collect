@@ -17,13 +17,23 @@
  *
  */
 
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "grpc_stream.grpc.pb.h"
 
 #include "com/centreon/broker/grpc/connector.hh"
 #include "com/centreon/broker/grpc/stream.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
+using log_v2 = com::centreon::common::log_v2::log_v2;
+
+static constexpr multiplexing::muxer_filter _grpc_stream_filter =
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init());
+
+static constexpr multiplexing::muxer_filter _grpc_forbidden_filter =
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())
+        .add_category(io::local);
 
 /**
  * @brief Constructor of the connector that will connect to the given host at
@@ -33,54 +43,10 @@ using namespace com::centreon::broker::grpc;
  * @param port The port used for the connection.
  */
 connector::connector(const grpc_config::pointer& conf)
-    : io::limit_endpoint(false, {}), _conf(conf) {
-  ::grpc::ChannelArguments args;
-  args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
-  args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS,
-              conf->get_second_keepalive_interval() * 1000);
-  args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS,
-              conf->get_second_keepalive_interval() * 300);
-  args.SetInt(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, 0);
-  if (!conf->get_ca_name().empty())
-    args.SetString(GRPC_SSL_TARGET_NAME_OVERRIDE_ARG, conf->get_ca_name());
-  if (conf->get_compression() == grpc_config::YES) {
-    grpc_compression_algorithm algo = grpc_compression_algorithm_for_level(
-        GRPC_COMPRESS_LEVEL_HIGH, calc_accept_all_compression_mask());
-
-    const char* algo_name;
-    if (grpc_compression_algorithm_name(algo, &algo_name)) {
-      log_v2::grpc()->debug("client this={:p} activate compression {}",
-                            static_cast<void*>(this), algo_name);
-    } else {
-      log_v2::grpc()->debug("client this={:p} activate compression unknown",
-                            static_cast<void*>(this));
-    }
-    args.SetCompressionAlgorithm(algo);
-  }
-  std::shared_ptr<::grpc::ChannelCredentials> creds;
-  if (conf->is_crypted()) {
-    ::grpc::SslCredentialsOptions ssl_opts = {conf->get_ca(), conf->get_key(),
-                                              conf->get_cert()};
-    SPDLOG_LOGGER_INFO(
-        log_v2::grpc(),
-        "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
-        conf->get_hostport(), conf->get_cert().substr(0, 10),
-        conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
-    creds = ::grpc::SslCredentials(ssl_opts);
-#ifdef CAN_USE_JWT
-    if (!_conf->get_jwt().empty()) {
-      std::shared_ptr<::grpc::CallCredentials> jwt =
-          ::grpc::ServiceAccountJWTAccessCredentials(_conf->get_jwt(), 86400);
-      creds = ::grpc::CompositeChannelCredentials(creds, jwt);
-    }
-#endif
-  } else {
-    SPDLOG_LOGGER_INFO(log_v2::grpc(), "unencrypted connection to {}",
-                       conf->get_hostport());
-    creds = ::grpc::InsecureChannelCredentials();
-  }
-
-  _channel = ::grpc::CreateCustomChannel(conf->get_hostport(), creds, args);
+    : io::limit_endpoint(false, _grpc_stream_filter, _grpc_forbidden_filter),
+      com::centreon::common::grpc::grpc_client_base(
+          conf,
+          log_v2::instance().get(log_v2::GRPC)) {
   _stub = std::move(
       com::centreon::broker::stream::centreon_bbdo::NewStub(_channel));
 }
@@ -91,14 +57,15 @@ connector::connector(const grpc_config::pointer& conf)
  * @return std::unique_ptr<io::stream>
  */
 std::shared_ptr<io::stream> connector::open() {
-  SPDLOG_LOGGER_INFO(log_v2::grpc(), "Connecting to {}", _conf->get_hostport());
+  SPDLOG_LOGGER_INFO(get_logger(), "Connecting to {}",
+                     get_conf()->get_hostport());
   try {
     return limit_endpoint::open();
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_DEBUG(
-        log_v2::tcp(),
+        get_logger(),
         "Unable to establish the connection to {} (attempt {}): {}",
-        _conf->get_hostport(), _is_ready_count, e.what());
+        get_conf()->get_hostport(), _is_ready_count, e.what());
     return nullptr;
   }
 }
@@ -155,8 +122,8 @@ void client_stream::shutdown() {
  * @return std::unique_ptr<io::stream>
  */
 std::shared_ptr<io::stream> connector::create_stream() {
-  std::shared_ptr<client_stream> new_stream =
-      std::make_shared<client_stream>(_conf);
+  std::shared_ptr<client_stream> new_stream = std::make_shared<client_stream>(
+      std::static_pointer_cast<grpc_config>(get_conf()));
   client_stream::register_stream(new_stream);
   _stub->async()->exchange(&new_stream->get_context(), new_stream.get());
   new_stream->start_read();

@@ -1,28 +1,26 @@
 /**
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #include "com/centreon/engine/hostgroup.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
@@ -60,7 +58,7 @@ hostgroup::hostgroup(uint64_t id,
   // Make sure we have the data we need.
   if (name.empty()) {
     engine_logger(log_config_error, basic) << "Error: Hostgroup name is NULL";
-    log_v2::config()->error("Error: Hostgroup name is NULL");
+    config_logger->error("Error: Hostgroup name is NULL");
     throw(engine_error() << "Could not register host group '" << name << "'");
   }
 
@@ -69,8 +67,8 @@ hostgroup::hostgroup(uint64_t id,
   if (found != hostgroup::hostgroups.end()) {
     engine_logger(log_config_error, basic)
         << "Error: Hostgroup '" << name << "' has already been defined";
-    log_v2::config()->error("Error: Hostgroup '{}' has already been defined",
-                            name);
+    config_logger->error("Error: Hostgroup '{}' has already been defined",
+                         name);
     throw(engine_error() << "Could not register host group '" << name << "'");
   }
 }
@@ -156,9 +154,8 @@ std::ostream& operator<<(std::ostream& os,
   return (os);
 }
 
-void hostgroup::resolve(int& w, int& e) {
-  (void)w;
-  int errors{0};
+void hostgroup::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
+  uint32_t errors = 0;
 
   // Check all group members.
   for (host_map_unsafe::iterator it{members.begin()}, end{members.end()};
@@ -168,7 +165,7 @@ void hostgroup::resolve(int& w, int& e) {
       engine_logger(log_verification_error, basic)
           << "Error: Host '" << it->first << "' specified in host group '"
           << get_group_name() << "' is not defined anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Host '{}' specified in host group '{}' is not defined "
           "anywhere!",
           it->first, get_group_name());
@@ -195,7 +192,7 @@ void hostgroup::resolve(int& w, int& e) {
     engine_logger(log_verification_error, basic)
         << "Error: The name of hostgroup '" << get_group_name()
         << "' contains one or more illegal characters.";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: The name of hostgroup '{}' contains one or more illegal "
         "characters.",
         get_group_name());

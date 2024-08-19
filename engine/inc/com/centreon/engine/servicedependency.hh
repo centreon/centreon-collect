@@ -1,34 +1,34 @@
-/*
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
-
+/**
+ * Copyright 2011-2013 Merethis
+ * Copyright 2014-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #ifndef CCE_OBJECTS_SERVICEDEPENDENCY_HH
 #define CCE_OBJECTS_SERVICEDEPENDENCY_HH
-#include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/dependency.hh"
 #include "com/centreon/engine/hash.hh"
+#include "common/engine_legacy_conf/servicedependency.hh"
 
 /* Forward declaration. */
 namespace com::centreon::engine {
 class service;
 class servicedependency;
 class timeperiod;
-}
+}  // namespace com::centreon::engine
 
 typedef std::unordered_multimap<
     std::pair<std::string, std::string>,
@@ -38,8 +38,16 @@ typedef std::unordered_multimap<
 
 namespace com::centreon::engine {
 class servicedependency : public dependency {
+  std::string _dependent_service_description;
+  std::string _service_description;
+  bool _fail_on_ok;
+  bool _fail_on_warning;
+  bool _fail_on_unknown;
+  bool _fail_on_critical;
+
  public:
-  servicedependency(std::string const& dependent_host_name,
+  servicedependency(size_t key,
+                    std::string const& dependent_host_name,
                     std::string const& dependent_service_description,
                     std::string const& host_name,
                     std::string const& service_description,
@@ -68,7 +76,7 @@ class servicedependency : public dependency {
 
   bool check_for_circular_servicedependency_path(servicedependency* dep,
                                                  types dependency_type);
-  void resolve(int& w, int& e);
+  void resolve(uint32_t& w, uint32_t& e);
   bool get_fail_on(int state) const override;
 
   bool operator==(servicedependency const& obj) = delete;
@@ -79,17 +87,9 @@ class servicedependency : public dependency {
   static servicedependency_mmap servicedependencies;
   static servicedependency_mmap::iterator servicedependencies_find(
       configuration::servicedependency const& k);
-
- private:
-  std::string _dependent_service_description;
-  std::string _service_description;
-  bool _fail_on_ok;
-  bool _fail_on_warning;
-  bool _fail_on_unknown;
-  bool _fail_on_critical;
 };
 
-};
+};  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::servicedependency const& obj);

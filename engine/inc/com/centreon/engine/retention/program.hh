@@ -1,27 +1,29 @@
-/*
-** Copyright 2011-2013,2015 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
-
+/**
+ * Copyright 2011-2013,2015 Merethis
+ * Copyright 2016-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #ifndef CCE_RETENTION_PROGRAM_HH
 #define CCE_RETENTION_PROGRAM_HH
 
-#include "com/centreon/engine/opt.hh"
+#include "com/centreon/common/opt.hh"
 #include "com/centreon/engine/retention/object.hh"
+
+using com::centreon::common::opt;
 
 namespace com::centreon::engine {
 
@@ -69,7 +71,6 @@ class program : public object {
   bool _set_check_host_freshness(bool value);
   bool _set_check_service_freshness(bool value);
   bool _set_enable_event_handlers(bool value);
-  bool _set_enable_failure_prediction(bool value);
   bool _set_enable_flap_detection(bool value);
   bool _set_enable_notifications(bool value);
   bool _set_global_host_event_handler(std::string const& value);
@@ -114,6 +115,6 @@ class program : public object {
 typedef std::shared_ptr<program> program_ptr;
 }  // namespace retention
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_RETENTION_PROGRAM_HH

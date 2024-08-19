@@ -157,6 +157,43 @@ NetworkDBFailU7
     Ctn Stop engine
     Ctn Kindly Stop Broker
 
+NetworkDBFailU8
+    [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shutdown the connection until _check_queues failure
+    [Tags]    MON-71277 broker    database    network    unified_sql    unstable
+    Ctn Reset Eth Connection
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    3
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start engine
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Broker and Engine are not connected
+    ${content}    Create List    run query: SELECT
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    Should Be True    ${result}    No SELECT done by broker in the DB
+
+    Log To Console    Connection failure.
+    ${start}    Get Current Date
+    Ctn Disable Eth Connection On Port    port=3306
+    ${content}    Create List    fail to store queued data in database
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    Should Be True    ${result}    No failure found in log
+
+    ${start}    Get Current Date
+    Log To Console    Reestablishing the connection and test last steps.
+    Ctn Reset Eth Connection
+    ${content}    Create List    unified_sql:_check_queues
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    Ctn Stop engine
+    Ctn Kindly Stop Broker
+
+
 
 *** Keywords ***
 Ctn Disable Sleep Enable

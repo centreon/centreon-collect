@@ -33,22 +33,20 @@
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/stats/builder.hh"
 #include "com/centreon/broker/stats/center.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
 
 class StatsTest : public ::testing::Test {
  public:
   void SetUp() override {
-    g_io_context->restart();
-    com::centreon::broker::pool::load(g_io_context, 0);
     stats::center::load();
     mysql_manager::load();
     config::applier::state::load();
@@ -69,7 +67,6 @@ class StatsTest : public ::testing::Test {
     mysql_manager::unload();
     file::disk_accessor::unload();
     stats::center::unload();
-    pool::unload();
   }
 };
 
@@ -136,7 +133,11 @@ class st : public io::stream {
 
 class endp : public io::endpoint {
  public:
-  endp() : io::endpoint{false, {}} {}
+  endp()
+      : io::endpoint{false,
+                     {},
+                     multiplexing::muxer_filter(
+                         multiplexing::muxer_filter::zero_init())} {}
   std::shared_ptr<io::stream> open() override {
     static int count = 0;
     if (++count < 2)

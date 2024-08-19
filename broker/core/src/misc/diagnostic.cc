@@ -1,65 +1,40 @@
 /**
-* Copyright 2013,2015 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2013,2015 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/misc/diagnostic.hh"
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Default constructor.
  */
-diagnostic::diagnostic() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-diagnostic::diagnostic(diagnostic const& right) {
-  (void)right;
-}
-
-/**
- *  Destructor.
- */
-diagnostic::~diagnostic() throw() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-diagnostic& diagnostic::operator=(diagnostic const& right) {
-  (void)right;
-  return (*this);
-}
+diagnostic::diagnostic() : _logger{log_v2::instance().get(log_v2::CORE)} {}
 
 /**
  *  Generate diagnostic file.
@@ -86,11 +61,10 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
   to_remove.push_back(diagnostic_log_path);
 
   // Base information about the software.
-  log_v2::core()->info("diagnostic: Centreon Broker {}",
-                       CENTREON_BROKER_VERSION);
+  _logger->info("diagnostic: Centreon Broker {}", CENTREON_BROKER_VERSION);
 
   // df.
-  log_v2::core()->info("diagnostic: getting disk usage");
+  _logger->info("diagnostic: getting disk usage");
   {
     std::string df_log_path;
     df_log_path = tmp_dir;
@@ -104,7 +78,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
   }
 
   // lsb_release.
-  log_v2::core()->info("diagnostic: getting LSB information");
+  _logger->info("diagnostic: getting LSB information");
   {
     std::string lsb_release_log_path;
     lsb_release_log_path = tmp_dir;
@@ -118,7 +92,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
   }
 
   // uname.
-  log_v2::core()->info("diagnostic: getting system name");
+  _logger->info("diagnostic: getting system name");
   {
     std::string uname_log_path;
     uname_log_path = tmp_dir;
@@ -132,7 +106,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
   }
 
   // /proc/version
-  log_v2::core()->info("diagnostic: getting kernel information");
+  _logger->info("diagnostic: getting kernel information");
   {
     std::string proc_version_log_path;
     proc_version_log_path = tmp_dir;
@@ -146,7 +120,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
   }
 
   // netstat.
-  log_v2::core()->info("diagnostic: getting network connections information");
+  _logger->info("diagnostic: getting network connections information");
   {
     std::string netstat_log_path;
     netstat_log_path = tmp_dir;
@@ -160,7 +134,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
   }
 
   // ps.
-  log_v2::core()->info("diagnostic: getting processes information");
+  _logger->info("diagnostic: getting processes information");
   {
     std::string ps_log_path;
     ps_log_path = tmp_dir;
@@ -174,7 +148,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
   }
 
   // rpm.
-  log_v2::core()->info("diagnostic: getting packages information");
+  _logger->info("diagnostic: getting packages information");
   {
     std::string rpm_log_path;
     rpm_log_path = tmp_dir;
@@ -188,7 +162,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
   }
 
   // sestatus.
-  log_v2::core()->info("diagnostic: getting SELinux status");
+  _logger->info("diagnostic: getting SELinux status");
   {
     std::string selinux_log_path;
     selinux_log_path = tmp_dir;
@@ -206,7 +180,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
        end(cfg_files.end());
        it != end; ++it) {
     // Configuration file.
-    log_v2::core()->info("diagnostic: getting configuration file '{}'", *it);
+    _logger->info("diagnostic: getting configuration file '{}'", *it);
     std::string cfg_path;
     {
       cfg_path = tmp_dir;
@@ -226,16 +200,15 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     config::parser parsr;
     config::state conf;
     try {
-      log_v2::core()->info("diagnostic: reading configuration file.");
+      _logger->info("diagnostic: reading configuration file.");
       conf = parsr.parse(*it);
     } catch (std::exception const& e) {
-      log_v2::core()->error(
-          "diagnostic: configuration file '{}' parsing failed: {}", *it,
-          e.what());
+      _logger->error("diagnostic: configuration file '{}' parsing failed: {}",
+                     *it, e.what());
     }
 
     // ls.
-    log_v2::core()->info("diagnostic: getting modules information");
+    _logger->info("diagnostic: getting modules information");
     {
       std::string ls_log_path;
       ls_log_path = tmp_dir;
@@ -272,7 +245,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     my_out_file = out_file;
 
   // Create tarball.
-  log_v2::core()->info("diagnostic: creating tarball '{}'", my_out_file);
+  _logger->info("diagnostic: creating tarball '{}'", my_out_file);
   {
     std::string cmd{fmt::format("tar czf {} {}", my_out_file, tmp_dir)};
     std::string output{misc::exec(cmd)};

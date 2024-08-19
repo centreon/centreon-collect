@@ -35,13 +35,13 @@
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/configuration/service.hh"
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
+#include "common/engine_legacy_conf/host.hh"
+#include "common/engine_legacy_conf/service.hh"
+#include "common/engine_legacy_conf/state.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -52,6 +52,9 @@ using namespace com::centreon::engine::configuration::applier;
 extern configuration::state* config;
 
 class ServiceRetention : public TestEngine {
+ protected:
+  error_cnt _err;
+
  public:
   void SetUp() override {
     init_config_state();
@@ -63,7 +66,7 @@ class ServiceRetention : public TestEngine {
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
-    ct_aply.resolve_object(ctct);
+    ct_aply.resolve_object(ctct, _err);
 
     configuration::host hst{new_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
@@ -74,8 +77,8 @@ class ServiceRetention : public TestEngine {
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
-    hst_aply.resolve_object(hst);
-    svc_aply.resolve_object(svc);
+    hst_aply.resolve_object(hst, _err);
+    svc_aply.resolve_object(svc, _err);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;

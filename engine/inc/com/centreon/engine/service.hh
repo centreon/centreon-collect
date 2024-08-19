@@ -1,21 +1,20 @@
-/*
-** Copyright 2011-2022 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCE_SERVICE_HH
 #define CCE_SERVICE_HH
@@ -37,7 +36,7 @@ class host;
 class service;
 class servicegroup;
 class serviceescalation;
-}
+}  // namespace com::centreon::engine
 
 using service_map =
     absl::flat_hash_map<std::pair<std::string, std::string>,
@@ -46,8 +45,8 @@ using service_map_unsafe =
     absl::flat_hash_map<std::pair<std::string, std::string>,
                         com::centreon::engine::service*>;
 using service_id_map =
-    absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
-                        std::shared_ptr<com::centreon::engine::service>>;
+    absl::btree_map<std::pair<uint64_t, uint64_t>,
+                    std::shared_ptr<com::centreon::engine::service>>;
 
 namespace com::centreon::engine {
 
@@ -118,6 +117,7 @@ class service : public notifier {
   service_type get_service_type() const;
   void set_hostname(std::string const& name);
   std::string const& get_hostname() const;
+  void set_name(std::string const& desc) override;
   void set_description(std::string const& desc);
   const std::string& description() const;
   void set_event_handler_args(std::string const& event_hdl_args);
@@ -205,7 +205,7 @@ class service : public notifier {
   static void check_for_orphaned();
   static void check_result_freshness();
   bool is_in_downtime() const override;
-  void resolve(int& w, int& e);
+  void resolve(uint32_t& w, uint32_t& e);
 
   std::list<servicegroup*> const& get_parent_groups() const;
   std::list<servicegroup*>& get_parent_groups();
@@ -214,8 +214,13 @@ class service : public notifier {
   host* get_host_ptr();
   bool get_host_problem_at_last_check() const;
 
+  void set_check_command_ptr(
+      const std::shared_ptr<commands::command>& cmd) override;
+
   static service_map services;
   static service_id_map services_by_id;
+
+  std::string get_check_command_line(nagios_macros* macros);
 
  private:
   uint64_t _host_id;
@@ -239,7 +244,7 @@ class service : public notifier {
   host* _host_ptr;
   bool _host_problem_at_last_check;
 };
-}
+}  // namespace com::centreon::engine
 
 com::centreon::engine::service* add_service(
     uint64_t host_id,
@@ -310,6 +315,6 @@ std::pair<std::string, std::string> get_host_and_service_names(
     const uint64_t service_id);
 uint64_t get_service_id(std::string const& host, std::string const& svc);
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_SERVICE_HH

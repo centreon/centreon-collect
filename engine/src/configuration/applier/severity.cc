@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2022-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,10 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/severity.hh"
+#include "common/engine_legacy_conf/severity.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -38,8 +37,8 @@ using namespace com::centreon::engine::configuration;
  */
 void applier::severity::add_object(const configuration::severity& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new severity ({}, {}).", obj.key().first,
-                          obj.key().second);
+  config_logger->debug("Creating new severity ({}, {}).", obj.key().first,
+                       obj.key().second);
 
   // Add severity to the global configuration set.
   config->mut_severities().insert(obj);
@@ -74,8 +73,8 @@ void applier::severity::expand_objects(configuration::state&) {}
  */
 void applier::severity::modify_object(const configuration::severity& obj) {
   // Logging.
-  log_v2::config()->debug("Modifying severity ({}, {}).", obj.key().first,
-                          obj.key().second);
+  config_logger->debug("Modifying severity ({}, {}).", obj.key().first,
+                       obj.key().second);
 
   // Find old configuration.
   auto it_cfg = config->severities_find(obj.key());
@@ -104,8 +103,8 @@ void applier::severity::modify_object(const configuration::severity& obj) {
     // Notify event broker.
     broker_adaptive_severity_data(NEBTYPE_SEVERITY_UPDATE, s);
   } else
-    log_v2::config()->debug("Severity ({}, {}) did not change", obj.key().first,
-                            obj.key().second);
+    config_logger->debug("Severity ({}, {}) did not change", obj.key().first,
+                         obj.key().second);
 }
 
 /**
@@ -115,8 +114,8 @@ void applier::severity::modify_object(const configuration::severity& obj) {
  */
 void applier::severity::remove_object(const configuration::severity& obj) {
   // Logging.
-  log_v2::config()->debug("Removing severity ({}, {}).", obj.key().first,
-                          obj.key().second);
+  config_logger->debug("Removing severity ({}, {}).", obj.key().first,
+                       obj.key().second);
 
   // Find severity.
   severity_map::iterator it = engine::severity::severities.find(obj.key());

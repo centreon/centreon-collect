@@ -30,11 +30,8 @@ EBBPS1
     ${start_broker}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-    ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
-    Should Be True
-    ...    ${result}
-    ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
+    Ctn Wait For Engine To Be Ready    ${start}
+
     FOR    ${i}    IN RANGE    ${1000}
         Ctn Process Service Check Result    host_1    service_${i+1}    1    warning${i}
     END

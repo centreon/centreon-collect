@@ -1,29 +1,28 @@
-/*
-** Copyright 2020 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
-
+/**
+ * Copyright 2020-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #ifndef CCE_ANOMALYDETECTION_HH
 #define CCE_ANOMALYDETECTION_HH
 
 #include <map>
 #include <mutex>
 
-#include <nlohmann/json.hpp>
+#include <rapidjson/document.h>
 #include <tuple>
 
 #include "com/centreon/engine/service.hh"
@@ -45,7 +44,7 @@ class anomalydetection : public service {
    public:
     threshold_point(time_t timepoint,
                     double factor,
-                    const nlohmann::json& json_data);
+                    const rapidjson::Value& json_data);
     threshold_point(time_t timepoint);
 
     void set_factor(double factor);
@@ -124,10 +123,10 @@ class anomalydetection : public service {
 
   void set_thresholds_lock(const std::string& filename,
                            double json_sensitivity,
-                           const nlohmann::json& thresholds);
+                           const rapidjson::Value& thresholds);
   void set_thresholds_no_lock(const std::string& filename,
                               double json_sensitivity,
-                              const nlohmann::json& thresholds);
+                              const rapidjson::Value& thresholds);
 
   void set_sensitivity(double sensitivity);
   double get_sensitivity() const { return _sensitivity; }
@@ -148,11 +147,11 @@ class anomalydetection : public service {
   void set_status_change(bool status_change);
   const std::string& get_metric_name() const;
   const std::string& get_thresholds_file() const;
-  void resolve(int& w, int& e);
+  void resolve(uint32_t& w, uint32_t& e);
 
   static const pointer_set& get_anomaly(uint64_t dependent_service_id);
 };
-}
+}  // namespace com::centreon::engine
 
 com::centreon::engine::anomalydetection* add_anomalydetection(
     uint64_t host_id,

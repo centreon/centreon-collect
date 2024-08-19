@@ -56,7 +56,8 @@ class daterange {
             int emday,
             int ewday,
             int ewday_offset,
-            int skip_interval);
+            int skip_interval,
+            const std::list<configuration::timerange>& timeranges);
   daterange(type_range type);
 
   type_range get_type() const { return _type; }
@@ -91,8 +92,6 @@ class daterange {
 
   bool operator==(daterange const& obj) const;
   bool operator!=(daterange const& obj2) const;
-  bool operator<(daterange const& right) const;
-  bool is_date_data_equal(daterange const& obj) const;
 
   static std::string const& get_month_name(unsigned int index);
   static std::string const& get_weekday_name(unsigned int index);
@@ -120,6 +119,6 @@ std::ostream& operator<<(std::ostream& os,
 
 std::ostream& operator<<(std::ostream& os, exception_array const& obj);
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_OBJECTS_DATERANGE_HH

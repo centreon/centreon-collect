@@ -17,31 +17,32 @@
  */
 
 #include "com/centreon/broker/persistent_cache.hh"
+
 #include <unistd.h>
+
 #include <cerrno>
+
 #include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/opener.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
  *
  *  @param[in] cache_file  Path to the cache file.
  */
-persistent_cache::persistent_cache(const std::string& cache_file)
-    : _cache_file(cache_file) {
+persistent_cache::persistent_cache(
+    const std::string& cache_file,
+    const std::shared_ptr<spdlog::logger>& logger)
+    : _cache_file(cache_file), _logger{logger} {
   _open();
 }
-
-/**
- *  Destructor.
- */
-persistent_cache::~persistent_cache() {}
 
 /**
  *  @brief Add an event to the persistent cache.
@@ -80,8 +81,7 @@ void persistent_cache::commit() {
     }
     // No error checking, this is a secondary issue.
     if (unlink(_old_file().c_str()))
-      log_v2::core()->error("removing persistent cache '{}' failed",
-                            _old_file());
+      _logger->error("removing persistent cache '{}' failed", _old_file());
   }
 }
 
@@ -177,4 +177,13 @@ void persistent_cache::_open() {
 
   // We will access only the BBDO layer.
   _read_file = std::static_pointer_cast<io::stream>(bs);
+}
+
+/**
+ * @brief Accessor to the logger.
+ *
+ * @return A shared pointer to the logger.
+ */
+std::shared_ptr<spdlog::logger> persistent_cache::logger() const {
+  return _logger;
 }

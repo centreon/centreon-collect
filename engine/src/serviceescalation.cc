@@ -1,28 +1,25 @@
 /**
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine::configuration::applier;
@@ -38,9 +35,9 @@ serviceescalation::serviceescalation(std::string const& hostname,
                                      double notification_interval,
                                      std::string const& escalation_period,
                                      uint32_t escalate_on,
-                                     Uuid const& uuid)
+                                     const size_t key)
     : escalation{first_notification, last_notification, notification_interval,
-                 escalation_period,  escalate_on,       uuid},
+                 escalation_period,  escalate_on,       key},
       _hostname{hostname},
       _description{description} {
   if (hostname.empty())
@@ -50,8 +47,6 @@ serviceescalation::serviceescalation(std::string const& hostname,
     throw engine_error() << "Could not create escalation "
                          << "on a service without description";
 }
-
-serviceescalation::~serviceescalation() {}
 
 std::string const& serviceescalation::get_hostname() const {
   return _hostname;
@@ -73,7 +68,7 @@ std::string const& serviceescalation::get_description() const {
 bool serviceescalation::is_viable(int state,
                                   uint32_t notification_number) const {
   engine_logger(dbg_functions, basic) << "serviceescalation::is_viable()";
-  log_v2::functions()->trace("serviceescalation::is_viable()");
+  functions_logger->trace("serviceescalation::is_viable()");
 
   bool retval{escalation::is_viable(state, notification_number)};
   if (retval) {
@@ -91,9 +86,8 @@ bool serviceescalation::is_viable(int state,
     return retval;
 }
 
-void serviceescalation::resolve(int& w, int& e) {
-  (void)w;
-  int errors{0};
+void serviceescalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
+  uint32_t errors = 0;
 
   // Find the service.
   service_map::const_iterator found{
@@ -103,7 +97,7 @@ void serviceescalation::resolve(int& w, int& e) {
         << "Error: Service '" << get_description() << "' on host '"
         << get_hostname()
         << "' specified in service escalation is not defined anywhere!";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Service '{}' on host '{}' specified in service escalation is "
         "not defined anywhere!",
         get_description(), get_hostname());
@@ -119,7 +113,7 @@ void serviceescalation::resolve(int& w, int& e) {
   } catch (std::exception const& ee) {
     engine_logger(log_verification_error, basic)
         << "Error: Notifier escalation error: " << ee.what();
-    log_v2::config()->error("Error: Notifier escalation error: {}", ee.what());
+    config_logger->error("Error: Notifier escalation error: {}", ee.what());
   }
 
   // Add errors.
@@ -127,4 +121,40 @@ void serviceescalation::resolve(int& w, int& e) {
     e += errors;
     throw engine_error() << "Cannot resolve service escalation";
   }
+}
+
+/**
+ * @brief Checks that this serviceescalation corresponds to the Configuration
+ * object obj. This function doesn't check contactgroups as it is usually used
+ * to modify them.
+ *
+ * @param obj A service escalation configuration object.
+ *
+ * @return A boolean that is True if they match.
+ */
+bool serviceescalation::matches(
+    const configuration::serviceescalation& obj) const {
+  uint32_t escalate_on =
+      ((obj.escalation_options() & configuration::serviceescalation::warning)
+           ? notifier::warning
+           : notifier::none) |
+      ((obj.escalation_options() & configuration::serviceescalation::unknown)
+           ? notifier::unknown
+           : notifier::none) |
+      ((obj.escalation_options() & configuration::serviceescalation::critical)
+           ? notifier::critical
+           : notifier::none) |
+      ((obj.escalation_options() & configuration::serviceescalation::recovery)
+           ? notifier::ok
+           : notifier::none);
+  if (_hostname != obj.hosts().front() ||
+      _description != obj.service_description().front() ||
+      get_first_notification() != obj.first_notification() ||
+      get_last_notification() != obj.last_notification() ||
+      get_notification_interval() != obj.notification_interval() ||
+      get_escalation_period() != obj.escalation_period() ||
+      get_escalate_on() != escalate_on)
+    return false;
+
+  return true;
 }

@@ -1,25 +1,25 @@
 /**
-* Copyright 2011-2019,2022 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+ * Copyright 2011-2019,2022-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/logging/logger.hh"
 
 #include "com/centreon/engine/configuration/whitelist.hh"
 
@@ -50,8 +50,7 @@ checkable::checkable(const std::string& name,
                      bool obsess_over,
                      const std::string& timezone,
                      uint64_t icon_id)
-    : check_period_ptr{nullptr},
-      _name{name},
+    : _name{name},
       _display_name{display_name.empty() ? name : display_name},
       _check_command{check_command},
       _check_interval{check_interval},
@@ -92,7 +91,8 @@ checkable::checkable(const std::string& name,
       _event_handler_ptr{nullptr},
       _check_command_ptr{nullptr},
       _is_executing{false},
-      _icon_id{icon_id} {
+      _icon_id{icon_id},
+      check_period_ptr{nullptr} {
   if (max_attempts <= 0 || retry_interval <= 0 || freshness_threshold < 0) {
     std::ostringstream oss;
     bool empty{true};
@@ -113,7 +113,7 @@ checkable::checkable(const std::string& name,
       oss << "Invalid freshness_threshold: value should be positive or 0";
     }
     engine_logger(log_config_error, basic) << oss.str();
-    log_v2::config()->error(oss.str());
+    config_logger->error(oss.str());
     throw engine_error() << "Could not register checkable '" << display_name
                          << "'";
   }
@@ -540,21 +540,52 @@ void checkable::set_name(const std::string& name) {
  * it tries to use last whitelist check result
  *
  * @param process_cmd final command line (macros replaced)
- * @return true allowed
- * @return false
+ * @param cached_cmd the static cached command (in case of a cache stored
+ * in another place than in this). The cached command is writable to be updated
+ * if needed. This method should be used with care, usually the other method
+ * with the same name should be preferred.
+ * @return A boolean true if allowed, false otherwise.
  */
-bool checkable::is_whitelist_allowed(const std::string& process_cmd) {
-  if (process_cmd == _whitelist_last_result.process_cmd &&
+bool checkable::command_is_allowed_by_whitelist(
+    const std::string& process_cmd,
+    static_whitelist_last_result& cached_cmd) {
+  if (process_cmd == cached_cmd.command.process_cmd &&
       configuration::whitelist::instance().instance_id() ==
-          _whitelist_last_result.whitelist_instance_id) {
-    return _whitelist_last_result.allowed;
+          cached_cmd.whitelist_instance_id) {
+    return cached_cmd.command.allowed;
   }
 
   // something has changed => call whitelist
-  _whitelist_last_result.process_cmd = process_cmd;
-  _whitelist_last_result.allowed =
+  cached_cmd.command.process_cmd = process_cmd;
+  cached_cmd.command.allowed =
       configuration::whitelist::instance().is_allowed(process_cmd);
+  cached_cmd.whitelist_instance_id =
+      configuration::whitelist::instance().instance_id();
+  return cached_cmd.command.allowed;
+}
+
+/**
+ * @brief check if a command is allowed by whitelist
+ * it tries to use last whitelist check result
+ *
+ * @param process_cmd final command line (macros replaced)
+ * @param typ a value among CHECK_TYPE, NOTIF_TYPE, EVH_TYPE or OBSESS_TYPE.
+ * @return true allowed
+ * @return false
+ */
+bool checkable::command_is_allowed_by_whitelist(const std::string& process_cmd,
+                                                command_type typ) {
+  auto& cmd = _whitelist_last_result.command[typ];
+  if (process_cmd == cmd.process_cmd &&
+      configuration::whitelist::instance().instance_id() ==
+          _whitelist_last_result.whitelist_instance_id) {
+    return cmd.allowed;
+  }
+
+  // something has changed => call whitelist
+  cmd.process_cmd = process_cmd;
+  cmd.allowed = configuration::whitelist::instance().is_allowed(process_cmd);
   _whitelist_last_result.whitelist_instance_id =
       configuration::whitelist::instance().instance_id();
-  return _whitelist_last_result.allowed;
+  return cmd.allowed;
 }

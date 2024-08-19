@@ -23,15 +23,15 @@
 
 #include <gtest/gtest.h>
 
-#include "com/centreon/engine/configuration/anomalydetection.hh"
-#include "com/centreon/engine/configuration/contact.hh"
-#include "com/centreon/engine/configuration/contactgroup.hh"
-#include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/configuration/hostdependency.hh"
-#include "com/centreon/engine/configuration/hostescalation.hh"
-#include "com/centreon/engine/configuration/service.hh"
-#include "com/centreon/engine/configuration/servicedependency.hh"
-#include "com/centreon/engine/configuration/serviceescalation.hh"
+#include "common/engine_legacy_conf/anomalydetection.hh"
+#include "common/engine_legacy_conf/contact.hh"
+#include "common/engine_legacy_conf/contactgroup.hh"
+#include "common/engine_legacy_conf/host.hh"
+#include "common/engine_legacy_conf/hostdependency.hh"
+#include "common/engine_legacy_conf/hostescalation.hh"
+#include "common/engine_legacy_conf/service.hh"
+#include "common/engine_legacy_conf/servicedependency.hh"
+#include "common/engine_legacy_conf/serviceescalation.hh"
 
 using namespace com::centreon::engine;
 
@@ -41,14 +41,17 @@ class TestEngine : public ::testing::Test {
       std::string const& name,
       bool full,
       const std::string& notif = "a") const;
-  configuration::host new_configuration_host(std::string const& hostname,
-                                             std::string const& contacts,
-                                             uint64_t hst_id = 12);
+  configuration::host new_configuration_host(
+      std::string const& hostname,
+      std::string const& contacts,
+      uint64_t hst_id = 12,
+      const std::string_view& connector = "");
   configuration::service new_configuration_service(
       std::string const& hostname,
       std::string const& description,
       std::string const& contacts,
-      uint64_t svc_id = 13);
+      uint64_t svc_id = 13,
+      const std::string_view& connector = "");
   configuration::anomalydetection new_configuration_anomalydetection(
       std::string const& hostname,
       std::string const& description,

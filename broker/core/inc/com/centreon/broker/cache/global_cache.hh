@@ -1,25 +1,25 @@
-/*
-** Copyright 2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2022-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_GLOBAL_CACHE_HH
 #define CCB_GLOBAL_CACHE_HH
 
-#include "bbdo/tag.pb.h"
+#include "bbdo/neb.pb.h"
 
 namespace com::centreon::broker {
 
@@ -141,11 +141,14 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
  protected:
   const std::string _file_path;
 
+  std::shared_ptr<spdlog::logger> _logger;
+
   std::unique_ptr<managed_mapped_file> _file;
 
   mutable absl::Mutex _protect;
 
-  global_cache(const std::string& file_path);
+  global_cache(const std::string& file_path,
+               const std::shared_ptr<spdlog::logger>& logger);
 
   void allocation_exception_handler();
 

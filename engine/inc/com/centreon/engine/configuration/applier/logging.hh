@@ -20,9 +20,9 @@
 #ifndef CCE_CONFIGURATION_APPLIER_LOGGING_HH
 #define CCE_CONFIGURATION_APPLIER_LOGGING_HH
 
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/logging/file.hh"
 #include "com/centreon/logging/syslogger.hh"
+#include "common/engine_legacy_conf/state.hh"
 
 namespace com::centreon::engine {
 
@@ -58,7 +58,7 @@ class logging {
   void _del_stderr();
 
   com::centreon::logging::file* _debug;
-  unsigned long long _debug_level;
+  int64_t _debug_level;
   unsigned long _debug_max_size;
   unsigned int _debug_verbosity;
   com::centreon::logging::file* _log;
@@ -69,6 +69,6 @@ class logging {
 }  // namespace applier
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_LOGGING_HH

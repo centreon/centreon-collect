@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
 #include "com/centreon/engine/broker.hh"
@@ -23,19 +23,9 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine::configuration;
-
-/**
- *  Default constructor.
- */
-applier::hostescalation::hostescalation() {}
-
-/**
- *  Destructor.
- */
-applier::hostescalation::~hostescalation() throw() {}
 
 /**
  *  Add new host escalation.
@@ -53,11 +43,13 @@ void applier::hostescalation::add_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new escalation for host '" << *obj.hosts().begin() << "'.";
-  log_v2::config()->debug("Creating new escalation for host '{}'.",
-                          *obj.hosts().begin());
+  config_logger->debug("Creating new escalation for host '{}'.",
+                       *obj.hosts().begin());
 
   // Add escalation to the global configuration set.
   config->hostescalations().insert(obj);
+
+  size_t key = hostescalation_key(obj);
 
   // Create host escalation.
   auto he = std::make_shared<engine::hostescalation>(
@@ -73,7 +65,7 @@ void applier::hostescalation::add_object(
           ((obj.escalation_options() & configuration::hostescalation::recovery)
                ? notifier::up
                : notifier::none),
-      obj.uuid());
+      key);
 
   // Add new items to the configuration state.
   engine::hostescalation::hostescalations.insert({he->get_hostname(), he});
@@ -154,7 +146,7 @@ void applier::hostescalation::remove_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing a host escalation.";
-  log_v2::config()->debug("Removing a host escalation.");
+  config_logger->debug("Removing a host escalation.");
 
   // Find host escalation.
   std::string const& host_name{*obj.hosts().begin()};
@@ -168,8 +160,7 @@ void applier::hostescalation::remove_object(
   if (hit == engine::host::hosts.end()) {
     engine_logger(logging::dbg_config, logging::more)
         << "Cannot find host '" << host_name << "' - already removed.";
-    log_v2::config()->debug("Cannot find host '{}' - already removed.",
-                            host_name);
+    config_logger->debug("Cannot find host '{}' - already removed.", host_name);
     host_exists = false;
   } else
     host_exists = true;
@@ -204,8 +195,8 @@ void applier::hostescalation::remove_object(
         engine_logger(logging::dbg_config, logging::more)
             << "Host '" << host_name
             << "' found - removing escalation from it.";
-        log_v2::config()->debug(
-            "Host '{}' found - removing escalation from it.", host_name);
+        config_logger->debug("Host '{}' found - removing escalation from it.",
+                             host_name);
         std::list<escalation*>& escalations(hit->second->get_escalations());
         /* We need also to remove the escalation from the host */
         for (std::list<engine::escalation*>::iterator heit{escalations.begin()},
@@ -233,11 +224,12 @@ void applier::hostescalation::remove_object(
  *  @param[in] obj  Hostescalation object.
  */
 void applier::hostescalation::resolve_object(
-    configuration::hostescalation const& obj) {
+    configuration::hostescalation const& obj,
+    error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving a host escalation.";
-  log_v2::config()->debug("Resolving a host escalation.");
+  config_logger->debug("Resolving a host escalation.");
 
   // Find host escalation
   bool found{false};
@@ -248,13 +240,14 @@ void applier::hostescalation::resolve_object(
     throw engine_error() << "Cannot find host escalations concerning host '"
                          << hostname << "'";
 
+  size_t key = hostescalation_key(obj);
   for (hostescalation_mmap::iterator it{p.first}; it != p.second; ++it) {
     /* It's a pity but for now we don't have any idea or key to verify if
      * the hostescalation is the good one. */
-    if (it->second->get_uuid() == obj.uuid()) {
+    if (it->second->internal_key() == key && it->second->matches(obj)) {
       found = true;
       // Resolve host escalation.
-      it->second->resolve(config_warnings, config_errors);
+      it->second->resolve(err.config_warnings, err.config_errors);
       break;
     }
   }

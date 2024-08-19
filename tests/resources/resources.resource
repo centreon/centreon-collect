@@ -142,7 +142,7 @@ Ctn Stop Processes
     Ctn Kill Broker
     Ctn Kill Engine
 
-Ctn Start engine
+Ctn Start Engine
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -157,6 +157,27 @@ Ctn Start engine
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
         Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}
+    END
+
+Ctn Start Engine With Extend Conf
+    ${count}    Ctn Get Engines Count
+    FOR    ${idx}    IN RANGE    0    ${count}
+        ${alias}    Catenate    SEPARATOR=    e    ${idx}
+        ${conf}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg
+        ${log}    Catenate    SEPARATOR=    ${VarRoot}    /log/centreon-engine/config    ${idx}
+        ${lib}    Catenate    SEPARATOR=    ${VarRoot}    /lib/centreon-engine/config    ${idx}
+        Create Directory    ${log}
+        Create Directory    ${lib}
+        TRY
+            Remove File    ${lib}/rw/centengine.cmd
+        EXCEPT
+            Log    can't remove ${lib}/rw/centengine.cmd don't worry
+        END
+        Start Process
+        ...    /usr/sbin/centengine
+        ...    --config-file\=/tmp/centengine_extend.json
+        ...    ${conf}
+        ...    alias=${alias}
     END
 
 Ctn Restart Engine
@@ -174,12 +195,11 @@ Ctn Stop Custom Engine
     ...    ${result.rc} == -15 or ${result.rc} == 0
     ...    Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
-Ctn Stop engine
+Ctn Stop Engine
     Log To Console    "stop centengine"
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
-        ${alias}    Catenate    SEPARATOR=    e    ${idx}
-        Send Signal To Process    SIGTERM    ${alias}
+        Send Signal To Process    SIGTERM    e${idx}
     END
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -276,7 +296,8 @@ Ctn Dump Process
         ${output}    Catenate    SEPARATOR=    /tmp/core-    ${name}
         ${gdb_output}    Catenate    SEPARATOR=    ${failDir}    /core-    ${name}    .txt
         # Log To Console    Creation of core ${output}.${pid} to debug
-        # Run Process    gcore    -o    ${output}    ${pid}
+        Run Process    gcore    -o    ${output}    ${pid}
+        Log To Console    Creation of core ${gdb_output}
         Run Process
         ...    gdb
         ...    -batch
@@ -358,6 +379,7 @@ Ctn Wait For Engine To Be Ready
         ${result}    Ctn Find In Log With Timeout
         ...    ${ENGINE_LOG}/config${i}/centengine.log
         ...    ${start}    ${content}    60
+	...    verbose=False
         Should Be True
         ...    ${result}
         ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.

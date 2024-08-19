@@ -18,9 +18,10 @@
  */
 #include <gtest/gtest.h>
 #include "../../timeperiod/utils.hh"
+#include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
-#include "com/centreon/engine/configuration/connector.hh"
+#include "common/engine_legacy_conf/connector.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -83,7 +84,6 @@ TEST_F(ApplierConnector, ModifyNonExistingConnector) {
 // When a non existing connector is removed
 // Then nothing is done.
 TEST_F(ApplierConnector, RemoveNonExistingConnector) {
-  configuration::applier::connector aply;
   configuration::connector cnn("connector");
   cnn.parse("connector_line", "echo 1");
 

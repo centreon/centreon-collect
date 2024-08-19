@@ -1,46 +1,52 @@
-/*
-** Copyright 1999-2009 Ethan Galstad
-** Copyright 2009-2010 Nagios Core Development Team and Community Contributors
-** Copyright 2011-2019 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
-
+/**
+ * Copyright 1999-2009 Ethan Galstad
+ * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
+ * Copyright 2011-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 #ifndef CCE_GLOBALS_HH
 #define CCE_GLOBALS_HH
 
 #include <stdio.h>
 
 #include "com/centreon/engine/circular_buffer.hh"
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/engine/events/timed_event.hh"
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/restart_stats.hh"
 #include "com/centreon/engine/utils.hh"
-
-#ifdef __cplusplus
-extern "C" {
-#endif /* C++ */
-
-extern int config_errors;
-extern int config_warnings;
+#include "common/engine_legacy_conf/state.hh"
+#include "common/log_v2/log_v2.hh"
 
 /* Start/Restart statistics */
 extern com::centreon::engine::restart_stats restart_apply_stats;
+
+extern std::shared_ptr<spdlog::logger> checks_logger;
+extern std::shared_ptr<spdlog::logger> commands_logger;
+extern std::shared_ptr<spdlog::logger> config_logger;
+extern std::shared_ptr<spdlog::logger> downtimes_logger;
+extern std::shared_ptr<spdlog::logger> eventbroker_logger;
+extern std::shared_ptr<spdlog::logger> events_logger;
+extern std::shared_ptr<spdlog::logger> external_command_logger;
+extern std::shared_ptr<spdlog::logger> functions_logger;
+extern std::shared_ptr<spdlog::logger> macros_logger;
+extern std::shared_ptr<spdlog::logger> notifications_logger;
+extern std::shared_ptr<spdlog::logger> process_logger;
+extern std::shared_ptr<spdlog::logger> runtime_logger;
 
 extern com::centreon::engine::configuration::state* config;
 extern char* config_file;
@@ -130,8 +136,6 @@ extern char* illegal_output_chars;
 extern unsigned int use_large_installation_tweaks;
 extern uint32_t instance_heartbeat_interval;
 
-#ifdef __cplusplus
-}
-#endif /* C++ */
+void init_loggers();
 
 #endif /* !CCE_GLOBALS_HH */

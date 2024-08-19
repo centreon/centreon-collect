@@ -18,14 +18,15 @@
  */
 
 #include <gtest/gtest.h>
+#include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/configuration/contact.hh"
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
+#include "common/engine_legacy_conf/contact.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -33,16 +34,9 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
-extern int config_errors;
-extern int config_warnings;
-
 class ApplierContact : public ::testing::Test {
  public:
-  void SetUp() override {
-    config_errors = 0;
-    config_warnings = 0;
-    init_config_state();
-  }
+  void SetUp() override { init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 
@@ -133,8 +127,7 @@ TEST_F(ApplierContact, ModifyContactFromConfig) {
   ASSERT_TRUE(ctct.parse("service_notification_commands", "svc1,svc2"));
   ASSERT_TRUE(ctct.parse("_superVar", "superValue"));
   ASSERT_TRUE(ctct.customvariables().size() == 1);
-  ASSERT_TRUE(ctct.customvariables().at("superVar").get_value() ==
-              "superValue");
+  ASSERT_TRUE(ctct.customvariables().at("superVar").value() == "superValue");
 
   configuration::applier::command cmd_aply;
   configuration::applier::connector cnn_aply;
@@ -159,9 +152,9 @@ TEST_F(ApplierContact, ModifyContactFromConfig) {
   contact_map::const_iterator ct_it{engine::contact::contacts.find("test")};
   ASSERT_TRUE(ct_it != engine::contact::contacts.end());
   ASSERT_EQ(ct_it->second->get_custom_variables().size(), 2u);
-  ASSERT_TRUE(ct_it->second->get_custom_variables()["superVar"].get_value() ==
+  ASSERT_TRUE(ct_it->second->get_custom_variables()["superVar"].value() ==
               "Super");
-  ASSERT_TRUE(ct_it->second->get_custom_variables()["superVar1"].get_value() ==
+  ASSERT_TRUE(ct_it->second->get_custom_variables()["superVar1"].value() ==
               "Super1");
   ASSERT_TRUE(ct_it->second->get_alias() == "newAlias");
   ASSERT_FALSE(ct_it->second->notify_on(notifier::service_notification,
@@ -200,7 +193,8 @@ TEST_F(ApplierContact, ResolveContactFromConfig) {
   aply_grp.add_object(grp);
   aply.add_object(ctct);
   aply.expand_objects(*config);
-  ASSERT_THROW(aply.resolve_object(ctct), std::exception);
+  error_cnt err;
+  ASSERT_THROW(aply.resolve_object(ctct, err), std::exception);
 }
 
 // Given a contact
@@ -217,9 +211,10 @@ TEST_F(ApplierContact, ResolveContactNoNotification) {
   configuration::contact ctct("test");
   aply.add_object(ctct);
   aply.expand_objects(*config);
-  ASSERT_THROW(aply.resolve_object(ctct), std::exception);
-  ASSERT_EQ(config_warnings, 2);
-  ASSERT_EQ(config_errors, 2);
+  error_cnt err;
+  ASSERT_THROW(aply.resolve_object(ctct, err), std::exception);
+  ASSERT_EQ(err.config_warnings, 2);
+  ASSERT_EQ(err.config_errors, 2);
 }
 
 // Given a valid contact
@@ -237,9 +232,10 @@ TEST_F(ApplierContact, ResolveValidContact) {
   configuration::contact ctct(valid_contact_config());
   aply.add_object(ctct);
   aply.expand_objects(*config);
-  ASSERT_NO_THROW(aply.resolve_object(ctct));
-  ASSERT_EQ(config_warnings, 0);
-  ASSERT_EQ(config_errors, 0);
+  error_cnt err;
+  ASSERT_NO_THROW(aply.resolve_object(ctct, err));
+  ASSERT_EQ(err.config_warnings, 0);
+  ASSERT_EQ(err.config_errors, 0);
 }
 
 // Given a valid contact
@@ -253,9 +249,10 @@ TEST_F(ApplierContact, ResolveNonExistingServiceNotificationTimeperiod) {
   ctct.parse("service_notification_period", "non_existing_period");
   aply.add_object(ctct);
   aply.expand_objects(*config);
-  ASSERT_THROW(aply.resolve_object(ctct), std::exception);
-  ASSERT_EQ(config_warnings, 0);
-  ASSERT_EQ(config_errors, 1);
+  error_cnt err;
+  ASSERT_THROW(aply.resolve_object(ctct, err), std::exception);
+  ASSERT_EQ(err.config_warnings, 0);
+  ASSERT_EQ(err.config_errors, 1);
 }
 
 // Given a valid contact
@@ -269,9 +266,10 @@ TEST_F(ApplierContact, ResolveNonExistingHostNotificationTimeperiod) {
   ctct.parse("host_notification_period", "non_existing_period");
   aply.add_object(ctct);
   aply.expand_objects(*config);
-  ASSERT_THROW(aply.resolve_object(ctct), std::exception);
-  ASSERT_EQ(config_warnings, 0);
-  ASSERT_EQ(config_errors, 1);
+  error_cnt err;
+  ASSERT_THROW(aply.resolve_object(ctct, err), std::exception);
+  ASSERT_EQ(err.config_warnings, 0);
+  ASSERT_EQ(err.config_errors, 1);
 }
 
 // Given a valid contact
@@ -285,9 +283,10 @@ TEST_F(ApplierContact, ResolveNonExistingServiceCommand) {
   ctct.parse("service_notification_commands", "non_existing_command");
   aply.add_object(ctct);
   aply.expand_objects(*config);
-  ASSERT_THROW(aply.resolve_object(ctct), std::exception);
-  ASSERT_EQ(config_warnings, 0);
-  ASSERT_EQ(config_errors, 1);
+  error_cnt err;
+  ASSERT_THROW(aply.resolve_object(ctct, err), std::exception);
+  ASSERT_EQ(err.config_warnings, 0);
+  ASSERT_EQ(err.config_errors, 1);
 }
 
 // Given a valid contact
@@ -301,9 +300,10 @@ TEST_F(ApplierContact, ResolveNonExistingHostCommand) {
   ctct.parse("host_notification_commands", "non_existing_command");
   aply.add_object(ctct);
   aply.expand_objects(*config);
-  ASSERT_THROW(aply.resolve_object(ctct), std::exception);
-  ASSERT_EQ(config_warnings, 0);
-  ASSERT_EQ(config_errors, 1);
+  error_cnt err;
+  ASSERT_THROW(aply.resolve_object(ctct, err), std::exception);
+  ASSERT_EQ(err.config_warnings, 0);
+  ASSERT_EQ(err.config_errors, 1);
 }
 
 // Given a valid contact configuration
@@ -366,9 +366,10 @@ TEST_F(ApplierContact, ContactWithOnlyHostRecoveryNotification) {
   ctct.parse("service_notifications_enabled", "1");
   aply.add_object(ctct);
   aply.expand_objects(*config);
-  aply.resolve_object(ctct);
-  ASSERT_EQ(config_warnings, 1);
-  ASSERT_EQ(config_errors, 0);
+  error_cnt err;
+  aply.resolve_object(ctct, err);
+  ASSERT_EQ(err.config_warnings, 1);
+  ASSERT_EQ(err.config_errors, 0);
 }
 
 // Given a valid contact
@@ -385,7 +386,8 @@ TEST_F(ApplierContact, ContactWithOnlyServiceRecoveryNotification) {
   ctct.parse("service_notifications_enabled", "1");
   aply.add_object(ctct);
   aply.expand_objects(*config);
-  aply.resolve_object(ctct);
-  ASSERT_EQ(config_warnings, 1);
-  ASSERT_EQ(config_errors, 0);
+  error_cnt err;
+  aply.resolve_object(ctct, err);
+  ASSERT_EQ(err.config_warnings, 1);
+  ASSERT_EQ(err.config_errors, 0);
 }

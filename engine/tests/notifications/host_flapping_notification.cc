@@ -25,10 +25,12 @@
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
-#include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
+#include "common/engine_legacy_conf/host.hh"
+#include "common/engine_legacy_conf/state.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -39,13 +41,14 @@ using namespace com::centreon::engine::configuration::applier;
 class HostFlappingNotification : public TestEngine {
  public:
   void SetUp() override {
+    configuration::error_cnt err;
     init_config_state();
 
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
-    ct_aply.resolve_object(ctct);
+    ct_aply.resolve_object(ctct, err);
 
     configuration::applier::host hst_aply;
     configuration::host hst;
@@ -54,7 +57,7 @@ class HostFlappingNotification : public TestEngine {
     hst.parse("_HOST_ID", "12");
     hst.parse("contacts", "admin");
     hst_aply.add_object(hst);
-    hst_aply.resolve_object(hst);
+    hst_aply.resolve_object(hst, err);
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
@@ -69,7 +72,7 @@ class HostFlappingNotification : public TestEngine {
     hst_child.parse("_HOST_ID", "13");
     hst_child.parse("contacts", "admin");
     hst_aply.add_object(hst_child);
-    hst_aply.resolve_object(hst_child);
+    hst_aply.resolve_object(hst_child, err);
 
     _host2 = hm.begin()->second;
     _host2->set_current_state(engine::host::state_up);
@@ -108,8 +111,9 @@ TEST_F(HostFlappingNotification, SimpleHostFlapping) {
   for (size_t i = 0; i < tperiod->days.size(); ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+  std::unique_ptr<engine::hostescalation> host_escalation =
+      std::make_unique<engine::hostescalation>("host_name", 0, 1, 1.0,
+                                               "tperiod", 7, 12345);
 
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};
@@ -159,7 +163,7 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStartTwoTimes) {
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
 
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};
@@ -198,7 +202,7 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStopTwoTimes) {
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
 
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};

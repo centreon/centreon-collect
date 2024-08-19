@@ -26,7 +26,7 @@ EFHC1
     Ctn Clear Retention
     Ctn Clear Db    hosts
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Host Status    host_1    4    1    False
     Should Be True    ${result}    host_1 should be pending
@@ -72,7 +72,7 @@ EFHC2
 
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
     ${content}    Create List    INITIAL HOST STATE: host_1;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -120,7 +120,7 @@ EFHCU1
     Ctn Clear Retention
     Ctn Clear Db    resources
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Host Status    host_1    4    1    True
     Should Be True    ${result}    host_1 should be pending
@@ -169,7 +169,7 @@ EFHCU2
 
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Host Status    host_1    4    1    True
     Should Be True    ${result}    host_1 should be pending
@@ -215,7 +215,7 @@ EMACROS
     ...    /bin/echo "ResourceFile: $RESOURCEFILE$ - LogFile: $LOGFILE$ - AdminEmail: $ADMINEMAIL$ - AdminPager: $ADMINPAGER$"
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -258,7 +258,7 @@ EMACROS_NOTIF
     Remove File    /tmp/notif_toto.txt
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -297,7 +297,7 @@ EMACROS_SEMICOLON
     ...    /bin/echo "KEY2=$_HOSTKEY2$"
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -314,3 +314,104 @@ EMACROS_SEMICOLON
 
     Ctn Stop engine
     Ctn Kindly Stop Broker
+
+E_HOST_DOWN_DISABLE_SERVICE_CHECKS
+    [Documentation]    host_down_disable_service_checks is set to 1, host down switch all services to UNKNOWN
+    [Tags]    engine    MON-32780
+    Ctn Config Engine    ${1}  2  20
+    Ctn Set Hosts Passive  0  host_.*
+    Ctn Engine Config Set Value  0  host_down_disable_service_checks  ${1}  ${True}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+
+    Ctn Clear Retention
+    ${start}    Get Current Date
+
+    ${start}    Get Current Date
+    Ctn Start Engine
+    Ctn Start Broker  only_central=${True}
+
+    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True
+    ...    ${result}
+    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+
+    FOR    ${i}    IN RANGE    ${4}
+        Ctn Process Host Check Result    host_1    1    host_1 DOWN
+    END
+
+    ${result}    Ctn Check Host Status    host_1    1    1    False  30
+    Should Be True    ${result}    host_1 should be down/hard
+
+    #after some time services should be in hard state
+    FOR  ${index}  IN RANGE  ${19}
+        ${result}    Ctn Check Service Status With Timeout    host_1  service_${index+1}    3    30  HARD
+        Should Be True    ${result}    service_${index+1} should be UNKNOWN hard        
+    END
+
+    #host_1 check returns UP
+    Ctn Set Command Status   checkh1  0
+    Ctn Process Host Check Result    host_1    0    host_1 UP
+
+    #after some time services should be in ok hard state
+    FOR  ${index}  IN RANGE  ${19}
+        Ctn Process Service Check Result  host_1  service_${index+1}  0  output
+    END
+    FOR  ${index}  IN RANGE  ${19}
+        ${result}    Ctn Check Service Status With Timeout    host_1  service_${index+1}    0    30  HARD
+        Should Be True    ${result}    service_${index+1} should be OK hard        
+    END
+
+
+    [Teardown]  Ctn Stop Engine Broker And Save Logs  only_central=${True}
+
+E_HOST_UNREACHABLE_DISABLE_SERVICE_CHECKS
+    [Documentation]    host_down_disable_service_checks is set to 1, host unreachable switch all services to UNKNOWN
+    [Tags]    engine    MON-32780
+    Ctn Config Engine    ${1}  2  20
+    Ctn Engine Config Set Value  0  host_down_disable_service_checks  ${1}  ${True}
+    Ctn Engine Config Set Value  0  log_level_runtime  trace
+    Ctn Engine Config Set Value  0  log_level_checks  trace
+    Ctn Add Parent To Host  0  host_1  host_2
+    Ctn Set Hosts Passive  0  host_.*
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+
+    Ctn Clear Retention
+    ${start}    Get Current Date
+
+    ${start}    Get Current Date
+    Ctn Start Engine
+    Ctn Start Broker  only_central=${True}
+
+    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True
+    ...    ${result}
+    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+
+
+    FOR    ${i}    IN RANGE    ${4}
+        Ctn Process Host Check Result    host_2    1    host_2 down
+    END
+
+    ${result}    Ctn Check Host Status    host_2    1    1    False  30
+    Should Be True    ${result}    host_2 should be down/hard
+
+    FOR    ${i}    IN RANGE    ${4}
+        Ctn Process Host Check Result    host_1    1    host_1 down
+    END
+
+
+    ${result}    Ctn Check Host Status    host_1    2    1    False  30
+    Should Be True    ${result}    host_1 should be unreachable/hard
+
+    #after some time services should be in hard state
+    FOR  ${index}  IN RANGE  ${19}
+        ${result}    Ctn Check Service Status With Timeout    host_1  service_${index+1}    3    30  HARD
+        Should Be True    ${result}    service_${index+1} should be UNKNOWN hard        
+    END
+
+    [Teardown]  Ctn Stop Engine Broker And Save Logs  only_central=${True}
+

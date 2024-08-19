@@ -24,12 +24,12 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
-#include "com/centreon/engine/configuration/contact.hh"
-#include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/downtimes/downtime.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/downtimes/service_downtime.hh"
+#include "common/engine_legacy_conf/contact.hh"
+#include "common/engine_legacy_conf/host.hh"
+#include "common/engine_legacy_conf/service.hh"
 #include "helper.hh"
 #include "test_engine.hh"
 
@@ -40,6 +40,7 @@ using namespace com::centreon::engine::downtimes;
 class DowntimeFinderFindMatchingAllTest : public TestEngine {
  public:
   void SetUp() override {
+    configuration::error_cnt err;
     init_config_state();
     configuration::contact ctc{new_configuration_contact("admin", false, "a")};
     configuration::applier::contact ctc_aply;
@@ -55,8 +56,8 @@ class DowntimeFinderFindMatchingAllTest : public TestEngine {
     configuration::host hst2{new_configuration_host("other_host", "admin", 2)};
     hst_aply.add_object(hst2);
 
-    hst_aply.resolve_object(hst);
-    hst_aply.resolve_object(hst1);
+    hst_aply.resolve_object(hst, err);
+    hst_aply.resolve_object(hst1, err);
 
     configuration::service svc{
         new_configuration_service("first_host", "test_service", "admin", 8)};
@@ -79,11 +80,11 @@ class DowntimeFinderFindMatchingAllTest : public TestEngine {
         new_configuration_service("test_host", "new_svc2", "admin", 12)};
     svc_aply.add_object(svc4);
 
-    svc_aply.resolve_object(svc);
-    svc_aply.resolve_object(svc1);
-    svc_aply.resolve_object(svc2);
-    svc_aply.resolve_object(svc3);
-    svc_aply.resolve_object(svc4);
+    svc_aply.resolve_object(svc, err);
+    svc_aply.resolve_object(svc1, err);
+    svc_aply.resolve_object(svc2, err);
+    svc_aply.resolve_object(svc3, err);
+    svc_aply.resolve_object(svc4, err);
 
     downtime_manager::instance().clear_scheduled_downtimes();
     downtime_manager::instance().initialize_downtime_data();

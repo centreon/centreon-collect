@@ -18,9 +18,11 @@
  */
 
 #include <gtest/gtest.h>
-#include <com/centreon/engine/configuration/applier/hostescalation.hh>
-#include <com/centreon/engine/configuration/parser.hh>
 #include <fstream>
+#include "com/centreon/engine/configuration/applier/hostescalation.hh"
+#include "com/centreon/engine/globals.hh"
+#include "common/engine_legacy_conf/parser.hh"
+#include "common/engine_legacy_conf/state.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -38,6 +40,7 @@ class ApplierGlobal : public ::testing::Test {
 TEST_F(ApplierGlobal, pollerName) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.poller_name(), "unknown");
 
@@ -47,7 +50,7 @@ TEST_F(ApplierGlobal, pollerName) {
   ofs << "poller_name=poller-test" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
   std::remove("/tmp/test-config.cfg");
 
   ASSERT_EQ(st.poller_name(), "poller-test");
@@ -56,6 +59,7 @@ TEST_F(ApplierGlobal, pollerName) {
 TEST_F(ApplierGlobal, pollerId) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.poller_id(), 0u);
 
@@ -65,7 +69,7 @@ TEST_F(ApplierGlobal, pollerId) {
   ofs << "poller_id=42" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
   std::remove("/tmp/test-config.cfg");
 
   ASSERT_EQ(st.poller_id(), 42u);
@@ -74,6 +78,7 @@ TEST_F(ApplierGlobal, pollerId) {
 TEST_F(ApplierGlobal, RpcPort) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.rpc_port(), 0u);
 
@@ -83,7 +88,7 @@ TEST_F(ApplierGlobal, RpcPort) {
   ofs << "rpc_port=42" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
   std::remove("/tmp/test-config.cfg");
 
   ASSERT_EQ(st.rpc_port(), 42u);
@@ -92,6 +97,7 @@ TEST_F(ApplierGlobal, RpcPort) {
 TEST_F(ApplierGlobal, RpcListenAddress) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.rpc_port(), 0u);
 
@@ -101,7 +107,7 @@ TEST_F(ApplierGlobal, RpcListenAddress) {
   ofs << "rpc_listen_address=10.11.12.13" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
   std::remove("/tmp/test-config.cfg");
 
   ASSERT_EQ(st.rpc_listen_address(), "10.11.12.13");
@@ -110,6 +116,7 @@ TEST_F(ApplierGlobal, RpcListenAddress) {
 TEST_F(ApplierGlobal, NotDefinedRpcListenAddress) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.rpc_port(), 0u);
 
@@ -119,7 +126,7 @@ TEST_F(ApplierGlobal, NotDefinedRpcListenAddress) {
   ofs << "rpc_port=42" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
   std::remove("/tmp/test-config.cfg");
 
   ASSERT_EQ(st.rpc_listen_address(), "localhost");

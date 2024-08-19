@@ -20,8 +20,6 @@ set(protobuf_files
     header
     rebuild_message
     remove_graph_message
-    severity
-    tag
     bbdo
     neb
     storage
@@ -63,14 +61,6 @@ add_library(pb_bbdo_lib STATIC bbdo.pb.cc bbdo.pb.h)
 add_dependencies(pb_bbdo_lib target_bbdo)
 set_target_properties(pb_bbdo_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-add_library(pb_severity_lib STATIC severity.pb.cc severity.pb.h)
-add_dependencies(pb_severity_lib target_neb)
-set_target_properties(pb_severity_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-add_library(pb_tag_lib STATIC tag.pb.cc tag.pb.h)
-add_dependencies(pb_tag_lib target_neb)
-set_target_properties(pb_tag_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
 add_library(pb_bam_lib STATIC bam.pb.cc bam.pb.h bam_state.pb.cc bam_state.pb.h)
 add_dependencies(pb_bam_lib target_bam target_bam_state target_header)
 set_target_properties(pb_bam_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -90,6 +80,38 @@ add_library(pb_remove_graph_message_lib STATIC remove_graph_message.pb.cc
 add_dependencies(pb_remove_graph_message_lib target_remove_graph_message
                  target_header)
 set_target_properties(pb_remove_graph_message_lib
+                      PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+set(otl_protobuf_files
+    opentelemetry/proto/collector/metrics/v1/metrics_service
+    opentelemetry/proto/metrics/v1/metrics
+    opentelemetry/proto/common/v1/common
+    opentelemetry/proto/resource/v1/resource
+)
+foreach(name IN LISTS otl_protobuf_files)
+  set(proto_file "${name}.proto")
+  add_custom_command(
+    OUTPUT "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc"
+    COMMENT "Generating interface files of the otl file ${proto_file}"
+    #DEPENDS ${CMAKE_BINARY_DIR}/opentelemetry-proto/${proto_file}
+    DEPENDS opentelemetry-proto-files
+    COMMAND
+      ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo
+      --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto ${proto_file}
+    VERBATIM)
+endforeach()
+           
+add_library(pb_open_telemetry_lib STATIC 
+${CMAKE_SOURCE_DIR}/bbdo/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
+${CMAKE_SOURCE_DIR}/bbdo/opentelemetry/proto/metrics/v1/metrics.pb.cc
+${CMAKE_SOURCE_DIR}/bbdo/opentelemetry/proto/common/v1/common.pb.cc
+${CMAKE_SOURCE_DIR}/bbdo/opentelemetry/proto/resource/v1/resource.pb.cc
+)
+
+target_include_directories(pb_open_telemetry_lib BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
+
+
+set_target_properties(pb_open_telemetry_lib
                       PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 macro(get_protobuf_files name)

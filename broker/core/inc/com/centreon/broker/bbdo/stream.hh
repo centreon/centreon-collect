@@ -21,6 +21,7 @@
 
 #include "bbdo/bbdo/bbdo_version.hh"
 #include "com/centreon/broker/io/extension.hh"
+#include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
 
 namespace com::centreon::broker::bbdo {
@@ -62,7 +63,9 @@ class stream : public io::stream {
     std::deque<std::vector<char>> _buf;
 
    public:
-    buffer(uint32_t event_id, uint32_t source_id, uint32_t dest_id,
+    buffer(uint32_t event_id,
+           uint32_t source_id,
+           uint32_t dest_id,
            std::vector<char>&& v)
         : _event_id(event_id), _source_id(source_id), _dest_id(dest_id) {
       _buf.push_back(v);
@@ -86,7 +89,8 @@ class stream : public io::stream {
     }
     ~buffer() noexcept = default;
 
-    bool matches(uint32_t event_id, uint32_t source_id,
+    bool matches(uint32_t event_id,
+                 uint32_t source_id,
                  uint32_t dest_id) const noexcept {
       return event_id == _event_id && source_id == _source_id &&
              dest_id == _dest_id;
@@ -94,10 +98,12 @@ class stream : public io::stream {
 
     std::vector<char> to_vector() {
       size_t s = 0;
-      for (auto& v : _buf) s += v.size();
+      for (auto& v : _buf)
+        s += v.size();
       std::vector<char> retval;
       retval.reserve(s);
-      for (auto& v : _buf) retval.insert(retval.end(), v.begin(), v.end());
+      for (auto& v : _buf)
+        retval.insert(retval.end(), v.begin(), v.end());
       _buf.clear();
       return retval;
     }
@@ -147,17 +153,27 @@ class stream : public io::stream {
   std::list<std::shared_ptr<io::extension>> _extensions;
   bbdo::bbdo_version _bbdo_version;
 
+  /* bbdo logger */
+  std::shared_ptr<spdlog::logger> _logger;
+
   void _write(std::shared_ptr<io::data> const& d);
   bool _read_any(std::shared_ptr<io::data>& d, time_t deadline);
   void _send_event_stop_and_wait_for_ack();
   std::string _get_extension_names(bool mandatory) const;
   std::string _poller_name;
   uint64_t _poller_id = 0u;
+  io::data* unserialize(uint32_t event_type,
+                        uint32_t source_id,
+                        uint32_t destination_id,
+                        const char* buffer,
+                        uint32_t size);
+  io::raw* serialize(const io::data& e);
 
  public:
   enum negotiation_type { negotiate_first = 1, negotiate_second, negotiated };
 
-  stream(bool is_input, bool grpc_serialized = false,
+  stream(bool is_input,
+         bool grpc_serialized = false,
          const std::list<std::shared_ptr<io::extension>>& extensions = {});
   ~stream();
   stream(const stream&) = delete;

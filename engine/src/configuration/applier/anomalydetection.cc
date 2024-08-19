@@ -1,22 +1,21 @@
 /**
-* Copyright 2020 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+ * Copyright 2020,2023-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
@@ -25,7 +24,7 @@
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -50,39 +49,6 @@ class servicegroup_name_comparator {
 };
 
 /**
- *  Default constructor.
- */
-applier::anomalydetection::anomalydetection() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-applier::anomalydetection::anomalydetection(
-    applier::anomalydetection const& right) {
-  (void)right;
-}
-
-/**
- *  Destructor.
- */
-applier::anomalydetection::~anomalydetection() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-applier::anomalydetection& applier::anomalydetection::operator=(
-    applier::anomalydetection const& right) {
-  (void)right;
-  return *this;
-}
-
-/**
  *  Add new anomalydetection.
  *
  *  @param[in] obj  The new anomalydetection to add into the monitoring engine.
@@ -100,7 +66,7 @@ void applier::anomalydetection::add_object(
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new anomalydetection '" << obj.service_description()
       << "' of host '" << obj.host_name() << "'.";
-  SPDLOG_LOGGER_DEBUG(log_v2::config(),
+  SPDLOG_LOGGER_DEBUG(config_logger,
                       "Creating new anomalydetection '{}' of host '{}'.",
                       obj.service_description(), obj.host_name());
 
@@ -176,21 +142,22 @@ void applier::anomalydetection::add_object(
     ad->mut_contacts().insert({*it, nullptr});
 
   // Add contactgroups.
-  for (set_string::const_iterator it(obj.contactgroups().begin()),
-       end(obj.contactgroups().end());
+  for (set_string::const_iterator it = obj.contactgroups().begin(),
+                                  end = obj.contactgroups().end();
        it != end; ++it)
     ad->get_contactgroups().insert({*it, nullptr});
 
   // Add custom variables.
-  for (map_customvar::const_iterator it(obj.customvariables().begin()),
-       end(obj.customvariables().end());
+  for (auto it = obj.customvariables().begin(),
+            end = obj.customvariables().end();
        it != end; ++it) {
-    ad->custom_variables[it->first] = it->second;
+    ad->custom_variables[it->first] =
+        engine::customvariable(it->second.value(), it->second.is_sent());
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
       broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, ad,
-                             it->first.c_str(), it->second.get_value().c_str(),
+                             it->first.c_str(), it->second.value().c_str(),
                              &tv);
     }
   }
@@ -207,21 +174,22 @@ void applier::anomalydetection::add_object(
  */
 void applier::anomalydetection::expand_objects(configuration::state& s) {
   // Browse all anomalydetections.
-  for (configuration::set_anomalydetection::iterator
-           it_ad = s.anomalydetections().begin(),
-           end_ad = s.anomalydetections().end();
-       it_ad != end_ad; ++it_ad) {
+  configuration::set_anomalydetection new_ads;
+  // In a set, we cannot change items as it would change their order. So we
+  // create a new set and replace the old one with the new one at the end.
+  for (auto ad : s.anomalydetections()) {
     // Should custom variables be sent to broker ?
-    for (map_customvar::iterator
-             it = const_cast<map_customvar&>(it_ad->customvariables()).begin(),
-             end = const_cast<map_customvar&>(it_ad->customvariables()).end();
+    for (auto it = ad.customvariables().begin(),
+              end = ad.customvariables().end();
          it != end; ++it) {
       if (!s.enable_macros_filter() ||
           s.macros_filter().find(it->first) != s.macros_filter().end()) {
         it->second.set_sent(true);
       }
     }
+    new_ads.insert(std::move(ad));
   }
+  s.anomalydetections() = std::move(new_ads);
 }
 
 /**
@@ -239,7 +207,7 @@ void applier::anomalydetection::modify_object(
   engine_logger(logging::dbg_config, logging::more)
       << "Modifying new anomalydetection '" << service_description
       << "' of host '" << host_name << "'.";
-  SPDLOG_LOGGER_DEBUG(log_v2::config(),
+  SPDLOG_LOGGER_DEBUG(config_logger,
                       "Modifying new anomalydetection '{}' of host '{}'.",
                       service_description, host_name);
 
@@ -408,20 +376,19 @@ void applier::anomalydetection::modify_object(
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_DELETE, s.get(),
-                               c.first.c_str(), c.second.get_value().c_str(),
-                               &tv);
+                               c.first.c_str(), c.second.value().c_str(), &tv);
       }
     }
     s->custom_variables.clear();
 
     for (auto& c : obj.customvariables()) {
-      s->custom_variables[c.first] = c.second;
+      s->custom_variables[c.first] =
+          engine::customvariable(c.second.value(), c.second.is_sent());
 
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, s.get(),
-                               c.first.c_str(), c.second.get_value().c_str(),
-                               &tv);
+                               c.first.c_str(), c.second.value().c_str(), &tv);
       }
     }
   }
@@ -447,7 +414,7 @@ void applier::anomalydetection::remove_object(
   engine_logger(logging::dbg_config, logging::more)
       << "Removing anomalydetection '" << service_description << "' of host '"
       << host_name << "'.";
-  SPDLOG_LOGGER_DEBUG(log_v2::config(),
+  SPDLOG_LOGGER_DEBUG(config_logger,
                       "Removing anomalydetection '{}' of host '{}'.",
                       service_description, host_name);
 
@@ -492,12 +459,13 @@ void applier::anomalydetection::remove_object(
  *  @param[in] obj  Service object.
  */
 void applier::anomalydetection::resolve_object(
-    configuration::anomalydetection const& obj) {
+    configuration::anomalydetection const& obj,
+    error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving anomalydetection '" << obj.service_description()
       << "' of host '" << obj.host_name() << "'.";
-  SPDLOG_LOGGER_DEBUG(log_v2::config(),
+  SPDLOG_LOGGER_DEBUG(config_logger,
                       "Resolving anomalydetection '{}' of host '{}'.",
                       obj.service_description(), obj.host_name());
 
@@ -522,7 +490,7 @@ void applier::anomalydetection::resolve_object(
   }
 
   // Resolve anomalydetection.
-  it->second->resolve(config_warnings, config_errors);
+  it->second->resolve(err.config_warnings, err.config_errors);
 }
 
 /**
@@ -559,8 +527,6 @@ void applier::anomalydetection::_expand_service_memberships(
     // Reinsert anomalydetection group.
     s.servicegroups().insert(backup);
   }
-
-  return;
 }
 
 /**

@@ -1,22 +1,21 @@
 /**
-* Copyright 2011-2013,2016 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+ * Copyright 2011-2013,2016-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #include "com/centreon/engine/configuration/applier/macros.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -66,8 +65,6 @@ void applier::macros::apply(configuration::state& config) {
     _set_macro(MACRO_RESOURCEFILE, config.resource_file().front());
   _set_macro(MACRO_STATUSDATAFILE, config.status_file());
   _set_macro(MACRO_RETENTIONDATAFILE, config.state_retention_file());
-  _set_macro(MACRO_HOSTPERFDATAFILE, config.host_perfdata_file());
-  _set_macro(MACRO_SERVICEPERFDATAFILE, config.service_perfdata_file());
   _set_macro(MACRO_POLLERNAME, config.poller_name());
   _set_macro(MACRO_POLLERID, std::to_string(config.poller_id()));
 

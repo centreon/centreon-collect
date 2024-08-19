@@ -27,7 +27,6 @@
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
@@ -112,7 +111,7 @@ int command_manager::process_passive_service_check(
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the host could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on host "
         "'{}', but the host could not be found!",
         svc_description, host_name);
@@ -127,7 +126,7 @@ int command_manager::process_passive_service_check(
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the service could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on host "
         "'{}', but the service could not be found!",
         svc_description, host_name);
@@ -196,7 +195,7 @@ int command_manager::process_passive_host_check(time_t check_time,
     engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for host '" << host_name
         << "', but the host could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for host '{}', but the "
         "host could not be found!",
         host_name);

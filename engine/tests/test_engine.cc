@@ -22,7 +22,7 @@
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/configuration/state.hh"
+#include "common/engine_legacy_conf/state.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
@@ -132,7 +132,8 @@ TestEngine::new_configuration_servicedependency(
 configuration::host TestEngine::new_configuration_host(
     const std::string& hostname,
     const std::string& contacts,
-    uint64_t hst_id) {
+    uint64_t hst_id,
+    const std::string_view& connector) {
   configuration::host hst;
   hst.parse("host_name", hostname.c_str());
   hst.parse("address", "127.0.0.1");
@@ -140,7 +141,10 @@ configuration::host TestEngine::new_configuration_host(
   hst.parse("contacts", contacts.c_str());
 
   configuration::command cmd("hcmd");
-  cmd.parse("command_line", "echo 0");
+  cmd.parse("command_line", "/bin/echo 0");
+  if (!connector.empty()) {
+    cmd.parse("connector", connector.data());
+  }
   hst.parse("check_command", "hcmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
@@ -169,7 +173,8 @@ configuration::service TestEngine::new_configuration_service(
     const std::string& hostname,
     const std::string& description,
     const std::string& contacts,
-    uint64_t svc_id) {
+    uint64_t svc_id,
+    const std::string_view& connector) {
   configuration::service svc;
   svc.parse("host_name", hostname.c_str());
   svc.parse("description", description.c_str());
@@ -187,9 +192,14 @@ configuration::service TestEngine::new_configuration_service(
   else
     svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=$ARG1$;50;75'");
-  svc.parse("check_command", "cmd!12");
+  configuration::command cmd(fmt::format("cmd_serv_{}", svc_id));
+  cmd.parse("command_line",
+            "/bin/echo -n 'output| metric=$ARG1$;50;75 "
+            "metric2=30ms;50:75;75:80;0;100'");
+  if (!connector.empty()) {
+    cmd.parse("connector", connector.data());
+  }
+  svc.parse("check_command", (cmd.command_name() + "!12").c_str());
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
 

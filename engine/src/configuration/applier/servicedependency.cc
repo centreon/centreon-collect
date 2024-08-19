@@ -1,44 +1,33 @@
 /**
-* Copyright 2011-2013,2017-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2017-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
+#include "common/engine_legacy_conf/object.hh"
+#include "common/engine_legacy_conf/servicedependency.hh"
 
 using namespace com::centreon::engine::configuration;
-
-/**
- *  Default constructor.
- */
-applier::servicedependency::servicedependency() {}
-
-/**
- *  Destructor.
- */
-applier::servicedependency::~servicedependency() throw() {}
 
 /**
  *  Add new service dependency.
@@ -78,7 +67,7 @@ void applier::servicedependency::add_object(
       << obj.dependent_hosts().front() << "' on service '"
       << obj.service_description().front() << "' of host '"
       << obj.hosts().front() << "'.";
-  log_v2::config()->debug(
+  config_logger->debug(
       "Creating new service dependency of service '{}' of host '{}' on service "
       "'{}' of host '{}'.",
       obj.dependent_service_description().front(),
@@ -94,6 +83,7 @@ void applier::servicedependency::add_object(
       configuration::servicedependency::execution_dependency)
     // Create execution dependency.
     sd = std::make_shared<engine::servicedependency>(
+        configuration::servicedependency_key(obj),
         obj.dependent_hosts().front(),
         obj.dependent_service_description().front(), obj.hosts().front(),
         obj.service_description().front(), dependency::execution,
@@ -112,6 +102,7 @@ void applier::servicedependency::add_object(
   else
     // Create notification dependency.
     sd = std::make_shared<engine::servicedependency>(
+        configuration::servicedependency_key(obj),
         obj.dependent_hosts().front(),
         obj.dependent_service_description().front(), obj.hosts().front(),
         obj.service_description().front(), dependency::notification,
@@ -249,14 +240,13 @@ void applier::servicedependency::remove_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing a service dependency.";
-  log_v2::config()->debug("Removing a service dependency.");
+  config_logger->debug("Removing a service dependency.");
 
   // Find service dependency.
   servicedependency_mmap::iterator it(
       engine::servicedependency::servicedependencies_find(obj.key()));
   if (it != engine::servicedependency::servicedependencies.end()) {
     // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
     broker_adaptive_dependency_data(NEBTYPE_SERVICEDEPENDENCY_DELETE,
                                     it->second.get());
 
@@ -274,11 +264,12 @@ void applier::servicedependency::remove_object(
  *  @param[in] obj  Servicedependency object.
  */
 void applier::servicedependency::resolve_object(
-    configuration::servicedependency const& obj) {
+    const configuration::servicedependency& obj,
+    error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving a service dependency.";
-  log_v2::config()->debug("Resolving a service dependency.");
+  config_logger->debug("Resolving a service dependency.");
 
   // Find service dependency.
   servicedependency_mmap::iterator it(
@@ -287,7 +278,7 @@ void applier::servicedependency::resolve_object(
     throw engine_error() << "Cannot resolve non-existing service dependency";
 
   // Resolve service dependency.
-  it->second->resolve(config_warnings, config_errors);
+  it->second->resolve(err.config_warnings, err.config_errors);
 }
 
 /**

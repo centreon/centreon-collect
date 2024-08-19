@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2022-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,10 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/tag.hh"
+#include "common/engine_legacy_conf/tag.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -38,8 +37,8 @@ using namespace com::centreon::engine::configuration;
  */
 void applier::tag::add_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new tag ({},{}).", obj.key().first,
-                          obj.key().second);
+  config_logger->debug("Creating new tag ({},{}).", obj.key().first,
+                       obj.key().second);
 
   // Add tag to the global configuration set.
   config->mut_tags().insert(obj);
@@ -54,7 +53,7 @@ void applier::tag::add_object(const configuration::tag& obj) {
   // Add new items to the configuration state.
   auto res = engine::tag::tags.insert({obj.key(), tg});
   if (!res.second)
-    log_v2::config()->error(
+    config_logger->error(
         "Could not insert tag ({},{}) into cache because it already exists",
         obj.key().first, obj.key().second);
 
@@ -78,8 +77,8 @@ void applier::tag::expand_objects(configuration::state&) {}
  */
 void applier::tag::modify_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Modifying tag ({},{}).", obj.key().first,
-                          obj.key().second);
+  config_logger->debug("Modifying tag ({},{}).", obj.key().first,
+                       obj.key().second);
 
   // Find old configuration.
   auto it_cfg = config->tags_find(obj.key());
@@ -107,8 +106,8 @@ void applier::tag::modify_object(const configuration::tag& obj) {
     // Notify event broker.
     broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, t);
   } else
-    log_v2::config()->debug("Tag ({},{}) did not change", obj.key().first,
-                            obj.key().second);
+    config_logger->debug("Tag ({},{}) did not change", obj.key().first,
+                         obj.key().second);
 }
 
 /**
@@ -118,8 +117,8 @@ void applier::tag::modify_object(const configuration::tag& obj) {
  */
 void applier::tag::remove_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Removing tag ({},{}).", obj.key().first,
-                          obj.key().second);
+  config_logger->debug("Removing tag ({},{}).", obj.key().first,
+                       obj.key().second);
 
   // Find tag.
   tag_map::iterator it =

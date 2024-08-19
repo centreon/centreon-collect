@@ -17,9 +17,10 @@
  *
  */
 
-#include "com/centreon/engine/configuration/tag.hh"
+#include "common/engine_legacy_conf/tag.hh"
 #include <gtest/gtest.h>
 
+#include "common/engine_legacy_conf/object.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -38,45 +39,50 @@ class ConfigTag : public ::testing::Test {
 // When I create a configuration::tag with a null id
 // Then an exception is thrown.
 TEST_F(ConfigTag, NewTagWithNoKey) {
+  configuration::error_cnt err;
   configuration::tag tg({0, 0});
-  ASSERT_THROW(tg.check_validity(), std::exception);
+  ASSERT_THROW(tg.check_validity(err), std::exception);
 }
 
 // When I create a configuration::tag with a null type
 // Then an exception is thrown.
 TEST_F(ConfigTag, NewTagWithNoLevel) {
+  configuration::error_cnt err;
   configuration::tag tg({1, 0});
-  ASSERT_THROW(tg.check_validity(), std::exception);
+  ASSERT_THROW(tg.check_validity(err), std::exception);
 }
 
 // When I create a configuration::tag with an empty name
 // Then an exception is thrown.
 TEST_F(ConfigTag, NewTagWithNoName) {
+  configuration::error_cnt err;
   configuration::tag tg({1, 0});
   tg.parse("type", "hostcategory");
-  ASSERT_THROW(tg.check_validity(), std::exception);
+  ASSERT_THROW(tg.check_validity(err), std::exception);
 }
 
 // When I create a configuration::tag with a non empty name,
 // non null id and non null type
 // Then no exception is thrown.
 TEST_F(ConfigTag, NewTagWellFilled) {
+  configuration::error_cnt err;
   configuration::tag tg({1, 0});
   tg.parse("type", "servicegroup");
   tg.parse("tag_name", "foobar");
   ASSERT_EQ(tg.key().first, 1);
   ASSERT_EQ(tg.key().second, engine::configuration::tag::servicegroup);
   ASSERT_EQ(tg.tag_name(), "foobar");
-  ASSERT_NO_THROW(tg.check_validity());
+  ASSERT_NO_THROW(tg.check_validity(err));
 }
 
 // When I create a configuration::tag with a non empty name,
 // non null id and non null type.
 // Then we can get the type value.
 TEST_F(ConfigTag, NewTagIconId) {
+  configuration::error_cnt err;
   configuration::tag tg({1, 0});
   tg.parse("type", "hostgroup");
   tg.parse("tag_name", "foobar");
   ASSERT_EQ(tg.key().second, engine::configuration::tag::hostgroup);
-  ASSERT_NO_THROW(tg.check_validity());
+  ASSERT_NO_THROW(tg.check_validity(err));
 }

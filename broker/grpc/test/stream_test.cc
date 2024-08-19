@@ -21,27 +21,25 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-
+#include "common/log_v2/log_v2.hh"
 #include "grpc_test_include.hh"
 #include "tcp_relais.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
-
-extern std::shared_ptr<asio::io_context> g_io_context;
+using com::centreon::common::log_v2::log_v2;
 
 com::centreon::broker::grpc::grpc_config::pointer conf(
-    std::make_shared<com::centreon::broker::grpc::grpc_config>(
-        "127.0.0.1:4444",
-        false,
-        "",
-        "",
-        "",
-        "my_aut",
-        "",
-        com::centreon::broker::grpc::grpc_config::NO,
-        30,
-        false));
+    std::make_shared<com::centreon::broker::grpc::grpc_config>("127.0.0.1:4444",
+                                                               false,
+                                                               "",
+                                                               "",
+                                                               "",
+                                                               "my_aut",
+                                                               "",
+                                                               false,
+                                                               30,
+                                                               false));
 
 static constexpr unsigned relay_listen_port = 5123u;
 static constexpr unsigned server_listen_port = 5124u;
@@ -74,14 +72,14 @@ std::shared_ptr<io::raw> create_event(const test_param& param) {
 class grpc_test_server : public ::testing::TestWithParam<test_param> {
  protected:
   static std::unique_ptr<com::centreon::broker::grpc::acceptor> s;
+  static std::shared_ptr<spdlog::logger> _logger;
 
  public:
   static void SetUpTestSuite() {
-    log_v2::grpc()->set_level(spdlog::level::trace);
+    _logger = log_v2::instance().get(log_v2::GRPC);
+    //_logger->set_level(spdlog::level::trace);
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(conf);
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    g_io_context->restart();
-    com::centreon::broker::pool::load(g_io_context, 1);
     io::protocols::load();
     io::events::load();
   }
@@ -97,6 +95,7 @@ class grpc_test_server : public ::testing::TestWithParam<test_param> {
 };
 
 std::unique_ptr<com::centreon::broker::grpc::acceptor> grpc_test_server::s;
+std::shared_ptr<spdlog::logger> grpc_test_server::_logger;
 
 #define COMPARE_EVENT(read_ret, received, param)             \
   ASSERT_TRUE(read_ret);                                     \
@@ -124,14 +123,14 @@ TEST_P(grpc_test_server, ClientToServerSendReceive) {
     param.dest += test_ind;
     param.buffer += "_";
     param.buffer += std::to_string(test_ind);
-    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} write param.data_type={}",
-                        __PRETTY_FUNCTION__, param.data_type);
+    _logger->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
+                   param.data_type);
     client->write(create_event(param));
 
     std::shared_ptr<io::data> receive;
     bool read_ret = accepted->read(receive, time(nullptr) + 2);
-    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} read_ret={} param.data_type={}",
-                        __PRETTY_FUNCTION__, read_ret, param.data_type);
+    _logger->debug("{} read_ret={} param.data_type={}", __PRETTY_FUNCTION__,
+                   read_ret, param.data_type);
     COMPARE_EVENT(read_ret, receive, param);
   }
   client->stop();
@@ -155,14 +154,14 @@ TEST_P(grpc_test_server, ServerToClientSendReceive) {
     param.dest += test_ind;
     param.buffer += "_";
     param.buffer += std::to_string(test_ind);
-    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} write param.data_type={}",
-                        __PRETTY_FUNCTION__, param.data_type);
+    _logger->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
+                   param.data_type);
     accepted->write(create_event(param));
 
     std::shared_ptr<io::data> receive;
     bool read_ret = client->read(receive, time(nullptr) + 2);
-    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} read_ret={} param.data_type={}",
-                        __PRETTY_FUNCTION__, read_ret, param.data_type);
+    _logger->debug("{} read_ret={} param.data_type={}", __PRETTY_FUNCTION__,
+                   read_ret, param.data_type);
     COMPARE_EVENT(read_ret, receive, param);
   }
   client->stop();
@@ -173,15 +172,16 @@ class grpc_comm_failure : public ::testing::TestWithParam<test_param> {
  protected:
   static std::unique_ptr<com::centreon::broker::grpc::acceptor> s;
   static std::unique_ptr<test_util::tcp_relais> relay;
+  static std::shared_ptr<spdlog::logger> _logger;
 
  public:
   static void SetUpTestSuite() {
     srand(time(nullptr));
-    // log_v2::grpc()->set_level(spdlog::level::trace);
+    _logger = log_v2::instance().get(log_v2::GRPC);
+    //_logger->set_level(spdlog::level::trace);
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(conf_relay_out);
     relay = std::make_unique<test_util::tcp_relais>(
         "127.0.0.1", relay_listen_port, "127.0.0.1", server_listen_port);
-    com::centreon::broker::pool::load(std::make_shared<asio::io_context>(), 1);
   }
   static void TearDownTestSuite() {
     s.reset();
@@ -197,6 +197,7 @@ class grpc_comm_failure : public ::testing::TestWithParam<test_param> {
 
 std::unique_ptr<com::centreon::broker::grpc::acceptor> grpc_comm_failure::s;
 std::unique_ptr<test_util::tcp_relais> grpc_comm_failure::relay;
+std::shared_ptr<spdlog::logger> grpc_comm_failure::_logger;
 
 INSTANTIATE_TEST_SUITE_P(grpc_comm_failure,
                          grpc_comm_failure,
@@ -209,13 +210,13 @@ TEST_P(grpc_comm_failure, ClientToServerFailureBeforeWrite) {
   ASSERT_NE(accepted.get(), nullptr);
 
   test_param param = GetParam();
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} write param.data_type={}",
-                      __PRETTY_FUNCTION__, param.data_type);
+  _logger->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
+                 param.data_type);
   client->write(create_event(GetParam()));
   std::shared_ptr<io::data> receive;
   bool read_ret = accepted->read(receive, time(nullptr) + 2);
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} read_ret={} param.data_type={}",
-                      __PRETTY_FUNCTION__, read_ret, param.data_type);
+  _logger->debug("{} read_ret={} param.data_type={}", __PRETTY_FUNCTION__,
+                 read_ret, param.data_type);
   COMPARE_EVENT(read_ret, receive, param);
 
   relay->shutdown_relays();
@@ -233,13 +234,13 @@ TEST_P(grpc_comm_failure, ClientToServerFailureAfterWrite) {
   ASSERT_NE(accepted.get(), nullptr);
 
   test_param param = GetParam();
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} write param.data_type={}",
-                      __PRETTY_FUNCTION__, param.data_type);
+  _logger->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
+                 param.data_type);
   client->write(create_event(param));
   std::shared_ptr<io::data> receive;
   bool read_ret = accepted->read(receive, time(nullptr) + 2);
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} read_ret={} param.data_type={}",
-                      __PRETTY_FUNCTION__, read_ret, param.data_type);
+  _logger->debug("{} read_ret={} param.data_type={}", __PRETTY_FUNCTION__,
+                 read_ret, param.data_type);
   COMPARE_EVENT(read_ret, receive, param);
 
   unsigned offset = rand();
@@ -268,13 +269,13 @@ TEST_P(grpc_comm_failure, ServerToClientFailureBeforeWrite) {
   ASSERT_NE(accepted.get(), nullptr);
 
   test_param param = GetParam();
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} write param.data_type={}",
-                      __PRETTY_FUNCTION__, param.data_type);
+  _logger->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
+                 param.data_type);
   accepted->write(create_event(param));
   std::shared_ptr<io::data> receive;
   bool read_ret = client->read(receive, time(nullptr) + 2);
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} read_ret={} param.data_type={}",
-                      __PRETTY_FUNCTION__, read_ret, param.data_type);
+  _logger->debug("{} read_ret={} param.data_type={}", __PRETTY_FUNCTION__,
+                 read_ret, param.data_type);
   COMPARE_EVENT(read_ret, receive, param);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -296,7 +297,7 @@ TEST_P(grpc_comm_failure, ServerToClientFailureBeforeWrite) {
   ASSERT_NE(accepted2.get(), nullptr);
   accepted2->write(create_event(param));
   read_ret = client2->read(receive, time(nullptr) + 2);
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} read_ret={} param.data_type={}",
+  SPDLOG_LOGGER_DEBUG(_logger, "{} read_ret={} param.data_type={}",
                       __PRETTY_FUNCTION__, read_ret, param.data_type);
   COMPARE_EVENT(read_ret, receive, param);
   client->stop();
@@ -314,13 +315,13 @@ TEST_P(grpc_comm_failure, ServerToClientFailureAfterWrite) {
   ASSERT_NE(accepted.get(), nullptr);
 
   test_param param = GetParam();
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} write param.data_type={}",
-                      __PRETTY_FUNCTION__, param.data_type);
+  _logger->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
+                 param.data_type);
   accepted->write(create_event(param));
   std::shared_ptr<io::data> receive;
   bool read_ret = client->read(receive, time(nullptr) + 2);
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} read_ret={} param.data_type={}",
-                      __PRETTY_FUNCTION__, read_ret, param.data_type);
+  _logger->debug("{} read_ret={} param.data_type={}", __PRETTY_FUNCTION__,
+                 read_ret, param.data_type);
   COMPARE_EVENT(read_ret, receive, param);
 
   unsigned offset = rand();
@@ -342,7 +343,7 @@ TEST_P(grpc_comm_failure, ServerToClientFailureAfterWrite) {
   ASSERT_NE(accepted2.get(), nullptr);
   accepted2->write(create_event(param));
   read_ret = client2->read(receive, time(nullptr) + 2);
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} read_ret={} param.data_type={}",
+  SPDLOG_LOGGER_DEBUG(_logger, "{} read_ret={} param.data_type={}",
                       __PRETTY_FUNCTION__, read_ret, param.data_type);
   COMPARE_EVENT(read_ret, receive, param);
   client->stop();
@@ -373,7 +374,7 @@ com::centreon::broker::grpc::grpc_config::pointer conf_crypted_server1234(
         read_file("tests/grpc_test_keys/ca_1234.crt"),
         "my_auth",
         "",
-        com::centreon::broker::grpc::grpc_config::NO,
+        false,
         30,
         false));
 
@@ -386,20 +387,21 @@ com::centreon::broker::grpc::grpc_config::pointer conf_crypted_client1234(
         read_file("tests/grpc_test_keys/ca_1234.crt"),
         "my_auth",
         "",
-        com::centreon::broker::grpc::grpc_config::NO,
+        false,
         30,
         false));
 
 class grpc_test_server_crypted : public ::testing::TestWithParam<test_param> {
  protected:
   static std::unique_ptr<com::centreon::broker::grpc::acceptor> s;
+  static std::shared_ptr<spdlog::logger> _logger;
 
  public:
   static void SetUpTestSuite() {
-    // log_v2::grpc()->set_level(spdlog::level::trace);
+    _logger = log_v2::instance().get(log_v2::GRPC);
+    //_logger->set_level(spdlog::level::trace);
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(
         conf_crypted_server1234);
-    com::centreon::broker::pool::load(std::make_shared<asio::io_context>(), 1);
   }
   static void TearDownTestSuite() { s.reset(); };
 
@@ -411,6 +413,7 @@ class grpc_test_server_crypted : public ::testing::TestWithParam<test_param> {
 
 std::unique_ptr<com::centreon::broker::grpc::acceptor>
     grpc_test_server_crypted::s;
+std::shared_ptr<spdlog::logger> grpc_test_server_crypted::_logger;
 
 INSTANTIATE_TEST_SUITE_P(grpc_test_server_crypted,
                          grpc_test_server_crypted,
@@ -429,13 +432,13 @@ TEST_P(grpc_test_server_crypted, ServerToClientWithKeySendReceive) {
     param.dest += test_ind;
     param.buffer += "_";
     param.buffer += std::to_string(test_ind);
-    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} write param.data_type={}",
+    SPDLOG_LOGGER_DEBUG(_logger, "{} write param.data_type={}",
                         __PRETTY_FUNCTION__, param.data_type);
     accepted->write(create_event(param));
 
     std::shared_ptr<io::data> receive;
     bool read_ret = client->read(receive, time(nullptr) + 2);
-    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} read_ret={} param.data_type={}",
+    SPDLOG_LOGGER_DEBUG(_logger, "{} read_ret={} param.data_type={}",
                         __PRETTY_FUNCTION__, read_ret, param.data_type);
     COMPARE_EVENT(read_ret, receive, param);
   }
@@ -453,7 +456,7 @@ com::centreon::broker::grpc::grpc_config::pointer
             read_file("tests/grpc_test_keys/ca_1234.crt"),
             "my_auth_pasbon",
             "",
-            com::centreon::broker::grpc::grpc_config::NO,
+            false,
             30,
             false));
 

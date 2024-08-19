@@ -23,7 +23,7 @@ set(SRC_DIR "${MODULE_DIR}/src")
 set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/external_commands")
 
 # Include directories.
-include_directories("${MODULE_DIR}/inc")
+include_directories(${MODULE_DIR}/inc ${CMAKE_SOURCE_DIR}/clib/inc)
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
 # mod_externalcmd target.
@@ -43,7 +43,7 @@ set_property(TARGET "externalcmd" PROPERTY PREFIX "")
 target_precompile_headers("externalcmd" PRIVATE precomp_inc/precomp.hh)
 
 set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
-add_dependencies(externalcmd centreon_clib)
+add_dependencies(externalcmd centreon_clib pb_neb_lib)
 target_link_libraries(externalcmd centreon_clib spdlog::spdlog)
 
 # Install rule.

@@ -17,12 +17,14 @@
  */
 
 #include "com/centreon/broker/bam/timeperiod_map.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
+
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Default constructor.
@@ -139,7 +141,7 @@ timeperiod_map::get_timeperiods_by_ba_id(uint32_t ba_id) const {
     bool is_default = found.first->second.second;
     time::timeperiod::ptr tp = get_timeperiod(tp_id);
     if (!tp) {
-      SPDLOG_LOGGER_ERROR(log_v2::bam(),
+      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::BAM),
                           "BAM-BI: could not find the timeperiod {} in cache "
                           "for ba {}, check timeperiod table in conf db",
                           tp_id, ba_id);

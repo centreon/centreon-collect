@@ -33,14 +33,14 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostdependency.hh"
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
-#include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/configuration/hostescalation.hh"
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/timezone_manager.hh"
+#include "common/engine_legacy_conf/host.hh"
+#include "common/engine_legacy_conf/hostescalation.hh"
+#include "common/engine_legacy_conf/state.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -54,18 +54,19 @@ class HostNotification : public TestEngine {
   void SetUp() override {
     init_config_state();
 
-    log_v2::events()->set_level(spdlog::level::off);
+    events_logger->set_level(spdlog::level::off);
 
+    error_cnt err;
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
-    ct_aply.resolve_object(ctct);
+    ct_aply.resolve_object(ctct, err);
 
     configuration::host hst{new_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
-    hst_aply.resolve_object(hst);
+    hst_aply.resolve_object(hst, err);
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
@@ -95,7 +96,7 @@ TEST_F(HostNotification, SimpleNormalHostNotification) {
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
 
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};
@@ -122,7 +123,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotificationsdisabled) {
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
 
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};
@@ -144,7 +145,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierNotifdisabled) {
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
 
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};
@@ -166,7 +167,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOutsideTimeperiod) {
     tperiod->days[i].emplace_back(43200, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
@@ -188,7 +189,7 @@ TEST_F(HostNotification,
     tperiod->days[i].emplace_back(43200, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
@@ -208,7 +209,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationForcedNotification) {
     tperiod->days[i].emplace_back(43200, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
@@ -229,7 +230,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithDowntime) {
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
@@ -250,7 +251,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithFlapping) {
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
@@ -271,7 +272,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithSoftState) {
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
@@ -292,7 +293,7 @@ TEST_F(HostNotification,
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
   _host->set_notification_period_ptr(tperiod.get());
 
   _host->set_acknowledgement(AckType::NORMAL);
@@ -313,7 +314,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationAfterPreviousTooSoon) {
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
   _host->set_notification_period_ptr(tperiod.get());
 
   _host->set_acknowledgement(AckType::NORMAL);
@@ -336,7 +337,7 @@ TEST_F(HostNotification,
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
   _host->set_notification_period_ptr(tperiod.get());
 
   _host->set_acknowledgement(AckType::NORMAL);
@@ -360,7 +361,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOnStateNotNotified) {
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
   _host->set_notification_period_ptr(tperiod.get());
 
   _host->set_acknowledgement(AckType::NONE);
@@ -384,7 +385,7 @@ TEST_F(HostNotification,
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
   _host->set_notification_period_ptr(tperiod.get());
 
   _host->set_acknowledgement(AckType::NONE);
@@ -410,7 +411,7 @@ TEST_F(HostNotification,
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
   _host->set_notification_period_ptr(tperiod.get());
 
   _host->set_acknowledgement(AckType::NONE);
@@ -435,7 +436,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierDelayTooShort) {
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
 
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};
@@ -557,25 +558,26 @@ TEST_F(HostNotification, CheckFirstNotificationDelay) {
 // Then contacts from the escalation are notified when notification number
 // is in [2,6] and are separated by at less 4*60s.
 TEST_F(HostNotification, HostEscalation) {
+  error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
 
   configuration::applier::hostescalation he_aply;
   configuration::hostescalation he{
       new_configuration_hostescalation("test_host", "test_cg")};
   he_aply.add_object(he);
   he_aply.expand_objects(*config);
-  he_aply.resolve_object(he);
+  he_aply.resolve_object(he, err);
 
   int now{50000};
   set_time(now);
@@ -682,36 +684,37 @@ TEST_F(HostNotification, HostEscalation) {
 }
 
 TEST_F(HostNotification, HostDependency) {
+  error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
 
   configuration::applier::host h_aply;
   configuration::host h{new_configuration_host("dep_host", "admin", 15)};
   h_aply.add_object(h);
   h_aply.expand_objects(*config);
-  h_aply.resolve_object(h);
+  h_aply.resolve_object(h, err);
 
   configuration::applier::hostdependency hd_aply;
   configuration::hostdependency hd{
       new_configuration_hostdependency("test_host", "dep_host")};
   hd_aply.expand_objects(*config);
   hd_aply.add_object(hd);
-  hd_aply.resolve_object(hd);
+  hd_aply.resolve_object(hd, err);
 
   int now{50000};
   set_time(now);
 
-  int w{0}, e{0};
+  uint32_t w = 0, e = 0;
   pre_flight_circular_check(&w, &e);
 
   ASSERT_EQ(w, 0);
@@ -823,25 +826,26 @@ TEST_F(HostNotification, HostDependency) {
 // is sent 1 time
 // Then both are sent to contacts from the escalation.
 TEST_F(HostNotification, HostEscalationOneTime) {
+  error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
 
   configuration::applier::hostescalation he_aply;
   configuration::hostescalation he{
       new_configuration_hostescalation("test_host", "test_cg", 1, 0)};
   he_aply.add_object(he);
   he_aply.expand_objects(*config);
-  he_aply.resolve_object(he);
+  he_aply.resolve_object(he, err);
 
   int now{50000};
   set_time(now);
@@ -918,25 +922,26 @@ TEST_F(HostNotification, HostEscalationOneTime) {
 // is sent 1 time
 // Then both are sent to contacts from the escalation.
 TEST_F(HostNotification, HostEscalationOneTimeNotifInter0) {
+  error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
 
   configuration::applier::hostescalation he_aply;
   configuration::hostescalation he{
       new_configuration_hostescalation("test_host", "test_cg", 1, 0, 0)};
   he_aply.add_object(he);
   he_aply.expand_objects(*config);
-  he_aply.resolve_object(he);
+  he_aply.resolve_object(he, err);
 
   int now{50000};
   set_time(now);
@@ -1013,25 +1018,26 @@ TEST_F(HostNotification, HostEscalationOneTimeNotifInter0) {
 // is sent 1 time
 // Then both are sent to contacts from the escalation.
 TEST_F(HostNotification, HostEscalationRetention) {
+  error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
 
   configuration::applier::hostescalation he_aply;
   configuration::hostescalation he{
       new_configuration_hostescalation("test_host", "test_cg", 1, 0, 0)};
   he_aply.add_object(he);
   he_aply.expand_objects(*config);
-  he_aply.resolve_object(he);
+  he_aply.resolve_object(he, err);
 
   int now{50000};
   set_time(now);

@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/bam/computable.hh"
 
-#include "com/centreon/broker/log_v2.hh"
-
 using namespace com::centreon::broker::bam;
 
 /**
@@ -55,7 +53,7 @@ void computable::remove_parent(std::shared_ptr<computable> const& parent) {
  * @param visitor Used to handle events.
  */
 void computable::notify_parents_of_change(io::stream* visitor) {
-  log_v2::bam()->trace("{}::notify_parents_of_change: ", typeid(*this).name());
+  _logger->trace("{}::notify_parents_of_change: ", typeid(*this).name());
   for (auto& p : _parents) {
     if (std::shared_ptr<computable> parent = p.lock())
       parent->update_from(this, visitor);

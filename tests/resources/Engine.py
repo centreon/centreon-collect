@@ -1,3 +1,24 @@
+#!/usr/bin/python3
+#
+# Copyright 2023-2024 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
+# This script is a little tcp server working on port 5669. It can simulate
+# a cbd instance. It is useful to test the validity of BBDO packets sent by
+# centengine.
 import Common
 import grpc
 import math
@@ -5,7 +26,12 @@ from google.protobuf import empty_pb2
 from google.protobuf.timestamp_pb2 import Timestamp
 import engine_pb2
 import engine_pb2_grpc
+import opentelemetry.proto.collector.metrics.v1.metrics_service_pb2
+import opentelemetry.proto.collector.metrics.v1.metrics_service_pb2_grpc
+import opentelemetry.proto.metrics.v1.metrics_pb2
 from array import array
+from dateutil import parser
+import datetime
 from os import makedirs, chmod
 from os.path import exists, dirname
 from robot.api import logger
@@ -150,6 +176,7 @@ class EngineInstance:
                 "log_level_macros=info\n"
                 "log_level_process=info\n"
                 "log_level_runtime=info\n"
+                "log_level_otl=trace\n"
                 "log_flush_period=0\n"
                 "soft_state_dependencies=0\n"
                 "obsess_over_services=0\n"
@@ -2438,6 +2465,28 @@ def ctn_set_services_passive(poller: int, srv_regex):
     with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w") as ff:
         ff.writelines(lines)
 
+def ctn_set_hosts_passive(poller: int, host_regex):
+    """
+    Set passive a list of hosts.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        srv_regex (str): A regexp to match host name.
+    """
+
+    with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(f"^\s*host_name\s*({host_regex})$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m:
+            lines.insert(i+1, "    active_checks_enabled           0\n")
+            lines.insert(i+2, "    passive_checks_enabled          1\n")
+            i += 2
+
+    with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w") as ff:
+        ff.writelines(lines)
+
 
 def ctn_add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     """
@@ -2724,6 +2773,33 @@ def ctn_process_service_check_result_with_metrics(hst: str, svc: str, state: int
     pd = [output + " | "]
     for m in range(metrics):
         v = math.sin((now + m) / 1000) * 5
+        pd.append(f"{metric_name}{m}={v}")
+        logger.trace(f"{metric_name}{m}={v}")
+    full_output = " ".join(pd)
+    ctn_process_service_check_result(hst, svc, state, full_output, config)
+
+
+def ctn_process_service_check_result_with_big_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
+    """
+    Send a service check result with metrics but their values are to big to fit into a float.
+
+    Args:
+        hst (str): Host name of the service.
+        svc (str): Service description of the service.
+        state (int): State of the check to set.
+        output (str): An output message for the check.
+        metrics (int): The number of metrics that should appear in the result.
+        config (str, optional): Defaults to 'config0' (useful in case of several Engine running).
+        metric_name (str): The base name of metrics. They will appear followed by an integer (for example metric0, metric1, metric2, ...).
+
+    Returns:
+        0 on success.
+    """
+    now = int(time.time())
+    pd = [output + " | "]
+    for m in range(metrics):
+        mx = 3.40282e+039
+        v = mx + abs(math.sin((now + m) / 1000) * 5)
         pd.append(f"{metric_name}{m}={v}")
         logger.trace(f"{metric_name}{m}={v}")
     full_output = " ".join(pd)
@@ -3067,6 +3143,27 @@ def ctn_grep_retention(poller: int, pattern: str):
     return Common.ctn_grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
 
 
+def ctn_config_add_otl_connector(poller: int, connector_name: str, command_line:str):
+    """
+    ctn_config_add_otl_connector
+
+     add a connector entry to connectors.cfg
+
+    Args:
+        poller: poller index
+        connector_name: 
+        command_line:
+    """
+
+    with open(f"{CONF_DIR}/config{poller}/connectors.cfg", "a") as f:
+        f.write(f"""
+define connector {{
+    connector_name                 {connector_name}
+    connector_line                 {command_line}
+}}
+""")
+
+
 def ctn_modify_retention_dat(poller, host, service, key, value):
     """
     Modify a parameter of a service in the retention.dat file.
@@ -3289,3 +3386,263 @@ def ctn_get_service_command(host_id: int, service_id: int):
         logger.console(
             f"Unable to find the command id of service ({host_id};{service_id})")
         return None
+    
+
+def ctn_get_engine_log_level(port, log, timeout=TIMEOUT):
+    """
+    Get the log level of a given logger. The timeout is due to the way we ask
+    for this information ; we use gRPC and the server may not be correctly
+    started.
+
+    Args:
+        port: The gRPC port to use.
+        log: The logger name.
+
+    Returns:
+        A string with the log level.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call GetLogInfo")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            try:
+                logs = stub.GetLogInfo(empty_pb2.Empty())
+                return logs.level[log]
+
+            except:
+                logger.console("gRPC server not ready")
+
+
+
+def ctn_create_single_day_time_period(idx: int, time_period_name: str, date, minute_duration: int):
+    """
+    Create a single day time period with a single time range from date to date + minute_duration
+    Args
+        idx: poller index
+        time_period_name: must be unique
+        date: time range start
+        minute_duration: time range length in minutes
+    """
+    try:
+        my_date = parser.parse(date)
+    except:
+        my_date = datetime.fromtimestamp(date)
+
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/timeperiods.cfg"
+    
+    begin = my_date.time()
+    end = my_date + datetime.timedelta(minutes=minute_duration)
+
+    with open(filename, "a+") as f:
+        f.write(f"""
+define timeperiod {{
+    timeperiod_name     {time_period_name}
+    alias               {time_period_name}
+    {my_date.date().isoformat()}  {begin.strftime("%H:%M")}-{end.time().strftime("%H:%M")}
+}}
+""")
+
+
+def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str):
+    """!
+    add a new broker_module line to centengine.cfg and create otl_server config file
+    @param idx index ofthe poller usually 0
+    @param otl_server_config_json_content json content of the otl configuration file
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
+    otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx}/otl_server.json"
+    with open(filename, "a+") as f:
+        f.write(f"broker_module=/usr/lib64/centreon-engine/libopentelemetry.so {otl_server_config_path}")
+    
+    with open(otl_server_config_path, "w") as f:
+        f.write(otl_server_config_json_content)
+
+def ctn_randomword(length):
+   letters = string.ascii_lowercase
+   return ''.join(random.choice(letters) for i in range(length))
+
+
+# Example of open telemetry request
+# {
+#     "resourceMetrics": [
+#         {
+#             "resource": {
+#                 "attributes": [
+#                     {
+#                         "key": "service.name",
+#                         "value": {
+#                             "stringValue": "demo_telegraf"
+#                         }
+#                     }
+#                 ]
+#             },
+#             "scopeMetrics": [
+#                 {
+#                     "scope": {
+#                         "attributes": [
+#                             {
+#                                 "key": "host",
+#                                 "value": {
+#                                     "stringValue": "d4854a00b171"
+#                                 }
+#                             }
+#                         ]
+#                     },
+#                     "metrics": [
+#                         {
+#                             "name": "swap_used_percent",
+#                             "gauge": {
+#                                 "dataPoints": [
+#                                     {
+#                                         "timeUnixNano": "1706864500000000000",
+#                                         "asDouble": 99.999809264772921,
+#                                         "attributes": [
+#                                             {
+#                                                 "key": "host",
+#                                                 "value": {
+#                                                     "stringValue": "d4854a00b171"
+#                                                 }
+#                                             }
+#                                         ]
+#                                     }
+#                                 ]
+#                             }
+#                         },
+#                         {
+#                             "name": "swap_total",
+#                             "gauge": {
+#                                 "dataPoints": [
+#                                     {
+#                                         "timeUnixNano": "1706864500000000000",
+#                                         "asInt": "2147479552",
+#                                         "attributes": [
+#                                             {
+#                                                 "key": "host",
+#                                                 "value": {
+#                                                     "stringValue": "d4854a00b171"
+#                                                 }
+#                                             }
+#                                         ]
+#                                     }
+#                                 ]
+#                             }
+#                         }
+#                     ]
+#                 }
+#             ]
+#         }
+#     ]
+# }
+
+
+def ctn_add_data_point_to_metric(metric, attrib:dict, metric_value = None):
+    """
+    
+    ctn_add_data_point_to_metric
+
+    add a data point to metric
+    Args:
+        metric: metric
+        attrib: key =>values to add in datapoint attributes
+        metric_value (optional) value of metric, random if not given
+
+    """
+    data_point = metric.gauge.data_points.add()
+    data_point.time_unix_nano = int(time.time())
+    if metric_value is not None:
+        data_point.as_double = metric_value
+    else:
+        data_point.as_double = random.random()
+    for key, value in attrib.items():
+        attr = data_point.attributes.add()
+        attr.key = key
+        attr.value.string_value = value
+
+
+def ctn_create_otl_metric(name:str, nb_datapoints:int, attrib:dict, metric_value = None):
+    """
+
+    create_otl_metric
+
+    create a Metric
+    Args:
+        name:  metric name
+        nb_datapoints: number of datapoints added to the metric
+        attrib: key =>values to add in datapoint attributes
+        metric_value (optional) value of metric, random if not given
+    Returns:  opentelemetry.proto.metrics.v1.Metric object
+    """
+    metric = opentelemetry.proto.metrics.v1.metrics_pb2.Metric()
+    metric.name = name
+    for i in range(nb_datapoints):
+        ctn_add_data_point_to_metric(metric, attrib, metric_value)
+    return metric
+    
+
+def ctn_create_otl_scope_metrics(scope_attr: dict, metrics: list):
+    """
+    create_otl_scope_metrics
+
+    create a ScopeMetrics
+    Args:
+        scope_attr: attributes to add in scope object
+        metrics: metrics to add in metrics array
+    Returns: opentelemetry.proto.metrics.v1.metrics_pb2.ScopeMetrics object
+    """
+    scope_metrics = opentelemetry.proto.metrics.v1.metrics_pb2.ScopeMetrics()
+    for key, value in scope_attr.items():
+        attr = scope_metrics.scope.attributes.add()
+        attr.key = key
+        attr.value.string_value = value
+    for metric in metrics:
+        to_fill = scope_metrics.metrics.add()
+        to_fill.CopyFrom(metric)
+    return scope_metrics
+
+def ctn_create_otl_resource_metrics(resource_attr: dict, scope_metrics: list):
+    """
+    create_otl_resource_metrics
+
+    create a ResourceMetrics
+    Args:
+        resource_attr: attributes to add in resource object
+        scope_metrics: metrics to add in scopeMetrics array
+    Returns: opentelemetry.proto.metrics.v1.metrics_pb2.ResourceMetrics object
+    """
+    resource_metrics = opentelemetry.proto.metrics.v1.metrics_pb2.ResourceMetrics()
+    for key, value in resource_attr.items():
+        attr = resource_metrics.resource.attributes.add()
+        attr.key = key
+        attr.value.string_value = value
+    for scope_metric in scope_metrics:
+        to_fill = resource_metrics.scope_metrics.add()
+        to_fill.CopyFrom(scope_metric)
+    return resource_metrics
+
+
+def ctn_send_otl_to_engine(port: int, resource_metrics: list):
+    """
+    send_otl_to_engine
+
+    send an otl request to engine otl server
+
+    Args:
+        port: port to connect to engine
+        resource_metrics: resource_metrics to add to grpc message
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        # same for engine and broker
+        stub = opentelemetry.proto.collector.metrics.v1.metrics_service_pb2_grpc.MetricsServiceStub(channel)
+        try:
+            request = opentelemetry.proto.collector.metrics.v1.metrics_service_pb2.ExportMetricsServiceRequest()
+            for res_metric in resource_metrics:
+                to_fill = request.resource_metrics.add()
+                to_fill.CopyFrom(res_metric)
+
+            return stub.Export(request)
+        except:
+            logger.console("gRPC server not ready")
+
+

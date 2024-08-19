@@ -1,20 +1,20 @@
-/*
-** Copyright 2011-2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_STORAGE_STREAM_HH
 #define CCB_STORAGE_STREAM_HH
@@ -36,6 +36,10 @@ namespace storage {
  *  metrics table of a centstorage DB.
  */
 class stream : public io::stream {
+  int32_t _pending_events;
+  bool _stopped;
+  std::shared_ptr<spdlog::logger> _logger_sql;
+  std::shared_ptr<spdlog::logger> _logger_storage;
   struct index_info {
     std::string host_name;
     uint32_t index_id;
@@ -48,28 +52,27 @@ class stream : public io::stream {
     bool locked;
     uint32_t metric_id;
     uint16_t type;
-    double value;
+    float value;
     std::string unit_name;
-    double warn;
-    double warn_low;
+    float warn;
+    float warn_low;
     bool warn_mode;
-    double crit;
-    double crit_low;
+    float crit;
+    float crit_low;
     bool crit_mode;
-    double min;
-    double max;
+    float min;
+    float max;
   };
   struct metric_value {
     time_t c_time;
     uint32_t metric_id;
     short status;
-    double value;
+    float value;
   };
 
-  int32_t _pending_events;
   std::string _status;
   mutable std::mutex _statusm;
-  bool _stopped;
+  std::shared_ptr<spdlog::logger> _logger;
 
   void _update_status(std::string const& status);
 
@@ -89,6 +92,6 @@ class stream : public io::stream {
 };
 }  // namespace storage
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_STORAGE_STREAM_HH

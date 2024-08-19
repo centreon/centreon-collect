@@ -38,18 +38,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
-class GrpcTlsTest : public ::testing::Test {
- public:
-  void SetUp() override {
-    pool::load(g_io_context, 1);
-    log_v2::grpc()->set_level(spdlog::level::trace);
-    io::protocols::load();
-    io::events::load();
-  }
-  void TearDown() override { pool::unload(); }
-};
+class GrpcTlsTest : public ::testing::Test {};
 
 static auto read_file = [](const std::string& path) {
   std::ifstream file(path);
@@ -63,6 +52,8 @@ TEST_F(GrpcTlsTest, TlsStream) {
   /* Let's prepare certificates */
   std::string hostname = misc::exec("hostname --fqdn");
   hostname = misc::string::trim(hostname);
+  if (hostname.empty())
+    hostname = "localhost";
   std::string server_cmd(
       fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 "
                   "-keyout /tmp/server.key -out /tmp/server.crt -subj '/CN={}'",
@@ -83,7 +74,7 @@ TEST_F(GrpcTlsTest, TlsStream) {
     auto conf{std::make_shared<grpc_config>(
         "0.0.0.0:4141", true, read_file("/tmp/server.crt"),
         read_file("/tmp/server.key"), read_file("/tmp/client.crt"), "",
-        "centreon", grpc_config::NO, 30, false)};
+        "centreon", false, 30, false)};
     auto a{std::make_unique<acceptor>(conf)};
 
     /* Nominal case, cbd is acceptor and read on the socket */
@@ -115,7 +106,7 @@ TEST_F(GrpcTlsTest, TlsStream) {
     auto conf{std::make_shared<grpc_config>(
         fmt::format("{}:4141", hostname), true, read_file("/tmp/client.crt"),
         read_file("/tmp/client.key"), read_file("/tmp/server.crt"), "", "",
-        grpc_config::NO, 30, false)};
+        false, 30, false)};
     auto c{std::make_unique<connector>(conf)};
 
     /* Nominal case, centengine is connector and write on the socket */
@@ -161,14 +152,13 @@ TEST_F(GrpcTlsTest, TlsStreamBadCaHostname) {
   std::cout << client_cmd << std::endl;
   system(client_cmd.c_str());
 
-  std::atomic_bool cbd_finished{false};
   std::atomic_bool centengine_finished{false};
 
-  std::thread cbd([&cbd_finished, &centengine_finished] {
+  std::thread cbd([&centengine_finished] {
     auto conf{std::make_shared<grpc_config>(
         "0.0.0.0:4141", true, read_file("/tmp/server.crt"),
         read_file("/tmp/server.key"), read_file("/tmp/client.crt"), "",
-        "centreon", grpc_config::NO, 30, false)};
+        "centreon", false, 30, false)};
     auto a{std::make_unique<acceptor>(conf)};
 
     /* Nominal case, cbd is acceptor and read on the socket */
@@ -183,7 +173,7 @@ TEST_F(GrpcTlsTest, TlsStreamBadCaHostname) {
     auto conf{std::make_shared<grpc_config>(
         "localhost:4141", true, read_file("/tmp/client.crt"),
         read_file("/tmp/client.key"), read_file("/tmp/server.crt"), "",
-        "bad_name", grpc_config::NO, 30, false)};
+        "bad_name", false, 30, false)};
     auto c{std::make_unique<connector>(conf)};
 
     /* Nominal case, centengine is connector and write on the socket */

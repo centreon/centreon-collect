@@ -1,36 +1,39 @@
 /**
-* Copyright 2023 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/stats_exporter/exporter.hh"
 #include "com/centreon/broker/config/endpoint.hh"
-#include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/stats/center.hh"
+#include "com/centreon/common/pool.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats_exporter;
 namespace metric_sdk = opentelemetry::sdk::metrics;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Default constructor.
  */
-exporter::exporter() : _connections_watcher{pool::io_context()} {}
+exporter::exporter()
+    : _center{stats::center::instance_ptr()},
+      _connections_watcher{com::centreon::common::pool::io_context()} {}
 
 /**
  * @brief Initialize the metrics to export.
@@ -45,10 +48,12 @@ void exporter::init_metrics(
   double timeout = s.get_stats_exporter().export_timeout;
 
   // Initialize and set the periodic metrics reader
-  log_v2::config()->info(
-      "stats_exporter: export configured with an interval of {}s and a timeout "
-      "of {}s",
-      interval, timeout);
+  log_v2::instance()
+      .get(log_v2::CONFIG)
+      ->info(
+          "stats_exporter: export configured with an interval of {}s and a "
+          "timeout of {}s",
+          interval, timeout);
   metric_sdk::PeriodicExportingMetricReaderOptions options;
   options.export_interval_millis =
       std::chrono::milliseconds(static_cast<int32_t>(1000. * interval));
@@ -75,8 +80,8 @@ void exporter::init_metrics(
    */
   _thread_pool_size = std::make_unique<instrument_i64>(
       provider, "thread_pool_size", "Number of threads in the thread pool",
-      []() -> int64_t {
-        const auto& s = stats::center::instance().stats().pool_stats();
+      [center = _center]() -> int64_t {
+        const auto& s = center->stats().pool_stats();
         return s.size();
       });
 
@@ -84,8 +89,8 @@ void exporter::init_metrics(
       provider, "thread_pool_latency",
       "Latency of the thread pool in seconds, the time to wait before a thread "
       "is available",
-      []() -> double {
-        const auto& s = stats::center::instance().stats().pool_stats();
+      [center = _center]() -> double {
+        const auto& s = center->stats().pool_stats();
         return s.latency();
       });
 
@@ -97,8 +102,8 @@ void exporter::init_metrics(
           provider, fmt::format("{}_muxer_total_events", m.name),
           fmt::format("Total number of events stacked in the muxer '{}'",
                       m.name),
-          [name = m.name]() -> int64_t {
-            const auto& s = stats::center::instance().stats();
+          [name = m.name, center = _center]() -> int64_t {
+            const auto& s = center->stats();
             return s.processing().muxers().at(name).total_events();
           });
 
@@ -107,8 +112,8 @@ void exporter::init_metrics(
           fmt::format(
               "Number of unacknowlkedged events stacked in the muxer '{}'",
               m.name),
-          [name = m.name]() -> int64_t {
-            const auto& s = stats::center::instance().stats();
+          [name = m.name, center = _center]() -> int64_t {
+            const auto& s = center->stats();
             return s.processing().muxers().at(name).unacknowledged_events();
           });
 
@@ -116,8 +121,8 @@ void exporter::init_metrics(
           provider, fmt::format("{}_muxer_queue_file_write_path", m.name),
           fmt::format("Index of the current written queue file for muxer '{}'",
                       m.name),
-          [name = m.name]() -> int64_t {
-            const auto& s = stats::center::instance().stats();
+          [name = m.name, center = _center]() -> int64_t {
+            const auto& s = center->stats();
             const auto& q = s.processing().muxers().at(name).queue_file();
             return q.file_write_path();
           });
@@ -126,8 +131,8 @@ void exporter::init_metrics(
           provider, fmt::format("{}_muxer_queue_file_read_path", m.name),
           fmt::format("Index of the current written queue file for muxer '{}'",
                       m.name),
-          [name = m.name]() -> int64_t {
-            const auto& s = stats::center::instance().stats();
+          [name = m.name, center = _center]() -> int64_t {
+            const auto& s = center->stats();
             const auto& q = s.processing().muxers().at(name).queue_file();
             return q.file_read_path();
           });
@@ -138,8 +143,8 @@ void exporter::init_metrics(
           fmt::format("percentage progression of the retention reading of the "
                       "muxer '{}'",
                       m.name),
-          [name = m.name]() -> double {
-            const auto& s = stats::center::instance().stats();
+          [name = m.name, center = _center]() -> double {
+            const auto& s = center->stats();
             const auto& q = s.processing().muxers().at(name).queue_file();
             return q.file_percent_processed();
           });
@@ -164,11 +169,12 @@ exporter::~exporter() noexcept {
 void exporter::_check_connections(
     std::shared_ptr<metrics_api::MeterProvider> provider,
     const boost::system::error_code& ec) {
-  if (ec)
-    log_v2::sql()->error(
+  if (ec) {
+    auto logger = log_v2::instance().get(log_v2::SQL);
+    logger->error(
         "stats_exporter: Sql connections checker has been interrupted: {}",
         ec.message());
-  else {
+  } else {
     size_t count = mysql_manager::instance().connections_count();
     while (_conn.size() < count) {
       _conn.push_back({});
@@ -177,8 +183,8 @@ void exporter::_check_connections(
       ci.waiting_tasks = std::make_unique<instrument_i64>(
           provider, fmt::format("sql_connection_{}_waiting_tasks", id),
           fmt::format("Number of waiting tasks on the connection {}", id),
-          [id]() -> int64_t {
-            const auto& s = stats::center::instance().stats();
+          [id, center = _center]() -> int64_t {
+            const auto& s = center->stats();
             if (id < s.sql_manager().connections().size())
               return s.sql_manager().connections().at(id).waiting_tasks();
             else
@@ -190,8 +196,8 @@ void exporter::_check_connections(
           fmt::format(
               "Average duration in seconds of one loop on the connection {}",
               id),
-          [id]() -> double {
-            const auto& s = stats::center::instance().stats();
+          [id, center = _center]() -> double {
+            const auto& s = center->stats();
             if (id < s.sql_manager().connections().size())
               return s.sql_manager()
                   .connections()
@@ -205,8 +211,8 @@ void exporter::_check_connections(
           provider, fmt::format("sql_connection_{}_average_tasks_count", id),
           fmt::format("Average number of waiting tasks on the connection {}",
                       id),
-          [id]() -> double {
-            const auto& s = stats::center::instance().stats();
+          [id, center = _center]() -> double {
+            const auto& s = center->stats();
             if (id < s.sql_manager().connections().size())
               return s.sql_manager().connections().at(id).average_tasks_count();
             else
@@ -218,8 +224,8 @@ void exporter::_check_connections(
           fmt::format("Average activity in percent on the connection {} (work "
                       "duration / total duration)",
                       id),
-          [id]() -> double {
-            const auto& s = stats::center::instance().stats();
+          [id, center = _center]() -> double {
+            const auto& s = center->stats();
             if (id < s.sql_manager().connections().size())
               return s.sql_manager().connections().at(id).activity_percent();
             else
@@ -231,8 +237,8 @@ void exporter::_check_connections(
           fmt::format("Average activity in percent on the connection {} (work "
                       "duration / total duration)",
                       id),
-          [id]() -> double {
-            const auto& s = stats::center::instance().stats();
+          [id, center = _center]() -> double {
+            const auto& s = center->stats();
             if (id < s.sql_manager().connections().size())
               return s.sql_manager()
                   .connections()
@@ -248,8 +254,8 @@ void exporter::_check_connections(
           fmt::format("Average activity in percent on the connection {} (work "
                       "duration / total duration)",
                       id),
-          [id]() -> double {
-            const auto& s = stats::center::instance().stats();
+          [id, center = _center]() -> double {
+            const auto& s = center->stats();
             if (id < s.sql_manager().connections().size())
               return s.sql_manager()
                   .connections()

@@ -44,7 +44,7 @@ jobs:
       release_cloud: ${{ steps.get_version.outputs.release_cloud}}
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
       - name: install gh cli on self-hosted runner
         run: |
@@ -101,6 +101,11 @@ jobs:
               echo "release_cloud=1" >> $GITHUB_OUTPUT
               echo "release_type=$GITHUB_RELEASE_TYPE" >> $GITHUB_OUTPUT
               ;;
+            dev-[2-9][0-9].[0-9][0-9].x)
+              echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
+              echo "release_cloud=0" >> $GITHUB_OUTPUT
+              echo "release_type=$GITHUB_RELEASE_TYPE" >> $GITHUB_OUTPUT
+              ;;
             release* | hotfix*)
             # Handle workflow_dispatch run triggers and run a dispatch ONLY for cloud release
               GITHUB_RELEASE_BRANCH_BASE_REF_NAME="$(gh pr view $BRANCHNAME -q .baseRefName --json headRefName,baseRefName,state)"
@@ -127,6 +132,17 @@ jobs:
                 echo "release_cloud=$GITHUB_RELEASE_CLOUD" >> $GITHUB_OUTPUT
                 echo "release_type=$GITHUB_RELEASE_TYPE" >> $GITHUB_OUTPUT
               fi
+              ;;
+            prepare-release-cloud*)
+              # Set release cloud to 1 (0=not-cloud, 1=cloud)
+              GITHUB_RELEASE_CLOUD=1
+              # Debug
+              echo "GITHUB_RELEASE_TYPE is: $GITHUB_RELEASE_TYPE"
+              echo "GITHUB_RELEASE_CLOUD is: $GITHUB_RELEASE_CLOUD"
+              # Github ouputs
+              echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
+              echo "release_type=$GITHUB_RELEASE_TYPE" >> $GITHUB_OUTPUT
+              echo "release_cloud=$GITHUB_RELEASE_CLOUD" >> $GITHUB_OUTPUT
               ;;
             *)
               echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT

@@ -1,21 +1,20 @@
-/*
-** Copyright 2011-2019 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCE_HOST_HH
 #define CCE_HOST_HH
@@ -28,7 +27,7 @@ class contact;
 class host;
 class hostgroup;
 class hostescalation;
-}
+}  // namespace com::centreon::engine
 
 using host_map =
     absl::flat_hash_map<std::string,
@@ -102,9 +101,10 @@ class host : public notifier {
        bool obsess_over_host,
        std::string const& timezone,
        uint64_t icon_id);
-  ~host() noexcept = default;
+  ~host();
   uint64_t host_id() const;
   void set_host_id(uint64_t id);
+  void set_name(const std::string& name) override;
   void add_child_host(host* child);
   void add_parent_host(std::string const& host_name);
   int log_event();
@@ -245,7 +245,10 @@ class host : public notifier {
   timeperiod* get_notification_timeperiod() const override;
   bool get_notify_on_current_state() const override;
   bool is_in_downtime() const override;
-  void resolve(int& w, int& e);
+  void resolve(uint32_t& w, uint32_t& e);
+
+  void set_check_command_ptr(
+      const std::shared_ptr<commands::command>& cmd) override;
 
   host_map_unsafe parent_hosts;
   host_map_unsafe child_hosts;
@@ -256,7 +259,11 @@ class host : public notifier {
   std::list<hostgroup*> const& get_parent_groups() const;
   std::list<hostgroup*>& get_parent_groups();
 
+  std::string get_check_command_line(nagios_macros* macros);
+
  private:
+  void _switch_all_services_to_unknown();
+
   uint64_t _id;
   std::string _alias;
   std::string _address;
@@ -288,7 +295,7 @@ class host : public notifier {
   std::list<hostgroup*> _hostgroups;
 };
 
-}
+}  // namespace com::centreon::engine
 
 int is_host_immediate_child_of_host(com::centreon::engine::host* parent,
                                     com::centreon::engine::host* child);
@@ -311,7 +318,7 @@ bool host_exists(uint64_t host_id) noexcept;
 uint64_t get_host_id(std::string const& name);
 std::string get_host_name(const uint64_t host_id);
 
-}
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os, host_map_unsafe const& obj);
 

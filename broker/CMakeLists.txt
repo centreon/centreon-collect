@@ -66,12 +66,15 @@ endif()
 if(OS_DISTRIBUTOR STREQUAL "Debian" OR OS_DISTRIBUTOR STREQUAL "Ubuntu")
   message(STATUS "deb based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/run/mysqld/mysqld.sock\"")
+  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
 elseif(OS_DISTRIBUTOR STREQUAL "CentOS" OR OS_DISTRIBUTOR STREQUAL "RedHat")
   message(STATUS "rpm based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/lib/mysql/mysql.sock\"")
+  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib64/mariadb/plugin\"")
 else()
   message(STATUS "other os: ${OS_DISTRIBUTOR}")
-  add_definitions("-DMYSQL_SOCKET=/tmp/mysql.sock")
+  add_definitions("-DMYSQL_SOCKET=\"/tmp/mysql.sock\"")
+  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
 endif()
 
 include_directories(
@@ -79,7 +82,8 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/neb/inc"
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
-  "${PROJECT_SOURCE_DIR}/core/sql/inc")
+  "${PROJECT_SOURCE_DIR}/core/sql/inc"
+  "${MARIADB_INCLUDE_DIRS}")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")
@@ -94,9 +98,9 @@ add_custom_command(
   OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-    --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
-    --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
+    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${SRC_DIR}
+    --proto_path=${CMAKE_SOURCE_DIR}/common/src --grpc_out="${SRC_DIR}"
+    ${SRC_DIR}/broker.proto
   DEPENDS ${SRC_DIR}/broker.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
@@ -104,13 +108,14 @@ add_custom_command(
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
     --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     ${SRC_DIR}/broker.proto
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc"
                                                   "${SRC_DIR}/broker.pb.h")
 
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
-                    ${CMAKE_SOURCE_DIR}/common/inc)
+                    ${CMAKE_SOURCE_DIR}/common/inc
+                    ${CMAKE_SOURCE_DIR}/bbdo)
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
@@ -341,15 +346,12 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/diagnostic.cc
     ${SRC_DIR}/misc/filesystem.cc
     ${SRC_DIR}/misc/misc.cc
-    ${SRC_DIR}/misc/parse_perfdata.cc
-    ${SRC_DIR}/misc/perfdata.cc
     ${SRC_DIR}/misc/processing_speed_computer.cc
     ${SRC_DIR}/misc/string.cc
     ${SRC_DIR}/misc/time.cc
     ${SRC_DIR}/misc/uuid.cc
     ${SRC_DIR}/misc/variant.cc
     ${SRC_DIR}/modules/handle.cc
-    ${SRC_DIR}/pool.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
     ${SRC_DIR}/processing/acceptor.cc
@@ -411,14 +413,12 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/misc/diagnostic.hh
     ${INC_DIR}/misc/filesystem.hh
     ${INC_DIR}/misc/misc.hh
-    ${INC_DIR}/misc/perfdata.hh
     ${INC_DIR}/misc/processing_speed_computer.hh
     ${INC_DIR}/misc/shared_mutex.hh
     ${INC_DIR}/misc/string.hh
     ${INC_DIR}/misc/time.hh
     ${INC_DIR}/misc/variant.hh
     ${INC_DIR}/modules/handle.hh
-    ${INC_DIR}/pool.hh
     ${INC_DIR}/persistent_cache.hh
     ${INC_DIR}/persistent_file.hh
     ${INC_DIR}/processing/acceptor.hh
@@ -438,32 +438,33 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/version.hh)
 
 # Static libraries.
-add_library(rokerlog STATIC ${SRC_DIR}/log_v2.cc)
-set_target_properties(rokerlog PROPERTIES COMPILE_FLAGS "-fPIC")
-target_precompile_headers(rokerlog REUSE_FROM multiplexing)
-target_link_libraries(rokerlog spdlog::spdlog)
-
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
-add_dependencies(rokerbase berpc target_bbdo)
+add_dependencies(rokerbase berpc target_bbdo target_extcmd)
 target_link_libraries(
   rokerbase
   sql
   bbdo_bbdo
   pb_bbdo_lib
   pb_extcmd_lib
+  pb_open_telemetry_lib
   berpc
   z
   spdlog::spdlog
-  crypto ssl
+  crypto
+  ssl
   pthread
   dl)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
-target_link_libraries(roker rokerbase crypto ssl
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-                      pthread dl)
+target_link_libraries(
+  roker
+  rokerbase
+  crypto
+  ssl
+  pthread
+  dl)
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
@@ -473,8 +474,8 @@ add_dependencies(cbd multiplexing centreon_common)
 target_link_libraries(
   cbd
   "-rdynamic"
-  rokerlog
   "-Wl,--whole-archive"
+  log_v2
   sql
   rokerbase
   roker
@@ -489,8 +490,10 @@ target_link_libraries(
   protobuf
   "-Wl,--no-whole-archive"
   stdc++fs
-  spdlog::spdlog
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts)
+  # spdlog::spdlog
+  gRPC::gpr
+  gRPC::grpc
+  gRPC::grpc++_alts)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)
@@ -508,7 +511,7 @@ add_subdirectory(core/sql)
 # Generator module.
 add_broker_module(GENERATOR OFF)
 add_broker_module(STATS ON)
-add_broker_module(STATS_EXPORTER ON)
+#add_broker_module(STATS_EXPORTER OFF)
 add_broker_module(NEB ON)
 add_broker_module(RRD ON)
 add_broker_module(UNIFIED_SQL ON)
@@ -523,7 +526,6 @@ add_broker_module(TLS2 OFF)
 add_broker_module(DUMP OFF)
 add_broker_module(GRPC ON)
 add_broker_module(VICTORIA_METRICS ON)
-add_subdirectory(http_client)
 add_subdirectory(http_tsdb)
 
 # Lua module.

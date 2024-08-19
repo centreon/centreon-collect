@@ -1,34 +1,33 @@
-/*
-** Copyright 2011-2019 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
-
+/**
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #ifndef CCE_OBJECTS_HOSTDEPENDENCY_HH
 #define CCE_OBJECTS_HOSTDEPENDENCY_HH
 
-#include "com/centreon/engine/configuration/hostdependency.hh"
 #include "com/centreon/engine/dependency.hh"
+#include "common/engine_legacy_conf/hostdependency.hh"
 
 /* Forward declaration. */
 namespace com::centreon::engine {
 class host;
 class hostdependency;
 class timeperiod;
-}
+}  // namespace com::centreon::engine
 
 typedef std::unordered_multimap<
     std::string,
@@ -38,8 +37,9 @@ typedef std::unordered_multimap<
 namespace com::centreon::engine {
 class hostdependency : public dependency {
  public:
-  hostdependency(std::string const& dependent_hostname,
-                 std::string const& hostname,
+  hostdependency(size_t key,
+                 const std::string& dependent_hostname,
+                 const std::string& hostname,
                  dependency::types dependency_type,
                  bool inherits_parent,
                  bool fail_on_up,
@@ -57,7 +57,7 @@ class hostdependency : public dependency {
 
   bool check_for_circular_hostdependency_path(hostdependency* dep,
                                               types dependency_type);
-  void resolve(int& w, int& e);
+  void resolve(uint32_t& w, uint32_t& e);
   bool get_fail_on(int state) const override;
 
   bool operator==(hostdependency const& obj) = delete;
@@ -76,7 +76,7 @@ class hostdependency : public dependency {
   bool _fail_on_unreachable;
 };
 
-}
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::hostdependency const& obj);

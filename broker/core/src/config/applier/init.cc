@@ -1,20 +1,20 @@
 /**
-* Copyright 2011-2013, 2021-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2013, 2021-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <condition_variable>
 #include <deque>
@@ -40,18 +40,16 @@ namespace asio = boost::asio;
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/time/timezone_manager.hh"
+#include "com/centreon/common/pool.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using com::centreon::common::log_v2::log_v2;
 
 std::atomic<config::applier::applier_state> config::applier::mode{not_started};
-
-extern std::shared_ptr<asio::io_context> g_io_context;
-extern bool g_io_context_started;
 
 /**
  * @brief Load necessary structures. It initializes exactly the same structures
@@ -63,9 +61,18 @@ extern bool g_io_context_started;
 void config::applier::init(size_t n_thread,
                            const std::string&,
                            size_t event_queues_total_size) {
-  // Load singletons.
-  pool::load(g_io_context, n_thread);
-  g_io_context_started = true;
+  /* Load singletons.
+   * Why so many?
+   * The stats::center is now embedded by each user. We could avoid the
+   * singleton but as the pool is going to move to common, I don't have a view
+   * on the impact of this change, so I prefer to keep it as a singleton but
+   * starting the job to embed the center.
+   * For the multipliexing::engine, we have a similar issue. Muxers embed the
+   * engine, so we could avoid the singleton, but it is possible to access the
+   * engine from stream thanks to the singleton. As this functionality is still
+   * used, we must keep the singleton.
+   */
+  com::centreon::common::pool::set_pool_size(n_thread);
   stats::center::load();
   mysql_manager::load();
   config::applier::state::load();
@@ -82,6 +89,8 @@ void config::applier::init(size_t n_thread,
  */
 void config::applier::deinit() {
   mode = finished;
+  auto logger = log_v2::instance().get(log_v2::CORE);
+  logger->info("unloading applier::endpoint");
   config::applier::endpoint::unload();
   {
     auto eng = multiplexing::engine::instance_ptr();
@@ -93,10 +102,8 @@ void config::applier::deinit() {
   io::events::unload();
   io::protocols::unload();
   mysql_manager::unload();
-  stats::center::unload();
   file::disk_accessor::unload();
-
-  pool::unload();
+  stats::center::unload();
 }
 
 /**

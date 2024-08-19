@@ -1,28 +1,26 @@
-/*
-** Copyright 2011-2016 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
-
+/**
+ * Copyright 2011-2016 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #ifndef CCE_CONFIGURATION_APPLIER_SCHEDULER_HH
 #define CCE_CONFIGURATION_APPLIER_SCHEDULER_HH
 
 #include "com/centreon/engine/configuration/applier/difference.hh"
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "common/engine_legacy_conf/state.hh"
 
 // Forward declaration.
 namespace com::centreon::engine {
@@ -90,12 +88,10 @@ class scheduler {
   timed_event* _evt_check_reaper;
   timed_event* _evt_command_check;
   timed_event* _evt_hfreshness_check;
-  timed_event* _evt_host_perfdata;
   timed_event* _evt_orphan_check;
   timed_event* _evt_reschedule_checks;
   timed_event* _evt_retention_save;
   timed_event* _evt_sfreshness_check;
-  timed_event* _evt_service_perfdata;
   timed_event* _evt_status_save;
   unsigned int _old_auto_rescheduling_interval;
   unsigned int _old_check_reaper_interval;
@@ -112,6 +108,6 @@ class scheduler {
 }  // namespace applier
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SCHEDULER_HH

@@ -1,37 +1,39 @@
 /**
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #include "com/centreon/engine/dependency.hh"
+
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
-dependency::dependency(std::string const& dependent_hostname,
-                       std::string const& hostname,
+dependency::dependency(size_t key,
+                       const std::string& dependent_hostname,
+                       const std::string& hostname,
                        types dependency_type,
                        bool inherits_parent,
                        bool fail_on_pending,
-                       std::string const& dependency_period)
-    : _dependency_type{dependency_type},
+                       const std::string& dependency_period)
+    : _internal_key{key},
+      _dependency_type{dependency_type},
       _dependent_hostname{dependent_hostname},
       _hostname{hostname},
       _dependency_period{dependency_period},
@@ -42,8 +44,7 @@ dependency::dependency(std::string const& dependent_hostname,
   if (dependent_hostname.empty() || hostname.empty()) {
     engine_logger(log_config_error, basic)
         << "Error: NULL host name in host dependency definition";
-    log_v2::config()->error(
-        "Error: NULL host name in host dependency definition");
+    config_logger->error("Error: NULL host name in host dependency definition");
     throw engine_error() << "Could not create execution "
                          << "dependency of '" << dependent_hostname << "' on '"
                          << hostname << "'";
@@ -169,4 +170,8 @@ bool dependency::operator<(dependency const& obj) noexcept {
   else if (_circular_path_checked != obj.get_circular_path_checked())
     return _circular_path_checked < obj.get_circular_path_checked();
   return _contains_circular_path < obj.get_contains_circular_path();
+}
+
+size_t dependency::internal_key() const {
+  return _internal_key;
 }

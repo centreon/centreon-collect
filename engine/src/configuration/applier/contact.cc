@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2015,2017-2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011-2015,2017-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -49,38 +49,19 @@ class contactgroup_name_comparator {
 };
 
 /**
- *  Default constructor.
- */
-applier::contact::contact() {}
-
-/**
- *  Destructor.
- */
-applier::contact::~contact() throw() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-// applier::contact& applier::contact::operator=(
-//                                      applier::contact const& right) {
-//  (void)right;
-//  return *this;
-//}
-
-/**
  *  Add new contact.
  *
  *  @param[in] obj  The new contact to add into the monitoring engine.
  */
 void applier::contact::add_object(configuration::contact const& obj) {
+  // Make sure we have the data we need.
+  if (obj.contact_name().empty())
+    throw engine_error() << "Could not register contact with an empty name";
+
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new contact '" << obj.contact_name() << "'.";
-  log_v2::config()->debug("Creating new contact '{}'.", obj.contact_name());
+  config_logger->debug("Creating new contact '{}'.", obj.contact_name());
 
   // Add contact to the global configuration set.
   config->contacts().insert(obj);
@@ -122,66 +103,18 @@ void applier::contact::add_object(configuration::contact const& obj) {
   engine::contact::contacts.insert({c->get_name(), c});
 
   // Add all custom variables.
-  for (map_customvar::const_iterator it(obj.customvariables().begin()),
-       end(obj.customvariables().end());
+  for (auto it = obj.customvariables().begin(),
+            end = obj.customvariables().end();
        it != end; ++it) {
-    c->get_custom_variables()[it->first] = it->second;
+    auto& cv = c->get_custom_variables()[it->first];
+    cv.set_value(it->second.value());
+    cv.set_sent(it->second.is_sent());
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
       broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_ADD, c.get(),
-                             it->first.c_str(), it->second.get_value().c_str(),
+                             it->first.c_str(), it->second.value().c_str(),
                              &tv);
-    }
-  }
-}
-
-/**
- *  @brief Expand a contact.
- *
- *  During expansion, the contact will be added to its contact groups.
- *  These will be modified in the state.
- *
- *  @param[in,out] s  Configuration state.
- */
-void applier::contact::expand_objects(configuration::state& s) {
-  // Browse all contacts.
-  for (configuration::set_contact::iterator it_contact(s.contacts().begin()),
-       end_contact(s.contacts().end());
-       it_contact != end_contact; ++it_contact) {
-    // Should custom variables be sent to broker ?
-    map_customvar& mcv(
-        const_cast<map_customvar&>(it_contact->customvariables()));
-    for (map_customvar::iterator it{mcv.begin()}, end{mcv.end()}; it != end;
-         ++it) {
-      if (!s.enable_macros_filter() ||
-          s.macros_filter().find(it->first) != s.macros_filter().end()) {
-        it->second.set_sent(true);
-      }
-    }
-
-    // Browse current contact's groups.
-    for (set_string::const_iterator
-             it_group(it_contact->contactgroups().begin()),
-         end_group(it_contact->contactgroups().end());
-         it_group != end_group; ++it_group) {
-      // Find contact group.
-      configuration::set_contactgroup::iterator group(
-          s.contactgroups_find(*it_group));
-      if (group == s.contactgroups().end())
-        throw(engine_error()
-              << "Could not add contact '" << it_contact->contact_name()
-              << "' to non-existing contact group '" << *it_group << "'");
-
-      // Remove contact group from state.
-      configuration::contactgroup backup(*group);
-      s.contactgroups().erase(group);
-
-      // Add contact to group members.
-      backup.members().insert(it_contact->contact_name());
-
-      // Reinsert contact group.
-      s.contactgroups().insert(backup);
     }
   }
 }
@@ -195,7 +128,7 @@ void applier::contact::modify_object(configuration::contact const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Modifying contact '" << obj.contact_name() << "'.";
-  log_v2::config()->debug("Modifying contact '{}'.", obj.contact_name());
+  config_logger->debug("Modifying contact '{}'.", obj.contact_name());
 
   // Find old configuration.
   set_contact::iterator it_cfg(config->contacts_find(obj.key()));
@@ -322,20 +255,22 @@ void applier::contact::modify_object(configuration::contact const& obj) {
       if (cus.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_DELETE, c,
-                               cus.first.c_str(),
-                               cus.second.get_value().c_str(), &tv);
+                               cus.first.c_str(), cus.second.value().c_str(),
+                               &tv);
       }
     }
     c->get_custom_variables().clear();
 
     for (auto& cus : obj.customvariables()) {
-      c->get_custom_variables()[cus.first] = cus.second;
+      auto& cv = c->get_custom_variables()[cus.first];
+      cv.set_value(cus.second.value());
+      cv.set_sent(cus.second.is_sent());
 
       if (cus.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_ADD, c,
-                               cus.first.c_str(),
-                               cus.second.get_value().c_str(), &tv);
+                               cus.first.c_str(), cus.second.value().c_str(),
+                               &tv);
       }
     }
   }
@@ -357,7 +292,7 @@ void applier::contact::remove_object(configuration::contact const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing contact '" << obj.contact_name() << "'.";
-  log_v2::config()->debug("Removing contact '{}'.", obj.contact_name());
+  config_logger->debug("Removing contact '{}'.", obj.contact_name());
 
   // Find contact.
   contact_map::iterator it{engine::contact::contacts.find(obj.key())};
@@ -383,15 +318,65 @@ void applier::contact::remove_object(configuration::contact const& obj) {
 }
 
 /**
+ *  @brief Expand a contact.
+ *
+ *  During expansion, the contact will be added to its contact groups.
+ *  These will be modified in the state.
+ *
+ *  @param[in,out] s  Configuration state.
+ */
+void applier::contact::expand_objects(configuration::state& s) {
+  // Browse all contacts.
+  configuration::set_contact new_contacts;
+  // We loop on s.contacts() but we make a copy of each element because the
+  // container is a set and changing its element has an impact on the order
+  // they are stored. So we copy each element, modify them and move the result
+  // to a new set.
+  for (auto contact : s.contacts()) {
+    // Should custom variables be sent to broker ?
+    auto& mcv = contact.mutable_customvariables();
+    for (auto& cv : mcv) {
+      if (!s.enable_macros_filter() ||
+          s.macros_filter().find(cv.first) != s.macros_filter().end()) {
+        cv.second.set_sent(true);
+      }
+    }
+
+    // Browse current contact's groups.
+    for (auto& g : contact.contactgroups()) {
+      // Find contact group.
+      configuration::set_contactgroup::iterator group(s.contactgroups_find(g));
+      if (group == s.contactgroups().end())
+        throw(engine_error()
+              << "Could not add contact '" << contact.contact_name()
+              << "' to non-existing contact group '" << g << "'");
+
+      // Remove contact group from state.
+      configuration::contactgroup backup(*group);
+      s.contactgroups().erase(group);
+
+      // Add contact to group members.
+      backup.members().insert(contact.contact_name());
+
+      // Reinsert contact group.
+      s.contactgroups().insert(backup);
+    }
+    new_contacts.insert(std::move(contact));
+  }
+  s.contacts() = std::move(new_contacts);
+}
+
+/**
  *  Resolve a contact.
  *
  *  @param[in,out] obj  Object to resolve.
  */
-void applier::contact::resolve_object(configuration::contact const& obj) {
+void applier::contact::resolve_object(const configuration::contact& obj,
+                                      error_cnt& err) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving contact '" << obj.contact_name() << "'.";
-  log_v2::config()->debug("Resolving contact '{}'.", obj.contact_name());
+  config_logger->debug("Resolving contact '{}'.", obj.contact_name());
 
   // Find contact.
   contact_map::const_iterator ct_it{
@@ -410,7 +395,7 @@ void applier::contact::resolve_object(configuration::contact const& obj) {
     if (itt != commands::command::commands.end())
       ct_it->second->get_host_notification_commands().push_back(itt->second);
     else {
-      ++config_errors;
+      ++err.config_errors;
       throw(engine_error() << "Could not add host notification command '" << *it
                            << "' to contact '" << obj.contact_name()
                            << "': the command does not exist");
@@ -428,7 +413,7 @@ void applier::contact::resolve_object(configuration::contact const& obj) {
     if (itt != commands::command::commands.end())
       ct_it->second->get_service_notification_commands().push_back(itt->second);
     else {
-      ++config_errors;
+      ++err.config_errors;
       throw(engine_error() << "Could not add service notification command '"
                            << *it << "' to contact '" << obj.contact_name()
                            << "': the command does not exist");
@@ -439,5 +424,5 @@ void applier::contact::resolve_object(configuration::contact const& obj) {
   ct_it->second->get_parent_groups().clear();
 
   // Resolve contact.
-  ct_it->second->resolve(config_warnings, config_errors);
+  ct_it->second->resolve(err.config_warnings, err.config_errors);
 }

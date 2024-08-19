@@ -1,3 +1,22 @@
+#!/usr/bin/python3
+#
+# Copyright 2023-2024 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
+
 import signal
 from os import setsid
 from os import makedirs
@@ -1035,6 +1054,37 @@ def ctn_broker_config_add_item(name, key, value):
         buf = f.read()
     conf = json.loads(buf)
     conf["centreonBroker"][key] = value
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
+def ctn_broker_config_remove_output(name, output):
+    """
+    Remove an output from the broker configuration
+
+    Args:
+        name: The broker instance name among central, rrd and module%d
+        output: The output to remove.
+
+    *Example:*
+
+    | Ctn Broker Config Remove Output | central | unified_sql |
+    """
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'rrd':
+        filename = "central-rrd.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if v["type"] == output:
+            output_dict.pop(i)
+
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 
@@ -2485,7 +2535,7 @@ def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int):
                 result = cursor.fetchall()
                 if len(result) == 0:
                     return True
-        time.sleep(5)
+        time.sleep(2)
     return False
 
 

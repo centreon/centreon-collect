@@ -1,5 +1,5 @@
 /**
- * Copyright 2020-2021 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,13 +25,10 @@
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/stats/center.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
-
-extern std::shared_ptr<asio::io_context> g_io_context;
 
 class TestStream : public io::stream {
  public:
@@ -48,8 +45,6 @@ class TestFeeder : public ::testing::Test {
 
  public:
   void SetUp() override {
-    g_io_context->restart();
-    pool::load(g_io_context, 0);
     stats::center::load();
     config::applier::state::load();
     file::disk_accessor::load(10000);
@@ -74,7 +69,6 @@ class TestFeeder : public ::testing::Test {
     io::protocols::unload();
     stats::center::unload();
     file::disk_accessor::unload();
-    pool::unload();
   }
 };
 

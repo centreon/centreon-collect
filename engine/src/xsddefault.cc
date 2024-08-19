@@ -1,24 +1,24 @@
 /**
-* Copyright 2000-2009      Ethan Galstad
-* Copyright 2009           Nagios Core Development Team and Community
-*Contributors
-* Copyright 2011-2013,2015 Merethis
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2000-2009      Ethan Galstad
+ * Copyright 2009           Nagios Core Development Team and Community
+ *Contributors
+ * Copyright 2011-2013,2015 Merethis
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/xsddefault.hh"
 #include <fcntl.h>
@@ -32,7 +32,6 @@
 #include "com/centreon/engine/downtimes/downtime.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/statusdata.hh"
@@ -63,9 +62,8 @@ int xsddefault_initialize_status_data() {
       engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
           << "Error: Unable to open status data file '" << config->status_file()
           << "': " << strerror(errno);
-      log_v2::runtime()->error(
-          "Error: Unable to open status data file '{}': {}",
-          config->status_file(), strerror(errno));
+      runtime_logger->error("Error: Unable to open status data file '{}': {}",
+                            config->status_file(), strerror(errno));
       return ERROR;
     }
     set_cloexec(xsddefault_status_log_fd);
@@ -105,7 +103,7 @@ int xsddefault_save_status_data() {
 
   engine_logger(engine::logging::dbg_functions, engine::logging::basic)
       << "save_status_data()";
-  log_v2::functions()->trace("save_status_data()");
+  functions_logger->trace("save_status_data()");
 
   // get number of items in the command buffer
   if (config->check_external_commands()) {
@@ -451,7 +449,7 @@ int xsddefault_save_status_data() {
     for (auto const& cv : it->second->custom_variables) {
       if (!cv.first.empty())
         stream << "\t_" << cv.first << "=" << cv.second.has_been_modified()
-               << ";" << cv.second.get_value() << "\n";
+               << ";" << cv.second.value() << "\n";
     }
     stream << "\t}\n\n";
   }
@@ -627,7 +625,7 @@ int xsddefault_save_status_data() {
     for (auto const& cv : it->second->custom_variables) {
       if (!cv.first.empty())
         stream << "\t_" << cv.first << "=" << cv.second.has_been_modified()
-               << ";" << cv.second.get_value() << "\n";
+               << ";" << cv.second.value() << "\n";
     }
     stream << "\t}\n\n";
   }
@@ -671,7 +669,7 @@ int xsddefault_save_status_data() {
     for (auto const& cv : cntct->get_custom_variables()) {
       if (!cv.first.empty())
         stream << "\t_" << cv.first << "=" << cv.second.has_been_modified()
-               << ";" << cv.second.get_value() << "\n";
+               << ";" << cv.second.value() << "\n";
     }
     stream << "\t}\n\n";
   }
@@ -733,9 +731,8 @@ int xsddefault_save_status_data() {
     engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
         << "Error: Unable to update status data file '" << config->status_file()
         << "': " << msg;
-    log_v2::runtime()->error(
-        "Error: Unable to update status data file '{}': {}",
-        config->status_file(), msg);
+    runtime_logger->error("Error: Unable to update status data file '{}': {}",
+                          config->status_file(), msg);
     return ERROR;
   }
 
@@ -750,9 +747,8 @@ int xsddefault_save_status_data() {
       engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
           << "Error: Unable to update status data file '"
           << config->status_file() << "': " << msg;
-      log_v2::runtime()->error(
-          "Error: Unable to update status data file '{}': {}",
-          config->status_file(), msg);
+      runtime_logger->error("Error: Unable to update status data file '{}': {}",
+                            config->status_file(), msg);
       return ERROR;
     }
     data_ptr += wb;

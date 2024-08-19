@@ -1,5 +1,5 @@
-/*
- * Copyright 2014, 2021 Centreon
+/**
+ * Copyright 2014, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,7 @@
 
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_xor bool_xor.hh "com/centreon/broker/bam/bool_xor.hh"
  *  @brief XOR operator.
@@ -33,7 +31,8 @@ namespace bam {
  */
 class bool_xor : public bool_binary_operator {
  public:
-  bool_xor() = default;
+  bool_xor(const std::shared_ptr<spdlog::logger>& logger)
+      : bool_binary_operator(logger) {}
   ~bool_xor() noexcept = default;
   bool_xor(const bool_xor&) = delete;
   bool_xor& operator=(const bool_xor&) = delete;
@@ -41,8 +40,6 @@ class bool_xor : public bool_binary_operator {
   bool boolean_value() const override;
   std::string object_info() const override;
 };
-}  // namespace bam
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_XOR_HH

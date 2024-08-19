@@ -21,12 +21,21 @@
 
 #include <fmt/format.h>
 
-#include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/tcp/stream.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
+using log_v2 = com::centreon::common::log_v2::log_v2;
+
+static constexpr multiplexing::muxer_filter _tcp_stream_filter =
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init());
+
+static constexpr multiplexing::muxer_filter _tcp_forbidden_filter =
+    multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init())
+        .add_category(io::local);
 
 /**
  * @brief Acceptor constructor. It needs the port used to listen and a read
@@ -36,13 +45,15 @@ using namespace com::centreon::broker::tcp;
  * @param read_timeout A duration in seconds.
  */
 acceptor::acceptor(const tcp_config::pointer& conf)
-    : io::endpoint(true, {}), _conf(conf) {}
+    : io::endpoint(true, _tcp_stream_filter, _tcp_forbidden_filter),
+      _conf(conf) {}
 
 /**
  *  Destructor.
  */
 acceptor::~acceptor() noexcept {
-  log_v2::tcp()->trace("acceptor destroyed");
+  auto logger = log_v2::instance().get(log_v2::TCP);
+  logger->trace("acceptor destroyed");
   if (_acceptor) {
     tcp_async::instance().stop_acceptor(_acceptor);
   }
@@ -73,7 +84,8 @@ std::shared_ptr<io::stream> acceptor::open() {
   auto conn = tcp_async::instance().get_connection(_acceptor, timeout_s);
   if (conn) {
     assert(conn->port());
-    log_v2::tcp()->info("acceptor gets a new connection from {}", conn->peer());
+    auto logger = log_v2::instance().get(log_v2::TCP);
+    logger->info("acceptor gets a new connection from {}", conn->peer());
     add_child(conn->peer());
     return std::make_shared<stream>(conn, _conf);
   }

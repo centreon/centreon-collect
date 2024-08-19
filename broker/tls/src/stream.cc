@@ -20,8 +20,8 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 #include "com/centreon/broker/tls/internal.hh"
 #include "com/centreon/broker/tls/stream.hh"
@@ -29,12 +29,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tls;
 using namespace com::centreon::exceptions;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  @brief Constructor.
@@ -46,12 +41,15 @@ using namespace com::centreon::exceptions;
  *                   encryption that should be used.
  */
 stream::stream(unsigned int session_flags)
-    : io::stream("TLS"), _deadline((time_t)-1), _session(nullptr) {
-  SPDLOG_LOGGER_DEBUG(log_v2::tls(), "{:p} TLS: created",
+    : io::stream("TLS"),
+      _deadline((time_t)-1),
+      _session(nullptr),
+      _logger{log_v2::instance().get(log_v2::TLS)} {
+  SPDLOG_LOGGER_DEBUG(_logger, "{:p} TLS: created",
                       static_cast<const void*>(this));
   int ret = gnutls_init(&_session, session_flags);
   if (ret != GNUTLS_E_SUCCESS) {
-    SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS: cannot initialize session: {}",
+    SPDLOG_LOGGER_ERROR(_logger, "TLS: cannot initialize session: {}",
                         gnutls_strerror(ret));
     throw msg_fmt("TLS: cannot initialize session: {}", gnutls_strerror(ret));
   }
@@ -67,28 +65,25 @@ void stream::init(const params& param) {
   param.apply(_session);
 
   // Bind the TLS session with the stream from the lower layer.
-#if GNUTLS_VERSION_NUMBER < 0x020C00
-  gnutls_transport_set_lowat(*session, 0);
-#endif  // GNU TLS < 2.12.0
   gnutls_transport_set_pull_function(_session, pull_helper);
   gnutls_transport_set_push_function(_session, push_helper);
   gnutls_transport_set_ptr(_session, this);
 
   // Perform the TLS handshake.
-  SPDLOG_LOGGER_DEBUG(log_v2::tls(), "{:p} TLS: performing handshake",
+  SPDLOG_LOGGER_DEBUG(_logger, "{:p} TLS: performing handshake",
                       static_cast<const void*>(this));
   do {
     ret = gnutls_handshake(_session);
   } while (GNUTLS_E_AGAIN == ret || GNUTLS_E_INTERRUPTED == ret);
   if (ret != GNUTLS_E_SUCCESS) {
-    SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS: handshake failed: {}",
+    SPDLOG_LOGGER_ERROR(_logger, "TLS: handshake failed: {}",
                         gnutls_strerror(ret));
     throw msg_fmt("TLS: handshake failed: {} ", gnutls_strerror(ret));
   }
-  SPDLOG_LOGGER_DEBUG(log_v2::tls(), "TLS: successful handshake");
+  SPDLOG_LOGGER_DEBUG(_logger, "TLS: successful handshake");
   gnutls_protocol_t prot = gnutls_protocol_get_version(_session);
   gnutls_cipher_algorithm_t ciph = gnutls_cipher_get(_session);
-  SPDLOG_LOGGER_DEBUG(log_v2::tls(), "TLS: protocol and cipher  {} {} used",
+  SPDLOG_LOGGER_DEBUG(_logger, "TLS: protocol and cipher  {} {} used",
                       gnutls_protocol_get_name(prot),
                       gnutls_cipher_get_name(ciph));
 
@@ -105,7 +100,7 @@ void stream::init(const params& param) {
 stream::~stream() {
   if (_session) {
     try {
-      SPDLOG_LOGGER_DEBUG(log_v2::tls(), "{:p} TLS: destroy session: {:p}",
+      SPDLOG_LOGGER_DEBUG(_logger, "{:p} TLS: destroy session: {:p}",
                           static_cast<const void*>(this),
                           static_cast<const void*>(_session));
       gnutls_bye(_session, GNUTLS_SHUT_RDWR);
@@ -141,7 +136,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   int ret(gnutls_record_recv(_session, buffer->data(), buffer->size()));
   if (ret < 0) {
     if ((ret != GNUTLS_E_INTERRUPTED) && (ret != GNUTLS_E_AGAIN)) {
-      SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS: could not receive data: {}",
+      SPDLOG_LOGGER_ERROR(_logger, "TLS: could not receive data: {}",
                           gnutls_strerror(ret));
       throw msg_fmt("TLS: could not receive data: {} ", gnutls_strerror(ret));
     } else
@@ -151,7 +146,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
     d = buffer;
     return true;
   } else {
-    SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS session is terminated");
+    SPDLOG_LOGGER_ERROR(_logger, "TLS session is terminated");
     throw msg_fmt("TLS session is terminated");
   }
   return false;
@@ -202,7 +197,7 @@ long long stream::read_encrypted(void* buffer, long long size) {
       return size;
     }
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::tls(), "tls read fail: {}", e.what());
+    SPDLOG_LOGGER_DEBUG(_logger, "tls read fail: {}", e.what());
     gnutls_transport_set_errno(_session, EPIPE);
     throw;
   }
@@ -229,7 +224,7 @@ int stream::write(std::shared_ptr<io::data> const& d) {
     while (size > 0) {
       int ret(gnutls_record_send(_session, ptr, size));
       if (ret < 0) {
-        SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS: could not send data: {}",
+        SPDLOG_LOGGER_ERROR(_logger, "TLS: could not send data: {}",
                             gnutls_strerror(ret));
         throw msg_fmt("TLS: could not send data: {}", gnutls_strerror(ret));
       }
@@ -254,13 +249,13 @@ long long stream::write_encrypted(void const* buffer, long long size) {
   std::vector<char> tmp(const_cast<char*>(static_cast<char const*>(buffer)),
                         const_cast<char*>(static_cast<char const*>(buffer)) +
                             static_cast<std::size_t>(size));
-  SPDLOG_LOGGER_TRACE(log_v2::tls(), "tls write enc: {}", size);
+  SPDLOG_LOGGER_TRACE(_logger, "tls write enc: {}", size);
   r->get_buffer() = std::move(tmp);
   try {
     _substream->write(r);
     _substream->flush();
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::tls(), "tls write fail: {}", e.what());
+    SPDLOG_LOGGER_DEBUG(_logger, "tls write fail: {}", e.what());
     gnutls_transport_set_errno(_session, EPIPE);
     throw;
   }

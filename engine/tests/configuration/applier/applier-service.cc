@@ -27,10 +27,13 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/tag.hh"
-#include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/configuration/service.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/service.hh"
+#include "com/centreon/engine/host.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_legacy_conf/host.hh"
+#include "common/engine_legacy_conf/object.hh"
+#include "common/engine_legacy_conf/service.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -257,29 +260,30 @@ TEST_F(ApplierService, ServicesEquality) {
 }
 
 // Given a service configuration applied to a service,
-// When the check_validity() method is executed on the configuration,
+// When the check_validity(err) method is executed on the configuration,
 // Then it throws an exception because:
 //  1. it does not provide a service description
 //  2. it is not attached to a host
 //  3. the service does not contain any check command.
 TEST_F(ApplierService, ServicesCheckValidity) {
+  error_cnt err;
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
   configuration::service csvc;
 
   // No service description
-  ASSERT_THROW(csvc.check_validity(), engine::exceptions::error);
+  ASSERT_THROW(csvc.check_validity(err), com::centreon::exceptions::msg_fmt);
 
   ASSERT_TRUE(csvc.parse("service_description", "check description"));
   ASSERT_TRUE(csvc.parse("service_id", "53"));
 
   // No host attached to
-  ASSERT_THROW(csvc.check_validity(), engine::exceptions::error);
+  ASSERT_THROW(csvc.check_validity(err), com::centreon::exceptions::msg_fmt);
 
   ASSERT_TRUE(csvc.parse("hosts", "test_host"));
 
   // No check command attached to
-  ASSERT_THROW(csvc.check_validity(), engine::exceptions::error);
+  ASSERT_THROW(csvc.check_validity(err), com::centreon::exceptions::msg_fmt);
 
   configuration::applier::command cmd_aply;
   configuration::command cmd("cmd");
@@ -300,8 +304,8 @@ TEST_F(ApplierService, ServicesCheckValidity) {
   ASSERT_TRUE(csvc.parse("service_description", "foo"));
 
   // No check command
-  ASSERT_NO_THROW(csvc.check_validity());
-  svc_aply.resolve_object(csvc);
+  ASSERT_NO_THROW(csvc.check_validity(err));
+  svc_aply.resolve_object(csvc, err);
 
   service_map const& sm(engine::service::services);
   ASSERT_EQ(sm.size(), 1u);
@@ -370,6 +374,7 @@ TEST_F(ApplierService, ServicesStalkingOptions) {
 // Then after the service resolution, we can see the contactgroup stored in the
 // service with the contact inside it.
 TEST_F(ApplierService, ContactgroupResolution) {
+  error_cnt err;
   configuration::contact ctct{new_configuration_contact("admin", true)};
   configuration::applier::contact ct_aply;
   ct_aply.add_object(ctct);
@@ -378,7 +383,7 @@ TEST_F(ApplierService, ContactgroupResolution) {
   cg.parse("members", "admin");
   configuration::applier::contactgroup cg_aply;
   cg_aply.add_object(cg);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
   configuration::service svc;
@@ -402,7 +407,7 @@ TEST_F(ApplierService, ContactgroupResolution) {
   svc.set_host_id(1);
 
   svc_aply.add_object(svc);
-  svc_aply.resolve_object(svc);
+  svc_aply.resolve_object(svc, err);
   service_id_map const& sm(engine::service::services_by_id);
   ASSERT_EQ(sm.size(), 1u);
   ASSERT_EQ(sm.begin()->first.first, 1u);
@@ -753,7 +758,7 @@ TEST_F(ApplierService, ServicesEqualityTags) {
 }
 
 // Given a service configuration applied to a service,
-// When the check_validity() method is executed on the configuration,
+// When the check_validity(err) method is executed on the configuration,
 // Then it throws an exception because:
 //  1. it does not provide a service description
 //  2. it is not attached to a host
@@ -762,9 +767,10 @@ TEST_F(ApplierService, ServicesCheckValidityTags) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
   configuration::service csvc;
+  configuration::error_cnt err;
 
   // No service description
-  ASSERT_THROW(csvc.check_validity(), engine::exceptions::error);
+  ASSERT_THROW(csvc.check_validity(err), com::centreon::exceptions::msg_fmt);
 
   ASSERT_TRUE(csvc.parse("service_description", "check description"));
   ASSERT_TRUE(csvc.parse("service_id", "53"));
@@ -772,12 +778,12 @@ TEST_F(ApplierService, ServicesCheckValidityTags) {
   ASSERT_TRUE(csvc.parse("category_tags", "3"));
 
   // No host attached to
-  ASSERT_THROW(csvc.check_validity(), engine::exceptions::error);
+  ASSERT_THROW(csvc.check_validity(err), com::centreon::exceptions::msg_fmt);
 
   ASSERT_TRUE(csvc.parse("hosts", "test_host"));
 
   // No check command attached to
-  ASSERT_THROW(csvc.check_validity(), engine::exceptions::error);
+  ASSERT_THROW(csvc.check_validity(err), com::centreon::exceptions::msg_fmt);
 
   configuration::applier::command cmd_aply;
   configuration::command cmd("cmd");
@@ -814,8 +820,8 @@ TEST_F(ApplierService, ServicesCheckValidityTags) {
   ASSERT_TRUE(csvc.parse("service_description", "foo"));
 
   // No check command
-  ASSERT_NO_THROW(csvc.check_validity());
-  svc_aply.resolve_object(csvc);
+  ASSERT_NO_THROW(csvc.check_validity(err));
+  svc_aply.resolve_object(csvc, err);
 
   service_map const& sm(engine::service::services);
   ASSERT_EQ(sm.size(), 1u);

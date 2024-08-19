@@ -1,31 +1,32 @@
 /**
-* Copyright 2013, 2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2013, 2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/tls/factory.hh"
 #include <absl/strings/match.h>
 
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/tls/acceptor.hh"
 #include "com/centreon/broker/tls/connector.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tls;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Check if an endpoint configuration match the TLS layer.
@@ -43,6 +44,8 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   bool has_tls;
   std::map<std::string, std::string>::iterator it;
   bool legacy;
+
+  auto logger = log_v2::instance().get(log_v2::TLS);
 
   if (ext) {
     if (direct_grpc_serialized(cfg)) {
@@ -70,7 +73,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
       if (legacy && absl::EqualsIgnoreCase(it->second, "auto"))
         has_tls = true;
       else {
-        log_v2::tls()->error(
+        logger->error(
             "TLS: the field 'tls' in endpoint '{}' should be a boolean",
             cfg.name);
         has_tls = false;
@@ -79,7 +82,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
     if (!has_tls)
       *ext = io::extension("TLS", false, false);
     else {
-      log_v2::tls()->info("Configuration of TLS for endpoint '{}'", cfg.name);
+      logger->info("Configuration of TLS for endpoint '{}'", cfg.name);
       if (absl::EqualsIgnoreCase(it->second, "auto"))
         *ext = io::extension("TLS", true, false);
       else
@@ -130,6 +133,8 @@ io::endpoint* factory::new_endpoint(
     std::shared_ptr<persistent_cache> cache) const {
   (void)cache;
 
+  auto logger = log_v2::instance().get(log_v2::TLS);
+
   // Find TLS parameters (optional).
   bool tls{false};
   std::string private_key;
@@ -142,7 +147,7 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("tls")};
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &tls)) {
-        log_v2::tls()->error(
+        logger->error(
             "factory: cannot parse the 'tls' boolean: the content is '{}'",
             it->second);
         tls = false;

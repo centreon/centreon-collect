@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2013,2015-2016 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2015-2016 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/retention/dump.hh"
 #include <fstream>
@@ -29,7 +29,7 @@
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
@@ -48,7 +48,7 @@ using namespace com::centreon::engine::retention;
 std::ostream& dump::comment(std::ostream& os,
                             com::centreon::engine::comment const& obj) {
   engine_logger(dbg_functions, basic) << "dump::comment()";
-  log_v2::functions()->trace("dump::comment()");
+  functions_logger->trace("dump::comment()");
   char const* host_name;
   char const* service_description;
   if (obj.get_comment_type() == com::centreon::engine::comment::host) {
@@ -109,7 +109,7 @@ std::ostream& dump::comment(std::ostream& os,
  */
 std::ostream& dump::comments(std::ostream& os) {
   engine_logger(dbg_functions, basic) << "dump::comments()";
-  log_v2::functions()->trace("dump::comments()");
+  functions_logger->trace("dump::comments()");
   for (comment_map::iterator it(comment::comments.begin()),
        end(comment::comments.end());
        it != end; ++it)
@@ -192,7 +192,7 @@ std::ostream& dump::customvariables(std::ostream& os,
                                     map_customvar const& obj) {
   for (auto const& cv : obj)
     os << "_" << cv.first << "=" << cv.second.has_been_modified() << ","
-       << cv.second.get_value() << "\n";
+       << cv.second.value() << "\n";
   return os;
 }
 
@@ -215,7 +215,7 @@ std::ostream& dump::notifications(
  */
 std::ostream& dump::scheduled_downtime(std::ostream& os, downtime const& obj) {
   engine_logger(dbg_functions, basic) << "dump::scheduled_downtime()";
-  log_v2::functions()->trace("dump::scheduled_downtime()");
+  functions_logger->trace("dump::scheduled_downtime()");
   obj.retention(os);
   return os;
 }
@@ -229,7 +229,7 @@ std::ostream& dump::scheduled_downtime(std::ostream& os, downtime const& obj) {
  */
 std::ostream& dump::downtimes(std::ostream& os) {
   engine_logger(dbg_functions, basic) << "dump::downtimes()";
-  log_v2::functions()->trace("dump::downtimes()");
+  functions_logger->trace("dump::downtimes()");
   for (auto obj = downtimes::downtime_manager::instance()
                       .get_scheduled_downtimes()
                       .begin();
@@ -574,7 +574,7 @@ bool dump::save(std::string const& path) {
     ret = true;
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic) << e.what();
-    log_v2::runtime()->error(e.what());
+    runtime_logger->error(e.what());
   }
 
   // send data to event broker.

@@ -1,5 +1,5 @@
-/*
- * Copyright 2014, 2023 Centreon
+/**
+ * Copyright 2014, 2023-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,7 @@
 #include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/bool_value.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_call bool_call.hh "com/centreon/broker/bam/bool_call.hh"
  *  @brief Bool Call.
@@ -39,7 +37,8 @@ class bool_call : public bool_value {
  public:
   typedef std::shared_ptr<bool_call> ptr;
 
-  bool_call(std::string const& name);
+  bool_call(std::string const& name,
+            const std::shared_ptr<spdlog::logger>& logger);
   ~bool_call() noexcept override = default;
   bool_call(const bool_call&) = delete;
   bool_call& operator=(const bool_call&) = delete;
@@ -50,8 +49,6 @@ class bool_call : public bool_value {
   void set_expression(std::shared_ptr<bool_value> expression);
   void update_from(computable* child, io::stream* visitor) override;
 };
-}  // namespace bam
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_CALL_HH

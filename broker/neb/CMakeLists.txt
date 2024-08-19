@@ -20,7 +20,7 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/neb/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/neb/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/neb/test")
-include_directories("${INC_DIR}")
+include_directories("${INC_DIR}" ${CMAKE_SOURCE_DIR}/common/inc)
 
 # NEB sources.
 set(NEB_SOURCES
@@ -91,20 +91,19 @@ set(NEB_SOURCES
 
 # Static library.
 add_library(nebbase STATIC ${NEB_SOURCES})
-add_dependencies(nebbase
-	table_max_size
-	target_neb
-	target_severity
-	target_tag
-	pb_neb_lib
-	pb_header_lib
-)
+add_dependencies(
+  nebbase
+  table_max_size
+  target_neb
+  pb_neb_lib
+  pb_header_lib)
 
-target_link_libraries(nebbase
-		      -L${PROTOBUF_LIB_DIR}
-		      pb_severity_lib pb_tag_lib
-		      protobuf
-                      pb_neb_lib pb_header_lib)
+target_link_libraries(nebbase 
+  -L${PROTOBUF_LIB_DIR}
+  protobuf 
+  pb_neb_lib 
+  pb_header_lib
+  pb_open_telemetry_lib)
 
 set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")
 set_property(TARGET nebbase PROPERTY COMPILE_FLAGS ${NEBBASE_CXXFLAGS})
@@ -122,14 +121,10 @@ add_library(
 )
 
 # Flags needed to include all symbols in binary.
-target_link_libraries(${NEB}
-  "-Wl,--whole-archive"
-  nebbase
-  "-Wl,--no-whole-archive"
-  spdlog::spdlog)
+target_link_libraries(${NEB} "-Wl,--whole-archive" nebbase
+                      "-Wl,--no-whole-archive" spdlog::spdlog)
 
 set_target_properties("${NEB}" PROPERTIES PREFIX "")
-target_precompile_headers(${NEB} REUSE_FROM nebbase)
 install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
 
 # Centreon Engine/Nagios module.
@@ -162,7 +157,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   target_link_libraries(
     "${CBMOD}"
     -L${PROTOBUF_LIB_DIR}
-    rokerlog
     "-Wl,--whole-archive"
     rokerbase
     multiplexing
@@ -170,14 +164,14 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     nlohmann_json::nlohmann_json
     spdlog::spdlog)
 else()
-  target_link_libraries("${CBMOD}"
-    -L${PROTOBUF_LIB_DIR}
-    "rokerbase" nlohmann_json::nlohmann_json
-                        spdlog::spdlog)
+  target_link_libraries("${CBMOD}" -L${PROTOBUF_LIB_DIR} "rokerbase"
+                        nlohmann_json::nlohmann_json spdlog::spdlog)
 endif()
 
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
 target_precompile_headers(${CBMOD} PRIVATE precomp_inc/precomp.hpp)
+
+target_include_directories(${CBMOD} PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
 
 # Testing.
 if(WITH_TESTING)

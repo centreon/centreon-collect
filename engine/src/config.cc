@@ -1,31 +1,30 @@
 /**
-* Copyright 1999-2008 Ethan Galstad
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 1999-2008 Ethan Galstad
+ * Copyright 2011-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
+#include "common/engine_legacy_conf/parser.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
@@ -100,10 +99,10 @@ static int dfs_host_path(host* root) {
 }
 
 /* check for circular paths and dependencies */
-int pre_flight_circular_check(int* w, int* e) {
-  int found(false);
-  int warnings(0);
-  int errors(0);
+int pre_flight_circular_check(uint32_t* w, uint32_t* e) {
+  int found = false;
+  uint32_t warnings = 0;
+  uint32_t errors = 0;
 
   /* bail out if we aren't supposed to verify circular paths */
   if (!verify_circular_paths)
@@ -131,7 +130,7 @@ int pre_flight_circular_check(int* w, int* e) {
       engine_logger(log_verification_error, basic)
           << "Error: The host '" << it->first
           << "' is part of a circular parent/child chain!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: The host '{}' is part of a circular parent/child chain!",
           it->first);
     }
@@ -163,7 +162,7 @@ int pre_flight_circular_check(int* w, int* e) {
              "in a deadlock) exists for service '"
           << it->second->get_service_description() << "' on host '"
           << it->second->get_hostname() << "'!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: A circular execution dependency (which could result "
           "in a deadlock) exists for service '{}' on host '{}'!",
           it->second->get_service_description(), it->second->get_hostname());
@@ -191,7 +190,7 @@ int pre_flight_circular_check(int* w, int* e) {
              "result in a deadlock) exists for service '"
           << it->second->get_service_description() << "' on host '"
           << it->second->get_hostname() << "'!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: A circular notification dependency (which could "
           "result in a deadlock) exists for service '{}' on host '{}'!",
           it->second->get_service_description(), it->second->get_hostname());
@@ -225,7 +224,7 @@ int pre_flight_circular_check(int* w, int* e) {
           << "Error: A circular execution dependency (which could "
              "result in a deadlock) exists for host '"
           << it->second->get_hostname() << "'!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: A circular execution dependency (which could "
           "result in a deadlock) exists for host '{}'!",
           it->second->get_hostname());
@@ -252,7 +251,7 @@ int pre_flight_circular_check(int* w, int* e) {
           << "Error: A circular notification dependency (which could "
              "result in a deadlock) exists for host '"
           << it->first << "'!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: A circular notification dependency (which could "
           "result in a deadlock) exists for host '{}'!",
           it->first);

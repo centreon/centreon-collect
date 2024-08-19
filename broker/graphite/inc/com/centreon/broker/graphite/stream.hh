@@ -1,20 +1,20 @@
-/*
-** Copyright 2015-2017 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2015-2017, 2023-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_GRAPHITE_STREAM_HH
 #define CCB_GRAPHITE_STREAM_HH
@@ -56,9 +56,6 @@ class stream : public io::stream {
   std::string _status;
   mutable std::mutex _statusm;
 
-  // Cache
-  macro_cache _cache;
-
   // Query
   query _metric_query;
   query _status_query;
@@ -66,6 +63,12 @@ class stream : public io::stream {
   std::string _auth_query;
   asio::io_context _io_context;
   asio::ip::tcp::socket _socket;
+
+  // Logger
+  std::shared_ptr<spdlog::logger> _logger;
+
+  // Cache
+  macro_cache _cache;
 
   // Process metric/status and generate query.
   bool _process_metric(storage::metric const& me);
@@ -94,6 +97,6 @@ class stream : public io::stream {
 };
 }  // namespace graphite
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_GRAPHITE_STREAM_HH
