@@ -192,7 +192,7 @@ jobs:
                "build/connectors/ssh/centreon_connector_ssh"
                "build/ccc/ccc"
                "build/agent/centagent")
-          for file in ${exe[@]}; do
+          for file in "${exe[@]}"; do
             echo "Making a debug file of $file"
             objcopy --only-keep-debug $file $file.debug
             objcopy --strip-debug $file
