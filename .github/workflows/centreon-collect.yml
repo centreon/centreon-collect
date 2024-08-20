@@ -158,7 +158,7 @@ jobs:
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   deliver-deb:
-    if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ !needs.get-version.outputs.release_cloud && contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
     needs: [get-version, package]
     environment: ${{ needs.get-version.outputs.environment }}
     runs-on: [self-hosted, common]
