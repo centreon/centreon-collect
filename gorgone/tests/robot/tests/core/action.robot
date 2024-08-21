@@ -56,9 +56,9 @@ action module with ${communication_mode} communcation mode
     # In real world where poller is not on the same server the delay will be greater and more random,
     # so the async method should be privileged.
     ${get_params}=    Set Variable    ?log_wait=3000000&sync_wait=500000
-    Test Sync Action Module    communication_mode=${communication_mode}    get_params=${get_params}
-    Test Sync Action Module    communication_mode=${communication_mode}    get_params=${get_params}    node_path=nodes/1/
-    Test Sync Action Module    communication_mode=${communication_mode}    get_params=${get_params}    node_path=nodes/2/
+    Test Sync Action Module    get_params=${get_params}
+    Test Sync Action Module    get_params=${get_params}    node_path=nodes/1/
+    Test Sync Action Module    get_params=${get_params}    node_path=nodes/2/
     # we need to check it is the poller and not the central that have done the action.
     ${start_date}    Get Current Date        increment=-10s
     ${log_poller2_query_sync}    Create List    Robot test write with param:${get_params} for node nodes/2/
@@ -74,7 +74,7 @@ action module with ${communication_mode} communcation mode
 
 *** Keywords ***
 Test Sync Action Module
-    [Arguments]    ${communication_mode}=    ${get_params}=    ${node_path}=
+    [Arguments]    ${get_params}=    ${node_path}=
 
     ${action_api_result}=    Post Action Endpoint    node_path=${node_path}    get_params=${get_params}
     ${status}    ${logs}    Parse Json Response    ${action_api_result}
