@@ -66,14 +66,15 @@ sub checkBasicOptions {
 
 sub buildCliMysqlArgs {
     my ($self, $con) = @_;
-
-    my $args = '-u "' . $con->{user} . '" ' .
-        '-p"' . $con->{password} . '" ' . 
-        '-h "' . $con->{host} . '" ' .
-		'-P ' . $con->{port};
+    my $password = $con->{password};
+    # as we will use a bash command we need to use single quote to protect against every characters, and escape single quote)
+    $password =~ s/'/'"'"'/;
+    my $args = "-u'" . $con->{user} . "' " .
+        "-p'" . $password . "' " .
+        "-h '" . $con->{host} . "' " .
+        "-P " . $con->{port};
     return $args;
 }
-
 sub getYesterdayTodayDate {
     my ($self) = @_;
 
