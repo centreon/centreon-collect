@@ -500,10 +500,18 @@ sub periodic_exec {
                 token => $connector->generate_token(),
                 target => ''
             });
+
+            # if the connection to the node is not established, we stop listenning for new event for this destination,
+            # so event will be stored in zmq buffer until we start processng them again (see proxy_addnode)
+            # zmq queue have a limit in size (high water mark), so if the node never connect we will loose some message,
+            # stoping us from memory leak or other nasty problem.
+            delete $connector->{watchers}->{$_};
+
             if (defined($connector->{clients}->{$_}->{class})) {
-	    	$connector->{clients}->{$_}->{class}->close();
-		$connector->{clients}->{$_}->{class}->cleanup();
-	    }
+	    	        $connector->{clients}->{$_}->{class}->close();
+		            $connector->{clients}->{$_}->{class}->cleanup();
+            }
+
             $connector->{clients}->{$_}->{class} = undef;
             $connector->{clients}->{$_}->{delete} = 0;
             $connector->{clients}->{$_}->{com_read_internal} = 0;
