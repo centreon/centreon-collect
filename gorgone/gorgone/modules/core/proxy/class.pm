@@ -157,10 +157,10 @@ sub connect {
         $self->{clients}->{$options{id}}->{class} = gorgone::class::clientzmq->new(
             context => $self->{zmq_context},
             core_loop => $self->{loop},
-            identity => 'gorgone-proxy-' . $self->{core_id} . '-' . $options{id}, 
-            cipher => $self->{clients}->{ $options{id} }->{cipher}, 
+            identity => 'gorgone-proxy-' . $self->{core_id} . '-' . $options{id},
+            cipher => $self->{clients}->{ $options{id} }->{cipher},
             vector => $self->{clients}->{ $options{id} }->{vector},
-            client_pubkey => 
+            client_pubkey =>
                 defined($self->{clients}->{ $options{id} }->{client_pubkey}) && $self->{clients}->{ $options{id} }->{client_pubkey} ne ''
                     ? $self->{clients}->{ $options{id} }->{client_pubkey} : $self->get_core_config(name => 'pubkey'),
             client_privkey =>
@@ -370,7 +370,7 @@ sub proxy_ssh {
 
 sub proxy {
     my (%options) = @_;
-    
+
     if ($options{message} !~ /^\[(.+?)\]\s+\[(.*?)\]\s+\[(.*?)\]\s+(.*)$/m) {
         return undef;
     }
@@ -465,7 +465,7 @@ sub event {
         #$self->{logger}->writeLogDebug("[proxy] event channel $options{channel} delete: $self->{clients}->{ $options{channel} }->{delete} com_read_internal: $self->{clients}->{ $options{channel} }->{com_read_internal}")
         #    if (defined($self->{clients}->{ $options{channel} }));
         return if (
-            defined($self->{clients}->{ $options{channel} }) && 
+            defined($self->{clients}->{ $options{channel} }) &&
             ($self->{clients}->{ $options{channel} }->{com_read_internal} == 0 || $self->{clients}->{ $options{channel} }->{delete} == 1)
         );
 
@@ -484,7 +484,7 @@ sub event {
             $self->exit_process();
         }
         return if (
-            defined($self->{clients}->{ $options{channel} }) && 
+            defined($self->{clients}->{ $options{channel} }) &&
             ($self->{clients}->{ $options{channel} }->{com_read_internal} == 0 || $self->{clients}->{ $options{channel} }->{delete} == 1)
         );
     }
@@ -500,10 +500,18 @@ sub periodic_exec {
                 token => $connector->generate_token(),
                 target => ''
             });
+
+            # if the connection to the node is not established, we stop listenning for new event for this destination,
+            # so event will be stored in zmq buffer until we start processng them again (see proxy_addnode)
+            # zmq queue have a limit in size (high water mark), so if the node never connect we will loose some message,
+            # stoping us from memory leak or other nasty problem.
+            delete $connector->{watchers}->{$_};
+
             if (defined($connector->{clients}->{$_}->{class})) {
-	    	$connector->{clients}->{$_}->{class}->close();
-		$connector->{clients}->{$_}->{class}->cleanup();
-	    }
+	    	        $connector->{clients}->{$_}->{class}->close();
+		            $connector->{clients}->{$_}->{class}->cleanup();
+	          }
+
             $connector->{clients}->{$_}->{class} = undef;
             $connector->{clients}->{$_}->{delete} = 0;
             $connector->{clients}->{$_}->{com_read_internal} = 0;
