@@ -2,7 +2,6 @@
 set -e
 
 #Cmake
-cd /src
 export VCPKG_ROOT=/vcpkg
 export PATH=$VCPKG_ROOT:$PATH
 
