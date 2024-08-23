@@ -16,10 +16,14 @@
  * For more information : contact@centreon.com
  */
 
+#include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/host.hh"
+#include "com/centreon/engine/notifier.hh"
+#include "com/centreon/engine/service.hh"
+
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-#include "data_point_fifo_container.hh"
 #include "otl_check_result_builder.hh"
 
 #include "centreon_agent/agent_check_result_builder.hh"
@@ -35,157 +39,22 @@ using namespace com::centreon::engine::modules::opentelemetry;
  * object
  *
  * @param cmd_line
- * @param command_id
- * @param host
- * @param service
- * @param timeout
- * @param handler called when mandatory metrics will be available
  * @param logger
  */
 otl_check_result_builder::otl_check_result_builder(
     const std::string& cmd_line,
-    uint64_t command_id,
-    const host& host,
-    const service* service,
-    std::chrono::system_clock::time_point timeout,
-    commands::otel::result_callback&& handler,
     const std::shared_ptr<spdlog::logger>& logger)
-    : _cmd_line(cmd_line),
-      _command_id(command_id),
-      _host_serv{host.name(), service ? service->description() : ""},
-      _timeout(timeout),
-      _callback(handler),
-      _logger(logger) {}
-
-/**
- * @brief try to build a check result
- *
- * @param data_pts
- * @param res
- * @return true all mandatory metrics are available and a check_result is built
- * @return false
- */
-bool otl_check_result_builder::sync_build_result_from_metrics(
-    data_point_fifo_container& data_pts,
-    commands::result& res) {
-  std::lock_guard l(data_pts);
-  auto& fifos = data_pts.get_fifos(_host_serv.first, _host_serv.second);
-  if (!fifos.empty() && _build_result_from_metrics(fifos, res)) {
-    return true;
-  }
-  // no data available
-  return false;
-}
-
-/**
- * @brief called  when data is received from otel
- * clients
- *
- * @param data_pts
- * @return true otl_check_result_builder has managed to create check result
- * @return false
- */
-bool otl_check_result_builder::async_build_result_from_metrics(
-    data_point_fifo_container& data_pts) {
-  commands::result res;
-  bool success = false;
-  {
-    std::lock_guard l(data_pts);
-    auto& fifos = data_pts.get_fifos(_host_serv.first, _host_serv.second);
-    success = !fifos.empty() && _build_result_from_metrics(fifos, res);
-  }
-  if (success) {
-    _callback(res);
-  }
-  return success;
-}
-
-/**
- * @brief called  when no data is received before
- * _timeout
- *
- */
-void otl_check_result_builder::async_time_out() {
-  commands::result res;
-  res.exit_status = process::timeout;
-  res.command_id = _command_id;
-  _callback(res);
-}
+    : _cmd_line(cmd_line), _logger(logger) {}
 
 /**
  * @brief create a otl_converter_config from a command line
- * first field identify type of config
- * Example:
- * @code {.c++}
- * std::shared_ptr<otl_check_result_builder> converter =
- * otl_check_result_builder::create("--processor=nagios_telegraf
- * --fifo_depth=5", conf, 5, *host, serv, timeout_point, [](const
- * commads::result &res){}, _logger);
- * @endcode
  *
  * @param cmd_line
- * @param conf  bean configuration object created by
- * create_check_result_builder_config
- * @param command_id
- * @param host
- * @param service
- * @param timeout
- * @param handler handler that will be called once we have all metrics mandatory
- * to create a check_result
  * @return std::shared_ptr<otl_check_result_builder>
  */
 std::shared_ptr<otl_check_result_builder> otl_check_result_builder::create(
     const std::string& cmd_line,
-    const std::shared_ptr<check_result_builder_config>& conf,
-    uint64_t command_id,
-    const host& host,
-    const service* service,
-    std::chrono::system_clock::time_point timeout,
-    commands::otel::result_callback&& handler,
     const std::shared_ptr<spdlog::logger>& logger) {
-  switch (conf->get_type()) {
-    case check_result_builder_config::converter_type::
-        nagios_check_result_builder:
-      return std::make_shared<telegraf::nagios_check_result_builder>(
-          cmd_line, command_id, host, service, timeout, std::move(handler),
-          logger);
-    case check_result_builder_config::converter_type::
-        centreon_agent_check_result_builder:
-      return std::make_shared<centreon_agent::agent_check_result_builder>(
-          cmd_line, command_id, host, service, timeout, std::move(handler),
-          logger);
-    default:
-      SPDLOG_LOGGER_ERROR(logger, "unknown converter type:{}", cmd_line);
-      throw exceptions::msg_fmt("unknown converter type:{}", cmd_line);
-  }
-}
-
-/**
- * @brief debug infos
- *
- * @param output string to log
- */
-void otl_check_result_builder::dump(std::string& output) const {
-  output = fmt::format(
-      "host:{}, service:{}, command_id={}, timeout:{} cmdline: \"{}\"",
-      _host_serv.first, _host_serv.second, _command_id, _timeout, _cmd_line);
-}
-
-/**
- * @brief create a otl_converter_config from a command line
- * --processor flag identifies type of converter
- * Example:
- * @code {.c++}
- * std::shared_ptr<otl_converter> converter =
- * otl_converter::create_check_result_builder_config("--processor=nagios_telegraf
- * --fifo_depth=5");
- *
- * @param cmd_line
- * @return std::shared_ptr<check_result_builder_config>
- */
-std::shared_ptr<check_result_builder_config>
-otl_check_result_builder::create_check_result_builder_config(
-    const std::string& cmd_line) {
   static initialized_data_class<po::options_description> desc(
       [](po::options_description& desc) {
         desc.add_options()("processor", po::value<std::string>(),
@@ -204,21 +73,75 @@ otl_check_result_builder::create_check_result_builder_config(
     }
     std::string extractor_type = vm["processor"].as<std::string>();
     if (extractor_type == "nagios_telegraf") {
-      return std::make_shared<check_result_builder_config>(
-          check_result_builder_config::converter_type::
-              nagios_check_result_builder);
+      return std::make_shared<telegraf::nagios_check_result_builder>(cmd_line,
+                                                                     logger);
     } else if (extractor_type == "centreon_agent") {
-      return std::make_shared<check_result_builder_config>(
-          check_result_builder_config::converter_type::
-              centreon_agent_check_result_builder);
+      return std::make_shared<centreon_agent::agent_check_result_builder>(
+          cmd_line, logger);
     } else {
       throw exceptions::msg_fmt("unknown processor in {}", cmd_line);
     }
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "fail to get opentelemetry converter configuration from {}: {}",
-        cmd_line, e.what());
+    SPDLOG_LOGGER_ERROR(config_logger,
+                        "fail to get opentelemetry check_result_builder "
+                        "configuration from {}: {}",
+                        cmd_line, e.what());
     throw;
   }
+}
+
+/**
+ * @brief convert opentelemetry datas in check_result and post it to
+ * checks::checker::instance() Caution, this function must be called from engine
+ * main thread
+ *
+ * @param host
+ * @param serv empty if result of host check
+ * @param data_pts opentelemetry data points
+ */
+void otl_check_result_builder::process_data_pts(
+    const std::string_view& hst,
+    const std::string_view& serv,
+    const metric_to_datapoints& data_pts) {
+  check_source notifier_type = check_source::service_check;
+  notifier* host_or_serv = nullptr;
+
+  if (serv.empty()) {
+    notifier_type = check_source::host_check;
+    auto found = host::hosts.find(hst);
+    if (found == host::hosts.end()) {
+      SPDLOG_LOGGER_ERROR(_logger, "unknow host: {}", hst);
+      return;
+    }
+    host_or_serv = found->second.get();
+  } else {
+    auto found = service::services.find(std::make_pair(hst, serv));
+    if (found == service::services.end()) {
+      SPDLOG_LOGGER_ERROR(_logger, "unknow service {} for host", serv, hst);
+      return;
+    }
+    host_or_serv = found->second.get();
+  }
+  timeval zero = {0, 0};
+  std::shared_ptr<check_result> res = std::make_shared<check_result>(
+      notifier_type, host_or_serv, checkable::check_type::check_passive,
+      CHECK_OPTION_NONE, false, 0, zero, zero, false, true, 0, "");
+  if (build_result_from_metrics(data_pts, *res)) {
+    checks::checker::instance().add_check_result_to_reap(res);
+  } else {
+    SPDLOG_LOGGER_ERROR(
+        _logger,
+        "fail to convert opentelemetry datas in centreon check_result for host "
+        "{}, serv {}",
+        hst, serv);
+  }
+}
+
+/**
+ * @brief debug infos
+ *
+ * @param output string to log
+ */
+void otl_check_result_builder::dump(std::string& output) const {
+  output = _cmd_line;
 }

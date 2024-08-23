@@ -78,7 +78,7 @@ agent_config::agent_config(const rapidjson::Value& json_config_v) {
   _max_concurrent_checks =
       file_content.get_unsigned("max_concurrent_checks", 100);
   _export_period = file_content.get_unsigned("export_period", 60);
-  _check_timeout = file_content.get_unsigned("_check_timeout", 30);
+  _check_timeout = file_content.get_unsigned("check_timeout", 30);
 
   if (file_content.has_member("reverse_connections")) {
     const auto& reverse_array = file_content.get_member("reverse_connections");
