@@ -87,8 +87,6 @@ jobs:
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-      volumes:
-        - "/tmp:/tmp"
 
     name: unit test ${{ matrix.distrib }}
 
@@ -105,9 +103,9 @@ jobs:
             apt-get install -y wget
           fi
 
-          wget https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
-          tar xzf sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
-          mv sccache-v0.7.4-x86_64-unknown-linux-musl/sccache /usr/bin/
+          wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
+          tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
+          mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/bin/
 
           ${SCCACHE_PATH} --start-server
 
