@@ -7,27 +7,27 @@ concurrency:
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - agent/**
-      - bbdo/**
-      - broker/**
-      - ccc/**
-      - clib/**
-      - connectors/**
-      - custom-triplets/**
-      - engine/**
-      - grpc/**
-      - packaging/**
-      - cmake.sh
-      - cmake-vcpkg.sh
-      - CMakeLists.txt
-      - CMakeListsLinux.txt
-      - vcpkg.json
-      - overlays/**
-      - selinux/**
-      - "!.veracode-exclusions"
-      - "!veracode.json"
-      - "!**/test/**"
+    # paths:
+    #   - agent/**
+    #   - bbdo/**
+    #   - broker/**
+    #   - ccc/**
+    #   - clib/**
+    #   - connectors/**
+    #   - custom-triplets/**
+    #   - engine/**
+    #   - grpc/**
+    #   - packaging/**
+    #   - cmake.sh
+    #   - cmake-vcpkg.sh
+    #   - CMakeLists.txt
+    #   - CMakeListsLinux.txt
+    #   - vcpkg.json
+    #   - overlays/**
+    #   - selinux/**
+    #   - "!.veracode-exclusions"
+    #   - "!veracode.json"
+    #   - "!**/test/**"
   push:
     branches:
       - develop
