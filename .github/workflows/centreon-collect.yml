@@ -95,7 +95,7 @@ jobs:
 
       - name: Install sccache
         run: |
-          if [ "${{ matrix.distrib }}" == "alma8" || "${{ matrix.distrib }}" == "alma9"]; then
+          if [[ "${{ matrix.distrib }}" == "alma8" || "${{ matrix.distrib }}" == "alma9" ]]; then
             dnf install -y wget
           else
             apt-get update
