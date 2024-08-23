@@ -108,10 +108,8 @@ jobs:
 
           ${SCCACHE_PATH} --start-server
 
-      - name: Run unit tests
+      - name: Compile centreon-collect
         run: |
-          # .github/scripts/collect-unit-tests.sh
-
           #Cmake
           export VCPKG_ROOT=/vcpkg
           export PATH=$VCPKG_ROOT:$PATH
@@ -126,9 +124,12 @@ jobs:
           fi
 
           #Build
-          ninja -Cbuild -j8
-          ninja -Cbuild -j8 install
+          ninja -Cbuild
+          ninja -Cbuild install
+        shell: bash
 
+      - name: Run unit tests
+        run: |
           #Test
           cd build
           tests/ut_broker --gtest_output=xml:ut_broker.xml
