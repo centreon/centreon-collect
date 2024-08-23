@@ -37,15 +37,17 @@ absl::flat_hash_map<std::string, std::shared_ptr<otel_connector>>
  * @param cmd_line
  * @param listener
  */
-void otel_connector::create(const std::string& connector_name,
-                            const std::string& cmd_line,
-                            commands::command_listener* listener) {
+std::shared_ptr<otel_connector> otel_connector::create(
+    const std::string& connector_name,
+    const std::string& cmd_line,
+    commands::command_listener* listener) {
   std::shared_ptr<otel_connector> cmd(
       std::make_shared<otel_connector>(connector_name, cmd_line, listener));
   auto iter_res = _commands.emplace(connector_name, cmd);
   if (!iter_res.second) {
     iter_res.first->second = cmd;
   }
+  return cmd;
 }
 
 /**
@@ -88,6 +90,26 @@ std::shared_ptr<otel_connector> otel_connector::get_otel_connector(
   auto search = _commands.find(connector_name);
   return search != _commands.end() ? search->second
                                    : std::shared_ptr<otel_connector>();
+}
+
+/**
+ * @brief get otel command that is used by host serv
+ * Caution: This function must be called from engine main thread
+ *
+ * @param host
+ * @param serv
+ * @return std::shared_ptr<otel_connector> null if not found
+ */
+std::shared_ptr<otel_connector>
+otel_connector::get_otel_connector_from_host_serv(
+    const std::string_view& host,
+    const std::string_view& serv) {
+  for (const auto& name_to_conn : _commands) {
+    if (name_to_conn.second->_host_serv_list->contains(host, serv)) {
+      return name_to_conn.second;
+    }
+  }
+  return {};
 }
 
 /**
@@ -155,62 +177,8 @@ uint64_t otel_connector::run(const std::string& processed_cmd,
                              uint32_t timeout,
                              const check_result::pointer& to_push_to_checker,
                              const void* caller) {
-  std::shared_ptr<otel::open_telemetry_base> otel =
-      otel::open_telemetry_base::instance();
-
-  if (!otel) {
-    SPDLOG_LOGGER_ERROR(_logger,
-                        "open telemetry module not loaded for connector: {}",
-                        get_name());
-    throw exceptions::msg_fmt(
-        "open telemetry module not loaded for connector: {}", get_name());
-  }
-
-  uint64_t command_id(get_uniq_id());
-
-  if (!gest_call_interval(command_id, to_push_to_checker, caller)) {
-    return command_id;
-  }
-
-  if (!_conv_conf) {
-    SPDLOG_LOGGER_ERROR(
-        _logger, "{} unable to do a check without a converter configuration",
-        get_name());
-    throw exceptions::msg_fmt(
-        "{} unable to do a check without a converter configuration",
-        get_name());
-  }
-  SPDLOG_LOGGER_TRACE(
-      _logger,
-      "otel_connector::async_run: connector='{}', command_id={}, "
-      "cmd='{}', timeout={}",
-      _name, command_id, processed_cmd, timeout);
-
-  result res;
-  bool res_available = otel->check(
-      processed_cmd, _conv_conf, command_id, macros, timeout, res,
-      [me = shared_from_this(), command_id](const result& async_res) {
-        SPDLOG_LOGGER_TRACE(
-            me->_logger, "otel_connector async_run callback: connector='{}' {}",
-            me->_name, async_res);
-        me->update_result_cache(command_id, async_res);
-        if (me->_listener) {
-          (me->_listener->finished)(async_res);
-        }
-      });
-
-  if (res_available) {
-    SPDLOG_LOGGER_TRACE(_logger,
-                        "otel_connector data available : connector='{}', "
-                        "cmd='{}', {}",
-                        _name, processed_cmd, res);
-    update_result_cache(command_id, res);
-    if (_listener) {
-      (_listener->finished)(res);
-    }
-  }
-
-  return command_id;
+  SPDLOG_LOGGER_ERROR(_logger, "open telemetry services must be passive");
+  throw exceptions::msg_fmt("open telemetry services must be passive");
 }
 
 /**
@@ -227,41 +195,25 @@ void otel_connector::run(const std::string& processed_cmd,
                          nagios_macros& macros,
                          uint32_t timeout,
                          result& res) {
-  std::shared_ptr<otel::open_telemetry_base> otel =
-      otel::open_telemetry_base::instance();
-  if (!otel) {
-    SPDLOG_LOGGER_ERROR(_logger,
-                        "open telemetry module not loaded for connector: {}",
-                        get_name());
-    throw exceptions::msg_fmt(
-        "open telemetry module not loaded for connector: {}", get_name());
-  }
+  SPDLOG_LOGGER_ERROR(_logger, "open telemetry services must be passive");
+  throw exceptions::msg_fmt("open telemetry services must be passive");
+}
 
-  uint64_t command_id(get_uniq_id());
-
-  SPDLOG_LOGGER_TRACE(_logger,
-                      "otel_connector::sync_run: connector='{}', cmd='{}', "
-                      "command_id={}, timeout={}",
-                      _name, processed_cmd, command_id, timeout);
-
-  std::condition_variable cv;
-  std::mutex cv_m;
-
-  bool res_available =
-      otel->check(processed_cmd, _conv_conf, command_id, macros, timeout, res,
-                  [&res, &cv](const result& async_res) {
-                    res = async_res;
-                    cv.notify_one();
-                  });
-
-  // no otl_data_point available => wait util available or timeout
-  if (!res_available) {
-    std::unique_lock l(cv_m);
-    cv.wait(l);
-  }
-  SPDLOG_LOGGER_TRACE(
-      _logger, "otel_connector::end sync_run: connector='{}', cmd='{}', {}",
-      _name, processed_cmd, res);
+/**
+ * @brief convert opentelemetry datas in check_result and post it to
+ * checks::checker::instance() Caution, this function must be called from engine
+ * main thread
+ *
+ * @param host
+ * @param serv empty if result of host check
+ * @param data_pts opentelemetry data points
+ */
+void otel_connector::process_data_pts(
+    const std::string_view& host,
+    const std::string_view& serv,
+    const com::centreon::engine::modules::opentelemetry::name_to_metrics&
+        data_pts) {
+  _check_result_builder->process_data_pts(host, serv, data_pts);
 }
 
 /**
@@ -288,12 +240,12 @@ void otel_connector::init() {
                         get_name(), get_command_line());
   }
   try {
-    if (!_conv_conf) {
+    if (!_check_result_builder) {
       std::shared_ptr<otel::open_telemetry_base> otel =
           otel::open_telemetry_base::instance();
       if (otel) {
-        _conv_conf =
-            otel->create_check_result_builder_config(get_command_line());
+        _check_result_builder =
+            otel->create_check_result_builder(get_command_line());
       }
     }
   } catch (const std::exception& e) {

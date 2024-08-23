@@ -171,9 +171,9 @@ TEST_F(process_test, call_start_several_time_no_args) {
   for (int ii = 0; ii < 10; ++ii) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     to_wait->start_process(true);
+    to_wait->wait();
     expected += "hello" END_OF_LINE;
   }
-  to_wait->wait();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   ASSERT_EQ(to_wait->get_exit_status(), 0);
   ASSERT_EQ(to_wait->get_stdout(), expected);

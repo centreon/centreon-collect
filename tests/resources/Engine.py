@@ -3530,7 +3530,7 @@ def ctn_add_data_point_to_metric(metric, attrib:dict, metric_value = None):
 
     """
     data_point = metric.gauge.data_points.add()
-    data_point.time_unix_nano = int(time.time())
+    data_point.time_unix_nano = int(time.time()) * 1000000000
     if metric_value is not None:
         data_point.as_double = metric_value
     else:

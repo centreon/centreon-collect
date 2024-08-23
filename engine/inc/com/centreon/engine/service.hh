@@ -38,12 +38,55 @@ class servicegroup;
 class serviceescalation;
 }  // namespace com::centreon::engine
 
+/**
+ * @brief pair with host_name in first and serv in second
+ *
+ */
+using host_serv_pair = std::pair<std::string /*host*/, std::string /*serv*/>;
+
+/**
+ * @brief This struct is used to lookup in a host_serv_pair indexed container
+ * with a std::pair<std::string_view, std::string_view>
+ *
+ */
+struct host_serv_hash_eq {
+  using is_transparent = void;
+  using host_serv_string_view = std::pair<std::string_view, std::string_view>;
+
+  size_t operator()(const host_serv_pair& to_hash) const {
+    return absl::Hash<host_serv_pair>()(to_hash);
+  }
+  size_t operator()(const host_serv_string_view& to_hash) const {
+    return absl::Hash<host_serv_string_view>()(to_hash);
+  }
+
+  bool operator()(const host_serv_pair& left,
+                  const host_serv_pair& right) const {
+    return left == right;
+  }
+  bool operator()(const host_serv_pair& left,
+                  const host_serv_string_view& right) const {
+    return left.first == right.first && left.second == right.second;
+  }
+  bool operator()(const host_serv_string_view& left,
+                  const host_serv_pair& right) const {
+    return left.first == right.first && left.second == right.second;
+  }
+  bool operator()(const host_serv_string_view& left,
+                  const host_serv_string_view& right) const {
+    return left == right;
+  }
+};
+
 using service_map =
-    absl::flat_hash_map<std::pair<std::string, std::string>,
-                        std::shared_ptr<com::centreon::engine::service>>;
-using service_map_unsafe =
-    absl::flat_hash_map<std::pair<std::string, std::string>,
-                        com::centreon::engine::service*>;
+    absl::flat_hash_map<host_serv_pair,
+                        std::shared_ptr<com::centreon::engine::service>,
+                        host_serv_hash_eq,
+                        host_serv_hash_eq>;
+using service_map_unsafe = absl::flat_hash_map<host_serv_pair,
+                                               com::centreon::engine::service*,
+                                               host_serv_hash_eq,
+                                               host_serv_hash_eq>;
 using service_id_map =
     absl::btree_map<std::pair<uint64_t, uint64_t>,
                     std::shared_ptr<com::centreon::engine::service>>;

@@ -43,6 +43,7 @@ otl_data_point::otl_data_point(
       _data_point(data_pt),
       _data_point_attributes(data_pt.attributes()),
       _exemplars(data_pt.exemplars()),
+      _start_nano_timestamp(data_pt.start_time_unix_nano()),
       _nano_timestamp(data_pt.time_unix_nano()),
       _type(data_point_type::number) {
   _value = data_pt.as_double() ? data_pt.as_double() : data_pt.as_int();
@@ -61,6 +62,7 @@ otl_data_point::otl_data_point(
       _data_point(data_pt),
       _data_point_attributes(data_pt.attributes()),
       _exemplars(data_pt.exemplars()),
+      _start_nano_timestamp(data_pt.start_time_unix_nano()),
       _nano_timestamp(data_pt.time_unix_nano()),
       _type(data_point_type::histogram) {
   _value = data_pt.count();
@@ -80,6 +82,7 @@ otl_data_point::otl_data_point(
       _data_point(data_pt),
       _data_point_attributes(data_pt.attributes()),
       _exemplars(data_pt.exemplars()),
+      _start_nano_timestamp(data_pt.start_time_unix_nano()),
       _nano_timestamp(data_pt.time_unix_nano()),
       _type(data_point_type::exponential_histogram) {
   _value = data_pt.count();
@@ -98,6 +101,7 @@ otl_data_point::otl_data_point(
       _data_point(data_pt),
       _data_point_attributes(data_pt.attributes()),
       _exemplars(_empty_exemplars),
+      _start_nano_timestamp(data_pt.start_time_unix_nano()),
       _nano_timestamp(data_pt.time_unix_nano()),
       _type(data_point_type::summary) {
   _value = data_pt.count();

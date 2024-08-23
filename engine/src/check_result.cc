@@ -27,7 +27,6 @@ using namespace com::centreon::engine;
 
 check_result::check_result()
     : _object_check_type{check_source::service_check},
-      _command_id(0),
       _notifier{nullptr},
       _check_type(checkable::check_type::check_passive),
       _check_options{0},
@@ -52,7 +51,6 @@ check_result::check_result(enum check_source object_check_type,
                            int return_code,
                            std::string output)
     : _object_check_type{object_check_type},
-      _command_id(0),
       _notifier{notifier},
       _check_type(check_type),
       _check_options{check_options},
@@ -124,8 +122,7 @@ void check_result::set_check_options(unsigned check_options) {
 namespace com::centreon::engine {
 
 std::ostream& operator<<(std::ostream& stream, const check_result& res) {
-  stream << "command_id=" << res.get_command_id()
-         << " timeout=" << res.get_early_timeout()
+  stream << " timeout=" << res.get_early_timeout()
          << " ok=" << res.get_exited_ok()
          << " ret_code=" << res.get_return_code()
          << " output:" << res.get_output();
