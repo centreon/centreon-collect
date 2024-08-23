@@ -69,13 +69,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - image: centreon-collect-alma8
-          - image: centreon-collect-alma9
-          - image: centreon-collect-debian-bullseye
-          - image: centreon-collect-debian-bookworm
+        distrib: [alma8, alma9, debian-bullseye, debian-bookworm]
 
-    runs-on: ubuntu-24.04
+    # runs-on: ubuntu-24.04
+    runs-on: [self-hosted, collect]
 
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
@@ -85,12 +82,12 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.img_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-    name: unit test ${{ matrix.image }}
+    name: unit test ${{ matrix.distrib }}
 
     steps:
       - name: Checkout sources
