@@ -151,33 +151,6 @@ jobs:
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -S .
 
-                  # -DDEBUG_ROBOT=OFF \
-                  # -DWITH_TESTING=OFF \
-                  # -DWITH_BENCH=ON \
-                  # -DWITH_MODULE_SIMU=OFF \
-                  # -DCMAKE_INSTALL_PREFIX=/usr \
-                  # -DWITH_STARTUP_SCRIPT=systemd \
-                  # -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
-                  # -DWITH_USER_BROKER=centreon-broker \
-                  # -DWITH_GROUP_BROKER=centreon-broker \
-                  # -DWITH_USER_ENGINE=centreon-engine \
-                  # -DWITH_GROUP_ENGINE=centreon-engine \
-                  # -DWITH_VAR_DIR=/var/log/centreon-engine \
-                  # -DWITH_DAEMONS=ON \
-                  # -DWITH_CREATE_FILES=OFF \
-                  # -DWITH_CONFIG_FILES=ON \
-                  # -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                  # -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  # -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  # -S .
-
-          # OS_ID=$(awk '{print $1}' /etc/issue)
-          # if [[ "$OS_ID" == "Debian" || "$OS_ID" == "Ubuntu" ]] ; then
-          #     CXXFLAGS="-Wall -Wextra" cmake -B build -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux-release -DVCPKG_OVERLAY_PORTS=/overlays -GNinja -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCMAKE_BUILD_TYPE=Debug -DWITH_PREFIX=/usr -DWITH_PREFIX_BIN=/usr/sbin -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_MODULES=/usr/share/centreon/lib/centreon-broker -DWITH_PREFIX_CONF_BROKER=/etc/centreon-broker -DWITH_PREFIX_LIB_BROKER=/usr/lib64/nagios -DWITH_PREFIX_CONF_ENGINE=/etc/centreon-engine -DWITH_PREFIX_LIB_ENGINE=/usr/lib64/centreon-engine -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_RW_DIR=/var/lib/centreon-engine/rw -DWITH_VAR_DIR=/var/log/centreon-engine -DWITH_MODULE_SIMU=On -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} -S .
-          # else
-          #     CXXFLAGS="-Wall -Wextra" cmake -B build -GNinja -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets -DVCPKG_OVERLAY_PORTS=/overlays -DVCPKG_TARGET_TRIPLET=x64-linux-release -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCMAKE_BUILD_TYPE=Debug -DWITH_PREFIX=/usr -DWITH_PREFIX_BIN=/usr/sbin -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_MODULES=/usr/share/centreon/lib/centreon-broker -DWITH_PREFIX_CONF_BROKER=/etc/centreon-broker -DWITH_PREFIX_LIB_BROKER=/usr/lib64/nagios -DWITH_PREFIX_CONF_ENGINE=/etc/centreon-engine -DWITH_PREFIX_LIB_ENGINE=/usr/lib64/centreon-engine -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_RW_DIR=/var/lib/centreon-engine/rw -DWITH_VAR_DIR=/var/log/centreon-engine -DWITH_MODULE_SIMU=On -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} -S .
-          # fi
-
           ninja -Cbuild
           ninja -Cbuild install
         shell: bash
@@ -192,23 +165,12 @@ jobs:
 
       - name: Run unit tests
         run: |
-          if ! command -v parallel &> /dev/null; then
-            if [[ "${{ matrix.distrib }}" == "alma8" || "${{ matrix.distrib }}" == "alma9" ]]; then
-              dnf install -y parallel
-            else
-              apt-get update
-              apt-get install -y parallel
-            fi
-          fi
-
-          parallel -j 4 tests/{} --gtest_output=xml:{}.xml ::: ut_broker ut_engine ut_clib ut_connector ut_common ut_agent
-
-          # tests/ut_broker --gtest_output=xml:ut_broker.xml
-          # tests/ut_engine --gtest_output=xml:ut_engine.xml
-          # tests/ut_clib --gtest_output=xml:ut_clib.xml
-          # tests/ut_connector --gtest_output=xml:ut_connector.xml
-          # tests/ut_common --gtest_output=xml:ut_common.xml
-          # tests/ut_agent --gtest_output=xml:ut_agent.xml
+          tests/ut_broker --gtest_output=xml:ut_broker.xml
+          tests/ut_engine --gtest_output=xml:ut_engine.xml
+          tests/ut_clib --gtest_output=xml:ut_clib.xml
+          tests/ut_connector --gtest_output=xml:ut_connector.xml
+          tests/ut_common --gtest_output=xml:ut_common.xml
+          tests/ut_agent --gtest_output=xml:ut_agent.xml
         working-directory: build
         shell: bash
 
