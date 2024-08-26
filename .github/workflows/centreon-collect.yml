@@ -71,7 +71,6 @@ jobs:
       matrix:
         distrib: [alma8, alma9, debian-bullseye, debian-bookworm]
 
-    # runs-on: ubuntu-24.04
     runs-on: [self-hosted, collect]
 
     env:
@@ -86,8 +85,6 @@ jobs:
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-      # volumes:
-      #   - "/tmp:/tmp"
 
     name: unit test ${{ matrix.distrib }}
 
@@ -97,11 +94,13 @@ jobs:
 
       - name: Install sccache
         run: |
-          if [[ "${{ matrix.distrib }}" == "alma8" || "${{ matrix.distrib }}" == "alma9" ]]; then
-            dnf install -y wget
-          else
-            apt-get update
-            apt-get install -y wget
+          if ! command -v wget &> /dev/null; then
+            if [[ "${{ matrix.distrib }}" == "alma8" || "${{ matrix.distrib }}" == "alma9" ]]; then
+              dnf install -y wget
+            else
+              apt-get update
+              apt-get install -y wget
+            fi
           fi
 
           wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
@@ -130,24 +129,26 @@ jobs:
           ninja -Cbuild install
         shell: bash
 
-      - name: Run unit tests
-        run: |
-          #Test
-          cd build
-          tests/ut_broker --gtest_output=xml:ut_broker.xml
-          tests/ut_engine --gtest_output=xml:ut_engine.xml
-          tests/ut_clib --gtest_output=xml:ut_clib.xml
-          tests/ut_connector --gtest_output=xml:ut_connector.xml
-          tests/ut_common --gtest_output=xml:ut_common.xml
-          tests/ut_agent --gtest_output=xml:ut_agent.xml
-        shell: bash
-
       - name: Cache statistics
         run: ${SCCACHE_PATH} --show-stats
         shell: bash
 
       - name: Stop sccache server
         run: ${SCCACHE_PATH} --stop-server
+        shell: bash
+
+      - name: Run unit tests
+        run: |
+          cd build
+          sudo apt-get update
+          sudo apt-get install -y parallel
+          parallel tests/{} --gtest_output=xml:{}.xml ::: ut_broker ut_engine ut_clib ut_connector ut_common ut_agent
+          # tests/ut_broker --gtest_output=xml:ut_broker.xml
+          # tests/ut_engine --gtest_output=xml:ut_engine.xml
+          # tests/ut_clib --gtest_output=xml:ut_clib.xml
+          # tests/ut_connector --gtest_output=xml:ut_connector.xml
+          # tests/ut_common --gtest_output=xml:ut_common.xml
+          # tests/ut_agent --gtest_output=xml:ut_agent.xml
         shell: bash
 
   package:
