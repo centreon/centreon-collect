@@ -71,8 +71,8 @@ jobs:
       matrix:
         distrib: [alma8, alma9, debian-bullseye, debian-bookworm]
 
-    runs-on: ubuntu-24.04
-    # runs-on: [self-hosted, collect]
+    # runs-on: ubuntu-24.04
+    runs-on: [self-hosted, collect]
 
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
