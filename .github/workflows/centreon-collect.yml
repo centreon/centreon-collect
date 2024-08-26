@@ -128,9 +128,7 @@ jobs:
                   -DVCPKG_TARGET_TRIPLET=x64-linux-release \
                   -DVCPKG_OVERLAY_PORTS=/overlays \
                   -GNinja \
-
                   -DDEBUG_ROBOT=OFF \
-
                   -DCMAKE_EXPORT_COMPILE_COMMANDS=On \
                   -DCMAKE_BUILD_TYPE=Debug \
                   -DWITH_PREFIX=/usr \
