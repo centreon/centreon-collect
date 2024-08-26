@@ -195,7 +195,11 @@ jobs:
 
   robot-test:
     needs: [get-version, package]
-    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    if: |
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.is_nightly == 'true')) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
 
     strategy:
       fail-fast: false
@@ -269,7 +273,12 @@ jobs:
   deliver-sources:
     runs-on: [self-hosted, common]
     needs: [get-version, package]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    if: |
+      github.event_name != 'workflow_dispatch' &&
+      contains(fromJson('["stable"]'), needs.get-version.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
 
     steps:
       - name: Checkout sources
@@ -288,7 +297,11 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
-    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
+    if: |
+      contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
     needs: [get-version, robot-test]
     environment: ${{ needs.get-version.outputs.environment }}
     runs-on: [self-hosted, common]
@@ -319,7 +332,11 @@ jobs:
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   deliver-deb:
-    if: ${{ !needs.get-version.outputs.release_cloud && contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
+    if: |
+      contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
     needs: [get-version, robot-test]
     environment: ${{ needs.get-version.outputs.environment }}
     runs-on: [self-hosted, common]
@@ -355,7 +372,12 @@ jobs:
 
   promote:
     needs: [get-version]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    if: |
+      github.event_name != 'workflow_dispatch' &&
+      contains(fromJson('["stable"]'), needs.get-version.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
     runs-on: [self-hosted, common]
     strategy:
       matrix:
