@@ -2465,6 +2465,28 @@ def ctn_set_services_passive(poller: int, srv_regex):
     with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w") as ff:
         ff.writelines(lines)
 
+def ctn_set_hosts_passive(poller: int, host_regex):
+    """
+    Set passive a list of hosts.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        srv_regex (str): A regexp to match host name.
+    """
+
+    with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(f"^\s*host_name\s*({host_regex})$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m:
+            lines.insert(i+1, "    active_checks_enabled           0\n")
+            lines.insert(i+2, "    passive_checks_enabled          1\n")
+            i += 2
+
+    with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w") as ff:
+        ff.writelines(lines)
+
 
 def ctn_add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     """
