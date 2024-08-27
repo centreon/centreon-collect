@@ -46,17 +46,17 @@ if ( $? -ne $true ) {
     Write-Host "#######################################################################################################################"
 
     Write-Host "install vcpkg"
-    git clone --depth 1 --single-branch --no-tags https://github.com/microsoft/vcpkg  vcpkg
+    git clone --depth 1 -b 2024.07.12 https://github.com/microsoft/vcpkg.git
     cd vcpkg
     bootstrap-vcpkg.bat
     cd $current_dir
 
     [System.Environment]::SetEnvironmentVariable("VCPKG_ROOT",$pwd.ToString()+"\vcpkg")
     [System.Environment]::SetEnvironmentVariable("PATH",$pwd.ToString()+"\vcpkg;" + $env:PATH)
-    
+
     Write-Host "compile vcpkg dependencies"
     vcpkg install --vcpkg-root $env:VCPKG_ROOT  --x-install-root build_windows\vcpkg_installed --x-manifest-root . --overlay-triplets custom-triplets --triplet x64-windows
-    
+
     Write-Host "Compress binary archive"
     7z a $file_name_extension  build_windows\vcpkg_installed
     Write-Host "Upload binary archive"
