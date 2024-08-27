@@ -78,7 +78,7 @@ jobs:
         uses: ./.github/actions/runner-docker
         with:
           registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          script_name: /src/ci/scripts/collect-unit-tests
+          script_name: /src/.github/scripts/collect-unit-tests
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ needs.get-version.outputs.img_version }}
 
