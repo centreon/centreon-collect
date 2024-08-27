@@ -920,10 +920,10 @@ void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
   // Modify objects.
   for (auto& p : diff.modified()) {
     if (!verify_config)
-      aplyr.modify_object(p.first, p.second);
+      aplyr.modify_object(p.first, *p.second);
     else {
       try {
-        aplyr.modify_object(p.first, p.second);
+        aplyr.modify_object(p.first, *p.second);
       } catch (const std::exception& e) {
         ++err.config_errors;
         events_logger->info(e.what());
@@ -949,10 +949,10 @@ void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
   // Add objects.
   for (auto& obj : diff.added()) {
     if (!verify_config)
-      aplyr.add_object(obj);
+      aplyr.add_object(*obj);
     else {
       try {
-        aplyr.add_object(obj);
+        aplyr.add_object(*obj);
       } catch (const std::exception& e) {
         ++err.config_errors;
         events_logger->info(e.what());
@@ -2146,30 +2146,30 @@ void applier::state::_processing(configuration::State& new_cfg,
 
   // Build difference for timeperiods.
   pb_difference<configuration::Timeperiod, std::string> diff_timeperiods;
-  diff_timeperiods.parse(
-      pb_config.timeperiods().begin(), pb_config.timeperiods().end(),
-      new_cfg.timeperiods().begin(), new_cfg.timeperiods().end(),
-      &configuration::Timeperiod::timeperiod_name);
+  google::protobuf::RepeatedPtrField<
+      ::com::centreon::engine::configuration::Timeperiod>
+      old = *pb_config.mutable_timeperiods();
+  const google::protobuf::RepeatedPtrField<
+      ::com::centreon::engine::configuration::Timeperiod>
+      new_conf = new_cfg.timeperiods();
+  diff_timeperiods.parse(old, new_conf,
+                         &configuration::Timeperiod::timeperiod_name);
 
   // Build difference for connectors.
   pb_difference<configuration::Connector, std::string> diff_connectors;
-  diff_connectors.parse(
-      pb_config.connectors().begin(), pb_config.connectors().end(),
-      new_cfg.connectors().begin(), new_cfg.connectors().end(),
-      &configuration::Connector::connector_name);
+  diff_connectors.parse(*pb_config.mutable_connectors(), new_cfg.connectors(),
+                        &configuration::Connector::connector_name);
 
   // Build difference for commands.
   pb_difference<configuration::Command, std::string> diff_commands;
-  diff_commands.parse(pb_config.commands().begin(), pb_config.commands().end(),
-                      new_cfg.commands().begin(), new_cfg.commands().end(),
+  diff_commands.parse(*pb_config.mutable_commands(), new_cfg.commands(),
                       &configuration::Command::command_name);
 
   // Build difference for severities.
   pb_difference<configuration::Severity, std::pair<uint64_t, uint32_t>>
       diff_severities;
   diff_severities.parse(
-      pb_config.severities().begin(), pb_config.severities().end(),
-      new_cfg.severities().begin(), new_cfg.severities().end(),
+      *pb_config.mutable_severities(), new_cfg.severities(),
       [](const configuration::Severity& sev) -> std::pair<uint64_t, uint32_t> {
         return std::make_pair(sev.key().id(), sev.key().type());
       });
@@ -2177,43 +2177,36 @@ void applier::state::_processing(configuration::State& new_cfg,
   // Build difference for tags.
   pb_difference<configuration::Tag, std::pair<uint64_t, uint32_t>> diff_tags;
   diff_tags.parse(
-      pb_config.tags().begin(), pb_config.tags().end(), new_cfg.tags().begin(),
-      new_cfg.tags().end(),
+      *pb_config.mutable_tags(), new_cfg.tags(),
       [](const configuration::Tag& tg) -> std::pair<uint64_t, uint32_t> {
         return std::make_pair(tg.key().id(), tg.key().type());
       });
 
   // Build difference for contacts.
   pb_difference<configuration::Contact, std::string> diff_contacts;
-  diff_contacts.parse(pb_config.contacts().begin(), pb_config.contacts().end(),
-                      new_cfg.contacts().begin(), new_cfg.contacts().end(),
+  diff_contacts.parse(*pb_config.mutable_contacts(), new_cfg.contacts(),
                       &configuration::Contact::contact_name);
 
   // Build difference for contactgroups.
   pb_difference<configuration::Contactgroup, std::string> diff_contactgroups;
-  diff_contactgroups.parse(
-      pb_config.contactgroups().begin(), pb_config.contactgroups().end(),
-      new_cfg.contactgroups().begin(), new_cfg.contactgroups().end(),
-      &configuration::Contactgroup::contactgroup_name);
+  diff_contactgroups.parse(*pb_config.mutable_contactgroups(),
+                           new_cfg.contactgroups(),
+                           &configuration::Contactgroup::contactgroup_name);
 
   // Build difference for hosts.
   pb_difference<configuration::Host, uint64_t> diff_hosts;
-  diff_hosts.parse(pb_config.hosts().begin(), pb_config.hosts().end(),
-                   new_cfg.hosts().begin(), new_cfg.hosts().end(),
+  diff_hosts.parse(*pb_config.mutable_hosts(), new_cfg.hosts(),
                    &configuration::Host::host_id);
 
   // Build difference for hostgroups.
   pb_difference<configuration::Hostgroup, std::string> diff_hostgroups;
-  diff_hostgroups.parse(
-      pb_config.hostgroups().begin(), pb_config.hostgroups().end(),
-      new_cfg.hostgroups().begin(), new_cfg.hostgroups().end(),
-      &configuration::Hostgroup::hostgroup_name);
+  diff_hostgroups.parse(*pb_config.mutable_hostgroups(), new_cfg.hostgroups(),
+                        &configuration::Hostgroup::hostgroup_name);
 
   // Build difference for services.
   pb_difference<configuration::Service, std::pair<uint64_t, uint64_t>>
       diff_services;
-  diff_services.parse(pb_config.services().begin(), pb_config.services().end(),
-                      new_cfg.services().begin(), new_cfg.services().end(),
+  diff_services.parse(*pb_config.mutable_services(), new_cfg.services(),
                       [](const configuration::Service& s) {
                         return std::make_pair(s.host_id(), s.service_id());
                       });
@@ -2222,55 +2215,45 @@ void applier::state::_processing(configuration::State& new_cfg,
   pb_difference<configuration::Anomalydetection, std::pair<uint64_t, uint64_t>>
       diff_anomalydetections;
   diff_anomalydetections.parse(
-      pb_config.anomalydetections().begin(),
-      pb_config.anomalydetections().end(), new_cfg.anomalydetections().begin(),
-      new_cfg.anomalydetections().end(),
+      *pb_config.mutable_anomalydetections(), new_cfg.anomalydetections(),
       [](const configuration::Anomalydetection& ad) {
         return std::make_pair(ad.host_id(), ad.service_id());
       });
 
   // Build difference for servicegroups.
   pb_difference<configuration::Servicegroup, std::string> diff_servicegroups;
-  diff_servicegroups.parse(
-      pb_config.servicegroups().begin(), pb_config.servicegroups().end(),
-      new_cfg.servicegroups().begin(), new_cfg.servicegroups().end(),
-      &configuration::Servicegroup::servicegroup_name);
+  diff_servicegroups.parse(*pb_config.mutable_servicegroups(),
+                           new_cfg.servicegroups(),
+                           &configuration::Servicegroup::servicegroup_name);
 
   // Build difference for hostdependencies.
   pb_difference<configuration::Hostdependency, size_t> diff_hostdependencies;
   typedef size_t (*key_func)(const configuration::Hostdependency&);
-  diff_hostdependencies.parse<key_func>(
-      pb_config.hostdependencies().begin(), pb_config.hostdependencies().end(),
-      new_cfg.hostdependencies().begin(), new_cfg.hostdependencies().end(),
-      configuration::hostdependency_key);
+  diff_hostdependencies.parse<key_func>(*pb_config.mutable_hostdependencies(),
+                                        new_cfg.hostdependencies(),
+                                        configuration::hostdependency_key);
 
   // Build difference for servicedependencies.
   pb_difference<configuration::Servicedependency, size_t>
       diff_servicedependencies;
   typedef size_t (*key_func_sd)(const configuration::Servicedependency&);
   diff_servicedependencies.parse<key_func_sd>(
-      pb_config.servicedependencies().begin(),
-      pb_config.servicedependencies().end(),
-      new_cfg.servicedependencies().begin(),
-      new_cfg.servicedependencies().end(),
+      *pb_config.mutable_servicedependencies(), new_cfg.servicedependencies(),
       configuration::servicedependency_key);
 
   // Build difference for hostdependencies.
   pb_difference<configuration::Hostescalation, size_t> diff_hostescalations;
   typedef size_t (*key_func_he)(const configuration::Hostescalation&);
-  diff_hostescalations.parse<key_func_he>(
-      pb_config.hostescalations().begin(), pb_config.hostescalations().end(),
-      new_cfg.hostescalations().begin(), new_cfg.hostescalations().end(),
-      configuration::hostescalation_key);
+  diff_hostescalations.parse<key_func_he>(*pb_config.mutable_hostescalations(),
+                                          new_cfg.hostescalations(),
+                                          configuration::hostescalation_key);
 
   // Build difference for servicedependencies.
   pb_difference<configuration::Serviceescalation, size_t>
       diff_serviceescalations;
   typedef size_t (*key_func_se)(const configuration::Serviceescalation&);
   diff_serviceescalations.parse<key_func_se>(
-      pb_config.serviceescalations().begin(),
-      pb_config.serviceescalations().end(),
-      new_cfg.serviceescalations().begin(), new_cfg.serviceescalations().end(),
+      *pb_config.mutable_serviceescalations(), new_cfg.serviceescalations(),
       configuration::serviceescalation_key);
 
   // Timing.
@@ -2456,13 +2439,13 @@ void applier::state::_processing(configuration::State& new_cfg,
     // Print initial states of new hosts and services.
     if (!verify_config && !test_scheduling) {
       for (auto a : diff_hosts.added()) {
-        auto it_hst = engine::host::hosts_by_id.find(a.host_id());
+        auto it_hst = engine::host::hosts_by_id.find(a->host_id());
         if (it_hst != engine::host::hosts_by_id.end())
           log_host_state(INITIAL_STATES, it_hst->second.get());
       }
       for (auto a : diff_services.added()) {
-        auto it_svc =
-            engine::service::services_by_id.find({a.host_id(), a.service_id()});
+        auto it_svc = engine::service::services_by_id.find(
+            {a->host_id(), a->service_id()});
         if (it_svc != engine::service::services_by_id.end())
           log_service_state(INITIAL_STATES, it_svc->second.get());
       }

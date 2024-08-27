@@ -19,6 +19,7 @@
 #include "common/engine_conf/servicegroup_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/state.pb.h"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -31,7 +32,10 @@ namespace com::centreon::engine::configuration {
  * not the owner of this object.
  */
 servicegroup_helper::servicegroup_helper(Servicegroup* obj)
-    : message_helper(object_type::servicegroup, obj, {}, 10) {
+    : message_helper(object_type::servicegroup,
+                     obj,
+                     {},
+                     Servicegroup::descriptor()->field_count()) {
   _init();
 }
 
@@ -44,6 +48,8 @@ servicegroup_helper::servicegroup_helper(Servicegroup* obj)
 bool servicegroup_helper::hook(std::string_view key,
                                const std::string_view& value) {
   Servicegroup* obj = static_cast<Servicegroup*>(mut_obj());
+  /* Since we use key to get back the good key value, it is faster to give key
+   * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
   if (key == "members") {
     fill_pair_string_group(obj->mutable_members(), value);

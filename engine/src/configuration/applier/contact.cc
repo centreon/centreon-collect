@@ -57,8 +57,9 @@ void applier::contact::add_object(configuration::contact const& obj) {
 
   // Create contact.
   std::shared_ptr<com::centreon::engine::contact> c(add_contact(
-      obj.contact_name(), obj.alias(), obj.email(), obj.pager(), addresses,
-      obj.service_notification_period(), obj.host_notification_period(),
+      obj.contact_name(), obj.alias(), obj.email(), obj.pager(),
+      std::move(addresses), obj.service_notification_period(),
+      obj.host_notification_period(),
       static_cast<bool>(obj.service_notification_options() & service::ok),
       static_cast<bool>(obj.service_notification_options() & service::critical),
       static_cast<bool>(obj.service_notification_options() & service::warning),
@@ -121,8 +122,9 @@ void applier::contact::add_object(const configuration::Contact& obj) {
 
   // Create contact.
   std::shared_ptr<com::centreon::engine::contact> c(add_contact(
-      obj.contact_name(), obj.alias(), obj.email(), obj.pager(), addresses,
-      obj.service_notification_period(), obj.host_notification_period(),
+      obj.contact_name(), obj.alias(), obj.email(), obj.pager(),
+      std::move(addresses), obj.service_notification_period(),
+      obj.host_notification_period(),
       static_cast<bool>(obj.service_notification_options() & action_svc_ok),
       static_cast<bool>(obj.service_notification_options() &
                         action_svc_critical),
@@ -753,7 +755,8 @@ void applier::contact::resolve_object(const configuration::contact& obj,
  *
  *  @param[in,out] obj  Object to resolve.
  */
-void applier::contact::resolve_object(const configuration::Contact& obj, error_cnt& err) {
+void applier::contact::resolve_object(const configuration::Contact& obj,
+                                      error_cnt& err) {
   // Logging.
   config_logger->debug("Resolving contact '{}'.", obj.contact_name());
 

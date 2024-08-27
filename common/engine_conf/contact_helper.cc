@@ -36,7 +36,7 @@ contact_helper::contact_helper(Contact* obj)
                      {
                          {"contact_groups", "contactgroups"},
                      },
-                     21) {
+                     Contact::descriptor()->field_count()) {
   _init();
 }
 
@@ -48,17 +48,19 @@ contact_helper::contact_helper(Contact* obj)
  */
 bool contact_helper::hook(std::string_view key, const std::string_view& value) {
   Contact* obj = static_cast<Contact*>(mut_obj());
+  /* Since we use key to get back the good key value, it is faster to give key
+   * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
 
   if (key == "host_notification_options") {
-    uint32_t options;
+    uint16_t options = action_hst_none;
     if (fill_host_notification_options(&options, value)) {
       obj->set_host_notification_options(options);
       return true;
     } else
       return false;
   } else if (key == "service_notification_options") {
-    uint32_t options;
+    uint16_t options = action_svc_none;
     if (fill_service_notification_options(&options, value)) {
       obj->set_service_notification_options(options);
       return true;

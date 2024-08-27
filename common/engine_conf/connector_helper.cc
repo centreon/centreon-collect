@@ -31,7 +31,10 @@ namespace com::centreon::engine::configuration {
  * the owner of this object.
  */
 connector_helper::connector_helper(Connector* obj)
-    : message_helper(object_type::connector, obj, {}, 4) {
+    : message_helper(object_type::connector,
+                     obj,
+                     {},
+                     Connector::descriptor()->field_count()) {
   _init();
 }
 

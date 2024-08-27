@@ -61,7 +61,9 @@ class contact {
   // Base properties.
   std::string const& get_address(int index) const;
   std::vector<std::string> const& get_addresses() const;
+#ifdef LEGACY_CONF
   void set_addresses(const std::vector<std::string>& addresses);
+#endif
   void set_addresses(std::vector<std::string>&& addresses);
   std::string const& get_alias() const;
   void set_alias(std::string const& alias);
@@ -185,7 +187,7 @@ std::shared_ptr<com::centreon::engine::contact> add_contact(
     std::string const& alias,
     std::string const& email,
     std::string const& pager,
-    const std::vector<std::string>& addresses,
+    std::vector<std::string>&& addresses,
     std::string const& svc_notification_period,
     std::string const& host_notification_period,
     int notify_service_ok,

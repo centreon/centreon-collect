@@ -52,12 +52,12 @@ class timeperiod {
   std::string const& get_name() const {
     return _name;
   };
-  void set_name(std::string const& name);
-  std::string const get_alias() const {
+  void set_name(const std::string& name);
+  const std::string& get_alias() const {
     return _alias;
   };
-  void set_alias(std::string const& alias);
-  timeperiodexclusion const& get_exclusions() const {
+  void set_alias(const std::string& alias);
+  const timeperiodexclusion& get_exclusions() const {
     return _exclusions;
   };
   timeperiodexclusion& get_exclusions() {
@@ -72,8 +72,8 @@ class timeperiod {
 
   void resolve(uint32_t& w, uint32_t& e);
 
-  bool operator==(timeperiod const& obj) throw();
-  bool operator!=(timeperiod const& obj) throw();
+  bool operator==(timeperiod const& obj) noexcept;
+  bool operator!=(timeperiod const& obj) noexcept;
 
   days_array days;
   exception_array exceptions;

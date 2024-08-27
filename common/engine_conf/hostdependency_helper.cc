@@ -19,6 +19,7 @@
 #include "common/engine_conf/hostdependency_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/state.pb.h"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -65,7 +66,7 @@ hostdependency_helper::hostdependency_helper(Hostdependency* obj)
               {"notification_failure_criteria", "notification_failure_options"},
               {"execution_failure_criteria", "execution_failure_options"},
           },
-          11) {
+          Hostdependency::descriptor()->field_count()) {
   _init();
 }
 
@@ -78,6 +79,8 @@ hostdependency_helper::hostdependency_helper(Hostdependency* obj)
 bool hostdependency_helper::hook(std::string_view key,
                                  const std::string_view& value) {
   Hostdependency* obj = static_cast<Hostdependency*>(mut_obj());
+  /* Since we use key to get back the good key value, it is faster to give key
+   * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
 
   if (key == "notification_failure_options" ||

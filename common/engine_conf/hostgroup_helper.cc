@@ -31,7 +31,10 @@ namespace com::centreon::engine::configuration {
  * the owner of this object.
  */
 hostgroup_helper::hostgroup_helper(Hostgroup* obj)
-    : message_helper(object_type::hostgroup, obj, {}, 9) {
+    : message_helper(object_type::hostgroup,
+                     obj,
+                     {},
+                     Hostgroup::descriptor()->field_count()) {
   _init();
 }
 
@@ -44,6 +47,8 @@ hostgroup_helper::hostgroup_helper(Hostgroup* obj)
 bool hostgroup_helper::hook(std::string_view key,
                             const std::string_view& value) {
   Hostgroup* obj = static_cast<Hostgroup*>(mut_obj());
+  /* Since we use key to get back the good key value, it is faster to give key
+   * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
   if (key == "members") {
     fill_string_group(obj->mutable_members(), value);

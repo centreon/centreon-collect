@@ -82,6 +82,7 @@ void contact::set_addresses(std::vector<std::string>&& addresses) {
   _addresses = std::move(addresses);
 }
 
+#ifdef LEGACY_CONF
 /**
  *  Set addresses.
  *
@@ -90,6 +91,7 @@ void contact::set_addresses(std::vector<std::string>&& addresses) {
 void contact::set_addresses(std::vector<std::string> const& addresses) {
   _addresses = addresses;
 }
+#endif
 
 /**
  *  Return the contact alias
@@ -519,7 +521,7 @@ std::shared_ptr<contact> add_contact(
     std::string const& alias,
     std::string const& email,
     std::string const& pager,
-    const std::vector<std::string>& addresses,
+    std::vector<std::string>&& addresses,
     std::string const& svc_notification_period,
     std::string const& host_notification_period,
     int notify_service_ok,
@@ -565,7 +567,7 @@ std::shared_ptr<contact> add_contact(
     obj->set_pager(pager);
     obj->set_service_notification_period(svc_notification_period);
 
-    obj->set_addresses(addresses);
+    obj->set_addresses(std::move(addresses));
 
     // Set remaining contact properties.
     obj->set_can_submit_commands(can_submit_commands > 0);

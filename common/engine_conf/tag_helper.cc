@@ -37,7 +37,7 @@ tag_helper::tag_helper(Tag* obj)
                          {"tag_id", "id"},
                          {"tag_type", "type"},
                      },
-                     4) {
+                     Tag::descriptor()->field_count()) {
   _init();
 }
 
@@ -49,6 +49,8 @@ tag_helper::tag_helper(Tag* obj)
  */
 bool tag_helper::hook(std::string_view key, const std::string_view& value) {
   Tag* obj = static_cast<Tag*>(mut_obj());
+  /* Since we use key to get back the good key value, it is faster to give key
+   * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
 
   if (key == "id" || key == "tag_id") {
@@ -82,12 +84,18 @@ bool tag_helper::hook(std::string_view key, const std::string_view& value) {
 void tag_helper::check_validity(error_cnt& err) const {
   const Tag* o = static_cast<const Tag*>(obj());
 
-  if (o->tag_name().empty())
+  if (o->tag_name().empty()) {
+    ++err.config_errors;
     throw msg_fmt("Tag has no name (property 'tag_name')");
-  if (o->key().id() == 0)
+  }
+  if (o->key().id() == 0) {
+    ++err.config_errors;
     throw msg_fmt("Tag '{}' has a null id", o->tag_name());
-  if (o->key().type() == static_cast<uint32_t>(-1))
+  }
+  if (o->key().type() == static_cast<uint32_t>(-1)) {
+    ++err.config_errors;
     throw msg_fmt("Tag type must be specified");
+  }
 }
 
 /**

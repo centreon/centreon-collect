@@ -33,7 +33,10 @@ namespace com::centreon::engine::configuration {
  * not the owner of this object.
  */
 timeperiod_helper::timeperiod_helper(Timeperiod* obj)
-    : message_helper(object_type::timeperiod, obj, {}, 7) {
+    : message_helper(object_type::timeperiod,
+                     obj,
+                     {},
+                     Timeperiod::descriptor()->field_count()) {
   _init();
 }
 
@@ -46,6 +49,8 @@ timeperiod_helper::timeperiod_helper(Timeperiod* obj)
 bool timeperiod_helper::hook(std::string_view key,
                              const std::string_view& value) {
   Timeperiod* obj = static_cast<Timeperiod*>(mut_obj());
+  /* Since we use key to get back the good key value, it is faster to give key
+   * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
   auto get_timerange = [](const std::string_view& value, auto* day) -> bool {
     auto arr = absl::StrSplit(value, ',');
@@ -479,13 +484,16 @@ bool timeperiod_helper::_add_other_date(const std::string& line) {
  *  @return True on success, otherwise false.
  */
 bool timeperiod_helper::_get_day_id(std::string_view name, uint32_t& id) {
-  static std::array<std::string_view, 7> days{
-      "sunday",   "monday", "tuesday", "wednesday",
-      "thursday", "friday", "saturday"};
-  for (id = 0; id < days.size(); ++id)
-    if (name == days[id])
-      return true;
-  return false;
+  static const absl::flat_hash_map<std::string_view, uint32_t> days = {
+      {"sunday", 0},   {"monday", 1}, {"tuesday", 2},  {"wednesday", 3},
+      {"thursday", 4}, {"friday", 5}, {"saturday", 6},
+  };
+  auto found = days.find(name);
+  if (found != days.end()) {
+    id = found->second;
+    return true;
+  } else
+    return false;
 }
 
 /**
@@ -497,20 +505,24 @@ bool timeperiod_helper::_get_day_id(std::string_view name, uint32_t& id) {
  *  @return True on success, otherwise false.
  */
 bool timeperiod_helper::_get_month_id(std::string_view name, uint32_t& id) {
-  static std::array<std::string_view, 12> months{
-      "january", "february", "march",     "april",   "may",      "june",
-      "july",    "august",   "september", "october", "november", "december"};
-  for (id = 0; id < months.size(); ++id)
-    if (name == months[id])
-      return true;
-  return false;
+  static const absl::flat_hash_map<std::string_view, uint32_t> months = {
+      {"january", 0},   {"february", 1}, {"march", 2},     {"april", 3},
+      {"may", 4},       {"june", 5},     {"july", 6},      {"august", 7},
+      {"september", 8}, {"october", 9},  {"november", 10}, {"december", 11},
+  };
+  auto found = months.find(name);
+  if (found != months.end()) {
+    id = found->second;
+    return true;
+  } else
+    return false;
 }
 
 std::string daterange_to_str(const Daterange& dr) {
-  static std::array<std::string_view, 7> days{
+  static const std::array<std::string_view, 7> days{
       "sunday",   "monday", "tuesday", "wednesday",
       "thursday", "friday", "saturday"};
-  static std::array<std::string_view, 12> months{
+  static const std::array<std::string_view, 12> months{
       "january", "february", "march",     "april",   "may",      "june",
       "july",    "august",   "september", "october", "november", "december"};
   std::string retval;
