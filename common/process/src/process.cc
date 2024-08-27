@@ -1,27 +1,29 @@
-/*
+/**
  * Copyright 2024 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
  */
 
-#include <boost/process/v2/process.hpp>
 #include <boost/process/v2/stdio.hpp>
 #include <boost/program_options/parsers.hpp>
 
-#include "process.hh"
+#include "com/centreon/common/process/process.hh"
+
+#include "com/centreon/common/process/detail/centreon_posix_process_launcher.hh"
+
+#include <boost/process/v2/process.hpp>
 
 namespace proc = boost::process::v2;
 
@@ -32,20 +34,100 @@ namespace com::centreon::common::detail {
  *
  */
 struct boost_process {
+#if defined(BOOST_PROCESS_V2_WINDOWS)
+  /**
+   * @brief Construct a new boost process object
+   * stdin of the child process is managed
+   *
+   * @param io_context
+   * @param exe_path  absolute or relative exe path
+   * @param args  arguments of the command
+   */
   boost_process(asio::io_context& io_context,
                 const std::string& exe_path,
                 const std::vector<std::string>& args)
-      : stdout(io_context),
-        stderr(io_context),
-        stdin(io_context),
+      : stdout_pipe(io_context),
+        stderr_pipe(io_context),
+        stdin_pipe(io_context),
         proc(io_context,
              exe_path,
              args,
-             proc::process_stdio{stdin, stdout, stderr}) {}
+             proc::process_stdio{stdin_pipe, stdout_pipe, stderr_pipe}) {}
 
-  asio::readable_pipe stdout;
-  asio::readable_pipe stderr;
-  asio::writable_pipe stdin;
+  /**
+   * @brief Construct a new boost process object
+   * stdin of the child process is not managed
+   *
+   * @param io_context
+   * @param logger
+   * @param cmd_line cmd line split (the first element is the path of the
+   * executable)
+   * @param  no_stdin (not used)
+   */
+  boost_process(asio::io_context& io_context,
+                const std::string& exe_path,
+                const std::vector<std::string>& args,
+                bool no_stdin)
+      : stdout_pipe(io_context),
+        stderr_pipe(io_context),
+        stdin_pipe(io_context),
+        proc(io_context,
+             exe_path,
+             args,
+             proc::process_stdio{{}, stdout_pipe, stderr_pipe}) {}
+
+#else
+  /**
+   * @brief Construct a new boost process object
+   * stdin of the child process is managed
+   *
+   * @param io_context
+   * @param exe_path  absolute or relative exe path
+   * @param args  arguments of the command
+   */
+  boost_process(asio::io_context& io_context,
+                const std::string& exe_path,
+                const std::vector<std::string>& args)
+      : stdout_pipe(io_context),
+        stderr_pipe(io_context),
+        stdin_pipe(io_context),
+        proc(proc::posix::centreon_posix_default_launcher()(
+            io_context.get_executor(),
+            exe_path,
+            args,
+            proc::posix::centreon_process_stdio{stdin_pipe, stdout_pipe,
+                                                stderr_pipe})) {}
+
+  /**
+   * @brief Construct a new boost process object
+   * stdin of the child process is not managed
+   *
+   * @param io_context
+   * @param logger
+   * @param cmd_line cmd line split (the first element is the path of the
+   * executable)
+   * @param  no_stdin (not used)
+   */
+  boost_process(asio::io_context& io_context,
+                const std::string& exe_path,
+                const std::vector<std::string>& args,
+                bool no_stdin)
+      : stdout_pipe(io_context),
+        stderr_pipe(io_context),
+        stdin_pipe(io_context),
+        proc(proc::posix::centreon_posix_default_launcher()(
+            io_context,
+            exe_path,
+            args,
+            proc::posix::centreon_process_stdio{{},
+                                                stdout_pipe,
+                                                stderr_pipe})) {}
+
+#endif
+
+  asio::readable_pipe stdout_pipe;
+  asio::readable_pipe stderr_pipe;
+  asio::writable_pipe stdin_pipe;
   proc::process proc;
 };
 }  // namespace com::centreon::common::detail
@@ -82,16 +164,23 @@ process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
  * In this function, we start child process and stdout, stderr asynchronous read
  * we also start an asynchronous read on process fd to be aware of child process
  * termination
+ *
+ * @param enable_stdin On Windows set it to false if you doesn't want to write
+ * on child stdin
  */
-void process::start_process() {
+void process::start_process(bool enable_stdin) {
   SPDLOG_LOGGER_DEBUG(_logger, "start process: {}", _exe_path);
   absl::MutexLock l(&_protect);
   _stdin_write_queue.clear();
   _write_pending = false;
 
   try {
-    _proc =
-        std::make_shared<detail::boost_process>(*_io_context, _exe_path, _args);
+    _proc = enable_stdin ? std::make_shared<detail::boost_process>(
+                               *_io_context, _exe_path, _args)
+                         : std::make_shared<detail::boost_process>(
+                               *_io_context, _exe_path, _args, false);
+    SPDLOG_LOGGER_TRACE(_logger, "process started: {} pid: {}", _exe_path,
+                        _proc->proc.id());
     _proc->proc.async_wait(
         [me = shared_from_this(), current = _proc](
             const boost::system::error_code& err, int raw_exit_status) {
@@ -173,7 +262,7 @@ void process::stdin_write_no_lock(const std::shared_ptr<std::string>& data) {
   } else {
     try {
       _write_pending = true;
-      _proc->stdin.async_write_some(
+      _proc->stdin_pipe.async_write_some(
           asio::buffer(*data),
           [me = shared_from_this(), caller = _proc, data](
               const boost::system::error_code& err, size_t nb_written) {
@@ -229,7 +318,7 @@ void process::on_stdin_write(const boost::system::error_code& err) {
 void process::stdout_read() {
   if (_proc) {
     try {
-      _proc->stdout.async_read_some(
+      _proc->stdout_pipe.async_read_some(
           asio::buffer(_stdout_read_buffer),
           [me = shared_from_this(), caller = _proc](
               const boost::system::error_code& err, size_t nb_read) {
@@ -259,12 +348,12 @@ void process::stdout_read() {
 void process::on_stdout_read(const boost::system::error_code& err,
                              size_t nb_read) {
   if (err) {
-    if (err == asio::error::eof) {
+    if (err == asio::error::eof || err == asio::error::broken_pipe) {
       SPDLOG_LOGGER_DEBUG(_logger, "fail read from stdout of process {}: {}",
                           _exe_path, err.message());
     } else {
-      SPDLOG_LOGGER_ERROR(_logger, "fail read from stdout of process {}: {}",
-                          _exe_path, err.message());
+      SPDLOG_LOGGER_ERROR(_logger, "fail read from stdout of process {}: {} {}",
+                          _exe_path, err.value(), err.message());
     }
     return;
   }
@@ -280,7 +369,7 @@ void process::on_stdout_read(const boost::system::error_code& err,
 void process::stderr_read() {
   if (_proc) {
     try {
-      _proc->stderr.async_read_some(
+      _proc->stderr_pipe.async_read_some(
           asio::buffer(_stderr_read_buffer),
           [me = shared_from_this(), caller = _proc](
               const boost::system::error_code& err, size_t nb_read) {
@@ -310,12 +399,12 @@ void process::stderr_read() {
 void process::on_stderr_read(const boost::system::error_code& err,
                              size_t nb_read) {
   if (err) {
-    if (err == asio::error::eof) {
+    if (err == asio::error::eof || err == asio::error::broken_pipe) {
       SPDLOG_LOGGER_DEBUG(_logger, "fail read from stderr of process {}: {}",
                           _exe_path, err.message());
     } else {
-      SPDLOG_LOGGER_ERROR(_logger, "fail read from stderr of process {}: {}",
-                          _exe_path, err.message());
+      SPDLOG_LOGGER_ERROR(_logger, "fail read from stderr of process {}: {} {}",
+                          _exe_path, err.value(), err.message());
     }
   } else {
     SPDLOG_LOGGER_TRACE(_logger, " process: {} read from stdout: {}", _exe_path,

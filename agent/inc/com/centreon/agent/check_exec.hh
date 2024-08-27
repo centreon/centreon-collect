@@ -20,7 +20,7 @@
 #define CENTREON_AGENT_CHECK_EXEC_HH
 
 #include "check.hh"
-#include "com/centreon/common/process.hh"
+#include "com/centreon/common/process/process.hh"
 
 namespace com::centreon::agent {
 

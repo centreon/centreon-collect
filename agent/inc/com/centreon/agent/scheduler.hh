@@ -57,13 +57,13 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   // pointers in this struct point to _current_request
   struct scope_metric_request {
     ::opentelemetry::proto::metrics::v1::ScopeMetrics* scope_metric;
-    absl::flat_hash_map<std::string /*metric name*/,
-                        ::opentelemetry::proto::metrics::v1::Metric*>
+    std::unordered_map<std::string /*metric name*/,
+                       ::opentelemetry::proto::metrics::v1::Metric*>
         metrics;
   };
 
   // one serv => one scope_metric => several metrics
-  absl::flat_hash_map<std::string, scope_metric_request> _serv_to_scope_metrics;
+  std::unordered_map<std::string, scope_metric_request> _serv_to_scope_metrics;
 
   std::shared_ptr<asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;

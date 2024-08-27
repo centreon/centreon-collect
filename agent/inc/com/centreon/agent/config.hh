@@ -1,4 +1,3 @@
-
 /**
  * Copyright 2024 Centreon
  * Licensed under the Apache License, Version 2.0(the "License");
@@ -15,6 +14,7 @@
  *
  * For more information : contact@centreon.com
  */
+
 #ifndef CENTREON_AGENT_CONFIG_HH
 #define CENTREON_AGENT_CONFIG_HH
 
@@ -24,7 +24,7 @@ namespace com::centreon::agent {
 
 class config {
  public:
-  enum log_type { to_stdout, to_file };
+  enum log_type { to_stdout, to_file, to_event_log };
 
   static const std::string_view config_schema;
 

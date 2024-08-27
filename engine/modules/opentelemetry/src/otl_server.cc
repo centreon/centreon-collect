@@ -19,6 +19,7 @@
 #include <grpc/grpc.h>
 #include <grpcpp/impl/codegen/server_callback.h>
 
+#include "centreon_agent/agent.grpc.pb.h"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.h"
 
 #include "otl_fmt.hh"
@@ -282,12 +283,19 @@ std::shared_ptr<metric_service> metric_service::load(
  * @param conf grpc configuration
  * @param handler handler that will be called on every request
  */
-otl_server::otl_server(const grpc_config::pointer& conf,
-                       const metric_handler& handler,
-                       const std::shared_ptr<spdlog::logger>& logger)
+otl_server::otl_server(
+    const std::shared_ptr<boost::asio::io_context>& io_context,
+    const grpc_config::pointer& conf,
+    const centreon_agent::agent_config::pointer& agent_config,
+    const metric_handler& handler,
+    const std::shared_ptr<spdlog::logger>& logger)
 
     : common::grpc::grpc_server_base(conf, logger),
-      _service(detail::metric_service::load(handler, logger)) {}
+      _service(detail::metric_service::load(handler, logger)),
+      _agent_service(centreon_agent::agent_service::load(io_context,
+                                                         agent_config,
+                                                         handler,
+                                                         logger)) {}
 
 /**
  * @brief Destroy the otl server::otl server object
@@ -305,10 +313,13 @@ otl_server::~otl_server() {
  * @return otl_server::pointer otl_server started
  */
 otl_server::pointer otl_server::load(
+    const std::shared_ptr<boost::asio::io_context>& io_context,
     const grpc_config::pointer& conf,
+    const centreon_agent::agent_config::pointer& agent_config,
     const metric_handler& handler,
     const std::shared_ptr<spdlog::logger>& logger) {
-  otl_server::pointer ret(new otl_server(conf, handler, logger));
+  otl_server::pointer ret(
+      new otl_server(io_context, conf, agent_config, handler, logger));
   ret->start();
   return ret;
 }
@@ -320,5 +331,16 @@ otl_server::pointer otl_server::load(
 void otl_server::start() {
   _init([this](::grpc::ServerBuilder& builder) {
     builder.RegisterService(_service.get());
+    builder.RegisterService(_agent_service.get());
   });
+}
+
+/**
+ * @brief update conf used by service to create
+ *
+ * @param agent_config
+ */
+void otl_server::update_agent_config(
+    const centreon_agent::agent_config::pointer& agent_config) {
+  _agent_service->update(agent_config);
 }

@@ -24,7 +24,7 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/common/utf8.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -166,7 +166,7 @@ void mysql_stmt::operator<<(io::data const& d) {
                     "column '{}' should admit a longer string, it is cut to {} "
                     "characters to be stored anyway.",
                     current_entry->get_name_v2(), max_len);
-                max_len = misc::string::adjust_size_utf8(v, max_len);
+                max_len = common::adjust_size_utf8(v, max_len);
                 sv = fmt::string_view(v.data(), max_len);
               } else
                 sv = fmt::string_view(v);
@@ -283,7 +283,7 @@ void mysql_stmt::operator<<(io::data const& d) {
                   "column '{}' should admit a longer string, it is cut to {} "
                   "characters to be stored anyway.",
                   field, max_len);
-              max_len = misc::string::adjust_size_utf8(v, max_len);
+              max_len = common::adjust_size_utf8(v, max_len);
               sv = fmt::string_view(v.data(), max_len);
             } else
               sv = fmt::string_view(v);

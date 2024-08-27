@@ -111,6 +111,9 @@ if(WITH_TESTING)
       "${TESTS_DIR}/notifications/service_timeperiod_notification.cc"
       "${TESTS_DIR}/notifications/service_flapping_notification.cc"
       "${TESTS_DIR}/notifications/service_downtime_notification_test.cc"
+      "${TESTS_DIR}/opentelemetry/agent_check_result_builder_test.cc"
+      "${TESTS_DIR}/opentelemetry/agent_reverse_client_test.cc"
+      "${TESTS_DIR}/opentelemetry/agent_to_engine_test.cc"
       "${TESTS_DIR}/opentelemetry/grpc_config_test.cc"
       "${TESTS_DIR}/opentelemetry/host_serv_extractor_test.cc"
       "${TESTS_DIR}/opentelemetry/otl_server_test.cc"
@@ -157,7 +160,9 @@ if(WITH_TESTING)
   add_executable(ut_engine ${ut_sources})
   target_include_directories(ut_engine PRIVATE 
     ${MODULE_DIR_OTL}/src 
-    ${CMAKE_SOURCE_DIR}/common/grpc/inc)
+    ${CMAKE_SOURCE_DIR}/common/grpc/inc
+    ${CMAKE_SOURCE_DIR}/agent/inc
+    ${CMAKE_SOURCE_DIR}/agent/src)
 
   target_precompile_headers(ut_engine REUSE_FROM cce_core)
 
@@ -193,12 +198,14 @@ if(WITH_TESTING)
             cce_core
             log_v2
             opentelemetry
+            centagent_lib
             "-Wl,-no-whole-archive"
             pb_open_telemetry_lib
             centreon_grpc
             centreon_http
-	          -L${Boost_LIBRARY_DIR_RELEASE}
-	          boost_url
+            centreon_process
+            -L${Boost_LIBRARY_DIR_RELEASE}
+            boost_url
             boost_program_options
             pthread
             ${GCOV}

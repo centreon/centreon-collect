@@ -23,7 +23,7 @@ add_subdirectory(log_v2)
 
 # Set directories.
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/common")
-set(PROCESS_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/process")
+set(PROCESS_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/process/inc")
 set(HTTP_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/http/inc/com/centreon/common/http")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/tests")
@@ -52,6 +52,7 @@ set(SOURCES
   ${SRC_DIR}/process_stat.pb.cc
   ${SRC_DIR}/process_stat.grpc.pb.cc
   ${SRC_DIR}/rapidjson_helper.cc
+  ${SRC_DIR}/utf8.cc 
 )
 
 # Include directories.
@@ -63,7 +64,6 @@ include_directories("${INCLUDE_DIR}"
 
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_library(centreon_common STATIC ${SOURCES})
-target_include_directories(centreon_common PRIVATE ${INCLUDE_DIR})
 set_property(TARGET centreon_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_precompile_headers(centreon_common PRIVATE precomp_inc/precomp.hh)

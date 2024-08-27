@@ -43,6 +43,14 @@ class grpc_config : public common::grpc::grpc_config {
     return !(*this == right);
   }
 };
+
+struct grpc_config_compare {
+  bool operator()(const grpc_config::pointer& left,
+                  const grpc_config::pointer& right) const {
+    return left->compare(*right) < 0;
+  }
+};
+
 }  // namespace com::centreon::engine::modules::opentelemetry
 
 #endif  // !CCE_MOD_OTL_SERVER_GRPC_CONFIG_HH
