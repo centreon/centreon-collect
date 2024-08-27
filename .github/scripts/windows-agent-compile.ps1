@@ -46,7 +46,7 @@ if ( $? -ne $true ) {
     Write-Host "#######################################################################################################################"
 
     Write-Host "install vcpkg"
-    git clone --depth 1 --single-branch --no-tags https://github.com/microsoft/vcpkg  vcpkg
+    git clone --depth 1 -b 2024.07.12 https://github.com/microsoft/vcpkg.git
     cd vcpkg
     bootstrap-vcpkg.bat
     cd $current_dir
