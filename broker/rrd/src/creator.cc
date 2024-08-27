@@ -30,9 +30,9 @@
 #include <filesystem>
 
 #include "bbdo/storage/metric.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/rrd/creator.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
+#include "com/centreon/common/perfdata.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -235,13 +235,13 @@ void creator::_open(std::string const& filename,
   {
     const char* tt;
     switch (value_type) {
-      case misc::perfdata::absolute:
+      case common::perfdata::absolute:
         tt = "ABSOLUTE";
         break;
-      case misc::perfdata::counter:
+      case common::perfdata::counter:
         tt = "COUNTER";
         break;
-      case misc::perfdata::derive:
+      case common::perfdata::derive:
         tt = "DERIVE";
         break;
       default:

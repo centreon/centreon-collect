@@ -31,13 +31,13 @@
 #include "bbdo/neb.pb.h"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/unified_sql/bulk_bind.hh"
 #include "com/centreon/broker/unified_sql/bulk_queries.hh"
 #include "com/centreon/broker/unified_sql/rebuilder.hh"
 #include "com/centreon/broker/unified_sql/stored_timestamp.hh"
+#include "com/centreon/common/perfdata.hh"
 
 namespace com::centreon::broker {
 namespace unified_sql {

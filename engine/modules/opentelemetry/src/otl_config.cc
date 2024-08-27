@@ -123,6 +123,10 @@ bool otl_config::operator==(const otl_config& right) const {
              _second_fifo_expiry == right._second_fifo_expiry &&
              _max_fifo_size == right._max_fifo_size;
 
+  if (!ret) {
+    return false;
+  }
+
   if (_telegraf_conf_server_config && right._telegraf_conf_server_config) {
     return *_telegraf_conf_server_config == *right._telegraf_conf_server_config;
   }

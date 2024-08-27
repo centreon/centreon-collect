@@ -141,8 +141,9 @@ static std::string_view get_nagios_telegraf_suffix(
     return "";
   }
   std::string_view last_word = metric_name.substr(sep_pos + 1);
-  if (last_word == "lt" || last_word == "gt" || last_word == "le" ||
-      last_word == "ge" && sep_pos > 0) {  // critical_lt or warning_le
+  if ((last_word == "lt" || last_word == "gt" || last_word == "le" ||
+       last_word == "ge") &&
+      sep_pos > 0) {  // critical_lt or warning_le
     sep_pos = metric_name.rfind('_', sep_pos - 1);
     if (sep_pos != std::string_view::npos) {
       return metric_name.substr(sep_pos + 1);

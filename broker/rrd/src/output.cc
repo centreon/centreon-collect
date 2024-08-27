@@ -31,9 +31,9 @@
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
+#include "com/centreon/common/perfdata.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -285,25 +285,25 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           }
           std::string v;
           switch (e->value_type) {
-            case misc::perfdata::gauge:
+            case common::perfdata::gauge:
               v = fmt::format("{:f}", e->value);
               SPDLOG_LOGGER_TRACE(_logger,
                                   "RRD: update metric {} of type GAUGE with {}",
                                   e->metric_id, v);
               break;
-            case misc::perfdata::counter:
+            case common::perfdata::counter:
               v = fmt::format("{}", static_cast<uint64_t>(e->value));
               SPDLOG_LOGGER_TRACE(
                   _logger, "RRD: update metric {} of type COUNTER with {}",
                   e->metric_id, v);
               break;
-            case misc::perfdata::derive:
+            case common::perfdata::derive:
               v = fmt::format("{}", static_cast<int64_t>(e->value));
               SPDLOG_LOGGER_TRACE(
                   _logger, "RRD: update metric {} of type DERIVE with {}",
                   e->metric_id, v);
               break;
-            case misc::perfdata::absolute:
+            case common::perfdata::absolute:
               v = fmt::format("{}", static_cast<uint64_t>(e->value));
               SPDLOG_LOGGER_TRACE(
                   _logger, "RRD: update metric {} of type ABSOLUTE with {}",
@@ -600,15 +600,15 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
 
     int32_t data_source_type = p.second.data_source_type();
     switch (data_source_type) {
-      case misc::perfdata::gauge:
+      case common::perfdata::gauge:
         for (auto& pt : p.second.pts()) {
           query.emplace_back(fmt::format("{}:{:f}", pt.ctime(), pt.value()));
           fill_status_request(index_id, p.second.check_interval(),
                               p.second.rrd_retention(), pt);
         }
         break;
-      case misc::perfdata::counter:
-      case misc::perfdata::absolute:
+      case common::perfdata::counter:
+      case common::perfdata::absolute:
         for (auto& pt : p.second.pts()) {
           query.emplace_back(fmt::format("{}:{}", pt.ctime(),
                                          static_cast<uint64_t>(pt.value())));
@@ -616,7 +616,7 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
                               p.second.rrd_retention(), pt);
         }
         break;
-      case misc::perfdata::derive:
+      case common::perfdata::derive:
         for (auto& pt : p.second.pts()) {
           query.emplace_back(fmt::format("{}:{}", pt.ctime(),
                                          static_cast<int64_t>(pt.value())));
