@@ -258,7 +258,7 @@ fi
 
 if [ ! -d vcpkg ] ; then
   echo "No vcpkg directory. Cloning the repo"
-  git clone --depth 1 --single-branch --no-tags https://github.com/Microsoft/vcpkg.git
+  git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
   ./vcpkg/bootstrap-vcpkg.sh
 fi
 
