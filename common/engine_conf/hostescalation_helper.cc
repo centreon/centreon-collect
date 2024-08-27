@@ -19,6 +19,7 @@
 #include "common/engine_conf/hostescalation_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/state.pb.h"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -56,7 +57,7 @@ hostescalation_helper::hostescalation_helper(Hostescalation* obj)
                          {"host_name", "hosts"},
                          {"contact_groups", "contactgroups"},
                      },
-                     10) {
+                     Hostescalation::descriptor()->field_count()) {
   _init();
 }
 
@@ -69,6 +70,8 @@ hostescalation_helper::hostescalation_helper(Hostescalation* obj)
 bool hostescalation_helper::hook(std::string_view key,
                                  const std::string_view& value) {
   Hostescalation* obj = static_cast<Hostescalation*>(mut_obj());
+  /* Since we use key to get back the good key value, it is faster to give key
+   * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
 
   if (key == "escalation_options") {

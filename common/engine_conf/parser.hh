@@ -21,6 +21,7 @@
 
 #include <fstream>
 #include "common/engine_conf/file_info.hh"
+#include "common/engine_conf/message_helper.hh"
 #include "state_helper.hh"
 // #include "host.hh"
 
@@ -49,33 +50,13 @@ using pb_map_helper =
 class parser {
   std::shared_ptr<spdlog::logger> _logger;
 
-  enum object_type {
-    command = 0,
-    connector = 1,
-    contact = 2,
-    contactgroup = 3,
-    host = 4,
-    hostdependency = 5,
-    hostescalation = 6,
-    hostextinfo = 7,
-    hostgroup = 8,
-    service = 9,
-    servicedependency = 10,
-    serviceescalation = 11,
-    serviceextinfo = 12,
-    servicegroup = 13,
-    timeperiod = 14,
-    anomalydetection = 15,
-    severity = 16,
-    tag = 17,
-  };
-
   /**
    * @brief An array of pb_map_objects. At index object_type::command we get all
    * the templates of commands, at index object_type::service we get all the
    * templates of services, etc.
    */
-  std::array<pb_map_object, 19> _pb_templates;
+  std::array<pb_map_object, message_helper::object_type::nb_types>
+      _pb_templates;
 
   /**
    * @brief The map of helpers of all the configuration objects parsed by this

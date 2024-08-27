@@ -19,6 +19,7 @@
 #include "common/engine_conf/severity_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/state.pb.h"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -39,7 +40,7 @@ severity_helper::severity_helper(Severity* obj)
                          {"severity_icon_id", "icon_id"},
                          {"severity_type", "type"},
                      },
-                     6) {
+                     Severity::descriptor()->field_count()) {
   _init();
 }
 
@@ -52,6 +53,8 @@ severity_helper::severity_helper(Severity* obj)
 bool severity_helper::hook(std::string_view key,
                            const std::string_view& value) {
   Severity* obj = static_cast<Severity*>(mut_obj());
+  /* Since we use key to get back the good key value, it is faster to give key
+   * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
 
   if (key == "id" || key == "severity_id") {

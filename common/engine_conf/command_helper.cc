@@ -31,7 +31,10 @@ namespace com::centreon::engine::configuration {
  * the owner of this object. It is just used to set the message default values.
  */
 command_helper::command_helper(Command* obj)
-    : message_helper(object_type::command, obj, {}, 5) {
+    : message_helper(object_type::command,
+                     obj,
+                     {},
+                     Command::descriptor()->field_count()) {
   _init();
 }
 

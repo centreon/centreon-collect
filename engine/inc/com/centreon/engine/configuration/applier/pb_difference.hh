@@ -29,18 +29,37 @@ namespace com::centreon::engine {
 
 using MessageDifferencer = ::google::protobuf::util::MessageDifferencer;
 
-namespace configuration {
-namespace applier {
+namespace configuration::applier {
+/**
+ * @brief This class computes the difference between two "lists" of Protobuf
+ * configuration objects. They are not really lists but RepeatedPtrFields or
+ * similar things.
+ *
+ * When the class is instantiated, we can then call the parse() method to
+ * compare two lists, for example the older one and the new one.
+ *
+ * The result is composed of three attributes:
+ * * _added : objects that are in the new list and not in the old one.
+ * * _deleted: objects in the old list but not in the new one.
+ * * _modified: objects that changed from the old list to the new one.
+ *
+ * @tparam T The Protobuf type to compare with pb_difference, for example
+ * configuration::Host, configuration::Service, etc...
+ * @tparam Key The key type used to store these objects, for example an
+ * std::string, an integer, etc...
+ * @tparam Container The container type used to store the objects, by default a
+ * RepeatedPtrField.
+ */
 template <typename T,
           typename Key,
-          typename Container = ::google::protobuf::RepeatedPtrField<const T>>
+          typename Container = ::google::protobuf::RepeatedPtrField<T>>
 class pb_difference {
   // What are the new objects
-  std::vector<T> _added;
+  std::vector<const T*> _added;
   // What index to delete
   std::vector<std::pair<ssize_t, Key>> _deleted;
   // A vector of pairs, the pointer to the old one and the new one.
-  std::vector<std::pair<T*, T>> _modified;
+  std::vector<std::pair<T*, const T*>> _modified;
 
  public:
   /**
@@ -54,48 +73,58 @@ class pb_difference {
   ~pb_difference() noexcept = default;
   pb_difference(const pb_difference&) = delete;
   pb_difference& operator=(const pb_difference&) = delete;
-  const std::vector<T>& added() const noexcept { return _added; }
+  const std::vector<const T*>& added() const noexcept { return _added; }
   const std::vector<std::pair<ssize_t, Key>>& deleted() const noexcept {
     return _deleted;
   }
-  const std::vector<std::pair<T*, T>>& modified() const noexcept {
+  const std::vector<std::pair<T*, const T*>>& modified() const noexcept {
     return _modified;
   }
 
+  /**
+   * @brief The main function of pb_difference. It takes two iterators of the
+   * old list, two iterators of the new one, and also a function giving the key
+   * to recognize it. The function usually is connector_name(),
+   * timeperiod_name(),... but it can also be a lambda returning a pair of IDs
+   * (for example in the case of services).
+   * The key returned by this last function is important since two different
+   * objects with the same key represent a modification.
+   *
+   * @tparam Function
+   * @param old_list the container of the current object configurations,
+   * @param new_list the container of the new object configurations,
+   * @param f The function returning the key of each object.
+   */
   template <typename Function>
-  void parse(typename Container::iterator old_first,
-             typename Container::iterator old_last,
-             typename Container::iterator new_first,
-             typename Container::iterator new_last,
-             Function f) {
+  void parse(Container& old_list, const Container& new_list, Function f) {
     absl::flat_hash_map<Key, T*> keys_values;
-    for (auto it = old_first; it != old_last; ++it) {
-      const T& item = *it;
+    for (auto it = old_list.begin(); it != old_list.end(); ++it) {
+      T& item = *it;
       static_assert(std::is_same<decltype(f(item)), const Key&>::value ||
                         std::is_same<decltype(f(item)), const Key>::value ||
                         std::is_same<decltype(f(item)), Key>::value,
                     "Invalid key function: it must match Key");
-      keys_values[f(item)] = const_cast<T*>(&(item));
+      keys_values[f(item)] = &item;
     }
 
     absl::flat_hash_set<Key> new_keys;
-    for (auto it = new_first; it != new_last; ++it) {
+    for (auto it = new_list.begin(); it != new_list.end(); ++it) {
       const T& item = *it;
-      new_keys.insert(f(item));
-      if (!keys_values.contains(f(item))) {
+      auto inserted = new_keys.insert(f(item));
+      if (!keys_values.contains(*inserted.first)) {
         // New object to add
-        _added.push_back(item);
+        _added.push_back(&item);
       } else {
         // Object to modify or equal
         if (!MessageDifferencer::Equals(item, *keys_values[f(item)])) {
           // There are changes in this object
-          _modified.push_back(std::make_pair(keys_values[f(item)], *it));
+          _modified.push_back(std::make_pair(keys_values[f(item)], &item));
         }
       }
     }
 
     ssize_t i = 0;
-    for (auto it = old_first; it != old_last; ++it) {
+    for (auto it = old_list.begin(); it != old_list.end(); ++it) {
       const T& item = *it;
       if (!new_keys.contains(f(item)))
         _deleted.push_back({i, f(item)});
@@ -103,44 +132,21 @@ class pb_difference {
     }
   }
 
-  void parse(typename Container::iterator old_first,
-             typename Container::iterator old_last,
-             typename Container::iterator new_first,
-             typename Container::iterator new_last,
+  void parse(Container& old_list,
+             const Container& new_list,
              Key (T::*key)() const) {
     std::function<Key(const T&)> f = key;
-    parse<std::function<Key(const T&)>>(old_first, old_last, new_first,
-                                        new_last, f);
+    parse<std::function<Key(const T&)>>(old_list, new_list, f);
   }
 
-  void parse(typename Container::iterator old_first,
-             typename Container::iterator old_last,
-             typename Container::iterator new_first,
-             typename Container::iterator new_last,
+  void parse(Container& old_list,
+             const Container& new_list,
              const Key& (T::*key)() const) {
     std::function<const Key&(const T&)> f = key;
-    parse<std::function<const Key&(const T&)>>(old_first, old_last, new_first,
-                                               new_last, f);
+    parse<std::function<const Key&(const T&)>>(old_list, new_list, f);
   }
-
-  //  template <typename TF1, typename TF2>
-  //  void parse(typename Container::iterator old_first,
-  //             typename Container::iterator old_last,
-  //             typename Container::iterator new_first,
-  //             typename Container::iterator new_last,
-  //             TF1 (T::*key1)() const,
-  //             TF2 (T::*key2)() const) {
-  //    std::function<const std::pair<TF1, TF2>(const T&)> f = [&key1,
-  //                                                            &key2](const T&
-  //                                                            t) {
-  //      return std::make_pair((t.*key1)(), (t.*key2)());
-  //    };
-  //    parse<std::function<const std::pair<TF1, TF2>(const T&)>>(
-  //        old_first, old_last, new_first, new_last, f);
-  //  }
 };
-}  // namespace applier
-}  // namespace configuration
+}  // namespace configuration::applier
 
 }  // namespace com::centreon::engine
 

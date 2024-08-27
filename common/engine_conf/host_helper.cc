@@ -51,7 +51,7 @@ host_helper::host_helper(Host* obj)
                          {"3d_coords", "coords_3d"},
                          {"severity", "severity_id"},
                      },
-                     53) {
+                     Host::descriptor()->field_count()) {
   _init();
 }
 
@@ -63,6 +63,8 @@ host_helper::host_helper(Host* obj)
  */
 bool host_helper::hook(std::string_view key, const std::string_view& value) {
   Host* obj = static_cast<Host*>(mut_obj());
+  /* Since we use key to get back the good key value, it is faster to give key
+   * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
   if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
@@ -74,30 +76,12 @@ bool host_helper::hook(std::string_view key, const std::string_view& value) {
     fill_string_group(obj->mutable_hostgroups(), value);
     return true;
   } else if (key == "notification_options") {
-    uint16_t options(action_svc_none);
-    auto values = absl::StrSplit(value, ',');
-    for (auto it = values.begin(); it != values.end(); ++it) {
-      std::string_view v = absl::StripAsciiWhitespace(*it);
-      if (v == "d" || v == "down")
-        options |= action_hst_down;
-      else if (v == "u" || v == "unreachable")
-        options |= action_hst_unreachable;
-      else if (v == "r" || v == "recovery")
-        options |= action_hst_up;
-      else if (v == "f" || v == "flapping")
-        options |= action_hst_flapping;
-      else if (v == "s" || v == "downtime")
-        options |= action_hst_downtime;
-      else if (v == "n" || v == "none")
-        options = action_hst_none;
-      else if (v == "a" || v == "all")
-        options = action_hst_down | action_hst_unreachable | action_hst_up |
-                  action_hst_flapping | action_hst_downtime;
-      else
-        return false;
-    }
-    obj->set_notification_options(options);
-    return true;
+    uint16_t options = action_hst_none;
+    if (fill_host_notification_options(&options, value)) {
+      obj->set_notification_options(options);
+      return true;
+    } else
+      return false;
   } else if (key == "parents") {
     fill_string_group(obj->mutable_parents(), value);
     return true;

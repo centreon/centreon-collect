@@ -65,9 +65,9 @@ bool fill_pair_string_group(PairStringSet* grp,
                             const std::string_view& value);
 void fill_string_group(StringList* grp, const std::string_view& value);
 void fill_string_group(StringSet* grp, const std::string_view& value);
-bool fill_host_notification_options(uint32_t* options,
+bool fill_host_notification_options(uint16_t* options,
                                     const std::string_view& value);
-bool fill_service_notification_options(uint32_t* options,
+bool fill_service_notification_options(uint16_t* options,
                                        const std::string_view& value);
 
 /**
@@ -95,16 +95,47 @@ class message_helper {
     severity = 16,
     tag = 17,
     state = 18,
+    nb_types = 19,
   };
 
  private:
   const object_type _otype;
   Message* _obj;
+  /*
+   * The centengine cfg file allows several words for a same field. For example,
+   * we can have hosts, host, hostnames, hostname for the 'hostname' field.
+   * This map gives as value the field name corresponding to the name specified
+   * in the cfg file (the key). */
   const absl::flat_hash_map<std::string, std::string> _correspondence;
+  /*
+   * _modified_field is a vector used for inheritance. An object can inherit
+   * from another one. To apply the parent values, we must be sure this object
+   * does not already change the field before. And we cannot use the protobuf
+   * default values since configuration objects have their own default values.
+   * So, the idea is:
+   * 1. The protobuf object is created.
+   * 2. Thankgs to the helper, its default values are set.
+   * 3. _modified_field cases are all set to false.
+   * 4. Fields are modified while the cfg file is read and _modified_field is
+   * updated in consequence.
+   * 5. We can replace unchanged fields with the parent values if needed.
+   */
   std::vector<bool> _modified_field;
+  /* When a configuration object is resolved, this flag is set to true. */
   bool _resolved = false;
 
  public:
+  /**
+   * @brief Constructor of message_helper.
+   *
+   * @param otype An object_type specifying the type of the configuration
+   * object.
+   * @param obj The Protobuf message associated to the helper.
+   * @param correspondence The correspondence table (see the _correspondence
+   * map description for more details).
+   * @param field_size The number of fields in the protobuf message (needed to
+   * initialize the _modified_field).
+   */
   message_helper(object_type otype,
                  Message* obj,
                  absl::flat_hash_map<std::string, std::string>&& correspondence,

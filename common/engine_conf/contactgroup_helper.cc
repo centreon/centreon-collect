@@ -31,7 +31,10 @@ namespace com::centreon::engine::configuration {
  * not the owner of this object.
  */
 contactgroup_helper::contactgroup_helper(Contactgroup* obj)
-    : message_helper(object_type::contactgroup, obj, {}, 6) {
+    : message_helper(object_type::contactgroup,
+                     obj,
+                     {},
+                     Contactgroup::descriptor()->field_count()) {
   _init();
 }
 
@@ -44,6 +47,8 @@ contactgroup_helper::contactgroup_helper(Contactgroup* obj)
 bool contactgroup_helper::hook(std::string_view key,
                                const std::string_view& value) {
   Contactgroup* obj = static_cast<Contactgroup*>(mut_obj());
+  /* Since we use key to get back the good key value, it is faster to give key
+   * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
   if (key == "contactgroup_members") {
     fill_string_group(obj->mutable_contactgroup_members(), value);

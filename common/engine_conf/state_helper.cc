@@ -57,7 +57,7 @@ state_helper::state_helper(State* obj)
               {"xcddefault_comment_file", "comment_file"},
               {"xdddefault_downtime_file", "downtime_file"},
           },
-          2) {
+          State::descriptor()->field_count()) {
   _init();
 }
 
@@ -69,6 +69,8 @@ state_helper::state_helper(State* obj)
  */
 bool state_helper::hook(std::string_view key, const std::string_view& value) {
   State* obj = static_cast<State*>(mut_obj());
+  /* Since we use key to get back the good key value, it is faster to give key
+   * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
 
   if (key.substr(0, 10) == "log_level_") {

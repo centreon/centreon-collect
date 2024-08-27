@@ -186,9 +186,9 @@ void fill_string_group(StringList* grp, const std::string_view& value) {
  *
  * @return True on success.
  */
-bool fill_host_notification_options(uint32_t* options,
+bool fill_host_notification_options(uint16_t* options,
                                     const std::string_view& value) {
-  uint32_t tmp_options = action_hst_none;
+  uint16_t tmp_options = action_hst_none;
   auto arr = absl::StrSplit(value, ',');
   for (auto& v : arr) {
     std::string_view value = absl::StripAsciiWhitespace(v);
@@ -223,9 +223,9 @@ bool fill_host_notification_options(uint32_t* options,
  *
  * @return True on success.
  */
-bool fill_service_notification_options(uint32_t* options,
+bool fill_service_notification_options(uint16_t* options,
                                        const std::string_view& value) {
-  uint32_t tmp_options = action_svc_none;
+  uint16_t tmp_options = action_svc_none;
   auto arr = absl::StrSplit(value, ',');
   for (auto& v : arr) {
     std::string_view value = absl::StripAsciiWhitespace(v);
@@ -293,21 +293,19 @@ bool message_helper::insert_customvariable(std::string_view key
 }
 
 /**
- * @brief Set the value given as a string to the object key. If the key does
- * not exist, the correspondence table may be used to find a replacement of
- * the key. The function converts the value to the appropriate type.
+ * @brief Set the value given as a string to the object referenced by the key.
+ * If the key does not exist, the correspondence table may be used to find a
+ * replacement of the key. The function converts the value to the appropriate
+ * type.
  *
  * Another important point is that many configuration objects contain the Object
  * obj message (something like an inheritance). This message contains three
- * field names, use and register that are important for templating. If keys are
- * one of these names, the function tries to work directly with the obj message.
+ * field names, name, use and register that are important for templating. If
+ * keys are one of these names, the function tries to work directly with the obj
+ * message.
  *
- * @tparam T The type of the message containing the object key.
- * @param msg The message containing the object key.
  * @param key The key to localize the object to set.
  * @param value The value as string that will be converted to the good type.
- * @param correspondence A hash table giving traductions from keys to others.
- * If a key fails, correspondence is used to find a new replacement key.
  *
  * @return true on success.
  */

@@ -496,31 +496,35 @@ void parser::_parse_resource_file(const std::string& path, State* pb_config) {
  */
 void parser::_resolve_template(State* pb_config, error_cnt& err) {
   for (Command& c : *pb_config->mutable_commands())
-    _resolve_template(_pb_helper[&c], _pb_templates[command]);
+    _resolve_template(_pb_helper[&c], _pb_templates[message_helper::command]);
 
   for (Connector& c : *pb_config->mutable_connectors())
-    _resolve_template(_pb_helper[&c], _pb_templates[connector]);
+    _resolve_template(_pb_helper[&c], _pb_templates[message_helper::connector]);
 
   for (Contact& c : *pb_config->mutable_contacts())
-    _resolve_template(_pb_helper[&c], _pb_templates[contact]);
+    _resolve_template(_pb_helper[&c], _pb_templates[message_helper::contact]);
 
   for (Contactgroup& cg : *pb_config->mutable_contactgroups())
-    _resolve_template(_pb_helper[&cg], _pb_templates[contactgroup]);
+    _resolve_template(_pb_helper[&cg],
+                      _pb_templates[message_helper::contactgroup]);
 
   for (Host& h : *pb_config->mutable_hosts())
-    _resolve_template(_pb_helper[&h], _pb_templates[host]);
+    _resolve_template(_pb_helper[&h], _pb_templates[message_helper::host]);
 
   for (Service& s : *pb_config->mutable_services())
-    _resolve_template(_pb_helper[&s], _pb_templates[service]);
+    _resolve_template(_pb_helper[&s], _pb_templates[message_helper::service]);
 
   for (Anomalydetection& a : *pb_config->mutable_anomalydetections())
-    _resolve_template(_pb_helper[&a], _pb_templates[anomalydetection]);
+    _resolve_template(_pb_helper[&a],
+                      _pb_templates[message_helper::anomalydetection]);
 
   for (Serviceescalation& se : *pb_config->mutable_serviceescalations())
-    _resolve_template(_pb_helper[&se], _pb_templates[serviceescalation]);
+    _resolve_template(_pb_helper[&se],
+                      _pb_templates[message_helper::serviceescalation]);
 
   for (Hostescalation& he : *pb_config->mutable_hostescalations())
-    _resolve_template(_pb_helper[&he], _pb_templates[hostescalation]);
+    _resolve_template(_pb_helper[&he],
+                      _pb_templates[message_helper::hostescalation]);
 
   for (const Command& c : pb_config->commands())
     _pb_helper.at(&c)->check_validity(err);
@@ -612,6 +616,14 @@ void parser::_resolve_template(std::unique_ptr<message_helper>& msg_helper,
   }
 }
 
+/**
+ * @brief For each unchanged field in the Protobuf object stored in msg_helper,
+ * we copy the corresponding field from tmpl. This is the key for the
+ * inheritence with cfg files.
+ *
+ * @param msg_helper A message_help holding a protobuf message
+ * @param tmpl A template of the same type as the on in the msg_helper
+ */
 void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                     Message* tmpl) {
   Message* msg = msg_helper->mut_obj();

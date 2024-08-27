@@ -204,6 +204,7 @@ elif [ -r /etc/issue ] ; then
       libgcrypt20-dev
       libgnutls28-dev
       liblua5.3-dev
+      libmariadb-dev
       libperl-dev
       librrd-dev
       libssh2-1-dev
