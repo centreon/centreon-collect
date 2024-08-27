@@ -21,10 +21,10 @@ on:
       - cmake.sh
       - cmake-vcpkg.sh
       - CMakeLists.txt
+      - CMakeListsLinux.txt
       - vcpkg.json
       - overlays/**
       - selinux/**
-      - vcpkg/**
       - "!.veracode-exclusions"
       - "!veracode.json"
       - "!**/test/**"
@@ -48,10 +48,10 @@ on:
       - cmake.sh
       - cmake-vcpkg.sh
       - CMakeLists.txt
+      - CMakeListsLinux.txt
       - vcpkg.json
       - overlays/**
       - selinux/**
-      - vcpkg/**
       - "!.veracode-exclusions"
       - "!veracode.json"
       - "!**/test/**"
