@@ -45,6 +45,7 @@ class process_test : public ::testing::Test {
 };
 
 class process_wait : public process {
+  std::mutex _cond_m;
   std::condition_variable _cond;
   std::string _stdout;
   std::string _stderr;
@@ -59,6 +60,12 @@ class process_wait : public process {
   }
 
  public:
+  void reset_end() {
+    _stdout_eof = false;
+    _stderr_eof = false;
+    _process_ended = false;
+  }
+
   void on_stdout_read(const boost::system::error_code& err,
                       size_t nb_read) override {
     if (!err) {
@@ -170,6 +177,7 @@ TEST_F(process_test, call_start_several_time_no_args) {
   std::string expected;
   for (int ii = 0; ii < 10; ++ii) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    to_wait->reset_end();
     to_wait->start_process(true);
     to_wait->wait();
     expected += "hello" END_OF_LINE;
