@@ -43,7 +43,7 @@ class process : public std::enable_shared_from_this<process> {
 
   std::deque<std::shared_ptr<std::string>> _stdin_write_queue
       ABSL_GUARDED_BY(_protect);
-  bool _write_pending = false ABSL_GUARDED_BY(_protect);
+  bool _write_pending ABSL_GUARDED_BY(_protect) = false;
 
   std::shared_ptr<detail::boost_process> _proc ABSL_GUARDED_BY(_protect);
 
