@@ -2474,7 +2474,7 @@ def ctn_set_hosts_passive(poller: int, host_regex):
         srv_regex (str): A regexp to match host name.
     """
 
-    with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r") as ff:
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(f"^\s*host_name\s*({host_regex})$")
     for i in range(len(lines)):

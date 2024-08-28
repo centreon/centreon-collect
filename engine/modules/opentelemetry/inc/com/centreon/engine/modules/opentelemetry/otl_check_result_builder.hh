@@ -47,7 +47,7 @@ struct otl_data_point_pointer_compare {
   }
 };
 
-class name_to_metrics
+class metrics_to_datapoints
     : public absl::flat_hash_map<
           std::string_view,
           absl::btree_multiset<otl_data_point,
@@ -80,13 +80,13 @@ class otl_check_result_builder
 
   void process_data_pts(const std::string_view& host,
                         const std::string_view& serv,
-                        const name_to_metrics& data_pts) override;
+                        const metrics_to_datapoints& data_pts) override;
 
   static std::shared_ptr<otl_check_result_builder> create(
       const std::string& cmd_line,
       const std::shared_ptr<spdlog::logger>& logger);
 
-  virtual bool build_result_from_metrics(const name_to_metrics& data_pts,
+  virtual bool build_result_from_metrics(const metrics_to_datapoints& data_pts,
                                          check_result& res) = 0;
 };
 

@@ -327,10 +327,10 @@ void open_telemetry::on_metric(const metric_request_ptr& metrics) {
           });
     } else {
       std::shared_ptr<absl::flat_hash_map<
-          std::pair<std::string_view, std::string_view>, name_to_metrics>>
+          std::pair<std::string_view, std::string_view>, metrics_to_datapoints>>
           known_data_pt = std::make_shared<
               absl::flat_hash_map<std::pair<std::string_view, std::string_view>,
-                                  name_to_metrics>>();
+                                  metrics_to_datapoints>>();
       auto last_success = _extractors.begin();
       otl_data_point::extract_data_points(
           metrics, [this, &unknown, &last_success,

@@ -126,7 +126,7 @@ void perf_data::append_to_string(std::string* to_append) {
  * @return false
  */
 bool agent_check_result_builder::build_result_from_metrics(
-    const name_to_metrics& data_pts,
+    const metrics_to_datapoints& data_pts,
     check_result& res) {
   // first we search last state timestamp from status
   uint64_t last_time = 0;

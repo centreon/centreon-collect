@@ -361,7 +361,8 @@ static const char* agent_exemple = R"(
 
 class otl_agent_check_result_builder_test : public TestEngine {
  protected:
-  absl::flat_hash_map<std::string /*service name*/, name_to_metrics> _received;
+  absl::flat_hash_map<std::string /*service name*/, metrics_to_datapoints>
+      _received;
 
  public:
   otl_agent_check_result_builder_test() {

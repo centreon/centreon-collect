@@ -23,7 +23,7 @@
 #include "com/centreon/engine/macros/defines.hh"
 
 namespace com::centreon::engine::modules::opentelemetry {
-class name_to_metrics;
+class metrics_to_datapoints;
 }
 
 namespace com::centreon::engine::commands::otel {
@@ -141,7 +141,7 @@ class otl_check_result_builder_base {
   virtual void process_data_pts(
       const std::string_view& host,
       const std::string_view& serv,
-      const modules::opentelemetry::name_to_metrics& data_pts) = 0;
+      const modules::opentelemetry::metrics_to_datapoints& data_pts) = 0;
 };
 
 class open_telemetry_base;

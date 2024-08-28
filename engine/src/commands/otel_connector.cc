@@ -211,7 +211,7 @@ void otel_connector::run(const std::string& processed_cmd,
 void otel_connector::process_data_pts(
     const std::string_view& host,
     const std::string_view& serv,
-    const com::centreon::engine::modules::opentelemetry::name_to_metrics&
+    const com::centreon::engine::modules::opentelemetry::metrics_to_datapoints&
         data_pts) {
   _check_result_builder->process_data_pts(host, serv, data_pts);
 }

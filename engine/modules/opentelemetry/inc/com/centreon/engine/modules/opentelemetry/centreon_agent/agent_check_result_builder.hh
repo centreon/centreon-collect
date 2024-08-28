@@ -96,7 +96,7 @@ class agent_check_result_builder : public otl_check_result_builder {
                              const std::shared_ptr<spdlog::logger>& logger)
       : otl_check_result_builder(cmd_line, logger) {}
 
-  bool build_result_from_metrics(const name_to_metrics& data_pts,
+  bool build_result_from_metrics(const metrics_to_datapoints& data_pts,
                                  check_result& res) override;
 };
 

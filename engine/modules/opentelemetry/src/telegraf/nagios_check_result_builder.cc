@@ -160,7 +160,7 @@ static std::string_view get_nagios_telegraf_suffix(
  * @return false
  */
 bool nagios_check_result_builder::build_result_from_metrics(
-    const name_to_metrics& data_pts,
+    const metrics_to_datapoints& data_pts,
     check_result& res) {
   // first we search last state timestamp
   uint64_t last_time = 0;

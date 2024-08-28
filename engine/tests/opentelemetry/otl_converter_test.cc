@@ -49,7 +49,7 @@ class otl_converter_test : public TestEngine {};
 
 TEST_F(otl_converter_test, empty_metrics) {
   telegraf::nagios_check_result_builder conv("", spdlog::default_logger());
-  name_to_metrics empty;
+  metrics_to_datapoints empty;
   check_result res;
   ASSERT_FALSE(conv.build_result_from_metrics(empty, res));
 }
@@ -544,7 +544,7 @@ TEST_F(otl_converter_test, nagios_telegraf) {
   ::google::protobuf::util::JsonStringToMessage(telegraf_example,
                                                 request.get());
 
-  name_to_metrics received;
+  metrics_to_datapoints received;
   otl_data_point::extract_data_points(
       request, [&](const otl_data_point& data_pt) {
         received[data_pt.get_metric().name()].insert(data_pt);
@@ -573,7 +573,7 @@ TEST_F(otl_converter_test, nagios_telegraf_le_ge) {
 
   ::google::protobuf::util::JsonStringToMessage(example, request.get());
 
-  name_to_metrics received;
+  metrics_to_datapoints received;
   otl_data_point::extract_data_points(
       request, [&](const otl_data_point& data_pt) {
         received[data_pt.get_metric().name()].insert(data_pt);
@@ -600,7 +600,7 @@ TEST_F(otl_converter_test, nagios_telegraf_max) {
 
   ::google::protobuf::util::JsonStringToMessage(example, request.get());
 
-  name_to_metrics received;
+  metrics_to_datapoints received;
   otl_data_point::extract_data_points(
       request, [&](const otl_data_point& data_pt) {
         received[data_pt.get_metric().name()].insert(data_pt);

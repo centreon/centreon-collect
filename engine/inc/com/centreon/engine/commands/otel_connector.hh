@@ -83,7 +83,7 @@ class otel_connector : public command {
   void process_data_pts(
       const std::string_view& host,
       const std::string_view& serv,
-      const modules::opentelemetry::name_to_metrics& data_pts);
+      const modules::opentelemetry::metrics_to_datapoints& data_pts);
 
   virtual uint64_t run(const std::string& processed_cmd,
                        nagios_macros& macros,

@@ -96,7 +96,7 @@ class checker : public commands::command_listener {
 };
 
 /**
- * @brief allow to inspect _to_reap_partial
+ * @brief allow to inspect _to_reap_partial (used only by tests)
  *
  * @tparam queue_handler
  * @param handler must have () (const std::deque<check_result::pointer>  &)

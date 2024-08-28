@@ -60,35 +60,6 @@ extern const char* telegraf_example;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
-// class open_telemetry
-//     : public com::centreon::engine::modules::opentelemetry::open_telemetry {
-//  protected:
-//   void _create_otl_server(
-//       const grpc_config::pointer& server_conf,
-//       const centreon_agent::agent_config::pointer&) override {}
-
-//  public:
-//   open_telemetry(const std::string_view config_file_path,
-//                  const std::shared_ptr<asio::io_context>& io_context,
-//                  const std::shared_ptr<spdlog::logger>& logger)
-//       : com::centreon::engine::modules::opentelemetry::open_telemetry(
-//             config_file_path,
-//             io_context,
-//             logger) {}
-
-//   void on_metric(const metric_request_ptr& metric) { _on_metric(metric); }
-//   void shutdown() { _shutdown(); }
-//   static std::shared_ptr<open_telemetry> load(
-//       const std::string_view& config_path,
-//       const std::shared_ptr<asio::io_context>& io_context,
-//       const std::shared_ptr<spdlog::logger>& logger) {
-//     std::shared_ptr<open_telemetry> ret =
-//         std::make_shared<open_telemetry>(config_path, io_context, logger);
-//     ret->_reload();
-//     return ret;
-//   }
-// };
-
 class open_telemetry_test : public TestEngine {
  public:
   commands::otel::host_serv_list::pointer _host_serv_list;

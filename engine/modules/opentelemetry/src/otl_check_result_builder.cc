@@ -102,7 +102,7 @@ std::shared_ptr<otl_check_result_builder> otl_check_result_builder::create(
 void otl_check_result_builder::process_data_pts(
     const std::string_view& hst,
     const std::string_view& serv,
-    const name_to_metrics& data_pts) {
+    const metrics_to_datapoints& data_pts) {
   check_source notifier_type = check_source::service_check;
   notifier* host_or_serv = nullptr;
 
