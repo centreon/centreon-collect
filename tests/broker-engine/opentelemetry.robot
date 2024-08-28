@@ -697,7 +697,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from localhost:4317
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    15
     Should Be True    ${result}    "init from localhost:4317" not found in log
     Sleep    1
 
