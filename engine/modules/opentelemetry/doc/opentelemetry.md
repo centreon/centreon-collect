@@ -4,8 +4,8 @@ Engine can receive open telemetry data on a grpc server
 A new module is added opentelemetry
 It works like that:
 * metrics are received
-* extractors tries to extract host name and service description for each otl_data_point. On success, otl_data_point are pushed on fifos indexed by host, service
-* a service that used these datas wants to do a check. The cmd line identifies the otl_check_result_builder that will construct check result from host service otl_data_point fifos. If converter achieves to build a result from metrics, it returns right now, if it doesn't, a handler will be called as soon as needed metrics will be available or timeout expires.
+* extractors tries to extract host name and service description for each otl_data_point. 
+* On success, it searches a check_result_builder used by the passive otel service. Then the check_result_builder converts otl_data_point in check_result and update passive service.
 
 ### open telemetry request
 The proto is organized like that
@@ -115,11 +115,9 @@ The proto is organized like that
 ### Concepts and classes
 * otl_data_point: otl_data_point is the smallest unit of received request, otl_data_point class contains otl_data_point protobuf object and all his parents (resource, scope, metric)
 * host serv extractors: When we receive otel metrics, we must extract host and service, this is his job. It can be configurable in order for example to search host name in otl_data_point attribute or in scope. host serv extractors also contains host serv allowed. This list is updated by register_host_serv command method
-* otl_data_point fifo: a container that contains data points indexed by timestamp
-* otl_data_point fifo container: fifos indexed by host service
 * otel_connector: a fake connector that is used to make the link between engine and otel module
 * otl_server: a grpc server that accept otel collector incoming connections
-* otl_check_result_builder: This short lived object is created each time engine wants to do a check. His final class as his configuration is done from the command line of the check. His job is to create a check result from otl_data_point fifo container datas. It's destroyed when he achieved to create a check result or when timeout expires.
+* otl_check_result_builder: His final class as his configuration is done from the command line of the check. His job is to create a check result from otl_data_point.
 * host_serv_list: in order to extract host and service, an host_serv extractor must known allowed host service pairs. As otel_connector may be notified of host service using it by register_host_serv method while otel module is not yet loaded. This object shared between otel_connector and host_serv_extractor is actualized from otel_connector::register_host_serv.
 
 ### How engine access to otl object
@@ -128,16 +126,9 @@ Object used by both otel module and engine are inherited from these interfaces.
 Engine only knows a singleton of the interface open_telemetry_base. This singleton is initialized at otl module loading.
 
 ### How to configure it
-We use a fake connector. When configuration is loaded, if a connector command line begins with "open_telemetry", we create an otel_connector. Arguments following "open_telemetry" are used to create an host service extractor. If otel module is loaded, we create extractor, otherwise, the otel_connector initialization will be done at otel module loading.
-So user has to build one connector by host serv extractor configuration.
-Then commands can use these fake connectors (class otel_connector) to run checks.
-
-### How a service do a check
-When otel_connector::run is called, it calls the check method of open_telemetry singleton.
-The check method of open_telemetry object will use command line passed to run to create an otl_check_result_builder object that has to convert metrics to check result.
-The open_telemetry call sync_build_result_from_metrics, if it can't achieve to build a result, otl_check_result_builder is stored in a container.
-When a metric of a waiting service is received, async_build_result_from_metrics of otl_check_result_builder is called.
-In open_telemetry object, a second timer is also used to call async_time_out of otl_check_result_builder on timeout expire.
+We use a fake connector. When configuration is loaded, if a connector command line begins with "open_telemetry", we create an otel_connector. Arguments following "open_telemetry" are used to create an host service extractor and a check_result_builder. If otel module is loaded, we create extractor, otherwise, the otel_connector initialization will be done at otel module loading.
+So user has to build one connector by host serv extractor, check_result_builder configuration.
+Then received otel data_points will be converted in check_result.
 
 ### other configuration
 other configuration parameters are stored in a dedicated json file. The path of this file is passed as argument in centengine.cfg

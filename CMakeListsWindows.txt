@@ -21,7 +21,7 @@ if (BUILD_FROM_CACHE)
   LIST(APPEND CMAKE_PREFIX_PATH "build_windows/vcpkg_installed/x64-windows")
 endif()
 
-#in order to make fmt compile version >= 2024.07.12
+#in order to make fmt compile
 add_definitions("/utf-8")
 
 
