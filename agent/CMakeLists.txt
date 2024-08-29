@@ -122,6 +122,10 @@ set( SRC_LINUX
   ${SRC_DIR}/config.cc
 )
 
+configure_file("${INCLUDE_DIR}/version.hh.in"
+               "${INCLUDE_DIR}/version.hh")
+
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SRC ${SRC_COMMON} ${SRC_LINUX})
 else()

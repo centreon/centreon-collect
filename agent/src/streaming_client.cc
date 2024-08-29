@@ -19,6 +19,7 @@
 #include "streaming_client.hh"
 #include "check_exec.hh"
 #include "com/centreon/common/defer.hh"
+#include "version.hh"
 
 using namespace com::centreon::agent;
 
@@ -145,10 +146,9 @@ void streaming_client::_create_reactor() {
       std::make_shared<MessageFromAgent>();
   auto infos = who_i_am->mutable_init();
 
-  infos->mutable_centreon_version()->set_major(COLLECT_MAJOR);
-  infos->mutable_centreon_version()->set_minor(COLLECT_MINOR);
-  infos->mutable_centreon_version()->set_patch(COLLECT_PATCH);
-
+  infos->mutable_centreon_version()->set_major(CENTREON_AGENT_VERSION_MAJOR);
+  infos->mutable_centreon_version()->set_minor(CENTREON_AGENT_VERSION_MINOR);
+  infos->mutable_centreon_version()->set_patch(CENTREON_AGENT_VERSION_PATCH);
   infos->set_host(_supervised_host);
 
   _reactor->write(who_i_am);
