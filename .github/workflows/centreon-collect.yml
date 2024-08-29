@@ -1,4 +1,10 @@
 name: Centreon collect
+run-name: |
+  ${{
+    (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.is_nightly == 'true'))
+    && format('collect nightly {0}', github.ref_name)
+    || ''
+  }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -6,6 +12,14 @@ concurrency:
 
 on:
   workflow_dispatch:
+    inputs:
+      is_nightly:
+        description: 'Set to true for nightly run'
+        required: true
+        default: false
+        type: boolean
+  schedule:
+    - cron: '30 0 * * 1-5'
   pull_request:
     paths:
       - agent/**
@@ -57,40 +71,154 @@ on:
       - "!**/test/**"
 
 jobs:
+  dispatch-to-maintained-branches:
+    if: ${{ github.event_name == 'schedule' && github.ref_name == 'develop' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - run: |
+          gh workflow run robot-nightly.yml -r "dev-24.04.x"
+          gh workflow run robot-nightly.yml -r "dev-23.10.x"
+          gh workflow run robot-nightly.yml -r "dev-23.04.x"
+          gh workflow run robot-nightly.yml -r "dev-22.10.x"
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   get-version:
     uses: ./.github/workflows/get-version.yml
     with:
       version_file: CMakeLists.txt
 
+  veracode-analysis:
+    needs: [get-version]
+    if: ${{ github.event_name == 'schedule' && github.ref_name == 'develop' }}
+    uses: ./.github/workflows/veracode-analysis.yml
+    with:
+      module_name: centreon-collect
+      major_version: ${{ needs.get-version.outputs.major_version }}
+      minor_version: ${{ needs.get-version.outputs.minor_version }}
+      img_version: ${{ needs.get-version.outputs.img_version }}
+    secrets:
+      veracode_api_id: ${{ secrets.VERACODE_API_ID_COLL }}
+      veracode_api_key: ${{ secrets.VERACODE_API_KEY_COLL }}
+      veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
+      docker_registry_id: ${{ secrets.DOCKER_REGISTRY_ID }}
+      docker_registry_passwd: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
   unit-test:
     needs: [get-version]
     if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
-    runs-on: [self-hosted, collect]
 
     strategy:
       fail-fast: false
       matrix:
-        image: [alma8, alma9, debian-bullseye, debian-bookworm]
-    name: unit test ${{ matrix.image }}
+        distrib: [alma8, alma9, debian-bullseye, debian-bookworm]
+
+    runs-on: [self-hosted, collect]
+
+    env:
+      SCCACHE_PATH: "/usr/bin/sccache"
+      SCCACHE_BUCKET: "centreon-github-sccache"
+      SCCACHE_REGION: "eu-west-1"
+      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+
+    container:
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
+      credentials:
+        username: ${{ secrets.DOCKER_REGISTRY_ID }}
+        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+    name: unit test ${{ matrix.distrib }}
 
     steps:
       - name: Checkout sources
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Login to Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-        with:
-          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+      - name: Install sccache
+        run: |
+          if ! command -v wget &> /dev/null; then
+            if [[ "${{ matrix.distrib }}" == "alma8" || "${{ matrix.distrib }}" == "alma9" ]]; then
+              dnf install -y wget
+            else
+              apt-get update
+              apt-get install -y wget
+            fi
+          fi
 
-      - name: Test ${{ matrix.image }}
-        uses: ./.github/actions/runner-docker
-        with:
-          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          script_name: /src/.github/scripts/collect-unit-tests
-          image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ needs.get-version.outputs.img_version }}
+          wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
+          tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
+          mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/bin/
+
+          ${SCCACHE_PATH} --start-server
+        shell: bash
+
+      - name: Compile centreon-collect
+        run: |
+          CMAKE="cmake"
+          if [[ "${{ matrix.distrib }}" == "alma8" || "${{ matrix.distrib }}" == "alma9" ]]; then
+            CMAKE="cmake3"
+          fi
+
+          export VCPKG_ROOT=/vcpkg
+          export PATH=$VCPKG_ROOT:$PATH
+
+          mv /root/.cache /github/home/
+
+          CXXFLAGS="-Wall -Wextra" $CMAKE \
+                  -B build \
+                  -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
+                  -DVCPKG_TARGET_TRIPLET=x64-linux-release \
+                  -DVCPKG_OVERLAY_PORTS=/overlays \
+                  -GNinja \
+                  -DDEBUG_ROBOT=OFF \
+                  -DCMAKE_EXPORT_COMPILE_COMMANDS=On \
+                  -DCMAKE_BUILD_TYPE=Debug \
+                  -DWITH_PREFIX=/usr \
+                  -DWITH_PREFIX_BIN=/usr/sbin \
+                  -DWITH_USER_BROKER=centreon-broker \
+                  -DWITH_USER_ENGINE=centreon-engine \
+                  -DWITH_GROUP_BROKER=centreon-broker \
+                  -DWITH_GROUP_ENGINE=centreon-engine \
+                  -DWITH_TESTING=On \
+                  -DWITH_PREFIX_MODULES=/usr/share/centreon/lib/centreon-broker \
+                  -DWITH_PREFIX_CONF_BROKER=/etc/centreon-broker \
+                  -DWITH_PREFIX_LIB_BROKER=/usr/lib64/nagios \
+                  -DWITH_PREFIX_CONF_ENGINE=/etc/centreon-engine \
+                  -DWITH_PREFIX_LIB_ENGINE=/usr/lib64/centreon-engine \
+                  -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ \
+                  -DWITH_RW_DIR=/var/lib/centreon-engine/rw \
+                  -DWITH_VAR_DIR=/var/log/centreon-engine \
+                  -DWITH_MODULE_SIMU=On \
+                  -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
+                  -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
+                  -S .
+
+          ninja -Cbuild
+          ninja -Cbuild install
+        shell: bash
+
+      - name: Cache statistics
+        run: ${SCCACHE_PATH} --show-stats
+        shell: bash
+
+      - name: Stop sccache server
+        run: ${SCCACHE_PATH} --stop-server
+        shell: bash
+
+      - name: Run unit tests
+        run: |
+          tests/ut_broker --gtest_output=xml:ut_broker.xml
+          tests/ut_engine --gtest_output=xml:ut_engine.xml
+          tests/ut_clib --gtest_output=xml:ut_clib.xml
+          tests/ut_connector --gtest_output=xml:ut_connector.xml
+          tests/ut_common --gtest_output=xml:ut_common.xml
+          tests/ut_agent --gtest_output=xml:ut_agent.xml
+        working-directory: build
+        shell: bash
 
   package:
     needs: [get-version]
@@ -105,10 +233,92 @@ jobs:
       stability: ${{ needs.get-version.outputs.stability }}
     secrets: inherit
 
+  robot-test:
+    needs: [get-version, package]
+    if: |
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.is_nightly == 'true')) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distrib: el9
+            image: centreon-collect-alma9-test
+            package_extension: rpm
+            arch: amd64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-el9-amd64
+            tests_params: '{}'
+          - distrib: el9
+            image: centreon-collect-mysql-alma9-test
+            package_extension: rpm
+            arch: amd64
+            database_type: mysql
+            test_group_name: robot_test-mysql-el9-amd64
+            tests_params: '{}'
+          - distrib: bullseye
+            image: centreon-collect-debian-bullseye-arm64-test
+            package_extension: deb
+            arch: arm64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-bullseye-arm64
+            tests_params: '{}'
+          - distrib: bookworm
+            image: centreon-collect-debian-bookworm-arm64-test
+            package_extension: deb
+            arch: arm64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-bookworm-arm64
+            tests_params: '{}'
+          - distrib: bookworm
+            image: centreon-collect-debian-bookworm-test
+            package_extension: deb
+            arch: amd64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-bookworm-amd64
+            tests_params: '{}'
+          - distrib: el9
+            image: centreon-collect-alma9-test
+            package_extension: rpm
+            arch: amd64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-el9-amd64-grpc
+            tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
+
+    name: ${{ matrix.test_group_name }}
+
+    uses: ./.github/workflows/robot-test.yml
+    with:
+      distrib: ${{ matrix.distrib }}
+      arch: ${{ matrix.arch }}
+      image: ${{ matrix.image }}
+      image_test: ${{ matrix.image }}:${{ needs.get-version.outputs.test_img_version }}
+      image_version: ${{ needs.get-version.outputs.img_version }}
+      package_cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ matrix.package_extension }}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+      package_cache_path: ./*.${{ matrix.package_extension}}
+      database_type: ${{ matrix.database_type }}
+      tests_params: ${{matrix.tests_params}}
+      test_group_name: ${{matrix.test_group_name}}
+    secrets:
+      registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
+      registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+      collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
+      collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+      xray_client_id: ${{ secrets.XRAY_CLIENT_ID }}
+      xray_client_secret: ${{ secrets.XRAY_CLIENT_SECRET }}
+
   deliver-sources:
     runs-on: [self-hosted, common]
     needs: [get-version, package]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    if: |
+      github.event_name != 'workflow_dispatch' &&
+      contains(fromJson('["stable"]'), needs.get-version.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
 
     steps:
       - name: Checkout sources
@@ -127,8 +337,12 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
-    if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
-    needs: [get-version, package]
+    if: |
+      contains(fromJson('["unstable", "testing"]'), needs.get-version.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    needs: [get-version, robot-test]
     environment: ${{ needs.get-version.outputs.environment }}
     runs-on: [self-hosted, common]
     strategy:
@@ -158,8 +372,12 @@ jobs:
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   deliver-deb:
-    if: ${{ !needs.get-version.outputs.release_cloud && contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
-    needs: [get-version, package]
+    if: |
+      contains(fromJson('["unstable", "testing"]'), needs.get-version.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    needs: [get-version, robot-test]
     environment: ${{ needs.get-version.outputs.environment }}
     runs-on: [self-hosted, common]
     strategy:
@@ -194,7 +412,12 @@ jobs:
 
   promote:
     needs: [get-version]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    if: |
+      github.event_name != 'workflow_dispatch' &&
+      contains(fromJson('["stable"]'), needs.get-version.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
     runs-on: [self-hosted, common]
     strategy:
       matrix:
