@@ -18,6 +18,11 @@ on:
         required: true
         default: false
         type: boolean
+      run_robot_tests:
+        description: 'Set to true to run robot framework tests'
+        required: true
+        default: false
+        type: boolean
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
@@ -236,7 +241,7 @@ jobs:
   robot-test:
     needs: [get-version, package]
     if: |
-      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.is_nightly == 'true')) &&
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.is_nightly == 'true' || github.event.inputs.run_robot_tests == 'true'))) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
