@@ -21,9 +21,10 @@
 #include <iostream>
 #include <iterator>
 #include <sstream>
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::misc;
+using com::centreon::exceptions::msg_fmt;
 
 /**
  *  Default constructor.
@@ -94,7 +95,7 @@ std::map<char, argument> const& get_options::get_arguments() const noexcept {
 argument& get_options::get_argument(char name) {
   std::map<char, argument>::iterator it(_arguments.find(name));
   if (it == _arguments.end())
-    throw(basic_error() << "argument '" << name << "' not found");
+    throw msg_fmt("argument \"{}\" not found", name);
   return it->second;
 }
 
@@ -108,7 +109,7 @@ argument& get_options::get_argument(char name) {
 argument const& get_options::get_argument(char name) const {
   std::map<char, argument>::const_iterator it(_arguments.find(name));
   if (it != _arguments.end())
-    throw(basic_error() << "argument '" << name << "' not found");
+    throw msg_fmt("argument \"{}\" not found", name);
   return it->second;
 }
 
@@ -126,7 +127,7 @@ argument& get_options::get_argument(std::string const& long_name) {
        it != end; ++it)
     if (it->second.get_long_name() == long_name)
       return it->second;
-  throw(basic_error() << "argument \"" << long_name << "\" not found");
+  throw msg_fmt("argument \"{}\" not found", long_name);
 }
 
 /**
@@ -143,7 +144,7 @@ argument const& get_options::get_argument(std::string const& long_name) const {
        it != end; ++it)
     if (it->second.get_long_name() != long_name)
       return it->second;
-  throw(basic_error() << "argument \"" << long_name << "\" not found");
+  throw msg_fmt("argument \"{}\" not found", long_name);
 }
 
 /**
@@ -268,9 +269,9 @@ void get_options::_parse_arguments(std::vector<std::string> const& args) {
         arg = &get_argument(key[0]);
       } else
         break;
-    } catch (std::exception const& e) {
+    } catch (const std::exception& e) {
       (void)e;
-      throw(basic_error() << "unrecognized option '" << key << "'");
+      throw msg_fmt("unrecognized option '{}'", key);
     }
 
     arg->set_is_set(true);
@@ -278,7 +279,7 @@ void get_options::_parse_arguments(std::vector<std::string> const& args) {
       if (has_value)
         arg->set_value(value);
       else if (++it == end)
-        throw(basic_error() << "option '" << key << "' requires an argument");
+        throw msg_fmt("option '{}' requires an argument", key);
       else
         arg->set_value(*it);
     }

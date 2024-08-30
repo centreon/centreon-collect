@@ -34,6 +34,7 @@ set(
   HEADERS
   ${HEADERS}
   "${INC_DIR}/basic.hh"
+  "${INC_DIR}/msg_fmt.hh"
   "${INC_DIR}/interruption.hh"
   PARENT_SCOPE
 )
