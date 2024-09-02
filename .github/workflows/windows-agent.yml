@@ -27,7 +27,13 @@ on:
       - vcpkg.json
 
 jobs:
+  get-version:
+    uses: ./.github/workflows/get-version.yml
+    with:
+      version_file: CMakeLists.txt
+
   build-and-test-agent:
+    needs: [get-version]
     runs-on: windows-latest
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
@@ -57,14 +63,19 @@ jobs:
           Compress-Archive -Path $files_to_compress -DestinationPath centreon-monitoring-agent.zip
 
       - name: Save agent package in cache
-        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: centreon-monitoring-agent.zip
           key: ${{ github.run_id }}-${{ github.sha }}-CMA-${{ github.head_ref || github.ref_name }}
 
       - name: Upload package artifacts
-        if: ${{ false }}
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        if: |
+          github.event_name != 'workflow_dispatch' &&
+          contains(fromJson('["stable"]'), needs.get-version.outputs.stability) &&
+          ! cancelled() &&
+          ! contains(needs.*.result, 'failure') &&
+          ! contains(needs.*.result, 'cancelled')
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: packages-centreon-monitoring-agent-windows
           path: centreon-monitoring-agent.zip
