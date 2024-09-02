@@ -70,45 +70,14 @@ jobs:
           enableCrossOsArchive: ${{ true }}
 
       - name: Upload package artifacts
-        if: ${{ false }}
+        if: |
+          github.event_name != 'workflow_dispatch' &&
+          contains(fromJson('["stable"]'), needs.get-version.outputs.stability) &&
+          ! cancelled() &&
+          ! contains(needs.*.result, 'failure') &&
+          ! contains(needs.*.result, 'cancelled')
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: packages-centreon-monitoring-agent-windows
           path: centreon-monitoring-agent.zip
           retention-days: 1
-  deliver-zip:
-    runs-on: [self-hosted, common]
-    needs: [get-version, build-and-test-agent]
-    # if: |
-    #   github.event_name != 'workflow_dispatch' &&
-    #   contains(fromJson('["stable"]'), needs.get-version.outputs.stability) &&
-    #   ! cancelled() &&
-    #   ! contains(needs.*.result, 'failure') &&
-    #   ! contains(needs.*.result, 'cancelled')
-
-    steps:
-      - name: Setup awscli
-        run: |
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          sudo unzip -q awscliv2.zip
-          sudo ./aws/install
-        shell: bash
-
-      - name: get zip from cache
-        uses: actions/cache/restore@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
-        with:
-          path: centreon-monitoring-agent.zip
-          key: ${{ github.run_id }}-${{ github.sha }}-CMA-${{ github.head_ref || github.ref_name }}
-
-      - name: Deliver sources
-        run: |
-          MAJOR_VERSION="${{ needs.get-version.outputs.major_version }}"
-          VERSION="${{ needs.get-version.outputs.major_version }}.${{ needs.get-version.outputs.minor_version }}"
-          AGENT_FILE="centreon-monitoring-agent-${VERSION}.zip"
-          mv centreon-monitoring-agent.zip ${AGENT_FILE}
-        
-          ZIP_HASH=$(md5sum ${AGENT_FILE} | cut -d ' ' -f 1)
-          ZIP_SIZE=$(stat -c '%s' ${AGENT_FILE})
-
-          aws s3 cp --acl public-read "${AGENT_FILE}" "s3://centreon-download/public/centreon-collect/${AGENT_FILE}"
-          curl --fail "https://download.centreon.com/api/?token=${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}&product=centreon-collect&release=$MAJOR_VERSION&version=$VERSION&extension=zip&md5=$ZIP_HASH&size=$ZIP_SIZE&ddos=0&dryrun=0"
