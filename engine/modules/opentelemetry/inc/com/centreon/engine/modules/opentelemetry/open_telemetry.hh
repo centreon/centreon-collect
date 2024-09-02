@@ -23,7 +23,6 @@
 #include "com/centreon/engine/commands/otel_interface.hh"
 
 #include "centreon_agent/agent_reverse_client.hh"
-#include "data_point_fifo_container.hh"
 #include "host_serv_extractor.hh"
 #include "otl_check_result_builder.hh"
 #include "otl_config.hh"
@@ -46,7 +45,6 @@ class otl_server;
  *
  */
 class open_telemetry : public commands::otel::open_telemetry_base {
-  asio::system_timer _second_timer;
   std::shared_ptr<otl_server> _otl_server;
   std::shared_ptr<http::server> _telegraf_conf_server;
   std::unique_ptr<centreon_agent::agent_reverse_client> _agent_reverse_client;
@@ -54,47 +52,14 @@ class open_telemetry : public commands::otel::open_telemetry_base {
   using cmd_line_to_extractor_map =
       absl::btree_map<std::string, std::shared_ptr<host_serv_extractor>>;
   cmd_line_to_extractor_map _extractors;
-  data_point_fifo_container _fifo;
   std::string _config_file_path;
   std::unique_ptr<otl_config> _conf;
   std::shared_ptr<spdlog::logger> _logger;
-
-  struct host_serv_getter {
-    using result_type = host_serv;
-    const result_type& operator()(
-        const std::shared_ptr<otl_check_result_builder>& node) const {
-      return node->get_host_serv();
-    }
-  };
-
-  struct time_out_getter {
-    using result_type = std::chrono::system_clock::time_point;
-    result_type operator()(
-        const std::shared_ptr<otl_check_result_builder>& node) const {
-      return node->get_time_out();
-    }
-  };
-
-  /**
-   * @brief when check can't return data right now, we have no metrics in fifo,
-   * converter is stored in this container. It's indexed by host,serv and by
-   * timeout
-   *
-   */
-  using waiting_converter = boost::multi_index::multi_index_container<
-      std::shared_ptr<otl_check_result_builder>,
-      boost::multi_index::indexed_by<
-          boost::multi_index::hashed_non_unique<host_serv_getter>,
-          boost::multi_index::ordered_non_unique<time_out_getter>>>;
-
-  waiting_converter _waiting;
 
   std::shared_ptr<asio::io_context> _io_context;
   mutable std::mutex _protect;
 
   void _forward_to_broker(const std::vector<otl_data_point>& unknown);
-
-  void _second_timer_handler();
 
   void _create_telegraf_conf_server(
       const telegraf::conf_server_config::pointer& conf);
@@ -103,9 +68,7 @@ class open_telemetry : public commands::otel::open_telemetry_base {
   virtual void _create_otl_server(
       const grpc_config::pointer& server_conf,
       const centreon_agent::agent_config::pointer& agent_conf);
-  void _on_metric(const metric_request_ptr& metric);
   void _reload();
-  void _start_second_timer();
   void _shutdown();
 
  public:
@@ -131,21 +94,14 @@ class open_telemetry : public commands::otel::open_telemetry_base {
 
   static void unload(const std::shared_ptr<spdlog::logger>& logger);
 
-  bool check(const std::string& processed_cmd,
-             const std::shared_ptr<commands::otel::check_result_builder_config>&
-                 conv_conf,
-             uint64_t command_id,
-             nagios_macros& macros,
-             uint32_t timeout,
-             commands::result& res,
-             commands::otel::result_callback&& handler) override;
+  void on_metric(const metric_request_ptr& metric);
 
   std::shared_ptr<commands::otel::host_serv_extractor> create_extractor(
       const std::string& cmdline,
       const commands::otel::host_serv_list::pointer& host_serv_list) override;
 
-  std::shared_ptr<commands::otel::check_result_builder_config>
-  create_check_result_builder_config(const std::string& cmd_line) override;
+  std::shared_ptr<commands::otel::otl_check_result_builder_base>
+  create_check_result_builder(const std::string& cmdline) override;
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry

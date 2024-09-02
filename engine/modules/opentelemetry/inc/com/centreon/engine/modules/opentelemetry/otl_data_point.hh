@@ -45,45 +45,6 @@ struct initialized_data_class : public data_class {
   }
 };
 
-/**
- * @brief pair with host_name in first and serv in second
- *
- */
-using host_serv = std::pair<std::string /*host*/, std::string /*serv*/>;
-
-/**
- * @brief This struct is used to lookup in a host_serv indexed container with
- * a std::pair<std::string_view, std::string_view>
- *
- */
-struct host_serv_hash_eq {
-  using is_transparent = void;
-  using host_serv_string_view = std::pair<std::string_view, std::string_view>;
-
-  size_t operator()(const host_serv& to_hash) const {
-    return absl::Hash<host_serv>()(to_hash);
-  }
-  size_t operator()(const host_serv_string_view& to_hash) const {
-    return absl::Hash<host_serv_string_view>()(to_hash);
-  }
-
-  bool operator()(const host_serv& left, const host_serv& right) const {
-    return left == right;
-  }
-  bool operator()(const host_serv& left,
-                  const host_serv_string_view& right) const {
-    return left.first == right.first && left.second == right.second;
-  }
-  bool operator()(const host_serv_string_view& left,
-                  const host_serv& right) const {
-    return left.first == right.first && left.second == right.second;
-  }
-  bool operator()(const host_serv_string_view& left,
-                  const host_serv_string_view& right) const {
-    return left == right;
-  }
-};
-
 using metric_request_ptr =
     std::shared_ptr<::opentelemetry::proto::collector::metrics::v1::
                         ExportMetricsServiceRequest>;
@@ -122,6 +83,7 @@ class otl_data_point {
       ::opentelemetry::proto::common::v1::KeyValue>& _data_point_attributes;
   const ::google::protobuf::RepeatedPtrField<
       ::opentelemetry::proto::metrics::v1::Exemplar>& _exemplars;
+  uint64_t _start_nano_timestamp;
   uint64_t _nano_timestamp;
   data_point_type _type;
   double _value;
@@ -173,6 +135,7 @@ class otl_data_point {
     return _data_point;
   }
 
+  uint64_t get_start_nano_timestamp() const { return _start_nano_timestamp; }
   uint64_t get_nano_timestamp() const { return _nano_timestamp; }
 
   data_point_type get_type() { return _type; }

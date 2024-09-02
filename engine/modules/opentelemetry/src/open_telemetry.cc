@@ -20,8 +20,15 @@
 
 #include "centreon_agent/agent_impl.hh"
 #include "com/centreon/common/http/https_connection.hh"
-#include "com/centreon/engine/modules/opentelemetry/open_telemetry.hh"
 
+#include "com/centreon/engine/host.hh"
+#include "com/centreon/engine/service.hh"
+
+#include "com/centreon/engine/command_manager.hh"
+
+#include "open_telemetry.hh"
+
+#include "com/centreon/engine/commands/otel_connector.hh"
 #include "otl_fmt.hh"
 #include "otl_server.hh"
 
@@ -37,8 +44,7 @@ open_telemetry::open_telemetry(
     const std::string_view config_file_path,
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger)
-    : _second_timer(*io_context),
-      _config_file_path(config_file_path),
+    : _config_file_path(config_file_path),
       _logger(logger),
       _io_context(io_context) {
   SPDLOG_LOGGER_INFO(_logger, "load of open telemetry module");
@@ -88,8 +94,6 @@ void open_telemetry::_reload() {
     fmt::formatter<::opentelemetry::proto::collector::metrics::v1::
                        ExportMetricsServiceRequest>::json_grpc_format =
         new_conf->get_json_grpc_log();
-    data_point_fifo::update_fifo_limit(new_conf->get_second_fifo_expiry(),
-                                       new_conf->get_max_fifo_size());
 
     _conf = std::move(new_conf);
 
@@ -98,7 +102,7 @@ void open_telemetry::_reload() {
           std::make_unique<centreon_agent::agent_reverse_client>(
               _io_context,
               [me = shared_from_this()](const metric_request_ptr& request) {
-                me->_on_metric(request);
+                me->on_metric(request);
               },
               _logger);
     }
@@ -131,7 +135,6 @@ std::shared_ptr<open_telemetry> open_telemetry::load(
     _instance =
         std::make_shared<open_telemetry>(config_path, io_context, logger);
     instance()->_reload();
-    instance()->_start_second_timer();
   }
   return instance();
 }
@@ -152,7 +155,7 @@ void open_telemetry::_create_otl_server(
     _otl_server = otl_server::load(
         _io_context, server_conf, agent_conf,
         [me = shared_from_this()](const metric_request_ptr& request) {
-          me->_on_metric(request);
+          me->on_metric(request);
         },
         _logger);
   } catch (const std::exception& e) {
@@ -246,8 +249,6 @@ void open_telemetry::_shutdown() {
   if (to_shutdown) {
     to_shutdown->shutdown(std::chrono::seconds(10));
   }
-  std::lock_guard l(_protect);
-  _second_timer.cancel();
 }
 
 /**
@@ -300,80 +301,10 @@ open_telemetry::create_extractor(
   }
 }
 
-/**
- * @brief converter is created for each check, so in order to not parse otel
- * connector command line on each check , we create a
- * check_result_builder_config object that is used to create converter it search
- * the flag extractor
- *
- * @param cmd_line
- * @return
- * std::shared_ptr<com::centreon::engine::commands::otel::check_result_builder_config>
- */
 std::shared_ptr<
-    com::centreon::engine::commands::otel::check_result_builder_config>
-open_telemetry::create_check_result_builder_config(
-    const std::string& cmd_line) {
-  return otl_check_result_builder::create_check_result_builder_config(cmd_line);
-}
-
-/**
- * @brief simulate a check by reading in metrics fifos
- * It creates an otel_converter, the first word of processed_cmd is the name
- * of converter such as nagios_telegraf. Following parameters are used by
- * converter
- *
- * @param processed_cmd converter type with arguments
- * @param command_id command id
- * @param macros
- * @param timeout
- * @param res filled if it returns true
- * @param handler called later if it returns false
- * @return true res is filled with a result
- * @return false result will be passed to handler as soon as available or
- * timeout
- * @throw  if converter type is unknown
- */
-bool open_telemetry::check(
-    const std::string& processed_cmd,
-    const std::shared_ptr<commands::otel::check_result_builder_config>&
-        conv_config,
-    uint64_t command_id,
-    nagios_macros& macros,
-    uint32_t timeout,
-    commands::result& res,
-    commands::otel::result_callback&& handler) {
-  std::shared_ptr<otl_check_result_builder> to_use;
-  try {
-    to_use = otl_check_result_builder::create(
-        processed_cmd,
-        std::static_pointer_cast<check_result_builder_config>(conv_config),
-        command_id, *macros.host_ptr, macros.service_ptr,
-        std::chrono::system_clock::now() + std::chrono::seconds(timeout),
-        std::move(handler), _logger);
-  } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(_logger, "fail to create converter for {} : {}",
-                        processed_cmd, e.what());
-    throw;
-  };
-
-  bool res_available = to_use->sync_build_result_from_metrics(_fifo, res);
-
-  if (res_available) {
-    SPDLOG_LOGGER_TRACE(_logger, "data available for command {} converter:{}",
-                        command_id, *to_use);
-    return true;
-  }
-
-  SPDLOG_LOGGER_TRACE(
-      _logger, "data unavailable for command {} timeout: {} converter:{}",
-      command_id, timeout, *to_use);
-
-  // metrics not yet available = wait for data or until timeout
-  std::lock_guard l(_protect);
-  _waiting.insert(to_use);
-
-  return false;
+    com::centreon::engine::commands::otel::otl_check_result_builder_base>
+open_telemetry::create_check_result_builder(const std::string& cmdline) {
+  return otl_check_result_builder::create(cmdline, _logger);
 }
 
 /**
@@ -385,7 +316,7 @@ bool open_telemetry::check(
  *
  * @param metrics collector request
  */
-void open_telemetry::_on_metric(const metric_request_ptr& metrics) {
+void open_telemetry::on_metric(const metric_request_ptr& metrics) {
   std::vector<otl_data_point> unknown;
   {
     std::lock_guard l(_protect);
@@ -395,13 +326,15 @@ void open_telemetry::_on_metric(const metric_request_ptr& metrics) {
             unknown.push_back(data_pt);
           });
     } else {
-      waiting_converter::nth_index<0>::type& host_serv_index =
-          _waiting.get<0>();
-      std::vector<std::shared_ptr<otl_check_result_builder>> to_notify;
+      std::shared_ptr<absl::flat_hash_map<
+          std::pair<std::string_view, std::string_view>, metric_to_datapoints>>
+          known_data_pt = std::make_shared<
+              absl::flat_hash_map<std::pair<std::string_view, std::string_view>,
+                                  metric_to_datapoints>>();
       auto last_success = _extractors.begin();
       otl_data_point::extract_data_points(
-          metrics, [this, &unknown, &last_success, &host_serv_index,
-                    &to_notify](const otl_data_point& data_pt) {
+          metrics, [this, &unknown, &last_success,
+                    known_data_pt](const otl_data_point& data_pt) {
             bool data_point_known = false;
             // we try all extractors and we begin with the last which has
             // achieved to extract host
@@ -410,17 +343,10 @@ void open_telemetry::_on_metric(const metric_request_ptr& metrics) {
                   last_success->second->extract_host_serv_metric(data_pt);
 
               if (!hostservmetric.host.empty()) {  // match
-                _fifo.add_data_point(hostservmetric.host,
-                                     hostservmetric.service,
-                                     hostservmetric.metric, data_pt);
-
-                // converters waiting this metric?
-                auto waiting = host_serv_index.equal_range(
-                    host_serv{hostservmetric.host, hostservmetric.service});
-                while (waiting.first != waiting.second) {
-                  to_notify.push_back(*waiting.first);
-                  waiting.first = host_serv_index.erase(waiting.first);
-                }
+                (*known_data_pt)[std::make_pair(hostservmetric.host,
+                                                hostservmetric.service)]
+                                [data_pt.get_metric().name()]
+                                    .insert(data_pt);
                 data_point_known = true;
                 break;
               }
@@ -435,67 +361,35 @@ void open_telemetry::_on_metric(const metric_request_ptr& metrics) {
                   data_pt);  // unknown metric => forward to broker
             }
           });
-      SPDLOG_LOGGER_TRACE(_logger, "fifos:{}", _fifo);
-      // we wait that all request datas have been computed to give us more
-      // chance of converter success
-      for (auto to_callback : to_notify) {
-        if (!to_callback->async_build_result_from_metrics(
-                _fifo)) {  // not enough data => repush in _waiting
-          _waiting.insert(to_callback);
-        }
-      }
-      SPDLOG_LOGGER_TRACE(_logger, "fifos:{}", _fifo);
+
+      // we post all check results in the main thread
+      auto fn = std::packaged_task<int(void)>(
+          [known_data_pt, metrics, logger = _logger]() {
+            // for each host or service, we generate a result
+            for (const auto& host_serv_data : *known_data_pt) {
+              // get connector for this service
+              std::shared_ptr<commands::otel_connector> conn =
+                  commands::otel_connector::get_otel_connector_from_host_serv(
+                      host_serv_data.first.first, host_serv_data.first.second);
+              if (!conn) {
+                SPDLOG_LOGGER_ERROR(
+                    logger, "no opentelemetry connector found for {}:{}",
+                    host_serv_data.first.first, host_serv_data.first.second);
+              } else {
+                conn->process_data_pts(host_serv_data.first.first,
+                                       host_serv_data.first.second,
+                                       host_serv_data.second);
+              }
+            }
+            return OK;
+          });
+      command_manager::instance().enqueue(std::move(fn));
     }
   }
   if (!unknown.empty()) {
     SPDLOG_LOGGER_TRACE(_logger, "{} unknown data_points", unknown.size());
     _forward_to_broker(unknown);
   }
-}
-
-/**
- * @brief the second timer is used to handle converter timeouts
- *
- */
-void open_telemetry::_start_second_timer() {
-  std::lock_guard l(_protect);
-  _second_timer.expires_from_now(std::chrono::seconds(1));
-  _second_timer.async_wait(
-      [me = shared_from_this()](const boost::system::error_code& err) {
-        if (!err) {
-          me->_second_timer_handler();
-        }
-      });
-}
-
-/**
- * @brief notify all timeouts
- *
- */
-void open_telemetry::_second_timer_handler() {
-  std::vector<std::shared_ptr<otl_check_result_builder>> to_notify;
-  {
-    std::lock_guard l(_protect);
-    std::chrono::system_clock::time_point now =
-        std::chrono::system_clock::now();
-    waiting_converter::nth_index<1>::type& expiry_index = _waiting.get<1>();
-    while (!_waiting.empty()) {
-      auto oldest = expiry_index.begin();
-      if ((*oldest)->get_time_out() > now) {
-        break;
-      }
-      to_notify.push_back(*oldest);
-      expiry_index.erase(oldest);
-    }
-  }
-
-  // notify all timeout
-  for (std::shared_ptr<otl_check_result_builder> to_not : to_notify) {
-    SPDLOG_LOGGER_DEBUG(_logger, "time out: {}", *to_not);
-    to_not->async_time_out();
-  }
-
-  _start_second_timer();
 }
 
 /**

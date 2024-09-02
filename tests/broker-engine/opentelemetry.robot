@@ -89,6 +89,7 @@ BEOTEL_TELEGRAF_CHECK_HOST
     ...    OTEL connector
     ...    opentelemetry --processor=nagios_telegraf --extractor=attributes --host_path=resource_metrics.scope_metrics.data.data_points.attributes.host --service_path=resource_metrics.scope_metrics.data.data_points.attributes.service
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1 
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp
@@ -117,28 +118,10 @@ BEOTEL_TELEGRAF_CHECK_HOST
 
     ${resources_list}    Ctn Create Otl Request    ${0}    host_1
 
-    # check without feed
-    ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Host Check    host_1
-    ${result}    Ctn Check Host Output Resource Status With Timeout
-    ...    host_1
-    ...    35
-    ...    ${start}
-    ...    0
-    ...    HARD
-    ...    (No output returned from host check)
-    Should Be True    ${result}    hosts table not updated
-
-
     Log To Console    export metrics
-    Ctn Send Otl To Engine    4317    ${resources_list}
-
-    Sleep    5
-
-
     # feed and check
     ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Host Check    host_1
+    Ctn Send Otl To Engine    4317    ${resources_list}
 
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start}    0  HARD  OK
     Should Be True    ${result}    hosts table not updated
@@ -149,30 +132,23 @@ BEOTEL_TELEGRAF_CHECK_HOST
 
     Sleep    5
 
-
-    # feed and check
-    ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Host Check    host_1
-
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK
-    Should Be True    ${result}    hosts table not updated
-
     # check then feed, three times to modify hard state
     ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Host Check    host_1
     Sleep    2
     ${resources_list}    Ctn Create Otl Request    ${2}    host_1
     Ctn Send Otl To Engine    4317    ${resources_list}
-    Ctn Schedule Forced Host Check    host_1
-    Sleep    2
-    ${resources_list}    Ctn Create Otl Request    ${2}    host_1
-    Ctn Send Otl To Engine    4317    ${resources_list}
-    Ctn Schedule Forced Host Check    host_1
-    Sleep    2
-    ${resources_list}    Ctn Create Otl Request    ${2}    host_1
-    Ctn Send Otl To Engine    4317    ${resources_list}
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    1    CRITICAL
 
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start}    1   SOFT  CRITICAL
+    Should Be True    ${result}    hosts table not updated
+
+    ${resources_list}    Ctn Create Otl Request    ${2}    host_1
+    Ctn Send Otl To Engine    4317    ${resources_list}
+
+
+    Sleep    2
+    ${resources_list}    Ctn Create Otl Request    ${2}    host_1
+    Ctn Send Otl To Engine    4317    ${resources_list}
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start}    1   HARD  CRITICAL
     Should Be True    ${result}    hosts table not updated
 
 BEOTEL_TELEGRAF_CHECK_SERVICE
@@ -185,6 +161,7 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     ...    OTEL connector
     ...    opentelemetry --processor=nagios_telegraf --extractor=attributes --host_path=resource_metrics.scope_metrics.data.data_points.attributes.host --service_path=resource_metrics.scope_metrics.data.data_points.attributes.service
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check_icmp
+    Ctn Set Services Passive       0    service_1
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp
@@ -213,60 +190,29 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
 
     ${resources_list}    Ctn Create Otl Request    ${0}    host_1    service_1
 
-    # check without feed
-
-    ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Svc Check    host_1    service_1
-    ${result}    Ctn Check Service Output Resource Status With Timeout
-    ...    host_1
-    ...    service_1
-    ...    35
-    ...    ${start}
-    ...    0
-    ...    HARD
-    ...    (No output returned from plugin)
-    Should Be True    ${result}    services table not updated
-
-    Log To Console    export metrics
-    Ctn Send Otl To Engine    4317    ${resources_list}
-
-    Sleep    5
-
     # feed and check
     ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Svc Check    host_1    service_1
+    Log To Console    export metrics
+    Ctn Send Otl To Engine    4317    ${resources_list}
 
     ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    0  HARD   OK
-    Should Be True    ${result}    services table not updated
-
-    Log To Console    export metrics
-    Ctn Send Otl To Engine    4317    ${resources_list}
-
-    Sleep    5
-
-    # feed and check
-    ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Svc Check    host_1    service_1
-
-    ${result}    Ctn Check Service Check Status With Timeout    host_1    service_1    30    ${start}    0    OK
     Should Be True    ${result}    services table not updated
 
     # check then feed, three times to modify hard state
     ${start}    Ctn Get Round Current Date
     ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
     Ctn Send Otl To Engine    4317    ${resources_list}
-    Sleep    2
-    Ctn Schedule Forced Svc Check    host_1    service_1
-    ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
-    Ctn Send Otl To Engine    4317    ${resources_list}
-    Sleep    2
-    Ctn Schedule Forced Svc Check    host_1    service_1
-    ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
-    Ctn Send Otl To Engine    4317    ${resources_list}
-    Sleep    2
-    Ctn Schedule Forced Svc Check    host_1    service_1
-    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    2  HARD  CRITICAL
 
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    2  SOFT  CRITICAL
+    Should Be True    ${result}    services table not updated
+
+    ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
+    Ctn Send Otl To Engine    4317    ${resources_list}
+
+    Sleep    2
+    ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
+    Ctn Send Otl To Engine    4317    ${resources_list}
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    2  HARD  CRITICAL
     Should Be True    ${result}    services table not updated
 
 BEOTEL_SERVE_TELEGRAF_CONFIGURATION_CRYPTED
@@ -276,7 +222,7 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_CRYPTED
     Ctn Config Engine    ${1}    ${3}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "telegraf_conf_server": {"http_server":{"port": 1443, "encryption": true, "certificate_path": "/tmp/otel/server.crt", "key_path": "/tmp/otel/server.key"}, "cehck_interval":60, "engine_otel_endpoint": "127.0.0.1:4317"}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "telegraf_conf_server": {"http_server":{"port": 1443, "encryption": true, "certificate_path": "/tmp/otel/server.crt", "key_path": "/tmp/otel/server.key"}, "check_interval":60, "engine_otel_endpoint": "127.0.0.1:4317"}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -431,6 +377,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1 
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp
@@ -449,6 +396,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     Ctn Clear Retention
 
     ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
@@ -458,16 +406,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
 
-    # We wait for the connection with the agent before scheduling the check, otherwise the delay between the scheduling and the real time of the check is too long and makes the test to fail.
-    ${start}    Ctn Get Round Current Date
-    ${content}    Create List    connected with agent
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
-    Should Be True    ${result}    Engine seems not connected to the agent
-    Sleep    10s
-
-    Ctn Schedule Forced Host Check    host_1
-
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK - 127.0.0.1
+    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start_int}    0    OK - 127.0.0.1
     Should Be True    ${result}    hosts table not updated
 
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp_2
@@ -487,9 +426,6 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    22
     Should Be True    ${result}    "description: "OK check2" should be available.
 
-    ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Host Check    host_1
-
     ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK check2 - 127.0.0.1: rta 0,010ms, lost 0%
     Should Be True    ${result}    hosts table not updated
 
@@ -506,6 +442,7 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
+    Ctn Set Services Passive       0    service_1
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check
@@ -527,6 +464,7 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     Ctn Clear Retention
 
     ${start}    Ctn Get Round Current Date
+    ${start_int}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
@@ -536,24 +474,12 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
     
-    ${content}    Create List    fifos:{"host_1,service_1"
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
-    Should Be True    ${result}    fifos not found in logs
-    
-    Ctn Schedule Forced Svc Check    host_1    service_1
-
-    ${result}    Ctn Check Service Check Status With Timeout    host_1  service_1  60  ${start}  2  Test check 456
+    ${result}    Ctn Check Service Check Status With Timeout    host_1  service_1  60  ${start_int}  2  Test check 456
     Should Be True    ${result}    services table not updated
 
     ${start}    Ctn Get Round Current Date
     #service_1 check ok
     Ctn Set Command Status    456    ${0}
-
-    ${content}    Create List    as_int: 0
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
-    Should Be True    ${result}    status 0 not found in logs
-    
-    Ctn Schedule Forced Svc Check    host_1    service_1
 
     ${result}    Ctn Check Service Check Status With Timeout    host_1  service_1  60  ${start}  0  Test check 456
     Should Be True    ${result}    services table not updated
@@ -571,6 +497,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1 
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp
@@ -589,6 +516,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
     Ctn Clear Retention
 
     ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
@@ -597,12 +525,8 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
     ${content}    Create List    init from [.\\s]*127.0.0.1:4317
     ${result}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "init from localhost:4317" not found in log
-    Sleep    1
 
-    ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Host Check    host_1
-
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK - 127.0.0.1
+    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start_int}    0    OK - 127.0.0.1
     Should Be True    ${result}    hosts table not updated
 
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp_2
@@ -622,9 +546,6 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    "description: "OK check2" should be available.
 
-    ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Host Check    host_1
-
     ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK check2 - 127.0.0.1: rta 0,010ms, lost 0%
     Should Be True    ${result}    hosts table not updated
 
@@ -641,6 +562,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
+    Ctn Set Services Passive       0    service_1
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check
@@ -662,6 +584,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
     Ctn Clear Retention
 
     ${start}    Ctn Get Round Current Date
+    ${start_int}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
@@ -672,24 +595,12 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
     Should Be True    ${result}    "init from 127.0.0.1:4317" not found in log
 
     
-    ${content}    Create List    fifos:{"host_1,service_1"
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
-    Should Be True    ${result}    fifos not found in logs
-    
-    Ctn Schedule Forced Svc Check    host_1    service_1
-
-    ${result}    Ctn Check Service Check Status With Timeout    host_1  service_1  60  ${start}  2  Test check 456
+    ${result}    Ctn Check Service Check Status With Timeout    host_1  service_1  60  ${start_int}  2  Test check 456
     Should Be True    ${result}    services table not updated
 
     ${start}    Ctn Get Round Current Date
     #service_1 check ok
     Ctn Set Command Status    456    ${0}
-
-    ${content}    Create List    as_int: 0
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
-    Should Be True    ${result}    status 0 not found in logs
-    
-    Ctn Schedule Forced Svc Check    host_1    service_1
 
     ${result}    Ctn Check Service Check Status With Timeout    host_1  service_1  60  ${start}  0  Test check 456
     Should Be True    ${result}    services table not updated
@@ -709,6 +620,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1 
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp
@@ -727,6 +639,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Ctn Clear Retention
 
     ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
@@ -736,16 +649,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4317" should be available.
 
-    # We wait for the connection with the agent before scheduling the check, otherwise the delay between the scheduling and the real time of the check is too long and makes the test to fail.
-    ${start}    Ctn Get Round Current Date
-    ${content}    Create List    connected with agent
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    Engine seems not connected to the agent
-    Sleep    10s
-
-    Ctn Schedule Forced Host Check    host_1
-
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK - 127.0.0.1
+    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start_int}    0    OK - 127.0.0.1
     Should Be True    ${result}    hosts table not updated
 
 
@@ -767,6 +671,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1 
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp
@@ -785,20 +690,18 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Ctn Clear Retention
 
     ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from localhost:4317
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    15
     Should Be True    ${result}    "init from localhost:4317" not found in log
     Sleep    1
 
-    ${start}    Ctn Get Round Current Date
-    Ctn Schedule Forced Host Check    host_1
-
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK - 127.0.0.1
+    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start_int}    0    OK - 127.0.0.1
     Should Be True    ${result}    hosts table not updated
 
 

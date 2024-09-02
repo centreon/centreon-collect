@@ -19,34 +19,39 @@
 #ifndef CCE_MOD_OTL_CHECK_RESULT_BUILDER_HH
 #define CCE_MOD_OTL_CHECK_RESULT_BUILDER_HH
 
+#include "com/centreon/engine/check_result.hh"
+
 #include "com/centreon/engine/commands/otel_interface.hh"
-#include "data_point_fifo.hh"
+#include "otl_data_point.hh"
 
 namespace com::centreon::engine::modules::opentelemetry {
 
-class data_point_fifo_container;
-
 /**
- * @brief converter are asynchronous object created on each check
- * In order to not parse command line on each check, we parse it once and then
- * create a converter config that will be used to create converter
+ * @brief compare data_points with nano_timestamp
  *
  */
-class check_result_builder_config
-    : public commands::otel::check_result_builder_config {
- public:
-  enum class converter_type {
-    nagios_check_result_builder,
-    centreon_agent_check_result_builder
-  };
+struct otl_data_point_pointer_compare {
+  using is_transparent = void;
 
- private:
-  const converter_type _type;
+  bool operator()(const otl_data_point& left,
+                  const otl_data_point& right) const {
+    return left.get_nano_timestamp() < right.get_nano_timestamp();
+  }
 
- public:
-  check_result_builder_config(converter_type conv_type) : _type(conv_type) {}
-  converter_type get_type() const { return _type; }
+  bool operator()(const otl_data_point& left, uint64_t right) const {
+    return left.get_nano_timestamp() < right;
+  }
+
+  bool operator()(uint64_t left, const otl_data_point& right) const {
+    return left < right.get_nano_timestamp();
+  }
 };
+
+class metric_to_datapoints
+    : public absl::flat_hash_map<
+          std::string_view,
+          absl::btree_multiset<otl_data_point,
+                               otl_data_point_pointer_compare>> {};
 
 /**
  * @brief The goal of this converter is to convert otel metrics in result
@@ -57,67 +62,32 @@ class check_result_builder_config
  *
  */
 class otl_check_result_builder
-    : public std::enable_shared_from_this<otl_check_result_builder> {
+    : public commands::otel::otl_check_result_builder_base {
   const std::string _cmd_line;
-  const uint64_t _command_id;
-  const std::pair<std::string /*host*/, std::string /*service*/> _host_serv;
-  const std::chrono::system_clock::time_point _timeout;
-  const commands::otel::result_callback _callback;
 
  protected:
   std::shared_ptr<spdlog::logger> _logger;
 
-  virtual bool _build_result_from_metrics(metric_name_to_fifo&,
-                                          commands::result& res) = 0;
-
  public:
   otl_check_result_builder(const std::string& cmd_line,
-                           uint64_t command_id,
-                           const host& host,
-                           const service* service,
-                           std::chrono::system_clock::time_point timeout,
-                           commands::otel::result_callback&& handler,
                            const std::shared_ptr<spdlog::logger>& logger);
 
   virtual ~otl_check_result_builder() = default;
 
   const std::string& get_cmd_line() const { return _cmd_line; }
 
-  uint64_t get_command_id() const { return _command_id; }
-
-  const std::string& get_host_name() const { return _host_serv.first; }
-  const std::string& get_service_description() const {
-    return _host_serv.second;
-  }
-
-  const std::pair<std::string, std::string>& get_host_serv() const {
-    return _host_serv;
-  }
-
-  std::chrono::system_clock::time_point get_time_out() const {
-    return _timeout;
-  }
-
-  bool sync_build_result_from_metrics(data_point_fifo_container& data_pts,
-                                      commands::result& res);
-
-  bool async_build_result_from_metrics(data_point_fifo_container& data_pts);
-  void async_time_out();
-
   virtual void dump(std::string& output) const;
+
+  void process_data_pts(const std::string_view& host,
+                        const std::string_view& serv,
+                        const metric_to_datapoints& data_pts) override;
 
   static std::shared_ptr<otl_check_result_builder> create(
       const std::string& cmd_line,
-      const std::shared_ptr<check_result_builder_config>& conf,
-      uint64_t command_id,
-      const host& host,
-      const service* service,
-      std::chrono::system_clock::time_point timeout,
-      commands::otel::result_callback&& handler,
       const std::shared_ptr<spdlog::logger>& logger);
 
-  static std::shared_ptr<check_result_builder_config>
-  create_check_result_builder_config(const std::string& cmd_line);
+  virtual bool build_result_from_metrics(const metric_to_datapoints& data_pts,
+                                         check_result& res) = 0;
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry
