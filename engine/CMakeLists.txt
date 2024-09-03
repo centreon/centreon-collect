@@ -602,7 +602,7 @@ target_link_libraries(
 
 # centenginestats target.
 add_executable(centenginestats "${SRC_DIR}/centenginestats.cc")
-add_dependencies(centenginestats centreon_clib)
+add_dependencies(centenginestats centreon_clib pb_neb_lib)
 target_link_libraries(centenginestats centreon_clib fmt::fmt)
 target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 
