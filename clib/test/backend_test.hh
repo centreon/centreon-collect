@@ -19,8 +19,8 @@
 #ifndef CC_TEST_LOGGING_BACKEND_TEST_HH
 #define CC_TEST_LOGGING_BACKEND_TEST_HH
 
+#include <string>
 #include "com/centreon/logging/backend.hh"
-#include "com/centreon/misc/stringifier.hh"
 
 namespace com::centreon {
 
@@ -49,9 +49,9 @@ class backend_test : public backend {
     (void)types;
     (void)verbose;
 
-    misc::stringifier header;
+    std::string header;
     _build_header(header);
-    _buffer.append(header.data(), header.size());
+    _buffer.append(header);
     _buffer.append(msg, size);
     ++_nb_call;
   }
@@ -66,6 +66,6 @@ class backend_test : public backend {
 };
 }  // namespace logging
 
-}
+}  // namespace com::centreon
 
 #endif  // !CC_TEST_LOGGING_BACKEND_TEST_HH

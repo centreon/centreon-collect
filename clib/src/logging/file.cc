@@ -21,7 +21,6 @@
 #include <cstdlib>
 #include <cstring>
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/misc/stringifier.hh"
 
 using namespace com::centreon::logging;
 using com::centreon::exceptions::msg_fmt;
@@ -120,24 +119,23 @@ void file::log(uint64_t types,
   (void)verbose;
   (void)size;
 
-  misc::stringifier header;
+  std::string header;
   _build_header(header);
 
   // Split msg by line.
-  misc::stringifier buffer;
+  std::string buffer;
   uint32_t i(0);
   uint32_t last(0);
   while (msg[i]) {
     if (msg[i] == '\n') {
-      buffer << header;
-      buffer.append(msg + last, i - last) << "\n";
+      buffer +=
+          fmt::format("{}{}\n", header, std::string(msg + last, i - last));
       last = i + 1;
     }
     ++i;
   }
   if (last != i) {
-    buffer << header;
-    buffer.append(msg + last, i - last) << "\n";
+    buffer += fmt::format("{}{}\n", header, std::string(msg + last, i - last));
   }
 
   std::lock_guard<std::recursive_mutex> lock(_lock);
