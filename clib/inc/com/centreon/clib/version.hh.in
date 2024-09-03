@@ -28,15 +28,9 @@
 namespace com::centreon::clib {
 namespace version {
 // Compile-time values.
-unsigned int const major = @COLLECT_MAJOR@;
-unsigned int const minor = @COLLECT_MINOR@;
-unsigned int const patch = @COLLECT_PATCH@;
 char const* const string = "@CLIB_VERSION@";
 
 // Run-time values.
-unsigned int get_major() noexcept;
-unsigned int get_minor() noexcept;
-unsigned int get_patch() noexcept;
 char const* get_string() noexcept;
 }  // namespace version
 }  // namespace com::centreon::clib

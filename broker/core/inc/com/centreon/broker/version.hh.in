@@ -23,9 +23,9 @@
 
 namespace com::centreon::broker::version {
   // Compile-time values.
-  unsigned int const major = @COLLECT_MAJOR@;
-  unsigned int const minor = @COLLECT_MINOR@;
-  unsigned int const patch = @COLLECT_PATCH@;
+  constexpr unsigned major = @COLLECT_MAJOR@;
+  constexpr unsigned minor = @COLLECT_MINOR@.0;
+  constexpr unsigned patch = @COLLECT_PATCH@.0;
   char const* const  string = "@CENTREON_BROKER_VERSION@";
 }
 
