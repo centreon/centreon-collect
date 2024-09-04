@@ -156,7 +156,9 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${poller_name}
         Check Poller Is Connected    port=8086    expected_nb=2
         Check Poller Communicate     2
+
     ELSE IF    '${communication_mode}' == 'pull'
+
         @{central_pull_config}=    Copy List    ${central_config}
         Append To List    ${central_pull_config}    ${pull_central_config}    ${ROOT_CONFIG}pull_node_register_one_node.yaml    ${gorgone_core_config}
 
