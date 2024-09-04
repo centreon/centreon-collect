@@ -189,7 +189,7 @@ void file_entry::refresh() {
     memset(&_sbuf, 0, sizeof(_sbuf));
   else if (stat(_path.c_str(), &_sbuf)) {
     char const* msg(strerror(errno));
-    throw msg_fmt("get file information failed: ", msg);
+    throw msg_fmt("get file information failed: {}", msg);
   }
 }
 

@@ -82,7 +82,7 @@ int main(int argc, char* argv[]) {
         char const* version(libssh2_version(LIBSSH2_VERSION_NUM));
         if (!version)
           throw exceptions::msg_fmt(
-              "libssh2 version is too old (>= {} required)", LIBSSH2_VERSION);
+              "libssh2 version is too old (>= " LIBSSH2_VERSION " required)");
         log::core()->info("libssh2 version {} successfully loaded", version);
       }
 

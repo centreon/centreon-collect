@@ -67,8 +67,8 @@ void handle_manager::add(handle* h, handle_listener* hl, bool is_threadable) {
   native_handle nh(h->get_native_handle());
   if (nh == native_handle_null)
     throw exceptions::msg_fmt(
-        "attempt to add handle with invalid native "
-        "handle in the handle manager");
+        "attempt to add handle with invalid native handle in the handle "
+        "manager");
 
   // Check that handle isn't already registered.
   if (_handles.find(nh) == _handles.end()) {
@@ -78,8 +78,7 @@ void handle_manager::add(handle* h, handle_listener* hl, bool is_threadable) {
     _recreate_array = true;
   } else
     throw exceptions::msg_fmt(
-        "attempt to add handle "
-        "already monitored by handle manager");
+        "attempt to add handle already monitored by handle manager");
 }
 
 /**

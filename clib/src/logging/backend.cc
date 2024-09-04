@@ -172,8 +172,9 @@ void backend::show_thread_id(bool enable) {
  *
  *  @param[out] buffer  The buffer to fill.
  */
-void backend::_build_header(std::string& buffer) {
+std::string backend::_build_header() {
   // Build line header.
+  std::string buffer;
   if (_show_timestamp == second)
     buffer = fmt::format("[{}] ", timestamp::now().to_seconds());
   else if (_show_timestamp == millisecond)
@@ -185,6 +186,7 @@ void backend::_build_header(std::string& buffer) {
   }
   if (_show_thread_id)
     buffer += fmt::format("[{}] ", std::this_thread::get_id());
+  return buffer;
 }
 
 /**

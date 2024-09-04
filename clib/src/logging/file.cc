@@ -119,8 +119,7 @@ void file::log(uint64_t types,
   (void)verbose;
   (void)size;
 
-  std::string header;
-  _build_header(header);
+  std::string header = _build_header();
 
   // Split msg by line.
   std::string buffer;

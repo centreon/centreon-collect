@@ -501,16 +501,16 @@ pid_t process::_create_process_with_setpgid(char* const* args, char** env) {
   posix_spawnattr_t attr;
   int ret = posix_spawnattr_init(&attr);
   if (ret)
-    throw msg_fmt("cannot initialize spawn attributes: ", strerror(ret));
+    throw msg_fmt("cannot initialize spawn attributes: {}", strerror(ret));
   ret = posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETPGROUP);
   if (ret) {
     posix_spawnattr_destroy(&attr);
-    throw msg_fmt("cannot set spawn flag: ", strerror(ret));
+    throw msg_fmt("cannot set spawn flag: {}", strerror(ret));
   }
   ret = posix_spawnattr_setpgroup(&attr, 0);
   if (ret) {
     posix_spawnattr_destroy(&attr);
-    throw msg_fmt("cannot set process group ID of to-be-spawned process: ",
+    throw msg_fmt("cannot set process group ID of to-be-spawned process: {}",
                   strerror(ret));
   }
   if (posix_spawnp(&pid, args[0], NULL, &attr, args, env)) {

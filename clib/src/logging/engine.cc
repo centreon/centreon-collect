@@ -51,12 +51,10 @@ unsigned long engine::add(backend* obj,
                           unsigned int verbose) {
   if (!obj)
     throw msg_fmt(
-        "add backend on the logging engine "
-        "failed: bad argument (null pointer)");
+        "add backend on the logging engine failed: bad argument (null "
+        "pointer)");
   if (verbose >= sizeof(unsigned int) * CHAR_BIT)
-    throw msg_fmt(
-        "add backend on the logging engine "
-        "failed: invalid verbose");
+    throw msg_fmt("add backend on the logging engine failed: invalid verbose");
 
   std::unique_ptr<backend_info> info(new backend_info);
   info->obj = obj;
@@ -129,8 +127,8 @@ bool engine::remove(unsigned long id) {
 unsigned int engine::remove(backend* obj) {
   if (!obj)
     throw msg_fmt(
-        "remove backend on the logging engine "
-        "failed:bad argument (null pointer)");
+        "remove backend on the logging engine failed:bad argument (null "
+        "pointer)");
 
   // Lock engine.
   std::lock_guard<std::recursive_mutex> lock(_mtx);

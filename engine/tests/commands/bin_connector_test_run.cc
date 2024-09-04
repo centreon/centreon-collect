@@ -118,15 +118,11 @@ static void query_execute(char const* q) {
   char* endptr(NULL);
   unsigned long command_id(strtol(startptr, &endptr, 10));
   if (startptr == endptr)
-    throw msg_fmt(
-        "invalid query execute: "
-        "invalid command_id");
+    throw msg_fmt("invalid query execute: invalid command_id");
   startptr = endptr + 1;
   uint32_t timeout(strtol(startptr, &endptr, 10));
   if (startptr == endptr)
-    throw msg_fmt(
-        "invalid query execute: "
-        "invalid is_executed");
+    throw msg_fmt("invalid query execute: invalid is_executed");
   startptr = endptr + 1;
   strtol(startptr, &endptr, 10);
   if (startptr == endptr)

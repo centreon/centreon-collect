@@ -77,8 +77,7 @@ void syslogger::log(uint64_t types,
   (void)verbose;
   (void)size;
 
-  std::string header;
-  _build_header(header);
+  std::string header = _build_header();
 
   std::lock_guard<std::recursive_mutex> lock(_lock);
   syslog(LOG_ERR, "%s%s", header.c_str(), msg);

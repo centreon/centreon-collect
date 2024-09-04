@@ -97,8 +97,7 @@ pid_t embedded_perl::run(std::string const& cmd,
   // Check arguments.
   if (!fds)
     throw exceptions::msg_fmt(
-        "cannot run Perl script without "
-        "fetching process' descriptors");
+        "cannot run Perl script without fetching process' descriptors");
 
   // Extract arguments.
   size_t pos(cmd.find(' '));

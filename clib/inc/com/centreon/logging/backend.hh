@@ -22,9 +22,8 @@
 #include <mutex>
 #include <string>
 
-namespace com::centreon {
+namespace com::centreon::logging {
 
-namespace logging {
 enum time_precision { none = 0, microsecond = 1, millisecond = 2, second = 3 };
 
 /**
@@ -61,7 +60,7 @@ class backend {
   virtual void show_thread_id(bool enable);
 
  protected:
-  void _build_header(std::string& buffer);
+  std::string _build_header();
 
   bool _is_sync;
   mutable std::recursive_mutex _lock;
@@ -72,8 +71,7 @@ class backend {
  protected:
   void _internal_copy(backend const& right);
 };
-}  // namespace logging
 
-}  // namespace com::centreon
+}  // namespace com::centreon::logging
 
 #endif  // !CC_LOGGING_BACKEND_HH

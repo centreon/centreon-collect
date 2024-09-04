@@ -55,10 +55,8 @@ void parser::execute(const std::string& cmd) {
   char* ptr(nullptr);
   unsigned long long cmd_id(strtoull(cmd.c_str(), &ptr, 10));
   if (!cmd_id || *ptr)
-    throw msg_fmt(
-        "invalid execution request received:"
-        " bad command ID ({})",
-        cmd.c_str());
+    throw msg_fmt("invalid execution request received: bad command ID ({})",
+                  cmd);
   size_t pos = end + 1;
   // Find timeout value.
   end = cmd.find('\0', pos);
@@ -66,19 +64,15 @@ void parser::execute(const std::string& cmd) {
   time_point ts_timeout = system_clock::now() + std::chrono::seconds(timeout);
 
   if (*ptr)
-    throw msg_fmt(
-        "invalid execution request received:"
-        " bad timeout ({})",
-        cmd.c_str() + pos);
+    throw msg_fmt("invalid execution request received: bad timeout ({})",
+                  cmd.c_str() + pos);
   pos = end + 1;
   // Find start time.
   end = cmd.find('\0', pos);
   strtoull(cmd.c_str() + pos, &ptr, 10);
   if (*ptr)
-    throw msg_fmt(
-        "invalid execution request received:"
-        " bad start time ({})",
-        cmd.c_str() + pos);
+    throw msg_fmt("invalid execution request received: bad start time ({})",
+                  cmd.c_str() + pos);
   pos = end + 1;
   // Find command to execute.
   end = cmd.find('\0', pos);

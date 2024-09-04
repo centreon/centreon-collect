@@ -673,17 +673,20 @@ void session::handshake_handler(int retval,
 
     // Check fingerprint.
     if (check != LIBSSH2_KNOWNHOST_CHECK_MATCH) {
-      std::string e;  // exception complement
       if (LIBSSH2_KNOWNHOST_CHECK_NOTFOUND == check)
-        e = fmt::format("host was not found in known_hosts file {}",
-                        known_hosts_file);
+        throw msg_fmt(
+            "host '{}' is not known or could not be validated: host was not "
+            "found in known_hosts file {}",
+            _creds.get_host(), known_hosts_file);
       else if (LIBSSH2_KNOWNHOST_CHECK_MISMATCH == check)
-        e = fmt::format("host fingerprint mismatch with known_hosts file {}",
-                        known_hosts_file);
+        throw msg_fmt(
+            "host '{}' is not known or could not be validated: host "
+            "fingerprint mismatch with known_hosts file {}",
+            _creds.get_host(), known_hosts_file);
       else
-        e = "unknown error";
-      throw msg_fmt("host '{}' is not known or could not be validated: {}",
-                    _creds.get_host(), e);
+        throw msg_fmt(
+            "host '{}' is not known or could not be validated: unknown error",
+            _creds.get_host());
     }
     log_info(logging::medium) << "fingerprint on session " << _creds.get_user()
                               << "@" << _creds.get_host() << ":"

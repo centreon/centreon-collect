@@ -49,9 +49,7 @@ class backend_test : public backend {
     (void)types;
     (void)verbose;
 
-    std::string header;
-    _build_header(header);
-    _buffer.append(header);
+    _buffer = _build_header();
     _buffer.append(msg, size);
     ++_nb_call;
   }

@@ -127,10 +127,7 @@ com::centreon::native_handle file_stream::get_native_handle() {
     retval = fileno(_stream);
     if (retval < 0) {
       char const* msg(strerror(errno));
-      throw msg_fmt(
-          "could not get native handle from "
-          "file stream: {}",
-          msg);
+      throw msg_fmt("could not get native handle from file stream: {}", msg);
     }
   }
   return retval;
@@ -187,8 +184,7 @@ unsigned long file_stream::read(void* data, unsigned long size) {
     throw msg_fmt("attempt to read from closed file stream");
   if (!data || !size)
     throw msg_fmt(
-        "attempt to read from "
-        "file stream but do not except any result");
+        "attempt to read from file stream but do not except any result");
   ssize_t rb(::read(get_native_handle(), data, size));
   if (rb < 0) {
     char const* msg(strerror(errno));
