@@ -20,6 +20,7 @@
 from os import makedirs, environ
 from robot.libraries.BuiltIn import BuiltIn
 from socket import gethostname
+import Common
 
 ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
 CONF_DIR = ETC_ROOT + "/centreon-engine"
@@ -39,7 +40,7 @@ def ctn_host_hostname():
 
     Get HOST_HOSTNAME env variable content
     """
-    return environ.get('HOST_HOSTNAME', 'localhost')
+    return environ.get('HOST_HOSTNAME', Common.ctn_get_hostname())
 
 
 agent_config="""
@@ -54,7 +55,7 @@ agent_config="""
 agent_encrypted_config=f"""
 {{
     "log_level":"trace",
-    "endpoint":"{gethostname()}:4318",
+    "endpoint":"{ctn_host_hostname()}:4318",
     "host":"host_1",
     "log_type":"file",
     "log_file":"/tmp/var/log/centreon-engine/centreon-agent.log" """
@@ -81,7 +82,7 @@ reversed_agent_encrypted_config=f"""
 
 def ctn_config_centreon_agent(key_path:str = None, cert_path:str = None, ca_path:str = None):
     """ctn_config_centreon_agent
-    Creates a default centreon agent config without encryption nor reverse connection
+    Creates a default centreon agent config listening on  0.0.0.0:4317 (no encryption) or 0.0.0.0:4318 (encryption) 
     """
     #in case of wsl, agent is executed in windows host
     if environ.get("RUN_ENV","") == "WSL":
@@ -89,7 +90,7 @@ def ctn_config_centreon_agent(key_path:str = None, cert_path:str = None, ca_path
 
     makedirs(CONF_DIR, mode=0o777, exist_ok=True)
     with open(f"{CONF_DIR}/centagent.json", "w") as ff:
-        if ca_path is not None:
+        if cert_path is not None or ca_path is not None:
             ff.write(agent_encrypted_config)
         else:
             ff.write(agent_config)
@@ -107,7 +108,7 @@ def ctn_config_centreon_agent(key_path:str = None, cert_path:str = None, ca_path
 
 def ctn_config_reverse_centreon_agent(key_path:str = None, cert_path:str = None, ca_path:str = None):
     """ctn_config_centreon_agent
-    Creates a default reversed centreon agent config without encryption listening on 0.0.0.0:4317
+    Creates a default reversed centreon agent config listening on  0.0.0.0:4320 (no encryption) or 0.0.0.0:4321 (encryption)
     """
     #in case of wsl, agent is executed in windows host
     if environ.get("RUN_ENV","") == "WSL":
@@ -115,7 +116,7 @@ def ctn_config_reverse_centreon_agent(key_path:str = None, cert_path:str = None,
 
     makedirs(CONF_DIR, mode=0o777, exist_ok=True)
     with open(f"{CONF_DIR}/centagent.json", "w") as ff:
-        if ca_path is not None:
+        if cert_path is not None or ca_path is not None:
             ff.write(reversed_agent_encrypted_config)
         else:
             ff.write(reversed_agent_config)
