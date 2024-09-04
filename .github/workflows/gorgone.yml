@@ -14,7 +14,7 @@ on:
       - ready_for_review
     paths:
       - "gorgone/**"
-      - "!gorgone/tests/**"
+      - "gorgone/tests/**"
       - "!gorgone/veracode.json"
       - "!gorgone/.veracode-exclusions"
   push:
