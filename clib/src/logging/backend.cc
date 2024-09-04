@@ -21,7 +21,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <cstring>
-#include <string>
 #include <thread>
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/timestamp.hh"
