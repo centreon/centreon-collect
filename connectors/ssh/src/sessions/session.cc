@@ -19,13 +19,14 @@
 #include <pwd.h>
 
 #include "com/centreon/connector/log.hh"
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 #include "com/centreon/connector/ssh/sessions/session.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::connector;
 using namespace com::centreon::connector::ssh::sessions;
+using com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::connector::ssh::sessions {
 std::ostream& operator<<(std::ostream& os, const session& sess) {
@@ -66,7 +67,7 @@ session::session(credentials const& creds, const shared_io_context& io_context)
   // Create session instance.
   _session = libssh2_session_init_ex(nullptr, nullptr, nullptr, this);
   if (!_session)
-    throw basic_error() << "SSH session creation failed (out of memory ?)";
+    throw msg_fmt("SSH session creation failed (out of memory ?)");
   libssh2_session_callback_set(_session, LIBSSH2_CALLBACK_RECV,
                                (void*)g_socket_recv);
   libssh2_session_callback_set(_session, LIBSSH2_CALLBACK_SEND,
@@ -623,7 +624,7 @@ void session::handshake_handler(int retval,
     if (!known_hosts) {
       char* msg;
       libssh2_session_last_error(_session, &msg, nullptr, 0);
-      throw basic_error() << "could not create known hosts list: " << msg;
+      throw msg_fmt("could not create known hosts list: {}", msg);
     }
 
     // Get home directory.
@@ -639,8 +640,8 @@ void session::handshake_handler(int retval,
     int rh(libssh2_knownhost_readfile(known_hosts, known_hosts_file.c_str(),
                                       LIBSSH2_KNOWNHOST_FILE_OPENSSH));
     if (rh < 0)
-      throw basic_error() << "parsing of known_hosts file " << known_hosts_file
-                          << " failed: error " << -rh;
+      throw msg_fmt("parsing of known_hosts file {}  failed: error {}",
+                    known_hosts_file, -rh);
     else
       log_info(logging::medium)
           << rh << " hosts found in known_hosts file " << known_hosts_file;
@@ -658,7 +659,7 @@ void session::handshake_handler(int retval,
       char* msg;
       libssh2_session_last_error(_session, &msg, nullptr, 0);
       libssh2_knownhost_free(known_hosts);
-      throw basic_error() << "failed to get remote host fingerprint: " << msg;
+      throw msg_fmt("failed to get remote host fingerprint: {}", msg);
     }
 
     // Check fingerprint.
@@ -672,17 +673,20 @@ void session::handshake_handler(int retval,
 
     // Check fingerprint.
     if (check != LIBSSH2_KNOWNHOST_CHECK_MATCH) {
-      exceptions::basic e(basic_error());
-      e << "host '" << _creds.get_host()
-        << "' is not known or could not be validated: ";
       if (LIBSSH2_KNOWNHOST_CHECK_NOTFOUND == check)
-        e << "host was not found in known_hosts file " << known_hosts_file;
+        throw msg_fmt(
+            "host '{}' is not known or could not be validated: host was not "
+            "found in known_hosts file {}",
+            _creds.get_host(), known_hosts_file);
       else if (LIBSSH2_KNOWNHOST_CHECK_MISMATCH == check)
-        e << "host fingerprint mismatch with known_hosts file "
-          << known_hosts_file;
+        throw msg_fmt(
+            "host '{}' is not known or could not be validated: host "
+            "fingerprint mismatch with known_hosts file {}",
+            _creds.get_host(), known_hosts_file);
       else
-        e << "unknown error";
-      throw e;
+        throw msg_fmt(
+            "host '{}' is not known or could not be validated: unknown error",
+            _creds.get_host());
     }
     log_info(logging::medium) << "fingerprint on session " << _creds.get_user()
                               << "@" << _creds.get_host() << ":"

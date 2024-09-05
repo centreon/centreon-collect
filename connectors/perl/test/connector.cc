@@ -22,7 +22,7 @@
 
 #include "com/centreon/clib.hh"
 #include "com/centreon/connector/log.hh"
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/misc/command_line.hh"
 
@@ -33,7 +33,8 @@ using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
 
-static std::string perl_connector = BUILD_PATH "/connectors/perl/"
+static std::string perl_connector = BUILD_PATH
+    "/connectors/perl/"
     "centreon_connector_perl --debug --log-file=/data/dev/connector.log";
 
 static constexpr const char cmd1[] =
@@ -169,12 +170,12 @@ void process::start() {
   int out_pipe[2];
   if (pipe(in_pipe)) {
     char const* msg(strerror(errno));
-    throw basic_error() << msg;
+    throw msg_fmt("{}", msg);
   } else if (pipe(err_pipe)) {
     char const* msg(strerror(errno));
     close(in_pipe[0]);
     close(in_pipe[1]);
-    throw basic_error() << msg;
+    throw msg_fmt("{}", msg);
   }
   if (pipe(out_pipe)) {
     char const* msg(strerror(errno));
@@ -182,7 +183,7 @@ void process::start() {
     close(in_pipe[1]);
     close(err_pipe[0]);
     close(err_pipe[1]);
-    throw basic_error() << msg;
+    throw msg_fmt("{}", msg);
   }
 
   _io_context->notify_fork(asio::io_context::fork_prepare);
@@ -246,7 +247,7 @@ void process::start() {
     close(out_pipe[1]);
     close(err_pipe[0]);
     close(err_pipe[1]);
-    throw basic_error() << msg;
+    throw msg_fmt("{}", msg);
   }
 }
 
@@ -273,7 +274,7 @@ void process::write(const std::string& data, const duration& time_out) {
   std::unique_lock<std::mutex> l(_protect);
   _wait_for_completion.wait_for(l, time_out);
   if (buff->first) {
-    throw basic_error() << "fail to write:" << buff->first.message();
+    throw msg_fmt("fail to write:{}", buff->first.message());
   }
 }
 
@@ -298,8 +299,7 @@ std::string process::read_std_out(const duration& time_out) {
     }
     log::core()->error("fail to read from std_out:{}",
                        std::get<0>(*data).message());
-    throw basic_error() << "fail to read from std_out:"
-                        << std::get<0>(*data).message();
+    throw msg_fmt("fail to read from std_out:{}", std::get<0>(*data).message());
   }
   return std::string(std::get<2>(*data).data(),
                      std::get<2>(*data).data() + std::get<1>(*data));
@@ -326,8 +326,7 @@ std::string process::read_std_err(const duration& time_out) {
     }
     log::core()->error("fail to read from std_err:{}",
                        std::get<0>(*data).message());
-    throw basic_error() << "fail to read from std_err:"
-                        << std::get<0>(*data).message();
+    throw msg_fmt("fail to read from std_err:{}", std::get<0>(*data).message());
   }
   return std::string(std::get<2>(*data).data(),
                      std::get<2>(*data).data() + std::get<1>(*data));
@@ -375,14 +374,14 @@ class TestConnector : public testing::Test {
     // Open file.
     FILE* f(fopen(filename, "w"));
     if (!f)
-      throw basic_error() << "could not open file " << filename;
+      throw msg_fmt("could not open file {}", filename);
 
     // Write content.
     while (size > 0) {
       size_t wb(fwrite(content, sizeof(*content), size, f));
       if (ferror(f)) {
         fclose(f);
-        throw basic_error() << "error while writing file " << filename;
+        throw msg_fmt("error while writing file {}", filename);
       }
       size -= wb;
     }
