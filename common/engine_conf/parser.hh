@@ -93,7 +93,7 @@ class parser {
   parser& operator=(const parser&) = delete;
   ~parser() noexcept = default;
   void parse(const std::string& path, State* config, error_cnt& err);
-  static size_t hash_directory(const std::filesystem::path& dir_path);
+  static std::string hash_directory(const std::filesystem::path& dir_path);
 
  private:
   /**

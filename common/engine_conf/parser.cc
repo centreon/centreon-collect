@@ -18,6 +18,8 @@
  */
 #include "parser.hh"
 #include <absl/hash/hash.h>
+#include <openssl/evp.h>
+#include <openssl/sha.h>
 #include <filesystem>
 #include <forward_list>
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -766,31 +768,45 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
  *
  * @return a size_t hash.
  */
-size_t parser::hash_directory(const std::filesystem::path& dir_path) {
-  absl::Hash<std::string> str_hasher;
+std::string parser::hash_directory(const std::filesystem::path& dir_path) {
   std::list<std::filesystem::path> files;
-  absl::Hash<std::vector<size_t>> final_hasher;
 
   /* Recursively parse the directory */
   for (const auto& entry :
        std::filesystem::recursive_directory_iterator(dir_path)) {
-    if (entry.is_regular_file())
+    if (entry.is_regular_file() && entry.path().extension() == ".cfg")
       files.push_back(entry.path());
   }
 
-  files.sort([&dir_path](const auto& f1, const auto& f2) {
-    auto ff1 = std::filesystem::relative(f1, dir_path);
-    auto ff2 = std::filesystem::relative(f2, dir_path);
-    return ff1 <= ff2;
-  });
-  std::vector<size_t> hashes;
-  hashes.reserve(files.size());
+  files.sort();
+
+  EVP_MD_CTX* mdctx = EVP_MD_CTX_new();
+  EVP_DigestInit_ex(mdctx, EVP_sha256(), nullptr);
+
   for (auto& f : files) {
-    hashes.push_back(
-        str_hasher(std::filesystem::relative(f, dir_path).string()));
+    const std::string& fname = std::filesystem::relative(f, dir_path).string();
+    EVP_DigestUpdate(mdctx, fname.data(), fname.size());
     std::string content = read_file_content(f);
-    hashes.push_back(str_hasher(content));
+    EVP_DigestUpdate(mdctx, content.data(), content.size());
   }
 
-  return final_hasher(hashes);
+  unsigned char hash[SHA256_DIGEST_LENGTH];
+  unsigned int size;
+  EVP_DigestFinal_ex(mdctx, hash, &size);
+  EVP_MD_CTX_free(mdctx);
+
+  std::string retval;
+  retval.reserve(SHA256_DIGEST_LENGTH * 2);
+  auto digit = [](unsigned char d) -> char {
+    if (d < 10)
+      return '0' + d;
+    else
+      return 'a' + (d - 10);
+  };
+
+  for (auto h : hash) {
+    retval.push_back(digit(h >> 4));
+    retval.push_back(digit(h & 0xf));
+  }
+  return retval;
 }
