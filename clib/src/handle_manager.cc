@@ -1,25 +1,25 @@
 /**
-* Copyright 2011-2013 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/handle_manager.hh"
 #include <cerrno>
 #include <cstring>
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/handle_action.hh"
 #include "com/centreon/handle_listener.hh"
 #include "com/centreon/task_manager.hh"
@@ -59,15 +59,16 @@ handle_manager::~handle_manager() noexcept {
 void handle_manager::add(handle* h, handle_listener* hl, bool is_threadable) {
   // Check parameters.
   if (!h)
-    throw(basic_error() << "attempt to add null handle in handle manager");
+    throw exceptions::msg_fmt("attempt to add null handle in handle manager");
   if (!hl)
-    throw(basic_error() << "attempt to add null listener in handle manager");
+    throw exceptions::msg_fmt("attempt to add null listener in handle manager");
 
   // Check native handle.
   native_handle nh(h->get_native_handle());
   if (nh == native_handle_null)
-    throw basic_error() << "attempt to add handle with invalid native "
-                           "handle in the handle manager";
+    throw exceptions::msg_fmt(
+        "attempt to add handle with invalid native handle in the handle "
+        "manager");
 
   // Check that handle isn't already registered.
   if (_handles.find(nh) == _handles.end()) {
@@ -76,8 +77,8 @@ void handle_manager::add(handle* h, handle_listener* hl, bool is_threadable) {
     _handles.insert(item);
     _recreate_array = true;
   } else
-    throw basic_error() << "attempt to add handle "
-                           "already monitored by handle manager";
+    throw exceptions::msg_fmt(
+        "attempt to add handle already monitored by handle manager");
 }
 
 /**
@@ -160,7 +161,7 @@ unsigned int handle_manager::remove(handle_listener* hl) {
 void handle_manager::multiplex() {
   // Check that task manager is present.
   if (!_task_manager)
-    throw basic_error() << "cannot multiplex handles with no task manager";
+    throw exceptions::msg_fmt("cannot multiplex handles with no task manager");
 
   // Create or update pollfd.
   _setup_array();
@@ -182,7 +183,7 @@ void handle_manager::multiplex() {
   int ret = _poll(_array, _handles.size(), timeout);
   if (ret == -1) {
     char const* msg(strerror(errno));
-    throw basic_error() << "handle multiplexing failed: " << msg;
+    throw exceptions::msg_fmt("handle multiplexing failed: {}", msg);
   }
 
   // Dispatch events.

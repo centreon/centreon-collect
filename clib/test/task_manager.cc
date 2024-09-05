@@ -19,7 +19,7 @@
 #include "com/centreon/task_manager.hh"
 #include <gtest/gtest.h>
 #include <iostream>
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 // Global task manager.
 
 using namespace com::centreon;

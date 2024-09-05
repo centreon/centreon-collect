@@ -1,27 +1,28 @@
 /**
-* Copyright 2011-2013 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/logging/backend.hh"
+#include <fmt/std.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <cstring>
 #include <thread>
-#include "com/centreon/misc/stringifier.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/timestamp.hh"
 
 using namespace com::centreon::logging;
@@ -170,19 +171,21 @@ void backend::show_thread_id(bool enable) {
  *
  *  @param[out] buffer  The buffer to fill.
  */
-void backend::_build_header(misc::stringifier& buffer) {
+std::string backend::_build_header() {
   // Build line header.
+  std::string buffer;
   if (_show_timestamp == second)
-    buffer << "[" << timestamp::now().to_seconds() << "] ";
+    buffer = fmt::format("[{}] ", timestamp::now().to_seconds());
   else if (_show_timestamp == millisecond)
-    buffer << "[" << timestamp::now().to_mseconds() << "] ";
+    buffer = fmt::format("[{}] ", timestamp::now().to_mseconds());
   else if (_show_timestamp == microsecond)
-    buffer << "[" << timestamp::now().to_useconds() << "] ";
+    buffer = fmt::format("[{}] ", timestamp::now().to_useconds());
   if (_show_pid) {
-    buffer << "[" << getpid() << "] ";
+    buffer += fmt::format("[{}] ", getpid());
   }
   if (_show_thread_id)
-    buffer << "[" << std::this_thread::get_id() << "] ";
+    buffer += fmt::format("[{}] ", std::this_thread::get_id());
+  return buffer;
 }
 
 /**
