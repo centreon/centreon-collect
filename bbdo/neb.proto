@@ -623,6 +623,7 @@ message Instance {
   int64 end_time = 7;
   int64 start_time = 8;
   string version = 9;
+  string configuration_version = 10;
 }
 
 /*io::neb, neb::de_pb_responsive_instance*/
