@@ -19,6 +19,7 @@
 #include "com/centreon/broker/neb/callbacks.hh"
 
 #include <absl/strings/str_split.h>
+#include <spdlog/spdlog.h>
 #include <unistd.h>
 
 #include "bbdo/neb.pb.h"
@@ -47,6 +48,7 @@
 #include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/tag.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/parser.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -2396,6 +2398,13 @@ int neb::callback_pb_process(int callback_type, void* data) {
   inst.set_engine("Centreon Engine");
   inst.set_pid(getpid());
   inst.set_version(get_program_version());
+  const std::string& engine_conf_dir =
+      config::applier::state::instance().engine_conf_dir();
+  if (!engine_conf_dir.empty()) {
+    inst.set_configuration_version(
+        com::centreon::engine::configuration::parser::hash_directory(
+            engine_conf_dir));
+  }
 
   // Check process event type.
   process_data = static_cast<nebstruct_process_data*>(data);
@@ -2431,10 +2440,24 @@ int neb::callback_pb_process(int callback_type, void* data) {
     inst.set_name(config::applier::state::instance().poller_name());
     start_time = time(nullptr);
     inst.set_start_time(start_time);
+    std::string my_conf_version =
+        com::centreon::engine::configuration::parser::hash_directory(
+            config::applier::state::instance().engine_conf_dir());
+    inst.set_configuration_version(my_conf_version);
 
     // Send initial event and then configuration.
     gl_publisher.write(inst_obj);
-    send_initial_pb_configuration();
+    if (config::applier::state::instance().known_engine_conf() !=
+        my_conf_version) {
+      SPDLOG_LOGGER_INFO(neb_logger,
+                         "callbacks: the peer doesn't know the "
+                         "Engine configuration, so it is sent");
+      send_initial_pb_configuration();
+    } else {
+      SPDLOG_LOGGER_INFO(neb_logger,
+                         "callbacks: no need to send the Engine configuration, "
+                         "the central already knows it.");
+    }
   } else if (NEBTYPE_PROCESS_EVENTLOOPEND == process_data->type) {
     SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating process end event");
     // Fill output var.
