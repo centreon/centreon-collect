@@ -17,6 +17,7 @@
  */
 
 #include <rrd.h>
+#include <fmt/std.h>
 
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
