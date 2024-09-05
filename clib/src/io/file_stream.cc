@@ -1,20 +1,20 @@
 /**
-* Copyright 2012-2013 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2012-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/io/file_stream.hh"
 #include <fcntl.h>
@@ -24,9 +24,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::io;
+using com::centreon::exceptions::msg_fmt;
 
 /**************************************
  *                                     *
@@ -108,7 +109,7 @@ bool file_stream::exists(std::string const& path) {
 void file_stream::flush() {
   if (fflush(_stream)) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "cannot flush stream: " << msg);
+    throw msg_fmt("cannot flush stream: {}", msg);
   }
   return;
 }
@@ -126,9 +127,7 @@ com::centreon::native_handle file_stream::get_native_handle() {
     retval = fileno(_stream);
     if (retval < 0) {
       char const* msg(strerror(errno));
-      throw(basic_error() << "could not get native handle from "
-                             "file stream: "
-                          << msg);
+      throw msg_fmt("could not get native handle from file stream: {}", msg);
     }
   }
   return retval;
@@ -139,16 +138,16 @@ com::centreon::native_handle file_stream::get_native_handle() {
  */
 void file_stream::open(char const* path, char const* mode) {
   if (!path)
-    throw(basic_error() << "invalid argument path: null pointer");
+    throw msg_fmt("invalid argument path: null pointer");
   if (!mode)
-    throw(basic_error() << "invalid argument mode: null pointer");
+    throw msg_fmt("invalid argument mode: null pointer");
 
   close();
   _auto_close = true;
   _stream = fopen(path, mode);
   if (!_stream) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "could not open file '" << path << "': " << msg);
+    throw msg_fmt("could not open file '{}': {}", path, msg);
   }
   int fd(fileno(_stream));
   int flags(0);
@@ -182,14 +181,14 @@ void file_stream::open(std::string const& path, char const* mode) {
  */
 unsigned long file_stream::read(void* data, unsigned long size) {
   if (!_stream)
-    throw(basic_error() << "attempt to read from closed file stream");
+    throw msg_fmt("attempt to read from closed file stream");
   if (!data || !size)
-    throw(basic_error() << "attempt to read from "
-                           "file stream but do not except any result");
+    throw msg_fmt(
+        "attempt to read from file stream but do not except any result");
   ssize_t rb(::read(get_native_handle(), data, size));
   if (rb < 0) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "could not read from file stream: " << msg);
+    throw msg_fmt("could not read from file stream: {}", msg);
   }
   return static_cast<unsigned long>(rb);
 }
@@ -264,20 +263,20 @@ unsigned long file_stream::size() {
   long original_offset(ftell(_stream));
   if (-1 == original_offset) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "cannot tell position within file: " << msg);
+    throw msg_fmt("cannot tell position within file: {}", msg);
   }
 
   // Seek to end of file.
   if (fseek(_stream, 0, SEEK_END)) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "cannot seek to end of file: " << msg);
+    throw msg_fmt("cannot seek to end of file: {}", msg);
   }
 
   // Get position (size).
   long size(ftell(_stream));
   if (size < 0) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "cannot get file size: " << msg);
+    throw msg_fmt("cannot get file size: {}", msg);
   }
 
   // Get back to original position.
@@ -294,7 +293,7 @@ unsigned long file_stream::size() {
 char* file_stream::temp_path() {
   char* ret(::tmpnam(static_cast<char*>(NULL)));
   if (!ret)
-    throw basic_error() << "could not generate temporary file name";
+    throw msg_fmt("could not generate temporary file name");
   return ret;
 }
 
@@ -308,13 +307,13 @@ char* file_stream::temp_path() {
  */
 unsigned long file_stream::write(void const* data, unsigned long size) {
   if (!_stream)
-    throw(basic_error() << "attempt to write to a closed file stream");
+    throw msg_fmt("attempt to write to a closed file stream");
   if (!data || !size)
-    throw(basic_error() << "attempt to write no data to file stream");
+    throw msg_fmt("attempt to write no data to file stream");
   ssize_t wb(::write(get_native_handle(), data, size));
   if (wb <= 0) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "could not write to file stream: " << msg);
+    throw msg_fmt("could not write to file stream: {}", msg);
   }
   return static_cast<unsigned long>(wb);
 }
