@@ -27,6 +27,7 @@
 #include "com/centreon/broker/sql/mysql_result.hh"
 #include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
+#include "com/centreon/broker/unified_sql/engine_configurator.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/common/utf8.hh"
@@ -45,7 +46,7 @@ static const std::string _insert_or_update_tags =
  *  @brief Clean tables with data associated to the instance.
  *
  *  Rather than delete appropriate entries in tables, they are instead
- *  deactivated using a specific flag.
+ *  desabled using a specific flag.
  *
  *  @param[in] instance_id Instance ID to remove.
  */
@@ -2681,6 +2682,10 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
     _mysql.run_statement(_pb_instance_insupdate,
                          database::mysql_error::store_poller, conn);
     _add_action(conn, actions::instances);
+
+    /* Attempt to read/write the Engine configuration */
+    engine_configurator conf(inst.instance_id(), _logger_sql);
+    conf.apply();
   }
 }
 

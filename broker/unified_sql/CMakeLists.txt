@@ -33,9 +33,10 @@ set(UNIFIED_SQL
 add_library(
   "${UNIFIED_SQL}" SHARED
   # Sources.
-  ${SRC_DIR}/bulk_queries.cc
   ${SRC_DIR}/bulk_bind.cc
+  ${SRC_DIR}/bulk_queries.cc
   ${SRC_DIR}/connector.cc
+  ${SRC_DIR}/engine_configurator.cc
   ${SRC_DIR}/factory.cc
   ${SRC_DIR}/main.cc
   ${SRC_DIR}/rebuilder.cc
@@ -56,7 +57,7 @@ add_library(
 set_target_properties("${UNIFIED_SQL}" PROPERTIES PREFIX "" COMPILE_FLAGS
                                                             "-fPIC")
 add_dependencies("${UNIFIED_SQL}" target_rebuild_message
-                 target_remove_graph_message 
+                 target_remove_graph_message
                  target_neb
                  pb_open_telemetry_lib)
 target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
