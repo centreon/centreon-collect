@@ -33,7 +33,7 @@ message Welcome {
   string extensions = 2;
   uint64 poller_id = 3;
   string poller_name = 4;
-  uint64 version_conf = 5;
+  string configuration_version = 5;
 }
 
 /*io::bbdo, bbdo::de_pb_ack*/
