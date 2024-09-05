@@ -65,8 +65,22 @@ class state {
 
   static stats _stats_conf;
 
-  absl::flat_hash_map<uint64_t, std::string> _connected_pollers;
-  mutable std::mutex _connected_pollers_m;
+  /* * If we are a centengine, peer is a broker ; version_conf is what broker
+   * knows about my engine configuration.
+   * * If we are a broker, peer is a centengine ; version_conf is the Engine
+   * configuration it is currently using.
+   *
+   * I know this is wrong, but often it is true and we work on it. */
+  struct peer {
+    std::string name;
+    std::string version_conf;
+  };
+
+  /* list of peers connected to this. They are not always pollers since this can
+   * be a poller and so a peer would be a broker. And for a broker we could
+   * also have map instances. */
+  absl::flat_hash_map<uint64_t, peer> _connected_peers;
+  mutable std::mutex _connected_peers_m;
 
   state(const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept = default;
@@ -88,12 +102,16 @@ class state {
   const std::string& poller_name() const noexcept;
   const std::filesystem::path& engine_conf_dir() const;
   void set_engine_conf_dir(const std::string& engine_conf_dir);
+  const std::filesystem::path& local_pollers_conf_dir() const;
   const std::filesystem::path& pollers_conf_dir() const noexcept;
   void set_pollers_conf_dir(const std::string& dir);
   modules& get_modules();
-  void add_poller(uint64_t poller_id, const std::string& poller_name);
+  void add_poller(uint64_t poller_id,
+                  const std::string& poller_name,
+                  const std::string& version_conf);
   void remove_poller(uint64_t poller_id);
   bool has_connection_from_poller(uint64_t poller_id) const;
+  std::string known_engine_conf() const;
   static stats& mut_stats_conf();
   static const stats& stats_conf();
 };

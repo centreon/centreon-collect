@@ -307,19 +307,23 @@ const config::applier::state::stats& state::stats_conf() {
  * @param poller_id The id of the poller (an id by host)
  * @param poller_name The name of the poller
  */
-void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
-  std::lock_guard<std::mutex> lck(_connected_pollers_m);
+void state::add_poller(uint64_t poller_id,
+                       const std::string& poller_name,
+                       const std::string& version_conf) {
+  std::lock_guard<std::mutex> lck(_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
-  auto found = _connected_pollers.find(poller_id);
-  if (found == _connected_pollers.end()) {
+  auto found = _connected_peers.find(poller_id);
+  if (found == _connected_peers.end()) {
     logger->info("Poller '{}' with id {} connected", poller_name, poller_id);
-    _connected_pollers[poller_id] = poller_name;
+    _connected_peers[poller_id] = {.name = poller_name,
+                                     .version_conf = version_conf};
   } else {
     logger->warn(
         "Poller '{}' with id {} already known as connected. Replacing it "
         "with '{}'",
-        _connected_pollers[poller_id], poller_id, poller_name);
-    found->second = poller_name;
+        _connected_peers[poller_id].name, poller_id, poller_name);
+    found->second.name = poller_name;
+    found->second.version_conf = version_conf;
   }
 }
 
@@ -329,15 +333,15 @@ void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
  * @param poller_id The id of the poller to remove.
  */
 void state::remove_poller(uint64_t poller_id) {
-  std::lock_guard<std::mutex> lck(_connected_pollers_m);
+  std::lock_guard<std::mutex> lck(_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
-  auto found = _connected_pollers.find(poller_id);
-  if (found == _connected_pollers.end())
+  auto found = _connected_peers.find(poller_id);
+  if (found == _connected_peers.end())
     logger->warn("There is currently no poller {} connected", poller_id);
   else {
     logger->info("Poller '{}' with id {} just disconnected",
-                 _connected_pollers[poller_id], poller_id);
-    _connected_pollers.erase(found);
+                 _connected_peers[poller_id].name, poller_id);
+    _connected_peers.erase(found);
   }
 }
 
@@ -347,8 +351,23 @@ void state::remove_poller(uint64_t poller_id) {
  * @param poller_id The poller to check.
  */
 bool state::has_connection_from_poller(uint64_t poller_id) const {
-  std::lock_guard<std::mutex> lck(_connected_pollers_m);
-  return _connected_pollers.contains(poller_id);
+  std::lock_guard<std::mutex> lck(_connected_peers_m);
+  return _connected_peers.contains(poller_id);
+}
+
+/**
+ * @brief This method is called from cbmod when the instance message is sent.
+ * In that case, the table _connected_peers should contain one peer which is
+ * the connected broker. And during the connection, we should have receive the
+ * Engine configuration.
+ *
+ * @return The Engine configuration version.
+ */
+std::string state::known_engine_conf() const  {
+  std::lock_guard<std::mutex> lck(_connected_peers_m);
+  if (_connected_peers.size() == 1)
+    return _connected_peers.begin()->second.version_conf;
+  return "";
 }
 
 /**
@@ -368,4 +387,15 @@ const std::filesystem::path& state::pollers_conf_dir() const noexcept {
  */
 void state::set_pollers_conf_dir(const std::string& dir) {
   _pollers_conf_dir = dir;
+}
+
+/**
+ * @brief Get the local pollers configuration directory used by Broker and that
+ * is a copy of the php cache.
+ * Otherwise returns an empty string.
+ *
+ * @return A directory name or an empty string.
+ */
+const std::filesystem::path& state::local_pollers_conf_dir() const {
+  return _local_pollers_conf_dir;
 }
