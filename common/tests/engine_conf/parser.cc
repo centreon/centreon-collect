@@ -30,8 +30,8 @@ class TestParser : public ::testing::Test {
 TEST_F(TestParser, hashDirectory_empty) {
   system("mkdir -p /tmp/foo ; rm -rf /tmp/foo/*");
   system("mkdir -p /tmp/bar ; rm -rf /tmp/bar/*");
-  size_t hash_foo = parser::hash_directory("/tmp/foo");
-  size_t hash_bar = parser::hash_directory("/tmp/bar");
+  std::string hash_foo = parser::hash_directory("/tmp/foo");
+  std::string hash_bar = parser::hash_directory("/tmp/bar");
   ASSERT_EQ(hash_foo, hash_bar);
 }
 
@@ -42,8 +42,8 @@ TEST_F(TestParser, hashDirectory_simple) {
   system(
       "mkdir -p /tmp/bar ; rm -rf /tmp/bar/* ; mkdir -p /tmp/bar/b ; mkdir -p "
       "/tmp/bar/b/a ; touch /tmp/bar/b/a/foobar ; mkdir -p /tmp/bar/a");
-  size_t hash_foo = parser::hash_directory("/tmp/foo");
-  size_t hash_bar = parser::hash_directory("/tmp/bar");
+  std::string hash_foo = parser::hash_directory("/tmp/foo");
+  std::string hash_bar = parser::hash_directory("/tmp/bar");
   ASSERT_EQ(hash_foo, hash_bar);
 }
 
@@ -56,15 +56,17 @@ TEST_F(TestParser, hashDirectory_multifiles) {
   for (int i = 19; i >= 0; i--) {
     system(fmt::format("touch /tmp/bar/file_{}", i).c_str());
   }
-  size_t hash_foo = parser::hash_directory("/tmp/foo");
-  size_t hash_bar = parser::hash_directory("/tmp/bar");
+  std::string hash_foo = parser::hash_directory("/tmp/foo");
+  std::string hash_bar = parser::hash_directory("/tmp/bar");
+  ASSERT_EQ(hash_foo,
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
   ASSERT_EQ(hash_foo, hash_bar);
 }
 
 TEST_F(TestParser, hashDirectory_realSituation) {
   system("rm -rf /tmp/tests_foo ; cp -rf tests /tmp/tests_foo");
-  size_t hash = parser::hash_directory("tests");
-  size_t hash1 = parser::hash_directory("/tmp/tests_foo");
+  std::string hash = parser::hash_directory("tests");
+  std::string hash1 = parser::hash_directory("/tmp/tests_foo");
   ASSERT_EQ(hash, hash1);
 
   // A new line added to a file.
