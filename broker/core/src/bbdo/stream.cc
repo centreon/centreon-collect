@@ -20,8 +20,10 @@
 
 #include <absl/strings/str_split.h>
 #include <arpa/inet.h>
+#include <spdlog/spdlog.h>
 
 #include <cassert>
+#include <filesystem>
 #include <memory>
 
 #include "bbdo/bbdo.pb.h"
@@ -33,6 +35,7 @@
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/io/raw.hh"
+#include "com/centreon/broker/misc/engine_conf_provider.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -766,7 +769,7 @@ void stream::negotiate(stream::negotiation_type neg) {
       const std::string& engine_conf_dir =
           config::applier::state::instance().engine_conf_dir();
       if (!engine_conf_dir.empty()) {
-        obj.set_version_conf(
+        obj.set_configuration_version(
             com::centreon::engine::configuration::parser::hash_directory(
                 engine_conf_dir));
       }
@@ -808,6 +811,7 @@ void stream::negotiate(stream::negotiation_type neg) {
   }
 
   std::string peer_extensions;
+  std::string configuration_version;
   if (d->type() == version_response::static_type()) {
     std::shared_ptr<version_response> v(
         std::static_pointer_cast<version_response>(d));
@@ -867,6 +871,13 @@ void stream::negotiate(stream::negotiation_type neg) {
         pb_version.major(), pb_version.minor(), pb_version.patch(),
         _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
 
+    configuration_version = w->obj().configuration_version();
+    if (!configuration_version.empty()) {
+      SPDLOG_LOGGER_INFO(
+          _logger,
+          "BBDO: peer knows about an Engine configuration version '{}'",
+          configuration_version);
+    }
     // Send our own packet if we should be second.
     if (neg == negotiate_second) {
       SPDLOG_LOGGER_DEBUG(
@@ -882,6 +893,33 @@ void stream::negotiate(stream::negotiation_type neg) {
       obj.set_extensions(extensions);
       obj.set_poller_id(config::applier::state::instance().poller_id());
       obj.set_poller_name(config::applier::state::instance().poller_name());
+
+      if (!configuration_version.empty()) {
+        misc::engine_conf_provider provider(
+            config::applier::state::instance().pollers_conf_dir(),
+            config::applier::state::instance().local_pollers_conf_dir());
+        std::string new_version;
+        if (provider.update_working_if_new_engine_conf(w->obj().poller_id(),
+                                                       &new_version)) {
+        } else if (provider.knows_engine_conf(w->obj().poller_id(),
+                                              configuration_version)) {
+          new_version = configuration_version;
+        }
+
+        if (configuration_version != new_version)
+          SPDLOG_LOGGER_DEBUG(_logger,
+                              "BBDO: Engine configurations do not match: on "
+                              "peer {} <> local {}",
+                              configuration_version, new_version);
+        else
+          SPDLOG_LOGGER_DEBUG(_logger,
+                              "BBDO: Engine configuration and local Engine "
+                              "configuration match with version {}",
+                              new_version);
+        obj.set_configuration_version(new_version);
+      } else {
+        SPDLOG_LOGGER_DEBUG(_logger, "BBDO: peer sends no engine conf version");
+      }
 
       _write(welcome);
       _substream->flush();
@@ -955,7 +993,8 @@ void stream::negotiate(stream::negotiation_type neg) {
 
   // Stream has now negotiated.
   _negotiated = true;
-  config::applier::state::instance().add_poller(_poller_id, _poller_name);
+  config::applier::state::instance().add_poller(_poller_id, _poller_name,
+                                                configuration_version);
   SPDLOG_LOGGER_TRACE(_logger, "Negotiation done.");
 }
 

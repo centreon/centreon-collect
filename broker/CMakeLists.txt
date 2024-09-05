@@ -344,6 +344,7 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/io/stream.cc
     ${SRC_DIR}/mapping/entry.cc
     ${SRC_DIR}/misc/diagnostic.cc
+    ${SRC_DIR}/misc/engine_conf_provider.cc
     ${SRC_DIR}/misc/filesystem.cc
     ${SRC_DIR}/misc/misc.cc
     ${SRC_DIR}/misc/processing_speed_computer.cc
