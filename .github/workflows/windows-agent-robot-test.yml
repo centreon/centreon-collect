@@ -130,10 +130,10 @@ jobs:
         run: |
           copy tests\resources\engine-scripts\echo.ps1 C:\Users\public\
           copy tests\resources\engine-scripts\check.pl C:\Users\public\
-  
+
       - name: robot tests
         run: .github/scripts/agent_robot_test.ps1
         shell: powershell
-  
+
       - name: collect binaries
         run: wsl ls -l /usr/sbin/cbd /usr/sbin/centengine /usr/lib64/centreon-engine/ /usr/share/centreon/lib/centreon-broker

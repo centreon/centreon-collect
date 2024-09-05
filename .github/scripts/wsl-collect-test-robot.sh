@@ -5,10 +5,11 @@ set -x
 test_file=$1
 
 export RUN_ENV=WSL
-export USED_ADDRESS=$2
+export HOST_NAME=$2
+export USED_ADDRESS=$3
 
-echo "##### windows host IP #####"
-ip route show | grep -i default | awk '{ print $3}'
+echo "##### /etc/hosts: ######"
+cat /etc/hosts
 
 echo "##### Starting tests #####"
 cd tests
