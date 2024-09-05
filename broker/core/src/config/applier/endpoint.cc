@@ -18,13 +18,13 @@
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 
+#include <fmt/std.h>
 #include <cassert>
 
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/persistent_cache.hh"

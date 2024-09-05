@@ -20,11 +20,11 @@
 
 #include <absl/synchronization/mutex.h>
 #include <unistd.h>
+#include <fmt/std.h>
 
 #include <cassert>
 
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/common/pool.hh"
@@ -318,8 +318,9 @@ engine::~engine() noexcept {
  *  @return Path to the multiplexing engine cache file.
  */
 std::string engine::_cache_file_path() const {
-  std::string retval(fmt::format(
-      "{}.unprocessed", config::applier::state::instance().cache_dir()));
+  std::string retval(
+      fmt::format("{}.unprocessed",
+                  config::applier::state::instance().cache_dir()));
   return retval;
 }
 

@@ -19,8 +19,7 @@
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include <absl/synchronization/mutex.h>
 #include <absl/time/time.h>
-
-#include <cassert>
+#include <fmt/std.h>
 
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
