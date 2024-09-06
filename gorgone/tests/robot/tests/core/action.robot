@@ -70,7 +70,6 @@ action module with ${communication_mode} communcation mode
     Examples:    communication_mode   --
         ...    push_zmq
         ...    pullwss
-        ...    pull
 
 *** Keywords ***
 Test Sync Action Module
