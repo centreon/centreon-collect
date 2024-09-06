@@ -33,7 +33,6 @@ class conf_server_config {
   unsigned _second_keep_alive_interval;
   std::string _certificate_path;
   std::string _key_path;
-  std::string _engine_otl_endpoint;
   unsigned _check_interval;
 
  public:
@@ -54,9 +53,6 @@ class conf_server_config {
 
   const std::string& get_certificate_path() const { return _certificate_path; }
   const std::string& get_key_path() const { return _key_path; }
-  const std::string& get_engine_otl_endpoint() const {
-    return _engine_otl_endpoint;
-  }
 
   bool operator==(const conf_server_config& right) const;
 };

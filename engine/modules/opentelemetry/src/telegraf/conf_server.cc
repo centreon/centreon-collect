@@ -77,16 +77,8 @@ static constexpr std::string_view _config_schema(R"(
             "description": "interval in seconds between two checks (param [agent] interval) ",
             "type": "integer",
             "minimum": 10
-        },
-        "engine_otel_endpoint": {
-            "description": "opentelemetry engine grpc server",
-            "type": "string",
-            "minLength": 5
         }
     },
-    "required":[
-      "engine_otel_endpoint"
-    ],
     "type": "object"
 }
 )");
@@ -105,7 +97,6 @@ conf_server_config::conf_server_config(const rapidjson::Value& json_config_v,
     throw;
   }
 
-  _engine_otl_endpoint = json_config.get_string("engine_otel_endpoint");
   _check_interval = json_config.get_unsigned("check_interval", 60);
 
   if (json_config_v.HasMember("http_server")) {
@@ -396,12 +387,8 @@ void conf_session<connection_class>::answer_to_request(
   ## Default data collection interval for all inputs
   interval = "{}s"
 
-[[outputs.opentelemetry]]
-  service_address = "{}"
-
 )",
-                             _telegraf_conf->get_check_interval(),
-                             _telegraf_conf->get_engine_otl_endpoint());
+                             _telegraf_conf->get_check_interval());
   bool at_least_one_found = _get_commands(host, resp->body());
   if (at_least_one_found) {
     resp->result(boost::beast::http::status::ok);
