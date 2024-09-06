@@ -1,6 +1,5 @@
 *** Settings ***
 Documentation       Start and stop Gorgone with pull configuration
-Test Tags           manual
 
 Resource            ${CURDIR}${/}..${/}..${/}resources${/}import.resource
 Test Timeout        300s
