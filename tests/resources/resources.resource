@@ -281,6 +281,7 @@ Ctn Save Logs If Failed
     Run Keyword If Test Failed    Ctn Save Logs
 
 Ctn Save Logs
+    Log To Console      Save test logs
     Create Directory    failed
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}

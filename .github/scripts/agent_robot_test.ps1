@@ -42,6 +42,8 @@ $agent_process = Start-Process -PassThru -FilePath build_windows\agent\Release\c
 
 Write-Host ($agent_process | Format-Table | Out-String)
 
+Start-Sleep -Seconds 1
+
 #encrypted version
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name ca_certificate -Value ${$current_dir}/server_grpc.crt
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name endpoint -Value ${my_host_name}:4318
@@ -57,6 +59,8 @@ Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name en
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name reversed_grpc_streaming -Value 1
 $reversed_agent_process = Start-Process -PassThru -FilePath build_windows\agent\Release\centagent.exe
 
+Start-Sleep -Seconds 1
+
 #reversed and encrypted
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name private_key -Value ${$current_dir}/server_grpc.key
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name public_cert -Value ${$current_dir}/server_grpc.crt
@@ -64,6 +68,9 @@ Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name en
 $encrypted_reversed_agent_process = Start-Process -PassThru -FilePath build_windows\agent\Release\centagent.exe
 
 wsl cd $wsl_path `&`& .github/scripts/wsl-collect-test-robot.sh broker-engine/cma.robot $my_host_name $my_ip
+
+dir
+dir *\*
 
 Stop-Process -InputObject $agent_process
 Stop-Process -InputObject $encrypted_agent_process

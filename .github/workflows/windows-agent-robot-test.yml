@@ -135,5 +135,14 @@ jobs:
         run: .github/scripts/agent_robot_test.ps1
         shell: powershell
 
+      - name: Upload Test Results
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        with:
+          name: reports-cma-windows
+          path: reports
+          retention-days: 1
+
+
       - name: collect binaries
         run: wsl ls -l /usr/sbin/cbd /usr/sbin/centengine /usr/lib64/centreon-engine/ /usr/share/centreon/lib/centreon-broker
