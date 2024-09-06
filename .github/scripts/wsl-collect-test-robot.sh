@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 set -x
 
 test_file=$1
@@ -22,8 +21,7 @@ robot -t BEOTEL_CENTREON_AGENT_CHECK_HOST $test_file
 echo "####################### End of Centreon Collect Robot Tests #######################"
 
 if [ -d failed ] ; then
-    echo "failure save logs in ${pwd}/../reports"
-
+    echo "failure save logs in ${PWD}/../reports"
     cp -rp failed ../reports/windows-cma-failed
     cp log.html ../reports/windows-cma-log.html
     cp output.xml ../reports/windows-cma-output.xml

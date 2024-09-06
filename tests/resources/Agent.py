@@ -138,7 +138,7 @@ def ctn_echo_command(to_echo:str):
     returned an echo command usable by testing agent OS
     """
     if environ.get("RUN_ENV","") == "WSL":
-        return "Powershell -ExecutionPolicy Bypass C:\\Users\\Public\\echo.ps1 " + to_echo
+        return "pwsh.exe -ExecutionPolicy Bypass -File C:/Users/Public/echo.ps1 " + to_echo
     else:
         return "/bin/echo " + to_echo
 
@@ -149,7 +149,7 @@ def ctn_check_pl_command(arg:str):
     returned an check.pl command usable by testing agent OS
     """
     if environ.get("RUN_ENV","") == "WSL":
-        return "C:\\Users\\Public\\check.pl " + arg
+        return "C:/Users/Public/check.pl " + arg
     else:
         return "/tmp/var/lib/centreon-engine/check.pl " + arg 
         
