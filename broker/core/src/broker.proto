@@ -26,6 +26,14 @@ service Broker {
   rpc GetEndpointStats(GenericNameOrIndex) returns (GenericString) {}
 
   rpc GetProcessingStats(google.protobuf.Empty) returns (ProcessingStats) {}
+  /**
+   * @brief Returns a list of the peers connected to this instance.
+   *
+   * @param Nothing
+   *
+   * @return A PeersList message.
+   */
+  rpc GetPeers(google.protobuf.Empty) returns (PeersList) {}
 
   /**
    * @brief Rebuild RRD metric from data in the SQL database.
@@ -280,4 +288,20 @@ message BaInfo {
 message ToRemove {
   repeated uint64 index_ids = 1;
   repeated uint64 metric_ids = 2;
+}
+
+message Peer {
+  enum PeerType {
+    INPUT = 0;
+    OUTPUT = 1;
+  }
+  uint64 poller_id = 1;
+  string name = 2;
+  PeerType type = 3;
+  string engine_configuration = 4;
+  bool synchronized = 5;
+}
+
+message PeersList {
+  repeated Peer peers = 1;
 }

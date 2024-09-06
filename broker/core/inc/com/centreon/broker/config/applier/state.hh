@@ -22,12 +22,11 @@
 #include <absl/container/flat_hash_map.h>
 
 #include "com/centreon/broker/config/applier/modules.hh"
+#include "com/centreon/broker/config/applier/peer.hh"
 #include "com/centreon/broker/config/state.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::config::applier {
 
-namespace config {
-namespace applier {
 /**
  *  @class state state.hh "com/centreon/broker/config/applier/state.hh"
  *  @brief Apply a configuration.
@@ -65,17 +64,6 @@ class state {
 
   static stats _stats_conf;
 
-  /* * If we are a centengine, peer is a broker ; version_conf is what broker
-   * knows about my engine configuration.
-   * * If we are a broker, peer is a centengine ; version_conf is the Engine
-   * configuration it is currently using.
-   *
-   * I know this is wrong, but often it is true and we work on it. */
-  struct peer {
-    std::string name;
-    std::string version_conf;
-  };
-
   /* list of peers connected to this. They are not always pollers since this can
    * be a poller and so a peer would be a broker. And for a broker we could
    * also have map instances. */
@@ -106,18 +94,20 @@ class state {
   const std::filesystem::path& pollers_conf_dir() const noexcept;
   void set_pollers_conf_dir(const std::string& dir);
   modules& get_modules();
-  void add_poller(uint64_t poller_id,
-                  const std::string& poller_name,
-                  const std::string& version_conf);
+  void add_peer(PeerType type,
+                uint64_t poller_id,
+                const std::string& poller_name,
+                const std::string& version_conf);
+
+  absl::flat_hash_map<uint64_t, peer> peers() const;
   void remove_poller(uint64_t poller_id);
   bool has_connection_from_poller(uint64_t poller_id) const;
   std::string known_engine_conf() const;
+  void synchronize_peer(uint64_t poller_id);
+  void synchronize_peer();
   static stats& mut_stats_conf();
   static const stats& stats_conf();
 };
-}  // namespace applier
-}  // namespace config
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::config::applier
 
 #endif  // !CCB_CONFIG_APPLIER_STATE_HH

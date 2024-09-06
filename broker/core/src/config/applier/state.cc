@@ -307,23 +307,25 @@ const config::applier::state::stats& state::stats_conf() {
  * @param poller_id The id of the poller (an id by host)
  * @param poller_name The name of the poller
  */
-void state::add_poller(uint64_t poller_id,
-                       const std::string& poller_name,
-                       const std::string& version_conf) {
+void state::add_peer(PeerType type,
+                     uint64_t poller_id,
+                     const std::string& poller_name,
+                     const std::string& version_conf) {
   std::lock_guard<std::mutex> lck(_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
   auto found = _connected_peers.find(poller_id);
   if (found == _connected_peers.end()) {
     logger->info("Poller '{}' with id {} connected", poller_name, poller_id);
-    _connected_peers[poller_id] = {.name = poller_name,
-                                     .version_conf = version_conf};
+    _connected_peers[poller_id] = peer(type, poller_name, version_conf);
   } else {
     logger->warn(
         "Poller '{}' with id {} already known as connected. Replacing it "
         "with '{}'",
-        _connected_peers[poller_id].name, poller_id, poller_name);
-    found->second.name = poller_name;
-    found->second.version_conf = version_conf;
+        _connected_peers[poller_id].name(), poller_id, poller_name);
+    peer& peer = found->second;
+    peer.set_type(type);
+    peer.set_name(poller_name);
+    peer.set_engine_configuration_version(version_conf);
   }
 }
 
@@ -340,7 +342,7 @@ void state::remove_poller(uint64_t poller_id) {
     logger->warn("There is currently no poller {} connected", poller_id);
   else {
     logger->info("Poller '{}' with id {} just disconnected",
-                 _connected_peers[poller_id].name, poller_id);
+                 _connected_peers[poller_id].name(), poller_id);
     _connected_peers.erase(found);
   }
 }
@@ -357,17 +359,53 @@ bool state::has_connection_from_poller(uint64_t poller_id) const {
 
 /**
  * @brief This method is called from cbmod when the instance message is sent.
- * In that case, the table _connected_peers should contain one peer which is
- * the connected broker. And during the connection, we should have receive the
- * Engine configuration.
+ * In that case, we are only interested by the peers of type INPUT. And we
+ * should only have one.
  *
- * @return The Engine configuration version.
+ * @return The Engine configuration version known by the input peer or an empty
+ * string.
  */
-std::string state::known_engine_conf() const  {
+std::string state::known_engine_conf() const {
   std::lock_guard<std::mutex> lck(_connected_peers_m);
-  if (_connected_peers.size() == 1)
-    return _connected_peers.begin()->second.version_conf;
+  for (auto& p : _connected_peers) {
+    if (p.second.type() == INPUT)
+      return p.second.engine_configuration_version();
+  }
   return "";
+}
+
+/**
+ * @brief This method is called from an input. The peer is of type OUTPUT.
+ * This peer is set as synchronized.
+ */
+void state::synchronize_peer(uint64_t poller_id) {
+  std::lock_guard<std::mutex> lck(_connected_peers_m);
+  auto it = _connected_peers.find(poller_id);
+  if (it != _connected_peers.end() && it->second.type() == OUTPUT)
+    it->second.set_synchronized(true);
+}
+
+/**
+ * @brief This method is called from cbmod. So the peer is of type INPUT and
+ * there is only one. This peer is set as synchronized.
+ */
+void state::synchronize_peer() {
+  std::lock_guard<std::mutex> lck(_connected_peers_m);
+  for (auto& p : _connected_peers) {
+    if (p.second.type() == INPUT)
+      p.second.set_synchronized(true);
+  }
+}
+
+/**
+ * @brief Returns a copy of the connected peers. The copy is because of the
+ * concurrent accesses.
+ *
+ * @return A map of the connected peers.
+ */
+absl::flat_hash_map<uint64_t, peer> state::peers() const {
+  std::lock_guard<std::mutex> lck(_connected_peers_m);
+  return _connected_peers;
 }
 
 /**

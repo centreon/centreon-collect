@@ -768,6 +768,7 @@ void stream::negotiate(stream::negotiation_type neg) {
       obj.set_poller_id(config::applier::state::instance().poller_id());
       const std::string& engine_conf_dir =
           config::applier::state::instance().engine_conf_dir();
+      obj.set_type(_is_input ? INPUT : OUTPUT);
       if (!engine_conf_dir.empty()) {
         obj.set_configuration_version(
             com::centreon::engine::configuration::parser::hash_directory(
@@ -920,7 +921,16 @@ void stream::negotiate(stream::negotiation_type neg) {
       } else {
         SPDLOG_LOGGER_DEBUG(_logger, "BBDO: peer sends no engine conf version");
       }
+      obj.set_type(_is_input ? INPUT : OUTPUT);
 
+      if (obj.type() == w->obj().type()) {
+        SPDLOG_LOGGER_ERROR(
+            _logger,
+            "BBDO: there is an error in the configuration, peer '{}' and I "
+            "both "
+            "share the same type '{}' which is a configuration error",
+            w->obj().poller_name(), _is_input ? "input" : "output");
+      }
       _write(welcome);
       _substream->flush();
     }
@@ -993,8 +1003,10 @@ void stream::negotiate(stream::negotiation_type neg) {
 
   // Stream has now negotiated.
   _negotiated = true;
-  config::applier::state::instance().add_poller(_poller_id, _poller_name,
-                                                configuration_version);
+  PeerType peer_type = _is_input ? INPUT : OUTPUT;
+
+  config::applier::state::instance().add_peer(
+      peer_type, _poller_id, _poller_name, configuration_version);
   SPDLOG_LOGGER_TRACE(_logger, "Negotiation done.");
 }
 

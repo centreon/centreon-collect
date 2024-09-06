@@ -37,7 +37,7 @@ using namespace spdlog;
 
 log_v2* log_v2::_instance = nullptr;
 
-const std::array<std::string, log_v2::LOGGER_SIZE> log_v2::_logger_name = {
+constexpr std::array<std::string_view, log_v2::LOGGER_SIZE> _logger_name = {
     "core",
     "config",
     "bam",
@@ -239,7 +239,8 @@ void log_v2::create_loggers(config::logger_type typ, size_t length) {
 
   for (int32_t id = 0; id < LOGGER_SIZE; id++) {
     std::shared_ptr<spdlog::logger> logger;
-    logger = std::make_shared<spdlog::logger>(_logger_name[id], my_sink);
+    logger = std::make_shared<spdlog::logger>(
+        std::string(_logger_name[id].data(), _logger_name[id].size()), my_sink);
     if (_log_pid) {
       if (_log_source)
         logger->set_pattern(
@@ -390,10 +391,10 @@ void log_v2::apply(const config& log_conf) {
  * @return a boolean.
  */
 bool log_v2::contains_logger(std::string_view logger) const {
-  absl::flat_hash_set<std::string> loggers;
   for (auto& n : _logger_name)
-    loggers.insert(n);
-  return loggers.contains(logger);
+    if (n == logger)
+      return true;
+  return false;
 }
 
 /**

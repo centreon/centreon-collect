@@ -79,6 +79,7 @@ set(SOURCES
 
 # Static libraries.
 add_library(sql STATIC ${SOURCES})
+add_dependencies(sql pb_bbdo_lib)
 set_target_properties(sql PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(sql PRIVATE ../precomp_inc/precomp.hpp)
 target_link_libraries(sql spdlog::spdlog mariadb)

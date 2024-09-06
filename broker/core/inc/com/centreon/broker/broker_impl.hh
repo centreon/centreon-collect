@@ -120,6 +120,11 @@ class broker_impl final : public Broker::Service {
       const ::google::protobuf::Empty* request,
       ::com::centreon::common::pb_process_stat* response) override;
 
+  ::grpc::Status GetPeers(
+      ::grpc::ServerContext* context [[maybe_unused]],
+      const ::google::protobuf::Empty*,
+      ::com::centreon::broker::PeersList* response) override;
+
  public:
   void set_broker_name(const std::string& s);
 };

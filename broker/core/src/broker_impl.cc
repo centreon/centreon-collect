@@ -394,3 +394,19 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
   }
   return grpc::Status::OK;
 }
+
+::grpc::Status broker_impl::GetPeers(
+    ::grpc::ServerContext* context [[maybe_unused]],
+    const ::google::protobuf::Empty* request [[maybe_unused]],
+    ::com::centreon::broker::PeersList* response) {
+  for (auto& p : config::applier::state::instance().peers()) {
+    auto peer = response->add_peers();
+    peer->set_name(p.second.name());
+    peer->set_poller_id(p.first);
+    peer->set_engine_configuration(p.second.engine_configuration_version());
+    peer->set_synchronized(p.second.is_synchronized());
+    peer->set_type(p.second.type() == INPUT ? Peer_PeerType_INPUT
+                                            : Peer_PeerType_OUTPUT);
+  }
+  return grpc::Status::OK;
+}

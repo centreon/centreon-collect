@@ -22,24 +22,30 @@
 #include <spdlog/spdlog.h>
 #include <unistd.h>
 
-#include "bbdo/neb.pb.h"
-#include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
-
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/config/state.hh"
-#include "com/centreon/broker/neb/callback.hh"
-#include "com/centreon/broker/neb/events.hh"
+#include "com/centreon/broker/neb/acknowledgement.hh"
+#include "com/centreon/broker/neb/comment.hh"
+#include "com/centreon/broker/neb/custom_variable.hh"
+#include "com/centreon/broker/neb/downtime.hh"
+#include "com/centreon/broker/neb/host.hh"
+#include "com/centreon/broker/neb/host_check.hh"
+#include "com/centreon/broker/neb/host_group.hh"
+#include "com/centreon/broker/neb/host_group_member.hh"
+#include "com/centreon/broker/neb/host_parent.hh"
 #include "com/centreon/broker/neb/initial.hh"
-#include "com/centreon/broker/neb/internal.hh"
+#include "com/centreon/broker/neb/instance.hh"
+#include "com/centreon/broker/neb/instance_status.hh"
+#include "com/centreon/broker/neb/service.hh"
+#include "com/centreon/broker/neb/service_check.hh"
+#include "com/centreon/broker/neb/service_group.hh"
+#include "com/centreon/broker/neb/service_group_member.hh"
 #include "com/centreon/broker/neb/set_log_data.hh"
 #include "com/centreon/common/time.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
-#include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostgroup.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
@@ -47,9 +53,7 @@
 #include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/tag.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/engine_conf/parser.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
@@ -2449,15 +2453,19 @@ int neb::callback_pb_process(int callback_type, void* data) {
     gl_publisher.write(inst_obj);
     if (config::applier::state::instance().known_engine_conf() !=
         my_conf_version) {
-      SPDLOG_LOGGER_INFO(neb_logger,
-                         "callbacks: the peer doesn't know the "
-                         "Engine configuration, so it is sent");
+      SPDLOG_LOGGER_INFO(
+          neb_logger,
+          "callbacks: the peer doesn't know the "
+          "Engine configuration, so it is sent: mine: {}, its: {}",
+          config::applier::state::instance().known_engine_conf(),
+          my_conf_version);
       send_initial_pb_configuration();
     } else {
       SPDLOG_LOGGER_INFO(neb_logger,
                          "callbacks: no need to send the Engine configuration, "
                          "the central already knows it.");
     }
+    config::applier::state::instance().synchronize_peer();
   } else if (NEBTYPE_PROCESS_EVENTLOOPEND == process_data->type) {
     SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating process end event");
     // Fill output var.

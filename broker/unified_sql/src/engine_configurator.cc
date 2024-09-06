@@ -17,7 +17,9 @@
  */
 
 #include "com/centreon/broker/unified_sql/engine_configurator.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 
+using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
 
 engine_configurator::engine_configurator(
@@ -25,4 +27,8 @@ engine_configurator::engine_configurator(
     const std::shared_ptr<spdlog::logger>& logger)
     : _instance_id{instance_id}, _logger{logger} {}
 
-void engine_configurator::apply() {}
+void engine_configurator::apply() {
+  _logger->info("synchronizing with peer '{}'",
+                config::applier::state::instance().poller_name());
+  config::applier::state::instance().synchronize_peer(_instance_id);
+}
