@@ -91,7 +91,6 @@ class log_v2 {
   std::string _log_name;
   std::chrono::seconds _flush_interval;
   std::string _file_path;
-  const static std::array<std::string, LOGGER_SIZE> _logger_name;
   std::array<std::shared_ptr<spdlog::logger>, LOGGER_SIZE> _loggers;
   size_t _current_max_size = 0U;
   bool _log_pid = false;
