@@ -858,6 +858,7 @@ static int l_broker_md5(lua_State* L) {
   }
   *tmp = 0;
   lua_pushstring(L, result);
+  OPENSSL_free(md5);
   return 1;
 }
 
