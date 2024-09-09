@@ -815,25 +815,22 @@ static void md5_message(const unsigned char* message,
                         unsigned char** digest,
                         unsigned int* digest_len) {
   EVP_MD_CTX* mdctx;
-  auto handle_error = [](const std::string& msg) {
-    auto logger = log_v2::instance().get(log_v2::LUA);
-    logger->error(msg);
-  };
+  auto logger = log_v2::instance().get(log_v2::LUA);
   if ((mdctx = EVP_MD_CTX_new()) == nullptr) {
-    handle_error("lua: fail to call MD5 (EVP_MD_CTX_new call)");
+    logger->error("lua: fail to call MD5 (EVP_MD_CTX_new call)");
   }
   if (1 != EVP_DigestInit_ex(mdctx, EVP_md5(), nullptr)) {
-    handle_error("lua: fail to call MD5 (EVP_DigestInit_ex call)");
+    logger->error("lua: fail to call MD5 (EVP_DigestInit_ex call)");
   }
   if (1 != EVP_DigestUpdate(mdctx, message, message_len)) {
-    handle_error("lua: fail to call MD5 (EVP_DigestUpdate call)");
+    logger->error("lua: fail to call MD5 (EVP_DigestUpdate call)");
   }
   if ((*digest = (unsigned char*)OPENSSL_malloc(EVP_MD_size(EVP_md5()))) ==
       nullptr) {
-    handle_error("lua: fail to call MD5 (OPENSSL_malloc call)");
+    logger->error("lua: fail to call MD5 (OPENSSL_malloc call)");
   }
   if (1 != EVP_DigestFinal_ex(mdctx, *digest, digest_len)) {
-    handle_error("lua: fail to call MD5 (EVP_DigestFinal_ex call)");
+    logger->error("lua: fail to call MD5 (EVP_DigestFinal_ex call)");
   }
   EVP_MD_CTX_free(mdctx);
 }
