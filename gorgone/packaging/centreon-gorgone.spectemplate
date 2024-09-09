@@ -5,9 +5,9 @@ Summary:    Perl daemon task handlers
 Group:      Applications/System
 License:    Apache-2.0
 URL:        http://www.centreon.com
-Source0:    %{name}-%{version}.tar.gz
+Source0:    gorgone-%{version}.tar.gz
 BuildArch:  noarch
-BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildRoot:  %{_tmppath}/gorgone-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires: perl-devel
 
@@ -55,7 +55,7 @@ Requires:   centreon-gorgone
 %description centreon-config
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q -n gorgone-%{version}
 
 %build
 
