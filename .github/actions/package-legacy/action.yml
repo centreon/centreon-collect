@@ -165,7 +165,7 @@ runs:
           sed -i "s/^centreon:versionThreshold=.*$/centreon:versionThreshold=$(echo "$MAJOR_LEFT_PART.$BUMP_MAJOR_RIGHT_PART" | egrep -o '^[0-9][0-9].[0-9][0-9]')/" debian/substvars
 
         fi
-        
+
         debmake -f "Centreon" -e "contact@centreon.com" -u "$VERSION" -y -r "bullseye"
         debuild-pbuilder --no-lintian
 
