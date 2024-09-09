@@ -17,15 +17,12 @@
  */
 
 #include "com/centreon/broker/lua/macro_cache.hh"
-#include <absl/container/flat_hash_set.h>
-#include <memory>
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -833,7 +830,7 @@ void macro_cache::_process_host_group(std::shared_ptr<io::data> const& data) {
     } else {
       /* Here, we add the hostgroup and the first poller that needs it */
       absl::flat_hash_set<uint32_t> pollers{hg->poller_id};
-      _host_groups[hg->id] = std::make_pair(std::move(hg), pollers);
+      _host_groups[hg->id] = std::make_pair(hg, pollers);
     }
   } else {
     /* We check that no more pollers need this host group. So if the set is
@@ -1095,7 +1092,7 @@ void macro_cache::_process_service_group(
     } else {
       /* Here, we add the servicegroup and the first poller that needs it */
       absl::flat_hash_set<uint32_t> pollers{sg->poller_id};
-      _service_groups[sg->id] = std::make_pair(std::move(sg), pollers);
+      _service_groups[sg->id] = std::make_pair(sg, pollers);
     }
   } else {
     /* We check that no more pollers need this service group. So if the set is
