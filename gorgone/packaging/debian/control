@@ -1,4 +1,4 @@
-Source: centreon-gorgone
+Source: gorgone
 Section: net
 Priority: optional
 Maintainer: Centreon <contact@centreon.com>
