@@ -166,10 +166,10 @@ runs:
 
         fi
 
-        echo " I AM PACKAGING FROM HERE: $PWD"
         debmake -f "Centreon" -e "contact@centreon.com" -u "$VERSION" -y -r "bullseye"
-
-        # This makes shure that widget pkgs end up in the same dir as non widgets
+        debuild-pbuilder --no-lintian
+  
+        # This makes sure that widget pkgs end up in the same dir as non widgets
         if [[ $MODULE_BASENAME = "centreon-widget"* ]]; then
           find / -name "*centreon-widget*.deb" -exec mv {} ../../ \;
         fi
