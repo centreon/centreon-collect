@@ -154,12 +154,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     "-Wl,--whole-archive"
     rokerbase
     multiplexing
-    "-Wl,--no-whole-archive"
-    nlohmann_json::nlohmann_json
-    spdlog::spdlog)
+    "-Wl,--no-whole-archive")
 else()
-  target_link_libraries("${CBMOD}" -L${PROTOBUF_LIB_DIR} "rokerbase"
-                        nlohmann_json::nlohmann_json spdlog::spdlog)
+  target_link_libraries("${CBMOD}" -L${PROTOBUF_LIB_DIR} "rokerbase")
 endif()
 
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
