@@ -121,10 +121,10 @@ config::config(const std::string& path) {
   _endpoint = json_config.get_string("endpoint");
 
   // pattern schema doesn't work so we do it ourselves
-  if (!RE2::FullMatch(_endpoint, "[\\w\\.:]+:\\w+")) {
+  if (!RE2::FullMatch(_endpoint, "[\\w\\.\\-:]+:\\w+")) {
     throw exceptions::msg_fmt(
-        "bad format for endpoint {}, it must match to the regex: "
-        "[\\w\\.:]+:\\w+",
+        "bad format for endpoint {}, it must match the regex: "
+        "[\\w\\.\\-:]+:\\w+",
         _endpoint);
   }
   _log_level =
