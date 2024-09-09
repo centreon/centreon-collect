@@ -29,11 +29,14 @@ reg import agent/conf/centagent.reg
 
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_type -Value file
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name host -Value host_1
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_level -Value trace
+
 
 #in wsl1, no VM, so IP address are identical in host and wsl
 #windows can connect to linux on localhost but linux must use host ip
 $my_host_name = $env:COMPUTERNAME
 $my_ip = (Get-NetIpAddress -AddressFamily IPv4 | Where-Object IPAddress -ne "127.0.0.1" | SELECT IPAddress -First 1).IPAddress
+$pwsh_path = (get-command pwsh.exe).Path
 
 openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout server_grpc.key -out server_grpc.crt -subj "/CN=${my_host_name}"
 
@@ -52,6 +55,7 @@ Start-Sleep -Seconds 1
 #encrypted version
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name ca_certificate -Value ${$current_dir}/server_grpc.crt
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name endpoint -Value ${my_host_name}:4318
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name encryption -Value 1
 $agent_log_path = $current_dir + "\reports\encrypted_centagent.log"
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_file -Value $agent_log_path
 
@@ -62,7 +66,8 @@ Start-Sleep -Seconds 1
 
 #Start reverse agent
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name ca_certificate -Value ""
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name endpoint -Value 0.0.0.0:4320
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name encryption -Value 0
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name endpoint -Value ${my_host_name}:4320
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name reversed_grpc_streaming -Value 1
 $agent_log_path = $current_dir + "\reports\reverse_centagent.log"
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_file -Value $agent_log_path
@@ -74,18 +79,18 @@ Start-Sleep -Seconds 1
 #reversed and encrypted
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name private_key -Value ${$current_dir}/server_grpc.key
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name public_cert -Value ${$current_dir}/server_grpc.crt
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name endpoint -Value 0.0.0.0:4321
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name encryption -Value 1
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name endpoint -Value ${my_host_name}:4321
 $agent_log_path = $current_dir + "\reports\encrypted_reverse_centagent.log"
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_file -Value $agent_log_path
 
 Start-Process -FilePath build_windows\agent\Release\centagent.exe -RedirectStandardOutput reports\encrypted_reversed_centagent_stdout.log -RedirectStandardError reports\encrypted_reversed_centagent_stderr.log
 
-wsl cd $wsl_path `&`& .github/scripts/wsl-collect-test-robot.sh broker-engine/cma.robot $my_host_name $my_ip
+wsl cd $wsl_path `&`& .github/scripts/wsl-collect-test-robot.sh broker-engine/cma.robot $my_host_name $my_ip $pwsh_path
 
 if (Test-Path -Path 'reports\windows-cma-failed' -PathType Container) {
     exit 1
 }
 
-Stop-Process -Name centagent.exe
 
 

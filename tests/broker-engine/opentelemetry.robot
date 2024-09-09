@@ -116,11 +116,11 @@ BEOTEL_TELEGRAF_CHECK_HOST
     Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
     Sleep    1
 
-    ${resources_list}    Ctn Create Otl Request    ${0}    host_1
 
     Log To Console    export metrics
     # feed and check
     ${start}    Ctn Get Round Current Date
+    ${resources_list}    Ctn Create Otl Request    ${0}    host_1
     Ctn Send Otl To Engine    4317    ${resources_list}
 
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start}    0  HARD  OK
@@ -188,10 +188,10 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
     Sleep    1
 
-    ${resources_list}    Ctn Create Otl Request    ${0}    host_1    service_1
 
     # feed and check
     ${start}    Ctn Get Round Current Date
+    ${resources_list}    Ctn Create Otl Request    ${0}    host_1    service_1
     Log To Console    export metrics
     Ctn Send Otl To Engine    4317    ${resources_list}
 

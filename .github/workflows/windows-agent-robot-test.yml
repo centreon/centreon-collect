@@ -129,7 +129,7 @@ jobs:
       - name: prepare robot tests
         run: |
           copy tests\resources\engine-scripts\echo.ps1 C:\Users\public\
-          copy tests\resources\engine-scripts\check.pl C:\Users\public\
+          copy tests\resources\engine-scripts\check.ps1 C:\Users\public\
 
       - name: robot tests
         run: .github/scripts/agent_robot_test.ps1

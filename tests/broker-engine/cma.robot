@@ -339,7 +339,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     # Let's wait for the otel server start
     ${content}    Create List    encrypted server listening on 0.0.0.0:4318
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
     Sleep    1
 

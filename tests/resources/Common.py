@@ -559,8 +559,13 @@ def ctn_clear_commands_status():
 
 
 def ctn_set_command_status(cmd, status):
-    if os.path.exists("/tmp/states"):
-        f = open("/tmp/states")
+    if os.environ.get("RUN_ENV","") == "WSL":
+        state_path = "C:/Users/Public/states"
+    else:
+        state_path = "/tmp/states"
+
+    if os.path.exists(state_path):
+        f = open(state_path)
         lines = f.readlines()
     else:
         lines = []
@@ -576,7 +581,7 @@ def ctn_set_command_status(cmd, status):
 
     if not done:
         lines.append("{}=>{}\n".format(cmd, status))
-    f = open("/tmp/states", "w")
+    f = open(state_path, "w")
     f.writelines(lines)
     f.close()
 
