@@ -166,7 +166,8 @@ runs:
 
         fi
 
-        debmake -f "Centreon" -e "contact@centreon.com" -u "$VERSION" -y -r "bullseye"
+        echo " I AM PACKAGING FROM HERE: $PWD"
+        DEBUG=pdfbmeclak debmake -f "Centreon" -e "contact@centreon.com" -u "$VERSION" -y -r "bullseye"
         debuild-pbuilder --no-lintian
 
         # This makes shure that widget pkgs end up in the same dir as non widgets
