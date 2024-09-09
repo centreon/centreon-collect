@@ -1,10 +1,9 @@
 #!/usr/bin/make -f
 
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
-export DH_VERBOSE=1
 
 %:
-	dh $@ --verbose
+	dh $@
 
 override_dh_gencontrol:
 	dh_gencontrol -- -Tdebian/substvars
