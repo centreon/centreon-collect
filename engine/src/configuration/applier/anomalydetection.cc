@@ -659,7 +659,8 @@ void applier::anomalydetection::modify_object(
   // Custom variables.
   if (!std::equal(
           new_obj.customvariables().begin(), new_obj.customvariables().end(),
-          old_obj->customvariables().begin(), MessageDifferencer::Equals)) {
+          old_obj->customvariables().begin(), old_obj->customvariables().end(),
+          MessageDifferencer::Equals)) {
     for (auto& c : s->custom_variables) {
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
@@ -836,9 +837,11 @@ void applier::anomalydetection::resolve_object(
  *  @param[in] obj  Service object.
  */
 void applier::anomalydetection::resolve_object(
-    const configuration::Anomalydetection& obj, error_cnt& err) {
+    const configuration::Anomalydetection& obj,
+    error_cnt& err) {
   // Logging.
-  SPDLOG_LOGGER_DEBUG(config_logger, "Resolving anomalydetection '{}' of host '{}'.",
+  SPDLOG_LOGGER_DEBUG(config_logger,
+                      "Resolving anomalydetection '{}' of host '{}'.",
                       obj.service_description(), obj.host_name());
 
   // Find anomalydetection.

@@ -742,7 +742,8 @@ void applier::service::modify_object(configuration::Service* old_obj,
   // Custom variables.
   if (!std::equal(
           new_obj.customvariables().begin(), new_obj.customvariables().end(),
-          old_obj->customvariables().begin(), MessageDifferencer::Equals)) {
+          old_obj->customvariables().begin(), old_obj->customvariables().end(),
+          MessageDifferencer::Equals)) {
     for (auto& c : s->custom_variables) {
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));

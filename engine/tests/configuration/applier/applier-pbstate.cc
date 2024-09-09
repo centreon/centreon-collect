@@ -935,6 +935,11 @@ TEST_F(ApplierState, StateParsing) {
                           }));
 
   RmConf();
+  auto hst = host::hosts_by_id[30];
+  ASSERT_TRUE(hst->custom_variables.find("CUSTOM_CV") !=
+              hst->custom_variables.end());
+  ASSERT_EQ(hst->custom_variables["CUSTOM_CV"].value(),
+            std::string_view("custom_value"));
 }
 
 TEST_F(ApplierState, StateParsingServicegroupValidityFailed) {
