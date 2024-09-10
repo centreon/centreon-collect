@@ -517,14 +517,14 @@ define command {
             content = ""
             idx = 1
             for i in ids:
-                content += """define {} {{
-name                   {}_template_{}
-{}               {}
+                content += f"""define {typ} {{
+name                   {typ}_template_{idx}
+{what}               {i}
 register               0
 active_checks_enabled  1
 passive_checks_enabled 1
 }}
-""".format(typ, typ, idx, what, i)
+"""
                 idx += 1
             ff.write(content)
 
