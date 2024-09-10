@@ -339,17 +339,23 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     # Let's wait for the otel server start
     ${content}    Create List    encrypted server listening on 0.0.0.0:4318
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
     Sleep    1
 
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start_int}    0    OK - 127.0.0.1
+    ${result}    Ctn Check Host Check Status With Timeout    host_1    60    ${start_int}    0    OK - 127.0.0.1
     Should Be True    ${result}    hosts table not updated
 
 *** Keywords ***
 Ctn Create Cert And Init
     [Documentation]  create key and certificates used by agent and engine on linux side
     ${host_name}  Ctn Get Hostname
-    Ctn Create Key And Certificate  ${host_name}  /tmp/server_grpc.key   /tmp/server_grpc.crt
+    ${run_env}       Ctn Run Env
+    IF    "${run_env}" == "WSL"
+        Copy File    ../server_grpc.key    /tmp/server_grpc.key
+        Copy File    ../server_grpc.crt    /tmp/server_grpc.crt
+    ELSE
+        Ctn Create Key And Certificate  ${host_name}  /tmp/server_grpc.key   /tmp/server_grpc.crt
+    END
 
     Ctn Clean Before Suite

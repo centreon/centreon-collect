@@ -138,7 +138,7 @@ def ctn_echo_command(to_echo:str):
     returned an echo command usable by testing agent OS
     """
     if environ.get("RUN_ENV","") == "WSL":
-        return environ.get("PWSH_PATH") + " C:/Users/Public/echo.ps1 " + to_echo
+        return '"'+ environ.get('PWSH_PATH') + '"' + " C:/Users/Public/echo.ps1 " + to_echo
     else:
         return "/bin/echo " + to_echo
 
@@ -149,7 +149,7 @@ def ctn_check_pl_command(arg:str):
     returned an check.pl command usable by testing agent OS
     """
     if environ.get("RUN_ENV","") == "WSL":
-        return environ.get("PWSH_PATH") +" C:/Users/Public/check.ps1 " + arg
+        return '"'+ environ.get('PWSH_PATH') + '"' +" C:/Users/Public/check.ps1 " + arg + " " + environ.get("WINDOWS_PROJECT_PATH")
     else:
         return "/tmp/var/lib/centreon-engine/check.pl " + arg 
         

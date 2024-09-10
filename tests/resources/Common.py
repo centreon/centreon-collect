@@ -560,7 +560,7 @@ def ctn_clear_commands_status():
 
 def ctn_set_command_status(cmd, status):
     if os.environ.get("RUN_ENV","") == "WSL":
-        state_path = "C:/Users/Public/states"
+        state_path = "states"
     else:
         state_path = "/tmp/states"
 
