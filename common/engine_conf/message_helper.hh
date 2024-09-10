@@ -121,6 +121,7 @@ class message_helper {
    * 5. We can replace unchanged fields with the parent values if needed.
    */
   std::vector<bool> _modified_field;
+
   /* When a configuration object is resolved, this flag is set to true. */
   bool _resolved = false;
 

@@ -17,6 +17,7 @@
  *
  */
 #include "parser.hh"
+#include <memory>
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/io/directory_entry.hh"
 #include "common/log_v2/log_v2.hh"
@@ -642,7 +643,7 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
       }
 
       if ((oof && !refl->GetOneofFieldDescriptor(*msg, oof)) ||
-          !msg_helper->changed(f->number())) {
+          !msg_helper->changed(f->index())) {
         if (f->is_repeated()) {
           switch (f->cpp_type()) {
             case FieldDescriptor::CPPTYPE_STRING: {
@@ -664,7 +665,7 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                 if (!found)
                   refl->AddString(msg, f, s);
               }
-              msg_helper->set_changed(f->number());
+              msg_helper->set_changed(f->index());
             } break;
             case FieldDescriptor::CPPTYPE_MESSAGE: {
               size_t count = refl->FieldSize(*tmpl, f);
@@ -693,7 +694,7 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                   new_m->CopyFrom(m);
                 }
               }
-              msg_helper->set_changed(f->number());
+              msg_helper->set_changed(f->index());
             } break;
             default:
               _logger->error(
@@ -706,27 +707,27 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
           switch (f->cpp_type()) {
             case FieldDescriptor::CPPTYPE_STRING:
               refl->SetString(msg, f, refl->GetString(*tmpl, f));
-              msg_helper->set_changed(f->number());
+              msg_helper->set_changed(f->index());
               break;
             case FieldDescriptor::CPPTYPE_BOOL:
               refl->SetBool(msg, f, refl->GetBool(*tmpl, f));
-              msg_helper->set_changed(f->number());
+              msg_helper->set_changed(f->index());
               break;
             case FieldDescriptor::CPPTYPE_INT32:
               refl->SetInt32(msg, f, refl->GetInt32(*tmpl, f));
-              msg_helper->set_changed(f->number());
+              msg_helper->set_changed(f->index());
               break;
             case FieldDescriptor::CPPTYPE_UINT32:
               refl->SetUInt32(msg, f, refl->GetUInt32(*tmpl, f));
-              msg_helper->set_changed(f->number());
+              msg_helper->set_changed(f->index());
               break;
             case FieldDescriptor::CPPTYPE_UINT64:
               refl->SetUInt64(msg, f, refl->GetUInt64(*tmpl, f));
-              msg_helper->set_changed(f->number());
+              msg_helper->set_changed(f->index());
               break;
             case FieldDescriptor::CPPTYPE_ENUM:
               refl->SetEnum(msg, f, refl->GetEnum(*tmpl, f));
-              msg_helper->set_changed(f->number());
+              msg_helper->set_changed(f->index());
               break;
             case FieldDescriptor::CPPTYPE_MESSAGE: {
               Message* m = refl->MutableMessage(msg, f);
@@ -763,7 +764,7 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                 } else if (lst->data().empty())
                   *lst->mutable_data() = orig_lst->data();
               }
-              msg_helper->set_changed(f->number());
+              msg_helper->set_changed(f->index());
             } break;
 
             default:

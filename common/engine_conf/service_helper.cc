@@ -274,12 +274,15 @@ bool service_helper::insert_customvariable(std::string_view key,
   for (auto& c : *cvs) {
     if (c.name() == key) {
       c.set_value(value.data(), value.size());
+      set_changed(
+          obj->descriptor()->FindFieldByName("customvariables")->index());
       return true;
     }
   }
   auto new_cv = cvs->Add();
   new_cv->set_name(key.data(), key.size());
   new_cv->set_value(value.data(), value.size());
+  set_changed(obj->descriptor()->FindFieldByName("customvariables")->index());
   return true;
 }
 }  // namespace com::centreon::engine::configuration
