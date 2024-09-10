@@ -153,7 +153,7 @@ sub IstemplateLooping {
 	my $currentTemplate = shift;
 
 	my $query = "SELECT service_id, service_description, service_template_model_stm_id FROM service WHERE service_id = $currentTemplate";
-	my $sth = $db->query($query);
+	my $sth = $db->query({ query => $query });
 	my $row = $sth->fetchrow_hashref();
 
 	my $parentId = $row->{"service_template_model_stm_id"};
@@ -170,7 +170,7 @@ sub IstemplateLooping {
 	
 	while($hasParent){
 		my $query = "SELECT service_id, service_description, service_template_model_stm_id FROM service WHERE service_id = $parentId LIMIT 1";
-		my $sth = $db->query($query);
+		my $sth = $db->query({ query => $query });
 		my $row = $sth->fetchrow_hashref();			
 		my $grandParentId = $row->{"service_template_model_stm_id"};
 		
