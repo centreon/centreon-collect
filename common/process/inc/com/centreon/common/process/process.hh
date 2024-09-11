@@ -65,18 +65,22 @@ class process : public std::enable_shared_from_this<process> {
   char _stdout_read_buffer[0x1000] ABSL_GUARDED_BY(_protect);
   char _stderr_read_buffer[0x1000] ABSL_GUARDED_BY(_protect);
 
-  virtual void on_stdout_read(const boost::system::error_code& err,
+  virtual void on_stdout_read(absl::ReleasableMutexLock& yet_locked,
+                              const boost::system::error_code& err,
                               size_t nb_read)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
-  virtual void on_stderr_read(const boost::system::error_code& err,
+  virtual void on_stderr_read(absl::ReleasableMutexLock& yet_locked,
+                              const boost::system::error_code& err,
                               size_t nb_read)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
-  virtual void on_process_end(const boost::system::error_code& err,
+  virtual void on_process_end(absl::ReleasableMutexLock& yet_locked,
+                              const boost::system::error_code& err,
                               int raw_exit_status)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
-  virtual void on_stdin_write(const boost::system::error_code& err)
+  virtual void on_stdin_write(absl::ReleasableMutexLock& yet_locked,
+                              const boost::system::error_code& err)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
  public:

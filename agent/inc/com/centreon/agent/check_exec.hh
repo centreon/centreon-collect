@@ -44,7 +44,7 @@ class process : public common::process {
   unsigned _running_index;
   std::weak_ptr<check_exec> _parent;
 
-  void _on_completion();
+  void _on_completion(absl::ReleasableMutexLock& yet_locked);
 
  public:
   process(const std::shared_ptr<asio::io_context>& io_context,
@@ -61,12 +61,15 @@ class process : public common::process {
   const std::string& get_stdout() const { return _stdout; }
 
  protected:
-  void on_stdout_read(const boost::system::error_code& err,
+  void on_stdout_read(absl::ReleasableMutexLock& yet_locked,
+                      const boost::system::error_code& err,
                       size_t nb_read) override;
-  void on_stderr_read(const boost::system::error_code& err,
+  void on_stderr_read(absl::ReleasableMutexLock& yet_locked,
+                      const boost::system::error_code& err,
                       size_t nb_read) override;
 
-  void on_process_end(const boost::system::error_code& err,
+  void on_process_end(absl::ReleasableMutexLock& yet_locked,
+                      const boost::system::error_code& err,
                       int raw_exit_status) override;
 };
 
