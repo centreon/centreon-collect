@@ -18,6 +18,11 @@ on:
         required: true
         default: false
         type: boolean
+      legacy_engine:
+        description: 'Compile Engine with legacy configuration library'
+        required: true
+        default: false
+        type: boolean
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
@@ -125,6 +130,7 @@ jobs:
       SCCACHE_REGION: "eu-west-1"
       AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+      LEGACY_ENGINE: ${{ github.event.inputs.legacy_engine == 'true' && 'ON' || 'OFF' }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
@@ -195,7 +201,7 @@ jobs:
                   -DWITH_MODULE_SIMU=On \
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  -DLEGACY_ENGINE=ON \
+                  -DLEGACY_ENGINE=${LEGACY_ENGINE} \
                   -S .
 
           ninja -Cbuild
