@@ -484,6 +484,12 @@ add_subdirectory(enginerpc)
 include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src
                     ${CMAKE_SOURCE_DIR}/common/inc)
 
+# centenginestats target.
+add_executable(centenginestats "${SRC_DIR}/centenginestats.cc")
+add_dependencies(centenginestats centreon_clib)
+target_link_libraries(centenginestats centreon_clib fmt::fmt)
+target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
+
 # Library engine target.
 
 if(LEGACY_ENGINE)
@@ -543,6 +549,11 @@ if(LEGACY_ENGINE)
     ryml::ryml
     stdc++fs
     dl)
+
+install(
+  TARGETS centengine_legacy centenginestats
+  DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
+  COMPONENT "runtime")
 else()
   add_library(cce_core ${LIBRARY_TYPE} ${FILES})
   add_dependencies(cce_core engine_rpc centreon_clib pb_neb_lib)
@@ -599,13 +610,12 @@ else()
     ryml::ryml
     stdc++fs
     dl)
-endif()
 
-# centenginestats target.
-add_executable(centenginestats "${SRC_DIR}/centenginestats.cc")
-add_dependencies(centenginestats centreon_clib pb_neb_lib)
-target_link_libraries(centenginestats centreon_clib fmt::fmt)
-target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
+install(
+  TARGETS centengine centenginestats
+  DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
+  COMPONENT "runtime")
+endif()
 
 # Unit tests.
 add_subdirectory(tests)
@@ -615,10 +625,6 @@ add_subdirectory(tests)
 #
 
 # Install rules.
-install(
-  TARGETS "centengine" "centenginestats"
-  DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
-  COMPONENT "runtime")
 
 # Create directories.
 if(CREATE_FILES)

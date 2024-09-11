@@ -183,11 +183,11 @@ TEST_F(ApplierPbContact, PbModifyContactFromConfig) {
   contact_map::const_iterator ct_it{engine::contact::contacts.find("test")};
   ASSERT_TRUE(ct_it != engine::contact::contacts.end());
   ASSERT_EQ(ct_it->second->get_custom_variables().size(), 2u);
-  ASSERT_TRUE(ct_it->second->get_custom_variables()["superVar"].value() ==
-              "Super");
-  ASSERT_TRUE(ct_it->second->get_custom_variables()["superVar1"].value() ==
-              "Super1");
-  ASSERT_TRUE(ct_it->second->get_alias() == "newAlias");
+  ASSERT_EQ(ct_it->second->get_custom_variables()["superVar"].value(),
+              std::string_view("Super"));
+  ASSERT_EQ(ct_it->second->get_custom_variables()["superVar1"].value(),
+              std::string_view("Super1"));
+  ASSERT_EQ(ct_it->second->get_alias(), std::string_view("newAlias"));
   ASSERT_FALSE(ct_it->second->notify_on(notifier::service_notification,
                                         notifier::unknown));
 

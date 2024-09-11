@@ -53,8 +53,13 @@ if(WITH_TESTING)
 
   add_executable(bin_connector_test_run
                  "${TESTS_DIR}/commands/bin_connector_test_run.cc")
+               if (LEGACY_ENGINE)
+  target_link_libraries(bin_connector_test_run cce_core_legacy pthread)
+  target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core_legacy)
+else()
   target_link_libraries(bin_connector_test_run cce_core pthread)
   target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
+endif()
 
   # Unit test executable.
   include_directories(${TESTS_DIR} ${CMAKE_BINARY_DIR})
