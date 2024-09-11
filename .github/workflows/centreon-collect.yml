@@ -23,6 +23,11 @@ on:
         required: true
         default: false
         type: boolean
+      packages_in_artifact:
+        description: 'Save packages in artifacts'
+        required: true
+        default: false
+        type: boolean
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
@@ -239,6 +244,7 @@ jobs:
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-version.outputs.stability }}
       legacy_engine: ${{ github.event.inputs.legacy_engine == 'true' }}
+      packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' }}
     secrets: inherit
 
   robot-test:
