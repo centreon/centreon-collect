@@ -27,20 +27,19 @@ link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 if(LEGACY_ENGINE)
   # mod_externalcmd target.
   add_library(
-    externalcmd_legacy SHARED
+    externalcmd SHARED
     # Sources.
     "${SRC_DIR}/main.cc" "${SRC_DIR}/utils.cc"
     # Headers.
     "${INC_DIR}/utils.hh")
-  target_compile_definitions(externalcmd_legacy PRIVATE LEGACY_CONF)
-  set_property(TARGET "externalcmd_legacy" PROPERTY PREFIX "")
-  target_precompile_headers("externalcmd_legacy" PRIVATE precomp_inc/precomp.hh)
-  add_dependencies(externalcmd_legacy centreon_clib pb_neb_lib)
-  target_link_libraries(externalcmd_legacy centreon_clib spdlog::spdlog)
+  set_property(TARGET "externalcmd" PROPERTY PREFIX "")
+  target_precompile_headers(externalcmd PRIVATE precomp_inc/precomp.hh)
+  add_dependencies(externalcmd centreon_clib pb_neb_lib)
+  target_link_libraries(externalcmd centreon_clib spdlog::spdlog)
 
   # Install rule.
   install(
-    TARGETS "externalcmd_legacy"
+    TARGETS externalcmd
     DESTINATION "${ENGINE_MODULES_DIR}"
     COMPONENT "runtime")
 else()
