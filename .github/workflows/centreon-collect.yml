@@ -238,7 +238,7 @@ jobs:
       release: ${{ needs.get-version.outputs.release }}
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-version.outputs.stability }}
-      legacy_engine: ${{ github.event.inputs.legacy_engine }}
+      legacy_engine: ${{ github.event.inputs.legacy_engine == 'true' }}
     secrets: inherit
 
   robot-test:
