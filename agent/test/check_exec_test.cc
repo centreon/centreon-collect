@@ -131,3 +131,26 @@ TEST(check_exec_test, bad_command) {
             "or directory");
 #endif
 }
+
+TEST(check_exec_test, recurse_not_lock) {
+  command_line = ECHO_PATH " hello toto";
+  std::condition_variable cond;
+  unsigned cpt = 0;
+  std::shared_ptr<check_exec> check = check_exec::load(
+      g_io_context, spdlog::default_logger(), time_point(), serv, cmd_name,
+      command_line, engine_to_agent_request_ptr(),
+      [&](const std::shared_ptr<com::centreon::agent::check>& caller, int,
+          const std::list<com::centreon::common::perfdata>& perfdata,
+          const std::list<std::string>& output) {
+        if (!cpt) {
+          ++cpt;
+          caller->start_check(std::chrono::seconds(1));
+        } else
+          cond.notify_one();
+      });
+  check->start_check(std::chrono::seconds(1));
+
+  std::mutex mut;
+  std::unique_lock l(mut);
+  cond.wait(l);
+}
