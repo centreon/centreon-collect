@@ -1348,6 +1348,9 @@ bool host::_set_host_id(uint64_t value) {
  */
 bool host::_set_host_name(std::string const& value) {
   _host_name = value;
+  // if alias is empty we take the host name, better than taking template alias
+  if(_alias.empty())
+    _alias = value;
   return true;
 }
 
