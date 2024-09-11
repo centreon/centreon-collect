@@ -21,8 +21,11 @@ project("Centreon common" C CXX)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_subdirectory(log_v2)
-  add_subdirectory(engine_conf)
-  add_subdirectory(engine_legacy_conf)
+  if(LEGACY_ENGINE)
+    add_subdirectory(engine_legacy_conf)
+  else()
+    add_subdirectory(engine_conf)
+  endif()
 endif()
 
 # Set directories.
@@ -49,30 +52,24 @@ add_custom_command(
 
 # Set sources.
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set(SOURCES 
-    ${SRC_DIR}/hex_dump.cc
-    ${SRC_DIR}/perfdata.cc
-    ${SRC_DIR}/pool.cc 
-    ${SRC_DIR}/process_stat.cc 
-    ${SRC_DIR}/process_stat.pb.cc
-    ${SRC_DIR}/process_stat.grpc.pb.cc
-    ${SRC_DIR}/rapidjson_helper.cc
-    ${SRC_DIR}/utf8.cc 
-  )
+  set(SOURCES
+      ${SRC_DIR}/hex_dump.cc
+      ${SRC_DIR}/perfdata.cc
+      ${SRC_DIR}/pool.cc
+      ${SRC_DIR}/process_stat.cc
+      ${SRC_DIR}/process_stat.pb.cc
+      ${SRC_DIR}/process_stat.grpc.pb.cc
+      ${SRC_DIR}/rapidjson_helper.cc
+      ${SRC_DIR}/utf8.cc)
 else()
-#we need not many things to just compile centreon-monitoring-agent (centagent)
-  set(SOURCES 
-    ${SRC_DIR}/perfdata.cc
-    ${SRC_DIR}/utf8.cc
-  )
+  # we need not many things to just compile centreon-monitoring-agent
+  # (centagent)
+  set(SOURCES ${SRC_DIR}/perfdata.cc ${SRC_DIR}/utf8.cc)
 endif()
 
 # Include directories.
-include_directories("${INCLUDE_DIR}"
-  ${HTTP_INCLUDE_DIR}
-	${VCPKG_INCLUDE_DIR}
-  ${PROCESS_INCLUDE_DIR}
-  )
+include_directories("${INCLUDE_DIR}" ${HTTP_INCLUDE_DIR} ${VCPKG_INCLUDE_DIR}
+                    ${PROCESS_INCLUDE_DIR})
 
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_library(centreon_common STATIC ${SOURCES})
