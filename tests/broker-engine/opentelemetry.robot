@@ -392,7 +392,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     Ctn Config Centreon Agent
     Ctn Broker Config Log    central    sql    trace
 
-    Ctn ConfigBBDO3    1
+    Ctn Config BBDO3    1
     Ctn Clear Retention
 
     ${start}    Get Current Date

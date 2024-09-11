@@ -88,6 +88,8 @@ target_precompile_headers(opentelemetry PRIVATE precomp_inc/precomp.hh)
 # set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
 target_link_libraries(opentelemetry   
   spdlog::spdlog
+  -L${PROTOBUF_LIB_DIR}
+  protobuf
   -L${Boost_LIBRARY_DIR_RELEASE}
   boost_program_options)
 
