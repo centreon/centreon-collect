@@ -54,8 +54,8 @@ if(WITH_TESTING)
   add_executable(bin_connector_test_run
                  "${TESTS_DIR}/commands/bin_connector_test_run.cc")
                if (LEGACY_ENGINE)
-  target_link_libraries(bin_connector_test_run cce_core_legacy pthread)
-  target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core_legacy)
+  target_link_libraries(bin_connector_test_run cce_core pthread)
+  target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
 else()
   target_link_libraries(bin_connector_test_run cce_core pthread)
   target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
@@ -166,34 +166,32 @@ endif()
     # utils.cc can't be compiled with precomp headers so it's compiled apart
     add_library(ut_engine_utils_legacy STATIC
                 "${TESTS_DIR}/timeperiod/utils.cc")
-    target_compile_definitions(ut_engine_utils_legacy PRIVATE LEGACY_CONF)
 
-    add_executable(ut_engine_legacy ${ut_sources_legacy})
-    target_compile_definitions(ut_engine_legacy PRIVATE LEGACY_CONF)
+    add_executable(ut_engine ${ut_sources_legacy})
     target_include_directories(
-      ut_engine_legacy
+      ut_engine
       PRIVATE ${MODULE_DIR_OTL}/src ${CMAKE_SOURCE_DIR}/common/grpc/inc
               ${CMAKE_SOURCE_DIR}/agent/inc ${CMAKE_SOURCE_DIR}/agent/src)
 
-    target_precompile_headers(ut_engine_legacy REUSE_FROM cce_core_legacy)
+    target_precompile_headers(ut_engine REUSE_FROM cce_core)
 
     set_target_properties(
-      ut_engine_legacy rpc_client_engine bin_connector_test_run
+      ut_engine rpc_client_engine bin_connector_test_run
       PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
                  RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
                  RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
                  RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO
                  ${CMAKE_BINARY_DIR}/tests
                  RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
-    add_test(NAME tests_legacy COMMAND ut_engine_legacy)
+    add_test(NAME tests_legacy COMMAND ut_engine)
 
     target_link_libraries(
-      ut_engine_legacy
+      ut_engine
       PRIVATE -L${PROTOBUF_LIB_DIR}
               enginerpc_legacy
               ut_engine_utils_legacy
               "-Wl,-whole-archive"
-              cce_core_legacy
+              cce_core
               log_v2
               opentelemetry
               centagent_lib
@@ -228,7 +226,7 @@ endif()
           '${PROJECT_BINARY_DIR}/*' '${PROJECT_SOURCE_DIR}/tests/*'
           '/usr/include/*' '*/.conan/*')
       setup_target_for_coverage(NAME engine-test-coverage EXECUTABLE
-                                ut_engine_legacy DEPENDENCIES ut_engine_legacy)
+                                ut_engine DEPENDENCIES ut_engine)
       set(GCOV gcov)
     endif()
   else()

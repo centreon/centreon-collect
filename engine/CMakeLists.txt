@@ -493,15 +493,14 @@ target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 # Library engine target.
 
 if(LEGACY_ENGINE)
-  add_library(cce_core_legacy ${LIBRARY_TYPE} ${FILES})
-  add_dependencies(cce_core_legacy engine_rpc centreon_clib pb_neb_lib)
-  target_compile_definitions(cce_core_legacy PRIVATE LEGACY_CONF)
+  add_library(cce_core ${LIBRARY_TYPE} ${FILES})
+  add_dependencies(cce_core engine_rpc centreon_clib pb_neb_lib)
 
-  target_precompile_headers(cce_core_legacy PRIVATE ${PRECOMP_HEADER})
+  target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 
   # Link target with required libraries.
   target_link_libraries(
-    cce_core_legacy
+    cce_core
     ${MATH_LIBRARIES}
     ${PTHREAD_LIBRARIES}
     ${SOCKET_LIBRARIES}
@@ -512,15 +511,14 @@ if(LEGACY_ENGINE)
 
   # centengine target.
 
-  # centengine_legacy target.
-  add_executable(centengine_legacy "${SRC_DIR}/main.cc")
-  target_compile_definitions(centengine_legacy PRIVATE LEGACY_CONF)
-  set_property(TARGET centengine_legacy PROPERTY ENABLE_EXPORTS "1")
-  add_dependencies(centengine_legacy centreon_clib)
+  # centengine target.
+  add_executable(centengine "${SRC_DIR}/main.cc")
+  set_property(TARGET centengine PROPERTY ENABLE_EXPORTS "1")
+  add_dependencies(centengine centreon_clib)
 
-  # Link centengine_legacy with required libraries.
+  # Link centengine with required libraries.
   target_link_libraries(
-    centengine_legacy
+    centengine
     -L${PROTOBUF_LIB_DIR}
     "-rdynamic"
     centreon_clib
@@ -529,9 +527,10 @@ if(LEGACY_ENGINE)
     enginerpc_legacy
     centreon_grpc
     centreon_http
+    centreon_common
     -L${Boost_LIBRARY_DIR_RELEASE}
     boost_url
-    cce_core_legacy
+    cce_core
     gRPC::grpc++
     boost_program_options
     "-Wl,--no-whole-archive"
@@ -551,7 +550,7 @@ if(LEGACY_ENGINE)
     dl)
 
 install(
-  TARGETS centengine_legacy centenginestats
+  TARGETS centengine centenginestats
   DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
   COMPONENT "runtime")
 else()
