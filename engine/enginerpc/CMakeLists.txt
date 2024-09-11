@@ -69,7 +69,6 @@ if(LEGACY_ENGINE)
     "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
 
   add_dependencies(enginerpc_legacy centreon_common)
-  target_compile_definitions(enginerpc_legacy PRIVATE LEGACY_CONF)
   target_precompile_headers(enginerpc_legacy PRIVATE precomp_inc/precomp.hh)
 
   # Prettier name.
