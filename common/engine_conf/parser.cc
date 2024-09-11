@@ -19,7 +19,7 @@
 #include "parser.hh"
 #include <memory>
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/io/directory_entry.hh"
+#include "common/engine_conf/state.pb.h"
 #include "common/log_v2/log_v2.hh"
 
 #include "anomalydetection_helper.hh"
@@ -43,7 +43,6 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::io;
 
 using com::centreon::common::log_v2::log_v2;
 using com::centreon::exceptions::msg_fmt;
@@ -260,9 +259,9 @@ void parser::_parse_object_definitions(const std::string& path,
             pb_map_object& tmpl = _pb_templates[otype];
             auto it = tmpl.find(obj.name());
             if (it != tmpl.end())
-              throw msg_fmt("Parsing of '{}' failed {}: {} already exists",
-                            type, "file_info" /*_get_file_info(obj.get()) */,
-                            obj.name());
+              throw msg_fmt(
+                  "Parsing of '{}' failed in cfg file: {} already exists", type,
+                  obj.name());
             if (!obj.register_())
               tmpl[obj.name()] = std::move(msg);
             else {
@@ -677,15 +676,31 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                 for (size_t k = 0; k < count_msg; ++k) {
                   const Message& m1 = refl->GetRepeatedMessage(*msg, f, k);
                   const Descriptor* d1 = m1.GetDescriptor();
-                  if (d && d1 && d->name() == "PairUint64_32" &&
-                      d1->name() == "PairUint64_32") {
-                    const PairUint64_32& p =
-                        static_cast<const PairUint64_32&>(m);
-                    const PairUint64_32& p1 =
-                        static_cast<const PairUint64_32&>(m1);
-                    if (p.first() == p1.first() && p.second() == p1.second()) {
-                      found = true;
-                      break;
+                  if (d && d1) {
+                    if (d->name() == "PairUint64_32" &&
+                        d1->name() == "PairUint64_32") {
+                      const PairUint64_32& p =
+                          static_cast<const PairUint64_32&>(m);
+                      const PairUint64_32& p1 =
+                          static_cast<const PairUint64_32&>(m1);
+                      if (p.first() == p1.first() &&
+                          p.second() == p1.second()) {
+                        found = true;
+                        break;
+                      }
+                    } else if (d->name() == "CustomVariable" &&
+                               d1->name() == "CustomVariable") {
+                      const CustomVariable& cv =
+                          static_cast<const CustomVariable&>(m);
+                      const CustomVariable& cv1 =
+                          static_cast<const CustomVariable&>(m1);
+                      if (cv.name() == cv1.name()) {
+                        _logger->info("same name");
+                        found = true;
+                        break;
+                      }
+                    } else {
+                      assert("not good at all" == nullptr);
                     }
                   }
                 }
