@@ -138,6 +138,11 @@ jobs:
             export TRIPLET=x64-linux-release
           fi
 
+          if [ "${{ inputs.legacy_engine }}" == true ]; then
+            export LEGACY_ENGINE=ON
+          else
+            export LEGACY_ENGINE=OFF
+          fi
           mv /root/.cache /github/home/
           export VCPKG_ROOT="/vcpkg"
           export PATH="$VCPKG_ROOT:$PATH"
@@ -165,7 +170,7 @@ jobs:
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  -DLEGACY_ENGINE={{ inputs.legacy_engine == 'true' && 'ON' || 'OFF' }} \
+                  -DLEGACY_ENGINE=$LEGACY_ENGINE \
                   -S .
 
           ninja -Cbuild
