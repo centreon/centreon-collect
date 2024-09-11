@@ -195,6 +195,7 @@ jobs:
                   -DWITH_MODULE_SIMU=On \
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
+                  -DLEGACY_ENGINE=ON \
                   -S .
 
           ninja -Cbuild
