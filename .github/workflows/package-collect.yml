@@ -91,142 +91,20 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Install sccache
-        run: |
-          if [ "${{ matrix.package_extension }}" = "deb" ]; then
-            apt-get update
-            apt-get install -y wget
-          elif [ "${{ matrix.package_extension }}" = "rpm" ]; then
-            dnf install -y wget
-          fi
-          if [ "${{ matrix.arch }}" = "amd64" ]; then
-            wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
-            tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
-            mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/bin/
-          elif [ "${{ matrix.arch }}" = "arm64" ]; then
-            wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-aarch64-unknown-linux-musl.tar.gz
-            tar xzf sccache-v0.8.1-aarch64-unknown-linux-musl.tar.gz
-            mv sccache-v0.8.1-aarch64-unknown-linux-musl/sccache /usr/bin/
-          fi
-          ${SCCACHE_PATH} --start-server
-
-      - name: Generate selinux binaries
-        if: ${{ matrix.package_extension == 'rpm' }}
-        run: |
-          cd selinux
-          for MODULE in "centreon-engine" "centreon-broker" "centreon-monitoring-agent"; do
-            cd $MODULE
-            sed -i "s/@VERSION@/${{ inputs.major_version }}.${{ inputs.minor_version }}/g" $MODULE.te
-            make -f /usr/share/selinux/devel/Makefile
-            cd -
-          done
-        shell: bash
-
-      - name: Remove selinux packaging files on debian
-        if: ${{ matrix.package_extension == 'deb' }}
-        run: rm -f packaging/*-selinux.yaml
-        shell: bash
-
-      - name: Compile sources
-        run: |
-          CMAKE="cmake3"
-          if [ "${{ matrix.package_extension }}" = "deb" ]; then
-            CMAKE="cmake"
-          fi
-
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            export VCPKG_FORCE_SYSTEM_BINARIES=1
-            export TRIPLET=arm64-linux-release
-          else
-            export TRIPLET=x64-linux-release
-          fi
-
-          if [ "${{ inputs.legacy_engine }}" == true ]; then
-            export LEGACY_ENGINE=ON
-          else
-            export LEGACY_ENGINE=OFF
-          fi
-          mv /root/.cache /github/home/
-          export VCPKG_ROOT="/vcpkg"
-          export PATH="$VCPKG_ROOT:$PATH"
-          $CMAKE \
-                  -B build \
-                  -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
-                  -DVCPKG_TARGET_TRIPLET=$TRIPLET \
-                  -DVCPKG_OVERLAY_PORTS=/overlays \
-                  -GNinja \
-                  -DDEBUG_ROBOT=OFF \
-                  -DWITH_TESTING=OFF \
-                  -DWITH_BENCH=ON \
-                  -DWITH_MODULE_SIMU=OFF \
-                  -DCMAKE_INSTALL_PREFIX=/usr \
-                  -DWITH_STARTUP_SCRIPT=systemd \
-                  -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
-                  -DWITH_USER_BROKER=centreon-broker \
-                  -DWITH_GROUP_BROKER=centreon-broker \
-                  -DWITH_USER_ENGINE=centreon-engine \
-                  -DWITH_GROUP_ENGINE=centreon-engine \
-                  -DWITH_VAR_DIR=/var/log/centreon-engine \
-                  -DWITH_DAEMONS=ON \
-                  -DWITH_CREATE_FILES=OFF \
-                  -DWITH_CONFIG_FILES=ON \
-                  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                  -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  -DLEGACY_ENGINE=$LEGACY_ENGINE \
-                  -S .
-
-          ninja -Cbuild
-        shell: bash
-
-      - name: Cache statistics
-        run: ${SCCACHE_PATH} --show-stats
-        shell: bash
-
-      - name: Stop sccache server
-        run: ${SCCACHE_PATH} --stop-server
-        shell: bash
-
-      - name: Generate debug files
-        run: |
-          for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
-            echo "Making a debug file of $file"
-            objcopy --only-keep-debug $file $file.debug
-            objcopy --strip-debug $file
-            objcopy --add-gnu-debuglink $file.debug $file
-          done
-          exe=("build/broker/cbd"
-               "build/broker/watchdog/cbwd"
-               "build/engine/centengine"
-               "build/engine/centenginestats"
-               "build/engine/modules/bench/centengine_bench_passive"
-               "build/connectors/perl/centreon_connector_perl"
-               "build/connectors/ssh/centreon_connector_ssh"
-               "build/ccc/ccc"
-               "build/agent/centagent")
-          for file in "${exe[@]}"; do
-            echo "Making a debug file of $file"
-            objcopy --only-keep-debug $file $file.debug
-            objcopy --strip-debug $file
-            objcopy --add-gnu-debuglink $file.debug $file
-          done
-        shell: bash
-
-      - uses: ./.github/actions/package
+      - name: compile and package collect
+        uses: ./.github/actions/compile-package
         with:
-          nfpm_file_pattern: "packaging/*.yaml"
-          distrib: ${{ matrix.distrib }}
-          package_extension: ${{ matrix.package_extension }}
           major_version: ${{ inputs.major_version }}
           minor_version: ${{ inputs.minor_version }}
-          release: ${{ inputs.release }}
+          distrib: ${{ matrix.distrib }}
+          package_extension: ${{ matrix.package_extension }}
           arch: ${{ matrix.arch }}
+          release: ${{ inputs.release }}
           commit_hash: ${{ inputs.commit_hash }}
-          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          stability: ${{ inputs.stability }}
           rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
           rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
           rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
-          stability: ${{ inputs.stability }}
 
       - name: Cleaning not needed packages
         shell: bash

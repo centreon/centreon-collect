@@ -10,7 +10,7 @@ export PWSH_PATH=$4
 export WINDOWS_PROJECT_PATH=$5
 
 
-#ino order to connect to windows we neeed to use windowsw ip
+#in order to connect to windows we neeed to use windows ip
 echo "127.0.0.1       localhost" > /etc/hosts
 echo "${USED_ADDRESS}      ${HOST_NAME}" >> /etc/hosts
 

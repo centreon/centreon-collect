@@ -16,7 +16,20 @@
 # For more information : contact@centreon.com
 #
 
-Set-PSDebug -Trace 2
+# This script test windows CMA
+# We first start four instances of centreon agent (reverse or not, encryption or not)
+# Then, we install collect in a wsl and start robot test on it.
+# Used ports are:
+#   - 4317 no reversed, no encryption 
+#   - 4318 no reversed, encryption 
+#   - 4320 reversed, no encryption 
+#   - 4321 reversed, encryption
+# All files are shared between wsl and windows, we translate it with $wsl_path
+# By this share, we use certificates (server.*) on both world
+# In order to communicate bteween two worlds, we use hostname and IP of the host
+# That's why we rewrite /etc/hosts on wsl side
+# agent logs are saved in reports and wsl fail tests are saved in it also in case of failure
+
 
 Write-Host "Work in" $pwd.ToString()
 
@@ -38,6 +51,7 @@ $my_host_name = $env:COMPUTERNAME
 $my_ip = (Get-NetIpAddress -AddressFamily IPv4 | Where-Object IPAddress -ne "127.0.0.1" | SELECT IPAddress -First 1).IPAddress
 $pwsh_path = (get-command pwsh.exe).Path
 
+# generate certificate used by wsl and windows
 openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout server_grpc.key -out server_grpc.crt -subj "/CN=${my_host_name}"
 
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name endpoint -Value ${my_host_name}:4317
@@ -88,6 +102,7 @@ Start-Process -FilePath build_windows\agent\Release\centagent.exe -RedirectStand
 
 wsl cd $wsl_path `&`& .github/scripts/wsl-collect-test-robot.sh broker-engine/cma.robot $my_host_name $my_ip $pwsh_path ${current_dir}.replace('\','/')
 
+#something wrong in robot test => exit 1 => failure
 if (Test-Path -Path 'reports\windows-cma-failed' -PathType Container) {
     exit 1
 }
