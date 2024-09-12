@@ -37,14 +37,14 @@ namespace detail {
  * ensure that completion is called for the right process and not for the
  * previous one
  */
-class process : public common::process {
+class process : public common::process<false> {
   bool _process_ended;
   bool _stdout_eof;
   std::string _stdout;
   unsigned _running_index;
   std::weak_ptr<check_exec> _parent;
 
-  void _on_completion(absl::ReleasableMutexLock& yet_locked);
+  void _on_completion();
 
  public:
   process(const std::shared_ptr<asio::io_context>& io_context,
@@ -54,22 +54,21 @@ class process : public common::process {
 
   void start(unsigned running_index);
 
-  void kill() { common::process::kill(); }
+  void kill() { common::process<false>::kill(); }
 
-  int get_exit_status() const { return common::process::get_exit_status(); }
+  int get_exit_status() const {
+    return common::process<false>::get_exit_status();
+  }
 
   const std::string& get_stdout() const { return _stdout; }
 
  protected:
-  void on_stdout_read(absl::ReleasableMutexLock& yet_locked,
-                      const boost::system::error_code& err,
+  void on_stdout_read(const boost::system::error_code& err,
                       size_t nb_read) override;
-  void on_stderr_read(absl::ReleasableMutexLock& yet_locked,
-                      const boost::system::error_code& err,
+  void on_stderr_read(const boost::system::error_code& err,
                       size_t nb_read) override;
 
-  void on_process_end(absl::ReleasableMutexLock& yet_locked,
-                      const boost::system::error_code& err,
+  void on_process_end(const boost::system::error_code& err,
                       int raw_exit_status) override;
 };
 

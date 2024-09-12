@@ -32,7 +32,7 @@ detail::process::process(const std::shared_ptr<asio::io_context>& io_context,
                          const std::shared_ptr<spdlog::logger>& logger,
                          const std::string& cmd_line,
                          const std::shared_ptr<check_exec>& parent)
-    : common::process(io_context, logger, cmd_line), _parent(parent) {}
+    : common::process<false>(io_context, logger, cmd_line), _parent(parent) {}
 
 /**
  * @brief start a new process, if a previous one is already running, it's killed
@@ -44,7 +44,7 @@ void detail::process::start(unsigned running_index) {
   _stdout_eof = false;
   _running_index = running_index;
   _stdout.clear();
-  common::process::start_process(false);
+  common::process<false>::start_process(false);
 }
 
 /**
@@ -53,16 +53,15 @@ void detail::process::start(unsigned running_index) {
  * @param err
  * @param nb_read
  */
-void detail::process::on_stdout_read(absl::ReleasableMutexLock& yet_locked,
-                                     const boost::system::error_code& err,
+void detail::process::on_stdout_read(const boost::system::error_code& err,
                                      size_t nb_read) {
-  common::process::on_stdout_read(yet_locked, err, nb_read);
   if (!err && nb_read > 0) {
     _stdout.append(_stdout_read_buffer, nb_read);
   } else if (err) {
     _stdout_eof = true;
-    _on_completion(yet_locked);
+    _on_completion();
   }
+  common::process<false>::on_stdout_read(err, nb_read);
 }
 
 /**
@@ -71,14 +70,13 @@ void detail::process::on_stdout_read(absl::ReleasableMutexLock& yet_locked,
  * @param err
  * @param nb_read
  */
-void detail::process::on_stderr_read(absl::ReleasableMutexLock& yet_locked,
-                                     const boost::system::error_code& err,
+void detail::process::on_stderr_read(const boost::system::error_code& err,
                                      size_t nb_read) {
   if (!err) {
     SPDLOG_LOGGER_ERROR(_logger, "process error: {}",
                         std::string_view(_stderr_read_buffer, nb_read));
   }
-  common::process::on_stderr_read(yet_locked, err, nb_read);
+  common::process<false>::on_stderr_read(err, nb_read);
 }
 
 /**
@@ -87,30 +85,26 @@ void detail::process::on_stderr_read(absl::ReleasableMutexLock& yet_locked,
  * @param err
  * @param raw_exit_status
  */
-void detail::process::on_process_end(absl::ReleasableMutexLock& yet_locked,
-                                     const boost::system::error_code& err,
+void detail::process::on_process_end(const boost::system::error_code& err,
                                      int raw_exit_status) {
   if (err) {
     _stdout += fmt::format("fail to execute process {} : {}", get_exe_path(),
                            err.message());
   }
-  common::process::on_process_end(yet_locked, err, raw_exit_status);
+  common::process<false>::on_process_end(err, raw_exit_status);
   _process_ended = true;
-  _on_completion(yet_locked);
+  _on_completion();
 }
 
 /**
  * @brief if both stdout read and process are terminated, we call
  * check_exec::on_completion
  *
- * @param yet_locked  released before call completion handler
  */
-void detail::process::_on_completion(absl::ReleasableMutexLock& yet_locked) {
+void detail::process::_on_completion() {
   if (_stdout_eof && _process_ended) {
     std::shared_ptr<check_exec> parent = _parent.lock();
     if (parent) {
-      // to avoid recursive lock if scheduler tries to restart this process
-      yet_locked.Release();
       parent->on_completion(_running_index);
     }
   }

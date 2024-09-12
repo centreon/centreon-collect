@@ -44,7 +44,7 @@ class process_test : public ::testing::Test {
   }
 };
 
-class process_wait : public process {
+class process_wait : public process<> {
   std::mutex _cond_m;
   std::condition_variable _cond;
   std::string _stdout;
@@ -61,8 +61,7 @@ class process_wait : public process {
     _process_ended = false;
   }
 
-  void on_stdout_read(absl::ReleasableMutexLock& yet_locked,
-                      const boost::system::error_code& err,
+  void on_stdout_read(const boost::system::error_code& err,
                       size_t nb_read) override {
     if (!err) {
       std::string_view line(_stdout_read_buffer, nb_read);
@@ -74,11 +73,10 @@ class process_wait : public process {
       l.unlock();
       _cond.notify_one();
     }
-    process::on_stdout_read(yet_locked, err, nb_read);
+    process::on_stdout_read(err, nb_read);
   }
 
-  void on_stderr_read(absl::ReleasableMutexLock& yet_locked,
-                      const boost::system::error_code& err,
+  void on_stderr_read(const boost::system::error_code& err,
                       size_t nb_read) override {
     if (!err) {
       std::string_view line(_stderr_read_buffer, nb_read);
@@ -90,13 +88,12 @@ class process_wait : public process {
       l.unlock();
       _cond.notify_one();
     }
-    process::on_stderr_read(yet_locked, err, nb_read);
+    process::on_stderr_read(err, nb_read);
   }
 
-  void on_process_end(absl::ReleasableMutexLock& yet_locked,
-                      const boost::system::error_code& err,
+  void on_process_end(const boost::system::error_code& err,
                       int raw_exit_status) override {
-    process::on_process_end(yet_locked, err, raw_exit_status);
+    process::on_process_end(err, raw_exit_status);
     SPDLOG_LOGGER_DEBUG(_logger, "process end");
     std::unique_lock l(_cond_m);
     _process_ended = true;
