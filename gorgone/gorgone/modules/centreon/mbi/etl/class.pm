@@ -230,10 +230,9 @@ sub watch_etl_event {
 
     my $stage = $self->{run}->{schedule}->{event}->{current_stage};
     my $stage_finished = 0;
-    while ($stage <= 2) {
+    while ($stage <= 3) {
         while (my ($idx, $val) = each(@{$self->{run}->{schedule}->{event}->{stages}->[$stage]})) {
             if (!defined($val->{status})) {
-                $self->{logger}->writeLogDebug("[mbi-etl] execute substep event-$stage-$idx");
                 $self->{run}->{schedule}->{event}->{substeps_execute}++;
                 $self->execute_action(
                     action => 'CENTREONMBIETLWORKERSEVENT',
@@ -251,6 +250,7 @@ sub watch_etl_event {
         if ($stage_finished >= scalar(@{$self->{run}->{schedule}->{event}->{stages}->[$stage]})) {
             $self->{run}->{schedule}->{event}->{current_stage}++;
             $stage = $self->{run}->{schedule}->{event}->{current_stage};
+	    $stage_finished = 0;
         } else {
             last;
         }
@@ -439,7 +439,7 @@ sub run_etl_event {
     $self->{run}->{schedule}->{event}->{substeps_execute} = 0;
     $self->{run}->{schedule}->{event}->{substeps_executed} = 0;
     $self->{run}->{schedule}->{event}->{substeps_total} = 
-        scalar(@{$self->{run}->{schedule}->{event}->{stages}->[0]}) + scalar(@{$self->{run}->{schedule}->{event}->{stages}->[1]}) + scalar(@{$self->{run}->{schedule}->{event}->{stages}->[2]});
+        scalar(@{$self->{run}->{schedule}->{event}->{stages}->[0]}) + scalar(@{$self->{run}->{schedule}->{event}->{stages}->[1]}) + scalar(@{$self->{run}->{schedule}->{event}->{stages}->[2]}) + scalar(@{$self->{run}->{schedule}->{event}->{stages}->[3]});
 
     $self->{logger}->writeLogDebug("[mbi-etl] event substeps " . $self->{run}->{schedule}->{event}->{substeps_total});
 
@@ -672,7 +672,7 @@ sub action_centreonmbietlrun {
             planned => NOTDONE,
             import => { status => UNPLANNED, actions => [] },
             dimensions => { status => UNPLANNED },
-            event => { status => UNPLANNED, stages => [ [], [], [] ] },
+            event => { status => UNPLANNED, stages => [ [], [], [], [] ] },
             perfdata => { status => UNPLANNED, stages => [ [], [], [] ] }
         };
         $self->{run}->{status} = RUNNING;
