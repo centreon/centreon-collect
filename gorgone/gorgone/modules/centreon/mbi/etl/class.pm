@@ -233,6 +233,7 @@ sub watch_etl_event {
     while ($stage <= 3) {
         while (my ($idx, $val) = each(@{$self->{run}->{schedule}->{event}->{stages}->[$stage]})) {
             if (!defined($val->{status})) {
+                $self->{logger}->writeLogDebug("[mbi-etl] execute substep event-$stage-$idx");
                 $self->{run}->{schedule}->{event}->{substeps_execute}++;
                 $self->execute_action(
                     action => 'CENTREONMBIETLWORKERSEVENT',
