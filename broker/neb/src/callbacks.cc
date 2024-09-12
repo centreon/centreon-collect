@@ -477,9 +477,10 @@ int neb::callback_pb_custom_variable(int, void* data) {
             std::string value(common::check_string_utf8(cvar->var_value));
             obj.set_value(value);
             obj.set_default_value(value);
-            SPDLOG_LOGGER_DEBUG(
-                neb_logger, "callbacks: new custom variable '{}' on host {}",
-                name, host_id);
+            SPDLOG_LOGGER_DEBUG(neb_logger,
+                                "callbacks: new custom variable '{}' with "
+                                "value '{}' on host {}",
+                                name, value, host_id);
           } else {
             SPDLOG_LOGGER_DEBUG(
                 neb_logger,

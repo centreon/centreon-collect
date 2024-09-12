@@ -1,21 +1,18 @@
 #
-# Copyright 2011-2013 Merethis
-# Copyright 2014-2024 Centreon
+# Copyright 2011-2013 Merethis Copyright 2014-2024 Centreon
 #
 # This file is part of Centreon Engine.
 #
-# Centreon Engine is free software: you can redistribute it and/or
-# modify it under the terms of the GNU General Public License version 2
-# as published by the Free Software Foundation.
+# Centreon Engine is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License version 2 as published by
+# the Free Software Foundation.
 #
-# Centreon Engine is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
+# Centreon Engine is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with Centreon Engine. If not, see
-# <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License along with
+# Centreon Engine. If not, see <http://www.gnu.org/licenses/>.
 #
 
 # Set directories.
@@ -27,47 +24,42 @@ set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/external_commands")
 include_directories(${MODULE_DIR}/inc ${CMAKE_SOURCE_DIR}/clib/inc)
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
-# mod_externalcmd target.
-add_library(
-  externalcmd_legacy
-  SHARED
+if(LEGACY_ENGINE)
+  # mod_externalcmd target.
+  add_library(
+    externalcmd SHARED
+    # Sources.
+    "${SRC_DIR}/main.cc" "${SRC_DIR}/utils.cc"
+    # Headers.
+    "${INC_DIR}/utils.hh")
+  set_property(TARGET "externalcmd" PROPERTY PREFIX "")
+  target_precompile_headers(externalcmd PRIVATE precomp_inc/precomp.hh)
+  add_dependencies(externalcmd centreon_clib pb_neb_lib)
+  target_link_libraries(externalcmd centreon_clib spdlog::spdlog)
 
-  # Sources.
-  "${SRC_DIR}/main.cc"
-  "${SRC_DIR}/utils.cc"
+  # Install rule.
+  install(
+    TARGETS externalcmd
+    DESTINATION "${ENGINE_MODULES_DIR}"
+    COMPONENT "runtime")
+else()
+  # mod_externalcmd target.
+  add_library(
+    externalcmd SHARED
+    # Sources.
+    "${SRC_DIR}/main.cc" "${SRC_DIR}/utils.cc"
+    # Headers.
+    "${INC_DIR}/utils.hh")
 
-  # Headers.
-  "${INC_DIR}/utils.hh"
-)
-target_compile_definitions(externalcmd_legacy PRIVATE LEGACY_CONF)
-set_property(TARGET "externalcmd_legacy" PROPERTY PREFIX "")
-target_precompile_headers("externalcmd_legacy" PRIVATE precomp_inc/precomp.hh)
-add_dependencies(externalcmd_legacy centreon_clib pb_neb_lib)
-target_link_libraries(externalcmd_legacy centreon_clib spdlog::spdlog)
+  # Prettier name.
+  set_property(TARGET "externalcmd" PROPERTY PREFIX "")
+  target_precompile_headers("externalcmd" PRIVATE precomp_inc/precomp.hh)
 
-add_library(
-  externalcmd
-  SHARED
+  add_dependencies(externalcmd centreon_clib pb_neb_lib)
+  target_link_libraries(externalcmd centreon_clib spdlog::spdlog)
 
-  # Sources.
-  "${SRC_DIR}/main.cc"
-  "${SRC_DIR}/utils.cc"
-
-  # Headers.
-  "${INC_DIR}/utils.hh"
-)
-# Prettier name.
-set_property(TARGET "externalcmd" PROPERTY PREFIX "")
-target_precompile_headers("externalcmd" PRIVATE precomp_inc/precomp.hh)
-
-add_dependencies(externalcmd centreon_clib pb_neb_lib)
-target_link_libraries(externalcmd centreon_clib spdlog::spdlog)
-
-# Install rule.
-install(TARGETS "externalcmd_legacy"
-  DESTINATION "${ENGINE_MODULES_DIR}"
-  COMPONENT "runtime")
-
-install(TARGETS "externalcmd"
-  DESTINATION "${ENGINE_MODULES_DIR}"
-  COMPONENT "runtime")
+  install(
+    TARGETS "externalcmd"
+    DESTINATION "${ENGINE_MODULES_DIR}"
+    COMPONENT "runtime")
+endif()

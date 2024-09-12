@@ -269,6 +269,7 @@ bool service_helper::insert_customvariable(std::string_view key,
     return false;
 
   key.remove_prefix(1);
+
   Service* obj = static_cast<Service*>(mut_obj());
   auto* cvs = obj->mutable_customvariables();
   for (auto& c : *cvs) {

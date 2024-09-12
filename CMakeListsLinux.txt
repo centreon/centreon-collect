@@ -20,6 +20,9 @@
 # Global settings.
 #
 
+option(LEGACY_ENGINE
+       "Enable this option to compile the old Engine version." OFF)
+
 option(WITH_ASAN
        "Add the libasan to check memory leaks and other memory issues." OFF)
 
@@ -35,6 +38,9 @@ option(WITH_MALLOC_TRACE "compile centreon-malloc-trace library." OFF)
 
 option(DEBUG_ROBOT OFF)
 
+if(LEGACY_ENGINE)
+  add_definitions(-DLEGACY_CONF)
+endif()
 
 if(WITH_TSAN)
   set(CMAKE_CXX_FLAGS_DEBUG

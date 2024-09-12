@@ -517,14 +517,14 @@ define command {
             content = ""
             idx = 1
             for i in ids:
-                content += """define {} {{
-name                   {}_template_{}
-{}               {}
+                content += f"""define {typ} {{
+name                   {typ}_template_{idx}
+{what}               {i}
 register               0
 active_checks_enabled  1
 passive_checks_enabled 1
 }}
-""".format(typ, typ, idx, what, i)
+"""
                 idx += 1
             ff.write(content)
 
@@ -897,7 +897,7 @@ def ctn_engine_config_replace_value_in_services(idx: int, desc: str, key: str, v
         f.writelines(lines)
 
 
-def ctn_engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str, file: str = 'hosts.cfg'):
     """
     Set a parameter in the hosts.cfg for the Engine configuration idx.
 
@@ -906,21 +906,32 @@ def ctn_engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: s
         desc (str): host name of the host to modify.
         key (str): the parameter whose value has to change.
         value (str): the value to set.
+        file (str): The file to modify, default value 'hosts.cfg'
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
 
     r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
+    rbis = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    found = False
     for i in range(len(lines)):
         if r.match(lines[i]):
-            lines.insert(i + 1, "    {}              {}\n".format(key, value))
+            lines.insert(i + 1, f"    {key}              {value}\n")
+            found = True
+            break
 
+    if not found:
+        for i in range(len(lines)):
+            if rbis.match(lines[i]):
+                lines.insert(i + 1, f"    {key}              {value}\n")
+                found = True
+                break
     with open(filename, "w") as f:
         f.writelines(lines)
 
 
-def ctn_engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: str, file: str = 'hosts.cfg'):
     """
     Change a parameter in the hosts.cfg file of the Engine config idx.
 
@@ -929,20 +940,38 @@ def ctn_engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, valu
         desc (str): host name of the host to modify.
         key (str): the parameter whose value has to change.
         value (str): the new value to set.
+        file (str): The file to modify, default value 'hosts.cfg'.
     """
-    filename = ETC_ROOT + "/centreon-engine/config{}/hosts.cfg".format(idx)
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
 
     r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
-    rkey = re.compile(r"^\s*"+key+"\s+[\w\.]+\s*$")
+    rbis = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    rkey = re.compile(r"^\s*" + key + "\s+[\w\.]+\s*$")
+    found = False
     for i in range(len(lines)):
         if r.match(lines[i]):
             while i < len(lines) and lines[i] != "}":
                 if rkey.match(lines[i]):
-                    lines[i] = "    {}              {}\n".format(key, value)
+                    lines[i] = f"    {key}              {value}\n"
+                    found = True
                     break
                 i += 1
+        if found:
+            break
+
+    if not found:
+        for i in range(len(lines)):
+            if rbis.match(lines[i]):
+                while i < len(lines) and lines[i] != "}":
+                    if rkey.match(lines[i]):
+                        lines[i] = f"    {key}              {value}\n"
+                        found = True
+                        break
+                    i += 1
+            if found:
+                break
 
     with open(filename, "w") as f:
         f.writelines(lines)

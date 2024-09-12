@@ -362,7 +362,7 @@ bool message_helper::set(const std::string_view& key,
       bool val;
       if (absl::SimpleAtob(value, &val)) {
         refl->SetBool(static_cast<Message*>(msg), f, val);
-        set_changed(f->number());
+        set_changed(f->index());
         return true;
       } else
         return false;
@@ -371,7 +371,7 @@ bool message_helper::set(const std::string_view& key,
       int32_t val;
       if (absl::SimpleAtoi(value, &val)) {
         refl->SetInt32(static_cast<Message*>(msg), f, val);
-        set_changed(f->number());
+        set_changed(f->index());
         return true;
       } else
         return false;
@@ -380,7 +380,7 @@ bool message_helper::set(const std::string_view& key,
       uint32_t val;
       if (absl::SimpleAtoi(value, &val)) {
         refl->SetUInt32(static_cast<Message*>(msg), f, val);
-        set_changed(f->number());
+        set_changed(f->index());
         return true;
       } else
         return false;
@@ -389,7 +389,7 @@ bool message_helper::set(const std::string_view& key,
       uint64_t val;
       if (absl::SimpleAtoi(value, &val)) {
         refl->SetUInt64(static_cast<Message*>(msg), f, val);
-        set_changed(f->number());
+        set_changed(f->index());
         return true;
       } else
         return false;
@@ -398,7 +398,7 @@ bool message_helper::set(const std::string_view& key,
       double val;
       if (absl::SimpleAtod(value, &val)) {
         refl->SetDouble(static_cast<Message*>(msg), f, val);
-        set_changed(f->number());
+        set_changed(f->index());
         return true;
       } else
         return false;
@@ -411,7 +411,7 @@ bool message_helper::set(const std::string_view& key,
         refl->SetString(static_cast<Message*>(msg), f,
                         std::string(value.data(), value.size()));
       }
-      set_changed(f->number());
+      set_changed(f->index());
       return true;
     case FieldDescriptor::TYPE_MESSAGE:
       if (!f->is_repeated()) {
@@ -422,13 +422,13 @@ bool message_helper::set(const std::string_view& key,
           StringSet* set =
               static_cast<StringSet*>(refl->MutableMessage(msg, f));
           fill_string_group(set, value);
-          set_changed(f->number());
+          set_changed(f->index());
           return true;
         } else if (d && d->name() == "StringList") {
           StringList* lst =
               static_cast<StringList*>(refl->MutableMessage(msg, f));
           fill_string_group(lst, value);
-          set_changed(f->number());
+          set_changed(f->index());
           return true;
         }
       }
