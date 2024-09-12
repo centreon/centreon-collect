@@ -21,6 +21,12 @@ on:
       stability:
         required: true
         type: string
+      legacy_engine:
+        required: true
+        type: boolean
+      packages_in_artifact:
+        required: true
+        type: boolean
 
 jobs:
   package:
@@ -135,6 +141,11 @@ jobs:
             export TRIPLET=x64-linux-release
           fi
 
+          if [ "${{ inputs.legacy_engine }}" == true ]; then
+            export LEGACY_ENGINE=ON
+          else
+            export LEGACY_ENGINE=OFF
+          fi
           mv /root/.cache /github/home/
           export VCPKG_ROOT="/vcpkg"
           export PATH="$VCPKG_ROOT:$PATH"
@@ -162,7 +173,7 @@ jobs:
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  -DLEGACY_ENGINE=ON \
+                  -DLEGACY_ENGINE=$LEGACY_ENGINE \
                   -S .
 
           ninja -Cbuild
@@ -222,7 +233,7 @@ jobs:
         run: rm -rf *-debuginfo*.${{ matrix.package_extension }}
 
       # set condition to true if artifacts are needed
-      - if: ${{ false }}
+      - if: inputs.packages_in_artifact == true
         name: Upload package artifacts
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
