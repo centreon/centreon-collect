@@ -486,7 +486,7 @@ include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src
 
 # centenginestats target.
 add_executable(centenginestats "${SRC_DIR}/centenginestats.cc")
-add_dependencies(centenginestats centreon_clib pb_neb_lib)
+add_dependencies(centenginestats centreon_clib)
 target_link_libraries(centenginestats centreon_clib fmt::fmt)
 target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 
