@@ -21,7 +21,7 @@ on:
       legacy_engine:
         description: 'Compile Engine with legacy configuration library'
         required: true
-        default: true
+        default: false
         type: boolean
       packages_in_artifact:
         description: 'Save packages in artifacts'
@@ -291,11 +291,6 @@ jobs:
       stability: ${{ needs.get-version.outputs.stability }}
       legacy_engine: ${{ github.event.inputs.legacy_engine == 'true' }}
       packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' }}
-      image: ${{ matrix.image }}
-      distrib: ${{ matrix.distrib }}
-      package_extension: ${{ matrix.package_extension }}
-      runner: ${{ matrix.runner }}
-      arch: ${{ matrix.arch }}
     secrets: inherit
 
   robot-test:
