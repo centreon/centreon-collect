@@ -28,6 +28,12 @@ on:
         required: true
         default: false
         type: boolean
+      unit_tests:
+        description: 'Execute the unit tests'
+        required: true
+        default: true
+        type: boolean
+
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
@@ -120,7 +126,7 @@ jobs:
 
   unit-test:
     needs: [get-version]
-    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    if: github.event.inputs.unit_tests == true && ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
 
     strategy:
       fail-fast: false
