@@ -1418,7 +1418,7 @@ BE_BACKSLASH_CHECK_RESULT
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Ctn ConfigBBDO3    1
+    Ctn Config BBDO3    1
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     Ctn Broker Config Log    central    sql    debug

@@ -40,6 +40,10 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
     steps:
+      # in order to have the same checksum between windows-agent and windows-agent-robot-test
+      - name: nocrlf conversion
+        run: git config --system core.autocrlf false
+
       - name: Checkout sources
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 

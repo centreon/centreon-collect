@@ -35,8 +35,9 @@ ut
 
 ###
 apps/
-build/*
+build*/*
 tests/failed/*
+.vs
 
 ### ide ###
 **/.vscode/
