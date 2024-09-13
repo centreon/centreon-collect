@@ -38,6 +38,7 @@ Depends:
   libzmq-constants-perl,
   libzmq5,
   zmq-libzmq4-perl,
+  perl-base,
   sudo,
   ${shlibs:Depends},
   ${misc:Depends}
