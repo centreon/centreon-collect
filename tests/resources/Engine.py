@@ -1094,15 +1094,15 @@ def ctn_engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, v
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "w") as ff:
         ff.writelines(lines)
 
-def ctn_engine_config_remove_service_host(idx: int, host: str):
+def ctn_engine_config_remove_services_by_host(idx: int, host: str, cfg_file='services.cfg'):
     """
-    Remove all the services of a host from the services.cfg file.
+    Remove all the services of a host from the cfg_file file.
 
     Args:
         idx (int): index of the configuration (from 0)
         host (str): Host name
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{cfg_file}"
     with open(filename, "r") as f:
         lines = f.readlines()
     host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
@@ -1125,43 +1125,6 @@ def ctn_engine_config_remove_service_host(idx: int, host: str):
                     break
         else:
             serv_begin_idx = serv_begin_idx + 1
-
-    with open(filename, "w") as f:
-        f.writelines(lines)
-
-
-def ctn_engine_config_remove_host(idx: int, host: str):
-    """
-    Remove a host from the hosts.cfg configuration file.
-
-    Args:
-        idx (int): Index of the configuration (from 0)
-        host (str): name of the host wanted to be removed
-    """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
-    with open(filename, "r") as f:
-        lines = f.readlines()
-
-    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
-    host_begin = re.compile(r"^define host {$")
-    host_end = re.compile(r"^}$")
-    host_begin_idx = 0
-    while True:
-        if (host_begin_idx >= len(lines)):
-            break
-        if (host_begin.match(lines[host_begin_idx])):
-            for host_line_idx in range(host_begin_idx, len(lines)):
-                if (host_name.match(lines[host_line_idx])):
-                    for end_serv_line in range(host_line_idx, len(lines)):
-                        if host_end.match(lines[end_serv_line]):
-                            del lines[host_begin_idx:end_serv_line + 1]
-                            break
-                    break
-                elif host_end.match(lines[host_line_idx]):
-                    host_begin_idx = host_line_idx
-                    break
-        else:
-            host_begin_idx = host_begin_idx + 1
 
     with open(filename, "w") as f:
         f.writelines(lines)
@@ -2718,6 +2681,63 @@ def ctn_add_parent_to_host(poller: int, host: str, parent_host: str):
             break
 
     with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+        ff.writelines(lines)
+
+
+def ctn_engine_config_remove_host(poller: int, host: str, cfg_file: str="hosts.cfg"):
+    """
+    Remove a host from a config file (by default hosts.cfg)
+
+    Args:
+        poller: index of the Engine configuration (from 0)
+        host: host name.
+        cfg_file: File name containing the configuration to modify.
+    """
+    with open(f"{CONF_DIR}/config{poller}/{cfg_file}", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(rf"^\s*host_name\s+{host}$")
+    ok = False
+    for i in range(len(lines)):
+        if lines[i].startswith("define host "):
+            start = i
+        if lines[i].startswith("}"):
+            end = i + 1
+            if ok:
+                lines = lines[:start] + lines[end:]
+                break
+        if r.match(lines[i]):
+            ok = True
+
+    with open(f"{CONF_DIR}/config{poller}/{cfg_file}", "w") as ff:
+        ff.writelines(lines)
+
+
+def ctn_engine_config_remove_hostgroup(poller: int, hostgroup: str, cfg_file: str="hostgroups.cfg"):
+    """
+    Remove a hostgroup from a config file (by default hostgroups.cfg)
+
+    Args:
+        poller: index of the Engine configuration (from 0)
+        hostgroup: hostgroup name.
+        cfg_file: File name containing the configuration to modify.
+    """
+    with open(f"{CONF_DIR}/config{poller}/{cfg_file}", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(rf"^\s*hostgroup_name\s+{hostgroup}$")
+    ok = False
+    for i in range(len(lines)):
+        if lines[i].startswith("define hostgroup "):
+            start = i
+        if lines[i].startswith("}"):
+            end = i + 1
+            if ok:
+                logger.console(f"ok from {start} to {end}")
+                lines = lines[:start] + lines[end:]
+                break
+        if r.match(lines[i]):
+            ok = True
+
+    with open(f"{CONF_DIR}/config{poller}/{cfg_file}", "w") as ff:
         ff.writelines(lines)
 
 

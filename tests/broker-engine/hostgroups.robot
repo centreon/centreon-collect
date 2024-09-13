@@ -308,3 +308,83 @@ EBNHGU4_${test_label}
     Examples:    Use_BBDO3    test_label    --
     ...    True    BBDO3
     ...    False    BBDO2
+
+EBHGLUA
+    [Documentation]    A host group is configured through several pollers. A streamconnector checks this hostgroup.
+    ...    And poller1 hosts are removed
+    ...    And poller2 hosts are removed
+    ...    Then when the hostgroup is no more needed, it is removed from the streamconnector cache.
+    [Tags]    broker    engine    hostgroup    unified_sql
+
+    Remove File    ${/}tmp${/}test-lua.log
+
+    Ctn Config Engine    ${2}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${2}
+    Ctn Broker Config Log    central    lua    debug
+
+    Ctn Config BBDO3    ${2}
+
+    # host_1 and host_2 from poller0 and host_26 from poller1 are added to a hostgroup
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2"]
+    Ctn Add Host Group    ${1}    ${1}    ["host_26"]
+
+    ${sc}    Catenate    SEPARATOR=\n
+    ...    broker_api_version = 2
+    ...
+    ...    function init(params)
+    ...        broker_log:set_parameters(2, '/tmp/test-lua.log')
+    ...        broker_log:info(0, 'lua start test')
+    ...    end
+    ...
+    ...    function write(e)
+    ...        if e._type == 65566 or e._type == 65568 then        -- Host or Host Status
+    ...            broker_log:info(0, "broker_cache hostgroup name: " .. tostring(broker_cache:get_hostgroup_name(1)))
+    ...        end
+    ...        return true
+    ...    end
+
+    # Create the lua script file
+    Create File    /tmp/test-lua.lua    ${sc}
+
+    Ctn Broker Config Add Lua Output    central    test-lua    /tmp/test-lua.lua
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${2}
+    Ctn Schedule Forced Host Check    host_4
+    Sleep    5s
+
+    ${content}    Create List    broker_cache hostgroup name: hostgroup_1
+    ${result}    Ctn Find In Log With Timeout    /tmp/test-lua.log    ${start}    ${content}    30
+    Should Be True    ${result}    Host group name not known by the streamconnector.
+
+    Log To Console    hostgroup_1 is removed from poller1
+    Ctn Engine Config Remove Host    ${1}    host_26
+    Ctn Engine Config Remove Services By Host    ${1}    host_26
+    Ctn Engine Config Remove Hostgroup    ${1}    hostgroup_1
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Broker
+    Ctn Reload Engine
+
+    Ctn Schedule Forced Host Check    host_4
+    Sleep    5s
+
+    ${content}    Create List    broker_cache hostgroup name: hostgroup_1
+    ${result}    Ctn Find In Log With Timeout    /tmp/test-lua.log    ${start}    ${content}    30
+    Should Be True    ${result}    Host group name not known by the streamconnector.
+
+    Log To Console    hostgroup_1 is removed from poller0
+    Ctn Engine Config Remove Hostgroup    ${0}    hostgroup_1
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Broker
+    Ctn Reload Engine
+
+    ${content}    Create List    broker_cache hostgroup name: nil
+    ${result}    Ctn Find In Log With Timeout    /tmp/test-lua.log    ${start}    ${content}    30
+    Should Be True    ${result}    Host group name still known by the streamconnector.

@@ -38,7 +38,6 @@
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
-#include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostgroup.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
@@ -47,7 +46,6 @@
 #include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/tag.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
@@ -1193,6 +1191,9 @@ int neb::callback_pb_group(int callback_type, void* data) {
                       (group_data->type == NEBTYPE_HOSTGROUP_UPDATE &&
                        !host_group->members.empty()));
       obj.set_name(common::check_string_utf8(host_group->get_group_name()));
+      neb_logger->debug("pb_host_group creation from poller {} : {}",
+                        obj.poller_id(),
+                        obj.enabled() ? "enabled" : "disabled");
 
       // Send host group event.
       if (host_group->get_id()) {

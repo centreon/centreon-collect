@@ -178,11 +178,29 @@ def ctn_get_date(d: str):
     return retval
 
 
+def ctn_get_date_var(d: str):
+    """Generates a date from a string.
+
+    Args:
+        d (str): The date to read.
+
+    Returns:
+        datetime: The date once converted.
+    """
+
+    retval = datetime.strptime(d, '%a %b %d %H:%M:%S %Y')
+    return retval
+
+
 def ctn_extract_date_from_log(line: str):
     p = re.compile(r"\[([^\]]*)\]")
+    q = re.compile(r"^(\w\w\w \w\w\w \d+ \d\d:\d\d:\d\d \d+):")
     m = p.match(line)
     if m is None:
-        return None
+        m = q.match(line)
+        if m is None:
+            return None
+        return ctn_get_date_var(m.group(1))
     try:
         return ctn_get_date(m.group(1))
     except parser.ParserError:

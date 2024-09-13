@@ -675,7 +675,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message unified_sql:_check_queues should be available.
 
-    Ctn Engine Config Remove Service Host    ${0}    host_1
+    Ctn Engine Config Remove Services By Host    ${0}    host_1
     Ctn Engine Config Remove Host    0    host_1
     Ctn Engine Config Remove Tag    0    2
     Ctn Reload Engine

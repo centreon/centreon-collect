@@ -420,7 +420,7 @@ BESS_ENGINE_DELETE_HOST
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
     Ctn Kindly Stop Broker    True
     Ctn Start Broker    True
-    Ctn Engine Config Remove Service Host    ${0}    host_16
+    Ctn Engine Config Remove Services By Host    ${0}    host_16
     Ctn Engine Config Remove Host    ${0}    host_16
     Ctn Reload Engine
     Sleep    2s
