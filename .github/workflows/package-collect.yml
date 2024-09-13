@@ -27,6 +27,22 @@ on:
       packages_in_artifact:
         required: true
         type: boolean
+      image:
+        required: true
+        type: string
+      distrib:
+        required: true
+        type: string
+      package_extension:
+        required: true
+        type: string
+      runner:
+        required: true
+        type: string
+      arch:
+        required: true
+        type: string
+
 
 jobs:
   package:
