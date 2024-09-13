@@ -81,6 +81,8 @@ static std::string read_file(const std::string& file_path) {
       ss << file.rdbuf();
       file.close();
       return ss.str();
+    } else {
+      SPDLOG_LOGGER_ERROR(g_logger, "fail to open {}", file_path);
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(g_logger, "fail to read {}: {}", file_path, e.what());
