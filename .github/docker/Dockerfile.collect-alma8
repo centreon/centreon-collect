@@ -12,7 +12,7 @@ RUN echo 'http_caching=none' >> /etc/yum.conf && \
 RUN dnf config-manager --set-enabled powertools
 RUN dnf config-manager --add-repo https://packages.centreon.com/artifactory/rpm-standard/22.10/el8/centreon-22.10.repo
 RUN dnf config-manager --set-enabled 'centreon-22.10-testing*'
-RUN curl -LsS "https://r.mariadb.com/downloads/mariadb_repo_setup" | bash -s -- --os-type=rhel --os-version=8 --mariadb-server-version="mariadb-10.5"
+RUN curl -LsS "https://r.mariadb.com/downloads/mariadb_repo_setup" | bash -s -- --os-type=rhel --os-version=8 --mariadb-server-version="mariadb-10.5" --skip-maxscale
 RUN dnf clean all && dnf install -y cmake \
     gcc \
     gcc-c++ \
