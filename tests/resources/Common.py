@@ -581,9 +581,8 @@ def ctn_set_command_status(cmd, status):
 
     if not done:
         lines.append("{}=>{}\n".format(cmd, status))
-    f = open(state_path, "w")
-    f.writelines(lines)
-    f.close()
+    with open(state_path, "w") as f:
+        f.writelines(lines)
 
 
 def ctn_truncate_resource_host_service():

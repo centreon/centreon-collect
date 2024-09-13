@@ -23,6 +23,7 @@ from socket import gethostname
 import Common
 
 ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
+VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
 CONF_DIR = ETC_ROOT + "/centreon-engine"
 
 def ctn_used_address():
@@ -43,7 +44,7 @@ def ctn_host_hostname():
     return environ.get('HOST_HOSTNAME', Common.ctn_get_hostname())
 
 
-agent_config="""
+agent_config = """
 {
     "log_level":"trace",
     "endpoint":"localhost:4317",
@@ -52,13 +53,13 @@ agent_config="""
     "log_file":"/tmp/var/log/centreon-engine/centreon-agent.log" """
 
 
-agent_encrypted_config=f"""
+agent_encrypted_config = f"""
 {{
     "log_level":"trace",
     "endpoint":"{ctn_host_hostname()}:4318",
     "host":"host_1",
     "log_type":"file",
-    "log_file":"/tmp/var/log/centreon-engine/centreon-agent.log" """
+    "log_file":"${VAR_ROOT}/log/centreon-engine/centreon-agent.log" """
 
 
 reversed_agent_config=f"""
@@ -67,7 +68,7 @@ reversed_agent_config=f"""
     "endpoint":"{ctn_host_hostname()}:4320",
     "host":"host_1",
     "log_type":"file",
-    "log_file":"/tmp/var/log/centreon-engine/centreon-agent.log" """
+    "log_file":"${VAR_ROOT}/log/centreon-engine/centreon-agent.log" """
 
 reversed_agent_encrypted_config=f"""
 {{
@@ -75,7 +76,7 @@ reversed_agent_encrypted_config=f"""
     "endpoint":"{ctn_host_hostname()}:4321",
     "host":"host_1",
     "log_type":"file",
-    "log_file":"/tmp/var/log/centreon-engine/centreon-agent.log" """
+    "log_file":"${VAR_ROOT}/log/centreon-engine/centreon-agent.log" """
 
 
 
@@ -83,6 +84,10 @@ reversed_agent_encrypted_config=f"""
 def ctn_config_centreon_agent(key_path:str = None, cert_path:str = None, ca_path:str = None):
     """ctn_config_centreon_agent
     Creates a default centreon agent config listening on  0.0.0.0:4317 (no encryption) or 0.0.0.0:4318 (encryption) 
+    Args:
+        key_path: path of the private key file
+        cert_path: path of public certificate file
+        ca_path: path of the authority certificate file
     """
     #in case of wsl, agent is executed in windows host
     if environ.get("RUN_ENV","") == "WSL":
@@ -109,6 +114,10 @@ def ctn_config_centreon_agent(key_path:str = None, cert_path:str = None, ca_path
 def ctn_config_reverse_centreon_agent(key_path:str = None, cert_path:str = None, ca_path:str = None):
     """ctn_config_centreon_agent
     Creates a default reversed centreon agent config listening on  0.0.0.0:4320 (no encryption) or 0.0.0.0:4321 (encryption)
+    Args:
+        key_path: path of the private key file
+        cert_path: path of public certificate file
+        ca_path: path of the authority certificate file
     """
     #in case of wsl, agent is executed in windows host
     if environ.get("RUN_ENV","") == "WSL":
@@ -136,6 +145,8 @@ def ctn_echo_command(to_echo:str):
     """
     ctn_echo_command
     returned an echo command usable by testing agent OS
+    Args:
+        to_echo: string to print to stdout
     """
     if environ.get("RUN_ENV","") == "WSL":
         return '"'+ environ.get('PWSH_PATH') + '"' + " C:/Users/Public/echo.ps1 " + to_echo
@@ -147,6 +158,8 @@ def ctn_check_pl_command(arg:str):
     """
     ctn_check_pl_command
     returned an check.pl command usable by testing agent OS
+    Args:
+        arg: arguments to pass to check.pl or check.ps1 command
     """
     if environ.get("RUN_ENV","") == "WSL":
         return '"'+ environ.get('PWSH_PATH') + '"' +" C:/Users/Public/check.ps1 " + arg + " " + environ.get("WINDOWS_PROJECT_PATH")

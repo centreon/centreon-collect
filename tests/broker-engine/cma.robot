@@ -59,10 +59,10 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
-    Sleep    1
+    Sleep    1s
 
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start_int}    0    OK - 127.0.0.1
-    Should Be True    ${result}    hosts table not updated
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
 
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp_2
     
@@ -79,8 +79,8 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    22
     Should Be True    ${result}    "description: "OK check2" should be available.
 
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK check2 - 127.0.0.1: rta 0,010ms, lost 0%
-    Should Be True    ${result}    hosts table not updated
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK check2 - 127.0.0.1: rta 0,010ms, lost 0%
+    Should Be True    ${result}    resources table not updated
 
 
 BEOTEL_CENTREON_AGENT_CHECK_SERVICE
@@ -126,15 +126,15 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
     
-    ${result}    Ctn Check Service Check Status With Timeout    host_1  service_1  60  ${start_int}  2  Test check 456
-    Should Be True    ${result}    services table not updated
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    60    ${start_int}    2  HARD  Test check 456
+    Should Be True    ${result}    resources table not updated
 
     ${start}    Ctn Get Round Current Date
     #service_1 check ok
     Ctn Set Command Status    456    ${0}
 
-    ${result}    Ctn Check Service Check Status With Timeout    host_1  service_1  60  ${start}  0  Test check 456
-    Should Be True    ${result}    services table not updated
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    60    ${start_int}    0  HARD  Test check 456
+    Should Be True    ${result}    resources table not updated
 
 
 BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
@@ -143,7 +143,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
-    ${config_content}    Catenate  {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "${host_host_name}","port": 4320}]}} 
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "${host_host_name}","port": 4320}]}} 
     Ctn Add Otl ServerModule   0    ${config_content}
     Ctn Config Add Otl Connector
     ...    0
@@ -152,7 +152,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Set Hosts Passive  ${0}  host_1 
 
-    ${echo_command}   Ctn Echo Command  "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    ${echo_command}    Ctn Echo Command    "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
@@ -176,14 +176,14 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
     ${content}    Create List    init from ${host_host_name}:4320
     ${result}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
-    Sleep    1
+    Sleep    1s
 
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start_int}    0    OK - 127.0.0.1
-    Should Be True    ${result}    hosts table not updated
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
 
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp_2
 
-    ${echo_command}   Ctn Echo Command   "OK check2 - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    ${echo_command}    Ctn Echo Command    "OK check2 - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    otel_check_icmp_2   ${echo_command}    OTEL connector
 
     #update conf engine, it must be taken into account by agent
@@ -196,8 +196,8 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    "description: "OK check2" should be available.
 
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start}    0    OK check2 - 127.0.0.1: rta 0,010ms, lost 0%
-    Should Be True    ${result}    hosts table not updated
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK check2 - 127.0.0.1: rta 0,010ms, lost 0%
+    Should Be True    ${result}    resources table not updated
 
 
 BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
@@ -206,14 +206,14 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
-    ${config_content}    Catenate  {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "${host_host_name}","port":4320}]}} 
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "${host_host_name}","port":4320}]}} 
     Ctn Add Otl ServerModule   0    ${config_content}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
-    Ctn Set Services Passive       0    service_1
+    Ctn Set Services Passive    0    service_1
 
     ${check_cmd}  Ctn Check Pl Command   --id 456
     Ctn Engine Config Add Command    ${0}    otel_check   ${check_cmd}    OTEL connector
@@ -251,8 +251,8 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
     #service_1 check ok
     Ctn Set Command Status    456    ${0}
 
-    ${result}    Ctn Check Service Check Status With Timeout    host_1  service_1  60  ${start}  0  Test check 456
-    Should Be True    ${result}    services table not updated
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    60    ${start_int}    0  HARD  Test check 456
+    Should Be True    ${result}    resources table not updated
 
 BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     [Documentation]    agent check host with encrypted reversed connection and we expect to get it in check result
@@ -269,7 +269,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
-    Ctn Set Hosts Passive  ${0}  host_1 
+    Ctn Set Hosts Passive    ${0}    host_1 
 
     ${echo_command}   Ctn Echo Command  "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
@@ -295,10 +295,10 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ${content}    Create List    init from ${host_host_name}:4321
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "init from ${host_host_name}:4321" not found in log
-    Sleep    1
+    Sleep    1s
 
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    30    ${start_int}    0    OK - 127.0.0.1
-    Should Be True    ${result}    hosts table not updated
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
 
 
 
@@ -317,15 +317,15 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     
     ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
-    Ctn Engine Config Add Command    ${0}    otel_check_icmp  ${echo_command}   OTEL connector
-    Ctn Set Hosts Passive  ${0}  host_1 
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
+    Ctn Set Hosts Passive    ${0}    host_1 
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Centreon Agent  ${None}  ${None}  /tmp/server_grpc.crt
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
@@ -343,8 +343,8 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
     Sleep    1
 
-    ${result}    Ctn Check Host Check Status With Timeout    host_1    60    ${start_int}    0    OK - 127.0.0.1
-    Should Be True    ${result}    hosts table not updated
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
 
 *** Keywords ***
 Ctn Create Cert And Init

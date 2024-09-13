@@ -17,40 +17,23 @@ jobs:
 
   build-collect:
     needs: [get-version]
-    runs-on: [self-hosted, collect]
+    uses: ./.github/workflows/package-collect.yml
+    with:
+      major_version: ${{ needs.get-version.outputs.major_version }}
+      minor_version: ${{ needs.get-version.outputs.minor_version }}
+      img_version: ${{ needs.get-version.outputs.img_version }}
+      release: ${{ needs.get-version.outputs.release }}
+      commit_hash: ${{ github.sha }}
+      stability: ${{ needs.get-version.outputs.stability }}
+      legacy_engine: false
+      packages_in_artifact: false
+      image: centreon-collect-debian-bullseye
+      distrib: bullseye
+      package_extension: deb
+      runner: collect
+      arch: amd64
+    secrets: inherit
 
-    env:
-      SCCACHE_PATH: "/usr/bin/sccache"
-      SCCACHE_BUCKET: "centreon-github-sccache"
-      SCCACHE_REGION: "eu-west-1"
-      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
-
-    container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-debian-bullseye:${{ needs.get-version.outputs.img_version }}
-      credentials:
-        username: ${{ secrets.DOCKER_REGISTRY_ID }}
-        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: compile and package collect
-        uses: ./.github/actions/compile-package
-        with:
-          major_version: ${{ needs.get-version.outputs.major_version }}
-          minor_version: ${{ needs.get-version.outputs.minor_version }}
-          distrib: bullseye
-          package_extension: deb
-          arch: amd64
-          release: ${{ needs.get-version.outputs.release }}
-          commit_hash: ${{ github.sha }}
-          stability: ${{ needs.get-version.outputs.stability }}
-          rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
-          rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
-          rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
-          legacy_engine: false
 
   build-agent-and-execute-test:
     needs: [build-collect]
@@ -145,7 +128,3 @@ jobs:
           name: reports-cma-windows
           path: reports
           retention-days: 1
-
-
-      - name: collect binaries
-        run: wsl ls -l /usr/sbin/cbd /usr/sbin/centengine /usr/lib64/centreon-engine/ /usr/share/centreon/lib/centreon-broker

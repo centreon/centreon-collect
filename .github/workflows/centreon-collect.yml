@@ -241,6 +241,46 @@ jobs:
   package:
     needs: [get-version]
     if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: centreon-collect-alma8
+            distrib: el8
+            package_extension: rpm
+            runner: collect
+            arch: amd64
+          - image: centreon-collect-alma9
+            distrib: el9
+            package_extension: rpm
+            runner: collect
+            arch: amd64
+          - image: centreon-collect-debian-bullseye
+            distrib: bullseye
+            package_extension: deb
+            runner: collect
+            arch: amd64
+          - image: centreon-collect-debian-bookworm
+            distrib: bookworm
+            package_extension: deb
+            runner: collect
+            arch: amd64
+          - image: centreon-collect-ubuntu-jammy
+            distrib: jammy
+            package_extension: deb
+            runner: collect
+            arch: amd64
+          - image: centreon-collect-debian-bullseye-arm64
+            distrib: bullseye
+            package_extension: deb
+            runner: collect-arm64
+            arch: arm64
+          - image: centreon-collect-debian-bookworm-arm64
+            distrib: bookworm
+            package_extension: deb
+            runner: collect-arm64
+            arch: arm64
+
     uses: ./.github/workflows/package-collect.yml
     with:
       major_version: ${{ needs.get-version.outputs.major_version }}
@@ -251,6 +291,11 @@ jobs:
       stability: ${{ needs.get-version.outputs.stability }}
       legacy_engine: ${{ github.event.inputs.legacy_engine == 'true' }}
       packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' }}
+      image: ${{ matrix.image }}
+      distrib: ${{ matrix.distrib }}
+      package_extension: ${{ matrix.package_extension }}
+      runner: ${{ matrix.runner }}
+      arch: ${{ matrix.arch }}
     secrets: inherit
 
   robot-test:
