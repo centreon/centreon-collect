@@ -319,7 +319,12 @@ def ctn_create_certificate(host: str, cert: str):
 
 
 def ctn_run_env():
-    return getoutput("echo $RUN_ENV | awk '{print $1}'")
+    """
+    ctn_run_env
+
+    Get RUN_ENV env variable content
+    """
+    return os.environ.get('RUN_ENV', '')
 
 
 def ctn_start_mysql():
@@ -554,8 +559,13 @@ def ctn_clear_commands_status():
 
 
 def ctn_set_command_status(cmd, status):
-    if os.path.exists("/tmp/states"):
-        f = open("/tmp/states")
+    if os.environ.get("RUN_ENV","") == "WSL":
+        state_path = "states"
+    else:
+        state_path = "/tmp/states"
+
+    if os.path.exists(state_path):
+        f = open(state_path)
         lines = f.readlines()
     else:
         lines = []
@@ -571,9 +581,8 @@ def ctn_set_command_status(cmd, status):
 
     if not done:
         lines.append("{}=>{}\n".format(cmd, status))
-    f = open("/tmp/states", "w")
-    f.writelines(lines)
-    f.close()
+    with open(state_path, "w") as f:
+        f.writelines(lines)
 
 
 def ctn_truncate_resource_host_service():

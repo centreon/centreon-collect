@@ -40,6 +40,9 @@ add_definitions("-DCOLLECT_MAJOR=${COLLECT_MAJOR}")
 add_definitions("-DCOLLECT_MINOR=${COLLECT_MINOR}")
 add_definitions("-DCOLLECT_PATCH=${COLLECT_PATCH}")
 
+if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set (CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+endif()
 
 # There is a bug with grpc. It is not put in the triplet directory. So we have
 # to search for its plugin.
