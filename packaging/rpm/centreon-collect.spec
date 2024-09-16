@@ -174,9 +174,19 @@ Requires: gnutls >= 3.3.29
 Requires: lua
 Requires: centreon-broker = %{version}-%{release}
 Requires: centreon-broker-storage = %{version}-%{release}
+Requires: centreon-broker-caching_sha2_password = %{version}-%{release}
 
 %description -n centreon-broker-core
 Centreon core holds Centreon Broker's default modules;
+
+
+%package -n centreon-broker-caching_sha2_password
+Summary: caching_sha2_password plugind provided by mariadb connector.
+Group: Application/System
+License: Apache-2.0
+
+%description -n centreon-broker-caching_sha2_password
+caching_sha2_password plugind provided by mariadb connector.
 
 
 %package -n centreon-broker-storage
@@ -260,7 +270,7 @@ centengine.
 %setup -q -n %{name}-%{version}
 
 %build
-pip3 install conan==1.57.0 --upgrade
+pip3 install conan==1.64.0 --upgrade
 conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
 cmake3 \
@@ -465,6 +475,10 @@ fi
 %defattr(0775,centreon-broker,centreon-broker,-)
 %{_datadir}/centreon-broker
 %{_datadir}/centreon-broker/lua
+
+%files -n centreon-broker-caching_sha2_password
+%defattr(-,root,root,-)
+%{_libdir}/centreon-broker/caching_sha2_password.so
 
 %files -n centreon-broker-cbmod
 %defattr(-,centreon-broker,centreon-broker,-)

@@ -2,6 +2,9 @@
 on:
   workflow_call:
     inputs:
+      module_directory:
+        required: false
+        type: string
       module_name:
         required: true
         type: string
@@ -32,6 +35,7 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       development_stage: ${{ steps.routing-mode.outputs.development_stage }}
+      skip_analysis: ${{ steps.routing-mode.outputs.skip_analysis }}
 
     steps:
       - name: Set routing mode
@@ -46,14 +50,21 @@ jobs:
             fi
           done
 
+          # skip analysis of draft PR and analysis on development branches using workflow dispatch
+          SKIP_ANALYSIS="true"
+          if [[ "${{ github.event_name }}" == "pull_request" && -n "${{ github.event.pull_request.number }}" && -n "${{ github.event.pull_request.draft }}" && "${{ github.event.pull_request.draft }}" == "false" ]] || [[ "$DEVELOPMENT_STAGE" != "Development" ]]; then
+            SKIP_ANALYSIS="false"
+          fi
+
           echo "development_stage=$DEVELOPMENT_STAGE" >> $GITHUB_OUTPUT
+          echo "skip_analysis=$SKIP_ANALYSIS" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
 
   build:
     name: Binary preparation
     runs-on: [self-hosted, collect]
     needs: [routing]
-    if: needs.routing.outputs.development_stage != 'Development'
+    if: needs.routing.outputs.skip_analysis == 'false'
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma8:${{ inputs.img_version }}
       credentials:
@@ -61,18 +72,19 @@ jobs:
         password: ${{ secrets.docker_registry_passwd }}
 
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Compiling Cpp sources
+      - if: ${{ inputs.module_name == 'centreon-collect' }}
+        name: Compiling Cpp sources
         run: |
           rm -rf build
           mkdir build
           cd build
 
-          pip3 install conan==1.62.0 --prefix=/usr --upgrade
-          conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
+          sudo conan install .. -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
 
-          cmake \
+          sudo cmake \
             -G "Ninja" \
             -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
             -DWITH_TESTING=OFF \
@@ -91,20 +103,24 @@ jobs:
             -DWITH_CONFIG_FILES=ON \
             ..
 
-          ninja
+          sudo ninja
 
           echo "[DEBUG] - Find compiled files"
           find ./ -name "*.so"
           echo "[DEBUG] - Build size"
           du -sh ./lib/*.so | sort -rh
 
-      - name: Binary preparation
+      - if: ${{ inputs.module_name == 'centreon-collect' }}
+        name: Preserve centreon-collect binaries from cleaning
         run: |
           echo "[INFO] - Keeping only compiled files"
-          # preserve binaries from cleaning
-          mv ./build/bin ./
-          find ./build -type f -not \( -name "*.so" \) -delete
-          mv ./bin ./build
+          find build -type f -not \( -name "*.so" -or -name "cbd" -or -name "centengine" -or -name "cbwd" -or -name "centreon_connector_*" \) -delete
+
+      - name: Binary preparation of ${{ inputs.module_name }}
+        run: |
+          if [ -n "${{ inputs.module_directory }}" ]; then
+            cd ${{ inputs.module_directory }}
+          fi
 
           echo "[INFO] - Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then
@@ -124,17 +140,26 @@ jobs:
           else
             echo "::warning::No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
-          echo "[INFO] - Keeping only build's non empty folders"
-          find ./build -empty -type d -delete
-          ls -la ./build
 
-          echo "[INFO] - Generating the tarball"
-          tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
+          if [ "${{ inputs.module_name }}" = "centreon-collect" ]; then
+            echo "[INFO] - Keeping only build's non empty folders"
+            find build -empty -type d -delete
+            ls -la build
+            echo "[INFO] - Generating the tarball"
+            tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
+          else
+            echo "[INFO] - Generating the zip"
+            zip -rq "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip" *
+            if [ -n "${{ inputs.module_directory }}" ]; then
+              cd -
+              mv ${{ inputs.module_directory }}/${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip .
+            fi
+          fi
 
       - name: Cache
-        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
-          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.${{ inputs.module_name == 'centreon-collect' && 'tar.gz' || 'zip' }}"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
   policy-scan:
@@ -164,16 +189,16 @@ jobs:
       - name: Get build binary
         uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
-          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.${{ inputs.module_name == 'centreon-collect' && 'tar.gz' || 'zip' }}"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
       - name: Sandbox scan
-        uses: veracode/veracode-uploadandscan-action@f7e1fbf02c5c899fba9f12e3f537b62f2f1230e1 # master using 0.2.6
+        uses: veracode/veracode-uploadandscan-action@f7e1fbf02c5c899fba9f12e3f537b62f2f1230e1 # 0.2.7
         continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' }}
         with:
           appname: "${{ inputs.module_name }}"
-          version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
-          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}_attempt-${{ github.run_attempt }}"
+          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.${{ inputs.module_name == 'centreon-collect' && 'tar.gz' || 'zip' }}"
           vid: "vera01ei-${{ secrets.veracode_api_id }}"
           vkey: "vera01es-${{ secrets.veracode_api_key }}"
           createprofile: true
@@ -181,4 +206,4 @@ jobs:
           sandboxname: "${{ github.ref_name }}"
           includenewmodules: true
           scanallnonfataltoplevelmodules: true
-          deleteincompletescan: 2
+          deleteincompletescan: 1
