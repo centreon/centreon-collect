@@ -343,6 +343,7 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/io/raw.cc
     ${SRC_DIR}/io/stream.cc
     ${SRC_DIR}/mapping/entry.cc
+    ${SRC_DIR}/misc/aes256_encoder.cc
     ${SRC_DIR}/misc/diagnostic.cc
     ${SRC_DIR}/misc/filesystem.cc
     ${SRC_DIR}/misc/misc.cc
@@ -410,6 +411,7 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/mapping/entry.hh
     ${INC_DIR}/mapping/property.hh
     ${INC_DIR}/mapping/source.hh
+    ${INC_DIR}/misc/aes256_encoder.hh
     ${INC_DIR}/misc/diagnostic.hh
     ${INC_DIR}/misc/filesystem.hh
     ${INC_DIR}/misc/misc.hh
