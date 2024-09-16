@@ -1,4 +1,4 @@
-Source: centreon-gorgone
+Source: gorgone
 Section: net
 Priority: optional
 Maintainer: Centreon <contact@centreon.com>
@@ -38,6 +38,7 @@ Depends:
   libzmq-constants-perl,
   libzmq5,
   zmq-libzmq4-perl,
+  perl-base,
   sudo,
   ${shlibs:Depends},
   ${misc:Depends}
