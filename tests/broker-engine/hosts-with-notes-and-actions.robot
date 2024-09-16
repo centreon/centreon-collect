@@ -108,7 +108,7 @@ EBSN3
 
 EBSN4
     [Documentation]    New hosts with No Alias / Alias and have A Template
-    [Tags]    broker    engine    hosts    
+    [Tags]    broker    engine    hosts    MON-16261
     Ctn Config Engine    ${1}    ${5}    ${5}    
     Ctn Config Broker    rrd
     Ctn Config Broker    central

@@ -66,15 +66,15 @@ bool host_helper::hook(std::string_view key, const std::string_view& value) {
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
-  if (key == "host_name"){
+  if (key == "host_name") {
     obj->set_host_name(std::string(value));
     set_changed(obj->descriptor()->FindFieldByName("host_name")->index());
-    if(obj->alias().empty()){
+    if (obj->alias().empty()) {
       obj->set_alias(std::string(value));
       set_changed(obj->descriptor()->FindFieldByName("alias")->index());
     }
     return true;
-  }else if (key == "contactgroups") {
+  } else if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;
   } else if (key == "contacts") {

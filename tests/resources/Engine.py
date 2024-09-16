@@ -931,7 +931,7 @@ def ctn_engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: s
 
 def ctn_engine_config_delete_value_in_hosts(idx: int, desc: str, key: str, file: str = 'hosts.cfg'):
     """
-    Set a parameter in the hosts.cfg for the Engine configuration idx.
+    Delete a parameter in the hosts.cfg for the Engine configuration idx.
 
     Args:
         idx (int): Index of the Engine configuration (from 0)
