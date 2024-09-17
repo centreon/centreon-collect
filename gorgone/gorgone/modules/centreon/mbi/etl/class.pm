@@ -676,6 +676,8 @@ sub action_centreonmbietlrun {
 
         $self->check_basic_options(%{$options{data}->{content}});
 
+        $self->{current_exec} = 0;
+
         $self->{run}->{schedule} = {
             steps_total => 0,
             steps_executed => 0,
