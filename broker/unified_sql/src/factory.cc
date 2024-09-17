@@ -40,7 +40,7 @@ using com::centreon::common::log_v2::log_v2;
  *
  *  @return Property value.
  */
-static std::string const& find_param(config::endpoint const& cfg,
+static const std::string& find_param(config::endpoint const& cfg,
                                      std::string const& key) {
   std::map<std::string, std::string>::const_iterator it{cfg.params.find(key)};
   if (cfg.params.end() == it)

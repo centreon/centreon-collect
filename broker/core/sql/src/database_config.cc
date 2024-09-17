@@ -17,9 +17,10 @@
  */
 
 #include "com/centreon/broker/sql/database_config.hh"
-
+#include <nlohmann/json.hpp>
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/exceptions/config.hh"
+#include "com/centreon/broker/misc/aes256_encoder.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -104,6 +105,40 @@ database_config::database_config(config::endpoint const& cfg)
     : _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR) {
   std::map<std::string, std::string>::const_iterator it, end;
   end = cfg.params.end();
+
+  std::string first_key;
+  {
+    auto found = config::state().params().find("env_file");
+    std::string env_file;
+    if (found != config::state().params().end())
+      env_file = found->second;
+    else
+      env_file = "/usr/share/centreon/.env";
+    std::ifstream ifs(env_file);
+    if (ifs.is_open()) {
+      std::string line;
+      while (std::getline(ifs, line)) {
+        if (line.find("APP_SECRET=") == 0) {
+          first_key = line.substr(11);
+          break;
+        }
+      }
+    }
+  }
+  std::string role_id;
+  std::string secret_id;
+  {
+    std::string vault_file;
+    auto found = config::state().params().find("vault_configuration");
+    if (found != config::state().params().end()) {
+      vault_file = found->second;
+      nlohmann::json vault_configuration = nlohmann::json::parse(vault_file);
+      const std::string& second_key = vault_configuration["salt"];
+      misc::aes256_encoder access(first_key, second_key);
+      role_id = access.decrypt(vault_configuration["role_id"]);
+      secret_id = access.decrypt(vault_configuration["secret_id"]);
+    }
+  }
 
   // db_type
   it = cfg.params.find("db_type");
