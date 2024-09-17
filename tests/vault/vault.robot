@@ -10,517 +10,157 @@ Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
-BEWVC
-    [Documentation]    Broker is tuned with a wrong vault configuration.
+BWVC1
+    [Documentation]    Broker is tuned with a wrong vault configuration and the env file doesn't exist.
     [Tags]    broker    engine    MON-116610
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Broker Config Add Item    central    vault_configuration    /tmp/wrong_file
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    core    error
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    ${content}    Create List    SQL: Disabling poller
+    ${content}    Create List    The env file could not be open
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    No stop event processed by central cbd
+    Should Be True    ${result}    No message about the env file that could not be open.
     Ctn Kindly Stop Broker
-    Ctn Stop Engine
 
-#BESS2
-#    [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
-#    [Tags]    broker    engine    start-stop
-#    Ctn Clear Retention
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Ctn Broker Config Log    central    sql    debug
-#    Ctn Broker Config Log    central    bbdo    info
-#    ${start}    Get Current Date
-#    Ctn Start Broker
-#    Ctn Start Engine
-#    ${result}    Ctn Check Connections
-#    Should Be True    ${result}    Connection between Engine and Broker not established
-#    ${result}    Ctn Check Poller Enabled In Database    1    10
-#    Should Be True    ${result}    Poller not visible in database
-#    Ctn Stop Engine
-#    ${content}    Create List    SQL: Disabling poller
-#    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-#    Should Be True    ${result}    No stop event processed by central cbd
-#    ${result}    Ctn Check Poller Disabled In Database    1    10
-#    Should Be True    ${result}    Poller still visible in database
-#    Ctn Kindly Stop Broker
-#
-#BESS2U
-#    [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first.
-#    ...    Unified_sql is used.
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Ctn Config BBDO3    1
-#    Ctn Broker Config Log    central    sql    info
-#    Ctn Broker Config Log    central    bbdo    info
-#    ${start}    Get Current Date
-#    Ctn Start Broker
-#    Ctn Start Engine
-#    ${result}    Ctn Check Connections
-#    Should Be True    ${result}    Connection between Engine and Broker not established
-#    ${result}    Ctn Check Poller Enabled In Database    1    10
-#    Should Be True    ${result}    Poller not visible in database
-#    Ctn Stop Engine
-#    ${content}    Create List    unified_sql: Disabling poller
-#    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-#    Should Be True    ${result}    No stop event processed by central cbd
-#    ${result}    Ctn Check Poller Disabled In Database    1    10
-#    Should Be True    ${result}    Poller still visible in database
-#    Ctn Kindly Stop Broker
-#
-#BESS3
-#    [Documentation]    Start-Stop Broker/Engine - Engine started first - Engine stopped first
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Ctn Start Engine
-#    Ctn Start Broker
-#    ${result}    Ctn Check Connections
-#    Should Be True    ${result}
-#    ${result}    Ctn Check Poller Enabled In Database    1    10
-#    Should Be True    ${result}
-#    Ctn Stop Engine
-#    ${result}    Ctn Check Poller Disabled In Database    1    10
-#    Should Be True    ${result}
-#    Ctn Kindly Stop Broker
-#
-#BESS4
-#    [Documentation]    Start-Stop Broker/Engine - Engine started first - Broker stopped first
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Ctn Start Engine
-#    Ctn Start Broker
-#    ${result}    Ctn Check Connections
-#    Should Be True    ${result}
-#    ${result}    Ctn Check Poller Enabled In Database    1    10
-#    Should Be True    ${result}
-#    Ctn Kindly Stop Broker
-#    Ctn Stop Engine
-#
-#BESS5
-#    [Documentation]    Start-Stop Broker/engine - Engine debug level is set to all, it should not hang
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Ctn Engine Config Set Value    ${0}    debug_level    ${-1}
-#    Ctn Start Broker
-#    Ctn Start Engine
-#    ${result}    Ctn Check Connections
-#    Should Be True    ${result}    Broker and Engine seem not connected
-#    [Teardown]    Ctn Stop Engine Broker And Save Logs
-#
-#BESS_GRPC1
-#    [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Ctn Change Broker Tcp Output To Grpc    central
-#    Ctn Change Broker Tcp Output To Grpc    module0
-#    Ctn Change Broker Tcp Input To Grpc    central
-#    Ctn Change Broker Tcp Input To Grpc    rrd
-#    Ctn Start Broker
-#    Ctn Start Engine
-#    ${result}    Ctn Check Connections
-#    Should Be True    ${result}
-#    Ctn Kindly Stop Broker
-#    Ctn Stop Engine
-#
-#BESS_GRPC2
-#    [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Engine stopped first
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Ctn Change Broker Tcp Output To Grpc    central
-#    Ctn Change Broker Tcp Output To Grpc    module0
-#    Ctn Change Broker Tcp Input To Grpc    central
-#    Ctn Change Broker Tcp Input To Grpc    rrd
-#    Ctn Start Broker
-#    Ctn Start Engine
-#    ${result}    Ctn Check Connections
-#    Should Be True    ${result}    Connections between Engine and Broker not established
-#    ${result}    Ctn Check Poller Enabled In Database    1    10
-#    Should Be True    ${result}    Poller not visible in database
-#    Ctn Stop Engine
-#    ${result}    Ctn Check Poller Disabled In Database    1    10
-#    Should Be True    ${result}    Poller still visible in database
-#    Ctn Kindly Stop Broker
-#
-#BESS_GRPC3
-#    [Documentation]    Start-Stop grpc version Broker/Engine - Engine started first - Engine stopped first
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Ctn Change Broker Tcp Output To Grpc    central
-#    Ctn Change Broker Tcp Output To Grpc    module0
-#    Ctn Change Broker Tcp Input To Grpc    central
-#    Ctn Change Broker Tcp Input To Grpc    rrd
-#    Ctn Start Engine
-#    Ctn Start Broker
-#    ${result}    Ctn Check Connections
-#    Should Be True    ${result}    Connections between Engine and Broker not established
-#    ${result}    Ctn Check Poller Enabled In Database    1    10
-#    Should Be True    ${result}    Poller not visible in database
-#    Ctn Stop Engine
-#    ${result}    Ctn Check Poller Disabled In Database    1    10
-#    Should Be True    ${result}    Poller still visible in database
-#    Ctn Kindly Stop Broker
-#
-#BESS_GRPC4
-#    [Documentation]    Start-Stop grpc version Broker/Engine - Engine started first - Broker stopped first
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Ctn Change Broker Tcp Output To Grpc    central
-#    Ctn Change Broker Tcp Output To Grpc    module0
-#    Ctn Change Broker Tcp Input To Grpc    central
-#    Ctn Change Broker Tcp Input To Grpc    rrd
-#    Ctn Start Engine
-#    Ctn Start Broker
-#    ${result}    Ctn Check Connections
-#    Should Be True    ${result}
-#    Ctn Kindly Stop Broker
-#    Ctn Stop Engine
-#
-#BESS_GRPC5
-#    [Documentation]    Start-Stop grpc version Broker/engine - Engine debug level is set to all, it should not hang
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Ctn Engine Config Set Value    ${0}    debug_level    ${-1}
-#    Ctn Change Broker Tcp Output To Grpc    central
-#    Ctn Change Broker Tcp Output To Grpc    module0
-#    Ctn Change Broker Tcp Input To Grpc    central
-#    Ctn Change Broker Tcp Input To Grpc    rrd
-#    Ctn Start Broker
-#    Ctn Start Engine
-#    ${result}    Ctn Check Connections
-#    Should Be True    ${result}    Connections between Engine and Broker not established
-#    ${result}    Ctn Check Poller Enabled In Database    1    10
-#    Should Be True    ${result}    Poller not visible in database
-#    Ctn Stop Engine
-#    ${result}    Ctn Check Poller Disabled In Database    1    10
-#    Should Be True    ${result}    Poller still visible in database
-#    Ctn Kindly Stop Broker
-#
-#BESS_GRPC_COMPRESS1
-#    [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Ctn Change Broker Tcp Output To Grpc    central
-#    Ctn Change Broker Tcp Output To Grpc    module0
-#    Ctn Change Broker Tcp Input To Grpc    central
-#    Ctn Change Broker Tcp Input To Grpc    rrd
-#    Ctn Change Broker Compression Output    module0    central-module-master-output    yes
-#    Ctn Change Broker Compression Input    central    centreon-broker-master-input    yes
-#    Ctn Start Broker
-#    Ctn Start Engine
-#    ${result}    Ctn Check Connections
-#    Should Be True    ${result}    Connection not established between Engine and Broker
-#    ${result}    Ctn Check Poller Enabled In Database    1    10
-#    Should Be True    ${result}    Poller not visible in database
-#    Ctn Stop Engine
-#    ${result}    Ctn Check Poller Disabled In Database    1    10
-#    Should Be True    ${result}    Poller still visible in database
-#    Ctn Kindly Stop Broker
-#
-#BESS_CRYPTED_GRPC1
-#    [Documentation]    Start-Stop grpc version Broker/Engine - well configured
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
-#    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
-#    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-#    Ctn Change Broker Tcp Output To Grpc    central
-#    Ctn Change Broker Tcp Output To Grpc    module0
-#    Ctn Change Broker Tcp Input To Grpc    central
-#    Ctn Change Broker Tcp Input To Grpc    rrd
-#    Ctn Add Broker Tcp Output Grpc Crypto    module0    True    False
-#    Ctn Add Broker Tcp Input Grpc Crypto    central    True    False
-#    Ctn Remove Host From Broker Output    module0    central-module-master-output
-#    Ctn Add Host To Broker Output    module0    central-module-master-output    localhost
-#    FOR    ${i}    IN RANGE    0    5
-#        Ctn Start Broker
-#        Ctn Start Engine
-#        ${result}    Ctn Check Connections
-#        Should Be True    ${result}
-#        ${result}    Ctn Check Poller Enabled In Database    1    10
-#        Should Be True    ${result}
-#        Ctn Stop Engine
-#        ${result}    Ctn Check Poller Disabled In Database    1    10
-#        Should Be True    ${result}
-#        Ctn Kindly Stop Broker
-#    END
-#
-#BESS_CRYPTED_GRPC2
-#    [Documentation]    Start-Stop grpc version Broker/Engine only server crypted
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
-#    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
-#    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-#    Ctn Change Broker Tcp Output To Grpc    central
-#    Ctn Change Broker Tcp Output To Grpc    module0
-#    Ctn Change Broker Tcp Input To Grpc    central
-#    Ctn Change Broker Tcp Input To Grpc    rrd
-#    Ctn Add Broker Tcp Input Grpc Crypto    central    True    False
-#    FOR    ${i}    IN RANGE    0    5
-#        Ctn Start Broker
-#        Ctn Start Engine
-#        Sleep    2s
-#        Ctn Kindly Stop Broker
-#        Ctn Stop Engine
-#    END
-#
-#BESS_CRYPTED_GRPC3
-#    [Documentation]    Start-Stop grpc version Broker/Engine only engine crypted
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
-#    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
-#    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-#    Ctn Change Broker Tcp Output To Grpc    central
-#    Ctn Change Broker Tcp Output To Grpc    module0
-#    Ctn Change Broker Tcp Input To Grpc    central
-#    Ctn Change Broker Tcp Input To Grpc    rrd
-#    Ctn Add Broker Tcp Output Grpc Crypto    module0    True    False
-#    FOR    ${i}    IN RANGE    0    5
-#        Ctn Start Broker
-#        Ctn Start Engine
-#        Sleep    2s
-#        Ctn Kindly Stop Broker
-#        Ctn Stop Engine
-#    END
-#
-#BESS_CRYPTED_REVERSED_GRPC1
-#    [Documentation]    Start-Stop grpc version Broker/Engine - well configured
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
-#    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
-#    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-#    Ctn Change Broker Tcp Output To Grpc    central
-#    Ctn Change Broker Tcp Output To Grpc    module0
-#    Ctn Change Broker Tcp Input To Grpc    central
-#    Ctn Change Broker Tcp Input To Grpc    rrd
-#    Ctn Add Broker Tcp Output Grpc Crypto    module0    True    True
-#    Ctn Add Broker Tcp Input Grpc Crypto    central    True    True
-#    Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
-#    Ctn Remove Host From Broker Output    module0    central-module-master-output
-#    FOR    ${i}    IN RANGE    0    5
-#        Ctn Start Broker
-#        Ctn Start Engine
-#        ${result}    Ctn Check Connections
-#        Should Be True    ${result}
-#        Sleep    2s
-#        Ctn Kindly Stop Broker
-#        Ctn Stop Engine
-#    END
-#
-#BESS_CRYPTED_REVERSED_GRPC2
-#    [Documentation]    Start-Stop grpc version Broker/Engine only engine server crypted
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
-#    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
-#    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-#    Ctn Change Broker Tcp Output To Grpc    central
-#    Ctn Change Broker Tcp Output To Grpc    module0
-#    Ctn Change Broker Tcp Input To Grpc    central
-#    Ctn Change Broker Tcp Input To Grpc    rrd
-#    Ctn Add Broker Tcp Output Grpc Crypto    module0    True    True
-#    Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
-#    Ctn Remove Host From Broker Output    module0    central-module-master-output
-#    FOR    ${i}    IN RANGE    0    5
-#        Ctn Start Broker
-#        Ctn Start Engine
-#        Sleep    5s
-#        Ctn Kindly Stop Broker
-#        Ctn Stop Engine
-#    END
-#
-#BESS_CRYPTED_REVERSED_GRPC3
-#    [Documentation]    Start-Stop grpc version Broker/Engine only engine crypted
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
-#    Ctn Change Broker Tcp Output To Grpc    central
-#    Ctn Change Broker Tcp Output To Grpc    module0
-#    Ctn Change Broker Tcp Input To Grpc    central
-#    Ctn Change Broker Tcp Input To Grpc    rrd
-#    Ctn Add Broker Tcp Input Grpc Crypto    central    True    True
-#    Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
-#    Ctn Remove Host From Broker Output    module0    central-module-master-output
-#    FOR    ${i}    IN RANGE    0    5
-#        Ctn Start Broker
-#        Ctn Start Engine
-#        Sleep    5s
-#        Ctn Kindly Stop Broker
-#        Ctn Stop Engine
-#    END
-#
-#BESS_ENGINE_DELETE_HOST
-#    [Documentation]    once engine and cbd started, stop and restart cbd, delete an host and reload engine, cbd mustn't core
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Clear Retention
-#    ${start}    Get Current Date
-#    Ctn Start Broker    True
-#    Ctn Start Engine
-#    ${content}    Create List    check_for_external_commands
-#    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-#    Should Be True
-#    ...    ${result}
-#    ...    An Initial host state on host_1 should be raised before we can start our external commands.
-#    Ctn Kindly Stop Broker    True
-#    Ctn Start Broker    True
-#    Ctn Engine Config Remove Services By Host    ${0}    host_16
-#    Ctn Engine Config Remove Host    ${0}    host_16
-#    Ctn Reload Engine
-#    Sleep    2s
-#    Ctn Kindly Stop Broker    True
-#    Ctn Stop Engine
-#
-#BESSBQ1
-#    [Documentation]    A very bad queue file is written for broker. Broker and Engine are then started, Broker must read the file raising an error because of that file and then get data sent by Engine.
-#    [Tags]    broker    engine    start-stop    queue
-#    Ctn Config Engine    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    rrd
-#    Ctn Config Broker    module
-#    Ctn Broker Config Flush Log    central    0
-#    Ctn Broker Config Log    central    core    error
-#    Ctn Broker Config Log    central    bbdo    debug
-#    Ctn Broker Config Log    central    sql    trace
-#    Ctn Broker Config Log    central    core    debug
-#    Ctn Config Broker Sql Output    central    unified_sql
-#    Ctn Clear Retention
-#    Ctn Create Bad Queue    central-broker-master.queue.central-broker-master-sql
-#    ${start}    Get Current Date
-#    Ctn Start Broker
-#    Ctn Start Engine
-#    ${content}    Create List    execute statement 1245300e
-#
-#    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
-#    Should Be True    ${result}    Services should be updated after the ingestion of the queue file
-#    Ctn Stop Engine
-#    Ctn Kindly Stop Broker
-#
-#Start_Stop_Engine_Broker_${id}
-#    [Documentation]    Start-Stop Broker/Engine - Broker started first - Broker stopped first
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}    ${1}    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Ctn Broker Config Flush Log    central    0
-#    Ctn Broker Config Log    central    core    debug
-#    Ctn Broker Config Log    central    processing    debug
-#    Ctn Config Broker Sql Output    central    unified_sql
-#    IF    ${grpc}
-#        Ctn Change Broker Tcp Output To Grpc    central
-#        Ctn Change Broker Tcp Output To Grpc    module0
-#        Ctn Change Broker Tcp Input To Grpc    central
-#        Ctn Change Broker Tcp Input To Grpc    rrd
-#    END
-#    ${start}    Get Current Date
-#    Ctn Start Broker
-#    Ctn Start Engine
-#    ${content}    Create List    create feeder central-broker-master-input
-#    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-#    Should Be True    ${result}    create feeder not found
-#    ${result}    Ctn Check Connections
-#    Should Be True    ${result}    no connection between engine and cbd
-#    Sleep    5s
-#    ${start_stop}    Get Current Date
-#    Ctn Stop Engine
-#    ${content}    Create List    feeder 'central-broker-master-input-1', connection closed
-#    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start_stop}    ${content}    60
-#    Should Be True    ${result}    connection closed not found
-#
-#    Examples:    id    grpc    --
-#    ...    1    False
-#    ...    2    True
-#    Ctn Kindly Stop Broker
-#
-#Start_Stop_Broker_Engine_${id}
-#    [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
-#    [Tags]    broker    engine    start-stop
-#    Ctn Config Engine    ${1}    ${1}    ${1}
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Ctn Broker Config Flush Log    central    0
-#    Ctn Broker Config Log    central    core    debug
-#    Ctn Broker Config Log    central    processing    debug
-#    IF    ${grpc}
-#        Ctn Change Broker Tcp Output To Grpc    central
-#        Ctn Change Broker Tcp Output To Grpc    module0
-#        Ctn Change Broker Tcp Input To Grpc    central
-#        Ctn Change Broker Tcp Input To Grpc    rrd
-#    END
-#    ${start}    Ctn Get Round Current Date
-#
-#    Ctn Start Broker
-#    Ctn Start Engine
-#    ${content}    Create List    create feeder central-broker-master-input
-#    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-#    Should Be True    ${result}    create feeder not found
-#    ${result}    Ctn Check Connections
-#    Should Be True    ${result}    no connection between engine and cbd
-#    Sleep    5s
-#    ${stop_broker}    Get Current Date
-#    Ctn Kindly Stop Broker
-#    ${content}    Create List    failover central-module-master-output: connection closed
-#    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${stop_broker}    ${content}    60
-#    Should Be True    ${result}    connection closed not found
-#    Examples:    id    grpc    --
-#    ...    1    False
-#    ...    2    True
-#    Ctn Stop Engine
+BWVC2
+    [Documentation]    Broker is tuned with a wrong vault configuration and the env file exists.
+    [Tags]    broker    engine    MON-116610
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Broker Config Add Item    central    vault_configuration    /tmp/wrong_file
+    Ctn Broker Config Add Item    central    env_file    /tmp/env_file
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    core    error
+
+    ${env_file}    Catenate    SEPARATOR=\n
+    ...    no sense
+
+    Create File    /tmp/env_file    ${env_file}
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    ${content}    Create List    Bad value of the APP_SECRET
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No message about the bad value in APP_SECRET.
+    Ctn Kindly Stop Broker
+
+BWVC3
+    [Documentation]    Broker is tuned with an env file containing a strange key APP_SECRET and a wrong vault configuration.
+    [Tags]    broker    engine    MON-116610
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Broker Config Add Item    central    vault_configuration    /tmp/wrong_file
+    Ctn Broker Config Add Item    central    env_file    /tmp/env_file
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    core    error
+
+    ${env_file}    Catenate    SEPARATOR=\n
+    ...    APP_SECRET= turtle
+
+    Create File    /tmp/env_file    ${env_file}
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    ${content}    Create List    Error while reading '/tmp/wrong_file'
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No message about the wrong vault file.
+    Ctn Kindly Stop Broker
+
+BWVC4
+    [Documentation]    Broker is tuned with an env file containing a strange key APP_SECRET and a vault configuration with a bad json.
+    [Tags]    broker    engine    MON-116610
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Broker Config Add Item    central    vault_configuration    /tmp/vault_file.json
+    Ctn Broker Config Add Item    central    env_file    /tmp/env_file
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    core    error
+
+    ${vault_file}    Catenate    SEPARATOR=\n
+    ...    {
+    ...      "name": "vault",
+    ...      "strange_key": 42
+    ...    }
+
+    Create File    /tmp/vault_file.json    ${vault_file}
+
+    ${env_file}    Catenate    SEPARATOR=\n
+    ...    APP_SECRET= turtle
+
+    Create File    /tmp/env_file    ${env_file}
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    ${content}    Create List    The file '/tmp/vault_file.json' must contain keys 'salt', 'role_id' and 'secret_id'.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    no message about wrong keys displayed.
+    Ctn Kindly Stop Broker
+
+BWVC5
+    [Documentation]    Broker is tuned with strange keys APP_SECRET and salt.
+    [Tags]    broker    engine    MON-116610
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Broker Config Add Item    central    vault_configuration    /tmp/vault_file.json
+    Ctn Broker Config Add Item    central    env_file    /tmp/env_file
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    core    error
+
+    ${vault_file}    Catenate    SEPARATOR=\n
+    ...    {
+    ...      "name": "vault",
+    ...      "strange_key": 42,
+    ...      "salt": "strange",
+    ...      "role_id": "strange",
+    ...      "secret_id": "strange"
+    ...    }
+
+    Create File    /tmp/vault_file.json    ${vault_file}
+
+    ${env_file}    Catenate    SEPARATOR=\n
+    ...    APP_SECRET= turtle
+
+    Create File    /tmp/env_file    ${env_file}
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    ${content}    Create List    The content is not AES256 encrypted
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    no message about the bad encryption.
+    Ctn Kindly Stop Broker
+
+BWVC6
+    [Documentation]    Broker is tuned with strange keys APP_SECRET and salt that are not base64 encoded.
+    [Tags]    broker    engine    MON-116610
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Broker Config Add Item    central    vault_configuration    /tmp/vault_file.json
+    Ctn Broker Config Add Item    central    env_file    /tmp/env_file
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    core    error
+
+    ${vault_file}    Catenate    SEPARATOR=\n
+    ...    {
+    ...      "name": "vault",
+    ...      "strange_key": 42,
+    ...      "salt": "strange&éè",
+    ...      "role_id": "strangeéé",
+    ...      "secret_id": "strangeàà@"
+    ...    }
+
+    Create File    /tmp/vault_file.json    ${vault_file}
+
+    ${env_file}    Catenate    SEPARATOR=\n
+    ...    APP_SECRET= turtle
+
+    Create File    /tmp/env_file    ${env_file}
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    ${content}    Create List    This contains characters not legal in a base64 encoded string.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    no message about the bad base64 encoding.
+    Ctn Kindly Stop Broker
