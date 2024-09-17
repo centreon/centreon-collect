@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
+#include <absl/container/flat_hash_map.h>
 
 #include <cassert>
 
@@ -24,7 +25,6 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/persistent_cache.hh"
@@ -100,7 +100,9 @@ endpoint::~endpoint() {
  *
  *  @param[in] endpoints  Endpoints configuration objects.
  */
-void endpoint::apply(std::list<config::endpoint> const& endpoints) {
+void endpoint::apply(
+    std::list<config::endpoint> const& endpoints,
+    const absl::flat_hash_map<std::string, std::string>& global_params) {
   // Log messages.
   SPDLOG_LOGGER_INFO(_logger, "endpoint applier: loading configuration");
 
@@ -162,7 +164,8 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
       SPDLOG_LOGGER_DEBUG(_logger, "endpoint applier: creating endpoint {}",
                           ep.name);
       bool is_acceptor;
-      std::shared_ptr<io::endpoint> e{_create_endpoint(ep, is_acceptor)};
+      std::shared_ptr<io::endpoint> e{
+          _create_endpoint(ep, global_params, is_acceptor)};
       std::unique_ptr<processing::endpoint> endp;
       /* Input or output? */
       /* This is tricky, one day we will make better... I hope.
@@ -232,7 +235,7 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
         auto mux = multiplexing::muxer::create(
             ep.name, multiplexing::engine::instance_ptr(), r_filter, w_filter,
             true);
-        endp.reset(_create_failover(ep, mux, e, endp_to_create));
+        endp.reset(_create_failover(ep, global_params, mux, e, endp_to_create));
       }
       {
         std::lock_guard<std::timed_mutex> lock(_endpointsm);
@@ -385,6 +388,7 @@ void endpoint::unload() {
  */
 processing::failover* endpoint::_create_failover(
     config::endpoint& cfg,
+    const absl::flat_hash_map<std::string, std::string>& global_params,
     std::shared_ptr<multiplexing::muxer> mux,
     std::shared_ptr<io::endpoint> endp,
     std::list<config::endpoint>& l) {
@@ -405,14 +409,15 @@ processing::failover* endpoint::_create_failover(
           front_failover, cfg.name);
     else {
       bool is_acceptor;
-      std::shared_ptr<io::endpoint> e(_create_endpoint(*it, is_acceptor));
+      std::shared_ptr<io::endpoint> e(
+          _create_endpoint(*it, global_params, is_acceptor));
       if (is_acceptor)
         throw msg_fmt(
             "endpoint applier: cannot allow acceptor '{}' as failover for "
             "endpoint '{}'",
             front_failover, cfg.name);
       failovr = std::shared_ptr<processing::failover>(
-          _create_failover(*it, mux, e, l));
+          _create_failover(*it, global_params, mux, e, l));
 
       // Add secondary failovers
       for (std::list<std::string>::const_iterator
@@ -427,7 +432,8 @@ processing::failover* endpoint::_create_failover(
               "endpoint '{}'",
               *failover_it, cfg.name);
         bool is_acceptor{false};
-        std::shared_ptr<io::endpoint> endp(_create_endpoint(*it, is_acceptor));
+        std::shared_ptr<io::endpoint> endp(
+            _create_endpoint(*it, global_params, is_acceptor));
         if (is_acceptor) {
           SPDLOG_LOGGER_ERROR(
               _logger,
@@ -456,8 +462,10 @@ processing::failover* endpoint::_create_failover(
  *
  *  @return A new endpoint.
  */
-std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
-                                                         bool& is_acceptor) {
+std::shared_ptr<io::endpoint> endpoint::_create_endpoint(
+    config::endpoint& cfg,
+    const absl::flat_hash_map<std::string, std::string>& global_params,
+    bool& is_acceptor) {
   // Create endpoint object.
   std::shared_ptr<io::endpoint> endp;
   int level{0};
@@ -479,8 +487,9 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
             log_v2::instance().get(log_id));
       }
 
-      endp = std::shared_ptr<io::endpoint>(
-          it->second.endpntfactry->new_endpoint(cfg, is_acceptor, cache));
+      endp =
+          std::shared_ptr<io::endpoint>(it->second.endpntfactry->new_endpoint(
+              cfg, global_params, is_acceptor, cache));
       SPDLOG_LOGGER_INFO(_logger, " create endpoint {} for endpoint '{}'",
                          it->first, cfg.name);
       level = it->second.osi_to + 1;
@@ -502,7 +511,8 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
       if ((it->second.osi_from == level) &&
           (it->second.endpntfactry->has_endpoint(cfg, nullptr))) {
         std::shared_ptr<io::endpoint> current(
-            it->second.endpntfactry->new_endpoint(cfg, is_acceptor));
+            it->second.endpntfactry->new_endpoint(cfg, global_params,
+                                                  is_acceptor));
         SPDLOG_LOGGER_INFO(_logger, " create endpoint {} for endpoint '{}'",
                            it->first, cfg.name);
         current->from(endp);

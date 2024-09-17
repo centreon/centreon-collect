@@ -21,10 +21,8 @@
 
 #include <absl/strings/match.h>
 
-#include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/tcp/acceptor.hh"
 #include "com/centreon/broker/tcp/connector.hh"
-#include "com/centreon/broker/tcp/tcp_async.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -73,6 +71,8 @@ bool factory::has_endpoint(com::centreon::broker::config::endpoint& cfg,
  */
 io::endpoint* factory::new_endpoint(
     com::centreon::broker::config::endpoint& cfg,
+    const absl::flat_hash_map<std::string, std::string>& global_params
+    [[maybe_unused]],
     bool& is_acceptor,
     std::shared_ptr<persistent_cache> cache) const {
   (void)cache;
@@ -83,9 +83,8 @@ io::endpoint* factory::new_endpoint(
     return _new_endpoint_bbdo_cs(cfg, is_acceptor);
 
   // Find host (if exists).
-  std::map<std::string, std::string>::const_iterator it;
   std::string host;
-  it = cfg.params.find("host");
+  auto it = cfg.params.find("host");
   if (it != cfg.params.end())
     host = it->second;
   if (!host.empty() &&
@@ -193,13 +192,11 @@ io::endpoint* factory::new_endpoint(
 io::endpoint* factory::_new_endpoint_bbdo_cs(
     com::centreon::broker::config::endpoint& cfg,
     bool& is_acceptor) const {
-  std::map<std::string, std::string>::const_iterator it;
-
   auto logger = log_v2::instance().get(log_v2::TCP);
 
   // Find host (if exists).
   std::string host;
-  it = cfg.params.find("host");
+  auto it = cfg.params.find("host");
   if (it != cfg.params.end())
     host = it->second;
   if (!host.empty() &&

@@ -56,7 +56,7 @@ class endpoint {
   time_t buffering_timeout;
   std::list<std::string> failovers;
   std::string name;
-  std::map<std::string, std::string> params;
+  absl::flat_hash_map<std::string, std::string> params;
   std::set<std::string> read_filters;
   time_t read_timeout;
   uint32_t retry_interval;

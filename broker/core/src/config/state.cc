@@ -360,7 +360,7 @@ std::list<std::string> const& state::module_list() const noexcept {
  *
  *  @return Additional parameters list.
  */
-std::map<std::string, std::string>& state::params() noexcept {
+absl::flat_hash_map<std::string, std::string>& state::params() noexcept {
   return _params;
 }
 
@@ -369,7 +369,8 @@ std::map<std::string, std::string>& state::params() noexcept {
  *
  *  @return Additional parameters list.
  */
-std::map<std::string, std::string> const& state::params() const noexcept {
+const absl::flat_hash_map<std::string, std::string>& state::params()
+    const noexcept {
   return _params;
 }
 

@@ -19,6 +19,7 @@
 #ifndef CCB_RRD_FACTORY_HH
 #define CCB_RRD_FACTORY_HH
 
+#include <absl/container/flat_hash_map.h>
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/factory.hh"
 
@@ -38,10 +39,12 @@ class factory : public io::factory {
   factory(factory const& other) = delete;
   factory& operator=(factory const& other) = delete;
   bool has_endpoint(config::endpoint& cfg, io::extension* ext);
-  io::endpoint* new_endpoint(config::endpoint& cfg,
-                             bool& is_acceptor,
-                             std::shared_ptr<persistent_cache> cache =
-                                 std::shared_ptr<persistent_cache>()) const;
+  io::endpoint* new_endpoint(
+      config::endpoint& cfg,
+      const absl::flat_hash_map<std::string, std::string>& global_params,
+      bool& is_acceptor,
+      std::shared_ptr<persistent_cache> cache =
+          std::shared_ptr<persistent_cache>()) const;
 };
 }  // namespace rrd
 

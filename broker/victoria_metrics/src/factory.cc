@@ -55,8 +55,9 @@ factory::factory()
 
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
+    const absl::flat_hash_map<std::string, std::string>& global_params,
     bool& is_acceptor,
-    std::shared_ptr<persistent_cache> ) const {
+    std::shared_ptr<persistent_cache>) const {
   is_acceptor = false;
 
   std::shared_ptr<http_tsdb::http_tsdb_config> conf(

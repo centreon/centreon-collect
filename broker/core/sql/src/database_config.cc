@@ -17,8 +17,9 @@
  */
 
 #include "com/centreon/broker/sql/database_config.hh"
+#include <absl/strings/ascii.h>
 #include <nlohmann/json.hpp>
-#include "com/centreon/broker/config/parser.hh"
+#include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/exceptions/config.hh"
 #include "com/centreon/broker/misc/aes256_encoder.hh"
 #include "common/log_v2/log_v2.hh"
@@ -101,81 +102,101 @@ database_config::database_config(const std::string& type,
  *
  *  @param[in] cfg  Endpoint configuration.
  */
-database_config::database_config(config::endpoint const& cfg)
+database_config::database_config(
+    const config::endpoint& cfg,
+    const absl::flat_hash_map<std::string, std::string>& global_params)
     : _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR) {
-  std::map<std::string, std::string>::const_iterator it, end;
-  end = cfg.params.end();
+  auto logger_config = log_v2::instance().get(log_v2::CONFIG);
 
   std::string first_key;
   {
-    auto found = config::state().params().find("env_file");
+    auto found = global_params.find("env_file");
     std::string env_file;
-    if (found != config::state().params().end())
+    if (found != global_params.end()) {
       env_file = found->second;
-    else
+      logger_config->debug("Env file '{}' used.", env_file);
+    } else {
       env_file = "/usr/share/centreon/.env";
+      logger_config->debug("No env_file provided default one used.");
+    }
     std::ifstream ifs(env_file);
     if (ifs.is_open()) {
       std::string line;
       while (std::getline(ifs, line)) {
         if (line.find("APP_SECRET=") == 0) {
           first_key = line.substr(11);
+          first_key = absl::StripAsciiWhitespace(first_key);
           break;
         }
       }
-    }
+    } else
+      logger_config->info("The env file could not be open");
   }
   std::string role_id;
   std::string secret_id;
-  {
+  if (!first_key.empty()) {
     std::string vault_file;
-    auto found = config::state().params().find("vault_configuration");
-    if (found != config::state().params().end()) {
+    auto found = global_params.find("vault_configuration");
+    if (found != global_params.end()) {
       vault_file = found->second;
-      nlohmann::json vault_configuration = nlohmann::json::parse(vault_file);
-      const std::string& second_key = vault_configuration["salt"];
-      misc::aes256_encoder access(first_key, second_key);
-      role_id = access.decrypt(vault_configuration["role_id"]);
-      secret_id = access.decrypt(vault_configuration["secret_id"]);
+      try {
+        std::ifstream ifs(vault_file);
+        nlohmann::json vault_configuration = nlohmann::json::parse(ifs);
+        if (vault_configuration.contains("salt") &&
+            vault_configuration.contains("role_id") &&
+            vault_configuration.contains("secret_id")) {
+          const std::string& second_key = vault_configuration["salt"];
+          misc::aes256_encoder access(first_key, second_key);
+          role_id = access.decrypt(vault_configuration["role_id"]);
+          secret_id = access.decrypt(vault_configuration["secret_id"]);
+        } else
+          logger_config->error(
+              "The file '{}' must contain keys 'salt', 'role_id' and "
+              "'secret_id'.",
+              vault_file);
+      } catch (const std::exception& e) {
+        logger_config->error("Error while reading '{}': {}", vault_file,
+                             e.what());
+      }
     }
-  }
+  } else
+    logger_config->error("Bad value of the APP_SECRET");
 
   // db_type
-  it = cfg.params.find("db_type");
-  if (it != end)
-    _type = it->second;
+  auto found = cfg.params.find("db_type");
+  if (found != cfg.params.end())
+    _type = found->second;
   else
     throw exceptions::config("no 'db_type' defined for endpoint '{}'",
                              cfg.name);
 
   // db_host
-  it = cfg.params.find("db_host");
-  if (it != end)
-    _host = it->second;
+  found = cfg.params.find("db_host");
+  if (found != cfg.params.end())
+    _host = found->second;
   else
     _host = "localhost";
 
   // db_socket
   if (_host == "localhost") {
-    it = cfg.params.find("db_socket");
-    if (it != end)
-      _socket = it->second;
+    found = cfg.params.find("db_socket");
+    if (found != cfg.params.end())
+      _socket = found->second;
     else
       _socket = MYSQL_SOCKET;
   } else
     _socket = "";
 
   // db_port
-  it = cfg.params.find("db_port");
-  auto logger_config = log_v2::instance().get(log_v2::CONFIG);
-  if (it != end) {
+  found = cfg.params.find("db_port");
+  if (found != cfg.params.end()) {
     uint32_t port;
-    if (!absl::SimpleAtoi(it->second, &port)) {
+    if (!absl::SimpleAtoi(found->second, &port)) {
       logger_config->error(
           "In the database configuration, 'db_port' should be a number, "
           "and "
           "not '{}'",
-          it->second);
+          found->second);
       _port = 0;
     } else
       _port = port;
@@ -183,41 +204,41 @@ database_config::database_config(config::endpoint const& cfg)
     _port = 0;
 
   // db_user
-  it = cfg.params.find("db_user");
-  if (it != end)
-    _user = it->second;
+  found = cfg.params.find("db_user");
+  if (found != cfg.params.end())
+    _user = found->second;
 
   // db_password
-  it = cfg.params.find("db_password");
-  if (it != end)
-    _password = it->second;
+  found = cfg.params.find("db_password");
+  if (found != cfg.params.end())
+    _password = found->second;
 
   // db_name
-  it = cfg.params.find("db_name");
-  if (it != end)
-    _name = it->second;
+  found = cfg.params.find("db_name");
+  if (found != cfg.params.end())
+    _name = found->second;
   else
     throw exceptions::config("no 'db_name' defined for endpoint '{}'",
                              cfg.name);
 
   // queries_per_transaction
-  it = cfg.params.find("queries_per_transaction");
-  if (it != end) {
-    if (!absl::SimpleAtoi(it->second, &_queries_per_transaction)) {
+  found = cfg.params.find("queries_per_transaction");
+  if (found != cfg.params.end()) {
+    if (!absl::SimpleAtoi(found->second, &_queries_per_transaction)) {
       logger_config->error(
           "queries_per_transaction is a number but must be given as a "
           "string. "
           "Unable to read the value '{}' - value 2000 taken by default.",
-          it->second);
+          found->second);
       _queries_per_transaction = 2000;
     }
   } else
     _queries_per_transaction = 2000;
 
   // check_replication
-  it = cfg.params.find("check_replication");
-  if (it != end) {
-    if (!absl::SimpleAtob(it->second, &_check_replication)) {
+  found = cfg.params.find("check_replication");
+  if (found != cfg.params.end()) {
+    if (!absl::SimpleAtob(found->second, &_check_replication)) {
       logger_config->error(
           "check_replication is a string containing a boolean. If not "
           "specified, it will be considered as \"true\".");
@@ -227,9 +248,9 @@ database_config::database_config(config::endpoint const& cfg)
     _check_replication = true;
 
   // connections_count
-  it = cfg.params.find("connections_count");
-  if (it != end) {
-    if (!absl::SimpleAtoi(it->second, &_connections_count)) {
+  found = cfg.params.find("connections_count");
+  if (found != cfg.params.end()) {
+    if (!absl::SimpleAtoi(found->second, &_connections_count)) {
       logger_config->error(
           "connections_count is a string "
           "containing an integer. If not "
@@ -239,9 +260,9 @@ database_config::database_config(config::endpoint const& cfg)
     }
   } else
     _connections_count = 1;
-  it = cfg.params.find("max_commit_delay");
-  if (it != end) {
-    if (!absl::SimpleAtoi(it->second, &_max_commit_delay)) {
+  found = cfg.params.find("max_commit_delay");
+  if (found != cfg.params.end()) {
+    if (!absl::SimpleAtoi(found->second, &_max_commit_delay)) {
       logger_config->error(
           "max_commit_delay is a string "
           "containing an integer. If not "
@@ -252,9 +273,9 @@ database_config::database_config(config::endpoint const& cfg)
   } else
     _max_commit_delay = 5;
 
-  it = cfg.params.find("extension_directory");
-  if (it != end) {
-    _extension_directory = it->second;
+  found = cfg.params.find("extension_directory");
+  if (found != cfg.params.end()) {
+    _extension_directory = found->second;
   }
 }
 

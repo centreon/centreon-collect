@@ -19,6 +19,7 @@
 #ifndef CCB_DATABASE_CONFIG_HH
 #define CCB_DATABASE_CONFIG_HH
 
+#include <absl/container/flat_hash_map.h>
 namespace com::centreon::broker {
 
 // Forward declaration.
@@ -73,7 +74,9 @@ class database_config {
                   bool check_replication = true,
                   int connections_count = 1,
                   unsigned max_commit_delay = 5);
-  database_config(config::endpoint const& cfg);
+  database_config(
+      config::endpoint const& cfg,
+      const absl::flat_hash_map<std::string, std::string>& global_params);
   database_config(database_config const& other);
   ~database_config();
   database_config& operator=(database_config const& other);
