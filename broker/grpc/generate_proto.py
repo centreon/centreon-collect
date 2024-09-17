@@ -182,13 +182,13 @@ ignore_message = "/* Ignore */"
 
 one_of_index = 2
 message_save = []
-flag_ignore = False
 
 for directory in args.proto_directory:
     proto_files = [f for f in listdir(
         directory) if f[-6:] == ".proto" and isfile(join(directory, f))]
     for file in proto_files:
         line_counter = 0
+        flag_ignore = False
         with open(join(directory, file)) as proto_file:
             messages = []
             io_protobuf_match = None
@@ -196,18 +196,19 @@ for directory in args.proto_directory:
                 line_counter += 1
                 m = re.match(message_parser, line)
                 if m is not None and io_protobuf_match is not None:
-                    messages.append([m.group(1), io_protobuf_match.group(1),io_protobuf_match.group(2)])
+                    messages.append([m.group(1), io_protobuf_match.group(1), io_protobuf_match.group(2)])
                     io_protobuf_match = None
                     flag_ignore = True
                 else:
                     io_protobuf_match = re.match(io_protobuf_parser, line)
 
                 #check if no bbo message have the comment: Ignore 
-                if line.__contains__(ignore_message):
+                if ignore_message in line:
                     flag_ignore = True
-                if flag_ignore == True and m is not None:
+                #check if message have comment ignore or it's bbo message
+                if flag_ignore and m is not None:
                     flag_ignore = False
-                elif flag_ignore == False and m is not None : 
+                elif not flag_ignore and m is not None : 
                     print (f"generate_proto.py : Error: Message {{ {m.group(1)} }} has no protobuf id or missing the comment /* Ignore */ : file :{file}:{line_counter}",file=sys.stderr)
                     print (f"Error Add /* Ignore */ or a protobuf id as example: /*io::bam, bam::de_pb_services_book_state*/",file=sys.stderr)
                     exit(1)
@@ -221,7 +222,7 @@ for mess, id, index in message_save:
     # proto file
     file_message_centreon_event += f"        {mess} {mess}_ = {index};\n"
     # count index : needed for opentelemetry
-    one_of_index +=1
+    one_of_index += 1
     lower_mess = mess.lower()
     # cc file
     cc_file_protobuf_to_event_function += f"""        case ::stream::CentreonEvent::k{mess}:
