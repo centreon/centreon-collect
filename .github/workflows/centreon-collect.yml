@@ -21,7 +21,7 @@ on:
       legacy_engine:
         description: 'Compile Engine with legacy configuration library'
         required: true
-        default: false
+        default: true
         type: boolean
       packages_in_artifact:
         description: 'Save packages in artifacts'
