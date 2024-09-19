@@ -147,13 +147,14 @@ sub getServicesWithHostAndCategory {
 }
 
 sub getServicesTemplatesCategories {
-	my $self = shift;
-	my $db = $self->{"centreon"};
-	my %results = ();
+    my $self = shift;
+    my $db = $self->{"centreon"};
+    my %results = ();
 	
-	my $query = "SELECT service_id, service_description, service_template_model_stm_id FROM service WHERE service_register = '0'";
-	my $sth = $db->query({ query => $query });
+    my $query = "SELECT service_id, service_description, service_template_model_stm_id FROM service WHERE service_register = '0'";
+    my $sth = $db->query({ query => $query });
     while(my $row = $sth->fetchrow_hashref()) {
+        my $loop_services = { $row->{service_id} => 1 };
 		my $currentTemplate = $row->{"service_id"};
 		my $categories = $self->getServiceCategories($row->{"service_id"});
 		my $parentId = $row->{"service_template_model_stm_id"};
@@ -161,13 +162,18 @@ sub getServicesTemplatesCategories {
 			my $hasParent = 1;
 			# getting all parent templates category relations
 			while ($hasParent) {
+                if (defined($loop_services->{$parentId})) {
+                    last;
+                }
+                $loop_services->{$parentId} = 1;
+
 				my $parentQuery = "SELECT service_id, service_template_model_stm_id ";
 				$parentQuery .= "FROM service ";
 				$parentQuery .= "WHERE service_register = '0' and service_id=".$parentId;
 				my $sthparentQuery = $db->query({ query => $parentQuery });
-	   			if(my $parentQueryRow = $sthparentQuery->fetchrow_hashref()) {
+	   			if (my $parentQueryRow = $sthparentQuery->fetchrow_hashref()) {
 	   				my $newCategories = $self->getServiceCategories($parentQueryRow->{"service_id"});
-	   				while(my ($sc_id, $sc_name) = each(%$newCategories)) {
+	   				while (my ($sc_id, $sc_name) = each(%$newCategories)) {
 	   					if (!defined($categories->{$sc_id})) {
 	   						$categories->{$sc_id} = $sc_name;
 	   					}
@@ -178,7 +184,7 @@ sub getServicesTemplatesCategories {
 	   				}
 	   				$parentId = $parentQueryRow->{'service_template_model_stm_id'};
 	   				$sthparentQuery->finish();
-	   			}else {
+	   			} else {
 	   				$hasParent = 0;
 	   			}
 			}
