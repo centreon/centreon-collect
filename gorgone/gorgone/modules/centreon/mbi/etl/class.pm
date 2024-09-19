@@ -380,9 +380,9 @@ sub watch_etl_import {
                     message => $val->{message}
                 }
             );
-        } elsif ($val->{status} == FINISHED) {
+        } elsif (defined($val->{status}) && $val->{status} == FINISHED) {
             while (my ($idx2, $val2) = each(@{$val->{actions}})) {
-                next if (defined($val2->{status}) || $self->{current_exec} < $self->{max_exec});
+                next if (defined($val2->{status}) || $self->{current_exec} >= $self->{max_exec});
 
                 $self->{logger}->writeLogDebug("[mbi-etl] execute substep import-$idx-$idx2");
                 $self->{run}->{schedule}->{import}->{substeps_execute}++;
