@@ -15,6 +15,8 @@
  *
  * For more information : contact@centreon.com
  */
+#include <absl/container/fixed_array.h>
+#include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/rand.h>
@@ -33,9 +35,12 @@ using namespace com::centreon;
  * @param second_key
  */
 aes256::aes256(const std::string& first_key, const std::string& second_key)
-    : _first_key(string::base64_decode(first_key)),
+    : _first_key{string::base64_decode(first_key)},
       _second_key(string::base64_decode(second_key)) {
-  assert(!_first_key.empty());
+  if (_first_key.size() != 32)
+    throw exceptions::msg_fmt(
+        "the key for aes256 must have a size of 256 bits and not {}",
+        _first_key.size());
   assert(!_second_key.empty());
 }
 
@@ -43,7 +48,7 @@ std::string aes256::encrypt(const std::string& input) {
   const int iv_length = EVP_CIPHER_iv_length(EVP_aes_256_cbc());
 
   uint32_t crypted_size =
-      input.size() + EVP_CIPHER_block_size(EVP_aes_256_cbc()) - 1;
+      input.size() + EVP_CIPHER_block_size(EVP_aes_256_cbc());
 
   std::string result;
   /* Here is the result just before the base64 encoding. It is composed of:
@@ -80,8 +85,12 @@ std::string aes256::encrypt(const std::string& input) {
 
   if (!EVP_EncryptFinal_ex(
           ctx, (unsigned char*)crypted_vector.data() + output_length, &len)) {
+    uint64_t err = ERR_get_error();
+    absl::FixedArray<char, 1024> mess(0);
+    ERR_error_string_n(err, mess.data(), 1023);
     EVP_CIPHER_CTX_free(ctx);
-    throw exceptions::msg_fmt("Encryption finalization failed");
+    throw exceptions::msg_fmt("Encryption finalization failed: {}",
+                              mess.data());
   }
   assert(output_length + len <= (int)crypted_size);
   crypted_size = output_length + len;
@@ -142,8 +151,12 @@ std::string aes256::decrypt(const std::string& input) {
   plaintext_len = len;
 
   if (!EVP_DecryptFinal_ex(ctx, (unsigned char*)data.data() + len, &len)) {
+    uint64_t err = ERR_get_error();
+    absl::FixedArray<char, 1024> mess(0);
+    ERR_error_string_n(err, mess.data(), 1023);
     EVP_CIPHER_CTX_free(ctx);
-    throw exceptions::msg_fmt("Decryption finalization failed");
+    throw exceptions::msg_fmt("Decryption finalization failed: {}",
+                              mess.data());
   }
   plaintext_len += len;
 
