@@ -20,7 +20,7 @@
 #include <openssl/rand.h>
 #include <openssl/sha.h>
 
-#include "com/centreon/broker/misc/aes256_encoder.hh"
+#include "com/centreon/broker/misc/aes256.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -28,19 +28,18 @@ using namespace com::centreon::broker::misc;
 using namespace com::centreon;
 
 /**
- * @brief The aes256_encoder constructor. Th
+ * @brief The aes256 constructor. Th
  *
  * @param second_key
  */
-aes256_encoder::aes256_encoder(const std::string& first_key,
-                               const std::string& second_key)
+aes256::aes256(const std::string& first_key, const std::string& second_key)
     : _first_key(string::base64_decode(first_key)),
       _second_key(string::base64_decode(second_key)) {
   assert(!_first_key.empty());
   assert(!_second_key.empty());
 }
 
-std::string aes256_encoder::encrypt(const std::string& input) {
+std::string aes256::encrypt(const std::string& input) {
   const int iv_length = EVP_CIPHER_iv_length(EVP_aes_256_cbc());
 
   uint32_t crypted_size =
@@ -103,7 +102,7 @@ std::string aes256_encoder::encrypt(const std::string& input) {
   return string::base64_encode(result);
 }
 
-std::string aes256_encoder::decrypt(const std::string& input) {
+std::string aes256::decrypt(const std::string& input) {
   std::string mix = string::base64_decode(input);
 
   const int iv_length = EVP_CIPHER_iv_length(EVP_aes_256_cbc());
@@ -115,34 +114,13 @@ std::string aes256_encoder::decrypt(const std::string& input) {
     throw exceptions::msg_fmt("The content is not AES256 encrypted");
 
   std::string_view iv(mix.data(), iv_length);
-
-  if (iv.empty()) {
-    throw exceptions::msg_fmt("Error during the decryption process");
-  }
-
+  std::string_view hash(mix.data() + iv_length, 64);
   std::string_view encrypted_first_part(mix.data() + iv_length + 64,
                                         mix.size() - iv_length - 64);
-
-  if (encrypted_first_part.empty()) {
-    throw exceptions::msg_fmt("Error during the decryption process");
-  }
-
-  std::string_view encrypted_second_part(mix.data() + iv_length, 64);
-
-  if (encrypted_second_part.empty()) {
-    throw exceptions::msg_fmt("Error during the decryption process");
-  }
 
   EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
   int len = 0;
   int plaintext_len = 0;
-
-  if (!EVP_CipherInit_ex(ctx, EVP_aes_256_cbc(), NULL, NULL, NULL, 0))
-    throw exceptions::msg_fmt("pas bon1");
-
-  if (!EVP_CipherInit_ex(ctx, NULL, NULL, (unsigned char*)_first_key.c_str(),
-                         (unsigned char*)iv.data(), 0))
-    throw exceptions::msg_fmt("perdu");
 
   std::string data;
   data.resize(encrypted_first_part.size() +
@@ -185,9 +163,8 @@ std::string aes256_encoder::decrypt(const std::string& input) {
           "Error during the message authentication code computation");
 
     assert(second_encrypted_length == 64);
-    if (encrypted_second_part == second_encrypted_new) {
+    if (hash == second_encrypted_new)
       return data;
-    }
   }
 
   return std::string();

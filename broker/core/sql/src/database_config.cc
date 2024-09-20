@@ -21,7 +21,7 @@
 #include <nlohmann/json.hpp>
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/exceptions/config.hh"
-#include "com/centreon/broker/misc/aes256_encoder.hh"
+#include "com/centreon/broker/misc/aes256.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -146,7 +146,7 @@ database_config::database_config(
             vault_configuration.contains("role_id") &&
             vault_configuration.contains("secret_id")) {
           const std::string& second_key = vault_configuration["salt"];
-          misc::aes256_encoder access(first_key, second_key);
+          misc::aes256 access(first_key, second_key);
           role_id = access.decrypt(vault_configuration["role_id"]);
           secret_id = access.decrypt(vault_configuration["secret_id"]);
         } else

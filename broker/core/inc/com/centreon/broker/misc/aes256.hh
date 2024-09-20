@@ -16,25 +16,24 @@
  * For more information : contact@centreon.com
  */
 
-#ifndef CCB_MISC_ENCODER_HH
-#define CCB_MISC_ENCODER_HH
-#include <filesystem>
+#ifndef CCB_MISC_AES256_HH
+#define CCB_MISC_AES256_HH
 
 namespace com::centreon::broker::misc {
-class aes256_encoder {
+class aes256 {
   const std::string _first_key;
   const std::string _second_key;
 
   std::string _app_secret();
 
  public:
-  aes256_encoder(const std::string& first_key, const std::string& second_key);
-  aes256_encoder(const aes256_encoder&) = delete;
-  aes256_encoder& operator=(const aes256_encoder&) = delete;
+  aes256(const std::string& first_key, const std::string& second_key);
+  aes256(const aes256&) = delete;
+  aes256& operator=(const aes256&) = delete;
   std::string decrypt(const std::string& input);
   std::string encrypt(const std::string& input);
   void set_env_file(const std::string& env_file);
 };
 }  // namespace com::centreon::broker::misc
 
-#endif /* !CCB_MISC_ENCODER_HH */
+#endif /* !CCB_MISC_AES256_HH */
