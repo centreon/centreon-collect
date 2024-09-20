@@ -112,8 +112,7 @@ BWVC5
     ${vault_file}    Catenate    SEPARATOR=\n
     ...    {
     ...      "name": "vault",
-    ...      "strange_key": 42,
-    ...      "salt": "strange",
+    ...      "salt": 42,
     ...      "role_id": "strange",
     ...      "secret_id": "strange"
     ...    }
@@ -121,13 +120,13 @@ BWVC5
     Create File    /tmp/vault_file.json    ${vault_file}
 
     ${env_file}    Catenate    SEPARATOR=\n
-    ...    APP_SECRET= turtle
+    ...    APP_SECRET= ${AppSecret}
 
     Create File    /tmp/env_file    ${env_file}
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    ${content}    Create List    The content is not AES256 encrypted
+    ${content}    Create List    type must be string, but is number
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    no message about the bad encryption.
     Ctn Kindly Stop Broker
@@ -208,11 +207,11 @@ BAEBC
     Ctn Broker Config Log    central    core    error
     Ctn Start Broker
 
-    ${final}    Aes Decrypt    51001    AppSecret    Salt    Strange content to decrypt
+    ${final}    Aes Decrypt    51001    ${AppSecret}    Salt    Strange content to decrypt
     Should Be Equal    ${final}    The content is not AES256 encrypted
     ...    We should have an RPC error during decoding.
     Ctn Kindly Stop Broker
 
 *** Variables ***
 ${Salt}        U2FsdA==
-${AppSecret}   QXBwU2VjcmV0
+${AppSecret}   SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=

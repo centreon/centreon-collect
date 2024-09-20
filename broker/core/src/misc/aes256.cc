@@ -40,7 +40,7 @@ aes256::aes256(const std::string& first_key, const std::string& second_key)
   if (_first_key.size() != 32)
     throw exceptions::msg_fmt(
         "the key for aes256 must have a size of 256 bits and not {}",
-        _first_key.size());
+        _first_key.size() * 8);
   assert(!_second_key.empty());
 }
 
