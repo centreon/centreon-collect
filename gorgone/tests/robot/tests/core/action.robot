@@ -1,4 +1,4 @@
-#
+git #
 # Copyright 2024 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -70,7 +70,6 @@ action module with ${communication_mode} communcation mode
     Examples:    communication_mode   --
         ...    push_zmq
         ...    pullwss
-        ...    pull
 
 *** Keywords ***
 Test Sync Action Module
