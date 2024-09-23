@@ -1,0 +1,6 @@
+gorgone:
+  modules:
+    - name: engine
+      package: "gorgone::modules::centreon::engine::hooks"
+      enable: true
+      command_file: "/var/lib/centreon-engine/rw/centengine.cmd"
