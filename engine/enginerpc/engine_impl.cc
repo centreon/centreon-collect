@@ -61,12 +61,14 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/statistics.hh"
 #include "com/centreon/engine/statusdata.hh"
+#include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::engine::string;
 
 using com::centreon::common::log_v2::log_v2;
 
@@ -234,24 +236,226 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
                                   [[maybe_unused]],
                                   EngineHost* response) {
   std::string err;
-  auto fn = std::packaged_task<int(void)>(
-      [&err, request, host = response]() -> int32_t {
-        std::shared_ptr<com::centreon::engine::host> selectedhost;
-        std::tie(selectedhost, err) = get_host(*request);
-        if (!err.empty()) {
-          return 1;
-        }
 
-        host->set_name(selectedhost->name());
-        host->set_alias(selectedhost->get_alias());
-        host->set_address(selectedhost->get_address());
-        host->set_check_period(selectedhost->check_period());
-        host->set_current_state(
-            static_cast<EngineHost::State>(selectedhost->get_current_state()));
-        host->set_id(selectedhost->host_id());
-        return 0;
-      });
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           host = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::host> selectedhost;
+    std::tie(selectedhost, err) = get_host(*request);
 
+    if (!err.empty()) {
+      return 1;
+    }
+    // locals
+    std::string cg_str;
+    std::string c_str;
+    std::string p_str;
+    std::string child_str;
+    std::string services_str;
+    std::string notifications_str;
+    std::string groups_name_str;
+    std::string state_history_str;
+    std::string custom_variables_str;
+    std::ostringstream oss;
+    hostgroup* hg{selectedhost->get_parent_groups().front()};
+
+    if (selectedhost->get_contactgroups().empty())
+      cg_str = "\"nullptr\"";
+    else {
+      oss.str("");
+      ::operator<<(oss, selectedhost->get_contactgroups());
+      cg_str = oss.str();
+    }
+
+    if (selectedhost->contacts().empty())
+      c_str = "\"nullptr\"";
+    else {
+      oss.str("");
+      ::operator<<(oss, selectedhost->contacts());
+      c_str = oss.str();
+    }
+
+    if (selectedhost->parent_hosts.empty())
+      p_str = "\"nullptr\"";
+    else {
+      oss.str("");
+      ::operator<<(oss, selectedhost->parent_hosts);
+      p_str = oss.str();
+    }
+
+    if (selectedhost->child_hosts.empty())
+      child_str = "\"nullptr\"";
+    else {
+      oss.str("");
+      ::operator<<(oss, selectedhost->child_hosts);
+      child_str = oss.str();
+    }
+
+    oss.str("");
+    ::operator<<(oss, selectedhost->services);
+    services_str = oss.str();
+
+    oss.str("");
+    oss << (hg ? hg->get_group_name() : "") << "\n";
+    groups_name_str = oss.str();
+
+    oss.str("");
+    for (size_t i{0}, end{selectedhost->get_state_history().size()}; i < end;
+         ++i)
+      oss << selectedhost->get_state_history()[i] << (i + 1 < end ? ", " : "");
+    state_history_str = oss.str();
+
+    host->set_name(selectedhost->name());
+    host->set_alias(selectedhost->get_alias());
+    host->set_address(selectedhost->get_address());
+    host->set_check_period(selectedhost->check_period());
+    host->set_id(selectedhost->host_id());
+    host->set_current_state(
+        static_cast<EngineHost::State>(selectedhost->get_current_state()));
+    host->set_display_name(selectedhost->get_display_name());
+    host->set_parent_hosts(p_str);
+    host->set_child_hosts(child_str);
+    host->set_services(services_str);
+    host->set_check_command(selectedhost->check_command());
+    host->set_initial_state(
+        static_cast<EngineHost::State>(selectedhost->get_initial_state()));
+    host->set_check_interval(selectedhost->check_interval());
+    host->set_retry_interval(selectedhost->retry_interval());
+    host->set_max_attempts(selectedhost->max_check_attempts());
+    host->set_event_handler(selectedhost->event_handler());
+    host->set_contact_groups(cg_str);
+    host->set_contacts(c_str);
+    host->set_notification_interval(selectedhost->get_notification_interval());
+    host->set_first_notification_delay(
+        selectedhost->get_first_notification_delay());
+    host->set_recovery_notification_delay(
+        selectedhost->get_recovery_notification_delay());
+    host->set_notify_up(selectedhost->get_notify_on(notifier::up));
+    host->set_notify_down(selectedhost->get_notify_on(notifier::down));
+    host->set_notify_unreachable(
+        selectedhost->get_notify_on(notifier::unreachable));
+    host->set_notify_on_flappingstart(
+        selectedhost->get_notify_on(notifier::flappingstart));
+    host->set_notify_on_flappingstop(
+        selectedhost->get_notify_on(notifier::flappingstop));
+    host->set_notify_on_flappingdisabled(
+        selectedhost->get_notify_on(notifier::flappingdisabled));
+    host->set_notify_downtime(selectedhost->get_notify_on(notifier::downtime));
+    host->set_notification_period(selectedhost->notification_period());
+    host->set_flap_detection_enabled(selectedhost->flap_detection_enabled());
+    host->set_low_flap_threshold(selectedhost->get_low_flap_threshold());
+    host->set_high_flap_threshold(selectedhost->get_high_flap_threshold());
+    host->set_flap_detection_on_up(
+        selectedhost->get_flap_detection_on(notifier::up));
+    host->set_flap_detection_on_down(
+        selectedhost->get_flap_detection_on(notifier::down));
+    host->set_flap_detection_on_unreachable(
+        selectedhost->get_flap_detection_on(notifier::unreachable));
+    host->set_stalk_on_up(selectedhost->get_stalk_on(notifier::up));
+    host->set_stalk_on_down(selectedhost->get_stalk_on(notifier::down));
+    host->set_stalk_on_unreachable(
+        selectedhost->get_stalk_on(notifier::unreachable));
+    host->set_check_freshness(selectedhost->check_freshness_enabled());
+    host->set_freshness_threshold(selectedhost->get_freshness_threshold());
+    host->set_process_performance_data(
+        selectedhost->get_process_performance_data());
+    host->set_checks_enabled(selectedhost->active_checks_enabled());
+    host->set_accept_passive_checks(selectedhost->passive_checks_enabled());
+    host->set_event_handler_enabled(selectedhost->event_handler_enabled());
+    host->set_retain_status_information(
+        selectedhost->get_retain_status_information());
+    host->set_retain_nonstatus_information(
+        selectedhost->get_retain_nonstatus_information());
+    host->set_obsess_over_host(selectedhost->obsess_over());
+    host->set_notes(selectedhost->get_notes());
+    host->set_notes_url(selectedhost->get_notes_url());
+    host->set_action_url(selectedhost->get_action_url());
+    host->set_icon_image(selectedhost->get_icon_image());
+    host->set_icon_image_alt(selectedhost->get_icon_image_alt());
+    host->set_vrml_image(selectedhost->get_vrml_image());
+    host->set_statusmap_image(selectedhost->get_statusmap_image());
+    host->set_have_2d_coords(selectedhost->get_have_2d_coords());
+    host->set_x_2d(selectedhost->get_x_2d());
+    host->set_y_2d(selectedhost->get_y_2d());
+    host->set_have_3d_coords(selectedhost->get_have_3d_coords());
+    host->set_x_3d(selectedhost->get_x_3d());
+    host->set_y_3d(selectedhost->get_y_3d());
+    host->set_z_3d(selectedhost->get_z_3d());
+    host->set_should_be_drawn(selectedhost->get_should_be_drawn());
+    host->set_acknowledgement(
+        static_cast<EngineHost_AckType>(selectedhost->get_acknowledgement()));
+    host->set_check_type(
+        static_cast<EngineHost_CheckType>(selectedhost->get_check_type()));
+    host->set_last_state(
+        static_cast<EngineHost_State>(selectedhost->get_last_state()));
+    host->set_last_hard_state(
+        static_cast<EngineHost_State>(selectedhost->get_last_hard_state()));
+    host->set_plugin_output(selectedhost->get_plugin_output());
+    host->set_long_plugin_output(selectedhost->get_long_plugin_output());
+    host->set_perf_data(selectedhost->get_perf_data());
+    host->set_state_type(
+        static_cast<EngineHost_State>(selectedhost->get_state_type()));
+    host->set_current_attempt(selectedhost->get_current_attempt());
+    host->set_current_event_id(selectedhost->get_current_event_id());
+    host->set_last_event_id(selectedhost->get_last_event_id());
+    host->set_current_problem_id(selectedhost->get_current_problem_id());
+    host->set_last_problem_id(selectedhost->get_last_problem_id());
+    host->set_latency(selectedhost->get_latency());
+    host->set_execution_time(selectedhost->get_execution_time());
+    host->set_is_executing(selectedhost->get_is_executing());
+    host->set_check_options(selectedhost->get_check_options());
+    host->set_notifications_enabled(selectedhost->get_notifications_enabled());
+    host->set_last_notification(
+        string::ctime(selectedhost->get_last_notification()));
+    host->set_next_notification(
+        string::ctime(selectedhost->get_next_notification()));
+    host->set_next_check(string::ctime(selectedhost->get_next_check()));
+    host->set_should_be_scheduled(selectedhost->get_should_be_scheduled());
+    host->set_last_check(string::ctime(selectedhost->get_last_check()));
+    host->set_last_state_change(
+        string::ctime(selectedhost->get_last_state_change()));
+    host->set_last_hard_state_change(
+        string::ctime(selectedhost->get_last_hard_state_change()));
+    host->set_last_time_up(string::ctime(selectedhost->get_last_time_up()));
+    host->set_last_time_down(string::ctime(selectedhost->get_last_time_down()));
+    host->set_last_time_unreachable(
+        string::ctime(selectedhost->get_last_time_unreachable()));
+    host->set_has_been_checked(selectedhost->has_been_checked());
+    host->set_is_being_freshened(selectedhost->get_is_being_freshened());
+    host->set_notified_on_down(selectedhost->get_notified_on(notifier::down));
+    host->set_notified_on_unreachable(
+        selectedhost->get_notified_on(notifier::unreachable));
+    host->set_no_more_notifications(selectedhost->get_no_more_notifications());
+    host->set_current_notification_id(
+        selectedhost->get_current_notification_id());
+    host->set_scheduled_downtime_depth(
+        selectedhost->get_scheduled_downtime_depth());
+    host->set_pending_flex_downtime(selectedhost->get_pending_flex_downtime());
+    host->set_state_history(state_history_str);
+    host->set_state_history_index(selectedhost->get_state_history_index());
+    host->set_last_state_history_update(
+        string::ctime(selectedhost->get_last_state_history_update()));
+    host->set_is_flapping(selectedhost->get_is_flapping());
+    host->set_flapping_comment_id(selectedhost->get_flapping_comment_id());
+    host->set_percent_state_change(selectedhost->get_percent_state_change());
+    host->set_total_services(selectedhost->get_total_services());
+    host->set_total_service_check_interval(
+        selectedhost->get_total_service_check_interval());
+    host->set_modified_attributes(selectedhost->get_modified_attributes());
+    host->set_circular_path_checked(selectedhost->get_circular_path_checked());
+    host->set_contains_circular_path(
+        selectedhost->get_contains_circular_path());
+    host->set_timezone(selectedhost->get_timezone());
+    host->set_icon_id(selectedhost->get_icon_id());
+    host->set_group_name(hg ? hg->get_group_name() : "");
+
+    for (auto const& cv : selectedhost->custom_variables)
+      host->add_custom_variables(
+          fmt::format("key : {}, value :{}, is_sent :{}, has_been_modified :{}",
+                      cv.first, cv.second.value(), cv.second.is_sent(),
+                      cv.second.has_been_modified()));
+
+    return 0;
+  });
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
   int32_t res = result.get();
@@ -1759,7 +1963,8 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
                         .end();
          it != end; ++it) {
       service_downtime* dt = static_cast<service_downtime*>(it->second.get());
-      /* we are checking if request criteria match with the downtime criteria */
+      /* we are checking if request criteria match with the downtime criteria
+       */
       auto p =
           engine::get_host_and_service_names(dt->host_id(), dt->service_id());
       if (!request->host_name().empty() && p.first != request->host_name())
@@ -2445,8 +2650,8 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
         temp_service->set_check_interval(request->dval());
         attr = MODATTR_NORMAL_CHECK_INTERVAL;
 
-        /* schedule a service check if previous interval was 0 (checks were not
-         * regularly scheduled) */
+        /* schedule a service check if previous interval was 0 (checks were
+         * not regularly scheduled) */
         if (old_dval == 0 && temp_service->active_checks_enabled() &&
             temp_service->check_interval() != 0) {
           time_t preferred_time(0);
