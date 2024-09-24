@@ -4,6 +4,7 @@
 
 * [Pool](#Pool)
 * [Grpc](#Grpc)
+* [Http](#Http)
 * [Process](#Process)
 * [Engine configuration](#Engineconfiguration)
 
@@ -51,6 +52,64 @@ my_grpc_client::my_grpc_client(const grpc_config::pointer& conf)
 }
 
 
+```
+
+## Http
+
+Two classes are provided to send or receive http data. They are `http_client` and `http_server`.
+
+To instanciate an http client, we need at first an endpoint composed of an address and a port.
+
+```
+asio::ip::tcp::endpoint endpoint(asio::ip::make_address("1.2.3.4"), 443);
+```
+
+Then we have to create an `http_config` object based on:
+* the endpoint
+* a server name
+* a boolean telling if the connection is crypted or not (default value: false).
+
+```
+auto config = std::make_shared<http_config>(endpoint, "my super server", true);
+```
+
+Once the `config` created, we can instanciate the connection creator which is a function. We then need:
+* an ASIO IO context, here named `io_context`,
+* a logger.
+* and the config previously created.
+
+```
+connection_creator conn_creator = [config]() {
+  return https_connection::load(io_context, logger, config);
+};
+```
+
+Now, it is time to get the client with its connection, for that we need:
+* the ASIO IO context,
+* the logger
+* the client configuration already created
+* the connection creator.
+
+And here is the code:
+
+```
+client::pointer client = client::load(io_context, logger, config, conn_creator);
+```
+
+The client works asynchronously, so it works with callbacks. As an example, we give a piece
+of code to send a request.
+
+```
+auto req = std::make_shared<request_base>(beast::http::verb::get, "", "/");
+req->body() = "hello server";
+req->content_length(req->body().length());
+
+client->send(req,
+    [] (const beast::error_code& err,
+      const std::string& detail,
+      const response_ptr& response) mutable {
+      std::cout << "response received..." << std::endl;
+    });
 ```
 
 ## Process

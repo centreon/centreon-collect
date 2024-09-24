@@ -20,6 +20,8 @@
 #ifndef CCB_HTTP_CLIENT_CONFIG_HH__
 #define CCB_HTTP_CLIENT_CONFIG_HH__
 
+#include <boost/asio/ssl.hpp>
+
 namespace com::centreon::common::http {
 
 using system_clock = std::chrono::system_clock;

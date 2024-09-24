@@ -20,6 +20,7 @@
 #ifndef CCB_HTTP_CLIENT_CONNECTION_HH__
 #define CCB_HTTP_CLIENT_CONNECTION_HH__
 
+#include <boost/beast.hpp>
 #include "http_config.hh"
 
 namespace com::centreon::common::http {

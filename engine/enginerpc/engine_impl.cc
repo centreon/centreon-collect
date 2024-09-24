@@ -230,8 +230,7 @@ grpc::Status engine_impl::NewThresholdsFile(grpc::ServerContext* context
  *@return Status::OK
  */
 grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
-                                  const HostIdentifier* request
-                                  [[maybe_unused]],
+                                  const HostIdentifier* request,
                                   EngineHost* response) {
   std::string err;
   auto fn = std::packaged_task<int(void)>(
@@ -249,6 +248,7 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
         host->set_current_state(
             static_cast<EngineHost::State>(selectedhost->get_current_state()));
         host->set_id(selectedhost->host_id());
+        host->set_total_services(selectedhost->get_total_services());
         return 0;
       });
 

@@ -94,7 +94,7 @@ BWVC4
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    ${content}    Create List    The file '/tmp/vault_file.json' must contain keys 'salt', 'role_id' and 'secret_id'.
+    ${content}    Create List    The file '/tmp/vault_file.json' must contain keys 'salt', 'role_id', 'secret_id', url, port and root_path.
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    no message about wrong keys displayed.
     Ctn Kindly Stop Broker
@@ -114,7 +114,10 @@ BWVC5
     ...      "name": "vault",
     ...      "salt": 42,
     ...      "role_id": "strange",
-    ...      "secret_id": "strange"
+    ...      "secret_id": "strange",
+    ...      "url": "foo",
+    ...      "port": "bar",
+    ...      "root_path": "foobar"
     ...    }
 
     Create File    /tmp/vault_file.json    ${vault_file}
@@ -211,6 +214,47 @@ BAEBC
     Should Be Equal    ${final}    The content is not AES256 encrypted
     ...    We should have an RPC error during decoding.
     Ctn Kindly Stop Broker
+
+BAV
+    [Documentation]    Broker accesses to the vault to get database credentials.
+    [Tags]    broker    MON-116610
+
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Config BBDO3    1
+    Ctn Start Broker
+
+    ${encrypted_role_id}    Aes Encrypt    51001    ${AppSecret}    ${Salt}    12345678-1234-1234-1234-123456789abc
+    ${encrypted_secret_id}    Aes Encrypt    51001    ${AppSecret}    ${Salt}    abcdef01-abcd-abcd-abcd-abcdef012345
+
+    Ctn Kindly Stop Broker
+
+    Ctn Broker Config Add Item    central    vault_configuration    /tmp/vault.json
+    Ctn Broker Config Add Item    central    env_file    /tmp/env_file
+
+    ${vault_content}    Catenate    SEPARATOR=\n
+    ...    {
+    ...      "name": "my_vault",
+    ...      "url": "localhost",
+    ...      "port": 4443,
+    ...      "root_path": "john-doe",
+    ...      "secret_id": "${encrypted_secret_id}",
+    ...      "role_id": "${encrypted_role_id}",
+    ...      "salt": "${Salt}"
+    ...    }
+
+    Create File    /tmp/vault.json    ${vault_content}
+
+    ${env_file}    Catenate    SEPARATOR=\n
+    ...    APP_SECRET= ${AppSecret}
+
+    Create File    /tmp/env_file    ${env_file}
+
+#    Ctn Start Broker
+#
+#    Ctn Kindly Stop Broker
 
 *** Variables ***
 ${Salt}        U2FsdA==

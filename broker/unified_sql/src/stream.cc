@@ -21,7 +21,6 @@
 #include <absl/synchronization/mutex.h>
 #include <cassert>
 #include <cstring>
-#include <thread>
 
 #include "bbdo/events.hh"
 #include "bbdo/remove_graph_message.pb.h"

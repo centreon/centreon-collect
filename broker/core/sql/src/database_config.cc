@@ -18,14 +18,20 @@
 
 #include "com/centreon/broker/sql/database_config.hh"
 #include <absl/strings/ascii.h>
-#include <nlohmann/json.hpp>
-#include "com/centreon/broker/config/state.hh"
+#include <fmt/format.h>
+#include <boost/beast.hpp>
+#include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/exceptions/config.hh"
 #include "com/centreon/broker/misc/aes256.hh"
+#include "com/centreon/common/http/http_client.hh"
+#include "com/centreon/common/http/http_config.hh"
+#include "com/centreon/common/http/https_connection.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
+using namespace com::centreon::common::http;
 
 namespace com::centreon::broker {
 std::ostream& operator<<(std::ostream& s, const database_config cfg) {
@@ -97,6 +103,33 @@ database_config::database_config(const std::string& type,
       _category(SHARED),
       _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR) {}
 
+std::string database_config::_get_first_key_from_global_params(
+    const absl::flat_hash_map<std::string, std::string>& global_params) const {
+  std::string first_key;
+  auto found = global_params.find("env_file");
+  std::string env_file;
+  if (found != global_params.end()) {
+    env_file = found->second;
+    _config_logger->debug("Env file '{}' used.", env_file);
+  } else {
+    env_file = "/usr/share/centreon/.env";
+    _config_logger->debug("No env_file provided default one used.");
+  }
+  std::ifstream ifs(env_file);
+  if (ifs.is_open()) {
+    std::string line;
+    while (std::getline(ifs, line)) {
+      if (line.find("APP_SECRET=") == 0) {
+        first_key = line.substr(11);
+        first_key = absl::StripAsciiWhitespace(first_key);
+        break;
+      }
+    }
+  } else
+    _config_logger->info("The env file could not be open");
+  return first_key;
+}
+
 /**
  *  Build a database configuration from a configuration set.
  *
@@ -105,35 +138,14 @@ database_config::database_config(const std::string& type,
 database_config::database_config(
     const config::endpoint& cfg,
     const absl::flat_hash_map<std::string, std::string>& global_params)
-    : _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR) {
-  auto logger_config = log_v2::instance().get(log_v2::CONFIG);
-
-  std::string first_key;
-  {
-    auto found = global_params.find("env_file");
-    std::string env_file;
-    if (found != global_params.end()) {
-      env_file = found->second;
-      logger_config->debug("Env file '{}' used.", env_file);
-    } else {
-      env_file = "/usr/share/centreon/.env";
-      logger_config->debug("No env_file provided default one used.");
-    }
-    std::ifstream ifs(env_file);
-    if (ifs.is_open()) {
-      std::string line;
-      while (std::getline(ifs, line)) {
-        if (line.find("APP_SECRET=") == 0) {
-          first_key = line.substr(11);
-          first_key = absl::StripAsciiWhitespace(first_key);
-          break;
-        }
-      }
-    } else
-      logger_config->info("The env file could not be open");
-  }
+    : _extension_directory{DEFAULT_MARIADB_EXTENSION_DIR},
+      _config_logger{log_v2::instance().get(log_v2::CONFIG)} {
+  std::string first_key = _get_first_key_from_global_params(global_params);
   std::string role_id;
   std::string secret_id;
+  std::string url;
+  uint16_t port;
+  std::string root_path;
   if (!first_key.empty()) {
     std::string vault_file;
     auto found = global_params.find("vault_configuration");
@@ -144,23 +156,58 @@ database_config::database_config(
         nlohmann::json vault_configuration = nlohmann::json::parse(ifs);
         if (vault_configuration.contains("salt") &&
             vault_configuration.contains("role_id") &&
-            vault_configuration.contains("secret_id")) {
+            vault_configuration.contains("secret_id") &&
+            vault_configuration.contains("url") &&
+            vault_configuration.contains("port") &&
+            vault_configuration.contains("root_path")) {
           const std::string& second_key = vault_configuration["salt"];
           misc::aes256 access(first_key, second_key);
           role_id = access.decrypt(vault_configuration["role_id"]);
           secret_id = access.decrypt(vault_configuration["secret_id"]);
+          url = vault_configuration["url"];
+          port = vault_configuration["port"];
+          root_path = vault_configuration["root_path"];
+          asio::ip::tcp::resolver resolver(common::pool::io_context());
+          const auto results = resolver.resolve(url, fmt::format("{}", port));
+          if (results.empty())
+            _config_logger->error("Unable to resolve the vault server '{}'",
+                                  url);
+          else {
+            http_config::pointer client_conf =
+                std::make_shared<http_config>(results, "vault server", true);
+            connection_creator conn_creator = [client_conf,
+                                               logger = _config_logger]() {
+              return https_connection::load(common::pool::io_context_ptr(),
+                                            logger, client_conf);
+            };
+            auto client =
+                client::load(common::pool::io_context_ptr(), _config_logger,
+                             client_conf, conn_creator);
+            auto req = std::make_shared<request_base>(
+                boost::beast::http::verb::post, url, "/v1/auth/approle/login");
+            req->body() =
+                fmt::format("{{ \"role_id\":\"{}\", \"secret_id\":\"{}\" }}",
+                            role_id, secret_id);
+            req->content_length(req->body().length());
+            client->send(req, [logger = _config_logger](
+                                  const boost::beast::error_code& err,
+                                  const std::string& detail,
+                                  const response_ptr& response) mutable {
+              logger->info("We got a response");
+            });
+          }
         } else
-          logger_config->error(
-              "The file '{}' must contain keys 'salt', 'role_id' and "
-              "'secret_id'.",
+          _config_logger->error(
+              "The file '{}' must contain keys 'salt', 'role_id', 'secret_id', "
+              "url, port and root_path.",
               vault_file);
       } catch (const std::exception& e) {
-        logger_config->error("Error while reading '{}': {}", vault_file,
-                             e.what());
+        _config_logger->error("Error while reading '{}': {}", vault_file,
+                              e.what());
       }
     }
   } else
-    logger_config->error("Bad value of the APP_SECRET");
+    _config_logger->error("Bad value of the APP_SECRET");
 
   // db_type
   auto found = cfg.params.find("db_type");
@@ -192,7 +239,7 @@ database_config::database_config(
   if (found != cfg.params.end()) {
     uint32_t port;
     if (!absl::SimpleAtoi(found->second, &port)) {
-      logger_config->error(
+      _config_logger->error(
           "In the database configuration, 'db_port' should be a number, "
           "and "
           "not '{}'",
@@ -225,7 +272,7 @@ database_config::database_config(
   found = cfg.params.find("queries_per_transaction");
   if (found != cfg.params.end()) {
     if (!absl::SimpleAtoi(found->second, &_queries_per_transaction)) {
-      logger_config->error(
+      _config_logger->error(
           "queries_per_transaction is a number but must be given as a "
           "string. "
           "Unable to read the value '{}' - value 2000 taken by default.",
@@ -239,7 +286,7 @@ database_config::database_config(
   found = cfg.params.find("check_replication");
   if (found != cfg.params.end()) {
     if (!absl::SimpleAtob(found->second, &_check_replication)) {
-      logger_config->error(
+      _config_logger->error(
           "check_replication is a string containing a boolean. If not "
           "specified, it will be considered as \"true\".");
       _check_replication = true;
@@ -251,7 +298,7 @@ database_config::database_config(
   found = cfg.params.find("connections_count");
   if (found != cfg.params.end()) {
     if (!absl::SimpleAtoi(found->second, &_connections_count)) {
-      logger_config->error(
+      _config_logger->error(
           "connections_count is a string "
           "containing an integer. If not "
           "specified, it will be considered as "
@@ -263,7 +310,7 @@ database_config::database_config(
   found = cfg.params.find("max_commit_delay");
   if (found != cfg.params.end()) {
     if (!absl::SimpleAtoi(found->second, &_max_commit_delay)) {
-      logger_config->error(
+      _config_logger->error(
           "max_commit_delay is a string "
           "containing an integer. If not "
           "specified, it will be considered as "
