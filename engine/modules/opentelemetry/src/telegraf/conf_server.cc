@@ -62,12 +62,12 @@ static constexpr std::string_view _config_schema(R"(
               "minimum": 0,
               "maximum": 3600
           },
-          "certificate_path": {
+          "public_cert": {
               "description": "path of the certificate file of the server",
               "type": "string",
               "minLength": 5
           },
-          "key_path": {
+          "private_key": {
               "description": "path of the key file",
               "type": "string",
               "minLength": 5
@@ -122,10 +122,10 @@ conf_server_config::conf_server_config(const rapidjson::Value& json_config_v,
 
     _second_keep_alive_interval =
         http_json_config.get_unsigned("keepalive_interval", 30);
-    _certificate_path = http_json_config.get_string("certificate_path", "");
-    _key_path = http_json_config.get_string("key_path", "");
+    _public_cert = http_json_config.get_string("public_cert", "");
+    _private_key = http_json_config.get_string("private_key", "");
     if (_crypted) {
-      if (_certificate_path.empty()) {
+      if (_public_cert.empty()) {
         SPDLOG_LOGGER_ERROR(config_logger,
                             "telegraf conf server  encryption activated and no "
                             "certificate path "
@@ -135,7 +135,7 @@ conf_server_config::conf_server_config(const rapidjson::Value& json_config_v,
             "path "
             "provided");
       }
-      if (_key_path.empty()) {
+      if (_private_key.empty()) {
         SPDLOG_LOGGER_ERROR(config_logger,
                             "telegraf conf server  encryption activated and no "
                             "certificate key path provided");
@@ -144,23 +144,23 @@ conf_server_config::conf_server_config(const rapidjson::Value& json_config_v,
             "telegraf conf server  encryption activated and no certificate key "
             "path provided");
       }
-      if (::access(_certificate_path.c_str(), R_OK)) {
+      if (::access(_public_cert.c_str(), R_OK)) {
         SPDLOG_LOGGER_ERROR(
             config_logger,
             "telegraf conf server unable to read certificate file {}",
-            _certificate_path);
+            _public_cert);
         throw exceptions::msg_fmt(
             "telegraf conf server unable to read certificate file {}",
-            _certificate_path);
+            _public_cert);
       }
-      if (::access(_key_path.c_str(), R_OK)) {
+      if (::access(_private_key.c_str(), R_OK)) {
         SPDLOG_LOGGER_ERROR(
             config_logger,
             "telegraf conf server unable to read certificate key file {}",
-            _key_path);
+            _private_key);
         throw exceptions::msg_fmt(
             "telegraf conf server unable to read certificate key file {}",
-            _key_path);
+            _private_key);
       }
     }
   } else {
@@ -175,8 +175,8 @@ bool conf_server_config::operator==(const conf_server_config& right) const {
   return _listen_endpoint == right._listen_endpoint &&
          _crypted == right._crypted &&
          _second_keep_alive_interval == right._second_keep_alive_interval &&
-         _certificate_path == right._certificate_path &&
-         _key_path == right._key_path &&
+         _public_cert == right._public_cert &&
+         _private_key == right._private_key &&
          _check_interval == right._check_interval;
 }
 

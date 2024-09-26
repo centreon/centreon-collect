@@ -73,9 +73,9 @@ Ctn Clear Broker Logs
 
 Ctn Start Broker
     [Arguments]    ${only_central}=False
-    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
+    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1    stdout=${BROKER_LOG}/central-broker-master-stdout.log    stderr=${BROKER_LOG}/central-broker-master-stderr.log
     IF    not ${only_central}
-        Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2
+        Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2    stdout=${BROKER_LOG}/central-rrd-stdout.log    stderr=${BROKER_LOG}/central-rrd-stderr.log
     END
 
 Ctn Restart Broker
@@ -156,7 +156,7 @@ Ctn Start Engine
         EXCEPT
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
-        Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}
+        Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
     END
 
 Ctn Start Engine With Extend Conf
@@ -285,10 +285,8 @@ Ctn Save Logs
     Create Directory    failed
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}
-    Copy Files    ${centralLog}    ${failDir}
-    Copy Files    ${rrdLog}    ${failDir}
-    Copy Files    ${moduleLog0}    ${failDir}
-    Copy Files    ${engineLog0}    ${failDir}
+    Copy Files    ${BROKER_LOG}/*    ${failDir}
+    Copy Files    ${ENGINE_LOG}/config0/*.log    ${failDir}
     Copy Files    ${ENGINE_LOG}/*.log    ${failDir}
     Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
     Copy Files    ${EtcRoot}/centreon-engine/*.json    ${failDir}/etc/centreon-engine
