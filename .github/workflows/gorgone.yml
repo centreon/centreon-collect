@@ -88,6 +88,8 @@ jobs:
     secrets:
       registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
       registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+      registry_private_username: ${{ secrets.HARBOR_RPM_GPG_SIGNING_REPO_USERNAME }}
+      registry_private_token: ${{ secrets.HARBOR_RPM_GPG_SIGNING_REPO_TOKEN }}
 
   deliver-sources:
     runs-on: [self-hosted, common]
