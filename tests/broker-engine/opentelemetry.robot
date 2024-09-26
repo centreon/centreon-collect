@@ -222,7 +222,7 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_CRYPTED
     Ctn Config Engine    ${1}    ${3}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "telegraf_conf_server": {"http_server":{"port": 1443, "encryption": true, "certificate_path": "/tmp/otel/server.crt", "key_path": "/tmp/otel/server.key"}, "check_interval":60, "engine_otel_endpoint": "127.0.0.1:4317"}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "telegraf_conf_server": {"http_server":{"port": 1443, "encryption": true, "public_cert": "/tmp/otel/server.crt", "private_key": "/tmp/otel/server.key"}, "check_interval":60, "engine_otel_endpoint": "127.0.0.1:4317"}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
