@@ -933,6 +933,47 @@ def ctn_engine_config_delete_value_in_hosts(idx: int, desc: str, key: str, file:
     """
     Delete a parameter in the hosts.cfg for the Engine configuration idx.
 
+    Args:
+        idx (int): Index of the Engine configuration (from 0)
+        desc (str): host name of the host to modify.
+        key (str): the parameter that will be deleted.
+        file (str): The file to modify, default value 'hosts.cfg'
+    """
+    
+
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
+    rbis = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    found = False
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            print("here" + lines[i])
+            for j in range(i + 1, len(lines)):
+                if '}' in lines[j]:
+                    break
+                if key in lines[j]:
+                    del lines[j]
+                    found = True
+                    break
+            break
+
+    if not found:
+        for i in range(len(lines)):
+            if rbis.match(lines[i]):
+                for j in range(i + 1, len(lines)):
+                    if '}' in lines[j]:
+                        break
+                    if key in lines[j]:
+                        del lines[j]
+                        found = True
+                        break
+                break
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
 def ctn_engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: str, file: str = 'hosts.cfg'):
     """
     Change a parameter in the hosts.cfg file of the Engine config idx.

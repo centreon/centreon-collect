@@ -91,8 +91,7 @@ target_link_libraries(opentelemetry
   -L${PROTOBUF_LIB_DIR}
   protobuf
   -L${Boost_LIBRARY_DIR_RELEASE}
-  boost_program_options
-  protobuf)
+  boost_program_options)
 
 add_dependencies(opentelemetry
   pb_open_telemetry_lib
