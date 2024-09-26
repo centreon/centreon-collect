@@ -60,7 +60,7 @@ static void usage(bool color_enabled) {
                "  -n, --nocolor\n"
                "    Outputs are displayed with the current color.\n"
                "  -F, --full\n"
-               "    Force fields with default values to always print.\n"
+               "    Forces display of fields containing default values.\n"
                "\n"
             << color<color_method>(color_enabled)
             << "Examples:" << color<color_reset>(color_enabled)

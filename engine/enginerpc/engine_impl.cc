@@ -245,64 +245,6 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
     if (!err.empty()) {
       return 1;
     }
-    // locals
-    std::string cg_str;
-    std::string c_str;
-    std::string p_str;
-    std::string child_str;
-    std::string services_str;
-    std::string notifications_str;
-    std::string groups_name_str;
-    std::string state_history_str;
-    std::string custom_variables_str;
-    std::ostringstream oss;
-    hostgroup* hg{selectedhost->get_parent_groups().front()};
-
-    if (selectedhost->get_contactgroups().empty())
-      cg_str = "\"nullptr\"";
-    else {
-      oss.str("");
-      ::operator<<(oss, selectedhost->get_contactgroups());
-      cg_str = oss.str();
-    }
-
-    if (selectedhost->contacts().empty())
-      c_str = "\"nullptr\"";
-    else {
-      oss.str("");
-      ::operator<<(oss, selectedhost->contacts());
-      c_str = oss.str();
-    }
-
-    if (selectedhost->parent_hosts.empty())
-      p_str = "\"nullptr\"";
-    else {
-      oss.str("");
-      ::operator<<(oss, selectedhost->parent_hosts);
-      p_str = oss.str();
-    }
-
-    if (selectedhost->child_hosts.empty())
-      child_str = "\"nullptr\"";
-    else {
-      oss.str("");
-      ::operator<<(oss, selectedhost->child_hosts);
-      child_str = oss.str();
-    }
-
-    oss.str("");
-    ::operator<<(oss, selectedhost->services);
-    services_str = oss.str();
-
-    oss.str("");
-    oss << (hg ? hg->get_group_name() : "") << "\n";
-    groups_name_str = oss.str();
-
-    oss.str("");
-    for (size_t i{0}, end{selectedhost->get_state_history().size()}; i < end;
-         ++i)
-      oss << selectedhost->get_state_history()[i] << (i + 1 < end ? ", " : "");
-    state_history_str = oss.str();
 
     host->set_name(selectedhost->name());
     host->set_alias(selectedhost->get_alias());
@@ -312,9 +254,19 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
     host->set_current_state(
         static_cast<EngineHost::State>(selectedhost->get_current_state()));
     host->set_display_name(selectedhost->get_display_name());
-    host->set_parent_hosts(p_str);
-    host->set_child_hosts(child_str);
-    host->set_services(services_str);
+
+    if (!selectedhost->parent_hosts.empty())
+      for (const auto& [key, _] : selectedhost->parent_hosts)
+        host->add_parent_hosts(key);
+
+    if (!selectedhost->child_hosts.empty())
+      for (const auto& [key, _] : selectedhost->child_hosts)
+        host->add_child_hosts(key);
+
+    if (!selectedhost->services.empty())
+      for (const auto& [key, _] : selectedhost->services)
+        host->add_services(fmt::format("{},{}", key.first, key.second));
+
     host->set_check_command(selectedhost->check_command());
     host->set_initial_state(
         static_cast<EngineHost::State>(selectedhost->get_initial_state()));
@@ -322,8 +274,15 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
     host->set_retry_interval(selectedhost->retry_interval());
     host->set_max_attempts(selectedhost->max_check_attempts());
     host->set_event_handler(selectedhost->event_handler());
-    host->set_contact_groups(cg_str);
-    host->set_contacts(c_str);
+
+    if (!selectedhost->get_contactgroups().empty())
+      for (const auto& [key, _] : selectedhost->get_contactgroups())
+        host->add_contactgroups(key);
+
+    if (!selectedhost->contacts().empty())
+      for (const auto& [key, _] : selectedhost->contacts())
+        host->add_contacts(key);
+
     host->set_notification_interval(selectedhost->get_notification_interval());
     host->set_first_notification_delay(
         selectedhost->get_first_notification_delay());
@@ -430,7 +389,10 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
     host->set_scheduled_downtime_depth(
         selectedhost->get_scheduled_downtime_depth());
     host->set_pending_flex_downtime(selectedhost->get_pending_flex_downtime());
-    host->set_state_history(state_history_str);
+
+    host->set_state_history(fmt::format(
+        "[{}]", fmt::join(selectedhost->get_state_history(), ", ")));
+
     host->set_state_history_index(selectedhost->get_state_history_index());
     host->set_last_state_history_update(
         string::ctime(selectedhost->get_last_state_history_update()));
@@ -446,13 +408,16 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
         selectedhost->get_contains_circular_path());
     host->set_timezone(selectedhost->get_timezone());
     host->set_icon_id(selectedhost->get_icon_id());
+
+    // locals
+    hostgroup* hg{selectedhost->get_parent_groups().front()};
     host->set_group_name(hg ? hg->get_group_name() : "");
 
-    for (auto const& cv : selectedhost->custom_variables)
-      host->add_custom_variables(
-          fmt::format("key : {}, value :{}, is_sent :{}, has_been_modified :{}",
-                      cv.first, cv.second.value(), cv.second.is_sent(),
-                      cv.second.has_been_modified()));
+    for (const auto& cv : selectedhost->custom_variables)
+      host->add_custom_variables(fmt::format(
+          "key : {}, value :{}, is_sent :{}, has_been_modified: {} ", cv.first,
+          cv.second.value(), cv.second.is_sent(),
+          cv.second.has_been_modified()));
 
     return 0;
   });
