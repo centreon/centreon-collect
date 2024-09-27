@@ -173,12 +173,21 @@ database_config::database_config(
             _config_logger->error("Unable to resolve the vault server '{}'",
                                   url);
           else {
-            http_config::pointer client_conf =
-                std::make_shared<http_config>(results, "vault server", true);
+            http_config::pointer client_conf = std::make_shared<http_config>(
+                results, url, true, std::chrono::seconds(10),
+                std::chrono::seconds(30), std::chrono::seconds(30), 30,
+                std::chrono::seconds(10), 5, std::chrono::hours(1), 1,
+                asio::ssl::context_base::tlsv12_client);
             connection_creator conn_creator = [client_conf,
                                                logger = _config_logger]() {
+              auto ssl_init = [](asio::ssl::context& ctx,
+                                 const http_config::pointer& conf
+                                 [[maybe_unused]]) {
+                ctx.set_verify_mode(asio::ssl::context::verify_peer);
+                ctx.set_default_verify_paths();
+              };
               return https_connection::load(common::pool::io_context_ptr(),
-                                            logger, client_conf);
+                                            logger, client_conf, ssl_init);
             };
             auto client =
                 client::load(common::pool::io_context_ptr(), _config_logger,
@@ -193,7 +202,12 @@ database_config::database_config(
                                   const boost::beast::error_code& err,
                                   const std::string& detail,
                                   const response_ptr& response) mutable {
-              logger->info("We got a response");
+              if (err && err != boost::asio::ssl::error::stream_truncated) {
+                logger->error("Error from http server: {}", err.message());
+              } else {
+                logger->info("We got a response: detail = {} ; response = {}",
+                             detail, response ? response->body() : "nullptr");
+              }
             });
           }
         } else

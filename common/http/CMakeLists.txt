@@ -45,5 +45,6 @@ if(WITH_TESTING)
     ${TEST_DIR}/http_client_test.cc
     ${TEST_DIR}/http_connection_test.cc
     ${TEST_DIR}/http_server_test.cc
+    ${TEST_DIR}/vault_test.cc
     PARENT_SCOPE)
 endif(WITH_TESTING)

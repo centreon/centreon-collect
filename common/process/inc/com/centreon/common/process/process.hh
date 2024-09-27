@@ -48,7 +48,7 @@ class mutex<false> {};
 template <>
 class lock<false> {
  public:
-  lock(mutex<false>* dummy_mut) {}
+  lock(mutex<false>* /* dummy_mut*/) {}
 };
 
 }  // namespace detail

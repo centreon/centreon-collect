@@ -356,6 +356,7 @@ message EngineHost {
     UNREACHABLE = 2;
   }
   State current_state = 6;
+  uint32 total_services = 7;
 }
 
 message ContactIdentifier {

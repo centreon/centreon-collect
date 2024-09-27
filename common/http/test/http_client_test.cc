@@ -99,11 +99,12 @@ class connection_ok : public connection_base {
     ++_request_counter;
   }
 
-  void _on_accept(connect_callback_type&& callback) override {}
+  void _on_accept(connect_callback_type&& callback [[maybe_unused]]) override {}
 
-  void answer(const response_ptr& response,
-              answer_callback_type&& callback) override {}
-  void receive_request(request_callback_type&& callback) override {}
+  void answer(const response_ptr& response [[maybe_unused]],
+              answer_callback_type&& callback [[maybe_unused]]) override {}
+  void receive_request(request_callback_type&& callback
+                       [[maybe_unused]]) override {}
 
   asio::ip::tcp::socket& get_socket() override { return _useless; }
 };

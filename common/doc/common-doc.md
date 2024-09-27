@@ -15,7 +15,7 @@ After a fork, only caller thread is activated in child process, so we mustn't jo
 
 
 ## Grpc
-The goal of the two classes provided, grpc_server_base and grpc_client_base is to create server or channel in order to use it with grpc generated services such as exchange in broker grpc module. 
+The goal of the two classes provided, grpc_server_base and grpc_client_base is to create server or channel in order to use it with grpc generated services such as exchange in broker grpc module.
 * `grpc_server_base` creates a ::grpc::server object. You can register service with third constructor parameter builder_option.
 * `grpc_client_base` creates a ::grpc::channel that can be used to create a stub.
 
@@ -120,9 +120,9 @@ All is asynchronous, child process end of life is notified to on_process_end met
 
 You have 4 constructors that allow user to pass executable arguments in four different ways. On of them accept a string command line with exe and arguments
 
-In order to use this, you have to inherit from this class
+To be able to use all the possibilities of the process class, you have to inherit from it.
 
-An example of usage:
+Here is an example of an inheritence:
 ```c++
 class process_wait : public process {
   std::condition_variable _cond;
@@ -173,11 +173,34 @@ class process_wait : public process {
     _cond.wait(l);
   }
 };
+```
 
+The `process` class can be used alone to execute a program directly in an asynchron way.
+
+Here is another practical example:
+
+```
+#include "com/centreon/common/process/process.hh"
+
+void do_stuff() {
+  /* process must be a shared_ptr. */
+  auto p = std::make_shared<process<false>>(g_io_context, _logger,
+                            "/usr/bin/perl " HTTP_TEST_DIR "/vault-server.pl");
+
+  /* Here the process is started. */
+  p->start_process(false);
+
+  /* Now, while the process is running, we can do our work. */
+  my_function_that_exchanges_with_process();
+  my_other_function_that_doesnt_work_with_process();
+
+  /* When all the stuff is done, we can stop p */
+  p->kill();
+}
 ```
 
 ### Asio bug work around
-There is an issue in io_context::notify_fork. Internally, ctx.notify_fork calls epoll_reactor::notify_fork which locks registered_descriptors_mutex_. An issue occurs when registered_descriptors_mutex_ is locked by another thread at fork timepoint. 
+There is an issue in io_context::notify_fork. Internally, ctx.notify_fork calls epoll_reactor::notify_fork which locks registered_descriptors_mutex_. An issue occurs when registered_descriptors_mutex_ is locked by another thread at fork timepoint.
 In such a case, child process starts with registered_descriptors_mutex_ already locked and both child and parent process will hang.
 
 ## Engine configuration

@@ -16,7 +16,6 @@
 # For more information : contact@centreon.com
 #
 
-
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_executable(ut_common
     process_stat_test.cc
@@ -37,6 +36,8 @@ else()
     utf8_test.cc
     ${TESTS_SOURCES})
 endif()
+
+target_compile_definitions(ut_common PUBLIC -DHTTP_TEST_DIR="${PROJECT_SOURCE_DIR}/http/test")
 
 set_target_properties(
   ut_common
