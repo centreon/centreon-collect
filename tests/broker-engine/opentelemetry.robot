@@ -292,8 +292,12 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_CRYPTED
 BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
     [Documentation]    we configure engine with a telegraf conf server and we check telegraf conf file
     [Tags]    broker    engine    opentelemetry    mon-35539
-    Ctn Create Key And Certificate    localhost    /tmp/otel/server.key    /tmp/otel/server.crt
-    Ctn Config Engine    ${1}    ${3}    ${2}
+
+    Empty Directory    /etc/centreon-engine-whitelist
+    ${whitelist_content}    Catenate   {"whitelist":{"wildcard":["/usr/lib/nagios/plugins/check_icmp *"]}}
+    Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
+
+    Ctn Config Engine    ${1}    ${3}    ${3}
     Ctn Add Otl ServerModule
     ...    0
     ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "telegraf_conf_server": {"http_server": {"port": 1443, "encryption": false}, "engine_otel_endpoint": "127.0.0.1:4317"}}
@@ -313,6 +317,13 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
     ...    ${0}
     ...    otel_check_icmp_serv_2
     ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.2
+    ...    OTEL connector
+
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_command    otel_check_icmp_serv_3
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_serv_3
+    ...    rejected_by_whitelist
     ...    OTEL connector
 
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp_host_1
@@ -363,6 +374,11 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
     Should Be True
     ...    ${content_compare_result}
     ...    unexpected telegraf server response: ${telegraf_conf_response.text}
+
+    ${content}    Create List    service_3: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "service 3 blacklisted unavailable."
+
 
 *** Keywords ***
 Ctn Create Otl Request
