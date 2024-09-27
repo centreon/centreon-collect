@@ -293,6 +293,7 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
     [Documentation]    we configure engine with a telegraf conf server and we check telegraf conf file
     [Tags]    broker    engine    opentelemetry    mon-35539
 
+    Create Directory    /etc/centreon-engine-whitelist
     Empty Directory    /etc/centreon-engine-whitelist
     ${whitelist_content}    Catenate   {"whitelist":{"wildcard":["/usr/lib/nagios/plugins/check_icmp *"]}}
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
