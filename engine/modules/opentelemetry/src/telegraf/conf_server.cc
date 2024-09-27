@@ -318,8 +318,10 @@ void conf_session<connection_class>::answer_to_request(
   interval = "{}s"
 
 )",
-
                              _telegraf_conf->get_check_interval());
+
+  whitelist_cache wcache;
+
   bool at_least_one_found = get_otel_commands(
       host,
       [this, &resp, &host](const std::string& cmd_name,
@@ -329,7 +331,7 @@ void conf_session<connection_class>::answer_to_request(
         return _otel_connector_to_stream(cmd_name, cmd_line, host, service,
                                          resp->body());
       },
-      this->_logger);
+      wcache, this->_logger);
 
   if (at_least_one_found) {
     resp->result(boost::beast::http::status::ok);
