@@ -73,8 +73,6 @@ class conf_session : public connection_class {
   void answer_to_request(const std::shared_ptr<http::request_type>& request,
                          const std::string& host);
 
-  bool _get_commands(const std::string& host_name, std::string& request_body);
-
   bool _otel_connector_to_stream(const std::string& cmd_name,
                                  const std::string& cmd_line,
                                  const std::string& host,
