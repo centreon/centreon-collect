@@ -72,7 +72,8 @@ else {
 
 cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=On -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=dynamic -DBUILD_SHARED_LIBS=OFF -Bbuild_windows
 
-Write-Host "build agent and tests"
+
+Write-Host "------------- build agent and installer ---------------"
 
 cmake --build build_windows --config Release
 

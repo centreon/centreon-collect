@@ -6,6 +6,13 @@ concurrency:
 
 on:
   workflow_dispatch:
+    inputs:
+      installer_in_artifact:
+        description: 'Save installer and binary in artifacts'
+        required: true
+        default: false
+        type: boolean
+
   pull_request:
     paths:
       - agent/**
@@ -61,27 +68,15 @@ jobs:
           cd build_windows
           tests/ut_agent
 
-      - name: Zip agent
-        run: |
-          $files_to_compress = "agent\conf\centagent.reg", "build_windows\agent\Release\centagent.exe"
-          Compress-Archive -Path $files_to_compress -DestinationPath centreon-monitoring-agent.zip
-
-      - name: Save agent package in cache
-        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
-        with:
-          path: centreon-monitoring-agent.zip
-          key: ${{ github.run_id }}-${{ github.sha }}-CMA-${{ github.head_ref || github.ref_name }}
-          enableCrossOsArchive: ${{ true }}
-
       - name: Upload package artifacts
         if: |
-          github.event_name != 'workflow_dispatch' &&
+          inputs.installer_in_artifact == true ||
+          (github.event_name != 'workflow_dispatch' &&
           contains(fromJson('["stable"]'), needs.get-version.outputs.stability) &&
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
-          ! contains(needs.*.result, 'cancelled')
+          ! contains(needs.*.result, 'cancelled'))
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: packages-centreon-monitoring-agent-windows
-          path: centreon-monitoring-agent.zip
-          retention-days: 1
+          path: agent\installer\centreon-monitoring-agent.exe

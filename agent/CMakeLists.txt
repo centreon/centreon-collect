@@ -98,6 +98,7 @@ add_custom_command(
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 
+
 set( SRC_COMMON
   ${SRC_DIR}/agent.grpc.pb.cc
   ${SRC_DIR}/agent.pb.cc
@@ -122,6 +123,9 @@ set( SRC_LINUX
   ${SRC_DIR}/config.cc
 )
 
+#resource version
+configure_file("${SRC_DIR}/agent.rc.in"
+              "${SRC_DIR}/agent.rc")
 configure_file("${INCLUDE_DIR}/version.hh.in"
                "${INCLUDE_DIR}/version.hh")
 
@@ -165,7 +169,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     fmt::fmt
     stdc++fs)
 else()
-  add_executable(${CENTREON_AGENT} ${SRC_DIR}/main_win.cc)
+  add_executable(${CENTREON_AGENT} ${SRC_DIR}/main_win.cc  ${SRC_DIR}/agent.rc)
 
   target_link_libraries(
     ${CENTREON_AGENT} PRIVATE
@@ -177,6 +181,9 @@ else()
     absl::any absl::log absl::base absl::bits
     Boost::program_options
     fmt::fmt)
+
+    add_subdirectory(installer)
+
 endif()
 
 
