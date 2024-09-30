@@ -205,7 +205,7 @@ jobs:
           echo "release_cloud=$GITHUB_RELEASE_CLOUD" >> $GITHUB_OUTPUT
 
           case "$BRANCHNAME" in
-            develop | dev-[2-9][0-9].[0-9][0-9].x | prepare-release-cloud*)
+            develop | dev-[2-9][0-9].[0-9][0-9].x | prepare-release-cloud*|prepare-cloud-release-2410)
               STABILITY="unstable"
               ENV="development"
               ;;
