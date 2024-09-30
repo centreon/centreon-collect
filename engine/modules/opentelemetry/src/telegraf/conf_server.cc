@@ -295,76 +295,6 @@ bool conf_session<connection_class>::_otel_connector_to_stream(
 }
 
 /**
- * @brief Get all opentelemetry commands from an host and add its to
- * configuration response
- *
- * @param host
- * @param request_body conf to append
- * @return true at least one opentelemetry command was found
- * @return false
- */
-template <class connection_class>
-bool conf_session<connection_class>::_get_commands(const std::string& host_name,
-                                                   std::string& request_body) {
-  auto use_otl_command = [](const checkable& to_test) -> bool {
-    if (to_test.get_check_command_ptr()->get_type() ==
-        commands::command::e_type::otel)
-      return true;
-    if (to_test.get_check_command_ptr()->get_type() ==
-        commands::command::e_type::forward) {
-      return std::static_pointer_cast<commands::forward>(
-                 to_test.get_check_command_ptr())
-                 ->get_sub_command()
-                 ->get_type() == commands::command::e_type::otel;
-    }
-    return false;
-  };
-
-  bool ret = false;
-  auto hst_iter = host::hosts.find(host_name);
-  if (hst_iter == host::hosts.end()) {
-    SPDLOG_LOGGER_ERROR(this->_logger, "unknown host:{}", host_name);
-    return false;
-  }
-  std::shared_ptr<host> hst = hst_iter->second;
-  std::string cmd_line;
-  // host check use otl?
-  if (use_otl_command(*hst)) {
-    nagios_macros* macros(get_global_macros());
-
-    ret |= _otel_connector_to_stream(hst->check_command(),
-                                     hst->get_check_command_line(macros),
-                                     hst->name(), "", request_body);
-    clear_volatile_macros_r(macros);
-  } else {
-    SPDLOG_LOGGER_DEBUG(this->_logger,
-                        "host {} doesn't use telegraf to do his check",
-                        host_name);
-  }
-
-  // services of host
-  auto serv_iter = service::services_by_id.lower_bound({hst->host_id(), 0});
-  for (; serv_iter != service::services_by_id.end() &&
-         serv_iter->first.first == hst->host_id();
-       ++serv_iter) {
-    std::shared_ptr<service> serv = serv_iter->second;
-    if (use_otl_command(*serv)) {
-      nagios_macros* macros(get_global_macros());
-      ret |= _otel_connector_to_stream(
-          serv->check_command(), serv->get_check_command_line(macros),
-          serv->get_hostname(), serv->name(), request_body);
-      clear_volatile_macros_r(macros);
-    } else {
-      SPDLOG_LOGGER_DEBUG(
-          this->_logger,
-          "host {} service {} doesn't use telegraf to do his check", host_name,
-          serv->name());
-    }
-  }
-  return ret;
-}
-
-/**
  * @brief construct and send conf to telegraf
  * As it uses host, services and command list, it must be called in the main
  * thread
@@ -389,7 +319,20 @@ void conf_session<connection_class>::answer_to_request(
 
 )",
                              _telegraf_conf->get_check_interval());
-  bool at_least_one_found = _get_commands(host, resp->body());
+
+  whitelist_cache wcache;
+
+  bool at_least_one_found = get_otel_commands(
+      host,
+      [this, &resp, &host](const std::string& cmd_name,
+                           const std::string& cmd_line,
+                           const std::string& service,
+                           const std::shared_ptr<spdlog::logger>& logger) {
+        return _otel_connector_to_stream(cmd_name, cmd_line, host, service,
+                                         resp->body());
+      },
+      wcache, this->_logger);
+
   if (at_least_one_found) {
     resp->result(boost::beast::http::status::ok);
     resp->insert(boost::beast::http::field::content_type, "text/plain");
