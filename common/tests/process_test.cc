@@ -44,7 +44,7 @@ class process_test : public ::testing::Test {
   }
 };
 
-class process_wait : public process {
+class process_wait : public process<> {
   std::mutex _cond_m;
   std::condition_variable _cond;
   std::string _stdout;
