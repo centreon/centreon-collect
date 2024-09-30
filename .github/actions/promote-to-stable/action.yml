@@ -162,7 +162,7 @@ runs:
             ARTIFACT_SEARCH_PATTERN=".+\.deb"
             ;;
           *)
-            ARTIFACT_SEARCH_PATTERN=".+${{ inputs.distrib }}.+\.deb"
+            ARTIFACT_SEARCH_PATTERN=".+${{ steps.parse-distrib.outputs.package_distrib_name }}.+\.deb"
             ;;
         esac
 
