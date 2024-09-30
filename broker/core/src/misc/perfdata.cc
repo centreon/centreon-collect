@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/misc/perfdata.hh"
-
 #include <cmath>
 
 using namespace com::centreon::broker::misc;

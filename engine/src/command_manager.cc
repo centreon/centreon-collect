@@ -138,6 +138,12 @@ int command_manager::process_passive_service_check(
   if (!found->second->passive_checks_enabled())
     return ERROR;
 
+  SPDLOG_LOGGER_DEBUG(log_v2::runtime(),
+                      "process_passive_service_check check_time={}, "
+                      "host_name={}, service={}, return_code={}, output={}",
+                      check_time, host_name, svc_description, return_code,
+                      output);
+
   timeval tv;
   gettimeofday(&tv, nullptr);
 

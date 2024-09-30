@@ -37,6 +37,6 @@ cp -r packaging/debian debian
 sed -i "s/^centreon:version=.*$/centreon:version=$(echo $VERSION-$RELEASE)/" debian/substvars
 sed -i "s/^centreon:versionThreshold=.*$/centreon:versionThreshold=$(echo $MAJOR_THRESHOLD | egrep -o '^[0-9][0-9].[0-9][0-9]')/" debian/substvars
 
-debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$RELEASE"
+debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -y -r "$RELEASE"
 
 debuild-pbuilder
