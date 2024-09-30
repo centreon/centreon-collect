@@ -16,6 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
+#include <absl/container/flat_hash_set.h>
+#include <absl/strings/string_view.h>
 #include <cctype>
 #include <cfloat>
 #include <cmath>
@@ -127,6 +129,8 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
                                          uint32_t service_id,
                                          const char* str) {
   std::list<perfdata> retval;
+  absl::flat_hash_set<absl::string_view> metric_name;
+  absl::string_view current_name;
   auto id = [host_id, service_id] {
     if (host_id || service_id)
       return fmt::format("({}:{})", host_id, service_id);
@@ -203,11 +207,20 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
     }
 
     if (end - s + 1 > 0) {
+      current_name = absl::string_view(s, end - s + 1);
       std::string name(s, end - s + 1);
-      name.resize(misc::string::adjust_size_utf8(
-          name, get_centreon_storage_metrics_col_size(
-                    centreon_storage_metrics_metric_name)));
-      p.name(std::move(name));
+      if (metric_name.contains(current_name)) {
+	log_v2::perfdata()->warn(
+            "storage: The metric '{}' appears several times in the output "
+            "\"{}\": you will lose any new occurence of this metric",
+            name, str);
+        error = true;
+      } else {
+        name.resize(misc::string::adjust_size_utf8(
+            name, get_centreon_storage_metrics_col_size(
+                      centreon_storage_metrics_metric_name)));
+        p.name(std::move(name));
+      }
     } else {
       log_v2::perfdata()->error(
           "In service {}, metric name empty before '{}...'", id(),
@@ -300,7 +313,8 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
         p.max());
 
     // Append to list.
-    retval.emplace_back(std::move(p));
+    metric_name.insert(current_name);
+    retval.push_back(std::move(p));
 
     // Skip whitespaces.
     while (isspace(*tmp))

@@ -1,0 +1,80 @@
+name: "deb-delivery"
+description: "Package deb packages"
+inputs:
+  module_name:
+    description: "The package module name"
+    required: true
+  distrib:
+    description: "The distribution used for packaging"
+    required: true
+  version:
+    description: "Centreon packaged major version"
+    required: true
+  cache_key:
+    description: "The cached package key"
+    required: true
+  stability:
+    description: "The package stability (stable, testing, unstable)"
+    required: true
+  artifactory_token:
+    description: "Artifactory token"
+    required: true
+  release_type:
+    description: "Type of release (hotfix, release)"
+    required: true
+  release_cloud:
+    description: "Release context (cloud or not cloud)"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Use cache DEB files
+      uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+      with:
+        path: ./*.deb
+        key: ${{ inputs.cache_key }}
+        fail-on-cache-miss: true
+
+    - uses: jfrog/setup-jfrog-cli@0f30b43d62ccad81fba40748d2c671c4665b2d27 # v3.5.3
+      env:
+        JF_URL: https://centreon.jfrog.io
+        JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
+
+    - name: Publish DEBs
+      run: |
+        FILES="*.deb"
+
+        # DEBUG
+        echo "[DEBUG] - Version: ${{ inputs.version }}"
+        echo "[DEBUG] - Distrib: ${{ inputs.distrib }}"
+        echo "[DEBUG] - module_name: ${{ inputs.module_name }}"
+        echo "[DEBUG] - release_cloud: ${{ inputs.release_cloud }}"
+        echo "[DEBUG] - release_type: ${{ inputs.release_type }}"
+        echo "[DEBUG] - stability: ${{ inputs.stability }}"
+
+        # Make sure all required inputs are NOT empty
+        if [[ -z "${{ inputs.module_name }}" || -z "${{ inputs.distrib }}" || -z ${{ inputs.stability }} || -z ${{ inputs.version }} || -z ${{ inputs.release_cloud }} || -z ${{ inputs.release_type }} ]]; then
+          echo "Some mandatory inputs are empty, please check the logs."
+          exit 1
+        fi
+
+        # Handle either standard debian or ubuntu repository path
+        if [[ "${{ inputs.distrib }}" == "jammy" ]]; then
+          ROOT_REPO_PATH="ubuntu-standard-${{ inputs.version }}-${{ inputs.stability }}"
+        else
+          ROOT_REPO_PATH="apt-standard-${{ inputs.version }}-${{ inputs.stability }}"
+        fi
+
+        for FILE in $FILES; do
+          echo "[DEBUG] - File: $FILE"
+
+          VERSION=${{ inputs.version }}
+          DISTRIB=$(echo $FILE | cut -d '_' -f2 | cut -d '-' -f2)
+          ARCH=$(echo $FILE | cut -d '_' -f3 | cut -d '.' -f1)
+
+          echo "[DEBUG] - Version: $VERSION"
+
+          jf rt upload "$FILE" "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH" --flat
+        done
+      shell: bash
