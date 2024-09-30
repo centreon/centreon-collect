@@ -34,6 +34,12 @@ runs:
         JF_URL: https://centreon.jfrog.io
         JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
 
+    - name: Parse distrib name
+      id: parse-distrib
+      uses: ./.github/actions/parse-distrib
+      with:
+        distrib: ${{ inputs.distrib }}
+
     - name: Promote RPM packages to stable
       if: ${{ startsWith(inputs.distrib, 'el') }}
       run: |
@@ -128,7 +134,7 @@ runs:
             SRC_PATHS=$(jf rt search --include-dirs $ROOT_REPO_PATH-testing/pool/${{ inputs.module_name }}/*.deb | jq -r '.[].path')
             ;;
           *)
-            SRC_PATHS=$(jf rt search --include-dirs $ROOT_REPO_PATH-testing/pool/${{ inputs.module_name }}/*${{ inputs.distrib }}*.deb | jq -r '.[].path')
+            SRC_PATHS=$(jf rt search --include-dirs $ROOT_REPO_PATH-testing/pool/${{ inputs.module_name }}/*${{ steps.parse-distrib.outputs.package_distrib_name }}*.deb | jq -r '.[].path')
             ;;
         esac
 
@@ -137,8 +143,8 @@ runs:
             echo "[DEBUG] - Source path found: $SRC_PATH"
           done
         else
-          echo "[DEBUG] - No source path found."
-          continue
+          echo "::warning::No source path found."
+          exit 0
         fi
 
         echo "[DEBUG] - Build target path."
@@ -172,5 +178,4 @@ runs:
         done
 
         rm -f *.deb
-
       shell: bash
