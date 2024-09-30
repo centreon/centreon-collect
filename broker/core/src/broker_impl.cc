@@ -22,16 +22,17 @@
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/misc/aes256.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
 #include "com/centreon/common/process_stat.hh"
+#include "common/crypto/aes256.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::version;
+using com::centreon::common::crypto::aes256;
 using com::centreon::common::log_v2::log_v2;
 
 /**
@@ -405,7 +406,7 @@ grpc::Status broker_impl::Aes256Encrypt(grpc::ServerContext* context
   std::string second_key = request->salt();
 
   try {
-    misc::aes256 access(first_key, second_key);
+    aes256 access(first_key, second_key);
     std::string result = access.encrypt(request->content());
     response->set_str_arg(result);
     return grpc::Status::OK;
@@ -422,7 +423,7 @@ grpc::Status broker_impl::Aes256Decrypt(grpc::ServerContext* context
   std::string second_key = request->salt();
 
   try {
-    misc::aes256 access(first_key, second_key);
+    aes256 access(first_key, second_key);
     std::string result = access.decrypt(request->content());
     response->set_str_arg(result);
     return grpc::Status::OK;

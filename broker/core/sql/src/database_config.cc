@@ -22,11 +22,11 @@
 #include <boost/beast.hpp>
 #include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/exceptions/config.hh"
-#include "com/centreon/broker/misc/aes256.hh"
 #include "com/centreon/common/http/http_client.hh"
 #include "com/centreon/common/http/http_config.hh"
 #include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/crypto/aes256.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -161,7 +161,7 @@ database_config::database_config(
             vault_configuration.contains("port") &&
             vault_configuration.contains("root_path")) {
           const std::string& second_key = vault_configuration["salt"];
-          misc::aes256 access(first_key, second_key);
+          common::crypto::aes256 access(first_key, second_key);
           role_id = access.decrypt(vault_configuration["role_id"]);
           secret_id = access.decrypt(vault_configuration["secret_id"]);
           url = vault_configuration["url"];

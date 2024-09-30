@@ -81,6 +81,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_subdirectory(http)
 endif()
 
+add_subdirectory(crypto)
 add_subdirectory(grpc)
 add_subdirectory(process)
 

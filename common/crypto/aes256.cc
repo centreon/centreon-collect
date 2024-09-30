@@ -22,12 +22,11 @@
 #include <openssl/rand.h>
 #include <openssl/sha.h>
 
-#include "com/centreon/broker/misc/aes256.hh"
-#include "com/centreon/broker/misc/string.hh"
+#include "aes256.hh"
+#include "base64.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-using namespace com::centreon::broker::misc;
-using namespace com::centreon;
+namespace com::centreon::common::crypto {
 
 /**
  * @brief The aes256 constructor. Th
@@ -35,8 +34,8 @@ using namespace com::centreon;
  * @param second_key
  */
 aes256::aes256(const std::string& first_key, const std::string& second_key)
-    : _first_key{string::base64_decode(first_key)},
-      _second_key(string::base64_decode(second_key)) {
+    : _first_key{base64_decode(first_key)},
+      _second_key(base64_decode(second_key)) {
   if (_first_key.size() != 32)
     throw exceptions::msg_fmt(
         "the key for aes256 must have a size of 256 bits and not {}",
@@ -108,11 +107,11 @@ std::string aes256::encrypt(const std::string& input) {
         "Error during the message authentication code computation");
   assert(output_len == 64);
 
-  return string::base64_encode(result);
+  return base64_encode(result);
 }
 
 std::string aes256::decrypt(const std::string& input) {
-  std::string mix = string::base64_decode(input);
+  std::string mix = base64_decode(input);
 
   const int iv_length = EVP_CIPHER_iv_length(EVP_aes_256_cbc());
   if (iv_length <= 0) {
@@ -182,3 +181,5 @@ std::string aes256::decrypt(const std::string& input) {
 
   return std::string();
 }
+
+}  // namespace com::centreon::common::crypto

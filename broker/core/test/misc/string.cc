@@ -49,29 +49,6 @@ TEST(StringSplit, ManyPart) {
   ASSERT_EQ(lst, res);
 }
 
-TEST(StringBase64, Encode) {
-  ASSERT_EQ(string::base64_encode("A first little attempt."),
-            "QSBmaXJzdCBsaXR0bGUgYXR0ZW1wdC4=");
-  ASSERT_EQ(string::base64_encode("A"), "QQ==");
-  ASSERT_EQ(string::base64_encode("AB"), "QUI=");
-  ASSERT_EQ(string::base64_encode("ABC"), "QUJD");
-}
-
-TEST(StringBase64, Decode) {
-  ASSERT_EQ(
-      string::base64_decode(string::base64_encode("A first little attempt.")),
-      "A first little attempt.");
-  ASSERT_EQ(
-      string::base64_decode(string::base64_encode(
-          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")),
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
-  ASSERT_EQ(string::base64_decode(string::base64_encode("a")), "a");
-  ASSERT_EQ(string::base64_decode(string::base64_encode("ab")), "ab");
-  ASSERT_EQ(string::base64_decode(string::base64_encode("abc")), "abc");
-  std::string str("告'警'数\\量");
-  ASSERT_EQ(string::base64_decode(string::base64_encode(str)), str);
-}
-
 TEST(escape, simple) {
   ASSERT_EQ("Hello", string::escape("Hello", 10));
   ASSERT_EQ("Hello", string::escape("Hello", 5));
