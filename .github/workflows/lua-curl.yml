@@ -48,12 +48,6 @@ jobs:
             runner: ubuntu-24.04
             arch: amd64
           - package_extension: deb
-            image: centreon-collect-debian-bullseye
-            distrib: bullseye
-            lua_version: 5.3
-            runner: ubuntu-24.04
-            arch: amd64
-          - package_extension: deb
             image: centreon-collect-debian-bookworm
             distrib: bookworm
             lua_version: 5.3
@@ -65,12 +59,6 @@ jobs:
             lua_version: 5.3
             runner: ubuntu-24.04
             arch: amd64
-          - package_extension: deb
-            image: centreon-collect-debian-bullseye-arm64
-            distrib: bullseye
-            lua_version: 5.3
-            runner: ["self-hosted", "collect-arm64"]
-            arch: arm64
           - package_extension: deb
             image: centreon-collect-debian-bookworm-arm64
             distrib: bookworm
@@ -176,10 +164,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: bullseye
-            arch: amd64
-          - distrib: bullseye
-            arch: arm64
           - distrib: bookworm
             arch: amd64
           - distrib: jammy
@@ -212,7 +196,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm]
+        distrib: [el8, el9, bookworm]
 
     steps:
       - name: Checkout sources
