@@ -107,6 +107,9 @@ jobs:
     name: package ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
       - name: Parse distrib name
         id: parse-distrib
         uses: ./.github/actions/parse-distrib
