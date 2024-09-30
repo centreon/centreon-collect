@@ -1,15 +1,15 @@
 %define selinuxdevel %{_datadir}/selinux/devel
 
 Name:       centreon-gorgone
-Version:    23.04.15
+Version:    23.04.16
 Release:    %{PACKAGE_RELEASE}%{?dist}
 Summary:    Perl daemon task handlers
 Group:      Applications/System
 License:    Apache-2.0
 URL:        http://www.centreon.com
-Source0:    %{name}-%{version}.tar.gz
+Source0:    gorgone-%{version}.tar.gz
 BuildArch:  noarch
-BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildRoot:  %{_tmppath}/gorgone-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires: perl-devel
 
@@ -43,6 +43,7 @@ Requires:   perl(Clone)
 Requires:   perl(Sys::Syslog)
 Requires:   perl(DateTime)
 Requires:   perl(Try::Tiny)
+Requires:   perl(lib)
 Requires:   tar
 AutoReqProv: no
 
@@ -71,7 +72,7 @@ Requires:   centreon-common-selinux
 SElinux context for centreon-gorgoned.
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q -n gorgone-%{version}
 
 %build
 
